@@ -1,0 +1,58 @@
+name: TimeMaster
+options:
+  bundleIdPrefix: com.timemaster
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    GENERATE_INFOPLIST_FILE: YES
+
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation
+    from: "0.9.0"
+
+targets:
+  TimeMaster:
+    type: application
+    platform: iOS
+    sources:
+      - path: TimeMaster
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - package: ZIPFoundation
+    settings:
+      base:
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_NSCameraUsageDescription: "Time-Master needs camera access to take photos of your exercises"
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Time-Master needs photo library access to add photos of your exercises"
+        INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
+schemes:
+  TimeMaster:
+    build:
+      targets:
+        TimeMaster: all
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

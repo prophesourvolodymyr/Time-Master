@@ -1,0 +1,532 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */; };
+		11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
+		20F019992B3164F1D0AA6505 /* DatabaseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */; };
+		26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */; };
+		2E0C54F31F1BD8B352CE6FF1 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */; };
+		3098DC6341C897F9D10C082F /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */; };
+		355D53015A74800EB1032FB4 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F807BCDB518D68ED40746740 /* Theme.swift */; };
+		36662D83C3CB3D8D357DEB4C /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 85E2120C60EC88EBCAB370DF /* ZIPFoundation */; };
+		5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811BB55E3BD88B54CD74BF4C /* HistoryView.swift */; };
+		5F9122497A6B1D0BA5D17E14 /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */; };
+		72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */; };
+		772385FE936467AA631F28E3 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C /* Workout.swift */; };
+		8774DCE1AA5D3C75471D2821 /* WorkoutHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */; };
+		8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
+		915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A /* PhotoManager.swift */; };
+		A52B57AED83D34523ACF7433 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3323F148BE5A75196E090AC /* MainTabView.swift */; };
+		A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C588F8747756505B157DFC /* SectionEditorView.swift */; };
+		C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
+		CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */; };
+		D205311183C797669AC83F2E /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */; };
+		DF365B3329D18015F0D078D8 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26870953ABC5C4610D424C6 /* AudioManager.swift */; };
+		E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseDatabase.swift; sourceTree = "<group>"; };
+		15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseStore.swift; sourceTree = "<group>"; };
+		21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSectionPickerView.swift; sourceTree = "<group>"; };
+		282193241415BB7A32B3786C /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
+		42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistory.swift; sourceTree = "<group>"; };
+		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
+		552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterApp.swift; sourceTree = "<group>"; };
+		604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutStore.swift; sourceTree = "<group>"; };
+		618A088E13FA1540299DFDE1 /* WorkoutCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCard.swift; sourceTree = "<group>"; };
+		69344764F8B3AC313FF4CBC5 /* TimeMaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TimeMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		811BB55E3BD88B54CD74BF4C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlayerView.swift; sourceTree = "<group>"; };
+		B26870953ABC5C4610D424C6 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
+		B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionRow.swift; sourceTree = "<group>"; };
+		C66B50B0364426A1FB53608A /* PhotoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoManager.swift; sourceTree = "<group>"; };
+		CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
+		E3323F148BE5A75196E090AC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		F807BCDB518D68ED40746740 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListView.swift; sourceTree = "<group>"; };
+		FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		EA98384D619F1909881D5453 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				36662D83C3CB3D8D357DEB4C /* ZIPFoundation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1FF12E5694591672653BC22B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */,
+				282193241415BB7A32B3786C /* Workout.swift */,
+				42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		26FA13129B845B5C3499F3CB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				69344764F8B3AC313FF4CBC5 /* TimeMaster.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		292CD1F86597AFEEB040B9C0 /* History */ = {
+			isa = PBXGroup;
+			children = (
+				811BB55E3BD88B54CD74BF4C /* HistoryView.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+		2B716F96FC83CC5B167F3C6E /* App */ = {
+			isa = PBXGroup;
+			children = (
+				552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		2BDBBAF7F873D8DF1820C983 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4CF0096279C5C397D6B69421 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		35A54AE4B141791F78BE29C4 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				B26870953ABC5C4610D424C6 /* AudioManager.swift */,
+				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
+				F807BCDB518D68ED40746740 /* Theme.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		36739A7D9D5BF1203FCD3C10 /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		43DF0E6BD7C41C81366F761F /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				E3323F148BE5A75196E090AC /* MainTabView.swift */,
+				36739A7D9D5BF1203FCD3C10 /* Analytics */,
+				D484AE590F5911664457F560 /* Database */,
+				292CD1F86597AFEEB040B9C0 /* History */,
+				7CB83DA7936F4F5337347E13 /* Player */,
+				6701375A98AD8D3D135B5394 /* WorkoutDetail */,
+				4C8A4446813C950238345C32 /* WorkoutList */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		4C8A4446813C950238345C32 /* WorkoutList */ = {
+			isa = PBXGroup;
+			children = (
+				618A088E13FA1540299DFDE1 /* WorkoutCard.swift */,
+				F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */,
+			);
+			path = WorkoutList;
+			sourceTree = "<group>";
+		};
+		6701375A98AD8D3D135B5394 /* WorkoutDetail */ = {
+			isa = PBXGroup;
+			children = (
+				50C588F8747756505B157DFC /* SectionEditorView.swift */,
+				B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */,
+				CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */,
+			);
+			path = WorkoutDetail;
+			sourceTree = "<group>";
+		};
+		7CB83DA7936F4F5337347E13 /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */,
+			);
+			path = Player;
+			sourceTree = "<group>";
+		};
+		9116F4E669727A33B853D872 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
+				604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		9D2F50228B8AAEC8E808D0AA /* TimeMaster */ = {
+			isa = PBXGroup;
+			children = (
+				2B716F96FC83CC5B167F3C6E /* App */,
+				1FF12E5694591672653BC22B /* Models */,
+				2BDBBAF7F873D8DF1820C983 /* Resources */,
+				35A54AE4B141791F78BE29C4 /* Utilities */,
+				9116F4E669727A33B853D872 /* ViewModels */,
+				43DF0E6BD7C41C81366F761F /* Views */,
+			);
+			path = TimeMaster;
+			sourceTree = "<group>";
+		};
+		C70E59D4A6468EC75DF66FD0 = {
+			isa = PBXGroup;
+			children = (
+				9D2F50228B8AAEC8E808D0AA /* TimeMaster */,
+				26FA13129B845B5C3499F3CB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D484AE590F5911664457F560 /* Database */ = {
+			isa = PBXGroup;
+			children = (
+				21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */,
+				FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */,
+			);
+			path = Database;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A9869356E186BE43EA3A8C23 /* TimeMaster */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 811B5E660EBA8DD8F002C6EE /* Build configuration list for PBXNativeTarget "TimeMaster" */;
+			buildPhases = (
+				453A31AAC294959EF9BF7E01 /* Sources */,
+				207CBEF1CC8309A8ADCE88E0 /* Resources */,
+				EA98384D619F1909881D5453 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TimeMaster;
+			packageProductDependencies = (
+				85E2120C60EC88EBCAB370DF /* ZIPFoundation */,
+			);
+			productName = TimeMaster;
+			productReference = 69344764F8B3AC313FF4CBC5 /* TimeMaster.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A81F1550B5F09DC65B9D99F6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A9869356E186BE43EA3A8C23 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = BFEFEEF2CC629465516D4B34 /* Build configuration list for PBXProject "TimeMaster" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C70E59D4A6468EC75DF66FD0;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 26FA13129B845B5C3499F3CB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A9869356E186BE43EA3A8C23 /* TimeMaster */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		207CBEF1CC8309A8ADCE88E0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		453A31AAC294959EF9BF7E01 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D205311183C797669AC83F2E /* AnalyticsView.swift in Sources */,
+				DF365B3329D18015F0D078D8 /* AudioManager.swift in Sources */,
+				11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */,
+				20F019992B3164F1D0AA6505 /* DatabaseStore.swift in Sources */,
+				5F9122497A6B1D0BA5D17E14 /* DatabaseView.swift in Sources */,
+				E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */,
+				5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */,
+				A52B57AED83D34523ACF7433 /* MainTabView.swift in Sources */,
+				915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */,
+				A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */,
+				72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */,
+				355D53015A74800EB1032FB4 /* Theme.swift in Sources */,
+				26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */,
+				772385FE936467AA631F28E3 /* Workout.swift in Sources */,
+				8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */,
+				3098DC6341C897F9D10C082F /* WorkoutDetailView.swift in Sources */,
+				8774DCE1AA5D3C75471D2821 /* WorkoutHistory.swift in Sources */,
+				2E0C54F31F1BD8B352CE6FF1 /* WorkoutListView.swift in Sources */,
+				0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */,
+				CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		002D6AC69A41EBD5B8017E3B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		3049C22585F21DDBB31171CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		907C02B9A6891AB6B2320546 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.TimeMaster;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E61947F389A25D1A4A7B27BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.TimeMaster;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		811B5E660EBA8DD8F002C6EE /* Build configuration list for PBXNativeTarget "TimeMaster" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				907C02B9A6891AB6B2320546 /* Debug */,
+				E61947F389A25D1A4A7B27BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BFEFEEF2CC629465516D4B34 /* Build configuration list for PBXProject "TimeMaster" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				002D6AC69A41EBD5B8017E3B /* Debug */,
+				3049C22585F21DDBB31171CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		85E2120C60EC88EBCAB370DF /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A81F1550B5F09DC65B9D99F6 /* Project object */;
+}

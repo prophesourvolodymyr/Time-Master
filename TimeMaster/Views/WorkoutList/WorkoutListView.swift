@@ -1,0 +1,160 @@
+import SwiftUI
+
+struct WorkoutListView: View {
+    @EnvironmentObject var store: WorkoutStore
+    @State private var showingAddWorkout = false
+    @State private var newWorkoutName = ""
+    @State private var newWorkoutType: WorkoutType = .strength
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+
+                if store.workouts.isEmpty {
+                    emptyState
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(store.workouts) { workout in
+                                NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+                                    WorkoutCard(workout: workout)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                            .onDelete(perform: deleteWorkouts)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                    }
+                }
+            }
+            .navigationTitle("Workouts")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showingAddWorkout = true } label: {
+                        Image(systemName: "plus")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddWorkout) {
+                addWorkoutSheet
+            }
+        }
+    }
+
+    // MARK: - Sub-views
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "figure.run")
+                .font(.system(size: 60))
+                .foregroundColor(Theme.textSecondary)
+            Text("No Workouts Yet")
+                .font(.title2).fontWeight(.semibold)
+                .foregroundColor(Theme.textPrimary)
+            Text("Tap + to create your first workout")
+                .font(.subheadline)
+                .foregroundColor(Theme.textSecondary)
+        }
+    }
+
+    private var addWorkoutSheet: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Name")
+                            .font(.headline)
+                            .foregroundColor(Theme.textPrimary)
+                        TextField("e.g., Morning HIIT", text: $newWorkoutName)
+                            .padding(16)
+                            .background(Theme.surface)
+                            .cornerRadius(12)
+                            .foregroundColor(Theme.textPrimary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Type")
+                            .font(.headline)
+                            .foregroundColor(Theme.textPrimary)
+
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                            ForEach(WorkoutType.allCases, id: \.self) { type in
+                                Button {
+                                    newWorkoutType = type
+                                } label: {
+                                    HStack {
+                                        Image(systemName: type.icon)
+                                        Text(type.rawValue)
+                                    }
+                                    .font(.subheadline)
+                                    .fontWeight(newWorkoutType == type ? .semibold : .regular)
+                                    .foregroundColor(.white)
+                                    .padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(newWorkoutType == type ? Color.white.opacity(0.2) : Theme.surface)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(newWorkoutType == type ? Color.white : Color.clear, lineWidth: 1)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    Button {
+                        if !newWorkoutName.isEmpty {
+                            store.addWorkout(name: newWorkoutName, type: newWorkoutType)
+                            newWorkoutName = ""
+                            newWorkoutType = .strength
+                            showingAddWorkout = false
+                        }
+                    } label: {
+                        Text("Create Workout")
+                            .font(.headline)
+                            .foregroundColor(newWorkoutName.isEmpty ? Color.white.opacity(0.3) : .black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(newWorkoutName.isEmpty ? Theme.surface : Color.white)
+                            .cornerRadius(12)
+                    }
+                    .disabled(newWorkoutName.isEmpty)
+                }
+                .padding(16)
+            }
+            .navigationTitle("New Workout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        newWorkoutName = ""
+                        newWorkoutType = .strength
+                        showingAddWorkout = false
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+        }
+    }
+
+    // MARK: - Actions
+
+    private func deleteWorkouts(at offsets: IndexSet) {
+        for index in offsets {
+            store.deleteWorkout(store.workouts[index])
+        }
+    }
+}
+
+#Preview {
+    WorkoutListView()
+        .environmentObject(WorkoutStore())
+        .preferredColorScheme(.dark)
+}
