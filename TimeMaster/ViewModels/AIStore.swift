@@ -81,31 +81,55 @@ struct ChatSession: Codable, Identifiable {
 final class AIStore: ObservableObject {
     static let shared = AIStore()
 
-    // Sessions
+    // MARK: - Published state
+
     @Published var sessions: [ChatSession] = []
     @Published var currentSessionID: UUID  = UUID()
 
     // Network state
-    @Published var isLoading: Bool          = false
+    @Published var isLoading: Bool           = false
     @Published var availableModels: [String] = []
     @Published var isFetchingModels: Bool    = false
 
-    // Settings (UserDefaults)
-    @Published var baseURL: String    = "https://api.openai.com"
-    @Published var model: String      = "gpt-4o"
+    // Active provider & model
+    @Published var activeProviderID: String  = "openai"
+    @Published var customBaseURL: String     = ""   // used only when id == "custom"
+    @Published var model: String             = "gpt-4o"
+
+    // Personality + knowledge
     @Published var soulPrompt: String = "You are an expert fitness coach and training assistant inside the TimeMaster workout app. Be concise, motivating, and practical."
     @Published var knowledgeFilenames: [String] = []
 
-    // API key – Keychain + UserDefaults fallback (see KeychainHelper)
-    var apiKey: String {
-        get { KeychainHelper.load(forKey: "ai_api_key") ?? "" }
-        set { KeychainHelper.save(newValue, forKey: "ai_api_key") }
+    // MARK: - Provider helpers
+
+    var activeProvider: AIProvider {
+        AIProvider.all.first { $0.id == activeProviderID } ?? .openai
     }
 
-    // UserDefaults keys
+    /// Current API key for the active provider.
+    var currentAPIKey: String { apiKey(for: activeProviderID) }
+
+    func apiKey(for providerID: String) -> String {
+        KeychainHelper.load(forKey: "ai_key_\(providerID)") ?? ""
+    }
+
+    func setApiKey(_ key: String, for providerID: String) {
+        if key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            KeychainHelper.delete(forKey: "ai_key_\(providerID)")
+        } else {
+            KeychainHelper.save(key.trimmingCharacters(in: .whitespacesAndNewlines),
+                                forKey: "ai_key_\(providerID)")
+        }
+    }
+
+    func hasKey(for providerID: String) -> Bool { !apiKey(for: providerID).isEmpty }
+
+    // MARK: - UserDefaults keys
+
     private let sessionsKey       = "ai_sessions_v2"
     private let currentIDKey      = "ai_current_session_id_v2"
-    private let baseURLKey        = "ai_base_url_v1"
+    private let activeProviderKey = "ai_active_provider_v1"
+    private let customBaseURLKey  = "ai_custom_base_url_v1"
     private let modelKey          = "ai_model_v1"
     private let soulPromptKey     = "ai_soul_prompt_v1"
     private let knowledgeFilesKey = "ai_knowledge_filenames_v1"
@@ -122,12 +146,26 @@ final class AIStore: ObservableObject {
     // MARK: - Load / Save
 
     private func load() {
-        baseURL    = UserDefaults.standard.string(forKey: baseURLKey)    ?? "https://api.openai.com"
         model      = UserDefaults.standard.string(forKey: modelKey)      ?? "gpt-4o"
         soulPrompt = UserDefaults.standard.string(forKey: soulPromptKey) ?? soulPrompt
         knowledgeFilenames = UserDefaults.standard.stringArray(forKey: knowledgeFilesKey) ?? []
+        customBaseURL = UserDefaults.standard.string(forKey: customBaseURLKey) ?? ""
+        activeProviderID  = UserDefaults.standard.string(forKey: activeProviderKey) ?? "openai"
 
-        // Load sessions
+        // ── Migration: old single "ai_api_key" → ai_key_openai ──────────────
+        if let oldKey = KeychainHelper.load(forKey: "ai_api_key"), !oldKey.isEmpty {
+            if !hasKey(for: "openai") { setApiKey(oldKey, for: "openai") }
+            KeychainHelper.delete(forKey: "ai_api_key")
+        }
+
+        // ── Migration: old baseURL → customBaseURL / activeProviderID ────────
+        let oldBase = UserDefaults.standard.string(forKey: "ai_base_url_v1") ?? ""
+        if !oldBase.isEmpty && oldBase != "https://api.openai.com" && customBaseURL.isEmpty {
+            customBaseURL    = oldBase
+            activeProviderID = "custom"
+        }
+
+        // ── Sessions ─────────────────────────────────────────────────────────
         if let data = UserDefaults.standard.data(forKey: sessionsKey),
            let decoded = try? JSONDecoder().decode([ChatSession].self, from: data) {
             sessions = decoded
@@ -163,9 +201,10 @@ final class AIStore: ObservableObject {
     }
 
     func saveSettings() {
-        UserDefaults.standard.set(baseURL,    forKey: baseURLKey)
-        UserDefaults.standard.set(model,      forKey: modelKey)
-        UserDefaults.standard.set(soulPrompt, forKey: soulPromptKey)
+        UserDefaults.standard.set(activeProviderID, forKey: activeProviderKey)
+        UserDefaults.standard.set(customBaseURL,    forKey: customBaseURLKey)
+        UserDefaults.standard.set(model,            forKey: modelKey)
+        UserDefaults.standard.set(soulPrompt,       forKey: soulPromptKey)
         UserDefaults.standard.set(knowledgeFilenames, forKey: knowledgeFilesKey)
     }
 
@@ -175,9 +214,7 @@ final class AIStore: ObservableObject {
         sessions.first { $0.id == currentSessionID } ?? sessions[0]
     }
 
-    var currentMessages: [ChatMessage] {
-        currentSession.messages
-    }
+    var currentMessages: [ChatMessage] { currentSession.messages }
 
     func newSession() {
         let s = ChatSession()
@@ -225,7 +262,8 @@ final class AIStore: ObservableObject {
 
     private func loadKnowledgeContext() -> String {
         knowledgeFilenames.compactMap { name -> String? in
-            guard let text = try? String(contentsOf: knowledgeDir.appendingPathComponent(name), encoding: .utf8) else { return nil }
+            guard let text = try? String(contentsOf: knowledgeDir.appendingPathComponent(name),
+                                        encoding: .utf8) else { return nil }
             return "--- \(name) ---\n\(text)"
         }.joined(separator: "\n\n")
     }
@@ -313,19 +351,30 @@ final class AIStore: ObservableObject {
     // MARK: - Fetch available models
 
     func fetchModels() async {
-        guard !apiKey.isEmpty else { return }
+        let provider = activeProvider
+        let key      = currentAPIKey
+        guard !key.isEmpty else { return }
+
+        let baseStr: String
+        if provider.id == "custom" {
+            guard !customBaseURL.isEmpty else { return }
+            baseStr = customBaseURL
+        } else {
+            baseStr = provider.baseURL
+        }
+
         await MainActor.run { isFetchingModels = true }
         defer { Task { await MainActor.run { self.isFetchingModels = false } } }
 
-        let base = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
-        guard let url = URL(string: "\(base)/v1/models") else { return }
+        let base = baseStr.hasSuffix("/") ? String(baseStr.dropLast()) : baseStr
+        guard let url = URL(string: "\(base)/models") else { return }
 
         var request = URLRequest(url: url)
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpMethod  = "GET"
         request.timeoutInterval = 15
+        applyAuth(to: &request, key: key, style: provider.authStyle)
 
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse, http.statusCode == 200,
+        guard let (data, _) = try? await URLSession.shared.data(for: request),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let modelList = json["data"] as? [[String: Any]] else { return }
 
@@ -333,31 +382,61 @@ final class AIStore: ObservableObject {
         await MainActor.run { availableModels = ids }
     }
 
-    // MARK: - API call
+    // MARK: - API routing
 
     private func callAPI(
         displayText: String,
         attachmentName: String?,
         attachmentContent: String?
     ) async throws -> String {
-        guard !apiKey.isEmpty else { throw AIError.missingAPIKey }
+        let provider = activeProvider
+        let key      = currentAPIKey
+        guard !key.isEmpty else { throw AIError.missingAPIKey }
 
-        let base = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
-        guard let url = URL(string: "\(base)/v1/chat/completions") else { throw AIError.invalidURL }
+        let baseStr: String
+        if provider.id == "custom" {
+            guard !customBaseURL.isEmpty else { throw AIError.invalidURL }
+            baseStr = customBaseURL
+        } else {
+            baseStr = provider.baseURL
+        }
+        let base = baseStr.hasSuffix("/") ? String(baseStr.dropLast()) : baseStr
 
-        // Build messages
+        switch provider.authStyle {
+        case .bearer:
+            return try await callOpenAICompat(
+                base: base, key: key,
+                displayText: displayText,
+                attachmentName: attachmentName,
+                attachmentContent: attachmentContent
+            )
+        case .xApiKey:
+            return try await callAnthropicMessages(
+                base: base, key: key,
+                displayText: displayText,
+                attachmentName: attachmentName,
+                attachmentContent: attachmentContent
+            )
+        }
+    }
+
+    // MARK: - OpenAI-compatible path  (all providers except Anthropic)
+
+    private func callOpenAICompat(
+        base: String, key: String,
+        displayText: String, attachmentName: String?, attachmentContent: String?
+    ) async throws -> String {
+        guard let url = URL(string: "\(base)/chat/completions") else { throw AIError.invalidURL }
+
         var apiMessages: [[String: String]] = []
-
         var systemContent = soulPrompt
         let knowledge = loadKnowledgeContext()
         if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
         apiMessages.append(["role": "system", "content": systemContent])
 
-        // Last 20 non-loading visible messages
         let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
         for msg in history {
             var msgContent = msg.content
-            // Enrich last user message with attachment if provided
             if msg.id == history.last?.id, msg.role == .user,
                let attContent = attachmentContent, let attName = attachmentName {
                 msgContent = "[Attached file: \(attName)]\n\(attContent)\n\n---\n\(msgContent)"
@@ -375,8 +454,59 @@ final class AIStore: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(apiKey)",  forHTTPHeaderField: "Authorization")
+        applyAuth(to: &request, key: key, style: .bearer)
         request.httpBody = bodyData
+        request.timeoutInterval = 60
+
+        return try await executeAndParseOpenAI(request: request)
+    }
+
+    // MARK: - Anthropic Messages API path
+
+    private func callAnthropicMessages(
+        base: String, key: String,
+        displayText: String, attachmentName: String?, attachmentContent: String?
+    ) async throws -> String {
+        guard let url = URL(string: "\(base)/messages") else { throw AIError.invalidURL }
+
+        // System prompt
+        var systemContent = soulPrompt
+        let knowledge = loadKnowledgeContext()
+        if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
+
+        // Messages — Anthropic only accepts user / assistant (no system role in array)
+        var apiMessages: [[String: String]] = []
+        let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
+        for msg in history {
+            var msgContent = msg.content
+            if msg.id == history.last?.id, msg.role == .user,
+               let attContent = attachmentContent, let attName = attachmentName {
+                msgContent = "[Attached file: \(attName)]\n\(attContent)\n\n---\n\(msgContent)"
+            }
+            switch msg.role {
+            case .user:      apiMessages.append(["role": "user",      "content": msgContent])
+            case .assistant: apiMessages.append(["role": "assistant", "content": msgContent])
+            case .system:    break
+            }
+        }
+        // Anthropic requires the array to start with a user message
+        if apiMessages.first?["role"] == "assistant" {
+            apiMessages.insert(["role": "user", "content": "(continuing)"], at: 0)
+        }
+
+        let body: [String: Any] = [
+            "model":      model,
+            "max_tokens": 1024,
+            "system":     systemContent,
+            "messages":   apiMessages
+        ]
+        let bodyData = try JSONSerialization.data(withJSONObject: body)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        applyAuth(to: &request, key: key, style: .xApiKey)
+        request.httpBody      = bodyData
         request.timeoutInterval = 60
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -384,7 +514,31 @@ final class AIStore: ObservableObject {
         guard http.statusCode == 200 else {
             throw AIError.httpError(http.statusCode, String(data: data, encoding: .utf8) ?? "Unknown")
         }
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        guard let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let content = json["content"] as? [[String: Any]],
+              let text    = content.first?["text"] as? String else { throw AIError.parseError }
+        return text
+    }
+
+    // MARK: - Shared helpers
+
+    private func applyAuth(to request: inout URLRequest, key: String, style: AIProvider.AuthStyle) {
+        switch style {
+        case .bearer:
+            request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        case .xApiKey:
+            request.setValue(key,         forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        }
+    }
+
+    private func executeAndParseOpenAI(request: URLRequest) async throws -> String {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw AIError.badResponse }
+        guard http.statusCode == 200 else {
+            throw AIError.httpError(http.statusCode, String(data: data, encoding: .utf8) ?? "Unknown")
+        }
+        guard let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let choices = json["choices"] as? [[String: Any]],
               let content = choices.first?["message"] as? [String: Any],
               let text    = content["content"] as? String else { throw AIError.parseError }

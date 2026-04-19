@@ -7,8 +7,10 @@ struct AISettingsView: View {
     @StateObject private var store = AIStore.shared
     @Environment(\.dismiss) private var dismiss
 
-    @State private var apiKeyInput        = ""
+    @State private var apiKeyDraft        = ""
     @State private var showAPIKey         = false
+    @State private var detectedProvider: AIProvider? = nil
+    @State private var showProviderPicker = false
     @State private var showingFilePicker  = false
     @State private var showClearConfirm   = false
     @State private var showModelPicker    = false
@@ -19,8 +21,7 @@ struct AISettingsView: View {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 16) {
-                        apiKeySection
-                        endpointSection
+                        providerSection
                         modelSection
                         soulSection
                         knowledgeSection
@@ -38,7 +39,11 @@ struct AISettingsView: View {
                         .fontWeight(.semibold)
                 }
             }
-            .onAppear { apiKeyInput = store.apiKey }
+            .onAppear { reloadAPIKeyDraft() }
+            .onChange(of: store.activeProviderID) { _ in reloadAPIKeyDraft() }
+            .onChange(of: apiKeyDraft) { newVal in
+                detectedProvider = AIProvider.detect(apiKey: newVal)
+            }
             .fileImporter(
                 isPresented: $showingFilePicker,
                 allowedContentTypes: [.text, .pdf, UTType(filenameExtension: "md") ?? .plainText],
@@ -66,70 +71,149 @@ struct AISettingsView: View {
             .sheet(isPresented: $showModelPicker) {
                 ModelPickerSheet(models: store.availableModels, selected: $store.model)
             }
+            .sheet(isPresented: $showProviderPicker) {
+                ProviderPickerSheet(activeID: $store.activeProviderID)
+            }
         }
     }
 
-    // MARK: - API Key
+    // MARK: - Provider + API Key (combined)
 
-    private var apiKeySection: some View {
-        SettingsCard(title: "API Key", icon: "key.fill") {
-            HStack(spacing: 10) {
-                Group {
-                    if showAPIKey {
-                        TextField("sk-…", text: $apiKeyInput)
-                    } else {
-                        SecureField("sk-…", text: $apiKeyInput)
-                    }
+    private var providerSection: some View {
+        SettingsCard(title: "Provider & API Key", icon: "server.rack") {
+            // Active provider row
+            providerRow
+
+            Divider().background(Color.white.opacity(0.07))
+
+            // API key field
+            apiKeyField
+
+            // Detection hint
+            if let detected = detectedProvider, detected.id != store.activeProviderID {
+                detectionBanner(detected)
+            }
+
+            // Base URL field only for Custom provider
+            if store.activeProviderID == "custom" {
+                customURLField
+            }
+
+            // Key status dot
+            keyStatusRow
+        }
+    }
+
+    private var providerRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: store.activeProvider.iconName)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(Color.white.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(store.activeProvider.name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                if !store.activeProvider.apiKeyHint.isEmpty {
+                    Text("Key format: \(store.activeProvider.apiKeyHint)")
+                        .font(.caption)
+                        .foregroundColor(Color.white.opacity(0.38))
                 }
+            }
+
+            Spacer()
+
+            Button("Switch") { showProviderPicker = true }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.10))
+                .clipShape(Capsule())
+        }
+    }
+
+    private var apiKeyField: some View {
+        HStack(spacing: 10) {
+            Group {
+                if showAPIKey {
+                    TextField(store.activeProvider.apiKeyHint, text: $apiKeyDraft)
+                } else {
+                    SecureField(store.activeProvider.apiKeyHint, text: $apiKeyDraft)
+                }
+            }
+            .padding(13)
+            .background(Color(hex: "1C1C1C"))
+            .cornerRadius(10)
+            .foregroundColor(.white)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+
+            Button { showAPIKey.toggle() } label: {
+                Image(systemName: showAPIKey ? "eye.slash.fill" : "eye.fill")
+                    .foregroundColor(Color.white.opacity(0.45))
+                    .frame(width: 36, height: 36)
+            }
+        }
+    }
+
+    private func detectionBanner(_ detected: AIProvider) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lightbulb.fill")
+                .foregroundColor(Color.white.opacity(0.65))
+                .font(.caption)
+            Text("This looks like a \(detected.name) key.")
+                .font(.caption)
+                .foregroundColor(Color.white.opacity(0.65))
+            Spacer()
+            Button("Switch") {
+                applyCurrentKeyDraft()
+                store.activeProviderID = detected.id
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(Color.white.opacity(0.12))
+            .clipShape(Capsule())
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.06))
+        .cornerRadius(10)
+    }
+
+    private var customURLField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Base URL")
+                .font(.caption)
+                .foregroundColor(Color.white.opacity(0.45))
+            TextField("http://localhost:11434/v1", text: $store.customBaseURL)
                 .padding(13)
                 .background(Color(hex: "1C1C1C"))
                 .cornerRadius(10)
                 .foregroundColor(.white)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-
-                Button { showAPIKey.toggle() } label: {
-                    Image(systemName: showAPIKey ? "eye.slash.fill" : "eye.fill")
-                        .foregroundColor(Color.white.opacity(0.45))
-                        .frame(width: 36, height: 36)
-                }
-            }
-
-            // Status indicator
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(apiKeyInput.isEmpty ? Color.red.opacity(0.7) : Color.green.opacity(0.8))
-                    .frame(width: 6, height: 6)
-                Text(apiKeyInput.isEmpty
-                     ? "No key set — the AI won't respond without one."
-                     : "Key entered. Tap Done to save securely.")
-                    .font(.caption)
-                    .foregroundColor(Color.white.opacity(0.45))
-            }
+                .keyboardType(.URL)
+            Text("Works with Ollama, LM Studio, or any OpenAI-compatible endpoint.")
+                .font(.caption)
+                .foregroundColor(Color.white.opacity(0.35))
         }
     }
 
-    // MARK: - Endpoint
-
-    private var endpointSection: some View {
-        SettingsCard(title: "API Endpoint", icon: "network") {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Base URL")
-                    .font(.caption)
-                    .foregroundColor(Color.white.opacity(0.45))
-                TextField("https://api.openai.com", text: $store.baseURL)
-                    .padding(13)
-                    .background(Color(hex: "1C1C1C"))
-                    .cornerRadius(10)
-                    .foregroundColor(.white)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-            }
-            Text("Works with any OpenAI-compatible endpoint (OpenAI, Anthropic-proxy, Ollama, LM Studio, etc.)")
+    private var keyStatusRow: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(apiKeyDraft.isEmpty ? Color.red.opacity(0.7) : Color.green.opacity(0.8))
+                .frame(width: 6, height: 6)
+            Text(apiKeyDraft.isEmpty
+                 ? "No key set — the AI won't respond without one."
+                 : "Key entered. Tap Done to save securely.")
                 .font(.caption)
-                .foregroundColor(Color.white.opacity(0.35))
-                .fixedSize(horizontal: false, vertical: true)
+                .foregroundColor(Color.white.opacity(0.45))
         }
     }
 
@@ -138,7 +222,7 @@ struct AISettingsView: View {
     private var modelSection: some View {
         SettingsCard(title: "Model", icon: "cpu") {
             HStack(spacing: 10) {
-                TextField("gpt-4o", text: $store.model)
+                TextField("e.g. gpt-4o", text: $store.model)
                     .padding(13)
                     .background(Color(hex: "1C1C1C"))
                     .cornerRadius(10)
@@ -146,13 +230,10 @@ struct AISettingsView: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
 
-                // Detect button
                 Button {
                     Task {
                         await store.fetchModels()
-                        if !store.availableModels.isEmpty {
-                            showModelPicker = true
-                        }
+                        if !store.availableModels.isEmpty { showModelPicker = true }
                     }
                 } label: {
                     ZStack {
@@ -168,7 +249,7 @@ struct AISettingsView: View {
                         }
                     }
                 }
-                .disabled(store.isFetchingModels || apiKeyInput.isEmpty)
+                .disabled(store.isFetchingModels || apiKeyDraft.isEmpty)
             }
 
             if !store.availableModels.isEmpty {
@@ -181,10 +262,37 @@ struct AISettingsView: View {
                         .foregroundColor(Color.white.opacity(0.45))
                 }
             } else {
-                Text("Tap the antenna icon to auto-detect available models from your endpoint.")
-                    .font(.caption)
-                    .foregroundColor(Color.white.opacity(0.35))
+                knownModelsSuggestions
             }
+        }
+    }
+
+    @ViewBuilder
+    private var knownModelsSuggestions: some View {
+        let models = store.activeProvider.knownModels
+        if !models.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Known models for \(store.activeProvider.name):")
+                    .font(.caption)
+                    .foregroundColor(Color.white.opacity(0.38))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(models, id: \.self) { m in
+                            Button(m) { store.model = m }
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.white.opacity(0.07))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+        } else {
+            Text("Tap the antenna icon to auto-detect available models.")
+                .font(.caption)
+                .foregroundColor(Color.white.opacity(0.35))
         }
     }
 
@@ -271,9 +379,7 @@ struct AISettingsView: View {
 
     private var dangerSection: some View {
         SettingsCard(title: "Data", icon: "trash.fill") {
-            Button {
-                showClearConfirm = true
-            } label: {
+            Button { showClearConfirm = true } label: {
                 Text("Clear Chat History")
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(.red.opacity(0.85))
@@ -285,12 +391,101 @@ struct AISettingsView: View {
         }
     }
 
-    // MARK: - Apply
+    // MARK: - Helpers
+
+    private func reloadAPIKeyDraft() {
+        apiKeyDraft = store.apiKey(for: store.activeProviderID)
+    }
+
+    private func applyCurrentKeyDraft() {
+        store.setApiKey(apiKeyDraft, for: store.activeProviderID)
+    }
 
     private func applyAndDismiss() {
-        store.apiKey = apiKeyInput  // saves to Keychain + UserDefaults fallback
+        store.setApiKey(apiKeyDraft, for: store.activeProviderID)
         store.saveSettings()
         dismiss()
+    }
+}
+
+// MARK: - ProviderPickerSheet
+
+struct ProviderPickerSheet: View {
+    @Binding var activeID: String
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var store = AIStore.shared
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                List(AIProvider.all) { provider in
+                    Button {
+                        activeID = provider.id
+                        dismiss()
+                    } label: {
+                        ProviderRow(provider: provider, isActive: activeID == provider.id, store: store)
+                    }
+                    .listRowBackground(
+                        activeID == provider.id
+                        ? Color.white.opacity(0.08)
+                        : Color(hex: "141414")
+                    )
+                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Choose Provider")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(.white)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - ProviderRow
+
+private struct ProviderRow: View {
+    let provider: AIProvider
+    let isActive: Bool
+    let store: AIStore
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: provider.iconName)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(Color.white.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(provider.name)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.white)
+                Text(provider.apiKeyHint.isEmpty ? "No key required" : "Key: \(provider.apiKeyHint)")
+                    .font(.caption)
+                    .foregroundColor(Color.white.opacity(0.38))
+            }
+
+            Spacer()
+
+            // Green dot if key is configured
+            Circle()
+                .fill(store.hasKey(for: provider.id) ? Color.green.opacity(0.75) : Color.white.opacity(0.15))
+                .frame(width: 7, height: 7)
+
+            if isActive {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.white)
+                    .font(.system(size: 16))
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -347,7 +542,7 @@ struct ModelPickerSheet: View {
                             Text("No models detected")
                                 .font(.headline)
                                 .foregroundColor(Color.white.opacity(0.5))
-                            Text("Make sure your API key and base URL are correct, then tap the antenna icon again.")
+                            Text("Make sure your API key is correct, then tap the antenna icon again.")
                                 .font(.subheadline)
                                 .foregroundColor(Color.white.opacity(0.35))
                                 .multilineTextAlignment(.center)
@@ -402,17 +597,16 @@ struct ModelPickerSheet: View {
 
     private func modelCategory(_ id: String) -> String {
         let lower = id.lowercased()
-        if lower.contains("gpt-4")    { return "OpenAI GPT-4" }
-        if lower.contains("gpt-3")    { return "OpenAI GPT-3.5" }
-        if lower.contains("claude")   { return "Anthropic Claude" }
-        if lower.contains("gemini")   { return "Google Gemini" }
-        if lower.contains("llama")    { return "Meta LLaMA" }
-        if lower.contains("mistral")  { return "Mistral AI" }
+        if lower.contains("gpt-4")   { return "OpenAI GPT-4" }
+        if lower.contains("gpt-3")   { return "OpenAI GPT-3.5" }
+        if lower.contains("claude")  { return "Anthropic Claude" }
+        if lower.contains("gemini")  { return "Google Gemini" }
+        if lower.contains("llama")   { return "Meta LLaMA" }
+        if lower.contains("mistral") { return "Mistral AI" }
         if lower.contains("o1") || lower.contains("o3") { return "OpenAI Reasoning" }
         return "Language Model"
     }
 }
-
 
 #Preview {
     AISettingsView()

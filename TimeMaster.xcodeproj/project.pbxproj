@@ -47,6 +47,7 @@
 		BB0001BB0001BB0001BB0006 /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0005 /* MusicManager.swift */; };
 		BB0001BB0001BB0001BB0008 /* MusicSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */; };
 		CC0001CC0001CC0001CC0001 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */; };
+		CC0001CC0001CC0001CC000A /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC000B /* AIProvider.swift */; };
 		CC0001CC0001CC0001CC0002 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0006 /* AIStore.swift */; };
 		CC0001CC0001CC0001CC0003 /* AICoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0007 /* AICoachView.swift */; };
 		CC0001CC0001CC0001CC0004 /* AISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0008 /* AISettingsView.swift */; };
@@ -96,6 +97,7 @@
 		BB0001BB0001BB0001BB0005 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
 		BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSettingsView.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		CC0001CC0001CC0001CC000B /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0006 /* AIStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStore.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0007 /* AICoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachView.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0008 /* AISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsView.swift; sourceTree = "<group>"; };
@@ -285,6 +287,7 @@
 		9116F4E669727A33B853D872 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				CC0001CC0001CC0001CC000B /* AIProvider.swift */,
 				CC0001CC0001CC0001CC0006 /* AIStore.swift */,
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
 				DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */,
@@ -461,6 +464,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D205311183C797669AC83F2E /* AnalyticsView.swift in Sources */,
+				CC0001CC0001CC0001CC000A /* AIProvider.swift in Sources */,
 				CC0001CC0001CC0001CC0003 /* AICoachView.swift in Sources */,
 				CC0001CC0001CC0001CC0004 /* AISettingsView.swift in Sources */,
 				CC0001CC0001CC0001CC0002 /* AIStore.swift in Sources */,
