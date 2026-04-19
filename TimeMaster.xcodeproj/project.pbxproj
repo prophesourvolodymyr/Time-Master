@@ -42,6 +42,10 @@
 		AA001BB2CC001BB2CC001BB2 /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */; };
 		AA001BB2CC001BB2CC001BB4 /* BackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB5 /* BackupView.swift */; };
 		AA001BB2CC001BB2CC001BB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */; };
+		BB0001BB0001BB0001BB0002 /* MotivationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0001 /* MotivationManager.swift */; };
+		BB0001BB0001BB0001BB0004 /* MotivationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */; };
+		BB0001BB0001BB0001BB0006 /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0005 /* MusicManager.swift */; };
+		BB0001BB0001BB0001BB0008 /* MusicSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -78,6 +82,10 @@
 		AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
 		AA001BB2CC001BB2CC001BB5 /* BackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupView.swift; sourceTree = "<group>"; };
 		AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BB0001BB0001BB0001BB0001 /* MotivationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationManager.swift; sourceTree = "<group>"; };
+		BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationSettingsView.swift; sourceTree = "<group>"; };
+		BB0001BB0001BB0001BB0005 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
+		BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSettingsView.swift; sourceTree = "<group>"; };
 		F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListView.swift; sourceTree = "<group>"; };
 		FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -154,6 +162,8 @@
 			children = (
 				B26870953ABC5C4610D424C6 /* AudioManager.swift */,
 				AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */,
+				BB0001BB0001BB0001BB0005 /* MusicManager.swift */,
+				BB0001BB0001BB0001BB0001 /* MotivationManager.swift */,
 				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
 				F807BCDB518D68ED40746740 /* Theme.swift */,
 			);
@@ -164,6 +174,8 @@
 			isa = PBXGroup;
 			children = (
 				AA001BB2CC001BB2CC001BB5 /* BackupView.swift */,
+				BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */,
+				BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */,
 				AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -366,6 +378,10 @@
 				7B1A2C3D4E5F6A7B8C9D0E1F /* ServerDiscovery.swift in Sources */,
 				AA001BB2CC001BB2CC001BB2 /* BackupManager.swift in Sources */,
 				AA001BB2CC001BB2CC001BB4 /* BackupView.swift in Sources */,
+				BB0001BB0001BB0001BB0006 /* MusicManager.swift in Sources */,
+				BB0001BB0001BB0001BB0008 /* MusicSettingsView.swift in Sources */,
+				BB0001BB0001BB0001BB0002 /* MotivationManager.swift in Sources */,
+				BB0001BB0001BB0001BB0004 /* MotivationSettingsView.swift in Sources */,
 				AA001BB2CC001BB2CC001BB6 /* SettingsView.swift in Sources */,
 				772385FE936467AA631F28E3 /* Workout.swift in Sources */,
 				8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */,

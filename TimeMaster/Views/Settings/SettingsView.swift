@@ -31,6 +31,34 @@ struct SettingsView: View {
                     .listRowBackground(Theme.surface)
                     .listRowSeparatorTint(Theme.separator)
 
+                    // MARK: Motivation + Music
+                    SwiftUI.Section {
+                        NavigationLink {
+                            MotivationSettingsView()
+                        } label: {
+                            settingsRow(
+                                icon: "quote.bubble",
+                                title: "Motivational Quotes",
+                                subtitle: "Spoken during workouts"
+                            )
+                        }
+                        NavigationLink {
+                            MusicSettingsView()
+                        } label: {
+                            settingsRow(
+                                icon: "music.note",
+                                title: "Background Music",
+                                subtitle: "Plays during workouts"
+                            )
+                        }
+                    } header: {
+                        Text("Workout")
+                            .foregroundColor(Theme.textSecondary)
+                            .font(.caption)
+                    }
+                    .listRowBackground(Theme.surface)
+                    .listRowSeparatorTint(Theme.separator)
+
                     // MARK: Server Settings
                     SwiftUI.Section {
                         Button {

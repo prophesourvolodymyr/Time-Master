@@ -25,6 +25,10 @@ struct WorkoutPlayerView: View {
     @State private var timer: Timer?
     @State private var startTime: Date = Date()
     @State private var showingCloseConfirmation = false
+    @State private var nextMotivationIn: Int = 0   // countdown to next quote
+
+    // Music
+    @ObservedObject private var musicManager = MusicManager.shared
 
     // Warm-up
     @State private var warmUpDuration = 60
@@ -112,6 +116,7 @@ struct WorkoutPlayerView: View {
             HStack {
                 closeButton(confirmed: false)
                 Spacer()
+                musicButton
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -194,6 +199,7 @@ struct WorkoutPlayerView: View {
             HStack {
                 closeButton(confirmed: true)
                 Spacer()
+                musicButton
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -228,6 +234,7 @@ struct WorkoutPlayerView: View {
             HStack {
                 closeButton(confirmed: true)
                 Spacer()
+                musicButton
                 sectionBadge
             }
             .padding(.horizontal, 20)
@@ -372,6 +379,7 @@ struct WorkoutPlayerView: View {
             HStack {
                 closeButton(confirmed: true)
                 Spacer()
+                musicButton
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -435,7 +443,7 @@ struct WorkoutPlayerView: View {
                 VStack(spacing: 16) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 80))
-                        .foregroundColor(.green)
+                        .foregroundColor(.white)
 
                     Text("Workout Complete!")
                         .font(.system(size: 30, weight: .bold))
@@ -499,6 +507,22 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    @ViewBuilder
+    private var musicButton: some View {
+        if !MusicManager.shared.trackFilenames.isEmpty {
+            Button {
+                MusicManager.shared.togglePlayback()
+            } label: {
+                Image(systemName: musicManager.isPlaying ? "music.note" : "music.note.slash")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.white.opacity(musicManager.isPlaying ? 0.25 : 0.12))
+                    .clipShape(Circle())
+            }
+        }
+    }
+
     // MARK: - Timer Logic
 
     private func startWorkout() {
@@ -508,6 +532,7 @@ struct WorkoutPlayerView: View {
         isSetRest           = false
         isSectionRest       = false
         isWarmUp            = false
+        resetMotivationTimer()
         if let section = currentSection {
             timeRemaining = section.duration
             AudioManager.shared.speak(section.name)
@@ -534,6 +559,10 @@ struct WorkoutPlayerView: View {
             timeRemaining -= 1
             if timeRemaining <= 3 && timeRemaining >= 1 {
                 AudioManager.shared.playCountdownBeep()
+            }
+            // Fire motivational quote during active work (not rest/warm-up)
+            if !isSetRest && !isSectionRest && !isWarmUp {
+                tickMotivation()
             }
         } else {
             timer?.invalidate()
@@ -611,6 +640,7 @@ struct WorkoutPlayerView: View {
     private func completeWorkout() {
         timer?.invalidate()
         stopVideo()
+        MusicManager.shared.stopPlayback()
         workoutCompleted = true
         AudioManager.shared.speak("Congratulations! Incredible work!")
         let entry = WorkoutHistoryEntry(
@@ -635,8 +665,26 @@ struct WorkoutPlayerView: View {
     private func stopWorkout() {
         timer?.invalidate()
         stopVideo()
+        MusicManager.shared.stopPlayback()
         AudioManager.shared.stopSpeaking()
         dismiss()
+    }
+
+    // MARK: - Motivation
+
+    private func resetMotivationTimer() {
+        guard MotivationManager.shared.isEnabled else { return }
+        let base = MotivationManager.shared.interval
+        nextMotivationIn = base + Int.random(in: 0...(base / 2))
+    }
+
+    private func tickMotivation() {
+        guard MotivationManager.shared.isEnabled else { return }
+        nextMotivationIn -= 1
+        if nextMotivationIn <= 0 {
+            AudioManager.shared.speak(MotivationManager.shared.randomQuote())
+            resetMotivationTimer()
+        }
     }
 
     // MARK: - Media Loading

@@ -107,6 +107,7 @@ struct WorkoutDetailView: View {
                             sectionToDelete = section
                             showingDeleteAlert = true
                         } label: { Label("Delete", systemImage: "trash") }
+                        .tint(.red)
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
