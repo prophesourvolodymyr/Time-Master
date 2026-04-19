@@ -46,6 +46,13 @@
 		BB0001BB0001BB0001BB0004 /* MotivationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */; };
 		BB0001BB0001BB0001BB0006 /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0005 /* MusicManager.swift */; };
 		BB0001BB0001BB0001BB0008 /* MusicSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */; };
+		CC0001CC0001CC0001CC0001 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */; };
+		CC0001CC0001CC0001CC0002 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0006 /* AIStore.swift */; };
+		CC0001CC0001CC0001CC0003 /* AICoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0007 /* AICoachView.swift */; };
+		CC0001CC0001CC0001CC0004 /* AISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0008 /* AISettingsView.swift */; };
+		DD0001DD0001DD0001DD0011 /* TimeMasterWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001DD0001DD0001DD0001 /* TimeMasterWidget.swift */; };
+		DD0001DD0001DD0001DD0012 /* TimeMasterWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001DD0001DD0001DD0002 /* TimeMasterWidgetBundle.swift */; };
+		DD0001DD0001DD0001DD0013 /* TimeMasterWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +86,8 @@
 		E3323F148BE5A75196E090AC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayItem.swift; sourceTree = "<group>"; };
 		F807BCDB518D68ED40746740 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListView.swift; sourceTree = "<group>"; };
+		FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
 		AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
 		AA001BB2CC001BB2CC001BB5 /* BackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupView.swift; sourceTree = "<group>"; };
 		AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -86,9 +95,30 @@
 		BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationSettingsView.swift; sourceTree = "<group>"; };
 		BB0001BB0001BB0001BB0005 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
 		BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSettingsView.swift; sourceTree = "<group>"; };
-		F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListView.swift; sourceTree = "<group>"; };
-		FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
+		CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		CC0001CC0001CC0001CC0006 /* AIStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStore.swift; sourceTree = "<group>"; };
+		CC0001CC0001CC0001CC0007 /* AICoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachView.swift; sourceTree = "<group>"; };
+		CC0001CC0001CC0001CC0008 /* AISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsView.swift; sourceTree = "<group>"; };
+		DD0001DD0001DD0001DD0001 /* TimeMasterWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidget.swift; sourceTree = "<group>"; };
+		DD0001DD0001DD0001DD0002 /* TimeMasterWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidgetBundle.swift; sourceTree = "<group>"; };
+		DD0001DD0001DD0001DD0003 /* TimeMasterWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMasterWidget.entitlements; sourceTree = "<group>"; };
+		DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TimeMasterWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD0001DD0001DD0001DD0005 /* TimeMaster.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMaster.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DD0001DD0001DD0001DD0060 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DD0001DD0001DD0001DD0013 /* TimeMasterWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		EA98384D619F1909881D5453 /* Frameworks */ = {
@@ -96,6 +126,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				36662D83C3CB3D8D357DEB4C /* ZIPFoundation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD0001DD0001DD0001DD0032 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -129,6 +166,7 @@
 			isa = PBXGroup;
 			children = (
 				69344764F8B3AC313FF4CBC5 /* TimeMaster.app */,
+				DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -145,6 +183,7 @@
 			isa = PBXGroup;
 			children = (
 				552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */,
+				DD0001DD0001DD0001DD0005 /* TimeMaster.entitlements */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -162,6 +201,7 @@
 			children = (
 				B26870953ABC5C4610D424C6 /* AudioManager.swift */,
 				AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */,
+				CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */,
 				BB0001BB0001BB0001BB0005 /* MusicManager.swift */,
 				BB0001BB0001BB0001BB0001 /* MotivationManager.swift */,
 				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
@@ -193,6 +233,7 @@
 			isa = PBXGroup;
 			children = (
 				E3323F148BE5A75196E090AC /* MainTabView.swift */,
+				CC0001CC0001CC0001CC0009 /* AICoach */,
 				36739A7D9D5BF1203FCD3C10 /* Analytics */,
 				D484AE590F5911664457F560 /* Database */,
 				292CD1F86597AFEEB040B9C0 /* History */,
@@ -203,6 +244,15 @@
 				4C8A4446813C950238345C32 /* WorkoutList */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		CC0001CC0001CC0001CC0009 /* AICoach */ = {
+			isa = PBXGroup;
+			children = (
+				CC0001CC0001CC0001CC0007 /* AICoachView.swift */,
+				CC0001CC0001CC0001CC0008 /* AISettingsView.swift */,
+			);
+			path = AICoach;
 			sourceTree = "<group>";
 		};
 		4C8A4446813C950238345C32 /* WorkoutList */ = {
@@ -235,6 +285,7 @@
 		9116F4E669727A33B853D872 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				CC0001CC0001CC0001CC0006 /* AIStore.swift */,
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
 				DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */,
 				604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */,
@@ -260,8 +311,19 @@
 			isa = PBXGroup;
 			children = (
 				9D2F50228B8AAEC8E808D0AA /* TimeMaster */,
+				DD0001DD0001DD0001DD0020 /* TimeMasterWidget */,
 				26FA13129B845B5C3499F3CB /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		DD0001DD0001DD0001DD0020 /* TimeMasterWidget */ = {
+			isa = PBXGroup;
+			children = (
+				DD0001DD0001DD0001DD0001 /* TimeMasterWidget.swift */,
+				DD0001DD0001DD0001DD0002 /* TimeMasterWidgetBundle.swift */,
+				DD0001DD0001DD0001DD0003 /* TimeMasterWidget.entitlements */,
+			);
+			path = TimeMasterWidget;
 			sourceTree = "<group>";
 		};
 		D484AE590F5911664457F560 /* Database */ = {
@@ -293,10 +355,12 @@
 				453A31AAC294959EF9BF7E01 /* Sources */,
 				207CBEF1CC8309A8ADCE88E0 /* Resources */,
 				EA98384D619F1909881D5453 /* Frameworks */,
+				DD0001DD0001DD0001DD0060 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DD0001DD0001DD0001DD0050 /* PBXTargetDependency */,
 			);
 			name = TimeMaster;
 			packageProductDependencies = (
@@ -306,7 +370,42 @@
 			productReference = 69344764F8B3AC313FF4CBC5 /* TimeMaster.app */;
 			productType = "com.apple.product-type.application";
 		};
+		DD0001DD0001DD0001DD0040 /* TimeMasterWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DD0001DD0001DD0001DD0072 /* Build configuration list for PBXNativeTarget "TimeMasterWidget" */;
+			buildPhases = (
+				DD0001DD0001DD0001DD0030 /* Sources */,
+				DD0001DD0001DD0001DD0031 /* Resources */,
+				DD0001DD0001DD0001DD0032 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TimeMasterWidget;
+			productName = TimeMasterWidget;
+			productReference = DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXContainerItemProxy section */
+		DD0001DD0001DD0001DD0051 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A81F1550B5F09DC65B9D99F6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DD0001DD0001DD0001DD0040;
+			remoteInfo = TimeMasterWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		DD0001DD0001DD0001DD0050 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DD0001DD0001DD0001DD0040 /* TimeMasterWidget */;
+			targetProxy = DD0001DD0001DD0001DD0051 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXProject section */
 		A81F1550B5F09DC65B9D99F6 /* Project object */ = {
@@ -333,6 +432,7 @@
 			projectRoot = "";
 			targets = (
 				A9869356E186BE43EA3A8C23 /* TimeMaster */,
+				DD0001DD0001DD0001DD0040 /* TimeMasterWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -346,6 +446,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DD0001DD0001DD0001DD0031 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -354,6 +461,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				D205311183C797669AC83F2E /* AnalyticsView.swift in Sources */,
+				CC0001CC0001CC0001CC0003 /* AICoachView.swift in Sources */,
+				CC0001CC0001CC0001CC0004 /* AISettingsView.swift in Sources */,
+				CC0001CC0001CC0001CC0002 /* AIStore.swift in Sources */,
 				DF365B3329D18015F0D078D8 /* AudioManager.swift in Sources */,
 				38F4D6D6E4EB92879758A36F /* BatchConfirmView.swift in Sources */,
 				11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */,
@@ -378,6 +488,7 @@
 				7B1A2C3D4E5F6A7B8C9D0E1F /* ServerDiscovery.swift in Sources */,
 				AA001BB2CC001BB2CC001BB2 /* BackupManager.swift in Sources */,
 				AA001BB2CC001BB2CC001BB4 /* BackupView.swift in Sources */,
+				CC0001CC0001CC0001CC0001 /* KeychainHelper.swift in Sources */,
 				BB0001BB0001BB0001BB0006 /* MusicManager.swift in Sources */,
 				BB0001BB0001BB0001BB0008 /* MusicSettingsView.swift in Sources */,
 				BB0001BB0001BB0001BB0002 /* MotivationManager.swift in Sources */,
@@ -390,6 +501,15 @@
 				2E0C54F31F1BD8B352CE6FF1 /* WorkoutListView.swift in Sources */,
 				0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */,
 				CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD0001DD0001DD0001DD0030 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD0001DD0001DD0001DD0011 /* TimeMasterWidget.swift in Sources */,
+				DD0001DD0001DD0001DD0012 /* TimeMasterWidgetBundle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -526,6 +646,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster.entitlements;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -555,6 +676,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster.entitlements;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
@@ -579,6 +701,56 @@
 			};
 			name = Release;
 		};
+		DD0001DD0001DD0001DD0070 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TimeMasterWidget/TimeMasterWidget.entitlements;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = TimeMasterWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vovas.TimeMaster.TimeMasterWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DD0001DD0001DD0001DD0071 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TimeMasterWidget/TimeMasterWidget.entitlements;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = TimeMasterWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.vovas.TimeMaster.TimeMasterWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -596,6 +768,15 @@
 			buildConfigurations = (
 				002D6AC69A41EBD5B8017E3B /* Debug */,
 				3049C22585F21DDBB31171CF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DD0001DD0001DD0001DD0072 /* Build configuration list for PBXNativeTarget "TimeMasterWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DD0001DD0001DD0001DD0070 /* Debug */,
+				DD0001DD0001DD0001DD0071 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

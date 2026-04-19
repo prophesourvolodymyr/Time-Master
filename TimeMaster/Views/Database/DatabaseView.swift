@@ -362,6 +362,8 @@ struct DatabaseView: View {
     @State private var showingAddRootExercise    = false
     @State private var selectedRootNote: DatabaseNote?
     @State private var selectedRootExercise: Exercise?
+    @State private var exerciseToMove: Exercise?
+    @State private var noteToMove: DatabaseNote?
 
     var body: some View {
         NavigationStack {
@@ -391,6 +393,18 @@ struct DatabaseView: View {
             .sheet(item: $selectedRootExercise) { exercise in
                 EditExerciseView(exercise: exercise, folderID: nil).environmentObject(store)
             }
+            .sheet(item: $exerciseToMove) { exercise in
+                FolderPickerSheet(currentFolderID: nil) { destID in
+                    store.moveExercise(id: exercise.id, fromFolderID: nil, toFolderID: destID)
+                }
+                .environmentObject(store)
+            }
+            .sheet(item: $noteToMove) { note in
+                FolderPickerSheet(currentFolderID: nil) { destID in
+                    store.moveNote(id: note.id, fromFolderID: nil, toFolderID: destID)
+                }
+                .environmentObject(store)
+            }
         }
     }
 
@@ -418,10 +432,22 @@ struct DatabaseView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { selectedRootExercise = exercise }
                         .listRowBackground(Theme.surface)
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button { exerciseToMove = exercise } label: {
+                                Label("Move", systemImage: "folder")
+                            }
+                            .tint(Color.white.opacity(0.8))
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                store.deleteRootExercise(id: exercise.id)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
                 }
-                .onDelete { indexSet in
-                    for i in indexSet { store.deleteRootExercise(id: store.rootExercises[i].id) }
-                }
+                .onMove { store.moveRootExercise(from: $0, to: $1) }
             }
         }
     }
@@ -435,10 +461,22 @@ struct DatabaseView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { selectedRootNote = note }
                         .listRowBackground(Theme.surface)
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button { noteToMove = note } label: {
+                                Label("Move", systemImage: "folder")
+                            }
+                            .tint(Color.white.opacity(0.8))
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                store.deleteRootNote(id: note.id)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
                 }
-                .onDelete { indexSet in
-                    for i in indexSet { store.deleteRootNote(id: store.rootNotes[i].id) }
-                }
+                .onMove { store.moveRootNote(from: $0, to: $1) }
             }
         }
     }
@@ -452,10 +490,16 @@ struct DatabaseView: View {
                         FolderRowView(folder: folder)
                     }
                     .listRowBackground(Theme.surface)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            store.deleteRootFolder(id: folder.id)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .tint(.red)
+                    }
                 }
-                .onDelete { indexSet in
-                    for i in indexSet { store.deleteRootFolder(id: store.rootFolders[i].id) }
-                }
+                .onMove { store.moveRootFolder(from: $0, to: $1) }
             }
         }
     }
@@ -480,6 +524,9 @@ struct DatabaseView: View {
 
     @ToolbarContentBuilder
     private var rootToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            EditButton().foregroundColor(.white)
+        }
         ToolbarItem(placement: .navigationBarTrailing) {
             Button { showingImport = true } label: {
                 Image(systemName: "video.badge.plus")
@@ -517,6 +564,8 @@ struct FolderDetailView: View {
     @State private var selectedExercise: Exercise?
     @State private var selectedNote: DatabaseNote?
     @State private var isGalleryMode            = false
+    @State private var exerciseToMove: Exercise?
+    @State private var noteToMove: DatabaseNote?
 
     private let gridColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
     private var folder: ExerciseFolder? { store.folder(id: folderID) }
@@ -552,6 +601,18 @@ struct FolderDetailView: View {
         .sheet(item: $selectedNote) { note in
             NoteDetailView(noteID: note.id, folderID: folderID).environmentObject(store)
         }
+        .sheet(item: $exerciseToMove) { exercise in
+            FolderPickerSheet(currentFolderID: folderID) { destID in
+                store.moveExercise(id: exercise.id, fromFolderID: folderID, toFolderID: destID)
+            }
+            .environmentObject(store)
+        }
+        .sheet(item: $noteToMove) { note in
+            FolderPickerSheet(currentFolderID: folderID) { destID in
+                store.moveNote(id: note.id, fromFolderID: folderID, toFolderID: destID)
+            }
+            .environmentObject(store)
+        }
     }
 
     // MARK: List Mode
@@ -575,13 +636,16 @@ struct FolderDetailView: View {
                         FolderRowView(folder: sub)
                     }
                     .listRowBackground(Theme.surface)
-                }
-                .onDelete { indexSet in
-                    let subs = folder.subfolders
-                    for i in indexSet where i < subs.count {
-                        store.deleteSubfolder(id: subs[i].id, fromParentID: folderID)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            store.deleteSubfolder(id: sub.id, fromParentID: folderID)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .tint(.red)
                     }
                 }
+                .onMove { store.moveSubfolder(from: $0, to: $1, inParentID: folderID) }
             }
         }
     }
@@ -595,13 +659,22 @@ struct FolderDetailView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { selectedNote = note }
                         .listRowBackground(Theme.surface)
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button { noteToMove = note } label: {
+                                Label("Move", systemImage: "folder")
+                            }
+                            .tint(Color.white.opacity(0.8))
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                store.deleteNote(id: note.id, fromFolderID: folderID)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
                 }
-                .onDelete { indexSet in
-                    let notes = folder.notes
-                    for i in indexSet where i < notes.count {
-                        store.deleteNote(id: notes[i].id, fromFolderID: folderID)
-                    }
-                }
+                .onMove { store.moveFolderNote(from: $0, to: $1, inFolderID: folderID) }
             }
         }
     }
@@ -620,13 +693,22 @@ struct FolderDetailView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { selectedExercise = exercise }
                         .listRowBackground(Theme.surface)
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button { exerciseToMove = exercise } label: {
+                                Label("Move", systemImage: "folder")
+                            }
+                            .tint(Color.white.opacity(0.8))
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                store.deleteExercise(id: exercise.id, fromFolderID: folderID)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
                 }
-                .onDelete { indexSet in
-                    let exs = folder.exercises
-                    for i in indexSet where i < exs.count {
-                        store.deleteExercise(id: exs[i].id, fromFolderID: folderID)
-                    }
-                }
+                .onMove { store.moveFolderExercise(from: $0, to: $1, inFolderID: folderID) }
             }
         }
     }
@@ -712,6 +794,9 @@ struct FolderDetailView: View {
 
     @ToolbarContentBuilder
     private var folderToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            EditButton().foregroundColor(.white)
+        }
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { isGalleryMode.toggle() }
@@ -1399,6 +1484,100 @@ struct NewFolderSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - FolderPickerSheet
+
+struct FolderPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var store: DatabaseStore
+    let currentFolderID: UUID?
+    let onSelect: (UUID?) -> Void
+
+    private struct FolderItem: Identifiable {
+        let id: UUID
+        let folder: ExerciseFolder
+        let depth: Int
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                List {
+                    // Root option
+                    Button {
+                        guard currentFolderID != nil else { return }
+                        onSelect(nil)
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "tray")
+                                .foregroundColor(Theme.textSecondary)
+                                .frame(width: 28)
+                            Text("Root").foregroundColor(Theme.textPrimary)
+                            Spacer()
+                            if currentFolderID == nil {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(Theme.textSecondary)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                    .disabled(currentFolderID == nil)
+                    .listRowBackground(Theme.surface)
+
+                    ForEach(flatFolderList) { item in
+                        Button {
+                            guard item.folder.id != currentFolderID else { return }
+                            onSelect(item.folder.id)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                if item.depth > 0 {
+                                    Spacer().frame(width: CGFloat(item.depth) * 16)
+                                }
+                                Image(systemName: "folder.fill")
+                                    .foregroundColor(Color(hex: item.folder.colorHex))
+                                    .frame(width: 28)
+                                Text(item.folder.name).foregroundColor(Theme.textPrimary)
+                                Spacer()
+                                if item.folder.id == currentFolderID {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(Theme.textSecondary)
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                        .disabled(item.folder.id == currentFolderID)
+                        .listRowBackground(Theme.surface)
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Move To")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                }
+            }
+        }
+    }
+
+    private var flatFolderList: [FolderItem] {
+        buildList(from: store.rootFolders, depth: 0)
+    }
+
+    private func buildList(from folders: [ExerciseFolder], depth: Int) -> [FolderItem] {
+        var result: [FolderItem] = []
+        for f in folders {
+            result.append(FolderItem(id: f.id, folder: f, depth: depth))
+            result += buildList(from: f.subfolders, depth: depth + 1)
+        }
+        return result
     }
 }
 

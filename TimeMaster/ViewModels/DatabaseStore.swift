@@ -179,6 +179,97 @@ class DatabaseStore: ObservableObject {
         saveRootNotes()
     }
 
+    // MARK: - F5: Reorder root collections
+
+    func moveRootFolder(from: IndexSet, to: Int) {
+        rootFolders.move(fromOffsets: from, toOffset: to)
+        saveFolders()
+    }
+
+    func moveRootExercise(from: IndexSet, to: Int) {
+        rootExercises.move(fromOffsets: from, toOffset: to)
+        saveRootExercises()
+    }
+
+    func moveRootNote(from: IndexSet, to: Int) {
+        rootNotes.move(fromOffsets: from, toOffset: to)
+        saveRootNotes()
+    }
+
+    // MARK: - F5: Reorder within folder
+
+    func moveFolderExercise(from: IndexSet, to: Int, inFolderID: UUID) {
+        updateFolder(id: inFolderID) { $0.exercises.move(fromOffsets: from, toOffset: to) }
+    }
+
+    func moveFolderNote(from: IndexSet, to: Int, inFolderID: UUID) {
+        updateFolder(id: inFolderID) { $0.notes.move(fromOffsets: from, toOffset: to) }
+    }
+
+    func moveSubfolder(from: IndexSet, to: Int, inParentID: UUID) {
+        updateFolder(id: inParentID) { $0.subfolders.move(fromOffsets: from, toOffset: to) }
+    }
+
+    // MARK: - F5: Move to different folder
+
+    func moveExercise(id: UUID, fromFolderID: UUID?, toFolderID: UUID?) {
+        guard fromFolderID != toFolderID else { return }
+        var exercise: Exercise?
+
+        if let from = fromFolderID {
+            updateFolder(id: from) { folder in
+                if let idx = folder.exercises.firstIndex(where: { $0.id == id }) {
+                    exercise = folder.exercises[idx]
+                    folder.exercises.remove(at: idx)
+                }
+            }
+        } else {
+            if let idx = rootExercises.firstIndex(where: { $0.id == id }) {
+                exercise = rootExercises[idx]
+                rootExercises.remove(at: idx)
+                saveRootExercises()
+            }
+        }
+
+        guard let ex = exercise else { return }
+
+        if let to = toFolderID {
+            updateFolder(id: to) { $0.exercises.append(ex) }
+        } else {
+            rootExercises.append(ex)
+            saveRootExercises()
+        }
+    }
+
+    func moveNote(id: UUID, fromFolderID: UUID?, toFolderID: UUID?) {
+        guard fromFolderID != toFolderID else { return }
+        var note: DatabaseNote?
+
+        if let from = fromFolderID {
+            updateFolder(id: from) { folder in
+                if let idx = folder.notes.firstIndex(where: { $0.id == id }) {
+                    note = folder.notes[idx]
+                    folder.notes.remove(at: idx)
+                }
+            }
+        } else {
+            if let idx = rootNotes.firstIndex(where: { $0.id == id }) {
+                note = rootNotes[idx]
+                rootNotes.remove(at: idx)
+                saveRootNotes()
+            }
+        }
+
+        guard let n = note else { return }
+
+        if let to = toFolderID {
+            updateFolder(id: to) { $0.notes.append(n) }
+        } else {
+            rootNotes.append(n)
+            saveRootNotes()
+        }
+    }
+
     // MARK: - Private tree mutation
 
     private func updateFolder(id: UUID, transform: (inout ExerciseFolder) -> Void) {

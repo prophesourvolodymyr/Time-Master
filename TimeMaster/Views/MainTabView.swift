@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct MainTabView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     @StateObject private var databaseStore = DatabaseStore.shared
+    @StateObject private var aiStore = AIStore.shared
 
     var body: some View {
         TabView {
@@ -31,10 +32,10 @@ struct MainTabView: View {
                     Label("History", systemImage: "clock")
                 }
 
-            SettingsView()
-                .environmentObject(workoutStore)
+            AICoachView()
+                .environmentObject(aiStore)
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape")
+                    Label("AI Coach", systemImage: "brain.head.profile")
                 }
         }
         .tint(.white)
@@ -47,8 +48,3 @@ struct MainTabView: View {
         .preferredColorScheme(.dark)
 }
 
-#Preview {
-    MainTabView()
-        .environmentObject(WorkoutStore())
-        .preferredColorScheme(.dark)
-}

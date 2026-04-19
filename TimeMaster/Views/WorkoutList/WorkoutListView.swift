@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 struct WorkoutListView: View {
     @EnvironmentObject var store: WorkoutStore
@@ -6,6 +7,7 @@ struct WorkoutListView: View {
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
     @State private var newWorkoutColor: String = "FFFFFF"
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationStack {
@@ -22,6 +24,13 @@ struct WorkoutListView: View {
                                     WorkoutCard(workout: workout)
                                 }
                                 .buttonStyle(PlainButtonStyle())
+                                .contextMenu {
+                                    Button {
+                                        pinToWidget(workout)
+                                    } label: {
+                                        Label("Pin to Widget", systemImage: "pin")
+                                    }
+                                }
                             }
                             .onDelete(perform: deleteWorkouts)
                         }
@@ -32,6 +41,13 @@ struct WorkoutListView: View {
             }
             .navigationTitle("Workouts")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { showingSettings = true } label: {
+                        Image(systemName: "gearshape")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showingAddWorkout = true } label: {
                         Image(systemName: "plus")
@@ -42,6 +58,9 @@ struct WorkoutListView: View {
             }
             .sheet(isPresented: $showingAddWorkout) {
                 addWorkoutSheet
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView().environmentObject(store)
             }
         }
     }
@@ -160,6 +179,14 @@ struct WorkoutListView: View {
         for index in offsets {
             store.deleteWorkout(store.workouts[index])
         }
+    }
+
+    private func pinToWidget(_ workout: Workout) {
+        let defaults = UserDefaults(suiteName: "group.com.timemaster.shared")
+        defaults?.set(workout.name,           forKey: "pinned_workout_name")
+        defaults?.set(workout.id.uuidString,  forKey: "pinned_workout_id")
+        defaults?.set(workout.colorHex,       forKey: "pinned_workout_color")
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }
 
