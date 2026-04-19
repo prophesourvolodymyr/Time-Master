@@ -16,6 +16,9 @@ class PhotoManager {
         documentsDirectory.appendingPathComponent("Photos")
     }
 
+    /// Public access for BackupManager to enumerate / copy files.
+    var photosDirectoryURL: URL { photosDirectory }
+
     private func createPhotosDirectoryIfNeeded() {
         if !fileManager.fileExists(atPath: photosDirectory.path) {
             try? fileManager.createDirectory(at: photosDirectory, withIntermediateDirectories: true)

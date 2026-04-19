@@ -5,9 +5,8 @@ struct WorkoutCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: workout.type.icon)
-                    .foregroundColor(Theme.textSecondary)
+            HStack(spacing: 12) {
+                iconBadge
 
                 Text(workout.name)
                     .font(.headline)
@@ -36,6 +35,17 @@ struct WorkoutCard: View {
         .padding(16)
         .background(Theme.surface)
         .cornerRadius(16)
+    }
+
+    private var iconBadge: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(Color(hex: workout.colorHex))
+            .frame(width: 36, height: 36)
+            .overlay(
+                Image(systemName: workout.type.icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(workout.colorHex == "FFFFFF" ? .black : .white)
+            )
     }
 
     private func formatDuration(_ seconds: Int) -> String {

@@ -9,6 +9,7 @@ struct WorkoutDetailView: View {
     @State private var showingDeleteAlert = false
     @State private var sectionToDelete: Section?
     @State private var showPlayer = false
+    @State private var tappedSection: Section?
 
     init(workout: Workout) {
         _workout = State(initialValue: workout)
@@ -56,6 +57,26 @@ struct WorkoutDetailView: View {
             }
         } message: {
             Text("Are you sure you want to delete this section?")
+        }
+        .sheet(item: $tappedSection) { section in
+            SectionQuickActionsView(
+                section: section,
+                onEdit: {
+                    tappedSection = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        editingSection = section
+                        showingSectionEditor = true
+                    }
+                },
+                onDelete: {
+                    tappedSection = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        sectionToDelete = section
+                        showingDeleteAlert = true
+                    }
+                }
+            )
+            .presentationDetents([.medium])
         }
     }
 
@@ -107,6 +128,8 @@ struct WorkoutDetailView: View {
         let isLast = idx == workout.sections.count - 1
         VStack(spacing: 0) {
             SectionRow(section: section)
+                .contentShape(Rectangle())
+                .onTapGesture { tappedSection = section }
             if !isLast {
                 RestSeparatorRow(
                     rest: Binding(
@@ -210,6 +233,106 @@ private struct RestSeparatorRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .background(Theme.surface2.opacity(0.6))
+    }
+}
+
+private struct SectionQuickActionsView: View {
+    let section: Section
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Drag handle
+            Capsule()
+                .fill(Color.white.opacity(0.2))
+                .frame(width: 36, height: 4)
+                .padding(.top, 14)
+                .padding(.bottom, 22)
+
+            // Thumbnail + info
+            HStack(spacing: 16) {
+                thumbnailView
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(section.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(2)
+                    HStack(spacing: 8) {
+                        Label("\(section.duration)s", systemImage: "timer")
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary)
+                        if section.sets > 1 {
+                            Text("\(section.sets)×")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(5)
+                        }
+                    }
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+
+            Rectangle()
+                .fill(Theme.separator)
+                .frame(height: 1)
+                .padding(.vertical, 22)
+                .padding(.horizontal, 24)
+
+            // Action buttons
+            VStack(spacing: 12) {
+                Button { onEdit() } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "pencil")
+                        Text("Edit Section")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Theme.surface2)
+                    .cornerRadius(14)
+                }
+
+                Button(role: .destructive) { onDelete() } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "trash")
+                        Text("Delete Section")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Theme.surface2)
+                    .cornerRadius(14)
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.background.ignoresSafeArea())
+    }
+
+    @ViewBuilder
+    private var thumbnailView: some View {
+        if let item = section.mediaItems.first {
+            MediaThumbnailView(item: item, size: 72, cornerRadius: 12)
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Theme.surface2)
+                Image(systemName: "figure.run")
+                    .font(.title2)
+                    .foregroundColor(Theme.textSecondary)
+            }
+            .frame(width: 72, height: 72)
+        }
     }
 }
 

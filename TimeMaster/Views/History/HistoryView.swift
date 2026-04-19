@@ -70,7 +70,7 @@ struct HistoryRow: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.title2)
-                .foregroundColor(.green)
+                .foregroundColor(.white)
                 .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 4) {

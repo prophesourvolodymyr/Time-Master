@@ -122,6 +122,7 @@ struct Workout: Identifiable, Codable, Equatable {
     var sections: [Section]
     var createdAt: Date
     var restBetweenSections: Int  // workout-wide default inter-section rest (seconds)
+    var colorHex: String          // icon tint color (hex string, e.g. "FFFFFF")
 
     init(
         id: UUID = UUID(),
@@ -129,7 +130,8 @@ struct Workout: Identifiable, Codable, Equatable {
         type: WorkoutType = .strength,
         sections: [Section] = [],
         createdAt: Date = Date(),
-        restBetweenSections: Int = 30
+        restBetweenSections: Int = 30,
+        colorHex: String = "FFFFFF"
     ) {
         self.id = id
         self.name = name
@@ -137,10 +139,11 @@ struct Workout: Identifiable, Codable, Equatable {
         self.sections = sections
         self.createdAt = createdAt
         self.restBetweenSections = max(0, restBetweenSections)
+        self.colorHex = colorHex
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, type, sections, createdAt, restBetweenSections
+        case id, name, type, sections, createdAt, restBetweenSections, colorHex
     }
 
     init(from decoder: Decoder) throws {
@@ -151,6 +154,7 @@ struct Workout: Identifiable, Codable, Equatable {
         sections            = try c.decodeIfPresent([Section].self,   forKey: .sections) ?? []
         createdAt           = try c.decodeIfPresent(Date.self,        forKey: .createdAt) ?? Date()
         restBetweenSections = try c.decodeIfPresent(Int.self, forKey: .restBetweenSections) ?? 30
+        colorHex            = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "FFFFFF"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -161,6 +165,7 @@ struct Workout: Identifiable, Codable, Equatable {
         try c.encode(sections,            forKey: .sections)
         try c.encode(createdAt,           forKey: .createdAt)
         try c.encode(restBetweenSections, forKey: .restBetweenSections)
+        try c.encode(colorHex,            forKey: .colorHex)
     }
 
     var totalDuration: Int {

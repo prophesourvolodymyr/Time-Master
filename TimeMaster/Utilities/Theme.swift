@@ -12,6 +12,52 @@ struct Theme {
     static let textPrimary   = Color.white
     static let textSecondary = Color.white.opacity(0.45)
     static let separator     = Color.white.opacity(0.08)
+
+    // Icon color palette (8 choices) — used in WorkoutListView and DatabaseView
+    static let iconColors: [(hex: String, label: String)] = [
+        ("FFFFFF", "White"),
+        ("FF3B30", "Red"),
+        ("FF9500", "Orange"),
+        ("FFCC00", "Yellow"),
+        ("34C759", "Green"),
+        ("007AFF", "Blue"),
+        ("AF52DE", "Purple"),
+        ("FF2D55", "Pink"),
+    ]
+}
+
+// MARK: - IconColorPicker
+
+struct IconColorPicker: View {
+    @Binding var selectedHex: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(Theme.iconColors, id: \.hex) { colorDef in
+                let isSelected = selectedHex == colorDef.hex
+                ZStack {
+                    // Selection ring
+                    Circle()
+                        .stroke(Color.white.opacity(isSelected ? 0.9 : 0), lineWidth: 2)
+                        .frame(width: 38, height: 38)
+                    // Color fill
+                    Circle()
+                        .fill(Color(hex: colorDef.hex))
+                        .frame(width: 28, height: 28)
+                        .overlay(
+                            Group {
+                                if isSelected {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(colorDef.hex == "FFFFFF" ? .black : .white)
+                                }
+                            }
+                        )
+                }
+                .onTapGesture { selectedHex = colorDef.hex }
+            }
+        }
+    }
 }
 
 extension Color {

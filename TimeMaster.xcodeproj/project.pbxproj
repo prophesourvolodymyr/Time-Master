@@ -9,49 +9,75 @@
 /* Begin PBXBuildFile section */
 		0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */; };
 		11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
+		131D0631E4E8284C9D89FE5F /* VideoEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */; };
 		20F019992B3164F1D0AA6505 /* DatabaseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */; };
 		26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */; };
 		2E0C54F31F1BD8B352CE6FF1 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */; };
 		3098DC6341C897F9D10C082F /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */; };
 		355D53015A74800EB1032FB4 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F807BCDB518D68ED40746740 /* Theme.swift */; };
 		36662D83C3CB3D8D357DEB4C /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 85E2120C60EC88EBCAB370DF /* ZIPFoundation */; };
+		38F4D6D6E4EB92879758A36F /* BatchConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */; };
 		5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811BB55E3BD88B54CD74BF4C /* HistoryView.swift */; };
 		5F9122497A6B1D0BA5D17E14 /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */; };
+		665A7A181116B00B4845C8E1 /* VideoTrimService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D84B5A5EA777C4BE497FC8C1 /* VideoTrimService.swift */; };
+		7B1A2C3D4E5F6A7B8C9D0E1F /* ServerDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1A2C3D4E5F6A7B8C9D0E2F /* ServerDiscovery.swift */; };
 		72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */; };
 		772385FE936467AA631F28E3 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C /* Workout.swift */; };
+		799EFBBC8EC17CA89623F013 /* VideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */; };
 		8774DCE1AA5D3C75471D2821 /* WorkoutHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */; };
+		8ADC60A7F1B2F25CE2EEC828 /* TrayItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */; };
 		8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
 		915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A /* PhotoManager.swift */; };
 		A52B57AED83D34523ACF7433 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3323F148BE5A75196E090AC /* MainTabView.swift */; };
 		A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C588F8747756505B157DFC /* SectionEditorView.swift */; };
+		BB4F39D0883462DD08776419 /* TrayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FC162E9FB73397A81F0F44 /* TrayCardView.swift */; };
+		C0F8874E24C547F42DACA009 /* ImportSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */; };
 		C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
 		CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */; };
+		D050E4BC684E33F38C4AF4DD /* ServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */; };
 		D205311183C797669AC83F2E /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */; };
+		DEAE02C66BE0E138250A105A /* VideoDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D264DD465BC99BACA5CD3668 /* VideoDownloadService.swift */; };
 		DF365B3329D18015F0D078D8 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26870953ABC5C4610D424C6 /* AudioManager.swift */; };
 		E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */; };
+		AA001BB2CC001BB2CC001BB2 /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */; };
+		AA001BB2CC001BB2CC001BB4 /* BackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB5 /* BackupView.swift */; };
+		AA001BB2CC001BB2CC001BB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSheetView.swift; sourceTree = "<group>"; };
 		0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseDatabase.swift; sourceTree = "<group>"; };
 		15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseStore.swift; sourceTree = "<group>"; };
 		21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSectionPickerView.swift; sourceTree = "<group>"; };
 		282193241415BB7A32B3786C /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
+		3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSettingsView.swift; sourceTree = "<group>"; };
 		42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistory.swift; sourceTree = "<group>"; };
+		47FC162E9FB73397A81F0F44 /* TrayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayCardView.swift; sourceTree = "<group>"; };
 		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
+		52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchConfirmView.swift; sourceTree = "<group>"; };
 		552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterApp.swift; sourceTree = "<group>"; };
 		604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutStore.swift; sourceTree = "<group>"; };
 		618A088E13FA1540299DFDE1 /* WorkoutCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCard.swift; sourceTree = "<group>"; };
-		69344764F8B3AC313FF4CBC5 /* TimeMaster.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TimeMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		69344764F8B3AC313FF4CBC5 /* TimeMaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		811BB55E3BD88B54CD74BF4C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorView.swift; sourceTree = "<group>"; };
 		9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlayerView.swift; sourceTree = "<group>"; };
 		B26870953ABC5C4610D424C6 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionRow.swift; sourceTree = "<group>"; };
 		C66B50B0364426A1FB53608A /* PhotoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoManager.swift; sourceTree = "<group>"; };
 		CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
+		D264DD465BC99BACA5CD3668 /* VideoDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDownloadService.swift; sourceTree = "<group>"; };
+		D84B5A5EA777C4BE497FC8C1 /* VideoTrimService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimService.swift; sourceTree = "<group>"; };
+		7B1A2C3D4E5F6A7B8C9D0E2F /* ServerDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDiscovery.swift; sourceTree = "<group>"; };
+		DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorViewModel.swift; sourceTree = "<group>"; };
 		E3323F148BE5A75196E090AC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayItem.swift; sourceTree = "<group>"; };
 		F807BCDB518D68ED40746740 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
+		AA001BB2CC001BB2CC001BB5 /* BackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupView.swift; sourceTree = "<group>"; };
+		AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListView.swift; sourceTree = "<group>"; };
 		FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -68,10 +94,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0AADCDEE80DB4AE302D1DFD4 /* Import */ = {
+			isa = PBXGroup;
+			children = (
+				52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */,
+				0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */,
+				3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */,
+				47FC162E9FB73397A81F0F44 /* TrayCardView.swift */,
+				84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */,
+			);
+			path = Import;
+			sourceTree = "<group>";
+		};
 		1FF12E5694591672653BC22B /* Models */ = {
 			isa = PBXGroup;
 			children = (
 				0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */,
+				F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */,
 				282193241415BB7A32B3786C /* Workout.swift */,
 				42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */,
 			);
@@ -114,10 +153,20 @@
 			isa = PBXGroup;
 			children = (
 				B26870953ABC5C4610D424C6 /* AudioManager.swift */,
+				AA001BB2CC001BB2CC001BB3 /* BackupManager.swift */,
 				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
 				F807BCDB518D68ED40746740 /* Theme.swift */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		AA001BB2CC001BB2CC001BB8 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				AA001BB2CC001BB2CC001BB5 /* BackupView.swift */,
+				AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		36739A7D9D5BF1203FCD3C10 /* Analytics */ = {
@@ -135,6 +184,8 @@
 				36739A7D9D5BF1203FCD3C10 /* Analytics */,
 				D484AE590F5911664457F560 /* Database */,
 				292CD1F86597AFEEB040B9C0 /* History */,
+				0AADCDEE80DB4AE302D1DFD4 /* Import */,
+				AA001BB2CC001BB2CC001BB8 /* Settings */,
 				7CB83DA7936F4F5337347E13 /* Player */,
 				6701375A98AD8D3D135B5394 /* WorkoutDetail */,
 				4C8A4446813C950238345C32 /* WorkoutList */,
@@ -173,6 +224,7 @@
 			isa = PBXGroup;
 			children = (
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
+				DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */,
 				604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */,
 			);
 			path = ViewModels;
@@ -184,6 +236,7 @@
 				2B716F96FC83CC5B167F3C6E /* App */,
 				1FF12E5694591672653BC22B /* Models */,
 				2BDBBAF7F873D8DF1820C983 /* Resources */,
+				E77C50DF73EE34BD211B8CF4 /* Services */,
 				35A54AE4B141791F78BE29C4 /* Utilities */,
 				9116F4E669727A33B853D872 /* ViewModels */,
 				43DF0E6BD7C41C81366F761F /* Views */,
@@ -206,6 +259,16 @@
 				FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */,
 			);
 			path = Database;
+			sourceTree = "<group>";
+		};
+		E77C50DF73EE34BD211B8CF4 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D264DD465BC99BACA5CD3668 /* VideoDownloadService.swift */,
+				D84B5A5EA777C4BE497FC8C1 /* VideoTrimService.swift */,
+				7B1A2C3D4E5F6A7B8C9D0E2F /* ServerDiscovery.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -239,11 +302,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
-				TargetAttributes = {
-					A9869356E186BE43EA3A8C23 = {
-						DevelopmentTeam = "";
-					};
-				};
 			};
 			buildConfigurationList = BFEFEEF2CC629465516D4B34 /* Build configuration list for PBXProject "TimeMaster" */;
 			developmentRegion = en;
@@ -285,17 +343,30 @@
 			files = (
 				D205311183C797669AC83F2E /* AnalyticsView.swift in Sources */,
 				DF365B3329D18015F0D078D8 /* AudioManager.swift in Sources */,
+				38F4D6D6E4EB92879758A36F /* BatchConfirmView.swift in Sources */,
 				11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */,
 				20F019992B3164F1D0AA6505 /* DatabaseStore.swift in Sources */,
 				5F9122497A6B1D0BA5D17E14 /* DatabaseView.swift in Sources */,
 				E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */,
 				5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */,
+				C0F8874E24C547F42DACA009 /* ImportSheetView.swift in Sources */,
 				A52B57AED83D34523ACF7433 /* MainTabView.swift in Sources */,
 				915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */,
 				A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */,
 				72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */,
+				D050E4BC684E33F38C4AF4DD /* ServerSettingsView.swift in Sources */,
 				355D53015A74800EB1032FB4 /* Theme.swift in Sources */,
 				26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */,
+				BB4F39D0883462DD08776419 /* TrayCardView.swift in Sources */,
+				8ADC60A7F1B2F25CE2EEC828 /* TrayItem.swift in Sources */,
+				DEAE02C66BE0E138250A105A /* VideoDownloadService.swift in Sources */,
+				799EFBBC8EC17CA89623F013 /* VideoEditorView.swift in Sources */,
+				131D0631E4E8284C9D89FE5F /* VideoEditorViewModel.swift in Sources */,
+				665A7A181116B00B4845C8E1 /* VideoTrimService.swift in Sources */,
+				7B1A2C3D4E5F6A7B8C9D0E1F /* ServerDiscovery.swift in Sources */,
+				AA001BB2CC001BB2CC001BB2 /* BackupManager.swift in Sources */,
+				AA001BB2CC001BB2CC001BB4 /* BackupView.swift in Sources */,
+				AA001BB2CC001BB2CC001BB6 /* SettingsView.swift in Sources */,
 				772385FE936467AA631F28E3 /* Workout.swift in Sources */,
 				8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */,
 				3098DC6341C897F9D10C082F /* WorkoutDetailView.swift in Sources */,
@@ -441,9 +512,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Time-Master needs local network access to discover the companion server automatically";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -454,7 +527,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.TimeMaster;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vovas.TimeMaster;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -467,9 +541,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Time-Master needs local network access to discover the companion server automatically";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -480,7 +556,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.TimeMaster;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vovas.TimeMaster;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

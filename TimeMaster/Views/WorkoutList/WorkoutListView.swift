@@ -5,6 +5,7 @@ struct WorkoutListView: View {
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
+    @State private var newWorkoutColor: String = "FFFFFF"
 
     var body: some View {
         NavigationStack {
@@ -107,13 +108,21 @@ struct WorkoutListView: View {
                         }
                     }
 
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Icon Color")
+                            .font(.headline)
+                            .foregroundColor(Theme.textPrimary)
+                        IconColorPicker(selectedHex: $newWorkoutColor)
+                    }
+
                     Spacer()
 
                     Button {
                         if !newWorkoutName.isEmpty {
-                            store.addWorkout(name: newWorkoutName, type: newWorkoutType)
+                            store.addWorkout(name: newWorkoutName, type: newWorkoutType, colorHex: newWorkoutColor)
                             newWorkoutName = ""
                             newWorkoutType = .strength
+                            newWorkoutColor = "FFFFFF"
                             showingAddWorkout = false
                         }
                     } label: {
@@ -136,6 +145,7 @@ struct WorkoutListView: View {
                     Button("Cancel") {
                         newWorkoutName = ""
                         newWorkoutType = .strength
+                        newWorkoutColor = "FFFFFF"
                         showingAddWorkout = false
                     }
                     .foregroundColor(.white)

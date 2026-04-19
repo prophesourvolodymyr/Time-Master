@@ -4,28 +4,64 @@ class DatabaseStore: ObservableObject {
     static let shared = DatabaseStore()
 
     @Published var rootFolders: [ExerciseFolder] = []
+    @Published var rootNotes: [DatabaseNote] = []
+    @Published var rootExercises: [Exercise] = []
 
-    private let storageKey = "exercise_database_v2"
+    private let foldersKey       = "exercise_database_v2"
+    private let rootNotesKey     = "exercise_database_root_notes_v1"
+    private let rootExercisesKey = "exercise_database_root_exercises_v1"
 
     private init() {
         load()
     }
 
+    /// Public alias — reloads all data from UserDefaults.
+    /// Call after a backup import to refresh in-memory state.
+    func reload() { load() }
+
     // MARK: - Persistence
 
     func load() {
-        if let data = UserDefaults.standard.data(forKey: storageKey),
+        if let data = UserDefaults.standard.data(forKey: foldersKey),
            let decoded = try? JSONDecoder().decode([ExerciseFolder].self, from: data) {
             rootFolders = decoded
         } else {
             rootFolders = defaultFolders()
-            save()
+            saveFolders()
+        }
+
+        if let data = UserDefaults.standard.data(forKey: rootNotesKey),
+           let decoded = try? JSONDecoder().decode([DatabaseNote].self, from: data) {
+            rootNotes = decoded
+        }
+
+        if let data = UserDefaults.standard.data(forKey: rootExercisesKey),
+           let decoded = try? JSONDecoder().decode([Exercise].self, from: data) {
+            rootExercises = decoded
         }
     }
 
     func save() {
+        saveFolders()
+        saveRootNotes()
+        saveRootExercises()
+    }
+
+    private func saveFolders() {
         if let encoded = try? JSONEncoder().encode(rootFolders) {
-            UserDefaults.standard.set(encoded, forKey: storageKey)
+            UserDefaults.standard.set(encoded, forKey: foldersKey)
+        }
+    }
+
+    private func saveRootNotes() {
+        if let encoded = try? JSONEncoder().encode(rootNotes) {
+            UserDefaults.standard.set(encoded, forKey: rootNotesKey)
+        }
+    }
+
+    private func saveRootExercises() {
+        if let encoded = try? JSONEncoder().encode(rootExercises) {
+            UserDefaults.standard.set(encoded, forKey: rootExercisesKey)
         }
     }
 
@@ -45,14 +81,14 @@ class DatabaseStore: ObservableObject {
 
     // MARK: - Root folder CRUD
 
-    func addRootFolder(name: String) {
-        rootFolders.append(ExerciseFolder(name: name))
-        save()
+    func addRootFolder(name: String, colorHex: String = "FFFFFF") {
+        rootFolders.append(ExerciseFolder(name: name, colorHex: colorHex))
+        saveFolders()
     }
 
     func deleteRootFolder(id: UUID) {
         rootFolders.removeAll { $0.id == id }
-        save()
+        saveFolders()
     }
 
     func renameFolder(id: UUID, newName: String) {
@@ -61,15 +97,15 @@ class DatabaseStore: ObservableObject {
 
     // MARK: - Subfolder CRUD
 
-    func addSubfolder(name: String, toFolderID parentID: UUID) {
-        updateFolder(id: parentID) { $0.subfolders.append(ExerciseFolder(name: name)) }
+    func addSubfolder(name: String, toFolderID parentID: UUID, colorHex: String = "FFFFFF") {
+        updateFolder(id: parentID) { $0.subfolders.append(ExerciseFolder(name: name, colorHex: colorHex)) }
     }
 
     func deleteSubfolder(id: UUID, fromParentID parentID: UUID) {
         updateFolder(id: parentID) { $0.subfolders.removeAll { $0.id == id } }
     }
 
-    // MARK: - Exercise CRUD
+    // MARK: - Exercise CRUD (in folder)
 
     func addExercise(_ exercise: Exercise, toFolderID folderID: UUID) {
         updateFolder(id: folderID) { $0.exercises.append(exercise) }
@@ -87,11 +123,67 @@ class DatabaseStore: ObservableObject {
         updateFolder(id: folderID) { $0.exercises.removeAll { $0.id == id } }
     }
 
+    // MARK: - Root Exercise CRUD
+
+    func addRootExercise(_ exercise: Exercise) {
+        rootExercises.append(exercise)
+        saveRootExercises()
+    }
+
+    func updateRootExercise(_ exercise: Exercise) {
+        if let idx = rootExercises.firstIndex(where: { $0.id == exercise.id }) {
+            rootExercises[idx] = exercise
+        }
+        saveRootExercises()
+    }
+
+    func deleteRootExercise(id: UUID) {
+        rootExercises.removeAll { $0.id == id }
+        saveRootExercises()
+    }
+
+    // MARK: - Note CRUD (in folder)
+
+    func addNote(_ note: DatabaseNote, toFolderID folderID: UUID) {
+        updateFolder(id: folderID) { $0.notes.append(note) }
+    }
+
+    func updateNote(_ note: DatabaseNote, inFolderID folderID: UUID) {
+        updateFolder(id: folderID) { folder in
+            if let idx = folder.notes.firstIndex(where: { $0.id == note.id }) {
+                folder.notes[idx] = note
+            }
+        }
+    }
+
+    func deleteNote(id: UUID, fromFolderID folderID: UUID) {
+        updateFolder(id: folderID) { $0.notes.removeAll { $0.id == id } }
+    }
+
+    // MARK: - Root Note CRUD
+
+    func addRootNote(_ note: DatabaseNote) {
+        rootNotes.append(note)
+        saveRootNotes()
+    }
+
+    func updateRootNote(_ note: DatabaseNote) {
+        if let idx = rootNotes.firstIndex(where: { $0.id == note.id }) {
+            rootNotes[idx] = note
+        }
+        saveRootNotes()
+    }
+
+    func deleteRootNote(id: UUID) {
+        rootNotes.removeAll { $0.id == id }
+        saveRootNotes()
+    }
+
     // MARK: - Private tree mutation
 
     private func updateFolder(id: UUID, transform: (inout ExerciseFolder) -> Void) {
         if mutateInArray(&rootFolders, id: id, transform: transform) {
-            save()
+            saveFolders()
         }
     }
 

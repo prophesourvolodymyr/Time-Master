@@ -1,20 +1,4 @@
-# Todos
-[•] 
-Read remaining unread files
-[ ] 
-Update Theme.swift to minimal b&w
-[ ] 
-Update Workout.swift: sets, restBetweenSets, customRestAfter, restBetweenSections
-[ ] 
-Rewrite SectionEditorView: media + sets + rest UI
-[ ] 
-Rewrite WorkoutPlayerView: video + sets timer logic + b&w
-[ ] 
-Update WorkoutDetailView: restBetweenSections + b&w
-[ ] 
-Update SectionRow, WorkoutListView, WorkoutCard, HistoryView, MainTabView b&w
-[ ] 
-Build, fix errors, install and launch
+
 
 Goal
 Build and polish Time-Master — an iOS SwiftUI workout timer app. Current batch of tasks (in priority order):
@@ -60,32 +44,53 @@ Discoveries
 - MovieFile: Transferable (defined in DatabaseView.swift): FileRepresentation(contentType: .movie) for video import from PhotosPicker. Requires import UniformTypeIdentifiers
 - mediaScrollRow(items:onRemove:): free @ViewBuilder function in DatabaseView.swift for the shared horizontal media scroll UI
 - ExerciseGalleryCard.mediaTop uses MediaThumbnailView with size: 0 + .frame(maxWidth: .infinity).frame(height: 110).clipped() for fill display
-- WorkoutPlayerView currently uses old loadedImages: [UIImage] + currentImageIndex. Must be replaced with: loadedMedia: [MediaItem], mediaImages: [UIImage?] (thumbnails/images by index), currentMediaIndex: Int, videoPlayer: AVQueuePlayer?, videoLooper: AVPlayerLooper?. Must add import AVKit. Video loops via AVPlayerLooper. Audio: set AVAudioSession to .playback + .mixWithOthers so TTS (AudioManager) works alongside video audio. Carousel dots: circles for photos, pill shapes for videos.
-- SectionEditorView still uses old photoImages: [UIImage] / photoFilenames: [String] — needs full rewrite
+- WorkoutPlayerView uses: loadedMedia: [MediaItem], mediaImages: [UIImage?], currentMediaIndex: Int, videoPlayer: AVQueuePlayer?, videoLooper: AVPlayerLooper?. import AVKit. Video loops via AVPlayerLooper. Audio: AVAudioSession .playback + .mixWithOthers so TTS works alongside video. Carousel dots: circles for photos, pill shapes for videos.
 - WorkoutStore.deleteSection and deleteWorkout already updated to use section.mediaItems + deleteMedia(filename:)
-- The files Theme.swift, WorkoutDetailView.swift, WorkoutListView.swift, WorkoutCard.swift, HistoryView.swift, MainTabView.swift have NOT been read yet — must be read before editing
+- DatabaseStore.swift: rootNotes [DatabaseNote], rootExercises [Exercise] with separate UserDefaults keys; full CRUD for root notes, root exercises, folder notes
+- DatabaseView.swift: MarkdownTextView (block+inline markdown rendering), NoteRowView, NoteDetailView (inline editor — TextField title + TextEditor body, auto-saves on dismiss), NoteEditorView (create new notes), root exercises/notes/folders sections, AddExerciseView + EditExerciseView take folderID: UUID? (nil = root)
+- NoteDetailView is an inline editor (not read-only): title TextField + body TextEditor, persistIfNeeded() called on Done and onDisappear
+- WorkoutDetailView: SectionQuickActionsView sheet (presentationDetents .medium) triggered by tapping SectionRow; has Edit and Delete actions with 0.35s delay after dismiss before opening next sheet/alert
+- SectionRow: sets count badge "N×" shown when sets > 1; b&w theme throughout
+- WorkoutDetailView: RestSeparatorRow between sections (inline stepper for per-section rest override); restBetweenSections workout-wide default
+- Swipe actions on List rows: delete (trailing, red), edit (leading, white tint) — NOTE: delete swipe tint should be .red not default
+- Icon color feature: Workout.colorHex: String = "FFFFFF" and ExerciseFolder.colorHex: String = "FFFFFF" — both Codable with decodeIfPresent fallback; Theme.iconColors is 8-entry array (hex+label) defined in Theme.swift; IconColorPicker (in Theme.swift) is a row of 8 circles with selection ring; WorkoutCard and FolderRowView show a 36×36 RoundedRectangle(cornerRadius:8) badge filled with the item's colorHex; icon foreground: .black if hex=="FFFFFF", else .white; NewFolderSheet (bottom of DatabaseView.swift) replaces alert-based folder creation; sheet callback: (name: String, colorHex: String) -> Void; folder-creation alerts REMOVED from both DatabaseView and FolderDetailView
 ---
 Accomplished
 ✅ Fully Done
-1. Models/ExerciseDatabase.swift — MediaType + MediaItem added; Exercise.mediaItems: [MediaItem] with full Codable migration from photoFilenames/photoFilename; toSection() passes mediaItems
-2. Models/Workout.swift — Section.mediaItems: [MediaItem] with Codable migration; legacy init params kept. Still needs: sets, restBetweenSets, customRestAfter, and Workout.restBetweenSections fields
-3. Utilities/PhotoManager.swift — All video methods added; import AVFoundation; photosDirectory computed property
-4. ViewModels/WorkoutStore.swift — deleteWorkout + deleteSection use section.mediaItems + deleteMedia(filename:)
-5. Views/Database/DatabaseView.swift — Full rewrite: MovieFile, MediaThumbnailView, mediaScrollRow defined; AddExerciseView + EditExerciseView support photo+video picking; all thumbnails via MediaThumbnailView; Array[safe:] defined here
-6. Views/Database/DatabaseSectionPickerView.swift — PickerExerciseRow uses MediaThumbnailView
-7. Views/WorkoutDetail/SectionRow.swift — Uses section.mediaItems.first + MediaThumbnailView. Still needs: sets count badge + b&w theme pass
-❌ Not Done — implement in this order
-8. Theme.swift — Read first, then update to minimal b&w (keep primary/accent defined but near-unused)
-9. Models/Workout.swift — Add Section.sets: Int, Section.restBetweenSets: Int, Section.customRestAfter: Int?; add Workout.restBetweenSections: Int = 30; update Codable for all new fields with sensible defaults on migration
-10. Views/WorkoutDetail/SectionEditorView.swift — Full rewrite: replace photo state with mediaItems: [MediaItem]; video-capable picker; add sets stepper; add restBetweenSets stepper (only visible when sets > 1); add "Use custom rest after this section" toggle + stepper; update database picker callback to mediaItems = selectedSection.mediaItems; b&w theme
-11. Views/Player/WorkoutPlayerView.swift — Full rewrite: import AVKit; loadedMedia/mediaImages/currentMediaIndex; AVQueuePlayer+AVPlayerLooper for video loop; sets timer logic (repeat section N times with restBetweenSets, then customRestAfter ?? workout.restBetweenSections); b&w theme; pill dots for video items
-12. Views/WorkoutDetail/WorkoutDetailView.swift — Read then add restBetweenSections stepper UI + b&w theme
-13. Views/WorkoutDetail/SectionRow.swift — Add sets count badge (e.g. "3×") + b&w theme
-14. Views/WorkoutList/WorkoutListView.swift — Read then apply b&w theme
-15. Views/WorkoutList/WorkoutCard.swift — Read then apply b&w theme
-16. Views/History/HistoryView.swift — Read then apply b&w theme
-17. Views/MainTabView.swift — Read then apply b&w theme
-18. Build → fix all errors → install → launch on simulator
+1. Models/ExerciseDatabase.swift — MediaType + MediaItem; DatabaseNote struct; ExerciseFolder.notes + colorHex with Codable migration
+2. Models/Workout.swift — Section.mediaItems, sets, restBetweenSets, customRestAfter; Workout.restBetweenSections + colorHex; full Codable migration
+3. Utilities/PhotoManager.swift — all video + media methods
+4. Utilities/Theme.swift — minimal b&w; Theme.iconColors palette; IconColorPicker view
+5. ViewModels/WorkoutStore.swift — addWorkout(name:type:colorHex:); deleteWorkout + deleteSection use mediaItems
+6. ViewModels/DatabaseStore.swift — rootNotes, rootExercises, full CRUD; addRootFolder(name:colorHex:); addSubfolder(name:toFolderID:colorHex:)
+7. Views/Database/DatabaseView.swift — full rewrite; NewFolderSheet replaces alerts; FolderRowView with colored icon badge
+8. Views/Database/DatabaseSectionPickerView.swift — MediaThumbnailView
+9. Views/WorkoutDetail/SectionRow.swift — sets badge, b&w theme, MediaThumbnailView
+10. Views/WorkoutDetail/SectionEditorView.swift — media picker, sets stepper, restBetweenSets stepper, custom rest toggle
+11. Views/WorkoutDetail/WorkoutDetailView.swift — RestSeparatorRow, SectionQuickActionsView sheet (tap to edit/delete)
+12. Views/Player/WorkoutPlayerView.swift — AVKit video loop, sets timer logic, media carousel, b&w theme, confetti on completion
+13. Views/WorkoutList/WorkoutListView.swift — b&w theme; IconColorPicker + newWorkoutColor state in creation sheet
+14. Views/WorkoutList/WorkoutCard.swift — colored icon badge (36×36 RoundedRectangle)
+❌ Not Done
+15. Views/History/HistoryView.swift — unread — needs b&w theme audit
+16. Views/MainTabView.swift — unread — needs b&w theme audit
+17. Fix swipe-to-delete tint: all List rows with delete swipe action should use .tint(.red) — currently appears ghost/white
+---
+Future Backlog (not started — implement in a future batch)
+F1. Motivational voice quotes during workout — iPhone speaks preset motivational quotes at random intervals while a section timer is running; quotes pool editable in Settings; uses existing AudioManager.shared TTS
+F2. Background music player — user uploads audio files from Files app (Settings screen); stored in Documents/Music/; MusicManager singleton (AVQueuePlayer) plays tracks one-after-another in loop; if single track, loops that track; in workout player a music icon button toggles playback on/off; AudioSession category .playback + .mixWithOthers so TTS and music coexist; volume control in Settings
+F3. Fix delete swipe action color — currently appears white/ghost; add .tint(.red) to all destructive swipe actions across WorkoutDetailView, WorkoutListView, DatabaseView, HistoryView, FolderDetailView
+F4. Workout completion celebration — ConfettiView already implemented in WorkoutPlayerView; verify it fires on workout complete; add AVSpeechUtterance congratulation phrase; already partially done — audit and confirm
+F5. Database drag-to-reorder and "Move To" — exercises and notes inside folders (and at root level) support: (a) hold-and-drag reorder within the same folder via List onMove; (b) context menu / swipe action "Move to…" that opens a FolderPickerSheet (NavigationStack with list of all folders) to relocate the item; DatabaseStore needs moveExercise(id:fromFolderID:toFolderID:) and moveNote(id:fromFolderID:toFolderID:) helpers
+F6. AI Coach tab — new 5th tab "AI Coach" (brain or sparkles icon); features:
+    - Persistent chat UI (messages list + input bar), history stored in UserDefaults
+    - Configurable "Soul" / system prompt set by user in AI Settings (multiline TextEditor)
+    - User can upload text/PDF/markdown files as "knowledge" (stored in Documents/AIKnowledge/); each file is chunked and prepended to context or summarised into system prompt
+    - API key management in Settings: user enters keys for OpenAI, Anthropic, or any OpenAI-compatible endpoint (custom base URL + key); keys stored in Keychain
+    - Model selector: dropdown to pick model string (e.g. gpt-4o, claude-3-5-sonnet, custom)
+    - Networking: pure URLSession, no SDKs; OpenAI-compatible /chat/completions endpoint; streaming optional (v2)
+    - No external AI SDKs — keep zero-dependency rule (except ZIPFoundation)
+F7. Home screen widget for quick workout launch — WidgetKit extension (iOS 16+); user selects one workout to pin in the widget configuration; widget displays workout name + icon color badge; tapping the widget deep-links into the app and immediately starts that workout in WorkoutPlayerView; widget size: small (single workout) only for v1; no external dependencies; deep-link via URL scheme (timemaster://start?workoutID=UUID); app handles the URL in TimeMasterApp.swift via onOpenURL
 ---
 Relevant files / directories
 /Users/volodymurvasualkiw/Desktop/Opensource/Time-Master/
@@ -94,31 +99,31 @@ Relevant files / directories
     ├── App/
     │   └── TimeMasterApp.swift                    # unchanged
     ├── Models/
-    │   ├── Workout.swift                          # ✅ mediaItems — ❌ needs sets/rest fields
+    │   ├── Workout.swift                          # ✅ fully done (incl. colorHex)
     │   ├── WorkoutHistory.swift                   # unchanged
-    │   └── ExerciseDatabase.swift                 # ✅ fully done
+    │   └── ExerciseDatabase.swift                 # ✅ fully done (incl. colorHex on ExerciseFolder)
     ├── ViewModels/
-    │   ├── WorkoutStore.swift                     # ✅ fully done
-    │   └── DatabaseStore.swift                    # unchanged
+    │   ├── WorkoutStore.swift                     # ✅ fully done (addWorkout colorHex)
+    │   └── DatabaseStore.swift                    # ✅ fully done (addRootFolder/addSubfolder colorHex)
     ├── Views/
-    │   ├── MainTabView.swift                      # ❌ unread — needs b&w
+    │   ├── MainTabView.swift                      # ❌ unread — needs b&w audit
     │   ├── Database/
-    │   │   ├── DatabaseView.swift                 # ✅ fully done
+    │   │   ├── DatabaseView.swift                 # ✅ fully done (NewFolderSheet, colored FolderRowView)
     │   │   └── DatabaseSectionPickerView.swift    # ✅ fully done
     │   ├── History/
-    │   │   └── HistoryView.swift                  # ❌ unread — needs b&w
+    │   │   └── HistoryView.swift                  # ❌ unread — needs b&w audit
     │   ├── Analytics/
     │   │   └── AnalyticsView.swift                # ✅ keep as-is (colors stay here)
     │   ├── WorkoutDetail/
-    │   │   ├── WorkoutDetailView.swift            # ❌ unread — needs restBetweenSections + b&w
-    │   │   ├── SectionRow.swift                   # ✅ media done — ❌ needs sets badge + b&w
-    │   │   └── SectionEditorView.swift            # ❌ NOT DONE — full rewrite needed
+    │   │   ├── WorkoutDetailView.swift            # ✅ fully done
+    │   │   ├── SectionRow.swift                   # ✅ fully done
+    │   │   └── SectionEditorView.swift            # ✅ fully done
     │   ├── WorkoutList/
-    │   │   ├── WorkoutListView.swift              # ❌ unread — needs b&w
-    │   │   └── WorkoutCard.swift                  # ❌ unread — needs b&w
+    │   │   ├── WorkoutListView.swift              # ✅ fully done (IconColorPicker in sheet)
+    │   │   └── WorkoutCard.swift                  # ✅ fully done (colored icon badge)
     │   └── Player/
-    │       └── WorkoutPlayerView.swift            # ❌ NOT DONE — full rewrite needed
+    │       └── WorkoutPlayerView.swift            # ✅ fully done
     └── Utilities/
         ├── PhotoManager.swift                     # ✅ fully done
         ├── AudioManager.swift                     # unchanged
-        └── Theme.swift                            # ❌ unread — needs full b
+        └── Theme.swift                            # ✅ fully done (b&w + iconColors + IconColorPicker)

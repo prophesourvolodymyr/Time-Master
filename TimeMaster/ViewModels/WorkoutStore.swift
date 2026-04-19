@@ -14,8 +14,8 @@ class WorkoutStore: ObservableObject {
         loadHistory()
     }
 
-    func addWorkout(name: String, type: WorkoutType = .strength) {
-        let workout = Workout(name: name, type: type)
+    func addWorkout(name: String, type: WorkoutType = .strength, colorHex: String = "FFFFFF") {
+        let workout = Workout(name: name, type: type, colorHex: colorHex)
         workouts.append(workout)
         saveWorkouts()
     }
@@ -95,6 +95,13 @@ class WorkoutStore: ObservableObject {
     func clearHistory() {
         historyEntries.removeAll()
         saveHistory()
+    }
+
+    /// Re-reads both workouts and history from UserDefaults.
+    /// Call after a backup import to refresh in-memory state.
+    func reload() {
+        loadWorkouts()
+        loadHistory()
     }
 
     private func saveWorkouts() {

@@ -19,6 +19,22 @@ struct MediaItem: Codable, Identifiable, Equatable {
     }
 }
 
+// MARK: - DatabaseNote
+
+struct DatabaseNote: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var title: String
+    var body: String
+    var createdAt: Date
+
+    init(id: UUID = UUID(), title: String, body: String = "", createdAt: Date = Date()) {
+        self.id = id
+        self.title = title
+        self.body = body
+        self.createdAt = createdAt
+    }
+}
+
 // MARK: - Exercise
 
 struct Exercise: Identifiable, Codable {
@@ -104,19 +120,50 @@ struct Exercise: Identifiable, Codable {
 struct ExerciseFolder: Identifiable, Codable {
     var id: UUID = UUID()
     var name: String
+    var colorHex: String          // icon tint color (hex string, e.g. "FFFFFF")
     var subfolders: [ExerciseFolder] = []
     var exercises: [Exercise] = []
+    var notes: [DatabaseNote] = []
 
     init(
         id: UUID = UUID(),
         name: String,
+        colorHex: String = "FFFFFF",
         subfolders: [ExerciseFolder] = [],
-        exercises: [Exercise] = []
+        exercises: [Exercise] = [],
+        notes: [DatabaseNote] = []
     ) {
         self.id = id
         self.name = name
+        self.colorHex = colorHex
         self.subfolders = subfolders
         self.exercises = exercises
+        self.notes = notes
+    }
+
+    // Custom Codable — uses decodeIfPresent with defaults so existing data migrates safely
+    enum CodingKeys: String, CodingKey {
+        case id, name, colorHex, subfolders, exercises, notes
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id         = try c.decodeIfPresent(UUID.self,              forKey: .id)         ?? UUID()
+        name       = try c.decode(String.self,                     forKey: .name)
+        colorHex   = try c.decodeIfPresent(String.self,            forKey: .colorHex)   ?? "FFFFFF"
+        subfolders = try c.decodeIfPresent([ExerciseFolder].self,  forKey: .subfolders) ?? []
+        exercises  = try c.decodeIfPresent([Exercise].self,        forKey: .exercises)  ?? []
+        notes      = try c.decodeIfPresent([DatabaseNote].self,    forKey: .notes)      ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id,         forKey: .id)
+        try c.encode(name,       forKey: .name)
+        try c.encode(colorHex,   forKey: .colorHex)
+        try c.encode(subfolders, forKey: .subfolders)
+        try c.encode(exercises,  forKey: .exercises)
+        try c.encode(notes,      forKey: .notes)
     }
 
     /// Total exercise count including all subfolders recursively.

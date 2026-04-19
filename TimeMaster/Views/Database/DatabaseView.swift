@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import AVFoundation
 
 // MARK: - MovieFile (Transferable for video picking — module-wide)
 
@@ -32,32 +33,58 @@ struct MediaThumbnailView: View {
     @State private var thumbnail: UIImage?
 
     var body: some View {
-        ZStack {
-            if let thumbnail = thumbnail {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: size, height: size)
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            } else {
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Theme.surface)
-                    .frame(width: size, height: size)
-                    .overlay(
-                        Image(systemName: item.type == .video ? "video.fill" : "photo.fill")
-                            .font(.system(size: size * 0.3))
-                            .foregroundColor(Theme.textSecondary.opacity(0.5))
-                    )
+        if size > 0 {
+            ZStack {
+                if let thumbnail = thumbnail {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: size, height: size)
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                } else {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .fill(Theme.surface)
+                        .frame(width: size, height: size)
+                        .overlay(
+                            Image(systemName: item.type == .video ? "video" : "photo")
+                                .font(.system(size: max(size * 0.3, 14)))
+                                .foregroundColor(Theme.textSecondary.opacity(0.5))
+                        )
+                }
+                if item.type == .video {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: max(size * 0.32, 14)))
+                        .foregroundColor(.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.5), radius: 2)
+                }
             }
-            if item.type == .video {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: size * 0.32))
-                    .foregroundColor(.white.opacity(0.85))
-                    .shadow(color: .black.opacity(0.5), radius: 2)
+            .frame(width: size, height: size)
+            .onAppear { loadThumbnail() }
+        } else {
+            // Fill mode: no fixed frame — parent controls size via .frame(maxWidth:).frame(height:)
+            ZStack {
+                if let thumbnail = thumbnail {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Rectangle()
+                        .fill(Theme.surface)
+                        .overlay(
+                            Image(systemName: item.type == .video ? "video" : "photo")
+                                .font(.system(size: 28))
+                                .foregroundColor(Theme.textSecondary.opacity(0.5))
+                        )
+                }
+                if item.type == .video {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(.white.opacity(0.85))
+                        .shadow(color: .black.opacity(0.5), radius: 2)
+                }
             }
+            .onAppear { loadThumbnail() }
         }
-        .frame(width: size, height: size)
-        .onAppear { loadThumbnail() }
     }
 
     private func loadThumbnail() {
@@ -69,12 +96,272 @@ struct MediaThumbnailView: View {
     }
 }
 
+// MARK: - MarkdownTextView (module-wide)
+
+struct MarkdownTextView: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            ForEach(Array(text.components(separatedBy: "\n").enumerated()), id: \.offset) { _, line in
+                markdownLine(line)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func markdownLine(_ line: String) -> some View {
+        if line.hasPrefix("# ") {
+            Text(String(line.dropFirst(2)))
+                .font(.title2.bold()).foregroundColor(Theme.textPrimary)
+        } else if line.hasPrefix("## ") {
+            Text(String(line.dropFirst(3)))
+                .font(.title3.weight(.semibold)).foregroundColor(Theme.textPrimary)
+        } else if line.hasPrefix("### ") {
+            Text(String(line.dropFirst(4)))
+                .font(.headline).foregroundColor(Theme.textPrimary)
+        } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
+            HStack(alignment: .top, spacing: 8) {
+                Text("•").foregroundColor(Theme.textSecondary).frame(width: 12)
+                inlineMarkdownView(String(line.dropFirst(2)))
+            }
+        } else if line.isEmpty {
+            Text(" ").font(.caption2)
+        } else {
+            inlineMarkdownView(line)
+        }
+    }
+
+    @ViewBuilder
+    private func inlineMarkdownView(_ s: String) -> some View {
+        if let attr = try? AttributedString(markdown: s,
+                                            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+            Text(attr).foregroundColor(Theme.textPrimary).font(.body)
+        } else {
+            Text(s).foregroundColor(Theme.textPrimary).font(.body)
+        }
+    }
+}
+
+// MARK: - NoteRowView
+
+struct NoteRowView: View {
+    let note: DatabaseNote
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "note.text")
+                .font(.title3).foregroundColor(Theme.textSecondary).frame(width: 32)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(note.title)
+                    .font(.subheadline).fontWeight(.medium).foregroundColor(Theme.textPrimary)
+                    .lineLimit(1)
+                if !note.body.isEmpty {
+                    Text(note.body)
+                        .font(.caption).foregroundColor(Theme.textSecondary).lineLimit(2)
+                }
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption2).foregroundColor(Theme.textSecondary.opacity(0.5))
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - NoteDetailView (inline editor — selectable & directly editable)
+
+struct NoteDetailView: View {
+    @EnvironmentObject var store: DatabaseStore
+    @Environment(\.dismiss) private var dismiss
+
+    let noteID: UUID
+    let folderID: UUID?
+
+    @State private var title: String = ""
+    @State private var noteBody: String = ""
+    @State private var loaded = false
+
+    private var storedNote: DatabaseNote? {
+        if let fid = folderID {
+            return store.folder(id: fid)?.notes.first(where: { $0.id == noteID })
+        } else {
+            return store.rootNotes.first(where: { $0.id == noteID })
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    // Title field
+                    TextField("Title", text: $title)
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(Theme.textPrimary)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 10)
+
+                    Divider().background(Theme.separator)
+
+                    // Body editor — fills remaining space
+                    TextEditor(text: $noteBody)
+                        .font(.body)
+                        .foregroundColor(Theme.textPrimary)
+                        .scrollContentBackground(.hidden)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { saveAndDismiss() }
+                        .foregroundColor(.white)
+                }
+            }
+            .onAppear {
+                guard !loaded, let n = storedNote else { return }
+                title    = n.title
+                noteBody = n.body
+                loaded   = true
+            }
+            .onDisappear { persistIfNeeded() }
+        }
+    }
+
+    private func saveAndDismiss() {
+        persistIfNeeded()
+        dismiss()
+    }
+
+    private func persistIfNeeded() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
+        guard !trimmedTitle.isEmpty, let original = storedNote else { return }
+        guard trimmedTitle != original.title || noteBody != original.body else { return }
+        var updated = original
+        updated.title = trimmedTitle
+        updated.body  = noteBody
+        if let fid = folderID {
+            store.updateNote(updated, inFolderID: fid)
+        } else {
+            store.updateRootNote(updated)
+        }
+    }
+}
+
+// MARK: - NoteEditorView
+
+struct NoteEditorView: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var store: DatabaseStore
+
+    let existingNote: DatabaseNote?
+    let folderID: UUID?
+
+    @State private var title: String
+    @State private var noteBody: String
+
+    init(note: DatabaseNote? = nil, folderID: UUID? = nil) {
+        self.existingNote = note
+        self.folderID = folderID
+        _title    = State(initialValue: note?.title ?? "")
+        _noteBody = State(initialValue: note?.body  ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 20) {
+                        titleCard
+                        bodyCard
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle(existingNote == nil ? "New Note" : "Edit Note")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveNote() }
+                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+    }
+
+    private var titleCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Title").font(.headline).foregroundColor(Theme.textPrimary)
+            TextField("Note title…", text: $title)
+                .padding(14).background(Theme.surface).cornerRadius(10).foregroundColor(Theme.textPrimary)
+        }
+    }
+
+    private var bodyCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Content").font(.headline).foregroundColor(Theme.textPrimary)
+                Spacer()
+                Text("Markdown supported")
+                    .font(.caption2).foregroundColor(Theme.textSecondary)
+            }
+            ZStack(alignment: .topLeading) {
+                if noteBody.isEmpty {
+                    Text("Write your note here…\n\nSupports **bold**, *italic*, `code`, # Headings, - lists")
+                        .foregroundColor(Theme.textSecondary.opacity(0.6))
+                        .padding(.top, 14).padding(.leading, 14)
+                        .allowsHitTesting(false)
+                        .font(.body)
+                }
+                TextEditor(text: $noteBody)
+                    .frame(minHeight: 200).padding(10)
+                    .scrollContentBackground(.hidden).foregroundColor(Theme.textPrimary)
+            }
+            .background(Theme.surface).cornerRadius(10)
+        }
+    }
+
+    private func saveNote() {
+        let t = title.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        if let existing = existingNote {
+            var updated = existing
+            updated.title = t
+            updated.body  = noteBody
+            if let fid = folderID {
+                store.updateNote(updated, inFolderID: fid)
+            } else {
+                store.updateRootNote(updated)
+            }
+        } else {
+            let newNote = DatabaseNote(title: t, body: noteBody)
+            if let fid = folderID {
+                store.addNote(newNote, toFolderID: fid)
+            } else {
+                store.addRootNote(newNote)
+            }
+        }
+        dismiss()
+    }
+}
+
 // MARK: - DatabaseView (root)
 
 struct DatabaseView: View {
     @EnvironmentObject var store: DatabaseStore
-    @State private var showingAddFolder = false
-    @State private var newFolderName = ""
+    @State private var showingNewFolderSheet     = false
+    @State private var showingImport             = false
+    @State private var showingAddRootNote        = false
+    @State private var showingAddRootExercise    = false
+    @State private var selectedRootNote: DatabaseNote?
+    @State private var selectedRootExercise: Exercise?
 
     var body: some View {
         NavigationStack {
@@ -84,19 +371,82 @@ struct DatabaseView: View {
             }
             .navigationTitle("Exercise Database")
             .toolbar { rootToolbar }
-            .alert("New Folder", isPresented: $showingAddFolder) {
-                TextField("Folder name", text: $newFolderName)
-                Button("Create") { createRootFolder() }
-                Button("Cancel", role: .cancel) { newFolderName = "" }
+            .sheet(isPresented: $showingNewFolderSheet) {
+                NewFolderSheet { name, colorHex in
+                    store.addRootFolder(name: name, colorHex: colorHex)
+                }
+            }
+            .sheet(isPresented: $showingImport) {
+                ImportSheetView()
+            }
+            .sheet(isPresented: $showingAddRootNote) {
+                NoteEditorView(folderID: nil).environmentObject(store)
+            }
+            .sheet(isPresented: $showingAddRootExercise) {
+                AddExerciseView(folderID: nil).environmentObject(store)
+            }
+            .sheet(item: $selectedRootNote) { note in
+                NoteDetailView(noteID: note.id, folderID: nil).environmentObject(store)
+            }
+            .sheet(item: $selectedRootExercise) { exercise in
+                EditExerciseView(exercise: exercise, folderID: nil).environmentObject(store)
             }
         }
     }
 
     private var rootList: some View {
         List {
-            if store.rootFolders.isEmpty {
+            let hasContent = !store.rootFolders.isEmpty || !store.rootExercises.isEmpty || !store.rootNotes.isEmpty
+            if !hasContent {
                 emptyState
             } else {
+                rootExercisesSection
+                rootNotesSection
+                rootFoldersSection
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+    }
+
+    @ViewBuilder
+    private var rootExercisesSection: some View {
+        if !store.rootExercises.isEmpty {
+            SwiftUI.Section("Exercises") {
+                ForEach(store.rootExercises) { exercise in
+                    ExerciseRowView(exercise: exercise)
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedRootExercise = exercise }
+                        .listRowBackground(Theme.surface)
+                }
+                .onDelete { indexSet in
+                    for i in indexSet { store.deleteRootExercise(id: store.rootExercises[i].id) }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var rootNotesSection: some View {
+        if !store.rootNotes.isEmpty {
+            SwiftUI.Section("Notes") {
+                ForEach(store.rootNotes) { note in
+                    NoteRowView(note: note)
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedRootNote = note }
+                        .listRowBackground(Theme.surface)
+                }
+                .onDelete { indexSet in
+                    for i in indexSet { store.deleteRootNote(id: store.rootNotes[i].id) }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var rootFoldersSection: some View {
+        if !store.rootFolders.isEmpty {
+            SwiftUI.Section("Folders") {
                 ForEach(store.rootFolders) { folder in
                     NavigationLink(destination: FolderDetailView(folderID: folder.id)) {
                         FolderRowView(folder: folder)
@@ -108,19 +458,17 @@ struct DatabaseView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
     }
 
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 44))
-                .foregroundColor(Theme.primary)
-            Text("No Folders Yet")
+                .foregroundColor(Theme.textSecondary)
+            Text("Nothing here yet")
                 .font(.headline)
                 .foregroundColor(Theme.textPrimary)
-            Text("Tap + to create your first folder.")
+            Text("Tap + to add a folder, note, or exercise.")
                 .font(.subheadline)
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -133,17 +481,28 @@ struct DatabaseView: View {
     @ToolbarContentBuilder
     private var rootToolbar: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
-            Button { showingAddFolder = true } label: {
-                Image(systemName: "folder.badge.plus")
+            Button { showingImport = true } label: {
+                Image(systemName: "video.badge.plus")
+            }
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Menu {
+                Button { showingNewFolderSheet = true } label: {
+                    Label("New Folder", systemImage: "folder.badge.plus")
+                }
+                Button { showingAddRootNote = true } label: {
+                    Label("New Note", systemImage: "note.text.badge.plus")
+                }
+                Button { showingAddRootExercise = true } label: {
+                    Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
+                }
+            } label: {
+                Image(systemName: "plus.circle.fill").font(.title3)
             }
         }
     }
 
-    private func createRootFolder() {
-        let trimmed = newFolderName.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty { store.addRootFolder(name: trimmed) }
-        newFolderName = ""
-    }
+    // createRootFolder handled inline by NewFolderSheet callback
 }
 
 // MARK: - FolderDetailView
@@ -152,11 +511,12 @@ struct FolderDetailView: View {
     @EnvironmentObject var store: DatabaseStore
     let folderID: UUID
 
-    @State private var showingAddSubfolder  = false
-    @State private var newSubfolderName     = ""
-    @State private var showingAddExercise   = false
+    @State private var showingNewSubfolderSheet = false
+    @State private var showingAddExercise       = false
+    @State private var showingAddNote           = false
     @State private var selectedExercise: Exercise?
-    @State private var isGalleryMode        = false
+    @State private var selectedNote: DatabaseNote?
+    @State private var isGalleryMode            = false
 
     private let gridColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
     private var folder: ExerciseFolder? { store.folder(id: folderID) }
@@ -175,16 +535,22 @@ struct FolderDetailView: View {
         .navigationTitle(folder?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { folderToolbar }
-        .alert("New Subfolder", isPresented: $showingAddSubfolder) {
-            TextField("Subfolder name", text: $newSubfolderName)
-            Button("Create") { createSubfolder() }
-            Button("Cancel", role: .cancel) { newSubfolderName = "" }
+        .sheet(isPresented: $showingNewSubfolderSheet) {
+            NewFolderSheet { name, colorHex in
+                store.addSubfolder(name: name, toFolderID: folderID, colorHex: colorHex)
+            }
         }
         .sheet(isPresented: $showingAddExercise) {
             AddExerciseView(folderID: folderID).environmentObject(store)
         }
+        .sheet(isPresented: $showingAddNote) {
+            NoteEditorView(folderID: folderID).environmentObject(store)
+        }
         .sheet(item: $selectedExercise) { exercise in
             EditExerciseView(exercise: exercise, folderID: folderID).environmentObject(store)
+        }
+        .sheet(item: $selectedNote) { note in
+            NoteDetailView(noteID: note.id, folderID: folderID).environmentObject(store)
         }
     }
 
@@ -193,6 +559,7 @@ struct FolderDetailView: View {
     private func listContent(_ folder: ExerciseFolder) -> some View {
         List {
             subfoldersSection(folder)
+            notesSection(folder)
             exercisesSection(folder)
         }
         .listStyle(.insetGrouped)
@@ -213,6 +580,26 @@ struct FolderDetailView: View {
                     let subs = folder.subfolders
                     for i in indexSet where i < subs.count {
                         store.deleteSubfolder(id: subs[i].id, fromParentID: folderID)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func notesSection(_ folder: ExerciseFolder) -> some View {
+        if !folder.notes.isEmpty {
+            SwiftUI.Section("Notes") {
+                ForEach(folder.notes) { note in
+                    NoteRowView(note: note)
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedNote = note }
+                        .listRowBackground(Theme.surface)
+                }
+                .onDelete { indexSet in
+                    let notes = folder.notes
+                    for i in indexSet where i < notes.count {
+                        store.deleteNote(id: notes[i].id, fromFolderID: folderID)
                     }
                 }
             }
@@ -252,6 +639,9 @@ struct FolderDetailView: View {
                 if !folder.subfolders.isEmpty {
                     galleryFoldersSection(folder.subfolders)
                 }
+                if !folder.notes.isEmpty {
+                    galleryNotesSection(folder.notes)
+                }
                 galleryExercisesSection(folder.exercises)
             }
             .padding(.vertical, 16)
@@ -273,6 +663,25 @@ struct FolderDetailView: View {
                         .cornerRadius(12)
                         .padding(.horizontal, 16)
                 }
+            }
+        }
+    }
+
+    private func galleryNotesSection(_ notes: [DatabaseNote]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("NOTES")
+                .font(.caption).fontWeight(.semibold).tracking(1)
+                .foregroundColor(Theme.textSecondary)
+                .padding(.horizontal, 16)
+            ForEach(notes) { note in
+                NoteRowView(note: note)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.surface)
+                    .cornerRadius(12)
+                    .padding(.horizontal, 16)
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectedNote = note }
             }
         }
     }
@@ -315,20 +724,18 @@ struct FolderDetailView: View {
                 Button { showingAddExercise = true } label: {
                     Label("Add Exercise", systemImage: "figure.strengthtraining.traditional")
                 }
-                Button { showingAddSubfolder = true } label: {
-                    Label("New Subfolder", systemImage: "folder.badge.plus")
+                Button { showingAddNote = true } label: {
+                    Label("New Note", systemImage: "note.text.badge.plus")
                 }
-            } label: {
+                Button { showingNewSubfolderSheet = true } label: {
+                    Label("New Subfolder", systemImage: "folder.badge.plus")
+                }            } label: {
                 Image(systemName: "plus.circle.fill").font(.title3)
             }
         }
     }
 
-    private func createSubfolder() {
-        let trimmed = newSubfolderName.trimmingCharacters(in: .whitespaces)
-        if !trimmed.isEmpty { store.addSubfolder(name: trimmed, toFolderID: folderID) }
-        newSubfolderName = ""
-    }
+    // createSubfolder handled inline by NewFolderSheet callback
 }
 
 // MARK: - FolderRowView
@@ -338,8 +745,14 @@ struct FolderRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "folder.fill")
-                .font(.title3).foregroundColor(Theme.primary).frame(width: 32)
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(hex: folder.colorHex))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(folder.colorHex == "FFFFFF" ? .black : .white)
+                )
             VStack(alignment: .leading, spacing: 2) {
                 Text(folder.name).font(.headline).foregroundColor(Theme.textPrimary)
                 Text(subtitleText).font(.caption).foregroundColor(Theme.textSecondary)
@@ -351,9 +764,11 @@ struct FolderRowView: View {
     private var subtitleText: String {
         let total = folder.totalExerciseCount
         let subs  = folder.subfolders.count
+        let notes = folder.notes.count
         var parts: [String] = []
         if total > 0 { parts.append("\(total) exercise\(total == 1 ? "" : "s")") }
         if subs  > 0 { parts.append("\(subs) subfolder\(subs == 1 ? "" : "s")") }
+        if notes > 0 { parts.append("\(notes) note\(notes == 1 ? "" : "s")") }
         return parts.isEmpty ? "Empty" : parts.joined(separator: " • ")
     }
 }
@@ -374,7 +789,7 @@ struct ExerciseRowView: View {
                         .font(.caption).foregroundColor(Theme.textSecondary).lineLimit(1)
                 }
                 Text("\(exercise.duration)s work · \(exercise.restAfter)s rest")
-                    .font(.caption2).foregroundColor(Theme.primary)
+                    .font(.caption2).foregroundColor(Theme.textSecondary)
             }
             Spacer()
             Image(systemName: "chevron.right")
@@ -402,6 +817,7 @@ struct ExerciseRowView: View {
 
 struct ExerciseGalleryCard: View {
     let exercise: Exercise
+    @State private var showingVideo = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -411,15 +827,36 @@ struct ExerciseGalleryCard: View {
         .background(Theme.surface)
         .cornerRadius(14)
         .clipped()
+        .fullScreenCover(isPresented: $showingVideo) {
+            videoPlayerCover
+        }
+    }
+
+    @ViewBuilder
+    private var videoPlayerCover: some View {
+        if let item = exercise.mediaItems.first, item.type == .video {
+            let url = PhotoManager.shared.videoURL(for: item.filename)
+            GalleryVideoPlayer(url: url)
+        } else {
+            Color.black.ignoresSafeArea()
+        }
     }
 
     @ViewBuilder
     private var mediaTop: some View {
         if let item = exercise.mediaItems.first {
-            MediaThumbnailView(item: item, size: 0, cornerRadius: 0)
-                .frame(maxWidth: .infinity)
-                .frame(height: 110)
-                .clipped()
+            if item.type == .video {
+                MediaThumbnailView(item: item, size: 0, cornerRadius: 0)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 110)
+                    .clipped()
+                    .onTapGesture { showingVideo = true }
+            } else {
+                MediaThumbnailView(item: item, size: 0, cornerRadius: 0)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 110)
+                    .clipped()
+            }
         } else {
             Rectangle()
                 .fill(Theme.background).frame(height: 110)
@@ -437,9 +874,50 @@ struct ExerciseGalleryCard: View {
                 .font(.subheadline).fontWeight(.semibold)
                 .foregroundColor(Theme.textPrimary).lineLimit(1)
             Text("\(exercise.duration)s · \(exercise.restAfter)s rest")
-                .font(.caption).foregroundColor(Theme.primary)
+                .font(.caption).foregroundColor(Theme.textSecondary)
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
+    }
+}
+
+// MARK: - GalleryVideoPlayer
+
+private struct GalleryVideoPlayer: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+    @State private var player: AVPlayer? = nil
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            if let p = player {
+                PlayerLayerView(player: p, gravity: .resizeAspect)
+                    .ignoresSafeArea()
+            } else {
+                ProgressView().tint(.white).scaleEffect(1.4)
+            }
+            VStack {
+                HStack {
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white.opacity(0.85))
+                            .padding(20)
+                    }
+                }
+                Spacer()
+            }
+        }
+        .onAppear {
+            let p = AVPlayer(url: url)
+            player = p
+            p.play()
+        }
+        .onDisappear {
+            player?.pause()
+            player = nil
+        }
     }
 }
 
@@ -449,7 +927,7 @@ struct AddExerciseView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var store: DatabaseStore
 
-    let folderID: UUID
+    let folderID: UUID?   // nil = root level
 
     @State private var name          = ""
     @State private var details       = ""
@@ -557,6 +1035,16 @@ struct AddExerciseView: View {
                 }
             }
             mediaScrollRow(items: mediaItems, onRemove: removeMedia)
+            Button { showingPicker = true } label: {
+                Label("Add Media", systemImage: "plus.circle")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textPrimary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity)
+                    .background(Theme.surface)
+                    .cornerRadius(10)
+            }
+            .disabled(mediaItems.count >= maxMedia)
         }
     }
 
@@ -574,7 +1062,11 @@ struct AddExerciseView: View {
             restAfter: restAfter,
             mediaItems: mediaItems
         )
-        store.addExercise(exercise, toFolderID: folderID)
+        if let fid = folderID {
+            store.addExercise(exercise, toFolderID: fid)
+        } else {
+            store.addRootExercise(exercise)
+        }
         dismiss()
     }
 
@@ -609,7 +1101,7 @@ struct EditExerciseView: View {
     @EnvironmentObject var store: DatabaseStore
 
     let exercise: Exercise
-    let folderID: UUID
+    let folderID: UUID?   // nil = root level
 
     @State private var name: String
     @State private var details: String
@@ -622,7 +1114,7 @@ struct EditExerciseView: View {
 
     private let maxMedia = 10
 
-    init(exercise: Exercise, folderID: UUID) {
+    init(exercise: Exercise, folderID: UUID?) {
         self.exercise = exercise
         self.folderID = folderID
         _name       = State(initialValue: exercise.name)
@@ -673,7 +1165,11 @@ struct EditExerciseView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                store.deleteExercise(id: exercise.id, fromFolderID: folderID)
+                if let fid = folderID {
+                    store.deleteExercise(id: exercise.id, fromFolderID: fid)
+                } else {
+                    store.deleteRootExercise(id: exercise.id)
+                }
                 dismiss()
             }
             Button("Cancel", role: .cancel) {}
@@ -742,6 +1238,16 @@ struct EditExerciseView: View {
                 }
             }
             mediaScrollRow(items: mediaItems, onRemove: editRemoveMedia)
+            Button { showingPicker = true } label: {
+                Label("Add Media", systemImage: "plus.circle")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textPrimary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity)
+                    .background(Theme.surface)
+                    .cornerRadius(10)
+            }
+            .disabled(mediaItems.count >= maxMedia)
         }
     }
 
@@ -769,7 +1275,11 @@ struct EditExerciseView: View {
         updated.duration   = duration
         updated.restAfter  = restAfter
         updated.mediaItems = mediaItems
-        store.updateExercise(updated, inFolderID: folderID)
+        if let fid = folderID {
+            store.updateExercise(updated, inFolderID: fid)
+        } else {
+            store.updateRootExercise(updated)
+        }
         dismiss()
     }
 
@@ -815,7 +1325,6 @@ func mediaScrollRow(items: [MediaItem], onRemove: @escaping (Int) -> Void) -> so
                     .padding(4)
                 }
             }
-            // "Add" button is shown by callers via the picker binding
         }
         .padding(2)
     }
@@ -826,6 +1335,70 @@ func mediaScrollRow(items: [MediaItem], onRemove: @escaping (Int) -> Void) -> so
 extension Array {
     subscript(safe index: Index) -> Element? {
         indices.contains(index) ? self[index] : nil
+    }
+}
+
+// MARK: - NewFolderSheet
+
+struct NewFolderSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onCreate: (String, String) -> Void  // (name, colorHex)
+
+    @State private var name: String = ""
+    @State private var colorHex: String = "FFFFFF"
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Name")
+                            .font(.headline)
+                            .foregroundColor(Theme.textPrimary)
+                        TextField("Folder name", text: $name)
+                            .padding(14)
+                            .background(Theme.surface)
+                            .cornerRadius(10)
+                            .foregroundColor(Theme.textPrimary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Icon Color")
+                            .font(.headline)
+                            .foregroundColor(Theme.textPrimary)
+                        IconColorPicker(selectedHex: $colorHex)
+                    }
+
+                    Spacer()
+
+                    let trimmed = name.trimmingCharacters(in: .whitespaces)
+                    Button {
+                        guard !trimmed.isEmpty else { return }
+                        onCreate(trimmed, colorHex)
+                        dismiss()
+                    } label: {
+                        Text("Create Folder")
+                            .font(.headline)
+                            .foregroundColor(trimmed.isEmpty ? Color.white.opacity(0.3) : .black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(trimmed.isEmpty ? Theme.surface : Color.white)
+                            .cornerRadius(12)
+                    }
+                    .disabled(trimmed.isEmpty)
+                }
+                .padding(16)
+            }
+            .navigationTitle("New Folder")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(.white)
+                }
+            }
+        }
     }
 }
 
