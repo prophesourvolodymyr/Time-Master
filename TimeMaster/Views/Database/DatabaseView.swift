@@ -1638,7 +1638,7 @@ struct FolderExportSheet: View {
             .navigationTitle("Export Folder")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { exportToolbar }
-            .sheet(isPresented: $showShareSheet) {
+            .sheet(isPresented: $showShareSheet, onDismiss: { dismiss() }) {
                 if let url = exportURL { ShareSheet(activityItems: [url]) }
             }
             .alert("Export Failed",
@@ -1816,10 +1816,15 @@ struct FolderExportSheet: View {
                     selectedSubfolderIDs: sIDs,
                     zipName: name
                 )
+                // Copy to tmp so the share sheet can access it outside the app sandbox
+                let tmpURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(url.lastPathComponent)
+                try? FileManager.default.removeItem(at: tmpURL)
+                try FileManager.default.copyItem(at: url, to: tmpURL)
                 await MainActor.run {
-                    exportURL     = url
+                    exportURL      = tmpURL
                     showShareSheet = true
-                    isExporting   = false
+                    isExporting    = false
                 }
             } catch {
                 await MainActor.run {
