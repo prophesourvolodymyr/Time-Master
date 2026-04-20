@@ -419,19 +419,31 @@ struct ProviderPickerSheet: View {
         NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
-                List(AIProvider.all) { provider in
-                    Button {
-                        activeID = provider.id
-                        dismiss()
-                    } label: {
-                        ProviderRow(provider: provider, isActive: activeID == provider.id, store: store)
+                List {
+                    ForEach(AIProvider.grouped, id: \.group) { section in
+                        SwiftUI.Section {
+                            ForEach(section.providers) { provider in
+                                Button {
+                                    activeID = provider.id
+                                    dismiss()
+                                } label: {
+                                    ProviderRow(provider: provider, isActive: activeID == provider.id, store: store)
+                                }
+                                .listRowBackground(
+                                    activeID == provider.id
+                                    ? Color.white.opacity(0.08)
+                                    : Color(hex: "141414")
+                                )
+                                .listRowSeparatorTint(Color.white.opacity(0.06))
+                            }
+                        } header: {
+                            Text(section.group)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(Color.white.opacity(0.38))
+                                .textCase(.uppercase)
+                                .kerning(0.5)
+                        }
                     }
-                    .listRowBackground(
-                        activeID == provider.id
-                        ? Color.white.opacity(0.08)
-                        : Color(hex: "141414")
-                    )
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
                 }
                 .scrollContentBackground(.hidden)
             }
