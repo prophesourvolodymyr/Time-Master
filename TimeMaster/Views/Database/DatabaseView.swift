@@ -364,6 +364,7 @@ struct DatabaseView: View {
     @State private var selectedRootExercise: Exercise?
     @State private var exerciseToMove: Exercise?
     @State private var noteToMove: DatabaseNote?
+    @State private var folderToExport: ExerciseFolder?
 
     var body: some View {
         NavigationStack {
@@ -404,6 +405,9 @@ struct DatabaseView: View {
                     store.moveNote(id: note.id, fromFolderID: nil, toFolderID: destID)
                 }
                 .environmentObject(store)
+            }
+            .sheet(item: $folderToExport) { f in
+                FolderExportSheet(folder: f)
             }
         }
     }
@@ -490,6 +494,12 @@ struct DatabaseView: View {
                         FolderRowView(folder: folder)
                     }
                     .listRowBackground(Theme.surface)
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        Button { folderToExport = folder } label: {
+                            Label("Export", systemImage: "square.and.arrow.up")
+                        }
+                        .tint(Color.white.opacity(0.8))
+                    }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             store.deleteRootFolder(id: folder.id)
@@ -566,6 +576,7 @@ struct FolderDetailView: View {
     @State private var isGalleryMode            = false
     @State private var exerciseToMove: Exercise?
     @State private var noteToMove: DatabaseNote?
+    @State private var folderForExport: ExerciseFolder?
 
     private let gridColumns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
     private var folder: ExerciseFolder? { store.folder(id: folderID) }
@@ -612,6 +623,9 @@ struct FolderDetailView: View {
                 store.moveNote(id: note.id, fromFolderID: folderID, toFolderID: destID)
             }
             .environmentObject(store)
+        }
+        .sheet(item: $folderForExport) { f in
+            FolderExportSheet(folder: f)
         }
     }
 
@@ -814,7 +828,14 @@ struct FolderDetailView: View {
                 }
                 Button { showingNewSubfolderSheet = true } label: {
                     Label("New Subfolder", systemImage: "folder.badge.plus")
-                }            } label: {
+                }
+                Divider()
+                Button {
+                    if let f = folder { folderForExport = f }
+                } label: {
+                    Label("Export Folder…", systemImage: "square.and.arrow.up")
+                }
+            } label: {
                 Image(systemName: "plus.circle.fill").font(.title3)
             }
         }
@@ -1578,6 +1599,290 @@ struct FolderPickerSheet: View {
             result += buildList(from: f.subfolders, depth: depth + 1)
         }
         return result
+    }
+}
+
+// MARK: - FolderExportSheet
+
+struct FolderExportSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let folder: ExerciseFolder
+
+    @State private var zipName: String
+    @State private var selectedExerciseIDs: Set<UUID>
+    @State private var selectedNoteIDs: Set<UUID>
+    @State private var selectedSubfolderIDs: Set<UUID>
+    @State private var isExporting    = false
+    @State private var exportURL: URL?
+    @State private var exportError: String?
+    @State private var showShareSheet = false
+
+    init(folder: ExerciseFolder) {
+        self.folder = folder
+        _zipName              = State(initialValue: folder.name)
+        _selectedExerciseIDs  = State(initialValue: Set(folder.exercises.map(\.id)))
+        _selectedNoteIDs      = State(initialValue: Set(folder.notes.map(\.id)))
+        _selectedSubfolderIDs = State(initialValue: Set(folder.subfolders.map(\.id)))
+    }
+
+    private var selectedCount: Int {
+        selectedExerciseIDs.count + selectedNoteIDs.count + selectedSubfolderIDs.count
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                exportList
+            }
+            .navigationTitle("Export Folder")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { exportToolbar }
+            .sheet(isPresented: $showShareSheet) {
+                if let url = exportURL { ShareSheet(activityItems: [url]) }
+            }
+            .alert("Export Failed",
+                   isPresented: Binding(
+                    get: { exportError != nil },
+                    set: { if !$0 { exportError = nil } }
+                   )) {
+                Button("OK", role: .cancel) { exportError = nil }
+            } message: {
+                Text(exportError ?? "")
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var exportToolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel") { dismiss() }.foregroundColor(.white)
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            Button { startExport() } label: {
+                if isExporting { ProgressView().tint(.white) }
+                else { Text("Export").fontWeight(.semibold) }
+            }
+            .foregroundColor(.white)
+            .disabled(isExporting || selectedCount == 0
+                      || zipName.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+    }
+
+    private var exportList: some View {
+        List {
+            zipNameSection
+            if !folder.exercises.isEmpty  { exercisesSection }
+            if !folder.notes.isEmpty      { notesSection }
+            if !folder.subfolders.isEmpty { subfoldersSection }
+            selectionFooter
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+    }
+
+    private var zipNameSection: some View {
+        SwiftUI.Section {
+            TextField("File name", text: $zipName)
+                .foregroundColor(Theme.textPrimary)
+                .autocorrectionDisabled()
+                .listRowBackground(Theme.surface)
+        } header: {
+            Text("File Name (.zip)").foregroundColor(Theme.textSecondary)
+        }
+    }
+
+    private var exercisesSection: some View {
+        let allIDs = Set(folder.exercises.map(\.id))
+        let allOn  = !allIDs.isEmpty && allIDs.isSubset(of: selectedExerciseIDs)
+        return SwiftUI.Section {
+            ForEach(folder.exercises) { ex in
+                ExportToggleRow(
+                    title: ex.name,
+                    subtitle: "\(ex.duration)s · \(ex.mediaItems.count) media",
+                    icon: "figure.strengthtraining.traditional",
+                    isOn: Binding(
+                        get: { selectedExerciseIDs.contains(ex.id) },
+                        set: { on in
+                            if on { selectedExerciseIDs.insert(ex.id) }
+                            else  { selectedExerciseIDs.remove(ex.id) }
+                        }
+                    )
+                )
+                .listRowBackground(Theme.surface)
+            }
+        } header: {
+            ExportSectionHeader(title: "Exercises", allSelected: allOn) {
+                if allOn { selectedExerciseIDs.subtract(allIDs) }
+                else     { selectedExerciseIDs.formUnion(allIDs) }
+            }
+        }
+    }
+
+    private var notesSection: some View {
+        let allIDs = Set(folder.notes.map(\.id))
+        let allOn  = !allIDs.isEmpty && allIDs.isSubset(of: selectedNoteIDs)
+        return SwiftUI.Section {
+            ForEach(folder.notes) { note in
+                ExportToggleRow(
+                    title: note.title,
+                    subtitle: note.body.isEmpty ? "No content" : String(note.body.prefix(60)),
+                    icon: "note.text",
+                    isOn: Binding(
+                        get: { selectedNoteIDs.contains(note.id) },
+                        set: { on in
+                            if on { selectedNoteIDs.insert(note.id) }
+                            else  { selectedNoteIDs.remove(note.id) }
+                        }
+                    )
+                )
+                .listRowBackground(Theme.surface)
+            }
+        } header: {
+            ExportSectionHeader(title: "Notes", allSelected: allOn) {
+                if allOn { selectedNoteIDs.subtract(allIDs) }
+                else     { selectedNoteIDs.formUnion(allIDs) }
+            }
+        }
+    }
+
+    private var subfoldersSection: some View {
+        let allIDs = Set(folder.subfolders.map(\.id))
+        let allOn  = !allIDs.isEmpty && allIDs.isSubset(of: selectedSubfolderIDs)
+        return SwiftUI.Section {
+            ForEach(folder.subfolders) { sub in
+                let exCount   = sub.totalExerciseCount
+                let noteCount = sub.notes.count
+                ExportToggleRow(
+                    title: sub.name,
+                    subtitle: "\(exCount) exercise\(exCount == 1 ? "" : "s") · \(noteCount) note\(noteCount == 1 ? "" : "s")",
+                    icon: "folder.fill",
+                    isOn: Binding(
+                        get: { selectedSubfolderIDs.contains(sub.id) },
+                        set: { on in
+                            if on { selectedSubfolderIDs.insert(sub.id) }
+                            else  { selectedSubfolderIDs.remove(sub.id) }
+                        }
+                    )
+                )
+                .listRowBackground(Theme.surface)
+            }
+        } header: {
+            ExportSectionHeader(title: "Subfolders", allSelected: allOn) {
+                if allOn { selectedSubfolderIDs.subtract(allIDs) }
+                else     { selectedSubfolderIDs.formUnion(allIDs) }
+            }
+        }
+    }
+
+    private var selectionFooter: some View {
+        let allCount = folder.exercises.count + folder.notes.count + folder.subfolders.count
+        let allOn    = allCount > 0 && selectedCount == allCount
+        return SwiftUI.Section {
+            HStack {
+                Text("\(selectedCount) item\(selectedCount == 1 ? "" : "s") selected")
+                    .font(.subheadline).foregroundColor(Theme.textSecondary)
+                Spacer()
+                Button(allOn ? "Deselect All" : "Select All") {
+                    if allOn {
+                        selectedExerciseIDs = []
+                        selectedNoteIDs     = []
+                        selectedSubfolderIDs = []
+                    } else {
+                        selectedExerciseIDs  = Set(folder.exercises.map(\.id))
+                        selectedNoteIDs      = Set(folder.notes.map(\.id))
+                        selectedSubfolderIDs = Set(folder.subfolders.map(\.id))
+                    }
+                }
+                .font(.subheadline).foregroundColor(.white)
+            }
+            .listRowBackground(Theme.surface)
+        }
+    }
+
+    private func startExport() {
+        isExporting = true
+        let name  = zipName.trimmingCharacters(in: .whitespaces)
+        let exIDs = selectedExerciseIDs
+        let nIDs  = selectedNoteIDs
+        let sIDs  = selectedSubfolderIDs
+        let f     = folder
+        Task.detached {
+            do {
+                let url = try BackupManager.shared.exportFolder(
+                    f,
+                    selectedExerciseIDs: exIDs,
+                    selectedNoteIDs: nIDs,
+                    selectedSubfolderIDs: sIDs,
+                    zipName: name
+                )
+                await MainActor.run {
+                    exportURL     = url
+                    showShareSheet = true
+                    isExporting   = false
+                }
+            } catch {
+                await MainActor.run {
+                    exportError = error.localizedDescription
+                    isExporting = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - ExportToggleRow
+
+private struct ExportToggleRow: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button { isOn.toggle() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundColor(isOn ? .white : Color.white.opacity(0.28))
+                    .frame(width: 26)
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(Theme.textSecondary)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(1)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                        .lineLimit(1)
+                }
+                Spacer()
+            }
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - ExportSectionHeader
+
+private struct ExportSectionHeader: View {
+    let title: String
+    let allSelected: Bool
+    let onToggleAll: () -> Void
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Button(allSelected ? "Deselect All" : "Select All", action: onToggleAll)
+                .font(.caption).foregroundColor(.white).textCase(nil)
+        }
     }
 }
 

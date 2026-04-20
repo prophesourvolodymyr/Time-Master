@@ -245,6 +245,78 @@ final class BackupManager {
         }
     }
 
+    // MARK: - Folder Export
+
+    /// Exports a single folder (with optional item filtering) to Documents/Exports/<name>.zip.
+    /// Runs on any thread; pass IDs captured on the main thread.
+    func exportFolder(
+        _ folder: ExerciseFolder,
+        selectedExerciseIDs: Set<UUID>,
+        selectedNoteIDs: Set<UUID>,
+        selectedSubfolderIDs: Set<UUID>,
+        zipName: String
+    ) throws -> URL {
+        var exportFolder = folder
+        exportFolder.exercises  = folder.exercises.filter  { selectedExerciseIDs.contains($0.id) }
+        exportFolder.notes      = folder.notes.filter      { selectedNoteIDs.contains($0.id) }
+        exportFolder.subfolders = folder.subfolders.filter { selectedSubfolderIDs.contains($0.id) }
+
+        let manifest = BackupManifest(
+            workouts: [], workoutHistory: [],
+            folders: [exportFolder], rootNotes: [], rootExercises: []
+        )
+        let manifestData = try JSONEncoder().encode(manifest)
+
+        let exportsDir = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Exports", isDirectory: true)
+        try? fm.createDirectory(at: exportsDir, withIntermediateDirectories: true)
+
+        let safeName: String = {
+            let s = zipName.trimmingCharacters(in: .whitespaces)
+                .filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == " " }
+                .replacingOccurrences(of: " ", with: "-")
+            return s.isEmpty ? "folder-export" : s
+        }()
+        let destURL = exportsDir.appendingPathComponent("\(safeName).zip")
+        try? fm.removeItem(at: destURL)
+
+        guard let archive = Archive(url: destURL, accessMode: .create) else {
+            throw BackupError.archiveCreationFailed
+        }
+
+        try archive.addEntry(
+            with: "manifest.json",
+            type: .file,
+            uncompressedSize: UInt32(manifestData.count),
+            provider: { position, size in
+                manifestData.subdata(in: Int(position) ..< Int(position) + Int(size))
+            }
+        )
+
+        let photosDir = PhotoManager.shared.photosDirectoryURL
+        for filename in collectMediaFilenames(from: exportFolder) {
+            let fileURL = photosDir.appendingPathComponent(filename)
+            guard fm.fileExists(atPath: fileURL.path),
+                  let fileData = try? Data(contentsOf: fileURL) else { continue }
+            try archive.addEntry(
+                with: "media/\(filename)",
+                type: .file,
+                uncompressedSize: UInt32(fileData.count),
+                provider: { position, size in
+                    fileData.subdata(in: Int(position) ..< Int(position) + Int(size))
+                }
+            )
+        }
+        return destURL
+    }
+
+    private func collectMediaFilenames(from folder: ExerciseFolder) -> [String] {
+        var names: [String] = []
+        for ex in folder.exercises { names.append(contentsOf: ex.mediaItems.map(\.filename)) }
+        for sub in folder.subfolders { names.append(contentsOf: collectMediaFilenames(from: sub)) }
+        return names
+    }
+
     // MARK: - Helpers
 
     private static func dateString() -> String {
