@@ -140,12 +140,14 @@ final class BackupManager {
         let manifestData = try Data(contentsOf: manifestURL)
         let manifest = try JSONDecoder().decode(BackupManifest.self, from: manifestData)
 
-        // 3. Merge on main thread (stores are @Published / @MainActor-ish)
-        mergeWorkouts(manifest.workouts, into: workoutStore)
-        mergeHistory(manifest.workoutHistory, into: workoutStore)
-        mergeFolders(manifest.folders, into: databaseStore)
-        mergeRootExercises(manifest.rootExercises, into: databaseStore)
-        mergeRootNotes(manifest.rootNotes, into: databaseStore)
+        // 3. Merge on main thread (stores are @Published / ObservableObject)
+        DispatchQueue.main.sync {
+            mergeWorkouts(manifest.workouts, into: workoutStore)
+            mergeHistory(manifest.workoutHistory, into: workoutStore)
+            mergeFolders(manifest.folders, into: databaseStore)
+            mergeRootExercises(manifest.rootExercises, into: databaseStore)
+            mergeRootNotes(manifest.rootNotes, into: databaseStore)
+        }
 
         // 4. Copy media files (skip existing)
         let photosDir = PhotoManager.shared.photosDirectoryURL
@@ -166,9 +168,11 @@ final class BackupManager {
             }
         }
 
-        // 5. Persist merged state
-        workoutStore.reload()       // re-reads from UserDefaults (already written by merge helpers)
-        databaseStore.reload()
+        // 5. Persist merged state — reload on main thread so @Published updates are safe
+        DispatchQueue.main.sync {
+            workoutStore.reload()
+            databaseStore.reload()
+        }
     }
 
     // MARK: - Merge helpers

@@ -3,6 +3,7 @@ import WidgetKit
 
 struct WorkoutListView: View {
     @EnvironmentObject var store: WorkoutStore
+    @State private var navigationPath: [Workout] = []
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
@@ -10,7 +11,7 @@ struct WorkoutListView: View {
     @State private var showingSettings = false
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 Theme.background.ignoresSafeArea()
 
@@ -20,7 +21,7 @@ struct WorkoutListView: View {
                     ScrollView {
                         LazyVStack(spacing: 12) {
                             ForEach(store.workouts) { workout in
-                                NavigationLink(destination: WorkoutDetailView(workout: workout)) {
+                                NavigationLink(value: workout) {
                                     WorkoutCard(workout: workout)
                                 }
                                 .buttonStyle(PlainButtonStyle())
@@ -30,9 +31,14 @@ struct WorkoutListView: View {
                                     } label: {
                                         Label("Pin to Widget", systemImage: "pin")
                                     }
+                                    Divider()
+                                    Button(role: .destructive) {
+                                        store.deleteWorkout(workout)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
                             }
-                            .onDelete(perform: deleteWorkouts)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
@@ -56,11 +62,20 @@ struct WorkoutListView: View {
                     }
                 }
             }
+            .navigationDestination(for: Workout.self) { workout in
+                WorkoutDetailView(workout: workout)
+            }
             .sheet(isPresented: $showingAddWorkout) {
                 addWorkoutSheet
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView().environmentObject(store)
+            }
+            // Widget deep-link: push straight to the workout detail
+            .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notif in
+                guard let id = notif.userInfo?["workoutID"] as? UUID,
+                      let workout = store.workouts.first(where: { $0.id == id }) else { return }
+                navigationPath = [workout]
             }
         }
     }
@@ -174,12 +189,6 @@ struct WorkoutListView: View {
     }
 
     // MARK: - Actions
-
-    private func deleteWorkouts(at offsets: IndexSet) {
-        for index in offsets {
-            store.deleteWorkout(store.workouts[index])
-        }
-    }
 
     private func pinToWidget(_ workout: Workout) {
         let defaults = UserDefaults(suiteName: "group.com.timemaster.shared")

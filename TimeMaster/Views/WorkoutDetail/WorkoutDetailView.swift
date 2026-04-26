@@ -10,6 +10,7 @@ struct WorkoutDetailView: View {
     @State private var sectionToDelete: Section?
     @State private var showPlayer = false
     @State private var tappedSection: Section?
+    @State private var mediaPreviewSection: Section? = nil
 
     init(workout: Workout) {
         _workout = State(initialValue: workout)
@@ -78,6 +79,9 @@ struct WorkoutDetailView: View {
             )
             .presentationDetents([.medium])
         }
+        .fullScreenCover(item: $mediaPreviewSection) { section in
+            MediaPreviewSheet(items: section.mediaItems)
+        }
     }
 
     // MARK: - Sub-views
@@ -128,9 +132,11 @@ struct WorkoutDetailView: View {
         let idx = workout.sections.firstIndex(where: { $0.id == section.id }) ?? 0
         let isLast = idx == workout.sections.count - 1
         VStack(spacing: 0) {
-            SectionRow(section: section)
-                .contentShape(Rectangle())
-                .onTapGesture { tappedSection = section }
+            SectionRow(section: section, onThumbnailTap: section.mediaItems.isEmpty ? nil : {
+                mediaPreviewSection = section
+            })
+            .contentShape(Rectangle())
+            .onTapGesture { tappedSection = section }
             if !isLast {
                 RestSeparatorRow(
                     rest: Binding(

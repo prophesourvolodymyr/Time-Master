@@ -27,6 +27,8 @@ struct Section: Identifiable, Codable, Equatable {
     var name: String
     var duration: Int
     var mediaItems: [MediaItem]
+    // Timer
+    var isTimerEnabled: Bool      // when false the section has no countdown (reps/sets only)
     // Sets
     var sets: Int             // how many times this section repeats (≥ 1)
     var restBetweenSets: Int  // rest between set repetitions; only used when sets > 1
@@ -37,6 +39,7 @@ struct Section: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         name: String,
         duration: Int = 30,
+        isTimerEnabled: Bool = true,
         photoFilename: String? = nil,    // legacy convenience — kept for backward compat
         photoFilenames: [String] = [],   // legacy convenience — kept for backward compat
         mediaItems: [MediaItem] = [],
@@ -48,6 +51,7 @@ struct Section: Identifiable, Codable, Equatable {
         self.id = id
         self.name = name
         self.duration = max(5, duration)
+        self.isTimerEnabled = isTimerEnabled
         self.sets = max(1, sets)
         self.restBetweenSets = max(0, restBetweenSets)
         self.customRestAfter = customRestAfter
@@ -65,7 +69,7 @@ struct Section: Identifiable, Codable, Equatable {
     // MARK: Custom Codable
 
     enum CodingKeys: String, CodingKey {
-        case id, name, duration
+        case id, name, duration, isTimerEnabled
         case sets, restBetweenSets, customRestAfter
         case mediaItems
         case photoFilenames  // legacy — decode only
@@ -75,10 +79,11 @@ struct Section: Identifiable, Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id       = try c.decodeIfPresent(UUID.self,   forKey: .id)       ?? UUID()
-        name     = try c.decode(String.self,           forKey: .name)
-        duration = try c.decodeIfPresent(Int.self,    forKey: .duration) ?? 30
-        sets     = max(1, try c.decodeIfPresent(Int.self, forKey: .sets) ?? 1)
+        id             = try c.decodeIfPresent(UUID.self,   forKey: .id)       ?? UUID()
+        name           = try c.decode(String.self,           forKey: .name)
+        duration       = try c.decodeIfPresent(Int.self,    forKey: .duration) ?? 30
+        isTimerEnabled = try c.decodeIfPresent(Bool.self,   forKey: .isTimerEnabled) ?? true
+        sets           = max(1, try c.decodeIfPresent(Int.self, forKey: .sets) ?? 1)
         restBetweenSets = try c.decodeIfPresent(Int.self, forKey: .restBetweenSets) ?? 10
 
         // customRestAfter: new key first, fall back to legacy restAfter
@@ -107,6 +112,7 @@ struct Section: Identifiable, Codable, Equatable {
         try c.encode(id,              forKey: .id)
         try c.encode(name,            forKey: .name)
         try c.encode(duration,        forKey: .duration)
+        try c.encode(isTimerEnabled,  forKey: .isTimerEnabled)
         try c.encode(sets,            forKey: .sets)
         try c.encode(restBetweenSets, forKey: .restBetweenSets)
         try c.encodeIfPresent(customRestAfter, forKey: .customRestAfter)
@@ -180,4 +186,11 @@ struct Workout: Identifiable, Codable, Equatable {
     }
 
     var sectionCount: Int { sections.count }
+}
+
+// MARK: - Hashable (keyed by id — required for NavigationPath)
+
+extension Workout: Hashable {
+    static func == (lhs: Workout, rhs: Workout) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

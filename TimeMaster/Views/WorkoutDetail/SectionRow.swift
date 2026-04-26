@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SectionRow: View {
     let section: Section
+    /// Called when the user taps the thumbnail. Only fired when the section has media.
+    var onThumbnailTap: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -38,7 +40,12 @@ struct SectionRow: View {
 
     @ViewBuilder
     private var mediaThumbnail: some View {
-        if let item = section.mediaItems.first {
+        if let item = section.mediaItems.first, let tap = onThumbnailTap {
+            Button { tap() } label: {
+                MediaThumbnailView(item: item, size: 60, cornerRadius: 12)
+            }
+            .buttonStyle(.plain)
+        } else if let item = section.mediaItems.first {
             MediaThumbnailView(item: item, size: 60, cornerRadius: 12)
         } else {
             ZStack {

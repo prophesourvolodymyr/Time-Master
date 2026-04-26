@@ -27,8 +27,17 @@ struct HistoryView: View {
                             HistoryRow(entry: entry)
                                 .listRowBackground(Theme.surface)
                                 .listRowSeparatorTint(Theme.separator)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        if let idx = store.historyEntries.firstIndex(where: { $0.id == entry.id }) {
+                                            deleteEntries(at: IndexSet([idx]))
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    .tint(.red)
+                                }
                         }
-                        .onDelete(perform: deleteEntries)
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
@@ -55,11 +64,7 @@ struct HistoryView: View {
     }
 
     private func deleteEntries(at offsets: IndexSet) {
-        // Rebuild history without the removed entries
-        var entries = store.historyEntries
-        entries.remove(atOffsets: offsets)
-        store.clearHistory()
-        for entry in entries.reversed() { store.addHistoryEntry(entry) }
+        store.deleteHistoryEntries(at: offsets)
     }
 }
 

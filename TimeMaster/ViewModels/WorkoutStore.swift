@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import WidgetKit
 
 class WorkoutStore: ObservableObject {
     @Published var workouts: [Workout] = []
@@ -12,7 +13,35 @@ class WorkoutStore: ObservableObject {
     init() {
         loadWorkouts()
         loadHistory()
+        if workouts.isEmpty {
+            seedDefaultWorkouts()   // saveWorkouts() is called inside seed
+        } else {
+            saveWorkouts()          // push existing workouts to App Group on every launch
+        }
     }
+
+    // MARK: - Seed
+
+    /// Inserts a default HIIT workout on first launch so the player has content
+    /// to demonstrate TTS and timer behaviour right out of the box.
+    private func seedDefaultWorkouts() {
+        var hiit = Workout(name: "Full Body Blast", type: .hiit, colorHex: "FFFFFF")
+        hiit.restBetweenSections = 20
+        hiit.sections = [
+            Section(name: "Jump Squats",     duration: 60),
+            Section(name: "Push-Ups",        duration: 60),
+            Section(name: "High Knees",      duration: 60),
+            Section(name: "Burpees",         duration: 60),
+            Section(name: "Mountain Climbers", duration: 60),
+            Section(name: "Plank Hold",      duration: 60),
+            Section(name: "Jumping Jacks",   duration: 60),
+            Section(name: "Tricep Dips",     duration: 60),
+        ]
+        workouts.append(hiit)
+        saveWorkouts()
+    }
+
+    // MARK: - CRUD
 
     func addWorkout(name: String, type: WorkoutType = .strength, colorHex: String = "FFFFFF") {
         let workout = Workout(name: name, type: type, colorHex: colorHex)
@@ -90,10 +119,16 @@ class WorkoutStore: ObservableObject {
     func addHistoryEntry(_ entry: WorkoutHistoryEntry) {
         historyEntries.insert(entry, at: 0)
         saveHistory()
+        NotificationManager.shared.sendPostWorkoutCelebration()
     }
 
     func clearHistory() {
         historyEntries.removeAll()
+        saveHistory()
+    }
+
+    func deleteHistoryEntries(at offsets: IndexSet) {
+        historyEntries.remove(atOffsets: offsets)
         saveHistory()
     }
 
@@ -102,12 +137,31 @@ class WorkoutStore: ObservableObject {
     func reload() {
         loadWorkouts()
         loadHistory()
+        saveWorkouts()   // sync App Group so widget reflects imported data
     }
 
     private func saveWorkouts() {
         if let data = try? JSONEncoder().encode(workouts) {
             userDefaults.set(data, forKey: workoutsKey)
         }
+        // Sync compact list to App Group for widget
+        let sharedDefaults = UserDefaults(suiteName: "group.com.timemaster.shared")
+        let compact = workouts.map { WidgetWorkoutRef(id: $0.id.uuidString, name: $0.name, colorHex: $0.colorHex, type: $0.type.rawValue) }
+        if let data = try? JSONEncoder().encode(compact) {
+            sharedDefaults?.set(data, forKey: "widget_workouts")
+            // synchronize() is required in cross-process scenarios (app ↔ widget extension)
+            // to guarantee the write is flushed to disk before WidgetKit reads it.
+            sharedDefaults?.synchronize()
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    // Compact model mirrored by the widget extension
+    private struct WidgetWorkoutRef: Codable {
+        var id: String
+        var name: String
+        var colorHex: String
+        var type: String
     }
 
     private func loadWorkouts() {

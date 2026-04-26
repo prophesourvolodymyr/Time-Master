@@ -11,6 +11,7 @@ struct SectionEditorView: View {
     let onSave: (Section) -> Void
 
     @State private var name: String
+    @State private var isTimerEnabled: Bool
     @State private var duration: Int
     @State private var sets: Int
     @State private var restBetweenSets: Int
@@ -20,11 +21,14 @@ struct SectionEditorView: View {
     @State private var pendingItems: [PhotosPickerItem] = []
     @State private var showingPicker = false
     @State private var showingDatabasePicker = false
+    @State private var isSuggestingName = false
+    @State private var aiErrorMessage: String? = nil
 
     init(section: Section?, onSave: @escaping (Section) -> Void) {
         self.section = section
         self.onSave = onSave
         _name             = State(initialValue: section?.name ?? "")
+        _isTimerEnabled   = State(initialValue: section?.isTimerEnabled ?? true)
         _duration         = State(initialValue: section?.duration ?? 30)
         _sets             = State(initialValue: section?.sets ?? 1)
         _restBetweenSets  = State(initialValue: section?.restBetweenSets ?? 10)
@@ -93,6 +97,7 @@ struct SectionEditorView: View {
         .sheet(isPresented: $showingDatabasePicker) {
             DatabaseSectionPickerView { selected in
                 name             = selected.name
+                isTimerEnabled   = selected.isTimerEnabled
                 duration         = selected.duration
                 sets             = selected.sets
                 restBetweenSets  = selected.restBetweenSets
@@ -153,14 +158,44 @@ struct SectionEditorView: View {
 
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Exercise Name")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
+            HStack(alignment: .center) {
+                Text("Exercise Name")
+                    .font(.headline)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                // Suggest button — only when at least one photo is present
+                if mediaItems.contains(where: { $0.type == .photo }) {
+                    Button { suggestNameWithAI() } label: {
+                        HStack(spacing: 4) {
+                            if isSuggestingName {
+                                ProgressView().tint(.white).scaleEffect(0.75)
+                                    .frame(width: 14, height: 14)
+                            } else {
+                                Image(systemName: "sparkles")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            Text("Suggest")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundColor(isSuggestingName ? Color.white.opacity(0.35) : .white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.12))
+                        .cornerRadius(8)
+                    }
+                    .disabled(isSuggestingName)
+                }
+            }
             TextField("e.g., Burpees", text: $name)
                 .padding(16)
                 .background(Theme.surface)
                 .cornerRadius(12)
                 .foregroundColor(Theme.textPrimary)
+            if let err = aiErrorMessage {
+                Text(err)
+                    .font(.caption)
+                    .foregroundColor(.red.opacity(0.85))
+            }
         }
     }
 
@@ -190,20 +225,36 @@ struct SectionEditorView: View {
 
     private var durationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Duration")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
+            // Timer on/off toggle header
             HStack {
-                Text("\(duration)s")
-                    .font(.title2.monospacedDigit())
-                    .fontWeight(.semibold)
-                    .foregroundColor(Theme.textPrimary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Timer")
+                        .font(.headline)
+                        .foregroundColor(Theme.textPrimary)
+                    Text(isTimerEnabled ? "Countdown enabled" : "No countdown — sets only")
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                }
                 Spacer()
-                Stepper("", value: $duration, in: 5...300, step: 5).labelsHidden()
+                Toggle("", isOn: $isTimerEnabled)
+                    .labelsHidden()
+                    .tint(.white)
             }
-            .padding(16)
-            .background(Theme.surface)
-            .cornerRadius(12)
+
+            // Duration stepper — only shown when timer is on
+            if isTimerEnabled {
+                HStack {
+                    Text("\(duration)s")
+                        .font(.title2.monospacedDigit())
+                        .fontWeight(.semibold)
+                        .foregroundColor(Theme.textPrimary)
+                    Spacer()
+                    Stepper("", value: $duration, in: 5...300, step: 5).labelsHidden()
+                }
+                .padding(16)
+                .background(Theme.surface)
+                .cornerRadius(12)
+            }
         }
     }
 
@@ -291,6 +342,38 @@ struct SectionEditorView: View {
         guard index < mediaItems.count else { return }
         PhotoManager.shared.deleteMedia(filename: mediaItems[index].filename)
         mediaItems.remove(at: index)
+    }
+
+    private func suggestNameWithAI() {
+        let apiKey = UserDefaults.standard.string(forKey: "exercise_ai_api_key") ?? ""
+        let model  = UserDefaults.standard.string(forKey: "exercise_ai_model")   ?? "gpt-4o"
+
+        // Grab the first photo item
+        guard let photoItem = mediaItems.first(where: { $0.type == .photo }) else { return }
+        guard let image = PhotoManager.shared.loadPhoto(filename: photoItem.filename) else {
+            aiErrorMessage = "Could not load the image."
+            return
+        }
+
+        isSuggestingName = true
+        aiErrorMessage = nil
+
+        Task {
+            do {
+                let suggested = try await ExerciseNamingService.suggestName(
+                    image: image, apiKey: apiKey, model: model
+                )
+                await MainActor.run {
+                    if !suggested.isEmpty { name = suggested }
+                    isSuggestingName = false
+                }
+            } catch {
+                await MainActor.run {
+                    aiErrorMessage = error.localizedDescription
+                    isSuggestingName = false
+                }
+            }
+        }
     }
 
     private func saveSection() {

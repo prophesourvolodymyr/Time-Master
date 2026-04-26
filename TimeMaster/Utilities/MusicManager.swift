@@ -127,10 +127,12 @@ final class MusicManager: ObservableObject {
         guard !urls.isEmpty else { return }
 
         if urls.count == 1 {
-            // Single track — loop via AVPlayerLooper
+            // Single track — loop via AVPlayerLooper.
+            // IMPORTANT: the template item must NOT be pre-loaded into the player's
+            // queue; AVPlayerLooper manages the queue internally.
             let item = AVPlayerItem(url: urls[0])
-            player = AVQueuePlayer(items: [item])
-            looper  = AVPlayerLooper(player: player, templateItem: item)
+            player = AVQueuePlayer()          // empty queue — looper fills it
+            looper = AVPlayerLooper(player: player, templateItem: item)
         } else {
             // Multiple tracks — re-queue when exhausted
             for url in urls {

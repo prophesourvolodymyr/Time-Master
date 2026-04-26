@@ -46,6 +46,11 @@
 		BB0001BB0001BB0001BB0004 /* MotivationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */; };
 		BB0001BB0001BB0001BB0006 /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0005 /* MusicManager.swift */; };
 		BB0001BB0001BB0001BB0008 /* MusicSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */; };
+		EE0001EE0001EE0001EE0002 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0001 /* NotificationManager.swift */; };
+		EE0001EE0001EE0001EE0004 /* WorkoutRemindersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0003 /* WorkoutRemindersView.swift */; };
+		EE0001EE0001EE0001EE0006 /* ExerciseNamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0005 /* ExerciseNamingService.swift */; };
+		EE0001EE0001EE0001EE0008 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0007 /* ExerciseAISettingsView.swift */; };
+		EE0001EE0001EE0001EE000A /* MediaPreviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0009 /* MediaPreviewSheet.swift */; };
 		CC0001CC0001CC0001CC0001 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */; };
 		CC0001CC0001CC0001CC000A /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC000B /* AIProvider.swift */; };
 		CC0001CC0001CC0001CC0002 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0006 /* AIStore.swift */; };
@@ -96,6 +101,11 @@
 		BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationSettingsView.swift; sourceTree = "<group>"; };
 		BB0001BB0001BB0001BB0005 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
 		BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSettingsView.swift; sourceTree = "<group>"; };
+		EE0001EE0001EE0001EE0001 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		EE0001EE0001EE0001EE0003 /* WorkoutRemindersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRemindersView.swift; sourceTree = "<group>"; };
+		EE0001EE0001EE0001EE0005 /* ExerciseNamingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseNamingService.swift; sourceTree = "<group>"; };
+		EE0001EE0001EE0001EE0007 /* ExerciseAISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseAISettingsView.swift; sourceTree = "<group>"; };
+		EE0001EE0001EE0001EE0009 /* MediaPreviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewSheet.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC000B /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0006 /* AIStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStore.swift; sourceTree = "<group>"; };
@@ -208,6 +218,8 @@
 				BB0001BB0001BB0001BB0001 /* MotivationManager.swift */,
 				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
 				F807BCDB518D68ED40746740 /* Theme.swift */,
+				EE0001EE0001EE0001EE0001 /* NotificationManager.swift */,
+				EE0001EE0001EE0001EE0005 /* ExerciseNamingService.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -219,6 +231,8 @@
 				BB0001BB0001BB0001BB0007 /* MusicSettingsView.swift */,
 				BB0001BB0001BB0001BB0003 /* MotivationSettingsView.swift */,
 				AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */,
+				EE0001EE0001EE0001EE0003 /* WorkoutRemindersView.swift */,
+				EE0001EE0001EE0001EE0007 /* ExerciseAISettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -272,6 +286,7 @@
 				50C588F8747756505B157DFC /* SectionEditorView.swift */,
 				B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */,
 				CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */,
+				EE0001EE0001EE0001EE0009 /* MediaPreviewSheet.swift */,
 			);
 			path = WorkoutDetail;
 			sourceTree = "<group>";
@@ -495,6 +510,11 @@
 				CC0001CC0001CC0001CC0001 /* KeychainHelper.swift in Sources */,
 				BB0001BB0001BB0001BB0006 /* MusicManager.swift in Sources */,
 				BB0001BB0001BB0001BB0008 /* MusicSettingsView.swift in Sources */,
+				EE0001EE0001EE0001EE0002 /* NotificationManager.swift in Sources */,
+				EE0001EE0001EE0001EE0004 /* WorkoutRemindersView.swift in Sources */,
+				EE0001EE0001EE0001EE0006 /* ExerciseNamingService.swift in Sources */,
+				EE0001EE0001EE0001EE0008 /* ExerciseAISettingsView.swift in Sources */,
+				EE0001EE0001EE0001EE000A /* MediaPreviewSheet.swift in Sources */,
 				BB0001BB0001BB0001BB0002 /* MotivationManager.swift in Sources */,
 				BB0001BB0001BB0001BB0004 /* MotivationSettingsView.swift in Sources */,
 				AA001BB2CC001BB2CC001BB6 /* SettingsView.swift in Sources */,
@@ -651,11 +671,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster.entitlements;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TimeMaster/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Time-Master needs local network access to discover the companion server automatically";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
@@ -681,11 +703,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster.entitlements;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TimeMaster/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Time-Master needs local network access to discover the companion server automatically";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
@@ -709,12 +733,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TimeMasterWidget/TimeMasterWidget.entitlements;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = TimeMasterWidget/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -733,12 +758,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TimeMasterWidget/TimeMasterWidget.entitlements;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = YES;
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = TimeMasterWidget/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     @ObservedObject var serverSettings: ServerSettings = .shared
+    @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
 
     @State private var showServerSettings = false
 
@@ -51,8 +52,66 @@ struct SettingsView: View {
                                 subtitle: "Plays during workouts"
                             )
                         }
+                        NavigationLink {
+                            WorkoutRemindersView()
+                        } label: {
+                            settingsRow(
+                                icon: "bell.badge",
+                                title: "Workout Reminders",
+                                subtitle: "Daily push notifications on training days"
+                            )
+                        }
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.white.opacity(0.1))
+                                    .frame(width: 34, height: 34)
+                                Image(systemName: "plus.circle")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Extra Rest Time")
+                                    .font(.body)
+                                    .foregroundColor(.white)
+                                Text("Seconds added per tap during rest")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                            Spacer()
+                            Stepper(
+                                value: $extraRestSeconds,
+                                in: 5...120,
+                                step: 5
+                            ) {
+                                Text("\(extraRestSeconds)s")
+                                    .font(.body.monospacedDigit())
+                                    .foregroundColor(Theme.textSecondary)
+                                    .frame(minWidth: 36, alignment: .trailing)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     } header: {
                         Text("Workout")
+                            .foregroundColor(Theme.textSecondary)
+                            .font(.caption)
+                    }
+                    .listRowBackground(Theme.surface)
+                    .listRowSeparatorTint(Theme.separator)
+
+                    // MARK: Exercise AI
+                    SwiftUI.Section {
+                        NavigationLink {
+                            ExerciseAISettingsView()
+                        } label: {
+                            settingsRow(
+                                icon: "sparkles",
+                                title: "Exercise AI",
+                                subtitle: "Name exercises from photos with OpenAI"
+                            )
+                        }
+                    } header: {
+                        Text("AI")
                             .foregroundColor(Theme.textSecondary)
                             .font(.caption)
                     }

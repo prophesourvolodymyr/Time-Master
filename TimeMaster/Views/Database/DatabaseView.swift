@@ -1042,6 +1042,8 @@ struct AddExerciseView: View {
     @State private var mediaItems: [MediaItem] = []
     @State private var pendingItems: [PhotosPickerItem] = []
     @State private var showingPicker = false
+    @State private var isSuggestingName = false
+    @State private var aiErrorMessage: String? = nil
 
     private let maxMedia = 10
 
@@ -1085,9 +1087,36 @@ struct AddExerciseView: View {
 
     private var addNameCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+            HStack(alignment: .center) {
+                Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+                Spacer()
+                if mediaItems.contains(where: { $0.type == .photo }) {
+                    Button { addSuggestNameWithAI() } label: {
+                        HStack(spacing: 4) {
+                            if isSuggestingName {
+                                ProgressView().tint(.white).scaleEffect(0.75)
+                                    .frame(width: 14, height: 14)
+                            } else {
+                                Image(systemName: "sparkles")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            Text("Suggest")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundColor(isSuggestingName ? Color.white.opacity(0.35) : .white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.12))
+                        .cornerRadius(8)
+                    }
+                    .disabled(isSuggestingName)
+                }
+            }
             TextField("e.g., Push-ups", text: $name)
                 .padding(14).background(Theme.surface).cornerRadius(10).foregroundColor(Theme.textPrimary)
+            if let err = aiErrorMessage {
+                Text(err).font(.caption).foregroundColor(.red.opacity(0.85))
+            }
         }
     }
 
@@ -1160,6 +1189,32 @@ struct AddExerciseView: View {
         mediaItems.remove(at: index)
     }
 
+    private func addSuggestNameWithAI() {
+        let apiKey = UserDefaults.standard.string(forKey: "exercise_ai_api_key") ?? ""
+        let model  = UserDefaults.standard.string(forKey: "exercise_ai_model")   ?? "gpt-4o"
+        guard let photoItem = mediaItems.first(where: { $0.type == .photo }) else { return }
+        guard let image = PhotoManager.shared.loadPhoto(filename: photoItem.filename) else {
+            aiErrorMessage = "Could not load the image."
+            return
+        }
+        isSuggestingName = true
+        aiErrorMessage = nil
+        Task {
+            do {
+                let suggested = try await ExerciseNamingService.suggestName(image: image, apiKey: apiKey, model: model)
+                await MainActor.run {
+                    if !suggested.isEmpty { name = suggested }
+                    isSuggestingName = false
+                }
+            } catch {
+                await MainActor.run {
+                    aiErrorMessage = error.localizedDescription
+                    isSuggestingName = false
+                }
+            }
+        }
+    }
+
     private func saveExercise() {
         let exercise = Exercise(
             name: name.trimmingCharacters(in: .whitespaces),
@@ -1217,6 +1272,8 @@ struct EditExerciseView: View {
     @State private var pendingItems: [PhotosPickerItem] = []
     @State private var showingPicker        = false
     @State private var showingDeleteConfirm = false
+    @State private var isSuggestingName     = false
+    @State private var aiErrorMessage: String? = nil
 
     private let maxMedia = 10
 
@@ -1288,9 +1345,36 @@ struct EditExerciseView: View {
 
     private var editNameCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+            HStack(alignment: .center) {
+                Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+                Spacer()
+                if mediaItems.contains(where: { $0.type == .photo }) {
+                    Button { editSuggestNameWithAI() } label: {
+                        HStack(spacing: 4) {
+                            if isSuggestingName {
+                                ProgressView().tint(.white).scaleEffect(0.75)
+                                    .frame(width: 14, height: 14)
+                            } else {
+                                Image(systemName: "sparkles")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            Text("Suggest")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .foregroundColor(isSuggestingName ? Color.white.opacity(0.35) : .white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.12))
+                        .cornerRadius(8)
+                    }
+                    .disabled(isSuggestingName)
+                }
+            }
             TextField("e.g., Push-ups", text: $name)
                 .padding(14).background(Theme.surface).cornerRadius(10).foregroundColor(Theme.textPrimary)
+            if let err = aiErrorMessage {
+                Text(err).font(.caption).foregroundColor(.red.opacity(0.85))
+            }
         }
     }
 
@@ -1365,6 +1449,32 @@ struct EditExerciseView: View {
                 .font(.headline).foregroundColor(.red)
                 .frame(maxWidth: .infinity).padding(16)
                 .background(Theme.surface).cornerRadius(12)
+        }
+    }
+
+    private func editSuggestNameWithAI() {
+        let apiKey = UserDefaults.standard.string(forKey: "exercise_ai_api_key") ?? ""
+        let model  = UserDefaults.standard.string(forKey: "exercise_ai_model")   ?? "gpt-4o"
+        guard let photoItem = mediaItems.first(where: { $0.type == .photo }) else { return }
+        guard let image = PhotoManager.shared.loadPhoto(filename: photoItem.filename) else {
+            aiErrorMessage = "Could not load the image."
+            return
+        }
+        isSuggestingName = true
+        aiErrorMessage = nil
+        Task {
+            do {
+                let suggested = try await ExerciseNamingService.suggestName(image: image, apiKey: apiKey, model: model)
+                await MainActor.run {
+                    if !suggested.isEmpty { name = suggested }
+                    isSuggestingName = false
+                }
+            } catch {
+                await MainActor.run {
+                    aiErrorMessage = error.localizedDescription
+                    isSuggestingName = false
+                }
+            }
         }
     }
 

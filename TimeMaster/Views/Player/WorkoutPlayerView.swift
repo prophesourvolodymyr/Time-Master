@@ -30,6 +30,9 @@ struct WorkoutPlayerView: View {
     // Music
     @ObservedObject private var musicManager = MusicManager.shared
 
+    // Settings
+    @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
+
     // Warm-up
     @State private var warmUpDuration = 60
 
@@ -53,7 +56,11 @@ struct WorkoutPlayerView: View {
         contentLayer
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { backgroundLayer }
-            .onAppear { loadCurrentMedia() }
+            .onAppear {
+                UIApplication.shared.isIdleTimerDisabled = true
+                AudioManager.shared.activateSession()
+                loadCurrentMedia()
+            }
             .onChange(of: currentSectionIndex) { _ in
                 currentMediaIndex = 0
                 loadCurrentMedia()
@@ -62,6 +69,7 @@ struct WorkoutPlayerView: View {
                 setupVideoIfNeeded()
             }
             .onDisappear {
+                UIApplication.shared.isIdleTimerDisabled = false
                 timer?.invalidate()
                 stopVideo()
             }
@@ -235,6 +243,7 @@ struct WorkoutPlayerView: View {
                 closeButton(confirmed: true)
                 Spacer()
                 musicButton
+                skipSectionButton
                 sectionBadge
             }
             .padding(.horizontal, 20)
@@ -400,13 +409,25 @@ struct WorkoutPlayerView: View {
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                Button { skipRest() } label: {
-                    Text("Skip Rest")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .frame(width: 160, height: 52)
-                        .background(Color.white)
-                        .cornerRadius(14)
+                pausePlayButton.padding(.top, 4)
+
+                HStack(spacing: 12) {
+                    Button { skipRest() } label: {
+                        Text("Skip Rest")
+                            .font(.headline)
+                            .foregroundColor(.black)
+                            .frame(width: 140, height: 48)
+                            .background(Color.white)
+                            .cornerRadius(14)
+                    }
+                    Button { timeRemaining += extraRestSeconds } label: {
+                        Text("+\(extraRestSeconds)s")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(width: 84, height: 48)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(14)
+                    }
                 }
                 .padding(.top, 8)
             }
@@ -507,19 +528,34 @@ struct WorkoutPlayerView: View {
         }
     }
 
-    @ViewBuilder
+    private var skipSectionButton: some View {
+        Button {
+            timer?.invalidate()
+            endWorkPeriod()
+        } label: {
+            Image(systemName: "forward.end.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 40, height: 40)
+                .background(Color.white.opacity(0.2))
+                .clipShape(Circle())
+        }
+    }
+
     private var musicButton: some View {
-        if !MusicManager.shared.trackFilenames.isEmpty {
-            Button {
-                MusicManager.shared.togglePlayback()
-            } label: {
-                Image(systemName: musicManager.isPlaying ? "music.note" : "music.note.slash")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 40, height: 40)
-                    .background(Color.white.opacity(musicManager.isPlaying ? 0.25 : 0.12))
-                    .clipShape(Circle())
-            }
+        let hasTracks = !musicManager.trackFilenames.isEmpty
+        return Button {
+            guard hasTracks else { return }
+            MusicManager.shared.togglePlayback()
+        } label: {
+            Image(systemName: musicManager.isPlaying ? "music.note" : "music.note.list")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(hasTracks ? .white : .white.opacity(0.25))
+                .frame(width: 40, height: 40)
+                .background(Color.white.opacity(
+                    hasTracks ? (musicManager.isPlaying ? 0.25 : 0.12) : 0.06
+                ))
+                .clipShape(Circle())
         }
     }
 
@@ -560,9 +596,10 @@ struct WorkoutPlayerView: View {
             if timeRemaining <= 3 && timeRemaining >= 1 {
                 AudioManager.shared.playCountdownBeep()
             }
-            // Fire motivational quote during active work (not rest/warm-up)
+            // Fire motivational quote and time callout during active work (not rest/warm-up)
             if !isSetRest && !isSectionRest && !isWarmUp {
                 tickMotivation()
+                checkTimeAnnouncement()
             }
         } else {
             timer?.invalidate()
@@ -646,7 +683,8 @@ struct WorkoutPlayerView: View {
         let entry = WorkoutHistoryEntry(
             workoutId:         workout.id,
             workoutName:       workout.name,
-            durationCompleted: Int(Date().timeIntervalSince(startTime))
+            durationCompleted: Int(Date().timeIntervalSince(startTime)),
+            workoutType:       workout.type
         )
         store.addHistoryEntry(entry)
     }
@@ -685,6 +723,29 @@ struct WorkoutPlayerView: View {
             AudioManager.shared.speak(MotivationManager.shared.randomQuote())
             resetMotivationTimer()
         }
+    }
+
+    /// Announces the time remaining at 75%, 50%, and 25% of the section duration.
+    /// Skips very short sections (< 8 s) and milestones that would clash with the
+    /// 3-second countdown beep (milestone ≤ 3).
+    private func checkTimeAnnouncement() {
+        guard let section = currentSection else { return }
+        let total = section.duration
+        guard total >= 8 else { return }
+        let quarter = total / 4
+        guard quarter > 3 else { return }
+        let milestones: Set<Int> = [quarter, quarter * 2, quarter * 3]
+        guard milestones.contains(timeRemaining) else { return }
+        // Speak natural time: "45" or "1:30"
+        let text: String
+        if timeRemaining >= 60 {
+            let m = timeRemaining / 60
+            let s = timeRemaining % 60
+            text = s > 0 ? "\(m):\(String(format: "%02d", s))" : "\(m) minute\(m == 1 ? "" : "s")"
+        } else {
+            text = "\(timeRemaining)"
+        }
+        AudioManager.shared.speak(text)
     }
 
     // MARK: - Media Loading

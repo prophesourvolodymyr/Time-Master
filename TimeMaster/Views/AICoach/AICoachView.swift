@@ -143,6 +143,15 @@ private struct ChatMessageList: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { scrollToBottom(proxy) }
             }
             .onAppear { scrollToBottom(proxy) }
+            .overlay(alignment: .top) {
+                LinearGradient(
+                    colors: [Theme.background, Theme.background.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 72)
+                .allowsHitTesting(false)
+            }
         }
     }
 
@@ -161,7 +170,7 @@ private struct EmptyCoachState: View {
                 Circle()
                     .fill(Color.white.opacity(0.06))
                     .frame(width: 72, height: 72)
-                Image(systemName: "sparkles")
+                Image(systemName: "brain.head.profile")
                     .font(.system(size: 30))
                     .foregroundColor(Color.white.opacity(0.35))
             }
@@ -210,19 +219,6 @@ private struct MessageBubble: View {
         HStack(alignment: .bottom, spacing: 8) {
             if isUser { Spacer(minLength: 52) }
 
-            // Avatar for AI
-            if !isUser {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(width: 30, height: 30)
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color.white.opacity(0.55))
-                }
-                .alignmentGuide(.bottom) { d in d[.bottom] }
-            }
-
             VStack(alignment: isUser ? .trailing : .leading, spacing: 3) {
                 bubbleContent
                     .contextMenu { contextMenuItems }
@@ -262,14 +258,23 @@ private struct MessageBubble: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
             } else if !message.content.isEmpty {
-                Text(message.content)
-                    .font(.body)
-                    .foregroundColor(isUser ? .black : .white)
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 14)
-                    .padding(.top, (message.replyToContent != nil || message.attachmentName != nil) ? 0 : 10)
-                    .padding(.bottom, 10)
-                    .fixedSize(horizontal: false, vertical: true)
+                let topPad: CGFloat = (message.replyToContent != nil || message.attachmentName != nil) ? 0 : 10
+                if isUser {
+                    Text(message.content)
+                        .font(.body)
+                        .foregroundColor(.black)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 14)
+                        .padding(.top, topPad)
+                        .padding(.bottom, 10)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    MarkdownTextView(text: message.content)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 14)
+                        .padding(.top, topPad)
+                        .padding(.bottom, 10)
+                }
             }
         }
         .background(isUser ? Color.white : Color(hex: "1C1C1C"))
