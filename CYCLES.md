@@ -31,6 +31,26 @@ iPhone 16 Pro simulator, iOS 18.6, Xcode beta, SwiftUI, Swift 5.
 - [x] F06-A — Text Selection (hold to select AI chat text)
 - [x] F07-A — UI Polish (nav fade fix, toolbar transparency)
 
+## Cycle 5 — V2: Notion-Style Rework (from IDEA.md)
+### Foundation
+- [ ] F01-A — Unified Page Model (ExercisePage replaces Folder/Exercise/TrayItem)
+- [ ] F05-B — Notion-Style Pages (covers, links, YouTube, nesting, type tags)
+
+### Workout Builder
+- [ ] F02-A-a — Database Browser + Workout Page
+- [ ] F02-A-b — Drag-to-Build + Sets
+- [ ] F02-A-c — Bundle Section Mode
+- [ ] F02-A-d — Player Page Popup
+
+### Player & Analytics
+- [ ] F03-C — Player Overlay (floating controls bar)
+- [ ] F04-B — Flame Streak + Per-Type Analytics
+
+### AI & Settings
+- [ ] F06-B — AI Database Creation
+- [ ] F07-B — Notification Pipeline
+- [ ] F07-C — Workout Types & Schedules
+
 ## Notes
 - Existing codebase converted to this documentation system on 2026-07-04.
 - All features (F01-F08) were built before documentation — documented retroactively.

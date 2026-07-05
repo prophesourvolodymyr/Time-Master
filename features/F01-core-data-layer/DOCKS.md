@@ -2,6 +2,9 @@
 
 Foundation data models, persistence stores, photo management, and design tokens for the entire app.
 
+## V2 Sub-Features
+- [ ] **F01-A** — Unified Page Model (ExercisePage replaces Folder/Exercise/TrayItem)
+
 ## What We Build
 - Workout/Section/WorkoutHistory Swift structs (Codable)
 - ExerciseDatabase and TrayItem models for import system

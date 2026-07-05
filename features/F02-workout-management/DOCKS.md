@@ -2,6 +2,13 @@
 
 CRUD UI for workouts and sections: list, detail, section editor, photo picker, drag-and-drop reorder.
 
+## V2 Sub-Features
+- [ ] **F02-A** — Workout Builder Rework
+  - [ ] F02-A-a — Database Browser + Workout Page
+  - [ ] F02-A-b — Drag-to-Build + Sets
+  - [ ] F02-A-c — Bundle Section Mode
+  - [ ] F02-A-d — Player Page Popup
+
 ## What We Build
 - WorkoutListView: main workout list with floating "+" button, swipe-to-delete
 - WorkoutCard: card UI showing name, section count, total duration

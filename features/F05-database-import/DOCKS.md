@@ -4,6 +4,7 @@ Import exercise videos and metadata from a computer server. Browse, preview, tri
 
 ## Sub-Features
 - [ ] **F05-A** — Import, Export & Previews (import button, files picker, ungrouped root, photo preview, photo export fix)
+- [ ] **F05-B** — Notion-Style Pages (covers, links, YouTube, nesting, type tags, custom types)
 
 ## What We Build
 - DatabaseView: browse imported exercises with category filtering

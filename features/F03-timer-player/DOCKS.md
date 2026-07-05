@@ -4,7 +4,8 @@ Full-screen workout player with countdown timer, sequential section execution, r
 
 ## Sub-Features
 - [ ] **F03-A** — Persistence & Resume (background, resume, partial save)
-- [ ] **F03-B** — In-Workout Controls & Media (rest preview, full media overlay, rest adjustment)
+- [x] **F03-B** — In-Workout Controls & Media (rest preview, full media overlay, rest adjustment)
+- [ ] **F03-C** — Player Overlay (floating controls bar on exercise pages)
 
 ## What We Build
 - WorkoutPlayerView: immersive full-screen player with photo, timer, progress bar

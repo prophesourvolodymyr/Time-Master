@@ -22,6 +22,23 @@
 | F06 | F06-A | Text Selection | done |
 | F07 | F07-A | UI Polish | done |
 
+## V2 Sub-Features (Cycle 5 — Notion-Style Rework)
+
+| Parent | Code | Sub-Feature | Status |
+|--------|------|-------------|--------|
+| F01 | F01-A | Unified Page Model | pending |
+| F02 | F02-A | Workout Builder Rework | pending |
+| F02-A | F02-A-a | Database Browser + Workout Page | pending |
+| F02-A | F02-A-b | Drag-to-Build + Sets | pending |
+| F02-A | F02-A-c | Bundle Section Mode | pending |
+| F02-A | F02-A-d | Player Page Popup | pending |
+| F03 | F03-C | Player Overlay | pending |
+| F04 | F04-B | Flame Streak + Per-Type Analytics | pending |
+| F05 | F05-B | Notion-Style Pages | pending |
+| F06 | F06-B | AI Database Creation | pending |
+| F07 | F07-B | Notification Pipeline | pending |
+| F07 | F07-C | Workout Types & Schedules | pending |
+
 ## Build Order
 F01 (foundation) → F02/F03/F04/F05/F06/F07/F08 (parallel-eligible after F01)
 

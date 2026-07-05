@@ -4,6 +4,7 @@ Completed workout log with timestamps, duration tracking, and analytics dashboar
 
 ## Sub-Features
 - [ ] **F04-A** — Streaks & Partial Logging (rest days, workout goals, partial workout logging)
+- [ ] **F04-B** — Flame Streak + Per-Type Analytics (burning streak animation, per-type breakdown)
 
 ## What We Build
 - HistoryView: chronological list of completed workouts

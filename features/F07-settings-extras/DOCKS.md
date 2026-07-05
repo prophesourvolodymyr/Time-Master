@@ -3,7 +3,9 @@
 App settings, backup/restore, background music, motivational quotes, notifications, and workout reminders.
 
 ## Sub-Features
-- [ ] **F07-A** — UI Polish (nav bar fade/gradient fix, toolbar transparency)
+- [x] **F07-A** — UI Polish (nav bar fade/gradient fix, toolbar transparency)
+- [ ] **F07-B** — Notification Pipeline (motivational + reminder, human tone)
+- [ ] **F07-C** — Workout Types & Schedules (custom types, per-type goals, schedule duration)
 
 ## What We Build
 - SettingsView: navigation hub linking to all settings sub-screens
