@@ -78,7 +78,6 @@ final class MusicManager: ObservableObject {
         }
         trackFilenames.remove(atOffsets: offsets)
         UserDefaults.standard.set(trackFilenames, forKey: filenamesKey)
-        // Restart queue without deleted tracks
         if isPlaying { rebuildAndPlay() }
     }
 
@@ -108,9 +107,31 @@ final class MusicManager: ObservableObject {
         if isPlaying { stopPlayback() } else { startPlayback() }
     }
 
+    func startPlayback(tracks: [String]? = nil) {
+        guard tracks != nil || !trackFilenames.isEmpty else { return }
+        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        if let tracks = tracks, !tracks.isEmpty {
+            rebuildAndPlay(filenames: tracks)
+        } else {
+            rebuildAndPlay()
+        }
+        isPlaying = true
+    }
+
+    func setPlaylist(_ filenames: [String]) {
+        guard !filenames.isEmpty else { return }
+        let valid = filenames.filter {
+            FileManager.default.fileExists(atPath: musicDir.appendingPathComponent($0).path)
+        }
+        guard !valid.isEmpty else { return }
+        trackFilenames = valid
+        if isPlaying { rebuildAndPlay() }
+    }
+
     // MARK: - Queue management
 
-    private func rebuildAndPlay() {
+    private func rebuildAndPlay(filenames: [String]? = nil) {
         // Tear down old observer / looper
         if let obs = endObserver {
             NotificationCenter.default.removeObserver(obs)
@@ -120,7 +141,8 @@ final class MusicManager: ObservableObject {
         player.pause()
         player.removeAllItems()
 
-        let urls = trackFilenames.compactMap { fn -> URL? in
+        let source = filenames ?? trackFilenames
+        let urls = source.compactMap { fn -> URL? in
             let u = musicDir.appendingPathComponent(fn)
             return FileManager.default.fileExists(atPath: u.path) ? u : nil
         }

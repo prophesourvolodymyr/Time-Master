@@ -358,6 +358,7 @@ struct DatabaseView: View {
     @EnvironmentObject var store: DatabaseStore
     @State private var showingNewFolderSheet     = false
     @State private var showingImport             = false
+    @State private var showingDatabaseImport     = false
     @State private var showingAddRootNote        = false
     @State private var showingAddRootExercise    = false
     @State private var selectedRootNote: DatabaseNote?
@@ -408,6 +409,32 @@ struct DatabaseView: View {
             }
             .sheet(item: $folderToExport) { f in
                 FolderExportSheet(folder: f)
+            }
+            .fileImporter(
+                isPresented: $showingDatabaseImport,
+                allowedContentTypes: [UTType("public.zip-archive") ?? .data],
+                allowsMultipleSelection: false
+            ) { result in
+                handleDatabaseImport(result)
+            }
+        }
+    }
+
+    private func handleDatabaseImport(_ result: Result<[URL], Error>) {
+        guard case .success(let urls) = result, let url = urls.first else { return }
+        let workoutStore = WorkoutStore()
+        Task.detached {
+            do {
+                try BackupManager.shared.importBackup(
+                    from: url,
+                    workoutStore: workoutStore,
+                    databaseStore: store
+                )
+                await MainActor.run {
+                    store.reload()
+                }
+            } catch {
+                print("Database import error: \(error)")
             }
         }
     }
@@ -540,6 +567,11 @@ struct DatabaseView: View {
         ToolbarItem(placement: .navigationBarTrailing) {
             Button { showingImport = true } label: {
                 Image(systemName: "video.badge.plus")
+            }
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button { showingDatabaseImport = true } label: {
+                Image(systemName: "square.and.arrow.down")
             }
         }
         ToolbarItem(placement: .navigationBarTrailing) {
@@ -1042,6 +1074,7 @@ struct AddExerciseView: View {
     @State private var mediaItems: [MediaItem] = []
     @State private var pendingItems: [PhotosPickerItem] = []
     @State private var showingPicker = false
+    @State private var showingFilePicker = false
     @State private var isSuggestingName = false
     @State private var aiErrorMessage: String? = nil
 
@@ -1080,6 +1113,13 @@ struct AddExerciseView: View {
         .onChange(of: pendingItems) { newItems in
             guard !newItems.isEmpty else { return }
             loadPickedItems(newItems)
+        }
+        .fileImporter(
+            isPresented: $showingFilePicker,
+            allowedContentTypes: [.image, .movie, .jpeg, .png, .heic],
+            allowsMultipleSelection: true
+        ) { result in
+            handleFileImportForExercise(result, mediaItems: $mediaItems)
         }
     }
 
@@ -1170,16 +1210,28 @@ struct AddExerciseView: View {
                 }
             }
             mediaScrollRow(items: mediaItems, onRemove: removeMedia)
-            Button { showingPicker = true } label: {
-                Label("Add Media", systemImage: "plus.circle")
-                    .font(.subheadline)
-                    .foregroundColor(Theme.textPrimary)
-                    .padding(12)
-                    .frame(maxWidth: .infinity)
-                    .background(Theme.surface)
-                    .cornerRadius(10)
+            HStack(spacing: 10) {
+                Button { showingPicker = true } label: {
+                    Label("Photos", systemImage: "photo.badge.plus")
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textPrimary)
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.surface)
+                        .cornerRadius(10)
+                }
+                .disabled(mediaItems.count >= maxMedia)
+                Button { showingFilePicker = true } label: {
+                    Label("Files", systemImage: "folder.badge.plus")
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textPrimary)
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.surface)
+                        .cornerRadius(10)
+                }
+                .disabled(mediaItems.count >= maxMedia)
             }
-            .disabled(mediaItems.count >= maxMedia)
         }
     }
 
@@ -1271,6 +1323,7 @@ struct EditExerciseView: View {
     @State private var mediaItems: [MediaItem]
     @State private var pendingItems: [PhotosPickerItem] = []
     @State private var showingPicker        = false
+    @State private var showingFilePicker    = false
     @State private var showingDeleteConfirm = false
     @State private var isSuggestingName     = false
     @State private var aiErrorMessage: String? = nil
@@ -1321,6 +1374,13 @@ struct EditExerciseView: View {
         .onChange(of: pendingItems) { newItems in
             guard !newItems.isEmpty else { return }
             loadPickedItems(newItems)
+        }
+        .fileImporter(
+            isPresented: $showingFilePicker,
+            allowedContentTypes: [.image, .movie, .jpeg, .png, .heic],
+            allowsMultipleSelection: true
+        ) { result in
+            handleFileImportForExercise(result, mediaItems: $mediaItems)
         }
         .confirmationDialog(
             "Delete \"\(exercise.name)\"?",
@@ -1428,16 +1488,28 @@ struct EditExerciseView: View {
                 }
             }
             mediaScrollRow(items: mediaItems, onRemove: editRemoveMedia)
-            Button { showingPicker = true } label: {
-                Label("Add Media", systemImage: "plus.circle")
-                    .font(.subheadline)
-                    .foregroundColor(Theme.textPrimary)
-                    .padding(12)
-                    .frame(maxWidth: .infinity)
-                    .background(Theme.surface)
-                    .cornerRadius(10)
+            HStack(spacing: 10) {
+                Button { showingPicker = true } label: {
+                    Label("Photos", systemImage: "photo.badge.plus")
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textPrimary)
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.surface)
+                        .cornerRadius(10)
+                }
+                .disabled(mediaItems.count >= maxMedia)
+                Button { showingFilePicker = true } label: {
+                    Label("Files", systemImage: "folder.badge.plus")
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textPrimary)
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.surface)
+                        .cornerRadius(10)
+                }
+                .disabled(mediaItems.count >= maxMedia)
             }
-            .disabled(mediaItems.count >= maxMedia)
         }
     }
 
@@ -1519,6 +1591,29 @@ struct EditExerciseView: View {
                 }
             }
             pendingItems = []
+        }
+    }
+}
+
+// MARK: - Shared file import handler (module-wide)
+
+func handleFileImportForExercise(_ result: Result<[URL], Error>, mediaItems: Binding<[MediaItem]>) {
+    guard case .success(let urls) = result else { return }
+    for url in urls {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        let ext = url.pathExtension.lowercased()
+        let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext)
+        if isVideo {
+            if let filename = PhotoManager.shared.saveVideo(from: url) {
+                mediaItems.wrappedValue.append(MediaItem(filename: filename, type: .video))
+            }
+        } else {
+            if let data = try? Data(contentsOf: url),
+               let image = UIImage(data: data),
+               let filename = PhotoManager.shared.savePhoto(image) {
+                mediaItems.wrappedValue.append(MediaItem(filename: filename, type: .photo))
+            }
         }
     }
 }

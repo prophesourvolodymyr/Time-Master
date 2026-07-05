@@ -1,129 +1,584 @@
+# AGENTS.md — AI Project Management System
 
+## 0. About This Project
+Time-Master — iOS workout timer app (SwiftUI, iOS 16+). Users create custom workouts with timed sections, photo guidance, and one-tap sequential playback. Includes AI coach (25 providers), video import from computer server, analytics, background music, motivational quotes, notifications, and home screen widget. 8 features documented, all built and verified.
 
-Goal
-Build and polish Time-Master — an iOS SwiftUI workout timer app. Current batch of tasks (in priority order):
-1. Finish video support (mid-implementation) — users can add videos alongside photos to exercises/sections; in the workout player videos loop with audio in a shared carousel with photos
-2. Minimal black & white redesign — strip all orange/teal from the entire app; only AnalyticsView.swift keeps color; everything else pure black/dark-gray/white
-3. Sets per section — user sets how many times a section repeats (no manual duplication needed)
-4. Redesigned rest timing — distinguish rest-between-sets (short, per-section) vs rest-between-sections (longer, per-workout default with optional per-section override)
 ---
-Instructions
-- Platform: iOS 16+, pure SwiftUI, no external dependencies except ZIPFoundation
-- Available simulator: iPhone 16 Pro (UDID: 3E173F1A-8F5A-463F-A162-4A0DE526FF94, Booted)
-- Build: cd /Users/volodymurvasualkiw/Desktop/Opensource/Time-Master && xcodebuild -project TimeMaster.xcodeproj -scheme TimeMaster -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | grep -E "error:|BUILD"
-- Install+run:
-    xcrun simctl terminate 3E173F1A-8F5A-463F-A162-4A0DE526FF94 com.timemaster.TimeMaster
-  xcrun simctl install 3E173F1A-8F5A-463F-A162-4A0DE526FF94 \
-    "/Users/volodymurvasualkiw/Library/Developer/Xcode/DerivedData/TimeMaster-cugshdvxlblaozhhznaxyzzxqjqn/Build/Products/Debug-iphonesimulator/TimeMaster.app"
-  xcrun simctl launch 3E173F1A-8F5A-463F-A162-4A0DE526FF94 com.timemaster.TimeMaster
-  - Bundle ID: com.timemaster.TimeMaster
-- App path: /Users/volodymurvasualkiw/Library/Developer/Xcode/DerivedData/TimeMaster-cugshdvxlblaozhhznaxyzzxqjqn/Build/Products/Debug-iphonesimulator/TimeMaster.app
-- TimeMaster.Section shadows SwiftUI.Section — always qualify as SwiftUI.Section(...)
-- Array[safe:] subscript defined in DatabaseView.swift — module-wide, do NOT redefine elsewhere
-- DatabaseStore is a singleton (DatabaseStore.shared), private init()
-- Break complex SwiftUI bodies into sub-views/computed vars to avoid "compiler unable to type-check" errors
-- Theme directive: App must be minimal black & white. Theme.background ≈ #0A0A0A, surfaces #141414 / #1C1C1C, text Color.white / Color.white.opacity(0.5). No orange, no teal anywhere except AnalyticsView.swift. Keep Theme.primary and Theme.accent defined in Theme.swift but ONLY AnalyticsView uses them. All interactive highlights use Color.white or Color.white.opacity(0.15)
-- MediaThumbnailView, MovieFile, mediaScrollRow(), Array[safe:] all defined in DatabaseView.swift — module-wide, do NOT redefine elsewhere
-- Video detection from PhotosPickerItem: item.supportedContentTypes.contains(where: { $0.conforms(to: UTType.audiovisualContent) }) — requires import UniformTypeIdentifiers
-- MediaThumbnailView loads thumbnails asynchronously via Task.detached
-- Sets/rest design agreed upon:
-  - Section.sets: Int = 1 — repetition count
-  - Section.restBetweenSets: Int = 10 — rest between set repetitions (only used when sets > 1)
-  - Section.customRestAfter: Int? = nil — per-section override for rest before next section; nil = use workout default
-  - Workout.restBetweenSections: Int = 30 — workout-wide default inter-section rest
-  - UX: In SectionEditorView, a toggle "Use custom rest after this section" — off by default (shows workout default as hint text); toggling on reveals a stepper to set the custom value
-  - Player flow: work → restBetweenSets → work → restBetweenSets → work → (customRestAfter ?? workout.restBetweenSections) → next section
+
+## 1. Bootstrap — What AI Does First
+
+When opening this project, determine which state the project is in:
+
+### State A: Empty repo — no `genesis/`, no `features/`, no `CYCLES.md`
+1. Ask user: "What are we building? Give me the raw idea."
+2. Create `genesis/ORIGINAL IDEA.md` with whatever the user says — raw, unfiltered.
+3. Ask user: "Want me to expand this into an `INITIAL IDEA.md` that explores the super-structure (what the whole system looks like, major parts, how they connect)?"
+4. If yes: create `genesis/INITIAL IDEA.md`. If no: proceed.
+5. Ask user: "What should be Feature 01?"
+6. Create `features/DOCKS.md` index + `genesis/F01-raw/DOCKS.md` (raw feature, not final)
+7. Create `CYCLES.md` with Cycle 0
+8. Run AUDIT for F01, then implement
+
+### State B: Has `genesis/` but no `features/`
+1. Read everything in `genesis/`: `ORIGINAL IDEA.md`, `INITIAL IDEA.md` (if exists), `REFERENCE/`
+2. Read `STYLES.md` if present
+3. Propose feature breakdown to user (all F01–FNN)
+4. Create all raw feature DOCKS.md files in `genesis/FXX-raw/`
+5. Create `features/DOCKS.md` index
+6. Create `CYCLES.md`
+7. Run AUDIT for F01, then implement
+
+### State C: Has `features/`, `CYCLES.md`, active feature docs
+1. Read `features/DOCKS.md` — understand full project map
+2. Read `CYCLES.md` — find current active cycle
+3. Read the active feature's DOCKS.md + all its dependency DOCKS.md files
+4. Ask user: "Continue Cycle N for FXX?" or "Start next feature?"
+5. If starting: run AUDIT Protocol (P01) for that feature
+6. If continuing: pick up from last verified phase
+
+### State D: Existing codebase with old/missing documentation — needs conversion
+1. Run the Project Conversion Protocol (P07) — audit the entire project
+2. Discover: what docs exist, what old system (if any), what the codebase contains
+3. Propose conversion plan: what gets mapped where, what gets created from code
+4. User approves → execute conversion
+5. After conversion → State B or C (depending on what was created)
+
 ---
-Discoveries
-- MediaItem model replaces photoFilenames: [String] everywhere. Defined in ExerciseDatabase.swift:
-    enum MediaType: String, Codable, Equatable { case photo, video }
-  struct MediaItem: Codable, Identifiable, Equatable { var id: UUID; var filename: String; var type: MediaType }
-  - Codable migration: Both Exercise and Section decode mediaItems first, fall back to legacy photoFilenames, then photoFilename — existing saved data migrates automatically on decode
-- PhotoManager extended with: saveVideo(from: URL) -> String?, videoURL(for: String) -> URL, thumbnailForVideo(filename: String) -> UIImage? (synchronous, uses AVAssetImageGenerator), deleteMedia(filename: String), thumbnail(for: MediaItem) -> UIImage?. All media stored in Documents/Photos/. Uses private photosDirectory computed property.
-- MediaThumbnailView (defined in DatabaseView.swift): params item: MediaItem, size: CGFloat, cornerRadius: CGFloat; async thumbnail loading via Task.detached; play-icon overlay for videos
-- MovieFile: Transferable (defined in DatabaseView.swift): FileRepresentation(contentType: .movie) for video import from PhotosPicker. Requires import UniformTypeIdentifiers
-- mediaScrollRow(items:onRemove:): free @ViewBuilder function in DatabaseView.swift for the shared horizontal media scroll UI
-- ExerciseGalleryCard.mediaTop uses MediaThumbnailView with size: 0 + .frame(maxWidth: .infinity).frame(height: 110).clipped() for fill display
-- WorkoutPlayerView uses: loadedMedia: [MediaItem], mediaImages: [UIImage?], currentMediaIndex: Int, videoPlayer: AVQueuePlayer?, videoLooper: AVPlayerLooper?. import AVKit. Video loops via AVPlayerLooper. Audio: AVAudioSession .playback + .mixWithOthers so TTS works alongside video. Carousel dots: circles for photos, pill shapes for videos.
-- WorkoutStore.deleteSection and deleteWorkout already updated to use section.mediaItems + deleteMedia(filename:)
-- DatabaseStore.swift: rootNotes [DatabaseNote], rootExercises [Exercise] with separate UserDefaults keys; full CRUD for root notes, root exercises, folder notes
-- DatabaseView.swift: MarkdownTextView (block+inline markdown rendering), NoteRowView, NoteDetailView (inline editor — TextField title + TextEditor body, auto-saves on dismiss), NoteEditorView (create new notes), root exercises/notes/folders sections, AddExerciseView + EditExerciseView take folderID: UUID? (nil = root)
-- NoteDetailView is an inline editor (not read-only): title TextField + body TextEditor, persistIfNeeded() called on Done and onDisappear
-- WorkoutDetailView: SectionQuickActionsView sheet (presentationDetents .medium) triggered by tapping SectionRow; has Edit and Delete actions with 0.35s delay after dismiss before opening next sheet/alert
-- SectionRow: sets count badge "N×" shown when sets > 1; b&w theme throughout
-- WorkoutDetailView: RestSeparatorRow between sections (inline stepper for per-section rest override); restBetweenSections workout-wide default
-- Swipe actions on List rows: delete (trailing, red), edit (leading, white tint) — NOTE: delete swipe tint should be .red not default
-- Icon color feature: Workout.colorHex: String = "FFFFFF" and ExerciseFolder.colorHex: String = "FFFFFF" — both Codable with decodeIfPresent fallback; Theme.iconColors is 8-entry array (hex+label) defined in Theme.swift; IconColorPicker (in Theme.swift) is a row of 8 circles with selection ring; WorkoutCard and FolderRowView show a 36×36 RoundedRectangle(cornerRadius:8) badge filled with the item's colorHex; icon foreground: .black if hex=="FFFFFF", else .white; NewFolderSheet (bottom of DatabaseView.swift) replaces alert-based folder creation; sheet callback: (name: String, colorHex: String) -> Void; folder-creation alerts REMOVED from both DatabaseView and FolderDetailView
+
+## 2. Project Identity
+
+### File Structure
+```
+Project/
+├── AGENTS.md              ← this file (the system)
+├── CYCLES.md              ← development cycle tracking
+├── STYLES.md              ← design system conventions (optional)
+├── genesis/               ← origin docs + raw feature incubation
+│   ├── ORIGINAL IDEA.md   ← the very first raw spark — brief, unfiltered
+│   ├── INITIAL IDEA.md    ← expanded super-structure — major parts, how they connect
+│   ├── REFERENCE/         ← images, links, research
+│   ├── F01-raw/           ← raw feature being incubated (not final)
+│   │   ├── DOCKS.md       ← feature spec (same structure as final)
+│   │   └── ORIGINAL IDEA.md ← raw idea for THIS specific feature
+│   └── F02-raw/
+│       ├── DOCKS.md
+│       └── ORIGINAL IDEA.md
+├── features/              ← finalized, approved features — ready to build
+│   ├── DOCKS.md           ← root index of every feature
+│   ├── F01-name/          ← feature folder (promoted from genesis when solid)
+│   │   ├── DOCKS.md       ← comprehensive spec — what it is, what it owns, verification
+│   │   ├── F01-AUDIT.md   ← optional, pre-build audit output
+│   │   ├── F01-A-sub/     ← sub-feature (alphabetical nesting)
+│   │   │   ├── DOCKS.md   ← every sub-feature gets its own DOCKS.md
+│   │   │   └── F01-A-a-deep/  ← sub-sub-feature (unlimited depth)
+│   │   │       └── DOCKS.md
+│   │   └── F01-B-sub/
+│   │       └── DOCKS.md
+│   ├── F02-name/
+│   └── _archive/          ← completed features, never build from
+├── protocols/             ← reusable workflow protocols
+│   ├── P01 - Feature Audit.md
+│   ├── P02 - Reverse Engineering Target.md
+│   ├── P03 - Browser Agent Task.md
+│   ├── P04 - Visual Mockup Generation.md
+│   ├── P05 - Find Relevant Skills.md
+│   ├── P06 - Create Skill From Solved Task.md
+│   └── P07 - Project Conversion.md
+├── prompts/               ← multi-agent phase prompts (generated by AI)
+│   └── F01-phase-1.md
+├── skills/                ← reusable skills created from solved tasks
+│   └── skill-name.md
+└── junk/                  ← temporary prompts, disposable files
+```
+
+### Feature Lifecycle
+```
+genesis/FXX-raw/DOCKS.md   ← Stage 1: Raw incubation. Same DOCKS.md structure.
+    │                           Being explored, refined, debated.
+    │                           Not ready to build. Can stay here indefinitely.
+    ▼
+features/FXX-name/DOCKS.md ← Stage 2: Promoted. Solid, approved, ready to build.
+    │
+    ▼
+features/_archive/FXX/     ← Stage 3: Built, verified, done. Reference only.
+```
+
+**Key rule:** User can create raw features in `genesis/` without committing to building them. A raw feature is explored and upgraded until it's solid enough to promote to `features/`. Promotion happens manually — user says "move FXX to features/."
+
+### INITIAL IDEA.md vs ORIGINAL IDEA.md
+- **ORIGINAL IDEA.md:** The very first spark. Brief, raw, unfiltered. Captured immediately.
+- **INITIAL IDEA.md:** The superior successor. A deeper exploration of what the whole system looks like — major parts, how they connect, the super-structure. Still NOT at the level of individual features. It's the bridge between "vague idea" and "feature breakdown."
+
+### DOCKS.md Depth Rule
+Every DOCKS.md — feature, sub-feature, or sub-sub-feature — must be **comprehensive**. A DOCKS.md is NOT complete until someone who has never seen the project can understand:
+- Exactly what to build
+- How it behaves in **every** state
+- **Every** animation, transition, edge case
+- What it depends on and what depends on it
+- How to verify it works
+
+If the feature has 8 states, all 8 must be documented. If it has 12 animation configurations, all 12 must be listed. Write every nuance. Write every small thing. Brevity is the enemy of correct implementation.
+
+### Feature Folder Rules
+- Every feature gets a numbered folder: `FNN-lowercase-with-dashes`
+- Every feature, sub-feature, and sub-sub-feature gets a `DOCKS.md`
+- Sub-features nest inside with alphabetical codes: `FNN-A-sub-name/`
+- Sub-sub-features continue the pattern: `FNN-A-a-sub-name/`, `FNN-A-a-i-sub-name/` — **unlimited depth**
+- Audit files are OPTIONAL — only for features with significant unknowns
+- Archives: completed features go to `_archive/`, never built from
+
+### DOCKS.md Template
+```markdown
+# FNN[-X[-x]] — Feature Name
+
+Brief description.
+
+## What We Build
+Concrete deliverables. Every item. No ambiguity.
+
+## Architecture
+Component diagram or view hierarchy. Every piece.
+
+## States
+| State | Size | Style | Content | Behavior |
+|---|---|---|---|---|
+| default | ... | ... | ... | ... |
+| loading | ... | ... | ... | ... |
+| empty | ... | ... | ... | ... |
+| error | ... | ... | ... | ... |
+| ... | ... | ... | ... | ... |
+
+## Animation Rules
+| Animation | mass | stiffness | damping | duration | trigger |
+|---|---|---|---|---|---|
+| ... | ... | ... | ... | ... | ... |
+
+## Files
+- `path/File.ext` — what it does
+
+## Dependencies
+- FXX-A — must be verified before this starts (check evidence)
+
+## Verification
+- [ ] test item 1
+- [ ] test item 2
+```
+
 ---
-Accomplished
-✅ Fully Done
-1. Models/ExerciseDatabase.swift — MediaType + MediaItem; DatabaseNote struct; ExerciseFolder.notes + colorHex with Codable migration
-2. Models/Workout.swift — Section.mediaItems, sets, restBetweenSets, customRestAfter; Workout.restBetweenSections + colorHex; full Codable migration
-3. Utilities/PhotoManager.swift — all video + media methods
-4. Utilities/Theme.swift — minimal b&w; Theme.iconColors palette; IconColorPicker view
-5. ViewModels/WorkoutStore.swift — addWorkout(name:type:colorHex:); deleteWorkout + deleteSection use mediaItems
-6. ViewModels/DatabaseStore.swift — rootNotes, rootExercises, full CRUD; addRootFolder(name:colorHex:); addSubfolder(name:toFolderID:colorHex:)
-7. Views/Database/DatabaseView.swift — full rewrite; NewFolderSheet replaces alerts; FolderRowView with colored icon badge
-8. Views/Database/DatabaseSectionPickerView.swift — MediaThumbnailView
-9. Views/WorkoutDetail/SectionRow.swift — sets badge, b&w theme, MediaThumbnailView
-10. Views/WorkoutDetail/SectionEditorView.swift — media picker, sets stepper, restBetweenSets stepper, custom rest toggle
-11. Views/WorkoutDetail/WorkoutDetailView.swift — RestSeparatorRow, SectionQuickActionsView sheet (tap to edit/delete)
-12. Views/Player/WorkoutPlayerView.swift — AVKit video loop, sets timer logic, media carousel, b&w theme, confetti on completion
-13. Views/WorkoutList/WorkoutListView.swift — b&w theme; IconColorPicker + newWorkoutColor state in creation sheet
-14. Views/WorkoutList/WorkoutCard.swift — colored icon badge (36×36 RoundedRectangle)
-❌ Not Done
-15. Views/History/HistoryView.swift — unread — needs b&w theme audit
-16. Views/MainTabView.swift — unread — needs b&w theme audit
-17. Fix swipe-to-delete tint: all List rows with delete swipe action should use .tint(.red) — currently appears ghost/white
+
+## 3. The Feature System
+### Linear Build Order
+
+Every feature is numbered F01, F02, etc. Features are built in strict linear order:
+```
+F01 → F02 → F03 → F04 → F05 → F06 → F07 → F08
+                                              │
+                                   ┌──────────┘
+                                   ▼
+                   F09 → F10 → F11 → F12
+```
+Later features branch into parallelizable groups that don't block each other. But the core chain (F01→...→F08) is sequential — each feature depends on the ones before it.
+
+You cannot start a feature until the ones it depends on pass verification.
+
+### When Features CAN Run in Parallel
+
+**Two features can be built simultaneously if:**
+1. Neither feature appears in the other's `Dependencies` section
+2. They don't share files that would cause merge conflicts
+3. Both dependencies (if any) are already verified
+
+**AI must check this BEFORE building.** Read each feature's DOCKS.md → `Dependencies` section. If F03 lists no dependency on F02, and F02 doesn't list F03, they can be built in the same cycle by different agents or sessions.
+
+**Parallel development must be explicit in CYCLES.md:**
+```markdown
+## Cycle 2 — Parallel
+- [ ] F04 — Feature A          ← no deps on F05
+- [ ] F05 — Feature B           ← no deps on F04
+- [ ] F06 — Feature C           ← no deps on F04 or F05
+```
+
+**Sub-features within the same feature CANNOT run in parallel** unless the DOCKS.md explicitly marks them as independent. By default, sub-features (F01-A, F01-B) share the parent feature's context and should be built sequentially to avoid conflicts.
+
+### Feature DOCKS.md Is the Source of Truth
+Every visual or functional piece of the project has a DOCKS.md. This document defines:
+- **What**: exact deliverables
+- **Architecture**: component tree, data flow
+- **States**: all visual states the component can be in
+- **Animations**: exact spring parameters
+- **Files**: every file to create/modify
+- **Verification**: checklist of testable items on target device
+
+Code follows the doc. If something isn't in the DOCKS.md, it doesn't get built.
+
+### Build → Test → Connect (Step by Step)
+```
+DOCKS.md  →  AUDIT  →  BUILD  →  DEPLOY  →  TEST  →  VERIFIED
+                                                         │
+                                              ┌──────────┘
+                                              ▼
+                                         CONNECT to next feature
+```
+
+**Phase 1 — Paper first.** Write the DOCKS.md for the feature. Define exactly what gets built, what files, what it depends on. No code.
+
+**Phase 2 — Audit the unknowns.** Run the AUDIT Protocol (P01) before touching code. Resolve every design question. Know exactly how it works before building.
+
+**Phase 3 — Build in isolation.** Write only the code for this one feature. Don't add things that belong to other features. Keep it self-contained.
+
+**Phase 4 — Deploy and test.** Build, install on device, check it works. Every checkbox in the DOCKS.md must pass. Nothing ships untested.
+
+**Phase 5 — Verify, then connect.** Only after the feature passes on device, connect it to the next feature. Connecting two broken pieces doesn't fix either one. Connect two verified pieces and you get a verified system.
+
+### Verification Requires Evidence — NO BLIND CHECKBOXES
+A checkbox is NOT complete until the AI reports:
+- **What was tested** (exact test case)
+- **How it was tested** (device, OS version, steps taken)
+- **What the result was** (screenshots, logs, behavior observed)
+
+Format:
+```
+[x] F01-A — verified on iPhone 14 / iOS 17: built .deb, installed,
+     feature appears on screen, tap triggers animation, no crash,
+     works in airplane mode, works with empty data.
+```
+
+**Re-Verify Dependencies:** Before starting any feature or sub-feature, re-read the dependency's verification evidence. If evidence is missing, vague ("seems to work"), or from an outdated build — AI MUST re-verify before continuing. Never build on a broken foundation.
+
+### Sub-Sub-Features
+If a sub-feature is complex enough to warrant its own breakdown, it gets sub-sub-features:
+- `F01-A-a`: Sub-feature of F01-A
+- `F01-A-a-i`: Sub-feature of F01-A-a
+- Unlimited depth. Every single one gets a DOCKS.md and verification evidence.
+
+### CYCLES.md Format
+```markdown
+# CYCLES.md — Project Name
+
+## Cycle 0 — Documentation
+- [x] Project structure + all DOCKS.md files
+- [x] CYCLES.md created
+
+## Cycle 1 — First Build
+- [x] F00 — Bootstrap
+- [ ] F01 — Feature Name
+  - [ ] F01-A Sub-feature
+    - [x] F01-A-a Sub-sub-feature — verified: [evidence]
+  - [ ] F01-B Sub-feature
+
+## Cycle 2 — Next Phase
+- [ ] F02 — Another Feature
+```
+
+### Cycle 0 — Documentation Reorganization
+A special pre-code cycle. Runs ONCE at project start or after a major re-plan:
+1. Define all features (F01 through FNN)
+2. Create raw DOCKS.md files in `genesis/FXX-raw/` for exploration
+3. Promte confirmed features to `features/FXX-name/`
+4. Archive old docs to `features/_archive/`
+5. Update `features/DOCKS.md` index
+6. Update `CYCLES.md` with all cycles
+7. Update `AGENTS.md`
+
+No code is written in Cycle 0. Only documentation.
+
 ---
-Future Backlog (not started — implement in a future batch)
-F1. Motivational voice quotes during workout — iPhone speaks preset motivational quotes at random intervals while a section timer is running; quotes pool editable in Settings; uses existing AudioManager.shared TTS
-F2. Background music player — user uploads audio files from Files app (Settings screen); stored in Documents/Music/; MusicManager singleton (AVQueuePlayer) plays tracks one-after-another in loop; if single track, loops that track; in workout player a music icon button toggles playback on/off; AudioSession category .playback + .mixWithOthers so TTS and music coexist; volume control in Settings
-F3. Fix delete swipe action color — currently appears white/ghost; add .tint(.red) to all destructive swipe actions across WorkoutDetailView, WorkoutListView, DatabaseView, HistoryView, FolderDetailView
-F4. Workout completion celebration — ConfettiView already implemented in WorkoutPlayerView; verify it fires on workout complete; add AVSpeechUtterance congratulation phrase; already partially done — audit and confirm
-F5. Database drag-to-reorder and "Move To" — exercises and notes inside folders (and at root level) support: (a) hold-and-drag reorder within the same folder via List onMove; (b) context menu / swipe action "Move to…" that opens a FolderPickerSheet (NavigationStack with list of all folders) to relocate the item; DatabaseStore needs moveExercise(id:fromFolderID:toFolderID:) and moveNote(id:fromFolderID:toFolderID:) helpers
-F6. AI Coach tab — new 5th tab "AI Coach" (brain or sparkles icon); features:
-    - Persistent chat UI (messages list + input bar), history stored in UserDefaults
-    - Configurable "Soul" / system prompt set by user in AI Settings (multiline TextEditor)
-    - User can upload text/PDF/markdown files as "knowledge" (stored in Documents/AIKnowledge/); each file is chunked and prepended to context or summarised into system prompt
-    - API key management in Settings: user enters keys for OpenAI, Anthropic, or any OpenAI-compatible endpoint (custom base URL + key); keys stored in Keychain
-    - Model selector: dropdown to pick model string (e.g. gpt-4o, claude-3-5-sonnet, custom)
-    - Networking: pure URLSession, no SDKs; OpenAI-compatible /chat/completions endpoint; streaming optional (v2)
-    - No external AI SDKs — keep zero-dependency rule (except ZIPFoundation)
-F7. Home screen widget for quick workout launch — WidgetKit extension (iOS 16+); user selects one workout to pin in the widget configuration; widget displays workout name + icon color badge; tapping the widget deep-links into the app and immediately starts that workout in WorkoutPlayerView; widget size: small (single workout) only for v1; no external dependencies; deep-link via URL scheme (timemaster://start?workoutID=UUID); app handles the URL in TimeMasterApp.swift via onOpenURL
+
+## 4. Delegation Rule
+
+**AI CAN delegate to sub-agents** for specific, heavy-lifting tasks:
+- Deep internet research for a feature's approach
+- Creating more comprehensive, researched DOCKS.md files
+- Thinking harder about complex sub-features — going deeper, finding more edge cases
+- Running the Reverse Engineering Protocol (P02) on a target
+
+**When delegating**, the main agent MUST:
+1. Provide the sub-agent with the exact DOCKS.md to work from
+2. Specify what depth is needed ("find 5 reference implementations", "identify all edge cases for the animation system")
+3. Tell the sub-agent to produce concrete output (updated DOCKS.md, research notes, audit draft)
+
+**After delegation**, the main agent reviews the sub-agent's output, integrates it, and continues.
+
+**Prompt generation for sub-agents:** Use the same Dynamic Prompt Scope Calculator (§8). A complex sub-feature delegated to a sub-agent gets its own prompt file with all mandatory rules.
+
 ---
-Relevant files / directories
-/Users/volodymurvasualkiw/Desktop/Opensource/Time-Master/
-├── TimeMaster.xcodeproj/
-└── TimeMaster/
-    ├── App/
-    │   └── TimeMasterApp.swift                    # unchanged
-    ├── Models/
-    │   ├── Workout.swift                          # ✅ fully done (incl. colorHex)
-    │   ├── WorkoutHistory.swift                   # unchanged
-    │   └── ExerciseDatabase.swift                 # ✅ fully done (incl. colorHex on ExerciseFolder)
-    ├── ViewModels/
-    │   ├── WorkoutStore.swift                     # ✅ fully done (addWorkout colorHex)
-    │   └── DatabaseStore.swift                    # ✅ fully done (addRootFolder/addSubfolder colorHex)
-    ├── Views/
-    │   ├── MainTabView.swift                      # ❌ unread — needs b&w audit
-    │   ├── Database/
-    │   │   ├── DatabaseView.swift                 # ✅ fully done (NewFolderSheet, colored FolderRowView)
-    │   │   └── DatabaseSectionPickerView.swift    # ✅ fully done
-    │   ├── History/
-    │   │   └── HistoryView.swift                  # ❌ unread — needs b&w audit
-    │   ├── Analytics/
-    │   │   └── AnalyticsView.swift                # ✅ keep as-is (colors stay here)
-    │   ├── WorkoutDetail/
-    │   │   ├── WorkoutDetailView.swift            # ✅ fully done
-    │   │   ├── SectionRow.swift                   # ✅ fully done
-    │   │   └── SectionEditorView.swift            # ✅ fully done
-    │   ├── WorkoutList/
-    │   │   ├── WorkoutListView.swift              # ✅ fully done (IconColorPicker in sheet)
-    │   │   └── WorkoutCard.swift                  # ✅ fully done (colored icon badge)
-    │   └── Player/
-    │       └── WorkoutPlayerView.swift            # ✅ fully done
-    └── Utilities/
-        ├── PhotoManager.swift                     # ✅ fully done
-        ├── AudioManager.swift                     # unchanged
-        └── Theme.swift                            # ✅ fully done (b&w + iconColors + IconColorPicker)
+
+## 5. Protocols
+
+Reusable workflow definitions stored in `protocols/`. Each protocol is a `.md` file describing steps, checklists, or repeatable patterns.
+
+### Active Protocols
+| File | System ID | What It Does |
+|---|---|---|
+| `P01 - Feature Audit.md` | AUD-01 | Read a feature's DOCKS.md, research the internet for reference implementations, interrogate every assumption, flag problems, propose ideas — deliver it all as a structured audit so the user knows exactly what gaps exist before building. |
+| `P02 - Reverse Engineering Target.md` | REV-01 | For any third-party app, binary, web app, API, or closed-source library: acquire the target, run static analysis (strings, symbols, disassembly), run dynamic analysis (Frida hooks, network capture), isolate the specific feature logic, and extract it into plain-English pseudo-code ready for reimplementation. Covers iOS, Android, desktop, web, Electron, firmware — everything. |
+| `P03 - Browser Agent Task.md` | BRW-01 | When the AI needs a token, auth code, or any info from a website that requires clicking, logging in, or navigating: instead of asking the user to do it manually, AI suggests generating a browser agent prompt saved to `/junk/` that another agent can execute. |
+| `P04 - Visual Mockup Generation.md` | VIS-01 | Generate a high-fidelity HTML mockup of a feature's UI directly from the feature's DOCKS.md and STYLES.md design tokens. Single-file, no external libraries, ready to open in a browser for visual approval before code. |
+| `P05 - Find Relevant Skills.md` | SKL-01 | Search the agent skills ecosystem (`npx skills find`) for reusable skills that solve a specific task. Verify quality by install count, source reputation, and GitHub stars. Present options, install the chosen one. |
+| `P06 - Create Skill From Solved Task.md` | SKL-02 | After solving a reusable, non-obvious task: extract the pattern (steps, decisions, gotchas) and save it as a skill file in `/skills/` so future sessions can reuse the know-how without re-learning. |
+| `P07 - Project Conversion.md` | CNV-01 | Convert an existing project (with any documentation system — or none at all) into this management system. Discover what docs exist, analyze the codebase if undocumented, propose a mapping, archive old docs, create new structure. Nothing gets deleted. |
+
+### Protocol Rules
+- AI READS the protocol file to understand the workflow before executing
+- AI may **suggest** a protocol when the situation matches, but **never executes one automatically** — user must confirm first
+- Protocols can trigger each other (e.g., AUD-01 can suggest REV-01 if implementation is non-trivial)
+- AI does not create protocols on its own — user defines them
+
+---
+
+## 6. Agent Behavior Rules
+
+### Always
+- Read all relevant DOCKS.md before any code
+- Verify on actual device/hardware, not just compile
+- Use existing patterns from the codebase
+- Follow STYLES.md conventions
+- Test on target hardware before closing any feature
+- Write verification EVIDENCE, not just checkmarks
+
+### Never
+- Hardcode positions or dimensions
+- Mix languages where not allowed
+- Use wrong patterns when a standard exists in the project
+- Add comments unless explicitly asked
+- Commit secrets or keys
+- Mark a feature verified without actual device testing and evidence
+- Build on a dependency that has no verification evidence
+
+### When Stuck
+- Check reference code for patterns
+- Verify with compiler
+- Read genesis/ docs for original intent
+- Ask user before making architecture choices
+- Never guess — if DOCKS.md doesn't say, ask
+- Delegate to a sub-agent for deeper research if needed
+
+---
+
+## 7. Status Vocabulary
+
+| Term | Meaning |
+|---|---|
+| `pending` | Not started, waiting for dependency completion |
+| `in_progress` | Currently being built |
+| `blocked` | Can't continue — needs user decision or dependency |
+| `ready_for_review` | Code written, needs device verification |
+| `verified` | Tested on target hardware, works correctly (evidence provided) |
+| `done` | Complete, closed, no further work |
+
+---
+
+## 8. Dynamic Prompt Scope Calculator
+
+**For features too big for one session**, the AI analyzes the feature and decides the prompt breakdown. There is NO fixed "1 prompt per sub-feature" rule.
+
+### How AI Decides Prompt Count
+Read the feature's DOCKS.md and all sub-feature/sub-sub-feature DOCKS.md files. Evaluate each piece:
+
+| Doc Profile | Prompt Strategy |
+|---|---|
+| Simple setup/bootstrap | 1 prompt covers everything |
+| Single feature, moderate complexity | 1 prompt for the whole feature |
+| Feature with 2–3 complex sub-features | 1 prompt per complex sub-feature |
+| Feature with complex + easy sub-features | Individual prompts for complex ones, grouped prompt for easy ones |
+| Massive feature (5+ complex sub-features) | 1 prompt per sub-feature, plus a "connect" prompt at end |
+| Sub-sub-feature that is self-contained | May share parent's prompt or get its own if deep enough |
+
+### Present Breakdown to User
+Before generating any prompts, AI says:
+> "This feature will take **N prompts** across **M sessions**. Here's the breakdown:
+> - Prompt 1: [What it covers] — because [reason]
+> - Prompt 2: [What it covers] — because [reason]
+> - ...
+
+### Parallel Prompts for Independent Features
+If the AI detects that multiple features or sub-features are independent (no dependencies between them, different files), it can generate prompts for them **simultaneously**. These parallel prompts can be worked on by different agents or sessions at the same time — they don't block each other.
+
+**AI must check independence before generating parallel prompts:**
+1. Read each feature's `Dependencies` section
+2. Verify no shared files exist between them
+3. Confirm both features' dependencies (if any) are already verified
+
+**Present parallel prompts to user:**
+> "F04 and F05 are independent — they can be built in parallel. Here's the breakdown:
+> - **Parallel Group A:**
+>   - Prompt 1: F04 — Feature A (2 sessions)
+>   - Prompt 2: F05 — Feature B (1 session)
+> - **After both complete:**
+>   - Prompt 3: F06 — Feature C (depends on F04)
+
+**Parallel prompts follow the same mandatory template** — each gets its own file with the same rules (no sub-agents, commit after done, generate next). The only difference: their "next prompt" points to the first common dependency, not the sequential next.
+
+**CYCLES.md tracks parallel work:**
+```markdown
+## Cycle 2 — Parallel
+- [ ] F04 — Feature A (Prompt 1)
+- [ ] F05 — Feature B (Prompt 2)
+```
+Both can be `in_progress` at the same time.
+
+### Prompt File Location
+```
+prompts/
+  FXX-phase-1-title.md
+  FXX-phase-2-title.md
+```
+
+### Prompt Naming
+`{feature-code}-phase-{N}-{short-title}.md`
+
+### Every Prompt MUST Include (Mandatory Template)
+```markdown
+# Phase {N} of {FeatureCode} — {Short Title}
+
+## Context
+What we are building and why. What was done in the PREVIOUS phase.
+3 lines max.
+
+## What You Need to Read First
+- features/FXX-xxx/DOCKS.md
+- features/FXX-xxx/FXX-X-sub/DOCKS.md
+- path/to/existing/file.ext (line X-Y)
+- protocols/P0X - Name.md (if a protocol applies)
+
+## What Happened Last Session
+Brief summary of what the previous agent built, verified, and any decisions made that affect this session.
+
+## What to Build
+- Task 1: description
+- Task 2: description
+
+## Files to Create/Modify
+- create: path/to/new/file.ext
+- modify: path/to/existing/file.ext
+
+## Verification
+- [ ] compiles without errors
+- [ ] deploys to target
+- [ ] visible behavior matches spec
+- [ ] no crash
+- [ ] evidence captured (device, OS, what was tested)
+
+## Agent Rules (Mandatory — DO NOT SKIP)
+1. **NO SUB-AGENTS:** Do NOT spawn sub-agents to review this repository. Do all work yourself in this session.
+2. **COMMIT AFTER DONE:** After completing every task, commit with a clear message describing what was built.
+3. **GENERATE THE NEXT PROMPT:** After finishing all tasks and committing, create the next prompt file. Read the relevant DOCKS.md to learn what comes next. The next prompt MUST include:
+   - What was built and verified in THIS session (so the next agent has context)
+   - What the next task is (with direct paths to relevant DOCKS.md files)
+   - Any decisions made this session that affect future work
+   - Any unresolved issues or notes for the next agent
+   - Save to: `prompts/{feature-code}-phase-{N+1}-{title}.md`
+
+## When You Finish
+Report what was built, what was verified, what evidence was captured, and the path to the next prompt file.
+```
+
+### Rules
+- Each phase completable in one session
+- Sequential — phase 2 only after phase 1 verified with evidence
+- No unrelated features combined in one phase
+- Every phase ends with device verification and evidence
+- The NEXT prompt is generated by the CURRENT agent before finishing
+- Prompt count is decided per-feature, not by fixed formula
+
+---
+
+## 9. The Revolution Protocol
+
+For major architecture changes affecting multiple features. NOT for adding features, bug fixes, or small refactors.
+
+### Step 1 — User Writes the Revolution Document
+```markdown
+# Revolution: [Name] — [Colossality Rating]
+## Why This Revolution
+## What Changes
+## Migration Path
+## Affected Features
+## Architecture Decisions
+## Risk Assessment
+```
+
+### Step 2 — AI Reads and Understands
+Read every affected feature's DOCKS.md. Map all files that will change.
+
+### Step 3 — AI Delivers Impact Assessment
+
+#### Colossality Rating
+| Rating | Scope |
+|---|---|
+| MINOR | Affects one sub-feature |
+| MODERATE | Affects one feature |
+| MAJOR | Affects 2-3 features |
+| COLOSSAL | Affects 4+ features or fundamental architecture |
+
+#### Impact Report
+Every changed file. Every deleted file. Every new file.
+
+### Step 4 — Negotiation
+User modifies, rejects, or accepts.
+
+### Step 5 — Initialize
+Create new folders. Migrate affected DOCKS.md files. Update indexes. Archive old structure.
+
+---
+
+## 10. File Generation Rules
+
+### Never Create
+- README files
+- CHANGELOG files
+- .md files outside `features/`, `genesis/`, `protocols/`, `skills/`, `prompts/`, `junk/`, or root
+- Documentation inside source directories
+
+### Always Create
+- `genesis/FXX-raw/DOCKS.md` for every raw feature being incubated
+- `features/FXX-name/DOCKS.md` for every promoted feature
+- `features/FXX-name/FXX-X-sub/DOCKS.md` for every sub-feature (any depth)
+- Update `AGENTS.md` / `CYCLES.md` when adding features
+- Update `features/DOCKS.md` index when features change
+
+---
+
+## 11. Project Management Files — Editing Rule
+
+**If the user instructs editing any project management files** — protocols, AGENTS.md, CYCLES.md, STYLES.md, or any file in `protocols/`, `genesis/`, `features/DOCKS.md` — first make a copy:
+
+1. Copy the existing file(s) to the project root (`/Users/volodymurvasualkiw/GSpace/Personal /Project-Managment/`)
+2. Overwrite the old version with the edited version
+3. This ensures the working copy is always current and the old version is replaced
+
+**For cross-project reuse:** If the user is working on project management infrastructure that should apply to other projects, copy the file to the project root and replace. The root is the source of truth for the management system itself.
+
+---
+
+## 12. For Other AI Agents — Installing & Initializing This System
+
+If you are an AI agent reading this and the user wants to adopt this project management system, here is exactly what to do depending on the situation:
+
+### Fresh Project (No Existing System)
+From inside the project directory, run:
+```bash
+projinit
+```
+This installs `AGENTS.md`, `protocols/`, and the scaffold. It never touches existing `features/` or `genesis/` content. No arguments needed.
+
+### Existing Project With Old Documentation / No Documentation
+Run `projinit` first for the scaffold, then trigger the **Project Conversion Protocol (P07)**:
+1. `projinit` — install the scaffold
+2. Read `protocols/P07 - Project Conversion.md`
+3. Execute P07 Phase 1 — discover docs, classify project, propose conversion plan
+4. User approves → execute P07 Phase 2 — archive old docs, create DOCKS.md files
+
+### Update All Installed Projects
+To push the latest AGENTS.md and protocols to every project that has this system installed:
+```bash
+projinit --push-all       # full update
+projinit --push-all --dry-run   # preview first
+projinit --push AGENTS.md       # push just one file
+```
+
+### Project Registry
+For a full list of projects where this system is already installed, see:
+`/Users/volodymurvasualkiw/GSpace/`
+
+Every sub-project under that folder with an `AGENTS.md` has the system installed. The installer script discovers them automatically.

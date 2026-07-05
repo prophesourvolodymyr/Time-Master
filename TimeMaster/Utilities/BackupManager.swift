@@ -107,6 +107,15 @@ final class BackupManager {
             }
         }
 
+        // 6. Verify all referenced media from workouts exists
+        let referencedFilenames = collectWorkoutMediaFilenames(from: snapshot.workouts)
+        for filename in referencedFilenames {
+            let fileURL = photosDir.appendingPathComponent(filename)
+            if !fm.fileExists(atPath: fileURL.path) {
+                print("[BackupManager] Warning: referenced media file missing: \(filename)")
+            }
+        }
+
         return destURL
     }
 
@@ -318,6 +327,16 @@ final class BackupManager {
         var names: [String] = []
         for ex in folder.exercises { names.append(contentsOf: ex.mediaItems.map(\.filename)) }
         for sub in folder.subfolders { names.append(contentsOf: collectMediaFilenames(from: sub)) }
+        return names
+    }
+
+    private func collectWorkoutMediaFilenames(from workouts: [Workout]) -> [String] {
+        var names: [String] = []
+        for workout in workouts {
+            for section in workout.sections {
+                names.append(contentsOf: section.mediaItems.map(\.filename))
+            }
+        }
         return names
     }
 

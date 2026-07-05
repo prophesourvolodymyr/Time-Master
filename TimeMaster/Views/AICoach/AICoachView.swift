@@ -36,6 +36,8 @@ struct AICoachView: View {
             }
             .navigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar { chatToolbar }
             .sheet(isPresented: $showingSettings) { AISettingsView() }
             .sheet(isPresented: $showingSessions) {
@@ -144,12 +146,17 @@ private struct ChatMessageList: View {
             }
             .onAppear { scrollToBottom(proxy) }
             .overlay(alignment: .top) {
-                LinearGradient(
-                    colors: [Theme.background, Theme.background.opacity(0)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 72)
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Theme.background)
+                        .frame(height: 0)
+                    LinearGradient(
+                        colors: [Theme.background, Theme.background.opacity(0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 20)
+                }
                 .allowsHitTesting(false)
             }
         }
@@ -269,8 +276,7 @@ private struct MessageBubble: View {
                         .padding(.bottom, 10)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    MarkdownTextView(text: message.content)
-                        .textSelection(.enabled)
+                    SelectableMarkdownText(text: message.content)
                         .padding(.horizontal, 14)
                         .padding(.top, topPad)
                         .padding(.bottom, 10)
@@ -279,6 +285,7 @@ private struct MessageBubble: View {
         }
         .background(isUser ? Color.white : Color(hex: "1C1C1C"))
         .clipShape(BubbleShape(isUser: isUser))
+        .contextMenu { contextMenuItems }
     }
 
     @ViewBuilder
@@ -310,6 +317,31 @@ private struct MessageBubble: View {
         if diff < 3600 { return "\(Int(diff / 60))m ago" }
         let f = DateFormatter(); f.timeStyle = .short
         return f.string(from: date)
+    }
+}
+
+// MARK: - SelectableMarkdownText
+
+private struct SelectableMarkdownText: View {
+    let text: String
+
+    var body: some View {
+        if let attr = try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        ) {
+            Text(attr)
+                .foregroundColor(Theme.textPrimary)
+                .font(.body)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text(text)
+                .foregroundColor(Theme.textPrimary)
+                .font(.body)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

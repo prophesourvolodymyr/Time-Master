@@ -20,6 +20,7 @@ struct SectionEditorView: View {
     @State private var mediaItems: [MediaItem]
     @State private var pendingItems: [PhotosPickerItem] = []
     @State private var showingPicker = false
+    @State private var showingFilePicker = false
     @State private var showingDatabasePicker = false
     @State private var isSuggestingName = false
     @State private var aiErrorMessage: String? = nil
@@ -111,6 +112,13 @@ struct SectionEditorView: View {
             }
             .environmentObject(DatabaseStore.shared)
         }
+        .fileImporter(
+            isPresented: $showingFilePicker,
+            allowedContentTypes: [.image, .movie, .jpeg, .png, .heic],
+            allowsMultipleSelection: true
+        ) { result in
+            handleFileImport(result)
+        }
     }
 
     // MARK: - Media
@@ -134,21 +142,39 @@ struct SectionEditorView: View {
             }
 
             if mediaItems.count < 5 {
-                Button { showingPicker = true } label: {
-                    HStack {
-                        Image(systemName: "photo.badge.plus")
-                        Text(mediaItems.isEmpty ? "Add Photo / Video" : "Add More")
+                HStack(spacing: 10) {
+                    Button { showingPicker = true } label: {
+                        HStack {
+                            Image(systemName: "photo.badge.plus")
+                            Text(mediaItems.isEmpty ? "Photo Library" : "Add More")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Theme.surface)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        )
                     }
-                    .font(.subheadline)
-                    .foregroundColor(Theme.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Theme.surface)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    )
+                    Button { showingFilePicker = true } label: {
+                        HStack {
+                            Image(systemName: "folder.badge.plus")
+                            Text("Files")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Theme.surface)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        )
+                    }
                 }
             }
         }
@@ -344,6 +370,27 @@ struct SectionEditorView: View {
         mediaItems.remove(at: index)
     }
 
+    private func handleFileImport(_ result: Result<[URL], Error>) {
+        guard case .success(let urls) = result else { return }
+        for url in urls {
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+            let ext = url.pathExtension.lowercased()
+            let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext)
+            if isVideo {
+                if let filename = PhotoManager.shared.saveVideo(from: url) {
+                    mediaItems.append(MediaItem(filename: filename, type: .video))
+                }
+            } else {
+                if let data = try? Data(contentsOf: url),
+                   let image = UIImage(data: data),
+                   let filename = PhotoManager.shared.savePhoto(image) {
+                    mediaItems.append(MediaItem(filename: filename, type: .photo))
+                }
+            }
+        }
+    }
+
     private func suggestNameWithAI() {
         let apiKey = UserDefaults.standard.string(forKey: "exercise_ai_api_key") ?? ""
         let model  = UserDefaults.standard.string(forKey: "exercise_ai_model")   ?? "gpt-4o"
@@ -379,6 +426,7 @@ struct SectionEditorView: View {
     private func saveSection() {
         var saved = section ?? Section(name: name, duration: duration)
         saved.name            = name
+        saved.isTimerEnabled  = isTimerEnabled
         saved.duration        = duration
         saved.sets            = sets
         saved.restBetweenSets = restBetweenSets

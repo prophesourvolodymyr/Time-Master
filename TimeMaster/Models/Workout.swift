@@ -127,8 +127,10 @@ struct Workout: Identifiable, Codable, Equatable {
     var type: WorkoutType
     var sections: [Section]
     var createdAt: Date
-    var restBetweenSections: Int  // workout-wide default inter-section rest (seconds)
-    var colorHex: String          // icon tint color (hex string, e.g. "FFFFFF")
+    var restBetweenSections: Int
+    var colorHex: String
+    var imageFilename: String?
+    var musicTrackFilenames: [String]
 
     init(
         id: UUID = UUID(),
@@ -137,7 +139,9 @@ struct Workout: Identifiable, Codable, Equatable {
         sections: [Section] = [],
         createdAt: Date = Date(),
         restBetweenSections: Int = 30,
-        colorHex: String = "FFFFFF"
+        colorHex: String = "FFFFFF",
+        imageFilename: String? = nil,
+        musicTrackFilenames: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -146,10 +150,13 @@ struct Workout: Identifiable, Codable, Equatable {
         self.createdAt = createdAt
         self.restBetweenSections = max(0, restBetweenSections)
         self.colorHex = colorHex
+        self.imageFilename = imageFilename
+        self.musicTrackFilenames = musicTrackFilenames
     }
 
     enum CodingKeys: String, CodingKey {
         case id, name, type, sections, createdAt, restBetweenSections, colorHex
+        case imageFilename, musicTrackFilenames
     }
 
     init(from decoder: Decoder) throws {
@@ -161,6 +168,8 @@ struct Workout: Identifiable, Codable, Equatable {
         createdAt           = try c.decodeIfPresent(Date.self,        forKey: .createdAt) ?? Date()
         restBetweenSections = try c.decodeIfPresent(Int.self, forKey: .restBetweenSections) ?? 30
         colorHex            = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "FFFFFF"
+        imageFilename       = try c.decodeIfPresent(String.self, forKey: .imageFilename)
+        musicTrackFilenames = try c.decodeIfPresent([String].self, forKey: .musicTrackFilenames) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -172,6 +181,8 @@ struct Workout: Identifiable, Codable, Equatable {
         try c.encode(createdAt,           forKey: .createdAt)
         try c.encode(restBetweenSections, forKey: .restBetweenSections)
         try c.encode(colorHex,            forKey: .colorHex)
+        try c.encodeIfPresent(imageFilename, forKey: .imageFilename)
+        try c.encode(musicTrackFilenames, forKey: .musicTrackFilenames)
     }
 
     var totalDuration: Int {

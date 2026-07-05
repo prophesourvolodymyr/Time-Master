@@ -9,7 +9,7 @@ struct WorkoutDetailView: View {
     @State private var showingDeleteAlert = false
     @State private var sectionToDelete: Section?
     @State private var showPlayer = false
-    @State private var tappedSection: Section?
+    @State private var showingWorkoutSettings = false
     @State private var mediaPreviewSection: Section? = nil
 
     init(workout: Workout) {
@@ -44,6 +44,7 @@ struct WorkoutDetailView: View {
                     store.addSection(to: workout, section: savedSection)
                 }
                 syncWorkout()
+                autoSyncExerciseToDatabase(savedSection)
             }
             .environmentObject(DatabaseStore.shared)
         }
@@ -59,28 +60,11 @@ struct WorkoutDetailView: View {
         } message: {
             Text("Are you sure you want to delete this section?")
         }
-        .sheet(item: $tappedSection) { section in
-            SectionQuickActionsView(
-                section: section,
-                onEdit: {
-                    tappedSection = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        editingSection = section
-                        showingSectionEditor = true
-                    }
-                },
-                onDelete: {
-                    tappedSection = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        sectionToDelete = section
-                        showingDeleteAlert = true
-                    }
-                }
-            )
-            .presentationDetents([.medium])
-        }
         .fullScreenCover(item: $mediaPreviewSection) { section in
             MediaPreviewSheet(items: section.mediaItems)
+        }
+        .sheet(isPresented: $showingWorkoutSettings) {
+            WorkoutSettingsView(workout: $workout, store: store)
         }
     }
 
@@ -136,26 +120,31 @@ struct WorkoutDetailView: View {
                 mediaPreviewSection = section
             })
             .contentShape(Rectangle())
-            .onTapGesture { tappedSection = section }
+            .onTapGesture {
+                editingSection = section
+                showingSectionEditor = true
+            }
             if !isLast {
                 RestSeparatorRow(
-                    rest: Binding(
-                        get: {
-                            idx < workout.sections.count
-                                ? (workout.sections[idx].customRestAfter ?? workout.restBetweenSections)
-                                : workout.restBetweenSections
-                        },
-                        set: { newVal in
-                            guard idx < workout.sections.count else { return }
-                            workout.sections[idx].customRestAfter = newVal
-                            store.updateWorkout(workout)
-                            syncWorkout()
-                        }
-                    ),
+                    rest: restBinding(for: idx),
                     defaultRest: workout.restBetweenSections
                 )
             }
         }
+    }
+
+    private func restBinding(for idx: Int) -> Binding<Int> {
+        Binding<Int>(
+            get: {
+                guard idx < workout.sections.count else { return workout.restBetweenSections }
+                return workout.sections[idx].customRestAfter ?? workout.restBetweenSections
+            },
+            set: { newVal in
+                guard idx < workout.sections.count else { return }
+                workout.sections[idx].customRestAfter = newVal
+                store.updateWorkout(workout)
+            }
+        )
     }
 
     @ViewBuilder
@@ -182,6 +171,9 @@ struct WorkoutDetailView: View {
     private var toolbarItems: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Menu {
+                Button { showingWorkoutSettings = true } label: {
+                    Label("Workout Settings", systemImage: "slider.horizontal.3")
+                }
                 Button { store.cloneWorkout(workout) } label: {
                     Label("Clone Workout", systemImage: "doc.on.doc")
                 }
@@ -216,6 +208,32 @@ struct WorkoutDetailView: View {
         store.reorderSections(in: workout, from: source, to: destination)
         syncWorkout()
     }
+
+    private func autoSyncExerciseToDatabase(_ section: Section) {
+        let db = DatabaseStore.shared
+        let nameExists = exerciseExistsInDatabase(name: section.name, store: db)
+        if !nameExists {
+            let exercise = Exercise(
+                name: section.name,
+                duration: section.duration,
+                mediaItems: section.mediaItems
+            )
+            db.addRootExercise(exercise)
+        }
+    }
+
+    private func exerciseExistsInDatabase(name: String, store: DatabaseStore) -> Bool {
+        if store.rootExercises.contains(where: { $0.name == name }) { return true }
+        return folderContainsExercise(name: name, folders: store.rootFolders)
+    }
+
+    private func folderContainsExercise(name: String, folders: [ExerciseFolder]) -> Bool {
+        for f in folders {
+            if f.exercises.contains(where: { $0.name == name }) { return true }
+            if folderContainsExercise(name: name, folders: f.subfolders) { return true }
+        }
+        return false
+    }
 }
 
 private struct RestSeparatorRow: View {
@@ -231,11 +249,28 @@ private struct RestSeparatorRow: View {
                 .font(.caption)
                 .foregroundColor(Theme.textSecondary)
             Spacer()
+            Button {
+                if rest >= 5 { rest -= 5 }
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundColor(rest > 0 ? .white : Color.white.opacity(0.2))
+            }
+            .disabled(rest <= 0)
+            .buttonStyle(.plain)
             Text("\(rest)s")
                 .font(.caption.monospacedDigit().weight(.semibold))
                 .foregroundColor(rest == defaultRest ? Theme.textSecondary : .white)
-            Stepper("", value: $rest, in: 0...300, step: 5)
-                .labelsHidden()
+                .frame(minWidth: 32)
+            Button {
+                if rest < 300 { rest += 5 }
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundColor(rest < 300 ? .white : Color.white.opacity(0.2))
+            }
+            .disabled(rest >= 300)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
@@ -243,103 +278,171 @@ private struct RestSeparatorRow: View {
     }
 }
 
-private struct SectionQuickActionsView: View {
-    let section: Section
-    let onEdit: () -> Void
-    let onDelete: () -> Void
+// MARK: - WorkoutSettingsView
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // Drag handle
-            Capsule()
-                .fill(Color.white.opacity(0.2))
-                .frame(width: 36, height: 4)
-                .padding(.top, 14)
-                .padding(.bottom, 22)
+private struct WorkoutSettingsView: View {
+    @Environment(\.dismiss) var dismiss
+    @Binding var workout: Workout
+    @ObservedObject var store: WorkoutStore
+    @ObservedObject var musicManager = MusicManager.shared
 
-            // Thumbnail + info
-            HStack(spacing: 16) {
-                thumbnailView
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(section.name)
-                        .font(.title3.weight(.semibold))
-                        .foregroundColor(Theme.textPrimary)
-                        .lineLimit(2)
-                    HStack(spacing: 8) {
-                        Label("\(section.duration)s", systemImage: "timer")
-                            .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
-                        if section.sets > 1 {
-                            Text("\(section.sets)×")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(5)
-                        }
-                    }
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 24)
+    @State private var restBetweenSections: Int
+    @State private var colorHex: String
+    @State private var selectedTrackIndices: Set<Int>
 
-            Rectangle()
-                .fill(Theme.separator)
-                .frame(height: 1)
-                .padding(.vertical, 22)
-                .padding(.horizontal, 24)
-
-            // Action buttons
-            VStack(spacing: 12) {
-                Button { onEdit() } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "pencil")
-                        Text("Edit Section")
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Theme.surface2)
-                    .cornerRadius(14)
-                }
-
-                Button(role: .destructive) { onDelete() } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "trash")
-                        Text("Delete Section")
-                    }
-                    .font(.headline)
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Theme.surface2)
-                    .cornerRadius(14)
+    init(workout: Binding<Workout>, store: WorkoutStore) {
+        _workout = workout
+        _store = ObservedObject(wrappedValue: store)
+        _restBetweenSections = State(initialValue: workout.wrappedValue.restBetweenSections)
+        _colorHex = State(initialValue: workout.wrappedValue.colorHex)
+        _selectedTrackIndices = State(initialValue: {
+            var set = Set<Int>()
+            for filename in workout.wrappedValue.musicTrackFilenames {
+                if let idx = MusicManager.shared.trackFilenames.firstIndex(of: filename) {
+                    set.insert(idx)
                 }
             }
-            .padding(.horizontal, 24)
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.background.ignoresSafeArea())
+            return set
+        }())
     }
 
-    @ViewBuilder
-    private var thumbnailView: some View {
-        if let item = section.mediaItems.first {
-            MediaThumbnailView(item: item, size: 72, cornerRadius: 12)
-        } else {
+    var body: some View {
+        NavigationStack {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Theme.surface2)
-                Image(systemName: "figure.run")
-                    .font(.title2)
+                Theme.background.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 20) {
+                        restSection
+                        colorSection
+                        musicSection
+                        infoSection
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Workout Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveSettings() }
+                        .foregroundColor(.white)
+                }
+            }
+        }
+    }
+
+    private var restSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Rest Between Sections")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+            HStack {
+                Text("\(restBetweenSections)s")
+                    .font(.title2.monospacedDigit())
+                    .fontWeight(.semibold)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Stepper("", value: $restBetweenSections, in: 0...300, step: 5).labelsHidden()
+            }
+            .padding(16)
+            .background(Theme.surface)
+            .cornerRadius(12)
+            Text("Default rest applied between sections unless overridden per-section.")
+                .font(.caption)
+                .foregroundColor(Theme.textSecondary)
+        }
+    }
+
+    private var colorSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Icon Color")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+            IconColorPicker(selectedHex: $colorHex)
+        }
+    }
+
+    private var musicSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Workout Music")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+            if musicManager.trackFilenames.isEmpty {
+                Text("No music tracks added. Add tracks in Settings → Background Music.")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textSecondary)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(Array(musicManager.trackFilenames.enumerated()), id: \.offset) { index, filename in
+                        HStack(spacing: 12) {
+                            Image(systemName: selectedTrackIndices.contains(index) ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .foregroundColor(selectedTrackIndices.contains(index) ? .white : Color.white.opacity(0.28))
+                            Text(filename)
+                                .font(.subheadline)
+                                .foregroundColor(Theme.textPrimary)
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if selectedTrackIndices.contains(index) {
+                                selectedTrackIndices.remove(index)
+                            } else {
+                                selectedTrackIndices.insert(index)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                }
+                .padding(14)
+                .background(Theme.surface)
+                .cornerRadius(12)
+                Text("Selected tracks play during this workout. If none selected, all tracks play.")
+                    .font(.caption)
                     .foregroundColor(Theme.textSecondary)
             }
-            .frame(width: 72, height: 72)
         }
+    }
+
+    private var infoSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            infoRow(label: "Type", value: workout.type.rawValue)
+            infoRow(label: "Sections", value: "\(workout.sections.count)")
+            infoRow(label: "Total Duration", value: formatDuration(workout.totalDuration))
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(12)
+    }
+
+    private func infoRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .foregroundColor(Theme.textSecondary)
+            Spacer()
+            Text(value)
+                .foregroundColor(Theme.textPrimary)
+        }
+        .font(.subheadline)
+    }
+
+    private func formatDuration(_ seconds: Int) -> String {
+        let m = seconds / 60, s = seconds % 60
+        return m > 0 ? "\(m)m \(s)s" : "\(s)s"
+    }
+
+    private func saveSettings() {
+        workout.restBetweenSections = restBetweenSections
+        workout.colorHex = colorHex
+        workout.musicTrackFilenames = selectedTrackIndices.sorted().map {
+            musicManager.trackFilenames[$0]
+        }
+        store.updateWorkout(workout)
+        dismiss()
     }
 }
 

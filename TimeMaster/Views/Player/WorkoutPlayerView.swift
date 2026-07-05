@@ -227,6 +227,16 @@ struct WorkoutPlayerView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
 
                 pausePlayButton.padding(.top, 6)
+
+                Button { skipWarmUp() } label: {
+                    Text("Skip Warm Up")
+                        .font(.headline)
+                        .foregroundColor(.black)
+                        .frame(width: 180, height: 48)
+                        .background(Color.white)
+                        .cornerRadius(14)
+                }
+                .padding(.top, 8)
             }
 
             Spacer()
@@ -569,6 +579,9 @@ struct WorkoutPlayerView: View {
         isSectionRest       = false
         isWarmUp            = false
         resetMotivationTimer()
+        if !workout.musicTrackFilenames.isEmpty {
+            MusicManager.shared.startPlayback(tracks: workout.musicTrackFilenames)
+        }
         if let section = currentSection {
             timeRemaining = section.duration
             AudioManager.shared.speak(section.name)
@@ -581,6 +594,12 @@ struct WorkoutPlayerView: View {
         timeRemaining = warmUpDuration
         AudioManager.shared.speak("Warm up")
         startTimer()
+    }
+
+    private func skipWarmUp() {
+        timer?.invalidate()
+        isWarmUp = false
+        startWorkout()
     }
 
     private func startTimer() {
