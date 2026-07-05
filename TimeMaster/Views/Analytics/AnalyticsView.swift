@@ -488,9 +488,10 @@ private struct ActivityHeatmap: View {
 
     private var legend: some View {
         HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.08)).frame(width: 8, height: 8)
-            RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.35)).frame(width: 8, height: 8)
-            RoundedRectangle(cornerRadius: 2).fill(Color.white).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.06)).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(Color(red: 0.1, green: 0.7, blue: 0.35)).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(Color(red: 0.1, green: 0.6, blue: 0.25)).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(Color(red: 0.05, green: 0.45, blue: 0.15)).frame(width: 8, height: 8)
             RoundedRectangle(cornerRadius: 2).fill(Color.blue.opacity(0.6)).frame(width: 8, height: 8)
             RoundedRectangle(cornerRadius: 2).fill(Color.red.opacity(0.5)).frame(width: 8, height: 8)
         }
@@ -559,9 +560,9 @@ private struct ActivityHeatmap: View {
         if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
         if hasWorkout {
             switch count {
-            case 1: return Color.white.opacity(0.35)
-            case 2: return Color.white.opacity(0.65)
-            default: return Color.white
+            case 1: return Color(red: 0.1, green: 0.7, blue: 0.35)
+            case 2: return Color(red: 0.1, green: 0.6, blue: 0.25)
+            default: return Color(red: 0.05, green: 0.45, blue: 0.15)
             }
         }
         return Color.red.opacity(0.4)
@@ -694,9 +695,9 @@ private struct CalendarPage: View {
             if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
             if hasWorkout {
                 switch count {
-                case 1: return Color.white.opacity(0.35)
-                case 2: return Color.white.opacity(0.65)
-                default: return Color.white.opacity(0.9)
+                case 1: return Color(red: 0.1, green: 0.7, blue: 0.35)
+                case 2: return Color(red: 0.1, green: 0.6, blue: 0.25)
+                default: return Color(red: 0.05, green: 0.45, blue: 0.15)
                 }
             }
             if !isFuture { return Color.red.opacity(0.35) }
@@ -729,7 +730,7 @@ private struct CalendarPage: View {
 
     private var legendRow: some View {
         HStack(spacing: 18) {
-            legendItem(color: Color.white.opacity(0.5), label: "Workout")
+            legendItem(color: Color(red: 0.1, green: 0.6, blue: 0.25), label: "Workout")
             legendItem(color: Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5), label: "Rest day")
             legendItem(color: Color.red.opacity(0.35), label: "Missed")
         }
