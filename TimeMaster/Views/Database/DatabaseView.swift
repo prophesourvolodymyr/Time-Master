@@ -457,26 +457,36 @@ struct DatabaseView: View {
     @ViewBuilder
     private var rootExercisesSection: some View {
         if !store.rootExercises.isEmpty {
-            SwiftUI.Section("Exercises") {
+            SwiftUI.Section("Ungrouped") {
                 ForEach(store.rootExercises) { exercise in
-                    ExerciseRowView(exercise: exercise)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedRootExercise = exercise }
-                        .listRowBackground(Theme.surface)
-                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                            Button { exerciseToMove = exercise } label: {
-                                Label("Move", systemImage: "folder")
-                            }
-                            .tint(Color.white.opacity(0.8))
+                    HStack {
+                        ExerciseRowView(exercise: exercise)
+                        Spacer()
+                        Text("Ungrouped")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(Theme.textSecondary.opacity(0.6))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.white.opacity(0.06))
+                            .cornerRadius(4)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectedRootExercise = exercise }
+                    .listRowBackground(Theme.surface)
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        Button { exerciseToMove = exercise } label: {
+                            Label("Move", systemImage: "folder")
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                store.deleteRootExercise(id: exercise.id)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            .tint(.red)
+                        .tint(Color.white.opacity(0.8))
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            store.deleteRootExercise(id: exercise.id)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
+                        .tint(.red)
+                    }
                 }
                 .onMove { store.moveRootExercise(from: $0, to: $1) }
             }
@@ -915,10 +925,14 @@ struct FolderRowView: View {
 
 struct ExerciseRowView: View {
     let exercise: Exercise
+    @State private var showPreview = false
 
     var body: some View {
         HStack(spacing: 12) {
             thumbnailView
+                .onTapGesture {
+                    if !exercise.mediaItems.isEmpty { showPreview = true }
+                }
             VStack(alignment: .leading, spacing: 3) {
                 Text(exercise.name)
                     .font(.subheadline).fontWeight(.medium).foregroundColor(Theme.textPrimary)
@@ -934,6 +948,9 @@ struct ExerciseRowView: View {
                 .font(.caption2).foregroundColor(Theme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 3)
+        .fullScreenCover(isPresented: $showPreview) {
+            MediaPreviewSheet(items: exercise.mediaItems)
+        }
     }
 
     @ViewBuilder

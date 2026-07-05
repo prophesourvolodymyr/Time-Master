@@ -86,15 +86,20 @@ final class BackupManager {
             }
         )
 
-        // 5. Add every file in Documents/Photos/
+        // 5. Collect all referenced media filenames
+        let workoutMedia = collectWorkoutMediaFilenames(from: snapshot.workouts)
+        let databaseMedia = collectDatabaseMediaFilenames(
+            folders: snapshot.folders,
+            exercises: snapshot.rootExercises
+        )
+        let referencedFilenames = Set(workoutMedia + databaseMedia)
+
+        // 6. Add only referenced media files
         let photosDir = PhotoManager.shared.photosDirectoryURL
-        if fm.fileExists(atPath: photosDir.path) {
-            let files = (try? fm.contentsOfDirectory(
-                at: photosDir,
-                includingPropertiesForKeys: nil
-            )) ?? []
-            for fileURL in files {
-                let entryName = "media/\(fileURL.lastPathComponent)"
+        for filename in referencedFilenames {
+            let fileURL = photosDir.appendingPathComponent(filename)
+            let entryName = "media/\(filename)"
+            if fm.fileExists(atPath: fileURL.path) {
                 let fileData = try Data(contentsOf: fileURL)
                 try archive.addEntry(
                     with: entryName,
@@ -104,14 +109,7 @@ final class BackupManager {
                         fileData.subdata(in: Int(position) ..< Int(position) + Int(size))
                     }
                 )
-            }
-        }
-
-        // 6. Verify all referenced media from workouts exists
-        let referencedFilenames = collectWorkoutMediaFilenames(from: snapshot.workouts)
-        for filename in referencedFilenames {
-            let fileURL = photosDir.appendingPathComponent(filename)
-            if !fm.fileExists(atPath: fileURL.path) {
+            } else {
                 print("[BackupManager] Warning: referenced media file missing: \(filename)")
             }
         }
@@ -327,6 +325,20 @@ final class BackupManager {
         var names: [String] = []
         for ex in folder.exercises { names.append(contentsOf: ex.mediaItems.map(\.filename)) }
         for sub in folder.subfolders { names.append(contentsOf: collectMediaFilenames(from: sub)) }
+        return names
+    }
+
+    private func collectDatabaseMediaFilenames(
+        folders: [ExerciseFolder],
+        exercises: [Exercise]
+    ) -> [String] {
+        var names: [String] = []
+        for ex in exercises {
+            names.append(contentsOf: ex.mediaItems.map(\.filename))
+        }
+        for folder in folders {
+            names.append(contentsOf: collectMediaFilenames(from: folder))
+        }
         return names
     }
 
