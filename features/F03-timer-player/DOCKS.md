@@ -2,6 +2,10 @@
 
 Full-screen workout player with countdown timer, sequential section execution, rest periods, pause/resume, and audio cues.
 
+## Sub-Features
+- [ ] **F03-A** — Persistence & Live Activities (background/resume, partial save, Live Activities on lock screen)
+- [ ] **F03-B** — In-Workout Controls & Media (rest preview, full media overlay, rest adjustment)
+
 ## What We Build
 - WorkoutPlayerView: immersive full-screen player with photo, timer, progress bar
 - Sequential section execution with configurable rest between sections

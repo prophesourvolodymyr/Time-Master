@@ -2,6 +2,9 @@
 
 Multi-provider AI chat assistant for exercise naming, workout suggestions, and coaching advice.
 
+## Sub-Features
+- [ ] **F06-A** — Text Selection (hold to select partial text, not just copy all)
+
 ## What We Build
 - AICoachView: chat interface with message bubbles, reply/copy/attach actions
 - AISettingsView: provider selection, API key entry, model picker

@@ -2,6 +2,9 @@
 
 Completed workout log with timestamps, duration tracking, and analytics dashboard with visual charts.
 
+## Sub-Features
+- [ ] **F04-A** — Streaks & Partial Logging (rest days, workout goals, partial workout logging)
+
 ## What We Build
 - HistoryView: chronological list of completed workouts
 - Each entry shows: workout name, completion date/time, total duration

@@ -2,6 +2,10 @@
 
 CRUD UI for workouts and sections: list, detail, section editor, photo picker, drag-and-drop reorder.
 
+## Sub-Features
+- [ ] **F02-A** — UI & Data Bugs (CRUD reactivity, sets, rest+/-, pinning, per-workout settings)
+- [ ] **F02-B** — Learning Tab & Practice Type (Learning tab, practice workout type, warmup/break/wind-down)
+
 ## What We Build
 - WorkoutListView: main workout list with floating "+" button, swipe-to-delete
 - WorkoutCard: card UI showing name, section count, total duration

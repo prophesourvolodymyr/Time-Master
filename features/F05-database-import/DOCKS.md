@@ -2,6 +2,9 @@
 
 Import exercise videos and metadata from a computer server. Browse, preview, trim, and batch import into the exercise database.
 
+## Sub-Features
+- [ ] **F05-A** — Import, Export & Previews (import button, files picker, ungrouped root, photo preview, photo export fix)
+
 ## What We Build
 - DatabaseView: browse imported exercises with category filtering
 - DatabaseSectionPickerView: picker for categorizing imported items

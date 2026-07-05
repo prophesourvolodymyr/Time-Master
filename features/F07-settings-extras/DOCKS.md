@@ -2,6 +2,9 @@
 
 App settings, backup/restore, background music, motivational quotes, notifications, and workout reminders.
 
+## Sub-Features
+- [ ] **F07-A** — UI Polish (nav bar fade/gradient fix, toolbar transparency)
+
 ## What We Build
 - SettingsView: navigation hub linking to all settings sub-screens
 - BackupView: export/import full app data as ZIP
