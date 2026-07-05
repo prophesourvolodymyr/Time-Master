@@ -503,11 +503,12 @@ private struct ActivityHeatmap: View {
                 let date = dateFor(week: w, day: d)
                 let isFuture = date > Date()
                 let isRest = store.isRestDay(date)
+                let isScheduled = store.isScheduledDay(date)
                 let hasWorkout = store.hasWorkout(on: date)
                 let count = isFuture ? 0 : workoutCount(on: date)
 
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasWorkout, count: count))
+                    .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasWorkout, count: count, isScheduled: isScheduled))
                     .aspectRatio(1, contentMode: .fit)
             }
         }
@@ -542,7 +543,7 @@ private struct ActivityHeatmap: View {
         return entries.filter { $0.completedAt >= start && $0.completedAt < end }.count
     }
 
-    private func cellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int) -> Color {
+    private func cellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int, isScheduled: Bool) -> Color {
         if isFuture { return Color.white.opacity(0.03) }
         if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
         if hasWorkout {
@@ -552,7 +553,8 @@ private struct ActivityHeatmap: View {
             default: return Color(red: 0.05, green: 0.45, blue: 0.15)
             }
         }
-        return Color.red.opacity(0.4)
+        if isScheduled { return Color.red.opacity(0.4) }
+        return Color.white.opacity(0.06)
     }
 }
 
@@ -567,6 +569,7 @@ private struct CalendarPage: View {
     @State private var selectedDate: Date?
     @State private var showDayInfo = false
     @State private var showYearView = true
+    @State private var showAddSchedule = false
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
@@ -624,9 +627,20 @@ private struct CalendarPage: View {
                             .foregroundColor(.white)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.foregroundColor(.white)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 12) {
+                        Button {
+                            showAddSchedule = true
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .foregroundColor(.white)
+                        }
+                        Button("Done") { dismiss() }.foregroundColor(.white)
+                    }
                 }
+            }
+            .sheet(isPresented: $showAddSchedule) {
+                AddScheduleSheet()
             }
             .sheet(isPresented: $showDayInfo) {
                 if let date = selectedDate {
@@ -768,12 +782,14 @@ private struct CalendarPage: View {
                                let dayDate = calendar.date(byAdding: .day, value: idx, to: first) {
                                 let isFuture = dayDate > Date()
                                 let isRest = store.isRestDay(dayDate)
+                                let isScheduled = store.isScheduledDay(dayDate)
                                 let hasWorkout = store.hasWorkout(on: dayDate)
                                 let fill: Color = {
                                     if isFuture { return Color.white.opacity(0.04) }
                                     if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.6) }
                                     if hasWorkout { return Color(red: 0.1, green: 0.6, blue: 0.25) }
-                                    return Color.red.opacity(0.35)
+                                    if isScheduled { return Color.red.opacity(0.35) }
+                                    return Color.white.opacity(0.06)
                                 }()
                                 RoundedRectangle(cornerRadius: 1)
                                     .fill(fill)
@@ -860,6 +876,7 @@ private struct CalendarPage: View {
         let hasWorkout = store.hasWorkout(on: date)
         let count = workoutCount(on: date)
 
+        let isScheduled = store.isScheduledDay(date)
         let bg: Color = {
             if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
             if hasWorkout {
@@ -869,7 +886,8 @@ private struct CalendarPage: View {
                 default: return Color(red: 0.05, green: 0.45, blue: 0.15)
                 }
             }
-            if !isFuture { return Color.red.opacity(0.35) }
+            if !isFuture && isScheduled { return Color.red.opacity(0.35) }
+            if !isFuture { return Color.clear }
             return Color.clear
         }()
 
@@ -960,7 +978,10 @@ private struct CalendarPage: View {
         var count = 0
         for d in 1...range.count {
             if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
-               !store.isRestDay(date), !store.hasWorkout(on: date), date <= Date() {
+               date <= Date(),
+               !store.isRestDay(date),
+               !store.hasWorkout(on: date),
+               store.isScheduledDay(date) {
                 count += 1
             }
         }
@@ -988,6 +1009,8 @@ private struct DayInfoSheet: View {
     }
 
     private var isRest: Bool { store.isRestDay(date) }
+    private var isScheduled: Bool { store.isScheduledDay(date) }
+    private var scheduledTypes: [WorkoutType] { store.scheduledTypes(for: date) }
 
     var body: some View {
         NavigationStack {
@@ -1004,13 +1027,31 @@ private struct DayInfoSheet: View {
                             statChip(value: "\(totalMinutes)m", label: "total time")
                         }
 
-                        if isRest {
-                            Label("Rest Day", systemImage: "moon.zzz.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(Color(red: 0.3, green: 0.55, blue: 0.85))
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .background(Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.15))
-                                .cornerRadius(6)
+                        HStack(spacing: 10) {
+                            if isRest {
+                                Label("Rest Day", systemImage: "moon.zzz.fill")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(Color(red: 0.3, green: 0.55, blue: 0.85))
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.15))
+                                    .cornerRadius(6)
+                            }
+                            ForEach(scheduledTypes, id: \.self) { type in
+                                Label(type.rawValue, systemImage: type.icon)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(6)
+                            }
+                            if !isRest && isScheduled && dayEntries.isEmpty {
+                                Label("Missed", systemImage: "xmark.circle")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.red)
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(Color.red.opacity(0.15))
+                                    .cornerRadius(6)
+                            }
                         }
                     }
                     .padding(.top, 24)
@@ -1021,10 +1062,12 @@ private struct DayInfoSheet: View {
                     if dayEntries.isEmpty {
                         Spacer()
                         VStack(spacing: 8) {
-                            Image(systemName: isRest ? "moon.zzz" : "figure.walk")
+                            Image(systemName: isRest ? "moon.zzz" : (isScheduled ? "calendar.badge.exclamationmark" : "figure.walk"))
                                 .font(.system(size: 40))
                                 .foregroundColor(Theme.textSecondary)
-                            Text(isRest ? "Rest day — no workout." : "No workout logged.")
+                            Text(isRest ? "Rest day — no workout."
+                                 : isScheduled ? "Scheduled but no workout logged."
+                                 : "No workout logged.")
                                 .font(.subheadline)
                                 .foregroundColor(Theme.textSecondary)
                         }
@@ -1080,6 +1123,188 @@ private struct DayInfoSheet: View {
         let f = DateFormatter()
         f.dateFormat = "EEEE, MMMM d"
         return f.string(from: date)
+    }
+}
+
+// MARK: - Add Schedule Sheet
+
+private struct AddScheduleSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var store: WorkoutStore
+    @EnvironmentObject var databaseStore: DatabaseStore
+
+    @State private var selectedType: WorkoutType = .strength
+    @State private var selectedDays: Set<Int> = []
+    @State private var durationMonths: Int = 2
+    @State private var weeklyGoal: Int = 4
+
+    private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    private var existingSchedules: [TypeSchedule] {
+        store.typeSchedules.filter { $0.isActive }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 22) {
+                        typePicker
+                        daysPicker
+                        durationPicker
+                        goalPicker
+
+                        if !existingSchedules.isEmpty {
+                            existingSchedulesList
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("New Schedule")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create") { createSchedule() }
+                        .foregroundColor(selectedDays.isEmpty ? Color.white.opacity(0.3) : .white)
+                        .disabled(selectedDays.isEmpty)
+                }
+            }
+        }
+    }
+
+    private var typePicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Workout Type").font(.headline).foregroundColor(Theme.textPrimary)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(WorkoutType.allCases, id: \.self) { type in
+                    Button {
+                        selectedType = type
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: type.icon).font(.system(size: 11))
+                            Text(type.rawValue)
+                        }
+                        .font(.subheadline.weight(selectedType == type ? .semibold : .regular))
+                        .foregroundColor(.white)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
+                        .background(selectedType == type ? Color.white.opacity(0.2) : Theme.surface)
+                        .cornerRadius(8)
+                    }
+                }
+            }
+        }
+    }
+
+    private var daysPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Days").font(.headline).foregroundColor(Theme.textPrimary)
+            HStack(spacing: 6) {
+                ForEach(Array(dayLabels.enumerated()), id: \.offset) { idx, label in
+                    let day = idx + 1
+                    Button {
+                        if selectedDays.contains(day) { selectedDays.remove(day) }
+                        else { selectedDays.insert(day) }
+                    } label: {
+                        Text(label)
+                            .font(.system(size: 11, weight: selectedDays.contains(day) ? .bold : .regular))
+                            .foregroundColor(selectedDays.contains(day) ? .black : .white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 36)
+                            .background(selectedDays.contains(day) ? Color.white : Theme.surface)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+        }
+    }
+
+    private var durationPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Duration").font(.headline).foregroundColor(Theme.textPrimary)
+            HStack {
+                Text("\(durationMonths) month\(durationMonths == 1 ? "" : "s")")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Stepper("", value: $durationMonths, in: 1...12).labelsHidden()
+            }
+            .padding(14)
+            .background(Theme.surface)
+            .cornerRadius(10)
+        }
+    }
+
+    private var goalPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Weekly Goal").font(.headline).foregroundColor(Theme.textPrimary)
+            HStack(spacing: 8) {
+                ForEach(1...7, id: \.self) { n in
+                    Button {
+                        weeklyGoal = n
+                    } label: {
+                        Text("\(n)")
+                            .font(.system(size: 14, weight: weeklyGoal == n ? .bold : .medium))
+                            .foregroundColor(weeklyGoal == n ? .black : .white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 36)
+                            .background(weeklyGoal == n ? Color.white : Theme.surface)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+        }
+    }
+
+    private var existingSchedulesList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Active Schedules").font(.headline).foregroundColor(Theme.textPrimary)
+            ForEach(existingSchedules) { schedule in
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: schedule.type.icon).font(.system(size: 11))
+                        Text(schedule.type.rawValue).font(.subheadline.weight(.medium))
+                    }
+                    .foregroundColor(Theme.textPrimary)
+                    Spacer()
+                    Text(daySummary(schedule.daysOfWeek))
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                    Button(role: .destructive) {
+                        store.deleteSchedule(id: schedule.id)
+                    } label: {
+                        Image(systemName: "trash").font(.caption)
+                    }
+                    .padding(.leading, 4)
+                }
+                .padding(.vertical, 6)
+            }
+        }
+    }
+
+    private func daySummary(_ days: Set<Int>) -> String {
+        days.sorted().compactMap { d -> String? in
+            guard d >= 1, d <= 7 else { return nil }
+            return ["M", "T", "W", "T", "F", "S", "S"][d - 1]
+        }.joined(separator: ",")
+    }
+
+    private func createSchedule() {
+        let schedule = TypeSchedule(
+            folderID: UUID(),
+            type: selectedType,
+            daysOfWeek: selectedDays,
+            startDate: Date(),
+            durationMonths: durationMonths,
+            weeklyGoal: weeklyGoal
+        )
+        store.addSchedule(schedule)
+        dismiss()
     }
 }
 

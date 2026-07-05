@@ -376,8 +376,8 @@ struct DatabaseView: View {
             .navigationTitle("Exercise Database")
             .toolbar { rootToolbar }
             .sheet(isPresented: $showingNewFolderSheet) {
-                NewFolderSheet { name, colorHex in
-                    store.addRootFolder(name: name, colorHex: colorHex)
+                NewFolderSheet { name, colorHex, workoutType in
+                    store.addRootFolder(name: name, colorHex: colorHex, workoutType: workoutType)
                 }
             }
             .sheet(isPresented: $showingImport) {
@@ -638,8 +638,8 @@ struct FolderDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { folderToolbar }
         .sheet(isPresented: $showingNewSubfolderSheet) {
-            NewFolderSheet { name, colorHex in
-                store.addSubfolder(name: name, toFolderID: folderID, colorHex: colorHex)
+            NewFolderSheet { name, colorHex, workoutType in
+                store.addSubfolder(name: name, toFolderID: folderID, colorHex: colorHex, workoutType: workoutType)
             }
         }
         .sheet(isPresented: $showingAddExercise) {
@@ -1670,53 +1670,89 @@ extension Array {
 
 struct NewFolderSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let onCreate: (String, String) -> Void  // (name, colorHex)
+    let onCreate: (String, String, WorkoutType?) -> Void
 
     @State private var name: String = ""
     @State private var colorHex: String = "FFFFFF"
+    @State private var workoutType: WorkoutType? = nil
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
-                VStack(spacing: 24) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Name")
-                            .font(.headline)
-                            .foregroundColor(Theme.textPrimary)
-                        TextField("Folder name", text: $name)
-                            .padding(14)
-                            .background(Theme.surface)
-                            .cornerRadius(10)
-                            .foregroundColor(Theme.textPrimary)
-                    }
+                ScrollView {
+                    VStack(spacing: 24) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Name")
+                                .font(.headline)
+                                .foregroundColor(Theme.textPrimary)
+                            TextField("Folder name", text: $name)
+                                .padding(14)
+                                .background(Theme.surface)
+                                .cornerRadius(10)
+                                .foregroundColor(Theme.textPrimary)
+                        }
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Icon Color")
-                            .font(.headline)
-                            .foregroundColor(Theme.textPrimary)
-                        IconColorPicker(selectedHex: $colorHex)
-                    }
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Icon Color")
+                                .font(.headline)
+                                .foregroundColor(Theme.textPrimary)
+                            IconColorPicker(selectedHex: $colorHex)
+                        }
 
-                    Spacer()
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Workout Type")
+                                .font(.headline)
+                                .foregroundColor(Theme.textPrimary)
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                Button {
+                                    workoutType = nil
+                                } label: {
+                                    Text("None")
+                                        .font(.subheadline.weight(workoutType == nil ? .semibold : .regular))
+                                        .foregroundColor(.white)
+                                        .padding(.vertical, 10)
+                                        .frame(maxWidth: .infinity)
+                                        .background(workoutType == nil ? Color.white.opacity(0.2) : Theme.surface)
+                                        .cornerRadius(8)
+                                }
+                                ForEach(WorkoutType.allCases, id: \.self) { type in
+                                    Button {
+                                        workoutType = type
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: type.icon).font(.system(size: 11))
+                                            Text(type.rawValue)
+                                        }
+                                        .font(.subheadline.weight(workoutType == type ? .semibold : .regular))
+                                        .foregroundColor(.white)
+                                        .padding(.vertical, 10)
+                                        .frame(maxWidth: .infinity)
+                                        .background(workoutType == type ? Color.white.opacity(0.2) : Theme.surface)
+                                        .cornerRadius(8)
+                                    }
+                                }
+                            }
+                        }
 
-                    let trimmed = name.trimmingCharacters(in: .whitespaces)
-                    Button {
-                        guard !trimmed.isEmpty else { return }
-                        onCreate(trimmed, colorHex)
-                        dismiss()
-                    } label: {
-                        Text("Create Folder")
-                            .font(.headline)
-                            .foregroundColor(trimmed.isEmpty ? Color.white.opacity(0.3) : .black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(trimmed.isEmpty ? Theme.surface : Color.white)
-                            .cornerRadius(12)
+                        let trimmed = name.trimmingCharacters(in: .whitespaces)
+                        Button {
+                            guard !trimmed.isEmpty else { return }
+                            onCreate(trimmed, colorHex, workoutType)
+                            dismiss()
+                        } label: {
+                            Text("Create Folder")
+                                .font(.headline)
+                                .foregroundColor(trimmed.isEmpty ? Color.white.opacity(0.3) : .black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(trimmed.isEmpty ? Theme.surface : Color.white)
+                                .cornerRadius(12)
+                        }
+                        .disabled(trimmed.isEmpty)
                     }
-                    .disabled(trimmed.isEmpty)
+                    .padding(16)
                 }
-                .padding(16)
             }
             .navigationTitle("New Folder")
             .navigationBarTitleDisplayMode(.inline)

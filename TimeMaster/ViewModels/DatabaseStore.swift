@@ -81,8 +81,10 @@ class DatabaseStore: ObservableObject {
 
     // MARK: - Root folder CRUD
 
-    func addRootFolder(name: String, colorHex: String = "FFFFFF") {
-        rootFolders.append(ExerciseFolder(name: name, colorHex: colorHex))
+    func addRootFolder(name: String, colorHex: String = "FFFFFF", workoutType: WorkoutType? = nil) {
+        var folder = ExerciseFolder(name: name, colorHex: colorHex)
+        folder.workoutType = workoutType
+        rootFolders.append(folder)
         saveFolders()
     }
 
@@ -97,8 +99,10 @@ class DatabaseStore: ObservableObject {
 
     // MARK: - Subfolder CRUD
 
-    func addSubfolder(name: String, toFolderID parentID: UUID, colorHex: String = "FFFFFF") {
-        updateFolder(id: parentID) { $0.subfolders.append(ExerciseFolder(name: name, colorHex: colorHex)) }
+    func addSubfolder(name: String, toFolderID parentID: UUID, colorHex: String = "FFFFFF", workoutType: WorkoutType? = nil) {
+        var folder = ExerciseFolder(name: name, colorHex: colorHex)
+        folder.workoutType = workoutType
+        updateFolder(id: parentID) { $0.subfolders.append(folder) }
     }
 
     func deleteSubfolder(id: UUID, fromParentID parentID: UUID) {

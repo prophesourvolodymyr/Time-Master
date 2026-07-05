@@ -120,7 +120,8 @@ struct Exercise: Identifiable, Codable {
 struct ExerciseFolder: Identifiable, Codable {
     var id: UUID = UUID()
     var name: String
-    var colorHex: String          // icon tint color (hex string, e.g. "FFFFFF")
+    var colorHex: String
+    var workoutType: WorkoutType? = nil
     var subfolders: [ExerciseFolder] = []
     var exercises: [Exercise] = []
     var notes: [DatabaseNote] = []
@@ -141,9 +142,8 @@ struct ExerciseFolder: Identifiable, Codable {
         self.notes = notes
     }
 
-    // Custom Codable — uses decodeIfPresent with defaults so existing data migrates safely
     enum CodingKeys: String, CodingKey {
-        case id, name, colorHex, subfolders, exercises, notes
+        case id, name, colorHex, subfolders, exercises, notes, workoutType
     }
 
     init(from decoder: Decoder) throws {
@@ -151,6 +151,7 @@ struct ExerciseFolder: Identifiable, Codable {
         id         = try c.decodeIfPresent(UUID.self,              forKey: .id)         ?? UUID()
         name       = try c.decode(String.self,                     forKey: .name)
         colorHex   = try c.decodeIfPresent(String.self,            forKey: .colorHex)   ?? "FFFFFF"
+        workoutType = try c.decodeIfPresent(WorkoutType.self,      forKey: .workoutType)
         subfolders = try c.decodeIfPresent([ExerciseFolder].self,  forKey: .subfolders) ?? []
         exercises  = try c.decodeIfPresent([Exercise].self,        forKey: .exercises)  ?? []
         notes      = try c.decodeIfPresent([DatabaseNote].self,    forKey: .notes)      ?? []
@@ -161,6 +162,7 @@ struct ExerciseFolder: Identifiable, Codable {
         try c.encode(id,         forKey: .id)
         try c.encode(name,       forKey: .name)
         try c.encode(colorHex,   forKey: .colorHex)
+        try c.encodeIfPresent(workoutType, forKey: .workoutType)
         try c.encode(subfolders, forKey: .subfolders)
         try c.encode(exercises,  forKey: .exercises)
         try c.encode(notes,      forKey: .notes)
@@ -169,5 +171,29 @@ struct ExerciseFolder: Identifiable, Codable {
     /// Total exercise count including all subfolders recursively.
     var totalExerciseCount: Int {
         exercises.count + subfolders.reduce(0) { $0 + $1.totalExerciseCount }
+    }
+}
+
+// MARK: - TypeSchedule
+
+struct TypeSchedule: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var folderID: UUID
+    var type: WorkoutType
+    var daysOfWeek: Set<Int>
+    var startDate: Date
+    var durationMonths: Int
+    var weeklyGoal: Int
+
+    var endDate: Date {
+        Calendar.current.date(byAdding: .month, value: durationMonths, to: startDate) ?? startDate
+    }
+
+    var isActive: Bool {
+        Date() <= endDate
+    }
+
+    static func == (lhs: TypeSchedule, rhs: TypeSchedule) -> Bool {
+        lhs.id == rhs.id
     }
 }

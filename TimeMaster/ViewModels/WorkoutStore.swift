@@ -11,15 +11,18 @@ class WorkoutStore: ObservableObject {
     private let historyKey = "workout_history"
     private let restDaysKey = "workout_rest_days"
     private let goalKey = "workout_weekly_goal"
+    private let schedulesKey = "workout_type_schedules"
     private let userDefaults = UserDefaults.standard
 
     @AppStorage("workout_weekly_goal") var weeklyGoal: Int = 4
     @Published var restDays: Set<String> = []
+    @Published var typeSchedules: [TypeSchedule] = []
 
     init() {
         loadWorkouts()
         loadHistory()
         loadRestDays()
+        loadSchedules()
         loadGoal()
         if workouts.isEmpty {
             seedDefaultWorkouts()   // saveWorkouts() is called inside seed
@@ -233,6 +236,30 @@ class WorkoutStore: ObservableObject {
         restDays.contains(dateKey(from: date))
     }
 
+    func isScheduledDay(_ date: Date) -> Bool {
+        let cal = Calendar.current
+        let weekday = cal.component(.weekday, from: date)
+        let monBased = (weekday + 5) % 7 + 1
+        let dayStart = cal.startOfDay(for: date)
+        for schedule in typeSchedules where schedule.isActive {
+            if schedule.daysOfWeek.contains(monBased),
+               dayStart >= cal.startOfDay(for: schedule.startDate) {
+                return true
+            }
+        }
+        return false
+    }
+
+    func scheduledTypes(for date: Date) -> [WorkoutType] {
+        let cal = Calendar.current
+        let weekday = cal.component(.weekday, from: date)
+        let monBased = (weekday + 5) % 7 + 1
+        let dayStart = cal.startOfDay(for: date)
+        return typeSchedules
+            .filter { $0.isActive && $0.daysOfWeek.contains(monBased) && dayStart >= cal.startOfDay(for: $0.startDate) }
+            .map { $0.type }
+    }
+
     func hasWorkout(on date: Date) -> Bool {
         let cal = Calendar.current
         let start = cal.startOfDay(for: date)
@@ -243,6 +270,38 @@ class WorkoutStore: ObservableObject {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: date)
+    }
+
+    // MARK: - Schedule CRUD
+
+    func addSchedule(_ schedule: TypeSchedule) {
+        typeSchedules.append(schedule)
+        saveSchedules()
+    }
+
+    func updateSchedule(_ schedule: TypeSchedule) {
+        if let idx = typeSchedules.firstIndex(where: { $0.id == schedule.id }) {
+            typeSchedules[idx] = schedule
+            saveSchedules()
+        }
+    }
+
+    func deleteSchedule(id: UUID) {
+        typeSchedules.removeAll { $0.id == id }
+        saveSchedules()
+    }
+
+    private func loadSchedules() {
+        if let data = userDefaults.data(forKey: schedulesKey),
+           let decoded = try? JSONDecoder().decode([TypeSchedule].self, from: data) {
+            typeSchedules = decoded
+        }
+    }
+
+    private func saveSchedules() {
+        if let data = try? JSONEncoder().encode(typeSchedules) {
+            userDefaults.set(data, forKey: schedulesKey)
+        }
     }
 
     func streakInfo() -> (current: Int, best: Int) {
