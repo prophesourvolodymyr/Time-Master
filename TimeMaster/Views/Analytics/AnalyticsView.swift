@@ -9,10 +9,10 @@ final class GoalsManager: ObservableObject {
 
     private init() { load() }
 
-    func goal(for type: WorkoutType) -> Int { goals[type.rawValue] ?? 0 }
+    func goal(for type: WorkoutType) -> Int { goals[type.name] ?? 0 }
 
     func setGoal(_ n: Int, for type: WorkoutType) {
-        goals[type.rawValue] = n
+        goals[type.name] = n
         save()
     }
 
@@ -59,23 +59,23 @@ struct AnalyticsView: View {
                     Divider().background(Theme.separator)
                     if let type = selectedType, currentGoal == 0 {
                         GoalPromptView(
-                            typeName: type.rawValue,
+                            typeName: type.name,
                             draft: $promptDraft
                         ) {
                             goalsManager.setGoal(promptDraft, for: type)
                         }
-                    } else {
-                        analyticsScroll
-                    }
-                }
+            } else {
+                analyticsScroll
             }
-            .navigationTitle("Analytics")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { analyticsToolbar }
-            .sheet(isPresented: $showingGoalEditor) {
-                if let type = selectedType {
-                    GoalEditorSheet(
-                        typeName: type.rawValue,
+        }
+    }
+    .navigationTitle("Analytics")
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbar { analyticsToolbar }
+    .sheet(isPresented: $showingGoalEditor) {
+        if let type = selectedType {
+            GoalEditorSheet(
+                typeName: type.name,
                         currentGoal: currentGoal
                     ) { goalsManager.setGoal($0, for: type) }
                 }
@@ -95,9 +95,9 @@ struct AnalyticsView: View {
                 typeChip(label: "All", icon: "square.grid.2x2", selected: selectedType == nil) {
                     selectedType = nil
                 }
-                ForEach(WorkoutType.allCases, id: \.self) { type in
+                ForEach(WorkoutType.all(custom: store.customWorkoutTypes), id: \.id) { type in
                     typeChip(
-                        label: type.rawValue,
+                        label: type.name,
                         icon: type.icon,
                         selected: selectedType == type
                     ) {
@@ -164,7 +164,7 @@ struct AnalyticsView: View {
                     WeeklyGoalCard(
                         entries: filteredEntries,
                         goal: currentGoal,
-                        typeName: type.rawValue
+                        typeName: type.name
                     )
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
@@ -1037,7 +1037,7 @@ private struct DayInfoSheet: View {
                                     .cornerRadius(6)
                             }
                             ForEach(scheduledTypes, id: \.self) { type in
-                                Label(type.rawValue, systemImage: type.icon)
+                                Label(type.name, systemImage: type.icon)
                                     .font(.caption.weight(.semibold))
                                     .foregroundColor(.white.opacity(0.7))
                                     .padding(.horizontal, 10).padding(.vertical, 4)
@@ -1174,14 +1174,14 @@ private struct VacationSheet: View {
                             Text("Workout Types").font(.headline).foregroundColor(Theme.textPrimary)
                             Text("Select which types to pause during vacation.").font(.caption).foregroundColor(Theme.textSecondary)
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                                ForEach(WorkoutType.allCases, id: \.self) { type in
+                                ForEach(WorkoutType.all(custom: store.customWorkoutTypes), id: \.id) { type in
                                     Button {
                                         if selectedTypes.contains(type) { selectedTypes.remove(type) }
                                         else { selectedTypes.insert(type) }
                                     } label: {
                                         HStack(spacing: 4) {
                                             Image(systemName: type.icon).font(.system(size: 11))
-                                            Text(type.rawValue)
+                                            Text(type.name)
                                         }
                                         .font(.subheadline.weight(selectedTypes.contains(type) ? .semibold : .regular))
                                         .foregroundColor(selectedTypes.contains(type) ? .black : .white)

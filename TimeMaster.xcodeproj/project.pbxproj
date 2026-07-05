@@ -31,6 +31,7 @@
 		A52B57AED83D34523ACF7433 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3323F148BE5A75196E090AC /* MainTabView.swift */; };
 		A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C588F8747756505B157DFC /* SectionEditorView.swift */; };
 		BB4F39D0883462DD08776419 /* TrayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FC162E9FB73397A81F0F44 /* TrayCardView.swift */; };
+		1954FBC9F1AB4ACD93538166 /* WorkoutTypesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE17C0F361164BFE9E3AB642 /* WorkoutTypesSettingsView.swift */; };
 		C0F8874E24C547F42DACA009 /* ImportSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */; };
 		C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
 		CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */; };
@@ -72,6 +73,7 @@
 		3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSettingsView.swift; sourceTree = "<group>"; };
 		42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistory.swift; sourceTree = "<group>"; };
 		47FC162E9FB73397A81F0F44 /* TrayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayCardView.swift; sourceTree = "<group>"; };
+		CE17C0F361164BFE9E3AB642 /* WorkoutTypesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTypesSettingsView.swift; sourceTree = "<group>"; };
 		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
 		52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchConfirmView.swift; sourceTree = "<group>"; };
@@ -235,6 +237,7 @@
 				AA001BB2CC001BB2CC001BB7 /* SettingsView.swift */,
 				EE0001EE0001EE0001EE0003 /* WorkoutRemindersView.swift */,
 				EE0001EE0001EE0001EE0007 /* ExerciseAISettingsView.swift */,
+				CE17C0F361164BFE9E3AB642 /* WorkoutTypesSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -502,6 +505,7 @@
 				355D53015A74800EB1032FB4 /* Theme.swift in Sources */,
 				26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */,
 				BB4F39D0883462DD08776419 /* TrayCardView.swift in Sources */,
+				1954FBC9F1AB4ACD93538166 /* WorkoutTypesSettingsView.swift in Sources */,
 				8ADC60A7F1B2F25CE2EEC828 /* TrayItem.swift in Sources */,
 				DEAE02C66BE0E138250A105A /* VideoDownloadService.swift in Sources */,
 				799EFBBC8EC17CA89623F013 /* VideoEditorView.swift in Sources */,

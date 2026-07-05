@@ -1,24 +1,54 @@
 import Foundation
 
-enum WorkoutType: String, Codable, CaseIterable {
-    case strength = "Strength"
-    case stretch  = "Stretch"
-    case cardio   = "Cardio"
-    case hiit     = "HIIT"
-    case yoga     = "Yoga"
-    case face     = "Face"
-    case other    = "Other"
+struct WorkoutType: Identifiable, Codable, Hashable {
+    var id: String
+    var name: String
+    var iconName: String
 
-    var icon: String {
-        switch self {
-        case .strength: return "dumbbell.fill"
-        case .stretch:  return "figure.cooldown"
-        case .cardio:   return "heart.fill"
-        case .hiit:     return "flame.fill"
-        case .yoga:     return "figure.mind.and.body"
-        case .face:     return "face.smiling.fill"
-        case .other:    return "star.fill"
+    static let strength = WorkoutType(id: "Strength", name: "Strength", iconName: "dumbbell.fill")
+    static let stretch  = WorkoutType(id: "Stretch", name: "Stretch", iconName: "figure.cooldown")
+    static let cardio   = WorkoutType(id: "Cardio", name: "Cardio", iconName: "heart.fill")
+    static let hiit     = WorkoutType(id: "HIIT", name: "HIIT", iconName: "flame.fill")
+    static let yoga     = WorkoutType(id: "Yoga", name: "Yoga", iconName: "figure.mind.and.body")
+    static let face     = WorkoutType(id: "Face", name: "Face", iconName: "face.smiling.fill")
+    static let other    = WorkoutType(id: "Other", name: "Other", iconName: "star.fill")
+
+    static var builtIn: [WorkoutType] { [strength, stretch, cardio, hiit, yoga, face, other] }
+
+    static func all(custom: [WorkoutType] = []) -> [WorkoutType] { builtIn + custom }
+
+    var icon: String { iconName }
+
+    enum CodingKeys: String, CodingKey { case id, name, iconName }
+
+    init(id: String, name: String, iconName: String) {
+        self.id = id
+        self.name = name
+        self.iconName = iconName
+    }
+
+    init(from decoder: Decoder) throws {
+        if let container = try? decoder.container(keyedBy: CodingKeys.self),
+           let decodedId = try? container.decode(String.self, forKey: .id) {
+            id = decodedId
+            name = (try? container.decode(String.self, forKey: .name)) ?? id
+            iconName = (try? container.decode(String.self, forKey: .iconName)) ?? "star.fill"
+            return
         }
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        if let match = WorkoutType.builtIn.first(where: { $0.name == rawValue || $0.id == rawValue }) {
+            self = match
+        } else {
+            self = WorkoutType(id: rawValue.lowercased(), name: rawValue, iconName: "star.fill")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(iconName, forKey: .iconName)
     }
 }
 

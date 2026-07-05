@@ -1670,6 +1670,7 @@ extension Array {
 
 struct NewFolderSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var workoutStore: WorkoutStore
     let onCreate: (String, String, WorkoutType?) -> Void
 
     @State private var name: String = ""
@@ -1716,13 +1717,13 @@ struct NewFolderSheet: View {
                                         .background(workoutType == nil ? Color.white.opacity(0.2) : Theme.surface)
                                         .cornerRadius(8)
                                 }
-                                ForEach(WorkoutType.allCases, id: \.self) { type in
+                                ForEach(WorkoutType.all(custom: workoutStore.customWorkoutTypes), id: \.id) { type in
                                     Button {
                                         workoutType = type
                                     } label: {
                                         HStack(spacing: 4) {
                                             Image(systemName: type.icon).font(.system(size: 11))
-                                            Text(type.rawValue)
+                                            Text(type.name)
                                         }
                                         .font(.subheadline.weight(workoutType == type ? .semibold : .regular))
                                         .foregroundColor(.white)

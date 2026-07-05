@@ -444,7 +444,7 @@ private struct WorkoutSettingsView: View {
 
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            infoRow(label: "Type", value: workout.type.rawValue)
+            infoRow(label: "Type", value: workout.type.name)
             infoRow(label: "Sections", value: "\(workout.sections.count)")
             infoRow(label: "Total Duration", value: formatDuration(workout.totalDuration))
         }

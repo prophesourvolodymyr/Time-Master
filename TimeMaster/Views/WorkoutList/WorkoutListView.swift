@@ -118,14 +118,14 @@ struct WorkoutListView: View {
                             .foregroundColor(Theme.textPrimary)
 
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(WorkoutType.allCases, id: \.self) { type in
-                                Button {
-                                    newWorkoutType = type
-                                } label: {
-                                    HStack {
-                                        Image(systemName: type.icon)
-                                        Text(type.rawValue)
-                                    }
+                             ForEach(WorkoutType.all(custom: store.customWorkoutTypes), id: \.id) { type in
+                                 Button {
+                                     newWorkoutType = type
+                                 } label: {
+                                     HStack {
+                                         Image(systemName: type.icon)
+                                         Text(type.name)
+                                     }
                                     .font(.subheadline)
                                     .fontWeight(newWorkoutType == type ? .semibold : .regular)
                                     .foregroundColor(.white)

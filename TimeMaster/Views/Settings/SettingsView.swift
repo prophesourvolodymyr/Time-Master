@@ -35,6 +35,15 @@ struct SettingsView: View {
                     // MARK: Motivation + Music
                     SwiftUI.Section {
                         NavigationLink {
+                            WorkoutTypesSettingsView()
+                        } label: {
+                            settingsRow(
+                                icon: "list.bullet.rectangle",
+                                title: "Workout Types",
+                                subtitle: "Customize and create workout categories"
+                            )
+                        }
+                        NavigationLink {
                             MotivationSettingsView()
                         } label: {
                             settingsRow(

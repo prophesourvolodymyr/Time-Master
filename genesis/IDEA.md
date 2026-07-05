@@ -25,3 +25,8 @@ by the way in teh datanbase - top of the root folder must have a workout type ta
 ## AI improvements 
 
 I wnat my AI agents to be able to create the queries in teh database with the info I have send you. for example I don t want to fill up the database manually - I go to my AI chat - upload photos and videos for hit - it moves that photos and videos to folders and craete more folderinga and more foldering. So yes AI can craete folder and fill almost eveyrthing inside of them.
+
+
+## WOrkout page
+
+So inside of the workout page where I set a schedule for a workout, I want to make it more customizable I can expand every workout to show the sets for example I have 3 and between those sets, I can set a special stretching sets that are what I need to do between sessions. Also, we are adding one more type of set, which is bundle set for example I have a boxing sparring and I want to put like techniques from my database into the bundle so when the workout is running , I get this special menu in which I can browse around and it will show me the set one by one. We should discuss how to do this the best for the people like boxers and wrestlers.

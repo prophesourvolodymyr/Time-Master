@@ -17,12 +17,14 @@ class WorkoutStore: ObservableObject {
     @AppStorage("workout_weekly_goal") var weeklyGoal: Int = 4
     @Published var restDays: Set<String> = []
     @Published var typeSchedules: [TypeSchedule] = []
+    @Published var customWorkoutTypes: [WorkoutType] = []
 
     init() {
         loadWorkouts()
         loadHistory()
         loadRestDays()
         loadSchedules()
+        loadCustomTypes()
         loadGoal()
         if workouts.isEmpty {
             seedDefaultWorkouts()   // saveWorkouts() is called inside seed
@@ -157,7 +159,7 @@ class WorkoutStore: ObservableObject {
         }
         // Sync compact list to App Group for widget
         let sharedDefaults = UserDefaults(suiteName: "group.com.timemaster.shared")
-        let compact = workouts.map { WidgetWorkoutRef(id: $0.id.uuidString, name: $0.name, colorHex: $0.colorHex, type: $0.type.rawValue) }
+        let compact = workouts.map { WidgetWorkoutRef(id: $0.id.uuidString, name: $0.name, colorHex: $0.colorHex, type: $0.type.name) }
         if let data = try? JSONEncoder().encode(compact) {
             sharedDefaults?.set(data, forKey: "widget_workouts")
             // synchronize() is required in cross-process scenarios (app ↔ widget extension)
@@ -301,6 +303,40 @@ class WorkoutStore: ObservableObject {
     private func saveSchedules() {
         if let data = try? JSONEncoder().encode(typeSchedules) {
             userDefaults.set(data, forKey: schedulesKey)
+        }
+    }
+
+    private let customTypesKey = "custom_workout_types"
+
+    func addCustomType(name: String, iconName: String) {
+        let id = name
+        let type = WorkoutType(id: id, name: name, iconName: iconName)
+        customWorkoutTypes.append(type)
+        saveCustomTypes()
+    }
+
+    func updateCustomType(_ type: WorkoutType) {
+        if let idx = customWorkoutTypes.firstIndex(where: { $0.id == type.id }) {
+            customWorkoutTypes[idx] = type
+            saveCustomTypes()
+        }
+    }
+
+    func deleteCustomType(id: String) {
+        customWorkoutTypes.removeAll { $0.id == id }
+        saveCustomTypes()
+    }
+
+    private func loadCustomTypes() {
+        if let data = userDefaults.data(forKey: customTypesKey),
+           let decoded = try? JSONDecoder().decode([WorkoutType].self, from: data) {
+            customWorkoutTypes = decoded
+        }
+    }
+
+    private func saveCustomTypes() {
+        if let data = try? JSONEncoder().encode(customWorkoutTypes) {
+            userDefaults.set(data, forKey: customTypesKey)
         }
     }
 
