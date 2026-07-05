@@ -26,6 +26,10 @@ struct WorkoutPlayerView: View {
     @State private var startTime: Date = Date()
     @State private var showingCloseConfirmation = false
     @State private var nextMotivationIn: Int = 0   // countdown to next quote
+    @State private var autoSaveCounter = 0
+    @State private var elapsedSeconds = 0
+    @State private var didInitFromResume = false
+    @State private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
 
     // Music
     @ObservedObject private var musicManager = MusicManager.shared
@@ -60,6 +64,8 @@ struct WorkoutPlayerView: View {
                 UIApplication.shared.isIdleTimerDisabled = true
                 AudioManager.shared.activateSession()
                 loadCurrentMedia()
+                tryResumeState()
+                registerBackgroundHandlers()
             }
             .onChange(of: currentSectionIndex) { _ in
                 currentMediaIndex = 0
@@ -72,6 +78,14 @@ struct WorkoutPlayerView: View {
                 UIApplication.shared.isIdleTimerDisabled = false
                 timer?.invalidate()
                 stopVideo()
+                endBackgroundTask()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+                saveResumeState()
+                beginBackgroundTask()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                endBackgroundTask()
             }
             .alert("Stop Workout?", isPresented: $showingCloseConfirmation) {
                 Button("Continue", role: .cancel) {}
@@ -612,13 +626,18 @@ struct WorkoutPlayerView: View {
     private func tick() {
         if timeRemaining > 0 {
             timeRemaining -= 1
+            elapsedSeconds += 1
             if timeRemaining <= 3 && timeRemaining >= 1 {
                 AudioManager.shared.playCountdownBeep()
             }
-            // Fire motivational quote and time callout during active work (not rest/warm-up)
             if !isSetRest && !isSectionRest && !isWarmUp {
                 tickMotivation()
                 checkTimeAnnouncement()
+            }
+            autoSaveCounter += 1
+            if autoSaveCounter >= 5 {
+                autoSaveCounter = 0
+                saveResumeState()
             }
         } else {
             timer?.invalidate()
@@ -632,6 +651,62 @@ struct WorkoutPlayerView: View {
             } else {
                 endWorkPeriod()
             }
+        }
+    }
+
+    private func saveResumeState() {
+        let phase: WorkoutPhase = isWarmUp ? .warmUp
+            : isSetRest ? .setRest
+            : isSectionRest ? .sectionRest
+            : .active
+        WorkoutResumeManager.shared.saveState(
+            workoutId: workout.id,
+            workoutName: workout.name,
+            currentSectionIndex: currentSectionIndex,
+            currentSetIndex: currentSetIndex,
+            timeRemaining: timeRemaining,
+            elapsedSeconds: elapsedSeconds,
+            phase: phase,
+            isPaused: isPaused
+        )
+    }
+
+    private func tryResumeState() {
+        guard !didInitFromResume,
+              let state = WorkoutResumeManager.shared.resumeState,
+              state.workoutId == workout.id
+        else { return }
+        didInitFromResume = true
+        showingWarmUpPicker = false
+        isWarmUp = false
+        currentSectionIndex = state.currentSectionIndex
+        currentSetIndex = state.currentSetIndex
+        timeRemaining = state.timeRemaining
+        elapsedSeconds = state.elapsedSeconds
+        isPaused = state.isPaused
+        startTime = Date().addingTimeInterval(-TimeInterval(state.elapsedSeconds))
+        switch state.phase {
+        case .warmUp:
+            isWarmUp = true
+            isSetRest = false
+            isSectionRest = false
+        case .setRest:
+            isWarmUp = false
+            isSetRest = true
+            isSectionRest = false
+        case .sectionRest:
+            isWarmUp = false
+            isSetRest = false
+            isSectionRest = true
+        case .active:
+            isWarmUp = false
+            isSetRest = false
+            isSectionRest = false
+        }
+        loadCurrentMedia()
+        resetMotivationTimer()
+        if !isPaused {
+            startTimer()
         }
     }
 
@@ -698,6 +773,7 @@ struct WorkoutPlayerView: View {
         stopVideo()
         MusicManager.shared.stopPlayback()
         workoutCompleted = true
+        WorkoutResumeManager.shared.clearResumeState()
         AudioManager.shared.speak("Congratulations! Incredible work!")
         let entry = WorkoutHistoryEntry(
             workoutId:         workout.id,
@@ -724,6 +800,18 @@ struct WorkoutPlayerView: View {
         stopVideo()
         MusicManager.shared.stopPlayback()
         AudioManager.shared.stopSpeaking()
+        if elapsedSeconds >= 180 {
+            let entry = WorkoutHistoryEntry(
+                workoutId: workout.id,
+                workoutName: workout.name,
+                durationCompleted: workout.totalDuration,
+                workoutType: workout.type,
+                isPartial: true,
+                elapsedSeconds: elapsedSeconds
+            )
+            store.addHistoryEntry(entry)
+        }
+        WorkoutResumeManager.shared.clearResumeState()
         dismiss()
     }
 
@@ -823,6 +911,29 @@ struct WorkoutPlayerView: View {
         let mins = seconds / 60
         let secs = seconds % 60
         return mins > 0 ? String(format: "%d:%02d", mins, secs) : String(format: "%02d", secs)
+    }
+
+    private func registerBackgroundHandlers() {
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            saveResumeState()
+        }
+    }
+
+    private func beginBackgroundTask() {
+        endBackgroundTask()
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "WorkoutTimer") {
+            self.endBackgroundTask()
+        }
+    }
+
+    private func endBackgroundTask() {
+        guard backgroundTaskID != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTaskID)
+        backgroundTaskID = .invalid
     }
 }
 

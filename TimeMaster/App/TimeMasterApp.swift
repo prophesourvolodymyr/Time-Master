@@ -37,7 +37,10 @@ struct SplashView: View {
 struct TimeMasterApp: App {
     @StateObject private var store = WorkoutStore()
     @StateObject private var databaseStore = DatabaseStore.shared
+    @StateObject private var resumeManager = WorkoutResumeManager.shared
     @State private var showSplash = true
+    @State private var showResumePrompt = false
+    @State private var resumePlayerWorkout: Workout?
 
     var body: some Scene {
         WindowGroup {
@@ -59,9 +62,109 @@ struct TimeMasterApp: App {
                     withAnimation(.easeOut(duration: 0.4)) {
                         showSplash = false
                     }
+                    checkResumeState()
                 }
             }
+            .sheet(isPresented: $showResumePrompt, onDismiss: {
+                if resumePlayerWorkout != nil { resumeManager.clearResumeState() }
+            }) {
+                resumePromptSheet
+            }
+            .fullScreenCover(item: $resumePlayerWorkout) { w in
+                WorkoutPlayerView(workout: w)
+                    .environmentObject(store)
+            }
         }
+    }
+
+    private func checkResumeState() {
+        guard resumeManager.hasResumableWorkout,
+              let state = resumeManager.resumeState else { return }
+        showResumePrompt = true
+    }
+
+    @ViewBuilder
+    private var resumePromptSheet: some View {
+        VStack(spacing: 0) {
+            if let state = resumeManager.resumeState {
+                Spacer()
+                VStack(spacing: 20) {
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                        .font(.system(size: 64))
+                        .foregroundColor(.white)
+
+                    Text("Resume Workout?")
+                        .font(.title2.bold())
+                        .foregroundColor(.white)
+
+                    Text(state.workoutName)
+                        .font(.headline)
+                        .foregroundColor(.white.opacity(0.7))
+
+                    VStack(spacing: 6) {
+                        Text("Elapsed: \(formatElapsed(state.elapsedSeconds))")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.5))
+                        Text("Section \(state.currentSectionIndex + 1)")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                }
+
+                Spacer()
+
+                VStack(spacing: 12) {
+                    Button {
+                        if let w = store.workouts.first(where: { $0.id == state.workoutId }) {
+                            resumePlayerWorkout = w
+                        }
+                        showResumePrompt = false
+                    } label: {
+                        Text("Resume")
+                            .font(.headline)
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color.white)
+                            .cornerRadius(16)
+                    }
+
+                    Button {
+                        if state.elapsedSeconds >= 180, let w = store.workouts.first(where: { $0.id == state.workoutId }) {
+                            let entry = WorkoutHistoryEntry(
+                                workoutId: w.id,
+                                workoutName: w.name,
+                                durationCompleted: w.totalDuration,
+                                workoutType: w.type,
+                                isPartial: true,
+                                elapsedSeconds: state.elapsedSeconds
+                            )
+                            store.addHistoryEntry(entry)
+                        }
+                        resumeManager.clearResumeState()
+                        showResumePrompt = false
+                    } label: {
+                        Text("Discard")
+                            .font(.headline)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(16)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.ignoresSafeArea())
+    }
+
+    private func formatElapsed(_ seconds: Int) -> String {
+        let m = seconds / 60, s = seconds % 60
+        return m > 0 ? "\(m)m \(s)s" : "\(s)s"
     }
 
     // MARK: - Deep Link Handler

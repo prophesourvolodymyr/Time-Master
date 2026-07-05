@@ -7,6 +7,8 @@ struct WorkoutHistoryEntry: Identifiable, Codable, Equatable {
     var completedAt: Date
     var durationCompleted: Int
     var workoutType: WorkoutType
+    var isPartial: Bool
+    var elapsedSeconds: Int
 
     init(
         id: UUID = UUID(),
@@ -14,7 +16,9 @@ struct WorkoutHistoryEntry: Identifiable, Codable, Equatable {
         workoutName: String,
         completedAt: Date = Date(),
         durationCompleted: Int,
-        workoutType: WorkoutType = .other
+        workoutType: WorkoutType = .other,
+        isPartial: Bool = false,
+        elapsedSeconds: Int = 0
     ) {
         self.id = id
         self.workoutId = workoutId
@@ -22,11 +26,13 @@ struct WorkoutHistoryEntry: Identifiable, Codable, Equatable {
         self.completedAt = completedAt
         self.durationCompleted = durationCompleted
         self.workoutType = workoutType
+        self.isPartial = isPartial
+        self.elapsedSeconds = elapsedSeconds
     }
 
-    // Codable migration: workoutType missing in old data → .other
     enum CodingKeys: String, CodingKey {
         case id, workoutId, workoutName, completedAt, durationCompleted, workoutType
+        case isPartial, elapsedSeconds
     }
 
     init(from decoder: Decoder) throws {
@@ -37,5 +43,7 @@ struct WorkoutHistoryEntry: Identifiable, Codable, Equatable {
         completedAt       = try c.decode(Date.self,   forKey: .completedAt)
         durationCompleted = try c.decode(Int.self,    forKey: .durationCompleted)
         workoutType       = try c.decodeIfPresent(WorkoutType.self, forKey: .workoutType) ?? .other
+        isPartial         = try c.decodeIfPresent(Bool.self, forKey: .isPartial) ?? false
+        elapsedSeconds    = try c.decodeIfPresent(Int.self,  forKey: .elapsedSeconds) ?? 0
     }
 }
