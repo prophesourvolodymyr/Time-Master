@@ -4,14 +4,15 @@ struct WorkoutType: Identifiable, Codable, Hashable {
     var id: String
     var name: String
     var iconName: String
+    var colorHex: String
 
-    static let strength = WorkoutType(id: "Strength", name: "Strength", iconName: "dumbbell.fill")
-    static let stretch  = WorkoutType(id: "Stretch", name: "Stretch", iconName: "figure.cooldown")
-    static let cardio   = WorkoutType(id: "Cardio", name: "Cardio", iconName: "heart.fill")
-    static let hiit     = WorkoutType(id: "HIIT", name: "HIIT", iconName: "flame.fill")
-    static let yoga     = WorkoutType(id: "Yoga", name: "Yoga", iconName: "figure.mind.and.body")
-    static let face     = WorkoutType(id: "Face", name: "Face", iconName: "face.smiling.fill")
-    static let other    = WorkoutType(id: "Other", name: "Other", iconName: "star.fill")
+    static let strength = WorkoutType(id: "Strength", name: "Strength", iconName: "dumbbell.fill", colorHex: "FF9500")
+    static let stretch  = WorkoutType(id: "Stretch", name: "Stretch", iconName: "figure.cooldown", colorHex: "34C759")
+    static let cardio   = WorkoutType(id: "Cardio", name: "Cardio", iconName: "heart.fill", colorHex: "FF3B30")
+    static let hiit     = WorkoutType(id: "HIIT", name: "HIIT", iconName: "flame.fill", colorHex: "FF2D55")
+    static let yoga     = WorkoutType(id: "Yoga", name: "Yoga", iconName: "figure.mind.and.body", colorHex: "AF52DE")
+    static let face     = WorkoutType(id: "Face", name: "Face", iconName: "face.smiling.fill", colorHex: "FFCC00")
+    static let other    = WorkoutType(id: "Other", name: "Other", iconName: "star.fill", colorHex: "007AFF")
 
     static var builtIn: [WorkoutType] { [strength, stretch, cardio, hiit, yoga, face, other] }
 
@@ -19,12 +20,13 @@ struct WorkoutType: Identifiable, Codable, Hashable {
 
     var icon: String { iconName }
 
-    enum CodingKeys: String, CodingKey { case id, name, iconName }
+    enum CodingKeys: String, CodingKey { case id, name, iconName, colorHex }
 
-    init(id: String, name: String, iconName: String) {
+    init(id: String, name: String, iconName: String, colorHex: String = "FFFFFF") {
         self.id = id
         self.name = name
         self.iconName = iconName
+        self.colorHex = colorHex
     }
 
     init(from decoder: Decoder) throws {
@@ -33,6 +35,7 @@ struct WorkoutType: Identifiable, Codable, Hashable {
             id = decodedId
             name = (try? container.decode(String.self, forKey: .name)) ?? id
             iconName = (try? container.decode(String.self, forKey: .iconName)) ?? "star.fill"
+            colorHex = (try? container.decode(String.self, forKey: .colorHex)) ?? "FFFFFF"
             return
         }
         let container = try decoder.singleValueContainer()
@@ -49,6 +52,7 @@ struct WorkoutType: Identifiable, Codable, Hashable {
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(iconName, forKey: .iconName)
+        try container.encode(colorHex, forKey: .colorHex)
     }
 }
 

@@ -308,9 +308,9 @@ class WorkoutStore: ObservableObject {
 
     private let customTypesKey = "custom_workout_types"
 
-    func addCustomType(name: String, iconName: String) {
+    func addCustomType(name: String, iconName: String, colorHex: String = "FFFFFF") {
         let id = name
-        let type = WorkoutType(id: id, name: name, iconName: iconName)
+        let type = WorkoutType(id: id, name: name, iconName: iconName, colorHex: colorHex)
         customWorkoutTypes.append(type)
         saveCustomTypes()
     }

@@ -7,101 +7,101 @@ struct WorkoutTypesSettingsView: View {
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-            VStack(spacing: 0) {
-                builtInSection
-                Divider().background(Theme.separator).padding(.horizontal, 16)
-                customSection
+            ScrollView {
+                VStack(spacing: 20) {
+                    builtInGrid
+                    if !store.customWorkoutTypes.isEmpty || showAddSheet {
+                        customGrid
+                    }
+                    createButton
+                }
+                .padding(16)
             }
         }
         .navigationTitle("Workout Types")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { showAddSheet = true } label: {
-                    Image(systemName: "plus").foregroundColor(.white)
-                }
-            }
-        }
         .sheet(isPresented: $showAddSheet) {
-            TypeEditorSheet(onSave: { name, icon in
-                store.addCustomType(name: name, iconName: icon)
+            TypeEditorSheet { name, icon, color in
+                store.addCustomType(name: name, iconName: icon, colorHex: color)
                 showAddSheet = false
-            })
+            }
         }
     }
 
-    private var builtInSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionHeader("Built-in Types")
-            let types = WorkoutType.builtIn
-            ForEach(Array(types), id: \.id) { type in
-                typeRow(type, isBuiltIn: true)
-                if type.id != types.last?.id {
-                    Divider().background(Theme.separator).padding(.leading, 58)
+    // MARK: - Built-in
+
+    private var builtInGrid: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Built-in")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(Theme.textSecondary)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(Array(WorkoutType.builtIn), id: \.id) { type in
+                    typeCard(type)
                 }
             }
         }
-        .padding(16)
     }
 
-    private var customSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionHeader("Custom Types")
-            if store.customWorkoutTypes.isEmpty {
-                Text("No custom types yet.")
-                    .font(.subheadline).foregroundColor(Theme.textSecondary)
-                    .padding(.vertical, 12)
-            } else {
-                let types = Array(store.customWorkoutTypes)
-                ForEach(types, id: \.id) { type in
-                    HStack {
-                        typeRow(type, isBuiltIn: false)
-                        Spacer()
-                        Button(role: .destructive) {
-                            store.deleteCustomType(id: type.id)
-                        } label: {
-                            Image(systemName: "trash").font(.caption)
+    // MARK: - Custom
+
+    private var customGrid: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Custom")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(Theme.textSecondary)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(Array(store.customWorkoutTypes), id: \.id) { type in
+                    typeCard(type)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                store.deleteCustomType(id: type.id)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
-                    }
-                    .padding(.trailing, 8)
-                    if type.id != types.last?.id {
-                        Divider().background(Theme.separator).padding(.leading, 58)
-                    }
                 }
             }
         }
-        .padding(16)
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundColor(Theme.textSecondary)
-            .padding(.bottom, 8)
-    }
-
-    private func typeRow(_ type: WorkoutType, isBuiltIn: Bool) -> some View {
-        HStack(spacing: 12) {
+    private func typeCard(_ type: WorkoutType) -> some View {
+        HStack(spacing: 10) {
             Image(systemName: type.iconName)
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(.white)
-                .frame(width: 34, height: 34)
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(8)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(type.name).font(.body).foregroundColor(.white)
-                Text("icon: \(type.iconName)")
-                    .font(.caption).foregroundColor(Theme.textSecondary)
-            }
-            if isBuiltIn {
-                Text("built-in")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(Theme.textSecondary.opacity(0.6))
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Color.white.opacity(0.06))
-                    .cornerRadius(4)
-            }
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(type.colorHex == "FFFFFF" ? .black : .white)
+                .frame(width: 38, height: 38)
+                .background(Color(hex: type.colorHex))
+                .cornerRadius(10)
+            Text(type.name)
+                .font(.subheadline.weight(.medium))
+                .foregroundColor(Theme.textPrimary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 8)
+        .padding(10)
+        .background(Theme.surface)
+        .cornerRadius(12)
+    }
+
+    // MARK: - Create button
+
+    private var createButton: some View {
+        Button { showAddSheet = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill").font(.system(size: 18))
+                Text("Create New Type")
+                    .font(.headline)
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color.white.opacity(0.08))
+            .cornerRadius(14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+            )
+        }
     }
 }
 
@@ -109,10 +109,11 @@ struct WorkoutTypesSettingsView: View {
 
 private struct TypeEditorSheet: View {
     @Environment(\.dismiss) var dismiss
-    let onSave: (String, String) -> Void
+    let onSave: (String, String, String) -> Void
 
     @State private var name = ""
     @State private var selectedIcon = "star.fill"
+    @State private var colorHex = "FFFFFF"
 
     private let sfIcons: [String] = [
         "dumbbell.fill", "figure.run", "heart.fill", "flame.fill",
@@ -134,46 +135,16 @@ private struct TypeEditorSheet: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
-                    VStack(spacing: 20) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
-                            TextField("e.g., Boxing", text: $name)
-                                .padding(14).background(Theme.surface).cornerRadius(10)
-                                .foregroundColor(Theme.textPrimary)
-                        }
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Icon").font(.headline).foregroundColor(Theme.textPrimary)
-                            HStack(spacing: 8) {
-                                Image(systemName: selectedIcon)
-                                    .font(.title)
-                                    .foregroundColor(.white)
-                                    .frame(width: 60, height: 60)
-                                    .background(Color.white.opacity(0.1))
-                                    .cornerRadius(14)
-                                Text(selectedIcon)
-                                    .font(.caption.monospaced())
-                                    .foregroundColor(Theme.textSecondary)
-                            }
-                            LazyVGrid(columns: columns, spacing: 6) {
-                                ForEach(sfIcons, id: \.self) { icon in
-                                    Button {
-                                        selectedIcon = icon
-                                    } label: {
-                                        Image(systemName: icon)
-                                            .font(.system(size: 20))
-                                            .foregroundColor(selectedIcon == icon ? .black : .white)
-                                            .frame(width: 44, height: 44)
-                                            .background(selectedIcon == icon ? Color.white : Theme.surface)
-                                            .cornerRadius(10)
-                                    }
-                                }
-                            }
-                        }
+                    VStack(spacing: 24) {
+                        previewCard
+                        nameSection
+                        colorSection
+                        iconSection
                     }
                     .padding(16)
                 }
             }
-            .navigationTitle("New Workout Type")
+            .navigationTitle("New Type")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -181,11 +152,77 @@ private struct TypeEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
-                        let trimmed = name.trimmingCharacters(in: .whitespaces)
-                        onSave(trimmed, selectedIcon)
+                        onSave(name.trimmingCharacters(in: .whitespaces), selectedIcon, colorHex)
                     }
                     .foregroundColor(name.trimmingCharacters(in: .whitespaces).isEmpty ? Color.white.opacity(0.3) : .white)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+    }
+
+    // MARK: - Preview
+
+    private var previewCard: some View {
+        HStack(spacing: 10) {
+            Image(systemName: selectedIcon)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(colorHex == "FFFFFF" ? .black : .white)
+                .frame(width: 42, height: 42)
+                .background(Color(hex: colorHex))
+                .cornerRadius(12)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name.isEmpty ? "Type Name" : name)
+                    .font(.headline)
+                    .foregroundColor(name.isEmpty ? Theme.textSecondary : Theme.textPrimary)
+                Text("Preview")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Theme.surface)
+        .cornerRadius(14)
+    }
+
+    // MARK: - Name
+
+    private var nameSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+            TextField("e.g., Boxing", text: $name)
+                .padding(14).background(Theme.surface).cornerRadius(10)
+                .foregroundColor(Theme.textPrimary)
+        }
+    }
+
+    // MARK: - Color
+
+    private var colorSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Icon Color").font(.headline).foregroundColor(Theme.textPrimary)
+            IconColorPicker(selectedHex: $colorHex)
+        }
+    }
+
+    // MARK: - Icon
+
+    private var iconSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Icon").font(.headline).foregroundColor(Theme.textPrimary)
+            LazyVGrid(columns: columns, spacing: 6) {
+                ForEach(sfIcons, id: \.self) { icon in
+                    Button {
+                        selectedIcon = icon
+                    } label: {
+                        Image(systemName: icon)
+                            .font(.system(size: 18))
+                            .foregroundColor(selectedIcon == icon ? .black : .white)
+                            .frame(width: 44, height: 44)
+                            .background(selectedIcon == icon ? Color.white : Theme.surface)
+                            .cornerRadius(10)
+                    }
                 }
             }
         }
