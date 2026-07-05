@@ -168,7 +168,9 @@ struct AnalyticsView: View {
                     )
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
-                StreakCard(entries: filteredEntries)
+                StreakCard()
+                StreakCalendarView()
+                WeeklyGoalSection()
                 ActivityHeatmap(entries: filteredEntries)
                 HistoryListSection(entries: filteredEntries, store: store)
             }
@@ -406,51 +408,24 @@ private struct LifetimeStatsStrip: View {
 // MARK: - StreakCard
 
 private struct StreakCard: View {
-    let entries: [WorkoutHistoryEntry]
+    @EnvironmentObject var store: WorkoutStore
 
-    private var currentStreak: Int {
-        let cal = Calendar.current
-        let daySet = Set(entries.map { cal.startOfDay(for: $0.completedAt) })
-        var count = 0
-        var check = cal.startOfDay(for: Date())
-        while daySet.contains(check) {
-            count += 1
-            check = cal.date(byAdding: .day, value: -1, to: check) ?? check
-        }
-        return count
-    }
-
-    private var bestStreak: Int {
-        let cal = Calendar.current
-        let days = Set(entries.map { cal.startOfDay(for: $0.completedAt) }).sorted()
-        var best = 0, cur = 0
-        var prev: Date? = nil
-        for day in days {
-            if let p = prev,
-               let next = cal.date(byAdding: .day, value: 1, to: p),
-               cal.isDate(next, inSameDayAs: day) {
-                cur += 1
-            } else {
-                cur = 1
-            }
-            best = max(best, cur)
-            prev = day
-        }
-        return best
+    private var streak: (current: Int, best: Int) {
+        store.streakInfo()
     }
 
     var body: some View {
         HStack(spacing: 0) {
-            streakItem(value: currentStreak, label: "Current Streak")
+            streakItem(value: streak.current, label: "Current Streak", emoji: "fire")
             Rectangle().fill(Color.white.opacity(0.1)).frame(width: 1, height: 50)
-            streakItem(value: bestStreak, label: "Best Streak")
+            streakItem(value: streak.best, label: "Best Streak", emoji: "trophy")
         }
         .padding(16)
         .background(Theme.surface)
         .cornerRadius(16)
     }
 
-    private func streakItem(value: Int, label: String) -> some View {
+    private func streakItem(value: Int, label: String, emoji: String) -> some View {
         VStack(spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text("\(value)")
@@ -463,6 +438,124 @@ private struct StreakCard: View {
             Text(label).font(.caption).foregroundColor(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - F04-A: Streak Calendar
+
+private struct StreakCalendarView: View {
+    @EnvironmentObject var store: WorkoutStore
+    private let dayCount = 28
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Streak Calendar")
+                    .font(.headline)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Button { store.toggleRestDay(for: Date()) } label: {
+                    Text(store.isRestDay(Date()) ? "Unmark Rest" : "Mark Rest Day")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(store.isRestDay(Date()) ? Color.gray : .white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(store.isRestDay(Date()) ? Color.white.opacity(0.1) : Color.white.opacity(0.15))
+                        .cornerRadius(8)
+                }
+            }
+
+            HStack(spacing: 4) {
+                ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { label in
+                    Text(label)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(0..<dayCount, id: \.self) { i in
+                    let date = dateFor(daysBack: dayCount - 1 - i)
+                    let isFuture = date > Date()
+                    let cal = Calendar.current
+                    let dayStart = cal.startOfDay(for: date)
+                    let hasWorkout = store.historyEntries.contains { cal.isDate($0.completedAt, inSameDayAs: dayStart) }
+                    let isRest = store.isRestDay(date)
+                    let isPast = !isFuture && !cal.isDate(date, inSameDayAs: Date())
+
+                    Circle()
+                        .fill(dayColor(future: isFuture, workout: hasWorkout, rest: isRest, past: isPast))
+                        .frame(height: 24)
+                }
+            }
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(16)
+    }
+
+    private func dateFor(daysBack: Int) -> Date {
+        let cal = Calendar.current
+        return cal.date(byAdding: .day, value: -daysBack, to: cal.startOfDay(for: Date())) ?? Date()
+    }
+
+    private func dayColor(future: Bool, workout: Bool, rest: Bool, past: Bool) -> Color {
+        if future { return Color.white.opacity(0.05) }
+        if workout { return Color.green }
+        if rest { return Color.gray }
+        return Color.red.opacity(0.5)
+    }
+}
+
+// MARK: - F04-A: Weekly Goal Section
+
+private struct WeeklyGoalSection: View {
+    @EnvironmentObject var store: WorkoutStore
+    @State private var goalDraft: Int
+
+    init() {
+        _goalDraft = State(initialValue: UserDefaults.standard.integer(forKey: "workout_weekly_goal_saved") > 0
+            ? UserDefaults.standard.integer(forKey: "workout_weekly_goal_saved") : 4)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Weekly Workout Goal")
+                    .font(.headline)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Text("\(goalDraft) days/week")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.15))
+                    .cornerRadius(8)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(3...7, id: \.self) { n in
+                    Button {
+                        goalDraft = n
+                        store.setWeeklyGoal(n)
+                    } label: {
+                        Text("\(n)")
+                            .font(.system(size: 15, weight: goalDraft == n ? .bold : .medium))
+                            .foregroundColor(goalDraft == n ? .black : .white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(goalDraft == n ? Color.white : Color.white.opacity(0.1))
+                            .cornerRadius(10)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(16)
     }
 }
 

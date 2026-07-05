@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 import WidgetKit
 
 class WorkoutStore: ObservableObject {
@@ -8,11 +9,18 @@ class WorkoutStore: ObservableObject {
 
     private let workoutsKey = "workouts"
     private let historyKey = "workout_history"
+    private let restDaysKey = "workout_rest_days"
+    private let goalKey = "workout_weekly_goal"
     private let userDefaults = UserDefaults.standard
+
+    @AppStorage("workout_weekly_goal") var weeklyGoal: Int = 4
+    @Published var restDays: Set<String> = []
 
     init() {
         loadWorkouts()
         loadHistory()
+        loadRestDays()
+        loadGoal()
         if workouts.isEmpty {
             seedDefaultWorkouts()   // saveWorkouts() is called inside seed
         } else {
@@ -180,5 +188,98 @@ class WorkoutStore: ObservableObject {
         guard let data = userDefaults.data(forKey: historyKey),
               let history = try? JSONDecoder().decode([WorkoutHistoryEntry].self, from: data) else { return }
         self.historyEntries = history
+    }
+
+    // MARK: - F04-A: Rest Days & Goal
+
+    private func loadRestDays() {
+        if let data = userDefaults.data(forKey: restDaysKey),
+           let days = try? JSONDecoder().decode(Set<String>.self, from: data) {
+            restDays = days
+        }
+    }
+
+    private func saveRestDays() {
+        if let data = try? JSONEncoder().encode(restDays) {
+            userDefaults.set(data, forKey: restDaysKey)
+        }
+    }
+
+    private func loadGoal() {
+        if let data = userDefaults.data(forKey: goalKey),
+           let goal = try? JSONDecoder().decode(Int.self, from: data) {
+            weeklyGoal = goal
+        }
+    }
+
+    func setWeeklyGoal(_ goal: Int) {
+        weeklyGoal = max(1, min(7, goal))
+        if let data = try? JSONEncoder().encode(weeklyGoal) {
+            userDefaults.set(data, forKey: goalKey)
+        }
+    }
+
+    func toggleRestDay(for date: Date) {
+        let key = dateKey(from: date)
+        if restDays.contains(key) {
+            restDays.remove(key)
+        } else {
+            restDays.insert(key)
+        }
+        saveRestDays()
+    }
+
+    func isRestDay(_ date: Date) -> Bool {
+        restDays.contains(dateKey(from: date))
+    }
+
+    private func dateKey(from date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+
+    func streakInfo() -> (current: Int, best: Int) {
+        let cal = Calendar.current
+        let daySet = Set(historyEntries.map { cal.startOfDay(for: $0.completedAt) })
+
+        var current = 0
+        var check = cal.startOfDay(for: Date())
+        while daySet.contains(check) || isRestDay(check) {
+            current += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: check) else { break }
+            check = prev
+        }
+
+        let days = daySet.sorted()
+        var best = 0
+        var cur = 0
+        var prev: Date? = nil
+        for day in days {
+            if let p = prev,
+               let next = cal.date(byAdding: .day, value: 1, to: p),
+               cal.isDate(next, inSameDayAs: day) {
+                cur += 1
+            } else if let p = prev,
+                      cal.isDate(p, inSameDayAs: day) {
+                continue
+            } else if let p = prev,
+                      let nextDay = cal.date(byAdding: .day, value: 1, to: p) {
+                let restGap = isRestDay(nextDay) && !cal.isDate(nextDay, inSameDayAs: day)
+                if restGap {
+                    cur += 1
+                } else if cal.isDate(nextDay, inSameDayAs: day) {
+                    cur += 1
+                } else {
+                    cur = 1
+                }
+            } else {
+                cur = 1
+            }
+            best = max(best, cur)
+            prev = day
+        }
+
+        return (current, best)
     }
 }

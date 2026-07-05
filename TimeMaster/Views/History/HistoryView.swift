@@ -73,16 +73,27 @@ struct HistoryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: entry.isPartial ? "clock.badge.exclamationmark" : "checkmark.circle.fill")
                 .font(.title2)
-                .foregroundColor(.white)
+                .foregroundColor(entry.isPartial ? Color.orange : .white)
                 .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.workoutName)
-                    .font(.headline)
-                    .foregroundColor(Theme.textPrimary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(entry.workoutName)
+                        .font(.headline)
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(1)
+                    if entry.isPartial {
+                        Text("[Partial]")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.15))
+                            .cornerRadius(4)
+                    }
+                }
 
                 HStack(spacing: 6) {
                     Text(formatDate(entry.completedAt))
@@ -90,9 +101,18 @@ struct HistoryRow: View {
                         .foregroundColor(Theme.textSecondary)
                     Text("·")
                         .foregroundColor(Theme.textSecondary)
-                    Text(formatDuration(entry.durationCompleted))
-                        .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
+                    if entry.isPartial {
+                        Text(formatDuration(entry.elapsedSeconds))
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary)
+                        Text("of \(formatDuration(entry.durationCompleted))")
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary.opacity(0.5))
+                    } else {
+                        Text(formatDuration(entry.durationCompleted))
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary)
+                    }
                 }
             }
 
