@@ -679,10 +679,15 @@ struct WorkoutPlayerView: View {
     }
 
     private var musicButton: some View {
-        let hasTracks = !musicManager.trackFilenames.isEmpty
+        let tracks = workout.musicTrackFilenames
+        let hasTracks = !tracks.isEmpty
         return Button {
             guard hasTracks else { return }
-            MusicManager.shared.togglePlayback()
+            if musicManager.isPlaying {
+                MusicManager.shared.stopPlayback()
+            } else {
+                MusicManager.shared.startPlayback(tracks: tracks)
+            }
         } label: {
             Image(systemName: musicManager.isPlaying ? "music.note" : "music.note.list")
                 .font(.system(size: 14, weight: .semibold))

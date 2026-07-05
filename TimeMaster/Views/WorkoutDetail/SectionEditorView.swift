@@ -37,7 +37,7 @@ struct SectionEditorView: View {
         let cra = section?.customRestAfter
         _useCustomRest    = State(initialValue: cra != nil)
         _customRestAfter  = State(initialValue: cra ?? 30)
-        _prepareTime      = State(initialValue: section?.prepareTime ?? 5)
+        _prepareTime      = State(initialValue: section?.prepareTime ?? 4)
         _mediaItems       = State(initialValue: section?.mediaItems ?? [])
     }
 

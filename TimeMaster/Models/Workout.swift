@@ -77,7 +77,7 @@ struct Section: Identifiable, Codable, Equatable {
         sets: Int = 1,
         restBetweenSets: Int = 10,
         customRestAfter: Int? = nil,
-        prepareTime: Int = 5
+        prepareTime: Int = 4
     ) {
         self.id = id
         self.name = name
@@ -117,7 +117,7 @@ struct Section: Identifiable, Codable, Equatable {
         isTimerEnabled = try c.decodeIfPresent(Bool.self,   forKey: .isTimerEnabled) ?? true
         sets           = max(1, try c.decodeIfPresent(Int.self, forKey: .sets) ?? 1)
         restBetweenSets = try c.decodeIfPresent(Int.self, forKey: .restBetweenSets) ?? 10
-        prepareTime    = try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 5
+        prepareTime    = try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4
 
         if let v = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
             customRestAfter = v
