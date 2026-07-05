@@ -169,7 +169,6 @@ struct AnalyticsView: View {
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
                 StreakCard()
-                StreakCalendarView()
                 WeeklyGoalSection()
                 ActivityHeatmap(entries: filteredEntries)
                 HistoryListSection(entries: filteredEntries, store: store)
@@ -441,74 +440,6 @@ private struct StreakCard: View {
     }
 }
 
-// MARK: - F04-A: Streak Calendar
-
-private struct StreakCalendarView: View {
-    @EnvironmentObject var store: WorkoutStore
-    private let dayCount = 28
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Streak Calendar")
-                    .font(.headline)
-                    .foregroundColor(Theme.textPrimary)
-                Spacer()
-                Button { store.toggleRestDay(for: Date()) } label: {
-                    Text(store.isRestDay(Date()) ? "Unmark Rest" : "Mark Rest Day")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(store.isRestDay(Date()) ? Color.gray : .white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(store.isRestDay(Date()) ? Color.white.opacity(0.1) : Color.white.opacity(0.15))
-                        .cornerRadius(8)
-                }
-            }
-
-            HStack(spacing: 4) {
-                ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { label in
-                    Text(label)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(Theme.textSecondary)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(0..<dayCount, id: \.self) { i in
-                    let date = dateFor(daysBack: dayCount - 1 - i)
-                    let isFuture = date > Date()
-                    let cal = Calendar.current
-                    let dayStart = cal.startOfDay(for: date)
-                    let hasWorkout = store.historyEntries.contains { cal.isDate($0.completedAt, inSameDayAs: dayStart) }
-                    let isRest = store.isRestDay(date)
-                    let isPast = !isFuture && !cal.isDate(date, inSameDayAs: Date())
-
-                    Circle()
-                        .fill(dayColor(future: isFuture, workout: hasWorkout, rest: isRest, past: isPast))
-                        .frame(height: 24)
-                }
-            }
-        }
-        .padding(16)
-        .background(Theme.surface)
-        .cornerRadius(16)
-    }
-
-    private func dateFor(daysBack: Int) -> Date {
-        let cal = Calendar.current
-        return cal.date(byAdding: .day, value: -daysBack, to: cal.startOfDay(for: Date())) ?? Date()
-    }
-
-    private func dayColor(future: Bool, workout: Bool, rest: Bool, past: Bool) -> Color {
-        if future { return Color.white.opacity(0.05) }
-        if workout { return Color.green }
-        if rest { return Color.gray }
-        return Color.red.opacity(0.5)
-    }
-}
-
 // MARK: - F04-A: Weekly Goal Section
 
 private struct WeeklyGoalSection: View {
@@ -562,24 +493,29 @@ private struct WeeklyGoalSection: View {
 // MARK: - ActivityHeatmap
 
 private struct ActivityHeatmap: View {
+    @EnvironmentObject var store: WorkoutStore
     let entries: [WorkoutHistoryEntry]
 
-    private let weeksCount = 12
+    private let weeksCount = 24
     private let gap: CGFloat = 3
     private let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
-    /// Updated after first layout pass via GeometryReader so day labels stay aligned.
-    @State private var cellSize: CGFloat = 14
+    @State private var cellSize: CGFloat = 18
+    @State private var selectedDate: Date?
+    @State private var showDayInfo = false
 
-    // GridItem array is a constant — computed once.
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: gap), count: weeksCount)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Activity — Last 12 Weeks")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
+            HStack {
+                Text("Activity — Last 24 Weeks")
+                    .font(.headline)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                legend
+            }
             HStack(alignment: .top, spacing: gap + 2) {
                 dayLabelColumn
                 stretchingGrid
@@ -588,9 +524,24 @@ private struct ActivityHeatmap: View {
         .padding(16)
         .background(Theme.surface)
         .cornerRadius(16)
+        .sheet(isPresented: $showDayInfo) {
+            if let date = selectedDate {
+                DayInfoSheet(date: date, entries: entries)
+            }
+        }
     }
 
-    // MARK: Day label column
+    private var legend: some View {
+        HStack(spacing: 6) {
+            Text("Less").font(.system(size: 8)).foregroundColor(Theme.textSecondary)
+            ForEach(0..<4) { i in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(cellColor(count: i))
+                    .frame(width: 10, height: 10)
+            }
+            Text("More").font(.system(size: 8)).foregroundColor(Theme.textSecondary)
+        }
+    }
 
     private var dayLabelColumn: some View {
         VStack(spacing: gap) {
@@ -598,18 +549,11 @@ private struct ActivityHeatmap: View {
                 Text(dayLabels[i])
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(Theme.textSecondary)
-                    // height tracks the measured cell size so labels stay row-aligned
                     .frame(width: 12, height: cellSize, alignment: .center)
             }
         }
     }
 
-    // MARK: Stretching grid
-
-    /// LazyVGrid with flexible columns fills all available width.
-    /// Data is indexed so that row = dayIndex, column = weekIndex:
-    ///   idx = dayIndex * weeksCount + weekIndex
-    /// which matches LazyVGrid's left-to-right, top-to-bottom fill order.
     private var stretchingGrid: some View {
         LazyVGrid(columns: columns, spacing: gap) {
             ForEach(0..<(7 * weeksCount), id: \.self) { idx in
@@ -617,13 +561,41 @@ private struct ActivityHeatmap: View {
                 let d = idx / weeksCount
                 let date = dateFor(week: w, day: d)
                 let isFuture = date > Date()
+                let isRest = store.isRestDay(date)
                 let count = isFuture ? 0 : workoutCount(on: date)
+
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(isFuture ? Color.white.opacity(0.04) : cellColor(count: count))
-                    .aspectRatio(1, contentMode: .fit) // square cells, size driven by column width
+                    .fill(cellBackground(isFuture: isFuture, isRest: isRest, count: count))
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        Group {
+                            if isRest {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .stroke(Color.gray.opacity(0.6), lineWidth: 1.5)
+                            }
+                        }
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if !isFuture {
+                            selectedDate = date
+                            showDayInfo = true
+                        }
+                    }
+                    .contextMenu {
+                        if !isFuture {
+                            Button {
+                                store.toggleRestDay(for: date)
+                            } label: {
+                                Label(
+                                    store.isRestDay(date) ? "Remove Rest Day" : "Mark Rest Day",
+                                    systemImage: store.isRestDay(date) ? "moon.zzz" : "moon"
+                                )
+                            }
+                        }
+                    }
             }
         }
-        // Measure actual grid width so we can derive cellSize for label alignment.
         .background(
             GeometryReader { geo in
                 Color.clear
@@ -641,8 +613,6 @@ private struct ActivityHeatmap: View {
         let computed = (gridWidth - CGFloat(weeksCount - 1) * gap) / CGFloat(weeksCount)
         cellSize = max(computed, 1)
     }
-
-    // MARK: Helpers
 
     private func dateFor(week: Int, day: Int) -> Date {
         let cal = Calendar.current
@@ -668,6 +638,128 @@ private struct ActivityHeatmap: View {
         case 2: return Color.white.opacity(0.65)
         default: return Color.white
         }
+    }
+
+    private func cellBackground(isFuture: Bool, isRest: Bool, count: Int) -> Color {
+        if isFuture { return Color.white.opacity(0.03) }
+        if isRest { return Color.white.opacity(0.12) }
+        return cellColor(count: count)
+    }
+}
+
+// MARK: - Day Info Sheet
+
+private struct DayInfoSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var store: WorkoutStore
+    let date: Date
+    let entries: [WorkoutHistoryEntry]
+
+    private var dayEntries: [WorkoutHistoryEntry] {
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: date)
+        guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return [] }
+        return entries.filter { $0.completedAt >= start && $0.completedAt < end }
+    }
+
+    private var totalMinutes: Int {
+        dayEntries.reduce(0) { $0 + $1.elapsedSeconds } / 60
+    }
+
+    private var isRest: Bool { store.isRestDay(date) }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    VStack(spacing: 10) {
+                        Text(formatFullDate(date))
+                            .font(.title2.bold())
+                            .foregroundColor(Theme.textPrimary)
+
+                        HStack(spacing: 20) {
+                            statChip(value: "\(dayEntries.count)", label: "workouts")
+                            statChip(value: "\(totalMinutes)m", label: "total time")
+                        }
+
+                        if isRest {
+                            Label("Planned Rest Day", systemImage: "moon.zzz.fill")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
+                                .background(Color.gray.opacity(0.15))
+                                .cornerRadius(8)
+                        }
+                    }
+                    .padding(.top, 24)
+                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(Theme.surface)
+
+                    if dayEntries.isEmpty {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Image(systemName: isRest ? "moon.zzz" : "figure.walk")
+                                .font(.system(size: 40))
+                                .foregroundColor(Theme.textSecondary)
+                            Text(isRest ? "Rest day." : "No workouts logged.")
+                                .font(.subheadline)
+                                .foregroundColor(Theme.textSecondary)
+                        }
+                        Spacer()
+                    } else {
+                        List {
+                            ForEach(dayEntries) { entry in
+                                HistoryRow(entry: entry)
+                                    .listRowBackground(Theme.surface)
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                    }
+
+                    VStack(spacing: 10) {
+                        Button {
+                            store.toggleRestDay(for: date)
+                        } label: {
+                            Label(
+                                isRest ? "Remove Rest Day" : "Mark as Rest Day",
+                                systemImage: isRest ? "moon.zzz.fill" : "moon.zzz"
+                            )
+                            .font(.headline)
+                            .foregroundColor(isRest ? .gray : .white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(isRest ? Color.white.opacity(0.08) : Color.white.opacity(0.15))
+                            .cornerRadius(14)
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Day Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }.foregroundColor(.white)
+                }
+            }
+        }
+    }
+
+    private func statChip(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(.title3.bold()).foregroundColor(Theme.textPrimary)
+            Text(label).font(.caption2).foregroundColor(Theme.textSecondary)
+        }
+    }
+
+    private func formatFullDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMMM d"
+        return f.string(from: date)
     }
 }
 
