@@ -228,8 +228,8 @@ private struct MessageBubble: View {
 
             VStack(alignment: isUser ? .trailing : .leading, spacing: 3) {
                 bubbleContent
-                    .contextMenu { contextMenuItems }
                 timestampLabel
+                    .contextMenu { contextMenuItems }
             }
 
             if !isUser { Spacer(minLength: 52) }
@@ -285,7 +285,6 @@ private struct MessageBubble: View {
         }
         .background(isUser ? Color.white : Color(hex: "1C1C1C"))
         .clipShape(BubbleShape(isUser: isUser))
-        .contextMenu { contextMenuItems }
     }
 
     @ViewBuilder

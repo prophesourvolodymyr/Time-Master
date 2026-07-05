@@ -66,6 +66,7 @@ struct WorkoutDetailView: View {
         .sheet(isPresented: $showingWorkoutSettings) {
             WorkoutSettingsView(workout: $workout, store: store)
         }
+        .onReceive(store.$workouts) { _ in syncWorkout() }
     }
 
     // MARK: - Sub-views

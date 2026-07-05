@@ -30,6 +30,8 @@ struct MainTabView: View {
                 .tag(3)
         }
         .tint(.white)
+        .toolbarBackground(Theme.background, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         // When the widget deep-links to a workout detail, make sure we're on the Workouts tab first.
         .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { _ in
             selectedTab = 0
