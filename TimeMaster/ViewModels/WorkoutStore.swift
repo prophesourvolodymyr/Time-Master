@@ -202,7 +202,7 @@ class WorkoutStore: ObservableObject {
         }
     }
 
-    private func saveRestDays() {
+    func saveRestDays() {
         if let data = try? JSONEncoder().encode(restDays) {
             userDefaults.set(data, forKey: restDaysKey)
         }

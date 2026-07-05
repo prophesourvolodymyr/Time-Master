@@ -19,3 +19,9 @@ For the analytics, we're gonna give a little coloring like a flame called colori
 
 
 by the way in teh datanbase - top of the root folder must have a workout type tag - and the new workout type tag must be created in the settongs - we will stillcraete many more for ple to choose. this is made ot track the types of workputs ple need in analitics. NA ofcorse teh weekly goal set is required(as it si in the code for every workout type). ALso the person can cghose for how long this scredule fo this workout stay - like of the person chose 2 mths of mon-thus-wendnesday work for taht type.
+
+
+
+## AI improvements 
+
+I wnat my AI agents to be able to create the queries in teh database with the info I have send you. for example I don t want to fill up the database manually - I go to my AI chat - upload photos and videos for hit - it moves that photos and videos to folders and craete more folderinga and more foldering. So yes AI can craete folder and fill almost eveyrthing inside of them.

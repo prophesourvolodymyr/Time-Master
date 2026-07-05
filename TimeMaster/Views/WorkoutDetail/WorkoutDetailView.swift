@@ -12,12 +12,11 @@ struct WorkoutDetailView: View {
     @State private var mediaPreviewSection: Section? = nil
 
     let workoutID: UUID
+    @State private var sectionIDs: [UUID] = []
 
     private var workout: Workout {
         store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
     }
-
-    private var sections: [Section] { workout.sections }
 
     init(workout: Workout) {
         workoutID = workout.id
@@ -27,7 +26,7 @@ struct WorkoutDetailView: View {
         ZStack {
             Theme.background.ignoresSafeArea()
 
-            if sections.isEmpty {
+            if workout.sections.isEmpty {
                 emptySectionsView
             } else {
                 VStack(spacing: 0) {
@@ -38,6 +37,8 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(workout.name)
         .navigationBarTitleDisplayMode(.large)
+        .onAppear { sectionIDs = workout.sections.map(\.id) }
+        .onChange(of: workout.sections.count) { _ in sectionIDs = workout.sections.map(\.id) }
         .fullScreenCover(isPresented: $showPlayer) {
             WorkoutPlayerView(workout: workout)
                 .environmentObject(store)
@@ -76,39 +77,59 @@ struct WorkoutDetailView: View {
     // MARK: - Sub-views
 
     private var emptySectionsView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Image(systemName: "list.bullet.clipboard")
                 .font(.system(size: 60))
                 .foregroundColor(Theme.textSecondary)
             Text("No Sections Yet")
                 .font(.title2).fontWeight(.semibold)
                 .foregroundColor(Theme.textPrimary)
-            Text("Tap + to add exercises")
+            Text("Exercises define the structure of your workout.")
                 .font(.subheadline)
                 .foregroundColor(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button {
+                editingSection = nil
+                showingSectionEditor = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add First Exercise")
+                }
+                .font(.headline)
+                .foregroundColor(.black)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(Color.white)
+                .cornerRadius(12)
+            }
+            .padding(.top, 8)
         }
     }
 
     private var sectionList: some View {
         List {
-            ForEach(sections) { section in
-                sectionCell(section)
-                    .listRowBackground(Theme.surface)
-                    .listRowSeparatorTint(Theme.separator)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            sectionToDelete = section
-                            showingDeleteAlert = true
-                        } label: { Label("Delete", systemImage: "trash") }
-                        .tint(.red)
-                    }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        Button {
-                            editingSection = section
-                            showingSectionEditor = true
-                        } label: { Label("Edit", systemImage: "pencil") }
-                        .tint(Color.white.opacity(0.3))
-                    }
+            ForEach(sectionIDs, id: \.self) { id in
+                if let section = workout.sections.first(where: { $0.id == id }) {
+                    sectionCell(section, id: id)
+                        .listRowBackground(Theme.surface)
+                        .listRowSeparatorTint(Theme.separator)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                sectionToDelete = section
+                                showingDeleteAlert = true
+                            } label: { Label("Delete", systemImage: "trash") }
+                            .tint(.red)
+                        }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                editingSection = section
+                                showingSectionEditor = true
+                            } label: { Label("Edit", systemImage: "pencil") }
+                            .tint(Color.white.opacity(0.3))
+                        }
+                }
             }
             .onMove(perform: moveSections)
         }
@@ -117,9 +138,9 @@ struct WorkoutDetailView: View {
     }
 
     @ViewBuilder
-    private func sectionCell(_ section: Section) -> some View {
-        let idx = sections.firstIndex(where: { $0.id == section.id }) ?? 0
-        let isLast = idx == sections.count - 1
+    private func sectionCell(_ section: Section, id: UUID) -> some View {
+        let idx = sectionIDs.firstIndex(of: id) ?? 0
+        let isLast = idx == sectionIDs.count - 1
         VStack(spacing: 0) {
             SectionRow(section: section, onThumbnailTap: section.mediaItems.isEmpty ? nil : {
                 mediaPreviewSection = section
@@ -141,22 +162,27 @@ struct WorkoutDetailView: View {
     private func restBinding(for idx: Int) -> Binding<Int> {
         Binding<Int>(
             get: {
-                let w = workout
-                guard idx < w.sections.count else { return w.restBetweenSections }
-                return w.sections[idx].customRestAfter ?? w.restBetweenSections
+                guard idx < sectionIDs.count,
+                      let id = sectionIDs[safe: idx],
+                      let section = workout.sections.first(where: { $0.id == id })
+                else { return workout.restBetweenSections }
+                return section.customRestAfter ?? workout.restBetweenSections
             },
             set: { newVal in
+                guard idx < sectionIDs.count,
+                      let id = sectionIDs[safe: idx] else { return }
                 var w = workout
-                guard idx < w.sections.count else { return }
-                w.sections[idx].customRestAfter = newVal
-                store.updateWorkout(w)
+                if let sIdx = w.sections.firstIndex(where: { $0.id == id }) {
+                    w.sections[sIdx].customRestAfter = newVal
+                    store.updateWorkout(w)
+                }
             }
         )
     }
 
     @ViewBuilder
     private var startButton: some View {
-        if !sections.isEmpty {
+        if !workout.sections.isEmpty {
             Button { showPlayer = true } label: {
                 HStack {
                     Image(systemName: "play.fill")
@@ -206,7 +232,10 @@ struct WorkoutDetailView: View {
     // MARK: - Helpers
 
     private func moveSections(from source: IndexSet, to destination: Int) {
-        store.reorderSections(in: workout, from: source, to: destination)
+        sectionIDs.move(fromOffsets: source, toOffset: destination)
+        var w = workout
+        w.sections = sectionIDs.compactMap { id in w.sections.first(where: { $0.id == id }) }
+        store.updateWorkout(w)
     }
 
     private func autoSyncExerciseToDatabase(_ section: Section) {

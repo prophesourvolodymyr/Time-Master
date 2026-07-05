@@ -32,21 +32,22 @@ struct Section: Identifiable, Codable, Equatable {
     // Sets
     var sets: Int             // how many times this section repeats (≥ 1)
     var restBetweenSets: Int  // rest between set repetitions; only used when sets > 1
-    // Rest after this section
-    var customRestAfter: Int? // per-section override; nil = use workout.restBetweenSections
+    var prepareTime: Int
+    var customRestAfter: Int?
 
     init(
         id: UUID = UUID(),
         name: String,
         duration: Int = 30,
         isTimerEnabled: Bool = true,
-        photoFilename: String? = nil,    // legacy convenience — kept for backward compat
-        photoFilenames: [String] = [],   // legacy convenience — kept for backward compat
+        photoFilename: String? = nil,
+        photoFilenames: [String] = [],
         mediaItems: [MediaItem] = [],
-        restAfter: Int = 0,              // legacy convenience — kept for backward compat
+        restAfter: Int = 0,
         sets: Int = 1,
         restBetweenSets: Int = 10,
-        customRestAfter: Int? = nil
+        customRestAfter: Int? = nil,
+        prepareTime: Int = 5
     ) {
         self.id = id
         self.name = name
@@ -55,6 +56,7 @@ struct Section: Identifiable, Codable, Equatable {
         self.sets = max(1, sets)
         self.restBetweenSets = max(0, restBetweenSets)
         self.customRestAfter = customRestAfter
+        self.prepareTime = max(0, prepareTime)
         if !mediaItems.isEmpty {
             self.mediaItems = mediaItems
         } else if !photoFilenames.isEmpty {
@@ -70,11 +72,11 @@ struct Section: Identifiable, Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id, name, duration, isTimerEnabled
-        case sets, restBetweenSets, customRestAfter
+        case sets, restBetweenSets, customRestAfter, prepareTime
         case mediaItems
-        case photoFilenames  // legacy — decode only
-        case photoFilename   // legacy — decode only
-        case restAfter       // legacy — decode only → migrates to customRestAfter
+        case photoFilenames
+        case photoFilename
+        case restAfter
     }
 
     init(from decoder: Decoder) throws {
@@ -85,8 +87,8 @@ struct Section: Identifiable, Codable, Equatable {
         isTimerEnabled = try c.decodeIfPresent(Bool.self,   forKey: .isTimerEnabled) ?? true
         sets           = max(1, try c.decodeIfPresent(Int.self, forKey: .sets) ?? 1)
         restBetweenSets = try c.decodeIfPresent(Int.self, forKey: .restBetweenSets) ?? 10
+        prepareTime    = try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 5
 
-        // customRestAfter: new key first, fall back to legacy restAfter
         if let v = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
             customRestAfter = v
         } else if let v = try c.decodeIfPresent(Int.self, forKey: .restAfter), v > 0 {
@@ -116,8 +118,8 @@ struct Section: Identifiable, Codable, Equatable {
         try c.encode(sets,            forKey: .sets)
         try c.encode(restBetweenSets, forKey: .restBetweenSets)
         try c.encodeIfPresent(customRestAfter, forKey: .customRestAfter)
+        try c.encode(prepareTime,     forKey: .prepareTime)
         try c.encode(mediaItems,      forKey: .mediaItems)
-        // legacy keys NOT written
     }
 }
 

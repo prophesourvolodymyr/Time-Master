@@ -569,7 +569,7 @@ private struct CalendarPage: View {
     @State private var selectedDate: Date?
     @State private var showDayInfo = false
     @State private var showYearView = true
-    @State private var showAddSchedule = false
+    @State private var showVacationSheet = false
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
@@ -630,17 +630,17 @@ private struct CalendarPage: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
                         Button {
-                            showAddSchedule = true
+                            showVacationSheet = true
                         } label: {
-                            Image(systemName: "plus.circle")
+                            Image(systemName: "moon.zzz.fill")
                                 .foregroundColor(.white)
                         }
                         Button("Done") { dismiss() }.foregroundColor(.white)
                     }
                 }
             }
-            .sheet(isPresented: $showAddSchedule) {
-                AddScheduleSheet()
+            .sheet(isPresented: $showVacationSheet) {
+                VacationSheet()
             }
             .sheet(isPresented: $showDayInfo) {
                 if let date = selectedDate {
@@ -1126,22 +1126,21 @@ private struct DayInfoSheet: View {
     }
 }
 
-// MARK: - Add Schedule Sheet
+// MARK: - Vacation Sheet
 
-private struct AddScheduleSheet: View {
+private struct VacationSheet: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var store: WorkoutStore
-    @EnvironmentObject var databaseStore: DatabaseStore
 
-    @State private var selectedType: WorkoutType = .strength
-    @State private var selectedDays: Set<Int> = []
-    @State private var durationMonths: Int = 2
-    @State private var weeklyGoal: Int = 4
+    @State private var startMonth: Date = Date()
+    @State private var endMonth: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+    @State private var selectedTypes: Set<WorkoutType> = []
 
-    private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    private let calendar = Calendar.current
 
-    private var existingSchedules: [TypeSchedule] {
-        store.typeSchedules.filter { $0.isActive }
+    private var monthsInRange: Int {
+        let diff = calendar.dateComponents([.month], from: startOfMonth(startMonth), to: startOfMonth(endMonth))
+        return max(1, (diff.month ?? 0) + 1)
     }
 
     var body: some View {
@@ -1150,161 +1149,91 @@ private struct AddScheduleSheet: View {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 22) {
-                        typePicker
-                        daysPicker
-                        durationPicker
-                        goalPicker
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Duration").font(.headline).foregroundColor(Theme.textPrimary)
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("From").font(.caption).foregroundColor(Theme.textSecondary)
+                                    DatePicker("", selection: $startMonth, displayedComponents: .date)
+                                        .labelsHidden().colorScheme(.dark)
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    Text("To").font(.caption).foregroundColor(Theme.textSecondary)
+                                    DatePicker("", selection: $endMonth, displayedComponents: .date)
+                                        .labelsHidden().colorScheme(.dark)
+                                }
+                            }
+                            .padding(14).background(Theme.surface).cornerRadius(10)
 
-                        if !existingSchedules.isEmpty {
-                            existingSchedulesList
+                            Text("\(monthsInRange) month\(monthsInRange == 1 ? "" : "s") selected")
+                                .font(.caption).foregroundColor(Theme.textSecondary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Workout Types").font(.headline).foregroundColor(Theme.textPrimary)
+                            Text("Select which types to pause during vacation.").font(.caption).foregroundColor(Theme.textSecondary)
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                                ForEach(WorkoutType.allCases, id: \.self) { type in
+                                    Button {
+                                        if selectedTypes.contains(type) { selectedTypes.remove(type) }
+                                        else { selectedTypes.insert(type) }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: type.icon).font(.system(size: 11))
+                                            Text(type.rawValue)
+                                        }
+                                        .font(.subheadline.weight(selectedTypes.contains(type) ? .semibold : .regular))
+                                        .foregroundColor(selectedTypes.contains(type) ? .black : .white)
+                                        .padding(.vertical, 10)
+                                        .frame(maxWidth: .infinity)
+                                        .background(selectedTypes.contains(type) ? Color.white : Theme.surface)
+                                        .cornerRadius(8)
+                                    }
+                                }
+                            }
                         }
                     }
                     .padding(16)
                 }
             }
-            .navigationTitle("New Schedule")
+            .navigationTitle("Set Vacation")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") { createSchedule() }
-                        .foregroundColor(selectedDays.isEmpty ? Color.white.opacity(0.3) : .white)
-                        .disabled(selectedDays.isEmpty)
-                }
-            }
-        }
-    }
-
-    private var typePicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Workout Type").font(.headline).foregroundColor(Theme.textPrimary)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(WorkoutType.allCases, id: \.self) { type in
-                    Button {
-                        selectedType = type
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: type.icon).font(.system(size: 11))
-                            Text(type.rawValue)
-                        }
-                        .font(.subheadline.weight(selectedType == type ? .semibold : .regular))
+                    Button("Set Vacation") { applyVacation() }
                         .foregroundColor(.white)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity)
-                        .background(selectedType == type ? Color.white.opacity(0.2) : Theme.surface)
-                        .cornerRadius(8)
-                    }
                 }
             }
         }
     }
 
-    private var daysPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Days").font(.headline).foregroundColor(Theme.textPrimary)
-            HStack(spacing: 6) {
-                ForEach(Array(dayLabels.enumerated()), id: \.offset) { idx, label in
-                    let day = idx + 1
-                    Button {
-                        if selectedDays.contains(day) { selectedDays.remove(day) }
-                        else { selectedDays.insert(day) }
-                    } label: {
-                        Text(label)
-                            .font(.system(size: 11, weight: selectedDays.contains(day) ? .bold : .regular))
-                            .foregroundColor(selectedDays.contains(day) ? .black : .white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 36)
-                            .background(selectedDays.contains(day) ? Color.white : Theme.surface)
-                            .cornerRadius(8)
-                    }
-                }
-            }
+    private func applyVacation() {
+        let start = startOfMonth(startMonth)
+        let end = endOfMonth(endMonth)
+        var current = start
+        let cal = Calendar.current
+        while current <= end {
+            store.restDays.insert(store.dateKey(from: current))
+            guard let next = cal.date(byAdding: .day, value: 1, to: current) else { break }
+            current = next
         }
-    }
-
-    private var durationPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Duration").font(.headline).foregroundColor(Theme.textPrimary)
-            HStack {
-                Text("\(durationMonths) month\(durationMonths == 1 ? "" : "s")")
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundColor(Theme.textPrimary)
-                Spacer()
-                Stepper("", value: $durationMonths, in: 1...12).labelsHidden()
-            }
-            .padding(14)
-            .background(Theme.surface)
-            .cornerRadius(10)
-        }
-    }
-
-    private var goalPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Weekly Goal").font(.headline).foregroundColor(Theme.textPrimary)
-            HStack(spacing: 8) {
-                ForEach(1...7, id: \.self) { n in
-                    Button {
-                        weeklyGoal = n
-                    } label: {
-                        Text("\(n)")
-                            .font(.system(size: 14, weight: weeklyGoal == n ? .bold : .medium))
-                            .foregroundColor(weeklyGoal == n ? .black : .white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 36)
-                            .background(weeklyGoal == n ? Color.white : Theme.surface)
-                            .cornerRadius(8)
-                    }
-                }
-            }
-        }
-    }
-
-    private var existingSchedulesList: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Active Schedules").font(.headline).foregroundColor(Theme.textPrimary)
-            ForEach(existingSchedules) { schedule in
-                HStack {
-                    HStack(spacing: 4) {
-                        Image(systemName: schedule.type.icon).font(.system(size: 11))
-                        Text(schedule.type.rawValue).font(.subheadline.weight(.medium))
-                    }
-                    .foregroundColor(Theme.textPrimary)
-                    Spacer()
-                    Text(daySummary(schedule.daysOfWeek))
-                        .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
-                    Button(role: .destructive) {
-                        store.deleteSchedule(id: schedule.id)
-                    } label: {
-                        Image(systemName: "trash").font(.caption)
-                    }
-                    .padding(.leading, 4)
-                }
-                .padding(.vertical, 6)
-            }
-        }
-    }
-
-    private func daySummary(_ days: Set<Int>) -> String {
-        days.sorted().compactMap { d -> String? in
-            guard d >= 1, d <= 7 else { return nil }
-            return ["M", "T", "W", "T", "F", "S", "S"][d - 1]
-        }.joined(separator: ",")
-    }
-
-    private func createSchedule() {
-        let schedule = TypeSchedule(
-            folderID: UUID(),
-            type: selectedType,
-            daysOfWeek: selectedDays,
-            startDate: Date(),
-            durationMonths: durationMonths,
-            weeklyGoal: weeklyGoal
-        )
-        store.addSchedule(schedule)
+        store.saveRestDays()
         dismiss()
+    }
+
+    private func endOfMonth(_ date: Date) -> Date {
+        guard let nextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth(date)),
+              let lastDay = calendar.date(byAdding: .day, value: -1, to: nextMonth)
+        else { return date }
+        return lastDay
+    }
+
+    private func startOfMonth(_ date: Date) -> Date {
+        calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? date
     }
 }
 

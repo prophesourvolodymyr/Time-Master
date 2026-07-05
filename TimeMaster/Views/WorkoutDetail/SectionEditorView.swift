@@ -15,6 +15,7 @@ struct SectionEditorView: View {
     @State private var duration: Int
     @State private var sets: Int
     @State private var restBetweenSets: Int
+    @State private var prepareTime: Int
     @State private var useCustomRest: Bool
     @State private var customRestAfter: Int
     @State private var mediaItems: [MediaItem]
@@ -36,6 +37,7 @@ struct SectionEditorView: View {
         let cra = section?.customRestAfter
         _useCustomRest    = State(initialValue: cra != nil)
         _customRestAfter  = State(initialValue: cra ?? 30)
+        _prepareTime      = State(initialValue: section?.prepareTime ?? 5)
         _mediaItems       = State(initialValue: section?.mediaItems ?? [])
     }
 
@@ -45,13 +47,14 @@ struct SectionEditorView: View {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 20) {
-                        mediaSection
-                        nameSection
-                        fromDatabaseSection
-                        durationSection
-                        setsSection
-                        if sets > 1 { restBetweenSetsSection }
-                        restAfterSection
+                    mediaSection
+                    nameSection
+                    fromDatabaseSection
+                    durationSection
+                    prepareTimeSection
+                    setsSection
+                    if sets > 1 { restBetweenSetsSection }
+                    restAfterSection
                     }
                     .padding(16)
                 }
@@ -284,6 +287,30 @@ struct SectionEditorView: View {
         }
     }
 
+    // MARK: - Prepare Time
+
+    private var prepareTimeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Prepare Time")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+            Text("Countdown before this exercise starts.")
+                .font(.caption)
+                .foregroundColor(Theme.textSecondary)
+            HStack {
+                Text("\(prepareTime)s")
+                    .font(.title2.monospacedDigit())
+                    .fontWeight(.semibold)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Stepper("", value: $prepareTime, in: 0...30, step: 1).labelsHidden()
+            }
+            .padding(16)
+            .background(Theme.surface)
+            .cornerRadius(12)
+        }
+    }
+
     // MARK: - Sets
 
     private var setsSection: some View {
@@ -428,6 +455,7 @@ struct SectionEditorView: View {
         saved.name            = name
         saved.isTimerEnabled  = isTimerEnabled
         saved.duration        = duration
+        saved.prepareTime     = prepareTime
         saved.sets            = sets
         saved.restBetweenSets = restBetweenSets
         saved.customRestAfter = useCustomRest ? customRestAfter : nil
