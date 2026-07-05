@@ -461,15 +461,13 @@ private struct ActivityHeatmap: View {
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Activity — Last 24 Weeks")
+                    Text("Activity")
                         .font(.headline)
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
-                    legend
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(Theme.textSecondary)
-                        .padding(.leading, 4)
                 }
                 HStack(alignment: .top, spacing: gap + 2) {
                     dayLabelColumn
@@ -483,17 +481,6 @@ private struct ActivityHeatmap: View {
         .buttonStyle(.plain)
         .fullScreenCover(isPresented: $showCalendar) {
             CalendarPage(entries: entries)
-        }
-    }
-
-    private var legend: some View {
-        HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.06)).frame(width: 8, height: 8)
-            RoundedRectangle(cornerRadius: 2).fill(Color(red: 0.1, green: 0.7, blue: 0.35)).frame(width: 8, height: 8)
-            RoundedRectangle(cornerRadius: 2).fill(Color(red: 0.1, green: 0.6, blue: 0.25)).frame(width: 8, height: 8)
-            RoundedRectangle(cornerRadius: 2).fill(Color(red: 0.05, green: 0.45, blue: 0.15)).frame(width: 8, height: 8)
-            RoundedRectangle(cornerRadius: 2).fill(Color.blue.opacity(0.6)).frame(width: 8, height: 8)
-            RoundedRectangle(cornerRadius: 2).fill(Color.red.opacity(0.5)).frame(width: 8, height: 8)
         }
     }
 
@@ -579,9 +566,14 @@ private struct CalendarPage: View {
     @State private var currentMonth: Date = Date()
     @State private var selectedDate: Date?
     @State private var showDayInfo = false
+    @State private var showYearView = true
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
+
+    private var currentYear: Int {
+        calendar.component(.year, from: currentMonth)
+    }
 
     private var monthDays: [Date?] {
         guard let range = calendar.range(of: .day, in: .month, for: currentMonth),
@@ -607,38 +599,31 @@ private struct CalendarPage: View {
                 Theme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    monthHeader
+                    yearNav
 
-                    HStack(spacing: 4) {
-                        ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { label in
-                            Text(label)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(Theme.textSecondary)
-                                .frame(maxWidth: .infinity)
-                        }
+                    if showYearView {
+                        yearOverview
+                    } else {
+                        monthDetail
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 6)
-
-                    LazyVGrid(columns: columns, spacing: 4) {
-                        ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
-                            if let date = date {
-                                dayCell(date)
-                            } else {
-                                Color.clear.frame(height: 48)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 8)
 
                     legendRow
-
-                    Spacer()
+                        .padding(.top, 10)
                 }
             }
             .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            showYearView.toggle()
+                        }
+                    } label: {
+                        Image(systemName: showYearView ? "calendar" : "square.grid.2x2")
+                            .foregroundColor(.white)
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }.foregroundColor(.white)
                 }
@@ -651,37 +636,221 @@ private struct CalendarPage: View {
         }
     }
 
-    private var monthHeader: some View {
+    // MARK: - Year nav
+
+    private var yearNav: some View {
         HStack {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    currentMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
+                    currentMonth = calendar.date(byAdding: .year, value: -1, to: currentMonth) ?? currentMonth
                 }
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.title3.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundColor(.white)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Circle())
             }
 
             Spacer()
-            Text(monthTitle).font(.title3.bold()).foregroundColor(Theme.textPrimary)
+            Text("\(currentYear)")
+                .font(.title2.bold())
+                .foregroundColor(Theme.textPrimary)
             Spacer()
 
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    currentMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
+                    currentMonth = calendar.date(byAdding: .year, value: 1, to: currentMonth) ?? currentMonth
                 }
             } label: {
                 Image(systemName: "chevron.right")
-                    .font(.title3.weight(.semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundColor(.white)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Circle())
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 12)
         .padding(.top, 8)
         .padding(.bottom, 4)
+    }
+
+    // MARK: - Year overview (12-month mini grids)
+
+    private var yearOverview: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                ForEach(1...12, id: \.self) { month in
+                    monthRow(month: month)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func monthRow(month: Int) -> some View {
+        let date = calendar.date(from: DateComponents(year: currentYear, month: month, day: 1))!
+        let monthName: String = {
+            let f = DateFormatter()
+            f.dateFormat = "MMMM"
+            return f.string(from: date)
+        }()
+
+        let workoutDays = workoutDaysInMonth(month: month, year: currentYear)
+        let restDaysCount = restDaysInMonth(month: month, year: currentYear)
+        let missCount = missedDaysInMonth(month: month, year: currentYear)
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                currentMonth = date
+                showYearView = false
+            }
+        } label: {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(monthName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Theme.textPrimary)
+                    HStack(spacing: 8) {
+                        if workoutDays > 0 {
+                            HStack(spacing: 3) {
+                                Circle().fill(Color(red: 0.1, green: 0.6, blue: 0.25)).frame(width: 6, height: 6)
+                                Text("\(workoutDays)").font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                            }
+                        }
+                        if restDaysCount > 0 {
+                            HStack(spacing: 3) {
+                                Circle().fill(Color(red: 0.3, green: 0.55, blue: 0.85)).frame(width: 6, height: 6)
+                                Text("\(restDaysCount)").font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                            }
+                        }
+                        if missCount > 0 {
+                            HStack(spacing: 3) {
+                                Circle().fill(Color.red).frame(width: 6, height: 6)
+                                Text("\(missCount)").font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                            }
+                        }
+                    }
+                }
+                Spacer()
+                miniMonthGrid(month: month)
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundColor(Theme.textSecondary.opacity(0.4))
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(Theme.surface)
+            .cornerRadius(12)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func miniMonthGrid(month: Int) -> some View {
+        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: currentYear, month: month, day: 1))!),
+              let first = calendar.date(from: DateComponents(year: currentYear, month: month, day: 1))
+        else { return AnyView(Color.clear.frame(width: 70, height: 10)) }
+
+        let offset = (calendar.component(.weekday, from: first) + 5) % 7
+        let totalSlots = offset + range.count
+        let rows = (totalSlots + 6) / 7
+
+        return AnyView(
+            VStack(spacing: 1) {
+                ForEach(0..<rows, id: \.self) { row in
+                    HStack(spacing: 1) {
+                        ForEach(0..<7, id: \.self) { col in
+                            let idx = row * 7 + col - offset
+                            if idx >= 0, idx < range.count,
+                               let dayDate = calendar.date(byAdding: .day, value: idx, to: first) {
+                                let isFuture = dayDate > Date()
+                                let isRest = store.isRestDay(dayDate)
+                                let hasWorkout = store.hasWorkout(on: dayDate)
+                                let fill: Color = {
+                                    if isFuture { return Color.white.opacity(0.04) }
+                                    if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.6) }
+                                    if hasWorkout { return Color(red: 0.1, green: 0.6, blue: 0.25) }
+                                    return Color.red.opacity(0.35)
+                                }()
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(fill)
+                                    .frame(width: 7, height: 7)
+                            } else {
+                                Color.clear.frame(width: 7, height: 7)
+                            }
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    // MARK: - Month detail view
+
+    private var monthDetail: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button {
+                    currentMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 36, height: 36)
+                }
+                Spacer()
+                Text(monthTitle).font(.headline).foregroundColor(Theme.textPrimary)
+                Spacer()
+                Button {
+                    currentMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 36, height: 36)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 4)
+
+            HStack(spacing: 4) {
+                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { label in
+                    Text(label)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 12)
+            .padding(.bottom, 6)
+
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
+                    if let date = date {
+                        dayCell(date)
+                    } else {
+                        Color.clear.frame(height: 48)
+                    }
+                }
+            }
+            .padding(.horizontal, 8)
+
+            let workoutDays = workoutDaysInMonth(month: calendar.component(.month, from: currentMonth), year: currentYear)
+            if workoutDays > 0 {
+                HStack {
+                    Text("\(workoutDays) workout\(workoutDays == 1 ? "" : "s") this month")
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+            }
+        }
     }
 
     private func dayCell(_ date: Date) -> some View {
@@ -710,23 +879,24 @@ private struct CalendarPage: View {
                 showDayInfo = true
             }
         } label: {
-            VStack(spacing: 0) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(bg)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(isToday ? Color.white.opacity(0.7) : Color.clear, lineWidth: 1.5)
+                    )
                 Text("\(calendar.component(.day, from: date))")
                     .font(.system(size: 14, weight: isToday ? .bold : .regular))
                     .foregroundColor(isFuture ? Theme.textSecondary.opacity(0.25) : .white)
             }
             .frame(height: 48)
             .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 8).fill(bg)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isToday ? Color.white.opacity(0.7) : Color.clear, lineWidth: 1.5)
-            )
         }
         .disabled(isFuture)
     }
+
+    // MARK: - Legend
 
     private var legendRow: some View {
         HStack(spacing: 18) {
@@ -736,7 +906,7 @@ private struct CalendarPage: View {
         }
         .font(.system(size: 10))
         .foregroundColor(Theme.textSecondary)
-        .padding(.top, 10)
+        .padding(.bottom, 8)
     }
 
     private func legendItem(color: Color, label: String) -> some View {
@@ -746,11 +916,55 @@ private struct CalendarPage: View {
         }
     }
 
+    // MARK: - Stats helpers
+
     private func workoutCount(on date: Date) -> Int {
         let cal = Calendar.current
         let start = cal.startOfDay(for: date)
         guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return 0 }
         return entries.filter { $0.completedAt >= start && $0.completedAt < end }.count
+    }
+
+    private func workoutDaysInMonth(month: Int, year: Int) -> Int {
+        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: year, month: month, day: 1))!),
+              let first = calendar.date(from: DateComponents(year: year, month: month, day: 1))
+        else { return 0 }
+        var count = 0
+        for d in 1...range.count {
+            if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
+               store.hasWorkout(on: date) {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    private func restDaysInMonth(month: Int, year: Int) -> Int {
+        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: year, month: month, day: 1))!),
+              let first = calendar.date(from: DateComponents(year: year, month: month, day: 1))
+        else { return 0 }
+        var count = 0
+        for d in 1...range.count {
+            if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
+               store.isRestDay(date) {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    private func missedDaysInMonth(month: Int, year: Int) -> Int {
+        guard let range = calendar.range(of: .day, in: .month, for: calendar.date(from: DateComponents(year: year, month: month, day: 1))!),
+              let first = calendar.date(from: DateComponents(year: year, month: month, day: 1))
+        else { return 0 }
+        var count = 0
+        for d in 1...range.count {
+            if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
+               !store.isRestDay(date), !store.hasWorkout(on: date), date <= Date() {
+                count += 1
+            }
+        }
+        return count
     }
 }
 
