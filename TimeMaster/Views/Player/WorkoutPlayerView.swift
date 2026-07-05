@@ -47,6 +47,17 @@ struct WorkoutPlayerView: View {
     @State private var videoPlayer: AVQueuePlayer?
     @State private var videoLooper: AVPlayerLooper?
 
+    // F03-B: Media overlay & rest adjustment
+    @State private var showMediaOverlay = false
+    @State private var overlayMediaItem: MediaItem?
+    @State private var overlayImage: UIImage?
+    @State private var restExtensionTotal = 0
+    @State private var restExtensionFlash = false
+    @State private var restExtensionText = ""
+    @State private var showRestPicker = false
+    @State private var nextSectionMedia: [MediaItem] = []
+    @State private var nextSectionImages: [UIImage?] = []
+
     // MARK: - Computed
 
     private var currentSection: Section? {
@@ -92,6 +103,11 @@ struct WorkoutPlayerView: View {
                 Button("Stop", role: .destructive) { stopWorkout() }
             } message: {
                 Text("Your progress will be lost.")
+            }
+            .overlay {
+                if showMediaOverlay, let item = overlayMediaItem {
+                    mediaOverlayView(item: item)
+                }
             }
     }
 
@@ -343,11 +359,20 @@ struct WorkoutPlayerView: View {
             if item.type == .video, let player = videoPlayer {
                 VideoPlayer(player: player)
                     .frame(width: 260, height: 260)
+                    .onTapGesture {
+                        overlayMediaItem = item
+                        showMediaOverlay = true
+                    }
             } else if let outer = mediaImages[safe: currentMediaIndex], let img = outer {
                 Image(uiImage: img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 260, height: 260)
+                    .onTapGesture {
+                        overlayMediaItem = item
+                        overlayImage = img
+                        showMediaOverlay = true
+                    }
             }
         }
     }
@@ -419,7 +444,7 @@ struct WorkoutPlayerView: View {
 
             Spacer()
 
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 Text(isSetRest ? "REST BETWEEN SETS" : "REST")
                     .font(.system(size: 12, weight: .semibold))
                     .tracking(5)
@@ -427,38 +452,45 @@ struct WorkoutPlayerView: View {
 
                 restContextLabel
 
+            if !restExtensionText.isEmpty {
+                Text(restExtensionText)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+            }
+
                 Text(formatTime(timeRemaining))
                     .font(.system(size: 84, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .contentShape(Rectangle())
+                    .contextMenu { restPickerMenu }
 
                 pausePlayButton.padding(.top, 4)
 
+                nextSectionPreview
+
                 HStack(spacing: 12) {
+                    restAdjustButton(seconds: 15)
+                    restAdjustButton(seconds: 30)
+
                     Button { skipRest() } label: {
                         Text("Skip Rest")
                             .font(.headline)
                             .foregroundColor(.black)
-                            .frame(width: 140, height: 48)
+                            .frame(width: 100, height: 48)
                             .background(Color.white)
                             .cornerRadius(14)
                     }
-                    Button { timeRemaining += extraRestSeconds } label: {
-                        Text("+\(extraRestSeconds)s")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(width: 84, height: 48)
-                            .background(Color.white.opacity(0.15))
-                            .cornerRadius(14)
-                    }
                 }
-                .padding(.top, 8)
+                .padding(.top, 6)
             }
 
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { restExtensionTotal = 0 }
     }
 
     @ViewBuilder
@@ -475,6 +507,86 @@ struct WorkoutPlayerView: View {
                 .foregroundColor(.white.opacity(0.65))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
+        }
+    }
+
+    @ViewBuilder
+    private var nextSectionPreview: some View {
+        if isSectionRest, currentSectionIndex + 1 < workout.sections.count {
+            let nextSection = workout.sections[currentSectionIndex + 1]
+            if let firstItem = nextSection.mediaItems.first,
+               let idx = nextSectionImages.firstIndex(where: { $0 != nil }),
+               let img = nextSectionImages[idx] {
+                Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 200, height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.black.opacity(0.35))
+                    )
+                    .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
+                    .opacity(0.5)
+                    .onTapGesture {
+                        overlayMediaItem = firstItem
+                        overlayImage = img
+                        showMediaOverlay = true
+                    }
+            } else if nextSection.mediaItems.isEmpty {
+                VStack(spacing: 6) {
+                    Image(systemName: "flag.checkered")
+                        .font(.system(size: 32))
+                        .foregroundColor(.white.opacity(0.3))
+                    Text("Workout Almost Done")
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textSecondary)
+                }
+                .frame(width: 200, height: 200)
+                .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.05)))
+            }
+        }
+    }
+
+    private var restPickerMenu: some View {
+        Group {
+            Button { extendRest(by: 15) } label: {
+                Label("+15 seconds", systemImage: "plus")
+            }
+            Button { extendRest(by: 30) } label: {
+                Label("+30 seconds", systemImage: "plus")
+            }
+            Button { extendRest(by: 60) } label: {
+                Label("+60 seconds", systemImage: "plus")
+            }
+        }
+    }
+
+    private func restAdjustButton(seconds: Int) -> some View {
+        let canExtend = restExtensionTotal + seconds <= 120
+        return Button { extendRest(by: seconds) } label: {
+            Text("+\(seconds)s")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(canExtend ? .white : Color.white.opacity(0.25))
+                .frame(width: 84, height: 44)
+                .background(canExtend ? Color.white.opacity(0.15) : Color.white.opacity(0.06))
+                .clipShape(Capsule())
+        }
+        .disabled(!canExtend)
+    }
+
+    private func extendRest(by seconds: Int) {
+        guard restExtensionTotal + seconds <= 120 else { return }
+        restExtensionTotal += seconds
+        timeRemaining += seconds
+        restExtensionText = "+\(seconds) seconds"
+        withAnimation(.easeInOut(duration: 0.3)) {
+            restExtensionFlash = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                restExtensionText = ""
+            }
         }
     }
 
@@ -728,6 +840,7 @@ struct WorkoutPlayerView: View {
             if restDuration > 0 && hasNextSection {
                 isSectionRest = true
                 timeRemaining = restDuration
+                preloadNextSectionMedia()
                 AudioManager.shared.speak("Rest")
                 startTimer()
             } else {
@@ -935,6 +1048,71 @@ struct WorkoutPlayerView: View {
         UIApplication.shared.endBackgroundTask(backgroundTaskID)
         backgroundTaskID = .invalid
     }
+
+    // MARK: - F03-B: Media Overlay
+
+    @ViewBuilder
+    private func mediaOverlayView(item: MediaItem) -> some View {
+        ZStack {
+            Color.black.opacity(0.95).ignoresSafeArea()
+
+            if item.type == .photo, let img = overlayImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if item.type == .video {
+                let url = PhotoManager.shared.videoURL(for: item.filename)
+                if FileManager.default.fileExists(atPath: url.path) {
+                    OverlayVideoPlayerView(url: url)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Text(formatTime(timeRemaining))
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.black.opacity(0.5))
+                        .clipShape(Capsule())
+                        .padding(.top, 12)
+                        .padding(.trailing, 12)
+                }
+                Spacer()
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeOut(duration: 0.3)) {
+                showMediaOverlay = false
+                overlayMediaItem = nil
+                overlayImage = nil
+            }
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        .animation(.easeOut(duration: 0.3), value: showMediaOverlay)
+    }
+
+    private func preloadNextSectionMedia() {
+        guard currentSectionIndex + 1 < workout.sections.count else { return }
+        let nextSection = workout.sections[currentSectionIndex + 1]
+        let items = nextSection.mediaItems
+        nextSectionMedia = items
+        nextSectionImages = Array(repeating: nil, count: items.count)
+        Task.detached {
+            var images: [UIImage?] = []
+            for item in items {
+                images.append(PhotoManager.shared.thumbnail(for: item))
+            }
+            await MainActor.run {
+                self.nextSectionImages = images
+            }
+        }
+    }
 }
 
 // MARK: - Confetti
@@ -1032,6 +1210,51 @@ private struct ConfettiView: View {
             particles = (0..<120).map { _ in
                 ConfettiParticle.random(screenWidth: UIScreen.main.bounds.width)
             }
+        }
+    }
+}
+
+// MARK: - F03-B: Overlay Video Player
+
+private struct OverlayVideoPlayerView: View {
+    let url: URL
+    @State private var player: AVPlayer?
+    @State private var loopObserver: NSObjectProtocol?
+
+    var body: some View {
+        ZStack {
+            if let p = player {
+                VideoPlayer(player: p)
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                ProgressView().tint(.white)
+            }
+        }
+        .onAppear { setupPlayer() }
+        .onDisappear { teardown() }
+    }
+
+    private func setupPlayer() {
+        let p = AVPlayer(url: url)
+        p.play()
+        let obs = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: p.currentItem,
+            queue: .main
+        ) { _ in
+            p.seek(to: .zero)
+            p.play()
+        }
+        player = p
+        loopObserver = obs
+    }
+
+    private func teardown() {
+        player?.pause()
+        player = nil
+        if let obs = loopObserver {
+            NotificationCenter.default.removeObserver(obs)
+            loopObserver = nil
         }
     }
 }
