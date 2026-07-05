@@ -19,12 +19,18 @@ class WorkoutStore: ObservableObject {
     @Published var typeSchedules: [TypeSchedule] = []
     @Published var customWorkoutTypes: [WorkoutType] = []
 
+    // MARK: - Training Schedule (global)
+    @Published var trainingDays: Set<Int> = []
+    @Published var trainingStartDate: Date = Date()
+    @Published var trainingDurationMonths: Int = 3
+
     init() {
         loadWorkouts()
         loadHistory()
         loadRestDays()
         loadSchedules()
         loadCustomTypes()
+        loadTrainingSchedule()
         loadGoal()
         if workouts.isEmpty {
             seedDefaultWorkouts()   // saveWorkouts() is called inside seed
@@ -243,6 +249,11 @@ class WorkoutStore: ObservableObject {
         let weekday = cal.component(.weekday, from: date)
         let monBased = (weekday + 5) % 7 + 1
         let dayStart = cal.startOfDay(for: date)
+        if trainingDays.contains(monBased),
+           dayStart >= cal.startOfDay(for: trainingStartDate),
+           dayStart <= trainingEndDate {
+            return true
+        }
         for schedule in typeSchedules where schedule.isActive {
             if schedule.daysOfWeek.contains(monBased),
                dayStart >= cal.startOfDay(for: schedule.startDate) {
@@ -250,6 +261,10 @@ class WorkoutStore: ObservableObject {
             }
         }
         return false
+    }
+
+    private var trainingEndDate: Date {
+        Calendar.current.date(byAdding: .month, value: trainingDurationMonths, to: trainingStartDate) ?? trainingStartDate
     }
 
     func scheduledTypes(for date: Date) -> [WorkoutType] {
@@ -338,6 +353,29 @@ class WorkoutStore: ObservableObject {
         if let data = try? JSONEncoder().encode(customWorkoutTypes) {
             userDefaults.set(data, forKey: customTypesKey)
         }
+    }
+
+    private let trainingDaysKey = "training_days"
+    private let trainingStartKey = "training_start_date"
+    private let trainingDurationKey = "training_duration_months"
+
+    func saveTrainingSchedule() {
+        if let data = try? JSONEncoder().encode(Array(trainingDays)) {
+            userDefaults.set(data, forKey: trainingDaysKey)
+        }
+        userDefaults.set(trainingStartDate.timeIntervalSince1970, forKey: trainingStartKey)
+        userDefaults.set(trainingDurationMonths, forKey: trainingDurationKey)
+    }
+
+    private func loadTrainingSchedule() {
+        if let data = userDefaults.data(forKey: trainingDaysKey),
+           let days = try? JSONDecoder().decode([Int].self, from: data) {
+            trainingDays = Set(days)
+        }
+        let ts = userDefaults.double(forKey: trainingStartKey)
+        if ts > 0 { trainingStartDate = Date(timeIntervalSince1970: ts) }
+        let dur = userDefaults.integer(forKey: trainingDurationKey)
+        if dur > 0 { trainingDurationMonths = dur }
     }
 
     func streakInfo() -> (current: Int, best: Int) {

@@ -36,9 +36,7 @@ struct AnalyticsView: View {
     @EnvironmentObject var store: WorkoutStore
     @StateObject private var goalsManager = GoalsManager.shared
     @State private var selectedType: WorkoutType? = nil
-    @State private var showingGoalEditor = false
     @State private var showingClearAlert = false
-    @State private var promptDraft: Int = 4
 
     private var filteredEntries: [WorkoutHistoryEntry] {
         guard let type = selectedType else { return store.historyEntries }
@@ -57,27 +55,19 @@ struct AnalyticsView: View {
                 VStack(spacing: 0) {
                     typePicker
                     Divider().background(Theme.separator)
-                    if let type = selectedType, currentGoal == 0 {
-                        GoalPromptView(
-                            typeName: type.name,
-                            draft: $promptDraft
-                        ) {
-                            goalsManager.setGoal(promptDraft, for: type)
-                        }
-            } else {
-                analyticsScroll
+                    analyticsScroll
+                }
             }
-        }
-    }
-    .navigationTitle("Analytics")
-    .navigationBarTitleDisplayMode(.inline)
-    .toolbar { analyticsToolbar }
-    .sheet(isPresented: $showingGoalEditor) {
-        if let type = selectedType {
-            GoalEditorSheet(
-                typeName: type.name,
-                        currentGoal: currentGoal
-                    ) { goalsManager.setGoal($0, for: type) }
+            .navigationTitle("Analytics")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if !store.historyEntries.isEmpty {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button { showingClearAlert = true } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(Color.white.opacity(0.45))
+                        }
+                    }
                 }
             }
             .alert("Clear History?", isPresented: $showingClearAlert) {
@@ -102,7 +92,6 @@ struct AnalyticsView: View {
                         selected: selectedType == type
                     ) {
                         selectedType = type
-                        promptDraft = max(goalsManager.goal(for: type), 1)
                     }
                 }
             }
@@ -132,29 +121,6 @@ struct AnalyticsView: View {
         }
     }
 
-    // MARK: Toolbar
-
-    @ToolbarContentBuilder
-    private var analyticsToolbar: some ToolbarContent {
-        if let type = selectedType, currentGoal > 0 {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button { showingGoalEditor = true } label: {
-                    Text("Goal: \(currentGoal)×/wk")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(Color.white.opacity(0.55))
-                }
-            }
-        }
-        if !store.historyEntries.isEmpty {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button { showingClearAlert = true } label: {
-                    Image(systemName: "trash")
-                        .foregroundColor(Color.white.opacity(0.45))
-                }
-            }
-        }
-    }
-
     // MARK: Scroll content
 
     private var analyticsScroll: some View {
@@ -169,134 +135,11 @@ struct AnalyticsView: View {
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
                 StreakCard()
+                TrainingScheduleCard()
                 ActivityHeatmap(entries: filteredEntries)
                 HistoryListSection(entries: filteredEntries, store: store)
             }
             .padding(16)
-        }
-    }
-}
-
-// MARK: - GoalPromptView
-
-private struct GoalPromptView: View {
-    let typeName: String
-    @Binding var draft: Int
-    let onSet: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            VStack(spacing: 28) {
-                VStack(spacing: 12) {
-                    Image(systemName: "target")
-                        .font(.system(size: 64))
-                        .foregroundColor(Color.white.opacity(0.85))
-                    Text("Set \(typeName) Goal")
-                        .font(.title2.bold())
-                        .foregroundColor(Theme.textPrimary)
-                    Text("How many \(typeName) sessions per week?")
-                        .font(.subheadline)
-                        .foregroundColor(Theme.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                HStack(spacing: 10) {
-                    ForEach(1...7, id: \.self) { n in
-                        goalCircle(n: n, selected: draft == n) { draft = n }
-                    }
-                }
-                Text(draft == 1 ? "Once a week" : "\(draft) times a week")
-                    .font(.subheadline)
-                    .foregroundColor(Theme.textSecondary)
-                Button(action: onSet) {
-                    Text("Set Goal")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(16)
-                        .background(Color.white)
-                        .cornerRadius(14)
-                }
-            }
-            .padding(.horizontal, 32)
-            Spacer()
-        }
-    }
-
-    private func goalCircle(n: Int, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text("\(n)")
-                .font(.title3.bold())
-                .foregroundColor(selected ? .black : .white)
-                .frame(width: 42, height: 42)
-                .background(selected ? Color.white : Color.white.opacity(0.12))
-                .clipShape(Circle())
-        }
-    }
-}
-
-// MARK: - GoalEditorSheet
-
-private struct GoalEditorSheet: View {
-    @Environment(\.dismiss) var dismiss
-    let typeName: String
-    let currentGoal: Int
-    let onSave: (Int) -> Void
-    @State private var draft: Int
-
-    init(typeName: String, currentGoal: Int, onSave: @escaping (Int) -> Void) {
-        self.typeName = typeName
-        self.currentGoal = currentGoal
-        self.onSave = onSave
-        _draft = State(initialValue: max(currentGoal, 1))
-    }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                VStack(spacing: 32) {
-                    Spacer()
-                    VStack(spacing: 16) {
-                        Image(systemName: "target")
-                            .font(.system(size: 48))
-                            .foregroundColor(Color.white.opacity(0.8))
-                        Text("\(typeName) Weekly Goal")
-                            .font(.title3.bold())
-                            .foregroundColor(Theme.textPrimary)
-                        Text("How many sessions per week?")
-                            .font(.subheadline)
-                            .foregroundColor(Theme.textSecondary)
-                    }
-                    HStack(spacing: 10) {
-                        ForEach(1...7, id: \.self) { n in
-                            Button { draft = n } label: {
-                                Text("\(n)")
-                                    .font(.title3.bold())
-                                    .foregroundColor(draft == n ? .black : .white)
-                                    .frame(width: 42, height: 42)
-                                    .background(draft == n ? Color.white : Color.white.opacity(0.12))
-                                    .clipShape(Circle())
-                            }
-                        }
-                    }
-                    Text(draft == 1 ? "Once a week" : "\(draft) times a week")
-                        .font(.subheadline)
-                        .foregroundColor(Theme.textSecondary)
-                    Spacer()
-                }
-                .padding(32)
-            }
-            .navigationTitle("Edit Goal")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSave(draft); dismiss() }.foregroundColor(.white)
-                }
-            }
         }
     }
 }
@@ -436,6 +279,64 @@ private struct StreakCard: View {
             Text(label).font(.caption).foregroundColor(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Training Schedule Card
+
+private struct TrainingScheduleCard: View {
+    @EnvironmentObject var store: WorkoutStore
+
+    private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Weekly Schedule")
+                    .font(.headline)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Text("\(store.trainingDurationMonths) mo")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(Theme.textSecondary)
+            }
+
+            HStack(spacing: 6) {
+                ForEach(Array(dayLabels.enumerated()), id: \.offset) { idx, label in
+                    let day = idx + 1
+                    let isActive = store.trainingDays.contains(day)
+                    Button {
+                        if isActive { store.trainingDays.remove(day) }
+                        else { store.trainingDays.insert(day) }
+                        store.saveTrainingSchedule()
+                    } label: {
+                        Text(label)
+                            .font(.system(size: 12, weight: isActive ? .bold : .medium))
+                            .foregroundColor(isActive ? .black : .white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 36)
+                            .background(isActive ? Color.white : Theme.surface)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+
+            HStack {
+                Text("Duration")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+                Spacer()
+                Stepper(value: $store.trainingDurationMonths, in: 1...12) {
+                    Text("\(store.trainingDurationMonths) month\(store.trainingDurationMonths == 1 ? "" : "s")")
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(Theme.textPrimary)
+                }
+                .onChange(of: store.trainingDurationMonths) { _ in store.saveTrainingSchedule() }
+            }
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(16)
     }
 }
 
