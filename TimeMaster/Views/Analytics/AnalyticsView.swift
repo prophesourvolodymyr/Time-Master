@@ -126,7 +126,10 @@ struct AnalyticsView: View {
     private var analyticsScroll: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 20) {
-                if let type = selectedType {
+                if let type = selectedType, currentGoal == 0 {
+                    inlineGoalSetter(for: type)
+                }
+                if let type = selectedType, currentGoal > 0 {
                     WeeklyGoalCard(
                         entries: filteredEntries,
                         goal: currentGoal,
@@ -141,6 +144,44 @@ struct AnalyticsView: View {
             }
             .padding(16)
         }
+    }
+
+    private func inlineGoalSetter(for type: WorkoutType) -> some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: type.iconName)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(type.colorHex == "FFFFFF" ? .black : .white)
+                    .frame(width: 34, height: 34)
+                    .background(Color(hex: type.colorHex))
+                    .cornerRadius(8)
+                Text("Set your weekly goal for \(type.name)")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textSecondary)
+                Spacer()
+            }
+            HStack(spacing: 8) {
+                ForEach(1...7, id: \.self) { n in
+                    Button {
+                        goalsManager.setGoal(n, for: type)
+                    } label: {
+                        Text("\(n)")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(Theme.surface)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+            Text("You can also set goals in Settings → Workout Types.")
+                .font(.caption2)
+                .foregroundColor(Theme.textSecondary.opacity(0.5))
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(16)
     }
 }
 

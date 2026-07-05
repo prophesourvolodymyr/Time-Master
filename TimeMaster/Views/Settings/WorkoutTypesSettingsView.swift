@@ -2,7 +2,9 @@ import SwiftUI
 
 struct WorkoutTypesSettingsView: View {
     @EnvironmentObject var store: WorkoutStore
+    @StateObject private var goals = GoalsManager.shared
     @State private var showAddSheet = false
+    @State private var goalEditType: WorkoutType?
 
     var body: some View {
         ZStack {
@@ -10,7 +12,7 @@ struct WorkoutTypesSettingsView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     builtInGrid
-                    if !store.customWorkoutTypes.isEmpty || showAddSheet {
+                    if !store.customWorkoutTypes.isEmpty {
                         customGrid
                     }
                     createButton
@@ -24,6 +26,9 @@ struct WorkoutTypesSettingsView: View {
                 store.addCustomType(name: name, iconName: icon, colorHex: color)
                 showAddSheet = false
             }
+        }
+        .sheet(item: $goalEditType) { type in
+            TypeGoalSheet(type: type)
         }
     }
 
@@ -65,22 +70,40 @@ struct WorkoutTypesSettingsView: View {
     }
 
     private func typeCard(_ type: WorkoutType) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: type.iconName)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(type.colorHex == "FFFFFF" ? .black : .white)
-                .frame(width: 38, height: 38)
-                .background(Color(hex: type.colorHex))
-                .cornerRadius(10)
-            Text(type.name)
-                .font(.subheadline.weight(.medium))
-                .foregroundColor(Theme.textPrimary)
-                .lineLimit(1)
-            Spacer(minLength: 0)
+        let goal = goals.goal(for: type)
+        return Button {
+            goalEditType = type
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: type.iconName)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(type.colorHex == "FFFFFF" ? .black : .white)
+                    .frame(width: 38, height: 38)
+                    .background(Color(hex: type.colorHex))
+                    .cornerRadius(10)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(type.name)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(1)
+                    if goal > 0 {
+                        Text("\(goal)×/week")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                }
+                Spacer(minLength: 0)
+                if goal == 0 {
+                    Text("Set goal")
+                        .font(.system(size: 9))
+                        .foregroundColor(Theme.textSecondary.opacity(0.6))
+                }
+            }
+            .padding(10)
+            .background(Theme.surface)
+            .cornerRadius(12)
         }
-        .padding(10)
-        .background(Theme.surface)
-        .cornerRadius(12)
+        .buttonStyle(.plain)
     }
 
     // MARK: - Create button
@@ -223,6 +246,83 @@ private struct TypeEditorSheet: View {
                             .background(selectedIcon == icon ? Color.white : Theme.surface)
                             .cornerRadius(10)
                     }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Type Goal Sheet
+
+private struct TypeGoalSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let type: WorkoutType
+    @State private var draft: Int
+
+    init(type: WorkoutType) {
+        self.type = type
+        _draft = State(initialValue: max(GoalsManager.shared.goal(for: type), 1))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                VStack(spacing: 30) {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        Image(systemName: type.iconName)
+                            .font(.system(size: 48))
+                            .foregroundColor(Color(hex: type.colorHex))
+                            .frame(width: 80, height: 80)
+                            .background(Color(hex: type.colorHex).opacity(0.15))
+                            .cornerRadius(20)
+                        Text(type.name)
+                            .font(.title2.bold())
+                            .foregroundColor(Theme.textPrimary)
+                    }
+                    VStack(spacing: 10) {
+                        Text("Weekly Goal")
+                            .font(.headline)
+                            .foregroundColor(Theme.textSecondary)
+                        HStack(spacing: 8) {
+                            ForEach(1...7, id: \.self) { n in
+                                Button { draft = n } label: {
+                                    Text("\(n)")
+                                        .font(.title3.weight(draft == n ? .bold : .medium))
+                                        .foregroundColor(draft == n ? .black : .white)
+                                        .frame(width: 44, height: 44)
+                                        .background(draft == n ? Color.white : Theme.surface)
+                                        .cornerRadius(10)
+                                }
+                            }
+                        }
+                        Text(draft == 1 ? "Once a week" : "\(draft) times a week")
+                            .font(.subheadline)
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    Spacer()
+                    Button {
+                        GoalsManager.shared.setGoal(draft, for: type)
+                        dismiss()
+                    } label: {
+                        Text("Save Goal")
+                            .font(.headline)
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.white)
+                            .cornerRadius(14)
+                    }
+                    .padding(.horizontal, 24)
+                }
+                .padding(32)
+            }
+            .navigationTitle("Edit Goal")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.white)
                 }
             }
         }
