@@ -169,7 +169,6 @@ struct AnalyticsView: View {
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
                 StreakCard()
-                WeeklyGoalSection()
                 ActivityHeatmap(entries: filteredEntries)
                 HistoryListSection(entries: filteredEntries, store: store)
             }
@@ -440,121 +439,58 @@ private struct StreakCard: View {
     }
 }
 
-// MARK: - F04-A: Weekly Goal Section
-
-private struct WeeklyGoalSection: View {
-    @EnvironmentObject var store: WorkoutStore
-    @State private var goalDraft: Int
-
-    init() {
-        _goalDraft = State(initialValue: UserDefaults.standard.integer(forKey: "workout_weekly_goal_saved") > 0
-            ? UserDefaults.standard.integer(forKey: "workout_weekly_goal_saved") : 4)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Weekly Workout Goal")
-                    .font(.headline)
-                    .foregroundColor(Theme.textPrimary)
-                Spacer()
-                Text("\(goalDraft) days/week")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.15))
-                    .cornerRadius(8)
-            }
-
-            HStack(spacing: 8) {
-                ForEach(3...7, id: \.self) { n in
-                    Button {
-                        goalDraft = n
-                        store.setWeeklyGoal(n)
-                    } label: {
-                        Text("\(n)")
-                            .font(.system(size: 15, weight: goalDraft == n ? .bold : .medium))
-                            .foregroundColor(goalDraft == n ? .black : .white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .background(goalDraft == n ? Color.white : Color.white.opacity(0.1))
-                            .cornerRadius(10)
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .background(Theme.surface)
-        .cornerRadius(16)
-    }
-}
-
 // MARK: - ActivityHeatmap
 
 private struct ActivityHeatmap: View {
     @EnvironmentObject var store: WorkoutStore
     let entries: [WorkoutHistoryEntry]
+    @State private var showCalendar = false
 
     private let weeksCount = 24
     private let gap: CGFloat = 3
     private let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
     @State private var cellSize: CGFloat = 18
-    @State private var selectedDate: Date?
-    @State private var showDayInfo = false
-    @State private var showSchedulePicker = false
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: gap), count: weeksCount)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Activity — Last 24 Weeks")
-                    .font(.headline)
-                    .foregroundColor(Theme.textPrimary)
-                Spacer()
-                legend
-                Button {
-                    showSchedulePicker = true
-                } label: {
-                    Image(systemName: "calendar.badge.plus")
+        Button {
+            showCalendar = true
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Activity — Last 24 Weeks")
+                        .font(.headline)
+                        .foregroundColor(Theme.textPrimary)
+                    Spacer()
+                    legend
+                    Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 32, height: 32)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
+                        .foregroundColor(Theme.textSecondary)
+                        .padding(.leading, 4)
                 }
-                .padding(.leading, 8)
+                HStack(alignment: .top, spacing: gap + 2) {
+                    dayLabelColumn
+                    heatmapGrid
+                }
             }
-            HStack(alignment: .top, spacing: gap + 2) {
-                dayLabelColumn
-                stretchingGrid
-            }
+            .padding(16)
+            .background(Theme.surface)
+            .cornerRadius(16)
         }
-        .padding(16)
-        .background(Theme.surface)
-        .cornerRadius(16)
-        .sheet(isPresented: $showDayInfo) {
-            if let date = selectedDate {
-                DayInfoSheet(date: date, entries: entries)
-            }
-        }
-        .sheet(isPresented: $showSchedulePicker) {
-            SchedulePickerSheet()
+        .buttonStyle(.plain)
+        .fullScreenCover(isPresented: $showCalendar) {
+            CalendarPage(entries: entries)
         }
     }
 
     private var legend: some View {
-        HStack(spacing: 5) {
-            Text("Less").font(.system(size: 7)).foregroundColor(Theme.textSecondary)
-            ForEach(0..<4) { i in
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(activityColor(count: i))
-                    .frame(width: 8, height: 8)
-            }
-            Text("More").font(.system(size: 7)).foregroundColor(Theme.textSecondary)
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.08)).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.35)).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(Color.white).frame(width: 8, height: 8)
             RoundedRectangle(cornerRadius: 2).fill(Color.blue.opacity(0.6)).frame(width: 8, height: 8)
             RoundedRectangle(cornerRadius: 2).fill(Color.red.opacity(0.5)).frame(width: 8, height: 8)
         }
@@ -571,7 +507,7 @@ private struct ActivityHeatmap: View {
         }
     }
 
-    private var stretchingGrid: some View {
+    private var heatmapGrid: some View {
         LazyVGrid(columns: columns, spacing: gap) {
             ForEach(0..<(7 * weeksCount), id: \.self) { idx in
                 let w = idx % weeksCount
@@ -579,47 +515,12 @@ private struct ActivityHeatmap: View {
                 let date = dateFor(week: w, day: d)
                 let isFuture = date > Date()
                 let isRest = store.isRestDay(date)
-                let isScheduled = store.isScheduledDay(date)
                 let hasWorkout = store.hasWorkout(on: date)
                 let count = isFuture ? 0 : workoutCount(on: date)
-                let isMissedDay = !isFuture && !isRest && isScheduled && count == 0
 
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(cellBackground(
-                        isFuture: isFuture,
-                        isRest: isRest,
-                        isMissed: isMissedDay,
-                        hasWorkout: hasWorkout,
-                        count: count
-                    ))
+                    .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasWorkout, count: count))
                     .aspectRatio(1, contentMode: .fit)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if !isFuture {
-                            selectedDate = date
-                            showDayInfo = true
-                        }
-                    }
-                    .contextMenu {
-                        if !isFuture {
-                            Button {
-                                store.toggleRestDay(for: date)
-                            } label: {
-                                Label(
-                                    store.isRestDay(date) ? "Remove Rest Day" : "Mark as Rest Day",
-                                    systemImage: "moon.zzz"
-                                )
-                            }
-                            Button {
-                                store.toggleScheduledDay(for: date)
-                            } label: {
-                                Label(
-                                    store.isScheduledDay(date) ? "Remove Scheduled Day" : "Mark as Workout Day",
-                                    systemImage: "calendar.badge.plus"
-                                )
-                            }
-                        }
-                    }
             }
         }
         .background(
@@ -653,46 +554,42 @@ private struct ActivityHeatmap: View {
         return entries.filter { $0.completedAt >= start && $0.completedAt < end }.count
     }
 
-    private func activityColor(count: Int) -> Color {
-        switch count {
-        case 0: return Color.white.opacity(0.08)
-        case 1: return Color.white.opacity(0.35)
-        case 2: return Color.white.opacity(0.65)
-        default: return Color.white
-        }
-    }
-
-    private func cellBackground(isFuture: Bool, isRest: Bool, isMissed: Bool, hasWorkout: Bool, count: Int) -> Color {
+    private func cellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int) -> Color {
         if isFuture { return Color.white.opacity(0.03) }
         if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
-        if isMissed { return Color.red.opacity(0.5) }
-        if hasWorkout { return activityColor(count: count) }
-        return Color.white.opacity(0.06)
+        if hasWorkout {
+            switch count {
+            case 1: return Color.white.opacity(0.35)
+            case 2: return Color.white.opacity(0.65)
+            default: return Color.white
+            }
+        }
+        return Color.red.opacity(0.4)
     }
 }
 
-// MARK: - Schedule Picker Sheet
+// MARK: - Calendar Page
 
-private struct SchedulePickerSheet: View {
+private struct CalendarPage: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var store: WorkoutStore
+    let entries: [WorkoutHistoryEntry]
+
     @State private var currentMonth: Date = Date()
+    @State private var selectedDate: Date?
+    @State private var showDayInfo = false
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
 
     private var monthDays: [Date?] {
         guard let range = calendar.range(of: .day, in: .month, for: currentMonth),
-              let firstOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))
+              let first = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))
         else { return [] }
-
-        let firstWeekday = calendar.component(.weekday, from: firstOfMonth)
-        let offset = (firstWeekday + 5) % 7
-
+        let offset = (calendar.component(.weekday, from: first) + 5) % 7
         var days: [Date?] = Array(repeating: nil, count: offset)
-        for day in 1...range.count {
-            let date = calendar.date(byAdding: .day, value: day - 1, to: firstOfMonth)!
-            days.append(date)
+        for d in 1...range.count {
+            days.append(calendar.date(byAdding: .day, value: d - 1, to: first)!)
         }
         return days
     }
@@ -709,40 +606,7 @@ private struct SchedulePickerSheet: View {
                 Theme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    HStack {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                currentMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
-                            }
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.title3.weight(.semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 40, height: 40)
-                        }
-
-                        Spacer()
-
-                        Text(monthTitle)
-                            .font(.title3.bold())
-                            .foregroundColor(Theme.textPrimary)
-
-                        Spacer()
-
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                currentMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
-                            }
-                        } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.title3.weight(.semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 40, height: 40)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
+                    monthHeader
 
                     HStack(spacing: 4) {
                         ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { label in
@@ -758,98 +622,134 @@ private struct SchedulePickerSheet: View {
                     LazyVGrid(columns: columns, spacing: 4) {
                         ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
                             if let date = date {
-                                scheduleDayCell(date)
+                                dayCell(date)
                             } else {
-                                Color.clear.frame(height: 44)
+                                Color.clear.frame(height: 48)
                             }
                         }
                     }
                     .padding(.horizontal, 8)
 
+                    legendRow
+
                     Spacer()
-
-                    VStack(spacing: 8) {
-                        HStack(spacing: 16) {
-                            legendDot(color: .white, label: "Workout done")
-                            legendDot(color: Color(red: 0.3, green: 0.55, blue: 0.85), label: "Rest day")
-                            legendDot(color: .red, label: "Missed")
-                        }
-                        .font(.system(size: 10))
-                        .foregroundColor(Theme.textSecondary)
-
-                        Text("Tap a day to toggle it as a scheduled workout day.")
-                            .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.bottom, 16)
                 }
             }
-            .navigationTitle("Schedule Workout Days")
+            .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }.foregroundColor(.white)
                 }
             }
+            .sheet(isPresented: $showDayInfo) {
+                if let date = selectedDate {
+                    DayInfoSheet(date: date, entries: entries)
+                }
+            }
         }
     }
 
-    private func scheduleDayCell(_ date: Date) -> some View {
+    private var monthHeader: some View {
+        HStack {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    currentMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+            }
+
+            Spacer()
+            Text(monthTitle).font(.title3.bold()).foregroundColor(Theme.textPrimary)
+            Spacer()
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    currentMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
+                }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
+
+    private func dayCell(_ date: Date) -> some View {
         let isFuture = date > Date()
         let isToday = calendar.isDate(date, inSameDayAs: Date())
-        let isScheduled = store.isScheduledDay(date)
         let isRest = store.isRestDay(date)
         let hasWorkout = store.hasWorkout(on: date)
+        let count = workoutCount(on: date)
 
-        let bgColor: Color = {
+        let bg: Color = {
             if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
-            if hasWorkout { return Color.white.opacity(0.4) }
-            if isScheduled { return Color.white.opacity(0.15) }
+            if hasWorkout {
+                switch count {
+                case 1: return Color.white.opacity(0.35)
+                case 2: return Color.white.opacity(0.65)
+                default: return Color.white.opacity(0.9)
+                }
+            }
+            if !isFuture { return Color.red.opacity(0.35) }
             return Color.clear
         }()
 
         return Button {
-            guard !isRest else { return }
-            store.toggleScheduledDay(for: date)
+            if !isFuture {
+                selectedDate = date
+                showDayInfo = true
+            }
         } label: {
             VStack(spacing: 0) {
                 Text("\(calendar.component(.day, from: date))")
                     .font(.system(size: 14, weight: isToday ? .bold : .regular))
-                    .foregroundColor(
-                        isFuture ? Theme.textSecondary.opacity(0.3)
-                        : isRest ? Color(red: 0.3, green: 0.55, blue: 0.85)
-                        : hasWorkout ? .white
-                        : isScheduled ? .white
-                        : Theme.textPrimary.opacity(0.7)
-                    )
+                    .foregroundColor(isFuture ? Theme.textSecondary.opacity(0.25) : .white)
             }
-            .frame(height: 44)
+            .frame(height: 48)
             .frame(maxWidth: .infinity)
             .background(
+                RoundedRectangle(cornerRadius: 8).fill(bg)
+            )
+            .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(bgColor)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(
-                                isScheduled ? Color.white.opacity(0.5) : Color.clear,
-                                lineWidth: isToday ? 2 : 1.5
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isToday ? Color.white.opacity(0.8) : Color.clear, lineWidth: 1.5)
-                    )
+                    .stroke(isToday ? Color.white.opacity(0.7) : Color.clear, lineWidth: 1.5)
             )
         }
         .disabled(isFuture)
     }
 
-    private func legendDot(color: Color, label: String) -> some View {
+    private var legendRow: some View {
+        HStack(spacing: 18) {
+            legendItem(color: Color.white.opacity(0.5), label: "Workout")
+            legendItem(color: Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5), label: "Rest day")
+            legendItem(color: Color.red.opacity(0.35), label: "Missed")
+        }
+        .font(.system(size: 10))
+        .foregroundColor(Theme.textSecondary)
+        .padding(.top, 10)
+    }
+
+    private func legendItem(color: Color, label: String) -> some View {
         HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
             Text(label)
         }
+    }
+
+    private func workoutCount(on date: Date) -> Int {
+        let cal = Calendar.current
+        let start = cal.startOfDay(for: date)
+        guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return 0 }
+        return entries.filter { $0.completedAt >= start && $0.completedAt < end }.count
     }
 }
 
@@ -869,12 +769,10 @@ private struct DayInfoSheet: View {
     }
 
     private var totalMinutes: Int {
-        dayEntries.reduce(0) { $0 + $1.elapsedSeconds } / 60
+        dayEntries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) } / 60
     }
 
     private var isRest: Bool { store.isRestDay(date) }
-    private var isScheduled: Bool { store.isScheduledDay(date) }
-    private var isMissed: Bool { !isRest && isScheduled && dayEntries.isEmpty }
 
     var body: some View {
         NavigationStack {
@@ -891,31 +789,13 @@ private struct DayInfoSheet: View {
                             statChip(value: "\(totalMinutes)m", label: "total time")
                         }
 
-                        HStack(spacing: 10) {
-                            if isRest {
-                                Label("Rest Day", systemImage: "moon.zzz.fill")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(Color(red: 0.3, green: 0.55, blue: 0.85))
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.15))
-                                    .cornerRadius(6)
-                            }
-                            if isScheduled && !isRest {
-                                Label("Planned", systemImage: "calendar")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(Color.white.opacity(0.1))
-                                    .cornerRadius(6)
-                            }
-                            if isMissed {
-                                Label("Missed", systemImage: "xmark.circle")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.red)
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(Color.red.opacity(0.15))
-                                    .cornerRadius(6)
-                            }
+                        if isRest {
+                            Label("Rest Day", systemImage: "moon.zzz.fill")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(Color(red: 0.3, green: 0.55, blue: 0.85))
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.15))
+                                .cornerRadius(6)
                         }
                     }
                     .padding(.top, 24)
@@ -929,7 +809,7 @@ private struct DayInfoSheet: View {
                             Image(systemName: isRest ? "moon.zzz" : "figure.walk")
                                 .font(.system(size: 40))
                                 .foregroundColor(Theme.textSecondary)
-                            Text(isRest ? "Rest day." : isScheduled ? "No workout logged." : "No workouts logged.")
+                            Text(isRest ? "Rest day — no workout." : "No workout logged.")
                                 .font(.subheadline)
                                 .foregroundColor(Theme.textSecondary)
                         }
@@ -951,27 +831,13 @@ private struct DayInfoSheet: View {
                         } label: {
                             Label(
                                 isRest ? "Remove Rest Day" : "Mark as Rest Day",
-                                systemImage: "moon.zzz"
+                                systemImage: isRest ? "moon.zzz.fill" : "moon.zzz"
                             )
                             .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(isRest ? Color.blue.opacity(0.2) : Color.white.opacity(0.1))
-                            .cornerRadius(14)
-                        }
-                        Button {
-                            store.toggleScheduledDay(for: date)
-                        } label: {
-                            Label(
-                                isScheduled ? "Remove Scheduled Day" : "Mark as Workout Day",
-                                systemImage: isScheduled ? "calendar.badge.minus" : "calendar.badge.plus"
-                            )
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(isScheduled ? Color.white.opacity(0.15) : Color.white.opacity(0.08))
                             .cornerRadius(14)
                         }
                     }

@@ -11,18 +11,15 @@ class WorkoutStore: ObservableObject {
     private let historyKey = "workout_history"
     private let restDaysKey = "workout_rest_days"
     private let goalKey = "workout_weekly_goal"
-    private let scheduledDaysKey = "workout_scheduled_days"
     private let userDefaults = UserDefaults.standard
 
     @AppStorage("workout_weekly_goal") var weeklyGoal: Int = 4
     @Published var restDays: Set<String> = []
-    @Published var scheduledWorkoutDays: Set<String> = []
 
     init() {
         loadWorkouts()
         loadHistory()
         loadRestDays()
-        loadScheduledDays()
         loadGoal()
         if workouts.isEmpty {
             seedDefaultWorkouts()   // saveWorkouts() is called inside seed
@@ -208,19 +205,6 @@ class WorkoutStore: ObservableObject {
         }
     }
 
-    private func loadScheduledDays() {
-        if let data = userDefaults.data(forKey: scheduledDaysKey),
-           let days = try? JSONDecoder().decode(Set<String>.self, from: data) {
-            scheduledWorkoutDays = days
-        }
-    }
-
-    private func saveScheduledDays() {
-        if let data = try? JSONEncoder().encode(scheduledWorkoutDays) {
-            userDefaults.set(data, forKey: scheduledDaysKey)
-        }
-    }
-
     private func loadGoal() {
         if let data = userDefaults.data(forKey: goalKey),
            let goal = try? JSONDecoder().decode(Int.self, from: data) {
@@ -241,21 +225,7 @@ class WorkoutStore: ObservableObject {
             restDays.remove(key)
         } else {
             restDays.insert(key)
-            scheduledWorkoutDays.remove(key)
         }
-        saveRestDays()
-        saveScheduledDays()
-    }
-
-    func toggleScheduledDay(for date: Date) {
-        let key = dateKey(from: date)
-        if scheduledWorkoutDays.contains(key) {
-            scheduledWorkoutDays.remove(key)
-        } else {
-            scheduledWorkoutDays.insert(key)
-            restDays.remove(key)
-        }
-        saveScheduledDays()
         saveRestDays()
     }
 
@@ -263,14 +233,9 @@ class WorkoutStore: ObservableObject {
         restDays.contains(dateKey(from: date))
     }
 
-    func isScheduledDay(_ date: Date) -> Bool {
-        scheduledWorkoutDays.contains(dateKey(from: date))
-    }
-
     func hasWorkout(on date: Date) -> Bool {
         let cal = Calendar.current
         let start = cal.startOfDay(for: date)
-        let key = dateKey(from: date)
         return historyEntries.contains { cal.isDate($0.completedAt, inSameDayAs: start) }
     }
 
