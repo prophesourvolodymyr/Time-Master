@@ -3,7 +3,6 @@ import PhotosUI
 
 struct WorkoutDetailView: View {
     @EnvironmentObject var store: WorkoutStore
-    @State private var workout: Workout
     @State private var showingSectionEditor = false
     @State private var editingSection: Section?
     @State private var showingDeleteAlert = false
@@ -12,15 +11,23 @@ struct WorkoutDetailView: View {
     @State private var showingWorkoutSettings = false
     @State private var mediaPreviewSection: Section? = nil
 
+    let workoutID: UUID
+
+    private var workout: Workout {
+        store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
+    }
+
+    private var sections: [Section] { workout.sections }
+
     init(workout: Workout) {
-        _workout = State(initialValue: workout)
+        workoutID = workout.id
     }
 
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
 
-            if workout.sections.isEmpty {
+            if sections.isEmpty {
                 emptySectionsView
             } else {
                 VStack(spacing: 0) {
@@ -43,7 +50,6 @@ struct WorkoutDetailView: View {
                 } else {
                     store.addSection(to: workout, section: savedSection)
                 }
-                syncWorkout()
                 autoSyncExerciseToDatabase(savedSection)
             }
             .environmentObject(DatabaseStore.shared)
@@ -53,7 +59,6 @@ struct WorkoutDetailView: View {
             Button("Delete", role: .destructive) {
                 if let section = sectionToDelete {
                     store.deleteSection(in: workout, section: section)
-                    syncWorkout()
                 }
                 sectionToDelete = nil
             }
@@ -64,9 +69,8 @@ struct WorkoutDetailView: View {
             MediaPreviewSheet(items: section.mediaItems)
         }
         .sheet(isPresented: $showingWorkoutSettings) {
-            WorkoutSettingsView(workout: $workout, store: store)
+            WorkoutSettingsView(workoutID: workoutID, store: store)
         }
-        .onReceive(store.$workouts) { _ in syncWorkout() }
     }
 
     // MARK: - Sub-views
@@ -87,7 +91,7 @@ struct WorkoutDetailView: View {
 
     private var sectionList: some View {
         List {
-            ForEach(workout.sections) { section in
+            ForEach(sections) { section in
                 sectionCell(section)
                     .listRowBackground(Theme.surface)
                     .listRowSeparatorTint(Theme.separator)
@@ -114,8 +118,8 @@ struct WorkoutDetailView: View {
 
     @ViewBuilder
     private func sectionCell(_ section: Section) -> some View {
-        let idx = workout.sections.firstIndex(where: { $0.id == section.id }) ?? 0
-        let isLast = idx == workout.sections.count - 1
+        let idx = sections.firstIndex(where: { $0.id == section.id }) ?? 0
+        let isLast = idx == sections.count - 1
         VStack(spacing: 0) {
             SectionRow(section: section, onThumbnailTap: section.mediaItems.isEmpty ? nil : {
                 mediaPreviewSection = section
@@ -137,20 +141,22 @@ struct WorkoutDetailView: View {
     private func restBinding(for idx: Int) -> Binding<Int> {
         Binding<Int>(
             get: {
-                guard idx < workout.sections.count else { return workout.restBetweenSections }
-                return workout.sections[idx].customRestAfter ?? workout.restBetweenSections
+                let w = workout
+                guard idx < w.sections.count else { return w.restBetweenSections }
+                return w.sections[idx].customRestAfter ?? w.restBetweenSections
             },
             set: { newVal in
-                guard idx < workout.sections.count else { return }
-                workout.sections[idx].customRestAfter = newVal
-                store.updateWorkout(workout)
+                var w = workout
+                guard idx < w.sections.count else { return }
+                w.sections[idx].customRestAfter = newVal
+                store.updateWorkout(w)
             }
         )
     }
 
     @ViewBuilder
     private var startButton: some View {
-        if !workout.sections.isEmpty {
+        if !sections.isEmpty {
             Button { showPlayer = true } label: {
                 HStack {
                     Image(systemName: "play.fill")
@@ -199,15 +205,8 @@ struct WorkoutDetailView: View {
 
     // MARK: - Helpers
 
-    private func syncWorkout() {
-        if let index = store.workouts.firstIndex(where: { $0.id == workout.id }) {
-            workout = store.workouts[index]
-        }
-    }
-
     private func moveSections(from source: IndexSet, to destination: Int) {
         store.reorderSections(in: workout, from: source, to: destination)
-        syncWorkout()
     }
 
     private func autoSyncExerciseToDatabase(_ section: Section) {
@@ -283,28 +282,33 @@ private struct RestSeparatorRow: View {
 
 private struct WorkoutSettingsView: View {
     @Environment(\.dismiss) var dismiss
-    @Binding var workout: Workout
-    @ObservedObject var store: WorkoutStore
+    @EnvironmentObject var store: WorkoutStore
     @ObservedObject var musicManager = MusicManager.shared
+
+    let workoutID: UUID
 
     @State private var restBetweenSections: Int
     @State private var colorHex: String
     @State private var selectedTrackIndices: Set<Int>
 
-    init(workout: Binding<Workout>, store: WorkoutStore) {
-        _workout = workout
-        _store = ObservedObject(wrappedValue: store)
-        _restBetweenSections = State(initialValue: workout.wrappedValue.restBetweenSections)
-        _colorHex = State(initialValue: workout.wrappedValue.colorHex)
+    init(workoutID: UUID, store: WorkoutStore) {
+        self.workoutID = workoutID
+        let w = store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
+        _restBetweenSections = State(initialValue: w.restBetweenSections)
+        _colorHex = State(initialValue: w.colorHex)
         _selectedTrackIndices = State(initialValue: {
             var set = Set<Int>()
-            for filename in workout.wrappedValue.musicTrackFilenames {
+            for filename in w.musicTrackFilenames {
                 if let idx = MusicManager.shared.trackFilenames.firstIndex(of: filename) {
                     set.insert(idx)
                 }
             }
             return set
         }())
+    }
+
+    private var workout: Workout {
+        store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
     }
 
     var body: some View {
@@ -437,12 +441,13 @@ private struct WorkoutSettingsView: View {
     }
 
     private func saveSettings() {
-        workout.restBetweenSections = restBetweenSections
-        workout.colorHex = colorHex
-        workout.musicTrackFilenames = selectedTrackIndices.sorted().map {
+        var w = workout
+        w.restBetweenSections = restBetweenSections
+        w.colorHex = colorHex
+        w.musicTrackFilenames = selectedTrackIndices.sorted().map {
             musicManager.trackFilenames[$0]
         }
-        store.updateWorkout(workout)
+        store.updateWorkout(w)
         dismiss()
     }
 }
