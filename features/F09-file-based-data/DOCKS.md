@@ -30,7 +30,8 @@ Converts the entire app data layer from UserDefaults JSON blobs to a transparent
 ├── Config/
 ├── History/
 ├── Music/
-└── Backups/
+├── Backups/
+└── .trash/                    ← soft-deleted items, recoverable
 
 App Layer:
   iOS app ───┐
@@ -49,6 +50,7 @@ AI Layer:
 - **Every folder is self-describing** — a `manifest.json` in any folder is a complete object
 - **AI never touches filesystem** — only calls tools defined in `schema.json`, routed through `TimeMasterCore`
 - **Workspace/** is a free zone — AI can create/delete anything there, app ignores it
+- **Never-lose-data** — deletions go to `.trash/`, AI writes require approval gate, auto-backup before AI sessions
 
 ## Files
 - `TimeMasterCore/` (new Swift package) — all validation, reading, writing

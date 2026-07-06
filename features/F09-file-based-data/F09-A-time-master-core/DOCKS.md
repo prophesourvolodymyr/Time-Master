@@ -49,12 +49,42 @@ TimeMasterCore/
 | `importMedia(from:)` | Copies file to `Media/`, returns UUID filename |
 | `migrate(from:)` | Converts old UserDefaults data to new structure |
 
+## AI Safety — Never-Lose-Data Architecture
+
+The AI can modify the database, but it cannot permanently destroy anything.
+
+### 1. `.trash/` Folder — Soft Delete Only
+- `deleteExercise(id)` moves folder to `.trash/{timestamp}-{id}/` — never actually deletes
+- `updateExercise(id, ...)` saves old manifest as `.trash/{timestamp}-{id}/previous-manifest.json`
+- Trash files age out after 30 days (configurable), then auto-purged
+- User can browse `.trash/` in Finder or restore from the app
+
+### 2. Approval Gate (for AI Writes)
+- AI emits a write tool call → app shows a preview card:
+  ```
+  "Create exercise: Wall Walk in Handstand folder"
+  [Preview: name, duration, type, media...]
+  [Approve] [Edit] [Reject]
+  ```
+- Read-only tool calls (search, list, get) execute immediately — no gate
+- User can toggle "auto-approve" per session for power users
+
+### 3. Auto-Backup Before AI Session
+- When AI Coach session starts → zip the entire data directory → save to `Backups/auto-{timestamp}.zip`
+- If anything goes wrong: Settings → Backups → restore the auto-backup
+- Keeps last 10 auto-backups, rotates older ones
+
+### 4. CLI Mode Safety
+- `timemaster-tool` runs in `--readonly` by default unless `--write` flag passed
+- `--write` flag shows warning: "This will modify your database. Snapshot saved to Backups/."
+
 ## Validation Rules
 - Every `manifest.json` must have required fields per `schema.json`
 - Exercise IDs must not collide with existing folders
 - Media references must point to files that exist in `Media/`
 - Workout sections must reference valid exercise IDs
 - External folders (not matching any schema) are skipped — never error
+- All destructive operations write to `.trash/` before executing
 
 ## Files
 - `TimeMasterCore/` (new Swift Package)
