@@ -56,5 +56,5 @@ F01-F08 (done) → F09 → {F09-A → F09-B → F09-C → F09-D}
 ```
 
 ## _archive/
-- SPEC.md — original spec (superseded by genesis/)
-- PROVIDER_SYSTEM_SKILL.md — architectural pattern reference
+- SPEC.md — original V1 spec from pre-documentation era (superseded by genesis/ORIGINAL IDEA.md + features/DOCKS.md)
+- PROVIDER_SYSTEM_SKILL.md — AI provider plug-in pattern (reference, not a feature doc)
