@@ -4,7 +4,10 @@ Multi-provider AI chat assistant for exercise naming, workout suggestions, and c
 
 ## Sub-Features
 - [x] **F06-A** — Text Selection (hold to select partial text, not just copy all)
-- [ ] **F06-B** — AI Database Creation (AI creates pages/folders from uploaded media)
+- [ ] **F06-B** — AI Database Creation via tool-calling (depends on F09-D)
+
+## ⚠️ F09 Migration Note
+F06-B is superseded by F09-D (AI Tool Calling). The AI will create/query exercises through structured function calls via TimeMasterCore, not by writing files directly. Knowledge injection from F09-B replaces hardcoded system prompts.
 
 ## What We Build
 - AICoachView: chat interface with message bubbles, reply/copy/attach actions

@@ -2,8 +2,12 @@
 
 Foundation data models, persistence stores, photo management, and design tokens for the entire app.
 
-## V2 Sub-Features
-- [ ] **F01-A** — Unified Page Model (ExercisePage replaces Folder/Exercise/TrayItem)
+## V2 / Migration
+- [ ] **F01-A** — Migrate models from UserDefaults to file-based manifests (after F09-A TimeMasterCore is built)
+- [ ] **F01-B** — Unified Page Model (ExercisePage replaces Folder/Exercise/TrayItem, Cycle 6)
+
+## ⚠️ F09 Migration Note
+When F09-A is built, WorkoutStore and DatabaseStore will be replaced by TimeMasterCore.DatabaseManager. Existing data will be migrated via MigrationManager. All model structs (Workout, Section, Exercise, etc.) will get file-based counterparts with the same field names for backward compatibility.
 
 ## What We Build
 - Workout/Section/WorkoutHistory Swift structs (Codable)

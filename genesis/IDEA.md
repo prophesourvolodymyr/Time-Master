@@ -26,6 +26,21 @@ by the way in teh datanbase - top of the root folder must have a workout type ta
 
 I wnat my AI agents to be able to create the queries in teh database with the info I have send you. for example I don t want to fill up the database manually - I go to my AI chat - upload photos and videos for hit - it moves that photos and videos to folders and craete more folderinga and more foldering. So yes AI can craete folder and fill almost eveyrthing inside of them.
 
+And this comes the very big part we're gonna prort the timemaster application on my Mac and all the data inside of it will be accessible for AI to modify move around and adjust which is adding an exercise adjusting and exercise exercises and everything is local and super organized. I don't know how we gonna exactly do that but I believe it's easy.
+
+So the MacBook application will be absolutely the same as my iPhone one, but it just should be for the Mac. 
+
+So I can, for example, hook up and AIDI to the folder in which which my app owns an operate on under and my AI agent can move things around at things and other with the skills that we're gonna make for it. 
+
+So there should be a big data logic revolution in our app. 
+
+### AI research knowladge.
+
+So inside of the directory taht Our app creates for troring the videos photos and data ataht AI can move around in - there I also wnat to add a layer of AI reserach knowladge - this will be the basically system prompt of our knowwladge of fitness taht my AI gonna read after starting any session with me, this is basically a folder where I will be placing docks.
+
+And for the directory of our app - I can craete any file tehre but we should make a structure so the AI dont break anything and the things are clear. 
+
+The thing is if we later implement the same between our iPhone and Mac the AI we are chatting with inside of the app actually does have an access to this folder where it can work with them, but they Sync layer will be implemented layert - we need to make it work on one machine - mac. 
 
 ## WOrkout page
 
