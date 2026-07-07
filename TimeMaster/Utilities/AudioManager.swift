@@ -1,24 +1,17 @@
 import Foundation
 import AVFoundation
+#if os(iOS)
 import AudioToolbox
+#endif
 
-/// Singleton that owns both system-sound beeps and TTS speech synthesis.
-/// Audio session is configured at init time AND re-activated on interruption end
-/// so the synthesizer stays alive throughout a workout.
 final class AudioManager {
     static let shared = AudioManager()
 
-    // Synthesizer is created FIRST; the session is configured afterwards so iOS 16+
-    // properly attaches the synthesizer to the application audio session.
     private let synthesizer = AVSpeechSynthesizer()
 
     private init() {
-        // Configure and activate the shared session AFTER creating the synthesizer.
-        // On iOS 16+, AVSpeechSynthesizer uses the application audio session, but
-        // the binding only works reliably when the synthesizer exists first.
+        #if os(iOS)
         configureSession()
-
-        // Re-activate after any audio interruption (phone call, Siri, etc.)
         NotificationCenter.default.addObserver(
             forName: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance(),
@@ -32,46 +25,44 @@ final class AudioManager {
             else { return }
             self.configureSession()
         }
+        #endif
     }
 
-    // MARK: - Session
-
+    #if os(iOS)
     private func configureSession() {
+        #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(
             .playback, mode: .default, options: [.mixWithOthers]
         )
         try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
     }
 
-    /// Explicitly (re-)activates the audio session. Call from WorkoutPlayerView.onAppear.
     func activateSession() {
         configureSession()
     }
+    #else
+    func activateSession() {}
+    #endif
 
-    // MARK: - Beeps
-
-    /// Countdown tick at 3, 2, 1 seconds.
     func playCountdownBeep() {
+        #if os(iOS)
         AudioServicesPlaySystemSound(1057)
+        #endif
     }
 
     func playFinishSound() {
+        #if os(iOS)
         AudioServicesPlaySystemSound(1016)
+        #endif
     }
-
-    // MARK: - Speech
 
     func speak(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-
-        // Stop any current speech before queuing a new utterance.
-        // Do NOT call setActive here — toggling the session mid-synthesis
-        // can silently abort the utterance on iOS 17+.
         if synthesizer.isSpeaking {
             synthesizer.stopSpeaking(at: .immediate)
         }
-
         let utterance = AVSpeechUtterance(string: trimmed)
         utterance.rate   = AVSpeechUtteranceDefaultSpeechRate
         utterance.voice  = AVSpeechSynthesisVoice(language: "en-US")

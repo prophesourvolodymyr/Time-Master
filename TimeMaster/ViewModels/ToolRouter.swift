@@ -250,7 +250,7 @@ final class ToolRouter {
             "totalDuration": manifest.totalDuration,
             "message": "Workout '\(name)' created with \(sections.count) sections.",
         ]
-        let jsonData = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        let jsonData = try JSONSerialization.data(withJSONObject: buildResult, options: [.prettyPrinted, .sortedKeys])
         return String(data: jsonData, encoding: .utf8) ?? "{}"
     }
 

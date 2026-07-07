@@ -18,11 +18,23 @@ struct MusicSettingsView: View {
                 volumeSection
                 tracksSection
             }
-            .listStyle(.insetGrouped)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.listStyle(.insetGrouped)
+#endif
+#endif
+#endif
             .scrollContentBackground(.hidden)
         }
         .navigationTitle("Background Music")
-        .navigationBarTitleDisplayMode(.inline)
+        #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
         .fileImporter(
             isPresented: $showFilePicker,
             allowedContentTypes: [UTType.audio, UTType.mp3, UTType.mpeg4Audio],

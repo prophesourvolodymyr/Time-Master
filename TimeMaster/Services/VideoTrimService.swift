@@ -1,5 +1,9 @@
 import AVFoundation
+#if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 // MARK: - VideoTrimService
 
@@ -35,6 +39,7 @@ struct VideoTrimService {
     }
 
     /// Generate a thumbnail for the asset at the given time (seconds).
+    #if os(iOS)
     static func thumbnail(asset: AVURLAsset, at time: Double) async -> UIImage? {
         let gen = AVAssetImageGenerator(asset: asset)
         gen.appliesPreferredTrackTransform = true
@@ -48,4 +53,19 @@ struct VideoTrimService {
             return nil
         }
     }
+    #elseif os(macOS)
+    static func thumbnail(asset: AVURLAsset, at time: Double) async -> NSImage? {
+        let gen = AVAssetImageGenerator(asset: asset)
+        gen.appliesPreferredTrackTransform = true
+        gen.maximumSize = CGSize(width: 400, height: 400)
+        let cmTime = CMTime(seconds: time, preferredTimescale: 600)
+        do {
+            let (cgImage, _) = try await gen.image(at: cmTime)
+            return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        } catch {
+            print("VideoTrimService thumbnail error: \(error)")
+            return nil
+        }
+    }
+    #endif
 }

@@ -1,5 +1,9 @@
 import Foundation
+#if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 import AVFoundation
 
 class PhotoManager {
@@ -16,7 +20,6 @@ class PhotoManager {
         documentsDirectory.appendingPathComponent("Photos")
     }
 
-    /// Public access for BackupManager to enumerate / copy files.
     var photosDirectoryURL: URL { photosDirectory }
 
     private func createPhotosDirectoryIfNeeded() {
@@ -27,9 +30,23 @@ class PhotoManager {
 
     // MARK: - Photos
 
+    #if os(iOS)
     func savePhoto(_ image: UIImage) -> String? {
         guard let data = image.jpegData(compressionQuality: 0.8) else { return nil }
-        let filename = UUID().uuidString + ".jpg"
+        return writePhotoData(data, ext: "jpg")
+    }
+    #elseif os(macOS)
+    func savePhoto(_ image: NSImage) -> String? {
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.8])
+        else { return nil }
+        return writePhotoData(jpegData, ext: "jpg")
+    }
+    #endif
+
+    private func writePhotoData(_ data: Data, ext: String) -> String? {
+        let filename = UUID().uuidString + "." + ext
         let fileURL = photosDirectory.appendingPathComponent(filename)
         do {
             try data.write(to: fileURL)
@@ -40,11 +57,19 @@ class PhotoManager {
         }
     }
 
+    #if os(iOS)
     func loadPhoto(filename: String) -> UIImage? {
         let fileURL = photosDirectory.appendingPathComponent(filename)
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
         return UIImage(data: data)
     }
+    #elseif os(macOS)
+    func loadPhoto(filename: String) -> NSImage? {
+        let fileURL = photosDirectory.appendingPathComponent(filename)
+        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+        return NSImage(data: data)
+    }
+    #endif
 
     func deletePhoto(filename: String) {
         let fileURL = photosDirectory.appendingPathComponent(filename)
@@ -57,7 +82,6 @@ class PhotoManager {
 
     // MARK: - Videos
 
-    /// Copy video from a temporary URL into the app's Photos directory.
     func saveVideo(from tempURL: URL) -> String? {
         let ext = tempURL.pathExtension.isEmpty ? "mov" : tempURL.pathExtension
         let filename = UUID().uuidString + "." + ext
@@ -78,7 +102,7 @@ class PhotoManager {
         photosDirectory.appendingPathComponent(filename)
     }
 
-    /// Synchronously generate a thumbnail from the first frame of a saved video.
+    #if os(iOS)
     func thumbnailForVideo(filename: String) -> UIImage? {
         let url = videoURL(for: filename)
         guard fileManager.fileExists(atPath: url.path) else { return nil }
@@ -90,20 +114,40 @@ class PhotoManager {
         guard let cgImage = try? gen.copyCGImage(at: time, actualTime: nil) else { return nil }
         return UIImage(cgImage: cgImage)
     }
+    #elseif os(macOS)
+    func thumbnailForVideo(filename: String) -> NSImage? {
+        let url = videoURL(for: filename)
+        guard fileManager.fileExists(atPath: url.path) else { return nil }
+        let asset = AVURLAsset(url: url)
+        let gen = AVAssetImageGenerator(asset: asset)
+        gen.appliesPreferredTrackTransform = true
+        gen.maximumSize = CGSize(width: 400, height: 400)
+        let time = CMTimeMake(value: 0, timescale: 1)
+        guard let cgImage = try? gen.copyCGImage(at: time, actualTime: nil) else { return nil }
+        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+    }
+    #endif
 
     // MARK: - Generic Media
 
-    /// Delete any media file (photo or video) by filename.
     func deleteMedia(filename: String) {
         let fileURL = photosDirectory.appendingPathComponent(filename)
         try? fileManager.removeItem(at: fileURL)
     }
 
-    /// Load a thumbnail UIImage for any MediaItem (photo → full image, video → first frame).
+    #if os(iOS)
     func thumbnail(for item: MediaItem) -> UIImage? {
         switch item.type {
         case .photo: return loadPhoto(filename: item.filename)
         case .video: return thumbnailForVideo(filename: item.filename)
         }
     }
+    #elseif os(macOS)
+    func thumbnail(for item: MediaItem) -> NSImage? {
+        switch item.type {
+        case .photo: return loadPhoto(filename: item.filename)
+        case .video: return thumbnailForVideo(filename: item.filename)
+        }
+    }
+    #endif
 }

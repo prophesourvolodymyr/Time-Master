@@ -33,13 +33,21 @@ struct BackupView: View {
             }
         }
         .navigationTitle("Backup & Transfer")
-        .navigationBarTitleDisplayMode(.inline)
+        #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
         // Share sheet for export
+        #if os(iOS)
         .sheet(isPresented: $showShareSheet) {
             if let url = exportURL {
                 ShareSheet(activityItems: [url])
             }
         }
+        #endif
         // File picker for import
         .fileImporter(
             isPresented: $showFilePicker,
@@ -282,6 +290,7 @@ struct BackupView: View {
 
 // MARK: - ShareSheet wrapper
 
+#if os(iOS)
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
@@ -291,6 +300,7 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
+#endif
 
 #Preview {
     NavigationStack {

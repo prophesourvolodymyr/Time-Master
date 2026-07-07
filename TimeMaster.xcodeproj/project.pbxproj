@@ -62,6 +62,63 @@
 		DD0001DD0001DD0001DD0011 /* TimeMasterWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001DD0001DD0001DD0001 /* TimeMasterWidget.swift */; };
 		DD0001DD0001DD0001DD0012 /* TimeMasterWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0001DD0001DD0001DD0002 /* TimeMasterWidgetBundle.swift */; };
 		DD0001DD0001DD0001DD0013 /* TimeMasterWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F55ED656CFE9042C500FB243 /* MacCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6FB193945F7DBD0F103E5E9 /* MacCommands.swift */; };
+		22DC11137331445FB1CC2667 /* MacFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1248480EE0FAD3437A7BF903 /* MacFilePicker.swift */; };
+		680C595767139529885F3B4A /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 001DA950EC696EBC1C782DF5; };
+		B869FDDB814F918792D0C76F /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC000B; };
+		FEDD4054B36A3DA344A55575 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0007; };
+		E6D8880EFAA03400763FE209 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0008; };
+		B3CFE8C37361503ACDEF68C5 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0006; };
+		77457BFAD2B4F47747C9AE7A /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = B26870953ABC5C4610D424C6; };
+		4E818F101481DC4C72C3D551 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 52BE02D9ACB3E4B5AE58FFCF; };
+		3BB0AA5D936EFFB878EF3706 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3; };
+		84FFA270EA4DAFCCC4065638 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 15AA01746BBCB2AC35816B2D; };
+		8ED4DDD3E72D1EB07D43838C /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = FDC6F1BB5C2EAC1AC1DC0421; };
+		E13B56661FF0839C096305A3 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 0A7328C89B0529370A856E55; };
+		D0B454BCED99389912E637CF /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 811BB55E3BD88B54CD74BF4C; };
+		0EEA68C3FA1F2BD7BAEA38F8 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 0277E8EAC54A87487B40EC00; };
+		26EFDCD77497E865D02B950F /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = E3323F148BE5A75196E090AC; };
+		4709D28B6AB8A266F140515E /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A; };
+		F84EC400953D88A1ECBBEF6B /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 50C588F8747756505B157DFC; };
+		BA7B2C0450F6651948319072 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = B7EEE9EC6D1BCA35970E2AA0; };
+		9ADD09B293BA8A02210BAE4A /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 3ED4B2AA73E974BE8B8FBA55; };
+		06573D0755312B5CEF92BD05 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = F807BCDB518D68ED40746740; };
+		7DE62808779441DD09461DA5 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 552876E98DFAA9DD232A21D3; };
+		DC15833FA5E390C2AE928883 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 47FC162E9FB73397A81F0F44; };
+		5C60E7381CB103AB76DFE643 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = CE17C0F361164BFE9E3AB642; };
+		77C11120A4AF9B79EFEB7D28 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = F2D865D276E5E4E8F8A3F260; };
+		C17F1683A436075581035C5C /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = D264DD465BC99BACA5CD3668; };
+		21E0B7E207A435BD1524B3A2 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 84C07B8E3BBB5EBD2D7DCAA3; };
+		EA0E65561C9A9CDC6095A05F /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = DD51B28A67F20C1A78F03397; };
+		777B74318402F3EC7C505B6C /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = D84B5A5EA777C4BE497FC8C1; };
+		200C12AC74B5FAC55076B99F /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 7B1A2C3D4E5F6A7B8C9D0E2F; };
+		F4AD80460E31A1364794537A /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB3; };
+		B7D2D91F261C62C2386FCAEC /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB5; };
+		E928BEABA525EFFD5C702562 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0005; };
+		CB00D7EF514BE88C09A07084 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0005; };
+		753965C70119D3584E81DB40 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0007; };
+		60552595EA7F9D31ADC27F35 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0001; };
+		6A7CB90DC691FC68E55D3936 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0003; };
+		138C589D82A08C63FAEBC73A /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0005; };
+		04339406506471A086E8E252 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0007; };
+		2F2B0D261AFE6F357C44B3E0 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0009; };
+		2CBBBA99B6BA03849001BC7E /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0001; };
+		47186431BBBFBDB7CE511960 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = BB0001BB0001BB0001BB0003; };
+		8D59D8C63EA67ECAF828BAD9 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = AA001BB2CC001BB2CC001BB7; };
+		08431F557D8FEAEBD424D6EE /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C; };
+		2C2DAFB42831B9014BF6DB0A /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1; };
+		A4DCF44D07264261B704580B /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = CC960EC12B1CFF9CD3AA7AC1; };
+		2AFDF391314B068A4CCDEEB6 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 42FDBEB5643249D2AE210599; };
+		5EA6D43491B94BAB3380E82D /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = F93961D2BE0D286A7A9268E7; };
+		8D5018B3D29CC9DA96BB90AA /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 9ADAD9B141C4818314EE1253; };
+		DBB43683D20BB159B71A6C5F /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 604FCB76AD2F1E4AAD560805; };
+		7E8725ECC267999C1EDF98D3 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = 424FB520F5AF4D8095969B26; };
+		C29DB9F92E596EA06C1478E0 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = F09D0011F09D0011F09D0011; };
+		8F6F21F4FFA42C2BAFADE9CF /* Info-macOS.plist in Resources */ = {isa = PBXBuildFile; fileRef = ABE32A81CCD1EDB98AF4A535 /* Info-macOS.plist */; };
+		C6890622EBE12B022CA21AAC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
+
+
+
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -122,6 +179,13 @@
 		DD0001DD0001DD0001DD0003 /* TimeMasterWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMasterWidget.entitlements; sourceTree = "<group>"; };
 		DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TimeMasterWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD0001DD0001DD0001DD0005 /* TimeMaster.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMaster.entitlements; sourceTree = "<group>"; };
+		0EF12FFC1925A5871ECBC5C6 /* TimeMaster-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TimeMaster-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6FB193945F7DBD0F103E5E9 /* MacCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacCommands.swift; sourceTree = "<group>"; };
+		1248480EE0FAD3437A7BF903 /* MacFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacFilePicker.swift; sourceTree = "<group>"; };
+		ABE32A81CCD1EDB98AF4A535 /* Info-macOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-macOS.plist"; sourceTree = "<group>"; };
+		F3473097C914C79468A24D85 /* TimeMaster-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "TimeMaster-macOS.entitlements"; sourceTree = "<group>"; };
+
+
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -185,6 +249,7 @@
 			children = (
 				69344764F8B3AC313FF4CBC5 /* TimeMaster.app */,
 				DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */,
+				0EF12FFC1925A5871ECBC5C6 /* TimeMaster-macOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -201,7 +266,9 @@
 			isa = PBXGroup;
 			children = (
 				552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */,
+				E6FB193945F7DBD0F103E5E9 /* MacCommands.swift */,
 				DD0001DD0001DD0001DD0005 /* TimeMaster.entitlements */,
+				F3473097C914C79468A24D85 /* TimeMaster-macOS.entitlements */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -226,6 +293,7 @@
 				F807BCDB518D68ED40746740 /* Theme.swift */,
 				EE0001EE0001EE0001EE0001 /* NotificationManager.swift */,
 				EE0001EE0001EE0001EE0005 /* ExerciseNamingService.swift */,
+				1248480EE0FAD3437A7BF903 /* MacFilePicker.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -324,6 +392,7 @@
 			isa = PBXGroup;
 			children = (
 				2B716F96FC83CC5B167F3C6E /* App */,
+				ABE32A81CCD1EDB98AF4A535 /* Info-macOS.plist */,
 				1FF12E5694591672653BC22B /* Models */,
 				2BDBBAF7F873D8DF1820C983 /* Resources */,
 				E77C50DF73EE34BD211B8CF4 /* Services */,
@@ -415,6 +484,28 @@
 			productReference = DD0001DD0001DD0001DD0004 /* TimeMasterWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		863B2D95B437FF986BB57815 /* TimeMaster-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9FA3479872F19EB1D67B0978 /* Build configuration list for PBXNativeTarget "TimeMaster-macOS" */;
+			buildPhases = (
+				AA9AAA3C126C1F573CD68FC4 /* Sources */,
+				E8DC6CBB252074D316C6BBB7 /* Resources */,
+				2EB9AE57115AA0BDBC51EF69 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "TimeMaster-macOS";
+			packageProductDependencies = (
+				85E2120C60EC88EBCAB370DF /* ZIPFoundation */,
+				F09D0001F09D0001F09D0001 /* TimeMasterCore */,
+			);
+			productName = "TimeMaster-macOS";
+			productReference = 0EF12FFC1925A5871ECBC5C6 /* TimeMaster-macOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+
 /* End PBXNativeTarget section */
 
 /* Begin PBXContainerItemProxy section */
@@ -462,6 +553,7 @@
 			targets = (
 				A9869356E186BE43EA3A8C23 /* TimeMaster */,
 				DD0001DD0001DD0001DD0040 /* TimeMasterWidget */,
+				863B2D95B437FF986BB57815 /* TimeMaster-macOS */,
 			);
 		};
 /* End PBXProject section */
@@ -527,6 +619,7 @@
 				EE0001EE0001EE0001EE0006 /* ExerciseNamingService.swift in Sources */,
 				EE0001EE0001EE0001EE0008 /* ExerciseAISettingsView.swift in Sources */,
 				EE0001EE0001EE0001EE000A /* MediaPreviewSheet.swift in Sources */,
+				419931E074AAC8F557167E1A /* macOSCompatibility.swift in Sources */,
 				BB0001BB0001BB0001BB0002 /* MotivationManager.swift in Sources */,
 				BB0001BB0001BB0001BB0004 /* MotivationSettingsView.swift in Sources */,
 				AA001BB2CC001BB2CC001BB6 /* SettingsView.swift in Sources */,
@@ -551,6 +644,84 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA9AAA3C126C1F573CD68FC4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				680C595767139529885F3B4A /* Swift source in Sources */,
+				B869FDDB814F918792D0C76F /* Swift source in Sources */,
+				FEDD4054B36A3DA344A55575 /* Swift source in Sources */,
+				E6D8880EFAA03400763FE209 /* Swift source in Sources */,
+				B3CFE8C37361503ACDEF68C5 /* Swift source in Sources */,
+				77457BFAD2B4F47747C9AE7A /* Swift source in Sources */,
+				4E818F101481DC4C72C3D551 /* Swift source in Sources */,
+				3BB0AA5D936EFFB878EF3706 /* Swift source in Sources */,
+				84FFA270EA4DAFCCC4065638 /* Swift source in Sources */,
+				8ED4DDD3E72D1EB07D43838C /* Swift source in Sources */,
+				E13B56661FF0839C096305A3 /* Swift source in Sources */,
+				D0B454BCED99389912E637CF /* Swift source in Sources */,
+				0EEA68C3FA1F2BD7BAEA38F8 /* Swift source in Sources */,
+				26EFDCD77497E865D02B950F /* Swift source in Sources */,
+				4709D28B6AB8A266F140515E /* Swift source in Sources */,
+				F84EC400953D88A1ECBBEF6B /* Swift source in Sources */,
+				BA7B2C0450F6651948319072 /* Swift source in Sources */,
+				9ADD09B293BA8A02210BAE4A /* Swift source in Sources */,
+				06573D0755312B5CEF92BD05 /* Swift source in Sources */,
+				7DE62808779441DD09461DA5 /* Swift source in Sources */,
+				DC15833FA5E390C2AE928883 /* Swift source in Sources */,
+				5C60E7381CB103AB76DFE643 /* Swift source in Sources */,
+				77C11120A4AF9B79EFEB7D28 /* Swift source in Sources */,
+				C17F1683A436075581035C5C /* Swift source in Sources */,
+				21E0B7E207A435BD1524B3A2 /* Swift source in Sources */,
+				EA0E65561C9A9CDC6095A05F /* Swift source in Sources */,
+				777B74318402F3EC7C505B6C /* Swift source in Sources */,
+				200C12AC74B5FAC55076B99F /* Swift source in Sources */,
+				F4AD80460E31A1364794537A /* Swift source in Sources */,
+				B7D2D91F261C62C2386FCAEC /* Swift source in Sources */,
+				E928BEABA525EFFD5C702562 /* Swift source in Sources */,
+				CB00D7EF514BE88C09A07084 /* Swift source in Sources */,
+				753965C70119D3584E81DB40 /* Swift source in Sources */,
+				60552595EA7F9D31ADC27F35 /* Swift source in Sources */,
+				6A7CB90DC691FC68E55D3936 /* Swift source in Sources */,
+				138C589D82A08C63FAEBC73A /* Swift source in Sources */,
+				04339406506471A086E8E252 /* Swift source in Sources */,
+				2F2B0D261AFE6F357C44B3E0 /* Swift source in Sources */,
+				2CBBBA99B6BA03849001BC7E /* Swift source in Sources */,
+				47186431BBBFBDB7CE511960 /* Swift source in Sources */,
+				8D59D8C63EA67ECAF828BAD9 /* Swift source in Sources */,
+				08431F557D8FEAEBD424D6EE /* Swift source in Sources */,
+				2C2DAFB42831B9014BF6DB0A /* Swift source in Sources */,
+				A4DCF44D07264261B704580B /* Swift source in Sources */,
+				2AFDF391314B068A4CCDEEB6 /* Swift source in Sources */,
+				5EA6D43491B94BAB3380E82D /* Swift source in Sources */,
+				8D5018B3D29CC9DA96BB90AA /* Swift source in Sources */,
+				DBB43683D20BB159B71A6C5F /* Swift source in Sources */,
+				7E8725ECC267999C1EDF98D3 /* Swift source in Sources */,
+				C29DB9F92E596EA06C1478E0 /* Swift source in Sources */,
+				F55ED656CFE9042C500FB243 /* Swift source in Sources */,
+				22DC11137331445FB1CC2667 /* Swift source in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		E8DC6CBB252074D316C6BBB7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F6F21F4FFA42C2BAFADE9CF /* Info-macOS.plist in Resources */,
+				C6890622EBE12B022CA21AAC /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		2EB9AE57115AA0BDBC51EF69 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -795,6 +966,64 @@
 			};
 			name = Release;
 		};
+		575A3F890604A7CB43B92B33 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster-macOS.entitlements;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TimeMaster/Info-macOS.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.timemaster.macos";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+
+		6608088B60B5DA62DD56BF84 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster-macOS.entitlements;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TimeMaster/Info-macOS.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.timemaster.macos";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -825,6 +1054,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		9FA3479872F19EB1D67B0978 /* Build configuration list for PBXNativeTarget "TimeMaster-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				575A3F890604A7CB43B92B33 /* Debug */,
+				6608088B60B5DA62DD56BF84 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */

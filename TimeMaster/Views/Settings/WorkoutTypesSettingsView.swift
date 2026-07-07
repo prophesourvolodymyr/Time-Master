@@ -168,7 +168,13 @@ private struct TypeEditorSheet: View {
                 }
             }
             .navigationTitle("New Type")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)
@@ -319,7 +325,13 @@ private struct TypeGoalSheet: View {
                 .padding(32)
             }
             .navigationTitle("Edit Goal")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)

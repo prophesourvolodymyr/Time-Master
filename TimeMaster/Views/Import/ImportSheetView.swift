@@ -30,12 +30,20 @@ struct ImportSheetView: View {
                 }
             }
             .navigationTitle("Import Video")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button { showingSettings = true } label: {
                         Image(systemName: "gear")
                     }
@@ -44,7 +52,7 @@ struct ImportSheetView: View {
             .sheet(isPresented: $showingSettings) {
                 ServerSettingsView(settings: settings)
             }
-            .fullScreenCover(isPresented: $showingEditor) {
+            .sheet(isPresented: $showingEditor) {
                 editorCover
             }
         }
@@ -102,8 +110,10 @@ struct ImportSheetView: View {
                 .background(Theme.surface)
                 .cornerRadius(10)
                 .foregroundColor(Theme.textPrimary)
-                .autocapitalization(.none)
-                .autocorrectionDisabled()
+            #if os(iOS)
+            .autocapitalization(.none)
+            #endif
+            .autocorrectionDisabled()
 
             Button { startDownload() } label: {
                 HStack {

@@ -36,9 +36,19 @@ struct AICoachView: View {
                 }
             }
             .navigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
+            #if os(iOS)
             .toolbarBackground(Theme.background, for: .navigationBar)
+            #endif
+            #if os(iOS)
             .toolbarBackground(.visible, for: .navigationBar)
+            #endif
             .toolbar { chatToolbar }
             .sheet(isPresented: $showingSettings) { AISettingsView() }
             .sheet(isPresented: $showingSessions) {
@@ -56,13 +66,13 @@ struct AICoachView: View {
 
     @ToolbarContentBuilder
     private var chatToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .primaryAction) {
             Button { showingSessions = true } label: {
                 Image(systemName: "bubble.left.and.bubble.right.fill")
                     .foregroundColor(.white)
             }
         }
-        ToolbarItemGroup(placement: .navigationBarTrailing) {
+        ToolbarItemGroup(placement: .primaryAction) {
             Button { store.newSession() } label: {
                 Image(systemName: "square.and.pencil")
                     .foregroundColor(.white)
@@ -314,7 +324,12 @@ private struct MessageBubble: View {
     private var contextMenuItems: some View {
         if !message.isLoading {
             Button {
+                #if os(iOS)
                 UIPasteboard.general.string = message.content
+                #elseif os(macOS)
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(message.content, forType: .string)
+                #endif
             } label: {
                 Label("Copy", systemImage: "doc.on.doc")
             }
@@ -656,13 +671,19 @@ struct SessionsListSheet: View {
                 }
             }
             .navigationTitle("Conversations")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("Done") { isPresented = false }
                         .foregroundColor(.white)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button {
                         store.newSession()
                         isPresented = false

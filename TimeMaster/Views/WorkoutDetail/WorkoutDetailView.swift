@@ -36,10 +36,16 @@ struct WorkoutDetailView: View {
             }
         }
         .navigationTitle(workout.name)
-        .navigationBarTitleDisplayMode(.large)
+        #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.large)
+#endif
+#endif
+#endif
         .onAppear { sectionIDs = workout.sections.map(\.id) }
         .onChange(of: workout.sections.count) { _ in sectionIDs = workout.sections.map(\.id) }
-        .fullScreenCover(isPresented: $showPlayer) {
+        .sheet(isPresented: $showPlayer) {
             WorkoutPlayerView(workout: workout)
                 .environmentObject(store)
         }
@@ -66,7 +72,7 @@ struct WorkoutDetailView: View {
         } message: {
             Text("Are you sure you want to delete this section?")
         }
-        .fullScreenCover(item: $mediaPreviewSection) { section in
+        .sheet(item: $mediaPreviewSection) { section in
             MediaPreviewSheet(items: section.mediaItems)
         }
         .sheet(isPresented: $showingWorkoutSettings) {
@@ -355,7 +361,13 @@ private struct WorkoutSettingsView: View {
                 }
             }
             .navigationTitle("Workout Settings")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)

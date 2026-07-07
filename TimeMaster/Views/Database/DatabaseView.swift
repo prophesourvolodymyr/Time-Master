@@ -2,6 +2,9 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import AVFoundation
+#if os(macOS)
+import AVKit
+#endif
 
 // MARK: - MovieFile (Transferable for video picking — module-wide)
 
@@ -30,17 +33,35 @@ struct MediaThumbnailView: View {
     let size: CGFloat
     let cornerRadius: CGFloat
 
+    #if os(iOS)
     @State private var thumbnail: UIImage?
+    #elseif os(macOS)
+    @State private var thumbnail: NSImage?
+    #endif
 
     var body: some View {
         if size > 0 {
             ZStack {
                 if let thumbnail = thumbnail {
+#if os(iOS)
+#if os(iOS)
                     Image(uiImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                    #elseif os(macOS)
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                    #endif
+                        .frame(width: size, height: size)
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                    #elseif os(macOS)
+                    Image(nsImage: thumbnail)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: size, height: size)
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                    #endif
                 } else {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(Theme.surface)
@@ -64,9 +85,15 @@ struct MediaThumbnailView: View {
             // Fill mode: no fixed frame — parent controls size via .frame(maxWidth:).frame(height:)
             ZStack {
                 if let thumbnail = thumbnail {
+#if os(iOS)
                     Image(uiImage: thumbnail)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                    #elseif os(macOS)
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                    #endif
                 } else {
                     Rectangle()
                         .fill(Theme.surface)
@@ -216,7 +243,9 @@ struct NoteDetailView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { saveAndDismiss() }
@@ -285,7 +314,9 @@ struct NoteEditorView: View {
                 }
             }
             .navigationTitle(existingNote == nil ? "New Note" : "Edit Note")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -450,7 +481,9 @@ struct DatabaseView: View {
                 rootFoldersSection
             }
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
+        #endif
         .scrollContentBackground(.hidden)
     }
 
@@ -571,20 +604,22 @@ struct DatabaseView: View {
 
     @ToolbarContentBuilder
     private var rootToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .primaryAction) {
+            #if os(iOS)
             EditButton().foregroundColor(.white)
+            #endif
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .primaryAction) {
             Button { showingImport = true } label: {
                 Image(systemName: "video.badge.plus")
             }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .primaryAction) {
             Button { showingDatabaseImport = true } label: {
                 Image(systemName: "square.and.arrow.down")
             }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button { showingNewFolderSheet = true } label: {
                     Label("New Folder", systemImage: "folder.badge.plus")
@@ -635,7 +670,9 @@ struct FolderDetailView: View {
             }
         }
         .navigationTitle(folder?.name ?? "")
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar { folderToolbar }
         .sheet(isPresented: $showingNewSubfolderSheet) {
             NewFolderSheet { name, colorHex, workoutType in
@@ -679,7 +716,9 @@ struct FolderDetailView: View {
             notesSection(folder)
             exercisesSection(folder)
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
+        #endif
         .scrollContentBackground(.hidden)
     }
 
@@ -850,17 +889,19 @@ struct FolderDetailView: View {
 
     @ToolbarContentBuilder
     private var folderToolbar: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
+        ToolbarItem(placement: .primaryAction) {
+            #if os(iOS)
             EditButton().foregroundColor(.white)
+            #endif
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .primaryAction) {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { isGalleryMode.toggle() }
             } label: {
                 Image(systemName: isGalleryMode ? "list.bullet" : "square.grid.2x2")
             }
         }
-        ToolbarItem(placement: .navigationBarTrailing) {
+        ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button { showingAddExercise = true } label: {
                     Label("Add Exercise", systemImage: "figure.strengthtraining.traditional")
@@ -948,7 +989,7 @@ struct ExerciseRowView: View {
                 .font(.caption2).foregroundColor(Theme.textSecondary.opacity(0.5))
         }
         .padding(.vertical, 3)
-        .fullScreenCover(isPresented: $showPreview) {
+        .sheet(isPresented: $showPreview) {
             MediaPreviewSheet(items: exercise.mediaItems)
         }
     }
@@ -982,7 +1023,7 @@ struct ExerciseGalleryCard: View {
         .background(Theme.surface)
         .cornerRadius(14)
         .clipped()
-        .fullScreenCover(isPresented: $showingVideo) {
+        .sheet(isPresented: $showingVideo) {
             videoPlayerCover
         }
     }
@@ -1046,8 +1087,12 @@ private struct GalleryVideoPlayer: View {
         ZStack {
             Color.black.ignoresSafeArea()
             if let p = player {
+                #if os(iOS)
                 PlayerLayerView(player: p, gravity: .resizeAspect)
-                    .ignoresSafeArea()
+                #elseif os(macOS)
+                VideoPlayer(player: p)
+                    .aspectRatio(contentMode: .fit)
+                #endif
             } else {
                 ProgressView().tint(.white).scaleEffect(1.4)
             }
@@ -1089,7 +1134,9 @@ struct AddExerciseView: View {
     @State private var duration      = 30
     @State private var restAfter     = 10
     @State private var mediaItems: [MediaItem] = []
+    #if os(iOS)
     @State private var pendingItems: [PhotosPickerItem] = []
+    #endif
     @State private var showingPicker = false
     @State private var showingFilePicker = false
     @State private var isSuggestingName = false
@@ -1112,7 +1159,9 @@ struct AddExerciseView: View {
                 }
             }
             .navigationTitle("New Exercise")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -1121,6 +1170,7 @@ struct AddExerciseView: View {
                 }
             }
         }
+        #if os(iOS)
         .photosPicker(
             isPresented: $showingPicker,
             selection: $pendingItems,
@@ -1131,6 +1181,7 @@ struct AddExerciseView: View {
             guard !newItems.isEmpty else { return }
             loadPickedItems(newItems)
         }
+        #endif
         .fileImporter(
             isPresented: $showingFilePicker,
             allowedContentTypes: [.image, .movie, .jpeg, .png, .heic],
@@ -1300,6 +1351,7 @@ struct AddExerciseView: View {
         dismiss()
     }
 
+    #if os(iOS)
     private func loadPickedItems(_ items: [PhotosPickerItem]) {
         Task { @MainActor in
             for item in items {
@@ -1322,6 +1374,7 @@ struct AddExerciseView: View {
             pendingItems = []
         }
     }
+    #endif
 }
 
 // MARK: - EditExerciseView
@@ -1338,7 +1391,9 @@ struct EditExerciseView: View {
     @State private var duration: Int
     @State private var restAfter: Int
     @State private var mediaItems: [MediaItem]
+    #if os(iOS)
     @State private var pendingItems: [PhotosPickerItem] = []
+    #endif
     @State private var showingPicker        = false
     @State private var showingFilePicker    = false
     @State private var showingDeleteConfirm = false
@@ -1373,7 +1428,9 @@ struct EditExerciseView: View {
                 }
             }
             .navigationTitle("Edit Exercise")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -1382,6 +1439,7 @@ struct EditExerciseView: View {
                 }
             }
         }
+        #if os(iOS)
         .photosPicker(
             isPresented: $showingPicker,
             selection: $pendingItems,
@@ -1392,6 +1450,7 @@ struct EditExerciseView: View {
             guard !newItems.isEmpty else { return }
             loadPickedItems(newItems)
         }
+        #endif
         .fileImporter(
             isPresented: $showingFilePicker,
             allowedContentTypes: [.image, .movie, .jpeg, .png, .heic],
@@ -1588,6 +1647,7 @@ struct EditExerciseView: View {
         dismiss()
     }
 
+    #if os(iOS)
     private func loadPickedItems(_ items: [PhotosPickerItem]) {
         Task { @MainActor in
             for item in items {
@@ -1610,6 +1670,7 @@ struct EditExerciseView: View {
             pendingItems = []
         }
     }
+    #endif
 }
 
 // MARK: - Shared file import handler (module-wide)
@@ -1626,11 +1687,19 @@ func handleFileImportForExercise(_ result: Result<[URL], Error>, mediaItems: Bin
                 mediaItems.wrappedValue.append(MediaItem(filename: filename, type: .video))
             }
         } else {
+            #if os(iOS)
             if let data = try? Data(contentsOf: url),
                let image = UIImage(data: data),
                let filename = PhotoManager.shared.savePhoto(image) {
                 mediaItems.wrappedValue.append(MediaItem(filename: filename, type: .photo))
             }
+            #elseif os(macOS)
+            if let data = try? Data(contentsOf: url),
+               let image = NSImage(data: data),
+               let filename = PhotoManager.shared.savePhoto(image) {
+                mediaItems.wrappedValue.append(MediaItem(filename: filename, type: .photo))
+            }
+            #endif
         }
     }
 }
@@ -1756,7 +1825,9 @@ struct NewFolderSheet: View {
                 }
             }
             .navigationTitle("New Folder")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -1834,11 +1905,15 @@ struct FolderPickerSheet: View {
                         .listRowBackground(Theme.surface)
                     }
                 }
+                #if os(iOS)
                 .listStyle(.insetGrouped)
+                #endif
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Move To")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)
@@ -1895,11 +1970,15 @@ struct FolderExportSheet: View {
                 exportList
             }
             .navigationTitle("Export Folder")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar { exportToolbar }
+            #if os(iOS)
             .sheet(isPresented: $showShareSheet, onDismiss: { dismiss() }) {
                 if let url = exportURL { ShareSheet(activityItems: [url]) }
             }
+            #endif
             .alert("Export Failed",
                    isPresented: Binding(
                     get: { exportError != nil },
@@ -1936,7 +2015,9 @@ struct FolderExportSheet: View {
             if !folder.subfolders.isEmpty { subfoldersSection }
             selectionFooter
         }
+        #if os(iOS)
         .listStyle(.insetGrouped)
+        #endif
         .scrollContentBackground(.hidden)
     }
 

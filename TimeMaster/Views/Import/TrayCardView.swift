@@ -64,11 +64,19 @@ struct TrayCardView: View {
         ZStack(alignment: .bottomLeading) {
             // Thumbnail
             if let thumb = item.primaryThumbnail {
+                #if os(iOS)
                 Image(uiImage: thumb)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 72, height: 90)
                     .clipped()
+                #elseif os(macOS)
+                Image(nsImage: thumb)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 72, height: 90)
+                    .clipped()
+                #endif
             } else {
                 Rectangle()
                     .fill(Theme.surface2)

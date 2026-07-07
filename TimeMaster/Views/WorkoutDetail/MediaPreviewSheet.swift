@@ -1,5 +1,10 @@
 import SwiftUI
 import AVKit
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 // MARK: - Entry point
 
@@ -26,8 +31,10 @@ struct MediaPreviewSheet: View {
                             .tag(idx)
                     }
                 }
+                #if os(iOS)
                 .tabViewStyle(.page(indexDisplayMode: .always))
                 .indexViewStyle(.page(backgroundDisplayMode: .always))
+                #endif
             }
 
             // Close button
@@ -60,16 +67,27 @@ private struct MediaPreviewPage: View {
 
 private struct PhotoPreviewPage: View {
     let filename: String
+    #if os(iOS)
     @State private var image: UIImage? = nil
+    #elseif os(macOS)
+    @State private var image: NSImage? = nil
+    #endif
 
     var body: some View {
         ZStack {
             Color.black
             if let img = image {
+                #if os(iOS)
                 Image(uiImage: img)
                     .resizable()
                     .scaledToFit()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                #elseif os(macOS)
+                Image(nsImage: img)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                #endif
             } else {
                 ProgressView().tint(.white)
             }

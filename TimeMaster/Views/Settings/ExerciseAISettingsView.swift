@@ -28,7 +28,9 @@ struct ExerciseAISettingsView: View {
                                 }
                             }
                             .autocorrectionDisabled()
+                            #if os(iOS)
                             .textInputAutocapitalization(.never)
+                            #endif
                             .foregroundColor(.white)
                             .onChange(of: apiKey) {
                                 UserDefaults.standard.set($0, forKey: "exercise_ai_api_key")
@@ -101,11 +103,26 @@ struct ExerciseAISettingsView: View {
                 .listRowBackground(Theme.surface)
                 .listRowSeparatorTint(Theme.separator)
             }
-            .listStyle(.insetGrouped)
+            #if os(iOS)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.listStyle(.insetGrouped)
+#endif
+#endif
+#endif
+            #endif
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Exercise AI")
-        .navigationBarTitleDisplayMode(.inline)
+        #if os(iOS)
+        #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
+        #endif
     }
 }
 

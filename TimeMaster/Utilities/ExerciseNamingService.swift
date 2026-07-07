@@ -1,23 +1,42 @@
 import Foundation
+#if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 /// Sends a photo to the OpenAI Vision API and returns a suggested exercise name.
 enum ExerciseNamingService {
 
     // MARK: - Public
 
+    #if os(iOS)
     static func suggestName(
         image: UIImage,
         apiKey: String,
         model: String
     ) async throws -> String {
+        try await suggestName(jpegData: image.jpegData(compressionQuality: 0.7), apiKey: apiKey, model: model)
+    }
+    #elseif os(macOS)
+    static func suggestName(
+        image: NSImage,
+        apiKey: String,
+        model: String
+    ) async throws -> String {
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.7])
+        else { throw NamingError.imageEncodingFailed }
+        return try await suggestName(jpegData: jpegData, apiKey: apiKey, model: model)
+    }
+    #endif
+
+    private static func suggestName(jpegData: Data, apiKey: String, model: String) async throws -> String {
         guard !apiKey.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw NamingError.missingAPIKey
         }
-        guard let jpeg = image.jpegData(compressionQuality: 0.7) else {
-            throw NamingError.imageEncodingFailed
-        }
-        let base64 = jpeg.base64EncodedString()
+        let base64 = jpegData.base64EncodedString()
 
         let url = URL(string: "https://api.openai.com/v1/chat/completions")!
         var request = URLRequest(url: url)
@@ -54,7 +73,6 @@ enum ExerciseNamingService {
             throw NamingError.invalidResponse
         }
         guard http.statusCode == 200 else {
-            // Parse OpenAI error message if available
             let errMsg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
                 .flatMap { ($0["error"] as? [String: Any])?["message"] as? String }
             throw NamingError.apiError(errMsg ?? "HTTP \(http.statusCode)")

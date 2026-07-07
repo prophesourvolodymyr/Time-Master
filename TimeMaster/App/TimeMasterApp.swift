@@ -1,5 +1,7 @@
 import SwiftUI
+#if os(iOS)
 import WidgetKit
+#endif
 
 // MARK: - Splash Screen
 
@@ -43,6 +45,43 @@ struct TimeMasterApp: App {
     @State private var resumePlayerWorkout: Workout?
 
     var body: some Scene {
+        #if os(macOS)
+        WindowGroup {
+            ZStack {
+                MainTabView()
+                    .environmentObject(store)
+                    .environmentObject(databaseStore)
+                    .preferredColorScheme(.dark)
+                    .onOpenURL { url in handleDeepLink(url) }
+
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+            }
+            .frame(minWidth: 800, minHeight: 600)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        showSplash = false
+                    }
+                    checkResumeState()
+                }
+            }
+            .sheet(isPresented: $showResumePrompt, onDismiss: {
+                if resumePlayerWorkout != nil { resumeManager.clearResumeState() }
+            }) {
+                resumePromptSheet
+            }
+            .sheet(item: $resumePlayerWorkout) { w in
+                WorkoutPlayerView(workout: w)
+                    .environmentObject(store)
+            }
+        }
+        .windowStyle(.titleBar)
+        .commands { TimeMasterCommands() }
+        #else
         WindowGroup {
             ZStack {
                 MainTabView()
@@ -70,11 +109,12 @@ struct TimeMasterApp: App {
             }) {
                 resumePromptSheet
             }
-            .fullScreenCover(item: $resumePlayerWorkout) { w in
+            .sheet(item: $resumePlayerWorkout) { w in
                 WorkoutPlayerView(workout: w)
                     .environmentObject(store)
             }
         }
+        #endif
     }
 
     private func checkResumeState() {
@@ -169,9 +209,6 @@ struct TimeMasterApp: App {
 
     // MARK: - Deep Link Handler
 
-    /// Handles:
-    ///   timemaster://detail?workoutID=<UUID>  → opens WorkoutDetailView
-    ///   timemaster://start?workoutID=<UUID>   → starts workout player (legacy)
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == "timemaster" else { return }
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)

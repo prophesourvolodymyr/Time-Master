@@ -21,11 +21,23 @@ struct MotivationSettingsView: View {
                 intervalSection
                 quotesSection
             }
+            #if os(iOS)
+            #if os(iOS)
+            #if os(iOS)
             .listStyle(.insetGrouped)
+            #endif
+            #endif
+            #endif
             .scrollContentBackground(.hidden)
         }
         .navigationTitle("Motivational Quotes")
+        #if os(iOS)
+        #if os(iOS)
+        #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        #endif
+        #endif
+        #endif
     }
 
     // MARK: - Sections

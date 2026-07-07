@@ -31,7 +31,13 @@ struct AISettingsView: View {
                 }
             }
             .navigationTitle("AI Settings")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { applyAndDismiss() }
@@ -150,7 +156,9 @@ struct AISettingsView: View {
             .cornerRadius(10)
             .foregroundColor(.white)
             .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
+            #if os(iOS)
+                                        .textInputAutocapitalization(.never)
+                                        #endif
 
             Button { showAPIKey.toggle() } label: {
                 Image(systemName: showAPIKey ? "eye.slash.fill" : "eye.fill")
@@ -196,8 +204,12 @@ struct AISettingsView: View {
                 .cornerRadius(10)
                 .foregroundColor(.white)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                #if os(iOS)
+                                        .textInputAutocapitalization(.never)
+                                        #endif
+                #if os(iOS)
                 .keyboardType(.URL)
+                #endif
             Text("Works with Ollama, LM Studio, or any OpenAI-compatible endpoint.")
                 .font(.caption)
                 .foregroundColor(Color.white.opacity(0.35))
@@ -228,7 +240,9 @@ struct AISettingsView: View {
                     .cornerRadius(10)
                     .foregroundColor(.white)
                     .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
+                    #if os(iOS)
+                                        .textInputAutocapitalization(.never)
+                                        #endif
 
                 Button {
                     Task {
@@ -448,7 +462,13 @@ struct ProviderPickerSheet: View {
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Choose Provider")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -597,7 +617,13 @@ struct ModelPickerSheet: View {
                 }
             }
             .navigationTitle("Choose Model")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

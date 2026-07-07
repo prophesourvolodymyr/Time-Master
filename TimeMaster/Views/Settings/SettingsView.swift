@@ -160,7 +160,15 @@ struct SettingsView: View {
                     .listRowBackground(Theme.surface)
                     .listRowSeparatorTint(Theme.separator)
                 }
-                .listStyle(.insetGrouped)
+                #if os(iOS)
+                #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.listStyle(.insetGrouped)
+#endif
+#endif
+#endif
+                #endif
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Settings")

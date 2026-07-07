@@ -47,7 +47,7 @@ struct WorkoutListView: View {
             }
             .navigationTitle("Workouts")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .primaryAction) {
                     Button { showingSettings = true } label: {
                         Image(systemName: "gearshape")
                             .font(.title3)
@@ -173,7 +173,13 @@ struct WorkoutListView: View {
                 .padding(16)
             }
             .navigationTitle("New Workout")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

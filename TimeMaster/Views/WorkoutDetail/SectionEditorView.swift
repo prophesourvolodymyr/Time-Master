@@ -1,6 +1,8 @@
 import SwiftUI
+#if os(iOS)
 import PhotosUI
 import UIKit
+#endif
 import UniformTypeIdentifiers
 
 struct SectionEditorView: View {
@@ -19,7 +21,9 @@ struct SectionEditorView: View {
     @State private var useCustomRest: Bool
     @State private var customRestAfter: Int
     @State private var mediaItems: [MediaItem]
+    #if os(iOS)
     @State private var pendingItems: [PhotosPickerItem] = []
+    #endif
     @State private var showingPicker = false
     @State private var showingFilePicker = false
     @State private var showingDatabasePicker = false
@@ -60,7 +64,10 @@ struct SectionEditorView: View {
                 }
             }
             .navigationTitle(section == nil ? "New Section" : "Edit Section")
+            #if os(iOS)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .navigationBarItems(
                 leading: Button("Cancel") { dismiss() }
                     .foregroundColor(.white),
@@ -68,7 +75,20 @@ struct SectionEditorView: View {
                     .disabled(name.isEmpty)
                     .foregroundColor(name.isEmpty ? Color.white.opacity(0.3) : .white)
             )
+            #elseif os(macOS)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveSection() }
+                        .disabled(name.isEmpty)
+                        .foregroundColor(name.isEmpty ? Color.white.opacity(0.3) : .white)
+                }
+            }
+            #endif
         }
+        #if os(iOS)
         .photosPicker(
             isPresented: $showingPicker,
             selection: $pendingItems,
@@ -98,6 +118,7 @@ struct SectionEditorView: View {
                 pendingItems = []
             }
         }
+        #endif
         .sheet(isPresented: $showingDatabasePicker) {
             DatabaseSectionPickerView { selected in
                 name             = selected.name
@@ -409,11 +430,19 @@ struct SectionEditorView: View {
                     mediaItems.append(MediaItem(filename: filename, type: .video))
                 }
             } else {
+                #if os(iOS)
                 if let data = try? Data(contentsOf: url),
                    let image = UIImage(data: data),
                    let filename = PhotoManager.shared.savePhoto(image) {
                     mediaItems.append(MediaItem(filename: filename, type: .photo))
                 }
+                #elseif os(macOS)
+                if let data = try? Data(contentsOf: url),
+                   let image = NSImage(data: data),
+                   let filename = PhotoManager.shared.savePhoto(image) {
+                    mediaItems.append(MediaItem(filename: filename, type: .photo))
+                }
+                #endif
             }
         }
     }

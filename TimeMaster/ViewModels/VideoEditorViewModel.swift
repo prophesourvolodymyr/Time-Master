@@ -1,5 +1,9 @@
 import AVFoundation
+#if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 import Combine
 
 // MARK: - Edit Mode
@@ -146,7 +150,11 @@ final class VideoEditorViewModel: ObservableObject {
         isProcessing = true
         statusMessage = "Extracting clip…"
 
+        #if os(iOS)
         let thumb = await VideoTrimService.thumbnail(asset: asset, at: inPoint) ?? UIImage()
+        #elseif os(macOS)
+        let thumb = await VideoTrimService.thumbnail(asset: asset, at: inPoint) ?? NSImage()
+        #endif
 
         guard selectedTrayIndex < trayItems.count else {
             isProcessing = false; statusMessage = "No card selected"; return

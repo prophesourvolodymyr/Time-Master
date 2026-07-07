@@ -92,8 +92,12 @@ final class MusicManager: ObservableObject {
 
     func startPlayback() {
         guard !trackFilenames.isEmpty else { return }
+        #if os(iOS)
+        #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
+        #endif
         rebuildAndPlay()
         isPlaying = true
     }
@@ -109,8 +113,12 @@ final class MusicManager: ObservableObject {
 
     func startPlayback(tracks: [String]? = nil) {
         guard tracks != nil || !trackFilenames.isEmpty else { return }
+        #if os(iOS)
+        #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
+        #endif
         if let tracks = tracks, !tracks.isEmpty {
             rebuildAndPlay(filenames: tracks)
         } else {

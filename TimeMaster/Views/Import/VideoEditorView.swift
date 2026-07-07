@@ -1,5 +1,8 @@
 import SwiftUI
 import AVFoundation
+#if os(macOS)
+import AVKit
+#endif
 
 // MARK: - VideoEditorView
 
@@ -12,8 +15,13 @@ struct VideoEditorView: View {
     @State private var showPlayHint = false
     @State private var hideHintTask: Task<Void, Never>? = nil
 
-    /// ~50% of screen height for the main video player
-    private let videoH: CGFloat = UIScreen.main.bounds.height * 0.50
+    private var videoH: CGFloat {
+        #if os(iOS)
+        UIScreen.main.bounds.height * 0.50
+        #elseif os(macOS)
+        (NSScreen.main?.frame.height ?? 600) * 0.50
+        #endif
+    }
 
     init(videoURL: URL, onClose: @escaping () -> Void) {
         _vm = StateObject(wrappedValue: VideoEditorViewModel(url: videoURL))
@@ -33,7 +41,7 @@ struct VideoEditorView: View {
         .sheet(isPresented: $showBatchConfirm) {
             batchConfirmSheet
         }
-        .fullScreenCover(item: $previewItem) { wrapped in
+        .sheet(item: $previewItem) { wrapped in
             MediaPreviewOverlay(media: wrapped.media, asset: vm.asset) {
                 previewItem = nil
             }
@@ -61,7 +69,7 @@ struct VideoEditorView: View {
 
     private var videoWithOverlays: some View {
         ZStack {
-            // Video player — aspect fit so full video is visible without cropping
+            #if os(iOS)
             PlayerLayerView(player: vm.player, gravity: .resizeAspect)
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
@@ -69,6 +77,11 @@ struct VideoEditorView: View {
                     vm.togglePlayPause()
                     flashPlayHint()
                 }
+            #elseif os(macOS)
+            VideoPlayer(player: vm.player)
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity)
+            #endif
 
             // Top gradient so header text is readable over any video content
             VStack {
@@ -393,13 +406,25 @@ private struct MediaPreviewOverlay: View {
     @ViewBuilder
     private var mediaContent: some View {
         if case .screenshot(let img) = media {
+            #if os(iOS)
             Image(uiImage: img)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            #elseif os(macOS)
+            Image(nsImage: img)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            #endif
         } else if let player = clipPlayer {
+            #if os(iOS)
             PlayerLayerView(player: player, gravity: .resizeAspect)
                 .ignoresSafeArea()
+            #elseif os(macOS)
+            VideoPlayer(player: player)
+                .aspectRatio(contentMode: .fit)
+            #endif
         } else if case .clip = media {
             ProgressView().tint(.white).scaleEffect(1.5)
         }
@@ -435,10 +460,9 @@ private struct MediaPreviewOverlay: View {
     }
 }
 
+#if os(iOS)
 // MARK: - PlayerLayerView (UIViewRepresentable — hides native VideoPlayer controls)
 
-// PlayerBackingView must be internal (not private) so UIViewRepresentable conformance can reference it.
-// Using layerClass override: UIKit owns the layer's frame — do NOT set it in layoutSubviews.
 final class PlayerBackingView: UIView {
     override class var layerClass: AnyClass { AVPlayerLayer.self }
     var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
@@ -461,6 +485,7 @@ struct PlayerLayerView: UIViewRepresentable {
         uiView.playerLayer.videoGravity = gravity
     }
 }
+#endif
 
 // MARK: - VideoScrubberView
 

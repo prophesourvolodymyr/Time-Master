@@ -22,7 +22,13 @@ struct DatabaseSectionPickerView: View {
                 )
             }
             .navigationTitle("Exercise Database")
-            .navigationBarTitleDisplayMode(.large)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.large)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -44,7 +50,13 @@ struct PickerFolderLevel: View {
             pickerFoldersSection
             pickerExercisesSection
         }
-        .listStyle(.insetGrouped)
+        #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.listStyle(.insetGrouped)
+#endif
+#endif
+#endif
         .scrollContentBackground(.hidden)
     }
 

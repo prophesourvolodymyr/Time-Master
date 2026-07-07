@@ -142,16 +142,30 @@ struct WorkoutRemindersView: View {
                     .listRowSeparatorTint(.clear)
                 }
             }
-            .listStyle(.insetGrouped)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.listStyle(.insetGrouped)
+#endif
+#endif
+#endif
             .scrollContentBackground(.hidden)
         }
         .navigationTitle("Workout Reminders")
-        .navigationBarTitleDisplayMode(.inline)
+        #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
         .alert("Notifications Disabled", isPresented: $showSettingsAlert) {
             Button("Open Settings") {
+                #if os(iOS)
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
+                #endif
             }
             Button("Cancel", role: .cancel) {
                 schedule.isEnabled = false

@@ -2,6 +2,21 @@ import SwiftUI
 import AVFoundation
 import AVKit
 
+
+#if os(iOS)
+private typealias PlatformImage = UIImage
+#elseif os(macOS)
+private typealias PlatformImage = NSImage
+#endif
+
+extension Image {
+    #if os(iOS)
+    static func platformImg(_ image: UIImage) -> Image { Image(uiImage: image) }
+    #elseif os(macOS)
+    static func platformImg(_ image: NSImage) -> Image { Image(nsImage: image) }
+    #endif
+}
+
 struct WorkoutPlayerView: View {
     @EnvironmentObject var store: WorkoutStore
     @Environment(\.dismiss) var dismiss
@@ -29,7 +44,9 @@ struct WorkoutPlayerView: View {
     @State private var autoSaveCounter = 0
     @State private var elapsedSeconds = 0
     @State private var didInitFromResume = false
+    #if os(iOS)
     @State private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
+    #endif
 
     // Music
     @ObservedObject private var musicManager = MusicManager.shared
@@ -42,7 +59,11 @@ struct WorkoutPlayerView: View {
 
     // Media
     @State private var loadedMedia: [MediaItem] = []
+    #if os(iOS)
     @State private var mediaImages: [UIImage?]  = []
+    #elseif os(macOS)
+    @State private var mediaImages: [NSImage?]  = []
+    #endif
     @State private var currentMediaIndex        = 0
     @State private var videoPlayer: AVQueuePlayer?
     @State private var videoLooper: AVPlayerLooper?
@@ -50,13 +71,21 @@ struct WorkoutPlayerView: View {
     // F03-B: Media overlay & rest adjustment
     @State private var showMediaOverlay = false
     @State private var overlayMediaItem: MediaItem?
+    #if os(iOS)
     @State private var overlayImage: UIImage?
+    #elseif os(macOS)
+    @State private var overlayImage: NSImage?
+    #endif
     @State private var restExtensionTotal = 0
     @State private var restExtensionFlash = false
     @State private var restExtensionText = ""
     @State private var showRestPicker = false
     @State private var nextSectionMedia: [MediaItem] = []
+    #if os(iOS)
     @State private var nextSectionImages: [UIImage?] = []
+    #elseif os(macOS)
+    @State private var nextSectionImages: [NSImage?] = []
+    #endif
 
     // MARK: - Computed
 
@@ -72,7 +101,9 @@ struct WorkoutPlayerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { backgroundLayer }
             .onAppear {
+                #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = true
+                #endif
                 AudioManager.shared.activateSession()
                 loadCurrentMedia()
                 tryResumeState()
@@ -86,11 +117,14 @@ struct WorkoutPlayerView: View {
                 setupVideoIfNeeded()
             }
             .onDisappear {
+                #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = false
+                #endif
                 timer?.invalidate()
                 stopVideo()
                 endBackgroundTask()
             }
+            #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
                 saveResumeState()
                 beginBackgroundTask()
@@ -98,6 +132,7 @@ struct WorkoutPlayerView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 endBackgroundTask()
             }
+            #endif
             .alert("Stop Workout?", isPresented: $showingCloseConfirmation) {
                 Button("Continue", role: .cancel) {}
                 Button("Stop", role: .destructive) { stopWorkout() }
@@ -135,7 +170,7 @@ struct WorkoutPlayerView: View {
             Color.black
             if currentMediaIndex < mediaImages.count,
                let img = mediaImages[currentMediaIndex] {
-                Image(uiImage: img)
+                Image.platformImg(img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .scaleEffect(1.2)
@@ -364,7 +399,7 @@ struct WorkoutPlayerView: View {
                         showMediaOverlay = true
                     }
             } else if let outer = mediaImages[safe: currentMediaIndex], let img = outer {
-                Image(uiImage: img)
+                Image.platformImg(img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 260, height: 260)
@@ -517,7 +552,7 @@ struct WorkoutPlayerView: View {
             if let firstItem = nextSection.mediaItems.first,
                let idx = nextSectionImages.firstIndex(where: { $0 != nil }),
                let img = nextSectionImages[idx] {
-                Image(uiImage: img)
+                Image.platformImg(img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 200, height: 200)
@@ -988,10 +1023,17 @@ struct WorkoutPlayerView: View {
         // Load thumbnails async
         let items = section.mediaItems
         Task.detached {
+            #if os(iOS)
             var images: [UIImage?] = []
             for item in items {
                 images.append(PhotoManager.shared.thumbnail(for: item))
             }
+            #elseif os(macOS)
+            var images: [NSImage?] = []
+            for item in items {
+                images.append(PhotoManager.shared.thumbnail(for: item))
+            }
+            #endif
             await MainActor.run {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     self.mediaImages = images
@@ -1007,8 +1049,10 @@ struct WorkoutPlayerView: View {
         let url = PhotoManager.shared.videoURL(for: item.filename)
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         // Configure audio session so video audio mixes with TTS
+        #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
         let playerItem = AVPlayerItem(url: url)
         let player     = AVQueuePlayer(items: [playerItem])
         let looper     = AVPlayerLooper(player: player, templateItem: playerItem)
@@ -1031,6 +1075,7 @@ struct WorkoutPlayerView: View {
         return mins > 0 ? String(format: "%d:%02d", mins, secs) : String(format: "%02d", secs)
     }
 
+    #if os(iOS)
     private func registerBackgroundHandlers() {
         NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification,
@@ -1053,6 +1098,11 @@ struct WorkoutPlayerView: View {
         UIApplication.shared.endBackgroundTask(backgroundTaskID)
         backgroundTaskID = .invalid
     }
+    #elseif os(macOS)
+    private func registerBackgroundHandlers() {}
+    private func beginBackgroundTask() {}
+    private func endBackgroundTask() {}
+    #endif
 
     // MARK: - F03-B: Media Overlay
 
@@ -1062,7 +1112,7 @@ struct WorkoutPlayerView: View {
             Color.black.opacity(0.95).ignoresSafeArea()
 
             if item.type == .photo, let img = overlayImage {
-                Image(uiImage: img)
+                Image.platformImg(img)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1109,10 +1159,17 @@ struct WorkoutPlayerView: View {
         nextSectionMedia = items
         nextSectionImages = Array(repeating: nil, count: items.count)
         Task.detached {
+            #if os(iOS)
             var images: [UIImage?] = []
             for item in items {
                 images.append(PhotoManager.shared.thumbnail(for: item))
             }
+            #elseif os(macOS)
+            var images: [NSImage?] = []
+            for item in items {
+                images.append(PhotoManager.shared.thumbnail(for: item))
+            }
+            #endif
             await MainActor.run {
                 self.nextSectionImages = images
             }
@@ -1212,8 +1269,13 @@ private struct ConfettiView: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .onAppear {
+            #if os(iOS)
+            let screenW = UIScreen.main.bounds.width
+            #elseif os(macOS)
+            let screenW = NSScreen.main?.frame.width ?? 800
+            #endif
             particles = (0..<120).map { _ in
-                ConfettiParticle.random(screenWidth: UIScreen.main.bounds.width)
+                ConfettiParticle.random(screenWidth: screenW)
             }
         }
     }

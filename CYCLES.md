@@ -250,12 +250,12 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Tool schema definitions in AIProvider (OpenAI + Anthropic)
   - [x] Detail: Tool call indicator UI in AICoachView
   - [x] Verified: F09-D DOCKS.md checklist (iOS build succeeds, 49 core tests pass, 2026-07-07)
-- [ ] F09-E — Mac App
-  - [ ] Detail: Add macOS target to Xcode project
-  - [ ] Detail: Platform-adaptive UI (#if os(macOS) where needed)
-  - [ ] Detail: Non-sandboxed ~/Documents/TimeMaster/ path
-  - [ ] Detail: Bundle timemaster-tool CLI with app
-  - [ ] Verified: F09-E DOCKS.md checklist
+- [x] F09-E — Mac App
+  - [x] Detail: Add macOS target to Xcode project
+  - [x] Detail: Platform-adaptive UI (#if os(macOS) where needed)
+  - [x] Detail: Non-sandboxed ~/Documents/TimeMaster/ path
+  - [x] Detail: Bundle timemaster-tool CLI with app
+  - [x] Verified: F09-E DOCKS.md checklist (builds, 49 tests pass, 2026-07-07)
 
 ### Migration (after F09-A)
 - [ ] F01-A — Migrate models to file manifests

@@ -41,7 +41,11 @@ struct ServerSettingsView: View {
                 }
             }
             .navigationTitle("Server Settings")
+            #if os(iOS)
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { applyPort(); dismiss() }
@@ -124,7 +128,9 @@ struct ServerSettingsView: View {
                         .multilineTextAlignment(.trailing)
                         .foregroundColor(Theme.textPrimary)
                         .frame(maxWidth: 180)
+                        #if os(iOS)
                         .autocapitalization(.none)
+                        #endif
                         .autocorrectionDisabled()
                 }
                 .padding(14).background(Theme.surface2).cornerRadius(10)
@@ -136,7 +142,9 @@ struct ServerSettingsView: View {
                         .multilineTextAlignment(.trailing)
                         .foregroundColor(Theme.textPrimary)
                         .frame(maxWidth: 80)
+                        #if os(iOS)
                         .keyboardType(.numberPad)
+                        #endif
                 }
                 .padding(14).background(Theme.surface2).cornerRadius(10)
             }

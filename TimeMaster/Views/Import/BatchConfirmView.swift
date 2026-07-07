@@ -49,7 +49,13 @@ struct BatchConfirmView: View {
                 }
             }
             .navigationTitle("Review & Save")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Back") { dismiss() }
@@ -183,12 +189,21 @@ struct BatchConfirmView: View {
     @ViewBuilder
     private func mediaThumb(_ media: TrayMedia) -> some View {
         ZStack(alignment: .bottomTrailing) {
+            #if os(iOS)
             Image(uiImage: media.thumbnail)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 72, height: 72)
                 .clipped()
                 .cornerRadius(8)
+            #elseif os(macOS)
+            Image(nsImage: media.thumbnail)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 72, height: 72)
+                .clipped()
+                .cornerRadius(8)
+            #endif
 
             if media.isClip {
                 Image(systemName: "film")

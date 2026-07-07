@@ -59,10 +59,16 @@ struct AnalyticsView: View {
                 }
             }
             .navigationTitle("Analytics")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 if !store.historyEntries.isEmpty {
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .primaryAction) {
                         Button { showingClearAlert = true } label: {
                             Image(systemName: "trash")
                                 .foregroundColor(Color.white.opacity(0.45))
@@ -421,7 +427,7 @@ private struct ActivityHeatmap: View {
             .cornerRadius(16)
         }
         .buttonStyle(.plain)
-        .fullScreenCover(isPresented: $showCalendar) {
+        .sheet(isPresented: $showCalendar) {
             CalendarPage(entries: entries)
         }
     }
@@ -557,9 +563,15 @@ private struct CalendarPage: View {
                 }
             }
             .navigationTitle("Activity")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .primaryAction) {
                     Button {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             showYearView.toggle()
@@ -569,7 +581,7 @@ private struct CalendarPage: View {
                             .foregroundColor(.white)
                     }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     HStack(spacing: 12) {
                         Button {
                             showVacationSheet = true
@@ -1045,7 +1057,13 @@ private struct DayInfoSheet: View {
                 }
             }
             .navigationTitle("Day Details")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }.foregroundColor(.white)
@@ -1140,7 +1158,13 @@ private struct VacationSheet: View {
                 }
             }
             .navigationTitle("Set Vacation")
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+#if os(iOS)
+#if os(iOS)
+.navigationBarTitleDisplayMode(.inline)
+#endif
+#endif
+#endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)
