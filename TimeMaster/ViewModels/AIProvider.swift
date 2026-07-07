@@ -398,6 +398,298 @@ extension AIProvider {
 
     // MARK: - Auto-detect provider from API-key prefix
 
+    // MARK: - Tool Schemas
+
+    static var toolDefinitions: [[String: Any]] {
+        [
+            [
+                "type": "function",
+                "function": [
+                    "name": "search_exercises",
+                    "description": "Search the exercise database by name, type, or keyword. Returns matching exercises with ID, name, type, and duration.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "query": ["type": "string", "description": "Search query (name or keyword)"],
+                            "type": ["type": "string", "description": "Filter by workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
+                        ],
+                        "required": ["query"],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "get_exercise",
+                    "description": "Get full details for a specific exercise by its ID, including guide content and links.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "id": ["type": "string", "description": "Exercise ID (UUID)"],
+                            "parentID": ["type": "string", "description": "Parent folder path if exercise is nested"],
+                        ],
+                        "required": ["id"],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "list_folders",
+                    "description": "List sub-folders in the Exercises Database (progressions, categories).",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "parentID": ["type": "string", "description": "Parent folder path (optional, root if omitted)"],
+                        ],
+                        "required": [],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "create_exercise",
+                    "description": "Create a new exercise in the database. Generates an ID and saves the manifest.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "name": ["type": "string", "description": "Exercise name"],
+                            "type": ["type": "string", "description": "Workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
+                            "duration": ["type": "integer", "description": "Duration in seconds (default 30)"],
+                            "parentID": ["type": "string", "description": "Parent folder to place exercise in"],
+                            "details": ["type": "string", "description": "Exercise description/instructions"],
+                            "sets": ["type": "integer", "description": "Default number of sets"],
+                        ],
+                        "required": ["name"],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "create_folder",
+                    "description": "Create a new folder in the Exercises Database (progression, category, or grouping).",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "name": ["type": "string", "description": "Folder name"],
+                            "parentID": ["type": "string", "description": "Parent folder path (optional)"],
+                        ],
+                        "required": ["name"],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "get_recent_workouts",
+                    "description": "Get recently completed workout entries from history.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "days": ["type": "integer", "description": "Number of days to look back (default 7)"],
+                        ],
+                        "required": [],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "build_workout",
+                    "description": "Build a workout plan from exercise IDs. Creates a new workout manifest with sections.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "name": ["type": "string", "description": "Workout name"],
+                            "type": ["type": "string", "description": "Workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
+                            "sections": [
+                                "type": "array",
+                                "description": "Array of section objects with exerciseID, name, duration, sets, restBetweenSets, prepareTime",
+                                "items": [
+                                    "type": "object",
+                                    "properties": [
+                                        "exerciseID": ["type": "string", "description": "ID of the exercise"],
+                                        "name": ["type": "string", "description": "Section name"],
+                                        "duration": ["type": "integer", "description": "Duration in seconds"],
+                                        "sets": ["type": "integer", "description": "Number of sets"],
+                                        "restBetweenSets": ["type": "integer", "description": "Rest between sets in seconds"],
+                                        "prepareTime": ["type": "integer", "description": "Prepare time in seconds"],
+                                    ],
+                                    "required": ["exerciseID"],
+                                ],
+                            ],
+                        ],
+                        "required": ["name"],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "get_analytics",
+                    "description": "Get workout statistics: count, current streak, best streak, and total duration.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "type": ["type": "string", "description": "Filter by workout type (optional)"],
+                            "days": ["type": "integer", "description": "Number of days to look back (optional, all time if omitted)"],
+                        ],
+                        "required": [],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "add_media_note",
+                    "description": "Append a note to an exercise's guide.md file. Useful for adding observations, form tips, or progress notes.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "exerciseID": ["type": "string", "description": "ID of the exercise"],
+                            "note": ["type": "string", "description": "Note content to append"],
+                        ],
+                        "required": ["exerciseID", "note"],
+                    ],
+                ],
+            ],
+        ]
+    }
+
+    /// Anthropic-format tool definitions (slightly different schema format).
+    static var anthropicToolDefinitions: [[String: Any]] {
+        [
+            [
+                "name": "search_exercises",
+                "description": "Search the exercise database by name, type, or keyword. Returns matching exercises with ID, name, type, and duration.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "query": ["type": "string", "description": "Search query (name or keyword)"],
+                        "type": ["type": "string", "description": "Filter by workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
+                    ],
+                    "required": ["query"],
+                ],
+            ],
+            [
+                "name": "get_exercise",
+                "description": "Get full details for a specific exercise by its ID, including guide content and links.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "id": ["type": "string", "description": "Exercise ID (UUID)"],
+                        "parentID": ["type": "string", "description": "Parent folder path if exercise is nested"],
+                    ],
+                    "required": ["id"],
+                ],
+            ],
+            [
+                "name": "list_folders",
+                "description": "List sub-folders in the Exercises Database (progressions, categories).",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "parentID": ["type": "string", "description": "Parent folder path (optional, root if omitted)"],
+                    ],
+                    "required": [],
+                ],
+            ],
+            [
+                "name": "create_exercise",
+                "description": "Create a new exercise in the database. Generates an ID and saves the manifest.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "name": ["type": "string", "description": "Exercise name"],
+                        "type": ["type": "string", "description": "Workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
+                        "duration": ["type": "integer", "description": "Duration in seconds (default 30)"],
+                        "parentID": ["type": "string", "description": "Parent folder to place exercise in"],
+                        "details": ["type": "string", "description": "Exercise description/instructions"],
+                        "sets": ["type": "integer", "description": "Default number of sets"],
+                    ],
+                    "required": ["name"],
+                ],
+            ],
+            [
+                "name": "create_folder",
+                "description": "Create a new folder in the Exercises Database (progression, category, or grouping).",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "name": ["type": "string", "description": "Folder name"],
+                        "parentID": ["type": "string", "description": "Parent folder path (optional)"],
+                    ],
+                    "required": ["name"],
+                ],
+            ],
+            [
+                "name": "get_recent_workouts",
+                "description": "Get recently completed workout entries from history.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "days": ["type": "integer", "description": "Number of days to look back (default 7)"],
+                    ],
+                    "required": [],
+                ],
+            ],
+            [
+                "name": "build_workout",
+                "description": "Build a workout plan from exercise IDs. Creates a new workout manifest with sections.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "name": ["type": "string", "description": "Workout name"],
+                        "type": ["type": "string", "description": "Workout type"],
+                        "sections": [
+                            "type": "array",
+                            "description": "Array of section objects",
+                            "items": [
+                                "type": "object",
+                                "properties": [
+                                    "exerciseID": ["type": "string", "description": "ID of the exercise"],
+                                    "name": ["type": "string", "description": "Section name"],
+                                    "duration": ["type": "integer", "description": "Duration in seconds"],
+                                    "sets": ["type": "integer", "description": "Number of sets"],
+                                    "restBetweenSets": ["type": "integer", "description": "Rest between sets in seconds"],
+                                    "prepareTime": ["type": "integer", "description": "Prepare time in seconds"],
+                                ],
+                                "required": ["exerciseID"],
+                            ],
+                        ],
+                    ],
+                    "required": ["name"],
+                ],
+            ],
+            [
+                "name": "get_analytics",
+                "description": "Get workout statistics: count, current streak, best streak, and total duration.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "type": ["type": "string", "description": "Filter by workout type (optional)"],
+                        "days": ["type": "integer", "description": "Number of days to look back (optional, all time if omitted)"],
+                    ],
+                    "required": [],
+                ],
+            ],
+            [
+                "name": "add_media_note",
+                "description": "Append a note to an exercise's guide.md file.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "exerciseID": ["type": "string", "description": "ID of the exercise"],
+                        "note": ["type": "string", "description": "Note content to append"],
+                    ],
+                    "required": ["exerciseID", "note"],
+                ],
+            ],
+        ]
+    }
+
     /// Returns the most likely provider for the given API key prefix.
     static func detect(apiKey: String) -> AIProvider? {
         if apiKey.hasPrefix("sk-ant-")      { return anthropic    }

@@ -53,6 +53,7 @@
 		EE0001EE0001EE0001EE0006 /* ExerciseNamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0005 /* ExerciseNamingService.swift */; };
 		EE0001EE0001EE0001EE0008 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0007 /* ExerciseAISettingsView.swift */; };
 		EE0001EE0001EE0001EE000A /* MediaPreviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0009 /* MediaPreviewSheet.swift */; };
+		F09D0012F09D0012F09D0012 /* ToolRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09D0011F09D0011F09D0011 /* ToolRouter.swift */; };
 		CC0001CC0001CC0001CC0001 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */; };
 		CC0001CC0001CC0001CC000A /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC000B /* AIProvider.swift */; };
 		CC0001CC0001CC0001CC0002 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0006 /* AIStore.swift */; };
@@ -115,6 +116,7 @@
 		CC0001CC0001CC0001CC0006 /* AIStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStore.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0007 /* AICoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AICoachView.swift; sourceTree = "<group>"; };
 		CC0001CC0001CC0001CC0008 /* AISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsView.swift; sourceTree = "<group>"; };
+		F09D0011F09D0011F09D0011 /* ToolRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRouter.swift; sourceTree = "<group>"; };
 		DD0001DD0001DD0001DD0001 /* TimeMasterWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidget.swift; sourceTree = "<group>"; };
 		DD0001DD0001DD0001DD0002 /* TimeMasterWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidgetBundle.swift; sourceTree = "<group>"; };
 		DD0001DD0001DD0001DD0003 /* TimeMasterWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMasterWidget.entitlements; sourceTree = "<group>"; };
@@ -310,6 +312,7 @@
 				CC0001CC0001CC0001CC000B /* AIProvider.swift */,
 				CC0001CC0001CC0001CC0006 /* AIStore.swift */,
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
+				F09D0011F09D0011F09D0011 /* ToolRouter.swift */,
 				DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */,
 				604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */,
 				424FB520F5AF4D8095969B26 /* WorkoutResumeManager.swift */,
@@ -389,6 +392,7 @@
 			name = TimeMaster;
 			packageProductDependencies = (
 				85E2120C60EC88EBCAB370DF /* ZIPFoundation */,
+				F09D0001F09D0001F09D0001 /* TimeMasterCore */,
 			);
 			productName = TimeMaster;
 			productReference = 69344764F8B3AC313FF4CBC5 /* TimeMaster.app */;
@@ -449,6 +453,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+				F09D0002F09D0002F09D0002 /* XCLocalSwiftPackageReference "TimeMasterCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 26FA13129B845B5C3499F3CB /* Products */;
@@ -533,6 +538,7 @@
 				0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */,
 				CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */,
 				BE73226A68324F38ACB61D7A /* WorkoutResumeManager.swift in Sources */,
+				F09D0012F09D0012F09D0012 /* ToolRouter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -832,11 +838,23 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		F09D0002F09D0002F09D0002 /* XCLocalSwiftPackageReference "TimeMasterCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "TimeMasterCore";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		85E2120C60EC88EBCAB370DF /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
+		};
+		F09D0001F09D0001F09D0001 /* TimeMasterCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F09D0002F09D0002F09D0002 /* XCLocalSwiftPackageReference "TimeMasterCore" */;
+			productName = TimeMasterCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

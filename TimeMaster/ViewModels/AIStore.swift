@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import TimeMasterCore
 
 // MARK: - ChatMessage
 
@@ -76,6 +77,21 @@ struct ChatSession: Codable, Identifiable {
     var visibleCount: Int { messages.filter { !$0.isLoading }.count }
 }
 
+// MARK: - ToolCall
+
+struct ToolCall: Equatable {
+    let id: String
+    let name: String
+    let arguments: [String: Any]
+
+    static func == (lhs: ToolCall, rhs: ToolCall) -> Bool { lhs.id == rhs.id }
+}
+
+struct ResponseWithTools {
+    let text: String
+    let toolCalls: [ToolCall]
+}
+
 // MARK: - AIStore
 
 final class AIStore: ObservableObject {
@@ -88,6 +104,8 @@ final class AIStore: ObservableObject {
 
     // Network state
     @Published var isLoading: Bool           = false
+    @Published var isExecutingTools: Bool    = false
+    @Published var toolCallCount: Int        = 0
     @Published var availableModels: [String] = []
     @Published var isFetchingModels: Bool    = false
 
@@ -99,6 +117,11 @@ final class AIStore: ObservableObject {
     // Personality + knowledge
     @Published var soulPrompt: String = "You are an expert fitness coach and training assistant inside the TimeMaster workout app. Be concise, motivating, and practical."
     @Published var knowledgeFilenames: [String] = []
+
+    // Tool calling
+    let toolRouter = ToolRouter()
+    private let maxToolCallIterations = 5
+    var sessionContextInjected = false
 
     // MARK: - Provider helpers
 
@@ -325,12 +348,12 @@ final class AIStore: ObservableObject {
         }
 
         do {
-            let reply = try await callAPI(
+            let result = try await sendWithToolLoop(
                 displayText:       trimmed.isEmpty ? "(see attached file)" : trimmed,
                 attachmentName:    attachmentName,
                 attachmentContent: attachmentContent
             )
-            let assistantMsg = ChatMessage(role: .assistant, content: reply)
+            let assistantMsg = ChatMessage(role: .assistant, content: result)
             await MainActor.run {
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
                     replaceLoadingMessage(id: placeholderID, with: assistantMsg)
@@ -346,6 +369,99 @@ final class AIStore: ObservableObject {
                 }
             }
         }
+    }
+
+    // MARK: - Tool call loop
+
+    private func sendWithToolLoop(
+        displayText: String,
+        attachmentName: String?,
+        attachmentContent: String?
+    ) async throws -> String {
+        var iteration = 0
+        var apiMessages = buildAPIMessages(
+            displayText: displayText,
+            attachmentName: attachmentName,
+            attachmentContent: attachmentContent
+        )
+
+        await MainActor.run { toolCallCount = 0 }
+
+        while iteration < maxToolCallIterations {
+            iteration += 1
+            let provider = activeProvider
+            let key = currentAPIKey
+            guard !key.isEmpty else { throw AIError.missingAPIKey }
+
+            let baseStr = resolveBaseURL(for: provider)
+            let base = baseStr.hasSuffix("/") ? String(baseStr.dropLast()) : baseStr
+
+            let response: ResponseWithTools
+            switch provider.authStyle {
+            case .bearer:
+                response = try await callOpenAICompat(
+                    base: base, key: key,
+                    messages: apiMessages
+                )
+            case .xApiKey:
+                response = try await callAnthropicMessages(
+                    base: base, key: key,
+                    apiMessages: apiMessages
+                )
+            }
+
+            if response.toolCalls.isEmpty {
+                await MainActor.run { isExecutingTools = false }
+                return response.text.isEmpty ? "Done." : response.text
+            }
+
+            await MainActor.run { [iteration] in
+                isExecutingTools = true
+                toolCallCount = iteration
+            }
+
+            apiMessages.append(["role": "assistant", "content": response.text.isEmpty ? "Calling tools..." : response.text])
+
+            for tc in response.toolCalls {
+                let result = await toolRouter.execute(toolName: tc.name, args: tc.arguments)
+                let toolContent: String
+                if result.success {
+                    toolContent = result.data
+                } else {
+                    toolContent = "TOOL ERROR: \(result.data)"
+                }
+                apiMessages.append(["role": "tool", "content": toolContent, "tool_call_id": tc.id])
+            }
+        }
+
+        await MainActor.run { isExecutingTools = false }
+        let finalResponse = try await sendFinalAPIRequest(messages: apiMessages)
+        return finalResponse
+    }
+
+    private func sendFinalAPIRequest(messages: [[String: Any]]) async throws -> String {
+        let provider = activeProvider
+        let key = currentAPIKey
+        guard !key.isEmpty else { throw AIError.missingAPIKey }
+
+        let baseStr = resolveBaseURL(for: provider)
+        let base = baseStr.hasSuffix("/") ? String(baseStr.dropLast()) : baseStr
+
+        switch provider.authStyle {
+        case .bearer:
+            let response = try await callOpenAICompat(base: base, key: key, messages: messages)
+            return response.text.isEmpty ? "I've completed those actions." : response.text
+        case .xApiKey:
+            let response = try await callAnthropicMessages(base: base, key: key, apiMessages: messages)
+            return response.text.isEmpty ? "I've completed those actions." : response.text
+        }
+    }
+
+    private func resolveBaseURL(for provider: AIProvider) -> String {
+        if provider.id == "custom" {
+            return customBaseURL
+        }
+        return provider.baseURL
     }
 
     // MARK: - Fetch available models
@@ -382,7 +498,37 @@ final class AIStore: ObservableObject {
         await MainActor.run { availableModels = ids }
     }
 
-    // MARK: - API routing
+    // MARK: - Conversation building
+
+    private func buildAPIMessages(
+        displayText: String,
+        attachmentName: String?,
+        attachmentContent: String?
+    ) -> [[String: Any]] {
+        var apiMessages: [[String: Any]] = []
+
+        var systemContent = soulPrompt
+        let knowledge = loadKnowledgeContext()
+        if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
+        apiMessages.append(["role": "system", "content": systemContent])
+
+        let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
+        for msg in history {
+            var msgContent = msg.content
+            if msg.id == history.last?.id, msg.role == .user,
+               let attContent = attachmentContent, let attName = attachmentName {
+                msgContent = "[Attached file: \(attName)]\n\(attContent)\n\n---\n\(msgContent)"
+            }
+            switch msg.role {
+            case .user:      apiMessages.append(["role": "user",      "content": msgContent])
+            case .assistant: apiMessages.append(["role": "assistant", "content": msgContent])
+            case .system:    break
+            }
+        }
+        return apiMessages
+    }
+
+    // MARK: - API routing (old path kept for models fetch)
 
     private func callAPI(
         displayText: String,
@@ -404,51 +550,103 @@ final class AIStore: ObservableObject {
 
         switch provider.authStyle {
         case .bearer:
-            return try await callOpenAICompat(
-                base: base, key: key,
-                displayText: displayText,
-                attachmentName: attachmentName,
-                attachmentContent: attachmentContent
-            )
+            var apiMessages: [[String: String]] = []
+            var systemContent = soulPrompt
+            let knowledge = loadKnowledgeContext()
+            if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
+            apiMessages.append(["role": "system", "content": systemContent])
+
+            let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
+            for msg in history {
+                var msgContent = msg.content
+                if msg.id == history.last?.id, msg.role == .user,
+                   let attContent = attachmentContent, let attName = attachmentName {
+                    msgContent = "[Attached file: \(attName)]\n\(attContent)\n\n---\n\(msgContent)"
+                }
+                switch msg.role {
+                case .user:      apiMessages.append(["role": "user",      "content": msgContent])
+                case .assistant: apiMessages.append(["role": "assistant", "content": msgContent])
+                case .system:    break
+                }
+            }
+
+            let body: [String: Any] = ["model": model, "messages": apiMessages, "max_tokens": 1024]
+            let bodyData = try JSONSerialization.data(withJSONObject: body)
+
+            var request = URLRequest(url: URL(string: "\(base)/chat/completions")!)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            applyAuth(to: &request, key: key, style: .bearer)
+            request.httpBody = bodyData
+            request.timeoutInterval = 60
+
+            return try await executeAndParseOpenAI(request: request)
         case .xApiKey:
-            return try await callAnthropicMessages(
-                base: base, key: key,
-                displayText: displayText,
-                attachmentName: attachmentName,
-                attachmentContent: attachmentContent
-            )
+            guard let url = URL(string: "\(base)/messages") else { throw AIError.invalidURL }
+
+            var systemContent = soulPrompt
+            let knowledge = loadKnowledgeContext()
+            if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
+
+            var apiMessages: [[String: String]] = []
+            let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
+            for msg in history {
+                var msgContent = msg.content
+                if msg.id == history.last?.id, msg.role == .user,
+                   let attContent = attachmentContent, let attName = attachmentName {
+                    msgContent = "[Attached file: \(attName)]\n\(attContent)\n\n---\n\(msgContent)"
+                }
+                switch msg.role {
+                case .user:      apiMessages.append(["role": "user",      "content": msgContent])
+                case .assistant: apiMessages.append(["role": "assistant", "content": msgContent])
+                case .system:    break
+                }
+            }
+            if apiMessages.first?["role"] == "assistant" {
+                apiMessages.insert(["role": "user", "content": "(continuing)"], at: 0)
+            }
+
+            let body: [String: Any] = [
+                "model":      model,
+                "max_tokens": 1024,
+                "system":     systemContent,
+                "messages":   apiMessages
+            ]
+            let bodyData = try JSONSerialization.data(withJSONObject: body)
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            applyAuth(to: &request, key: key, style: .xApiKey)
+            request.httpBody      = bodyData
+            request.timeoutInterval = 60
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { throw AIError.badResponse }
+            guard http.statusCode == 200 else {
+                throw AIError.httpError(http.statusCode, String(data: data, encoding: .utf8) ?? "Unknown")
+            }
+            guard let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let content = json["content"] as? [[String: Any]],
+                  let text    = content.first?["text"] as? String else { throw AIError.parseError }
+            return text
         }
     }
 
-    // MARK: - OpenAI-compatible path  (all providers except Anthropic)
+    // MARK: - OpenAI-compatible with tools
 
     private func callOpenAICompat(
         base: String, key: String,
-        displayText: String, attachmentName: String?, attachmentContent: String?
-    ) async throws -> String {
+        messages: [[String: Any]]
+    ) async throws -> ResponseWithTools {
         guard let url = URL(string: "\(base)/chat/completions") else { throw AIError.invalidURL }
 
-        var apiMessages: [[String: String]] = []
-        var systemContent = soulPrompt
-        let knowledge = loadKnowledgeContext()
-        if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
-        apiMessages.append(["role": "system", "content": systemContent])
-
-        let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
-        for msg in history {
-            var msgContent = msg.content
-            if msg.id == history.last?.id, msg.role == .user,
-               let attContent = attachmentContent, let attName = attachmentName {
-                msgContent = "[Attached file: \(attName)]\n\(attContent)\n\n---\n\(msgContent)"
-            }
-            switch msg.role {
-            case .user:      apiMessages.append(["role": "user",      "content": msgContent])
-            case .assistant: apiMessages.append(["role": "assistant", "content": msgContent])
-            case .system:    break
-            }
-        }
-
-        let body: [String: Any] = ["model": model, "messages": apiMessages, "max_tokens": 1024]
+        var body: [String: Any] = [
+            "model": model,
+            "messages": messages,
+            "max_tokens": 1024,
+            "tools": AIProvider.toolDefinitions,
+        ]
         let bodyData = try JSONSerialization.data(withJSONObject: body)
 
         var request = URLRequest(url: url)
@@ -458,47 +656,89 @@ final class AIStore: ObservableObject {
         request.httpBody = bodyData
         request.timeoutInterval = 60
 
-        return try await executeAndParseOpenAI(request: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw AIError.badResponse }
+        guard http.statusCode == 200 else {
+            throw AIError.httpError(http.statusCode, String(data: data, encoding: .utf8) ?? "Unknown")
+        }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let message = choices.first?["message"] as? [String: Any] else { throw AIError.parseError }
+
+        let text = message["content"] as? String ?? ""
+        let rawToolCalls = message["tool_calls"] as? [[String: Any]] ?? []
+
+        var toolCalls: [ToolCall] = []
+        for rawTC in rawToolCalls {
+            guard let id = rawTC["id"] as? String,
+                  let funcObj = rawTC["function"] as? [String: Any],
+                  let name = funcObj["name"] as? String else { continue }
+
+            let args: [String: Any]
+            if let argsStr = funcObj["arguments"] as? String,
+               let argsData = argsStr.data(using: .utf8),
+               let parsed = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
+                args = parsed
+            } else {
+                args = [:]
+            }
+            toolCalls.append(ToolCall(id: id, name: name, arguments: args))
+        }
+
+        return ResponseWithTools(text: text, toolCalls: toolCalls)
     }
 
-    // MARK: - Anthropic Messages API path
+    // MARK: - Anthropic Messages API with tools
 
     private func callAnthropicMessages(
         base: String, key: String,
-        displayText: String, attachmentName: String?, attachmentContent: String?
-    ) async throws -> String {
+        apiMessages: [[String: Any]]
+    ) async throws -> ResponseWithTools {
         guard let url = URL(string: "\(base)/messages") else { throw AIError.invalidURL }
 
-        // System prompt
-        var systemContent = soulPrompt
+        var systemPrompt = soulPrompt
         let knowledge = loadKnowledgeContext()
-        if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
+        if !knowledge.isEmpty { systemPrompt += "\n\n# Knowledge\n\(knowledge)" }
 
-        // Messages — Anthropic only accepts user / assistant (no system role in array)
-        var apiMessages: [[String: String]] = []
-        let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
-        for msg in history {
-            var msgContent = msg.content
-            if msg.id == history.last?.id, msg.role == .user,
-               let attContent = attachmentContent, let attName = attachmentName {
-                msgContent = "[Attached file: \(attName)]\n\(attContent)\n\n---\n\(msgContent)"
+        var anthropicMessages: [[String: Any]] = []
+        for msg in apiMessages {
+            let role = msg["role"] as? String ?? ""
+            if role == "system" {
+                let content = msg["content"] as? String ?? ""
+                if !content.isEmpty && !systemPrompt.contains(content) {
+                    systemPrompt += "\n\n\(content)"
+                }
+                continue
             }
-            switch msg.role {
-            case .user:      apiMessages.append(["role": "user",      "content": msgContent])
-            case .assistant: apiMessages.append(["role": "assistant", "content": msgContent])
-            case .system:    break
+            if role == "tool" {
+                let toolCallId = msg["tool_call_id"] as? String ?? ""
+                let content = msg["content"] as? String ?? ""
+                anthropicMessages.append([
+                    "role": "user",
+                    "content": [[
+                        "type": "tool_result",
+                        "tool_use_id": toolCallId,
+                        "content": content,
+                    ]]
+                ])
+                continue
+            }
+            if role == "user" || role == "assistant" {
+                if let content = msg["content"] as? String {
+                    anthropicMessages.append(["role": role, "content": content])
+                }
             }
         }
-        // Anthropic requires the array to start with a user message
-        if apiMessages.first?["role"] == "assistant" {
-            apiMessages.insert(["role": "user", "content": "(continuing)"], at: 0)
+        if anthropicMessages.first?["role"] as? String == "assistant" {
+            anthropicMessages.insert(["role": "user", "content": "(continuing)"], at: 0)
         }
 
-        let body: [String: Any] = [
-            "model":      model,
+        var body: [String: Any] = [
+            "model": model,
             "max_tokens": 1024,
-            "system":     systemContent,
-            "messages":   apiMessages
+            "system": systemPrompt,
+            "messages": anthropicMessages,
+            "tools": AIProvider.anthropicToolDefinitions,
         ]
         let bodyData = try JSONSerialization.data(withJSONObject: body)
 
@@ -506,7 +746,7 @@ final class AIStore: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         applyAuth(to: &request, key: key, style: .xApiKey)
-        request.httpBody      = bodyData
+        request.httpBody = bodyData
         request.timeoutInterval = 60
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -514,10 +754,25 @@ final class AIStore: ObservableObject {
         guard http.statusCode == 200 else {
             throw AIError.httpError(http.statusCode, String(data: data, encoding: .utf8) ?? "Unknown")
         }
-        guard let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let content = json["content"] as? [[String: Any]],
-              let text    = content.first?["text"] as? String else { throw AIError.parseError }
-        return text
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let content = json["content"] as? [[String: Any]] else { throw AIError.parseError }
+
+        var text = ""
+        var toolCalls: [ToolCall] = []
+
+        for block in content {
+            let type = block["type"] as? String ?? ""
+            if type == "text", let t = block["text"] as? String {
+                text += t
+            } else if type == "tool_use",
+                      let id = block["id"] as? String,
+                      let name = block["name"] as? String {
+                let args = (block["input"] as? [String: Any]) ?? [:]
+                toolCalls.append(ToolCall(id: id, name: name, arguments: args))
+            }
+        }
+
+        return ResponseWithTools(text: text, toolCalls: toolCalls)
     }
 
     // MARK: - Shared helpers

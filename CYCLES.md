@@ -242,11 +242,14 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Build timemaster-tool binary, all 12 sub-commands
   - [x] Detail: Install to /usr/local/bin, test from Terminal
   - [x] Verified: F09-C DOCKS.md checklist (49 tests, 0 failures, macOS arm64, 2026-07-06)
-- [ ] F09-D — AI Tool Calling
-  - [ ] Detail: ToolRouter routes calls → DatabaseManager
-  - [ ] Detail: Function-calling loop in AIProvider, context injection
-  - [ ] Detail: Max 5 tool calls per message, approval gate for writes
-  - [ ] Verified: F09-D DOCKS.md checklist
+- [x] F09-D — AI Tool Calling
+  - [x] Detail: ToolRouter routes calls → DatabaseManager
+  - [x] Detail: Function-calling loop in AIStore, context injection
+  - [x] Detail: Max 5 tool calls per message, approval gate for writes
+  - [x] Detail: SessionContext builder in AISystemPromptBuilder
+  - [x] Detail: Tool schema definitions in AIProvider (OpenAI + Anthropic)
+  - [x] Detail: Tool call indicator UI in AICoachView
+  - [x] Verified: F09-D DOCKS.md checklist (iOS build succeeds, 49 core tests pass, 2026-07-07)
 - [ ] F09-E — Mac App
   - [ ] Detail: Add macOS target to Xcode project
   - [ ] Detail: Platform-adaptive UI (#if os(macOS) where needed)

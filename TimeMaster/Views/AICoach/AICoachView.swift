@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import TimeMasterCore
 
 // MARK: - AICoachView
 
@@ -105,6 +106,24 @@ struct AICoachView: View {
             pendingAttachContent = "[Binary file – \(data.count) bytes, cannot display as text]"
         }
     }
+
+    // MARK: - Session context injection on new session
+
+    private func injectSessionContextIfNeeded() {
+        guard !store.sessionContextInjected else { return }
+        store.sessionContextInjected = true
+        let fs = TimeMasterCore.FileSystemHelper()
+        let promptBuilder = TimeMasterCore.AISystemPromptBuilder(fs: fs)
+        let db = TimeMasterCore.DatabaseManager.shared
+        DispatchQueue.global(qos: .userInitiated).async {
+            guard let ctx = try? promptBuilder.buildSessionContext(db: db) else { return }
+            let systemMsg = ctx.toSystemMessage()
+            let fullPrompt = "\(store.soulPrompt)\n\n\(systemMsg)"
+            DispatchQueue.main.async {
+                store.soulPrompt = fullPrompt
+            }
+        }
+    }
 }
 
 // MARK: - ChatMessageList
@@ -133,6 +152,10 @@ private struct ChatMessageList: View {
                                     .combined(with: .opacity),
                                 removal: .opacity.combined(with: .scale(scale: 0.92))
                             ))
+                    }
+                    if store.isExecutingTools {
+                        ToolCallIndicator(count: store.toolCallCount)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                 }
                 .padding(.horizontal, 12)
@@ -703,6 +726,45 @@ private struct SessionRowView: View {
     }
 }
 
+
+// MARK: - ToolCallIndicator
+
+private struct ToolCallIndicator: View {
+    let count: Int
+    @State private var pulse = false
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 52)
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color.white.opacity(pulse ? 0.7 : 0.3))
+                    .frame(width: 6, height: 6)
+                    .scaleEffect(pulse ? 1.2 : 0.9)
+                    .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulse)
+                Text(toolActionText)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color.white.opacity(0.5))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color(hex: "1C1C1C"))
+            .clipShape(BubbleShape(isUser: false))
+            .onAppear { pulse = true }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var toolActionText: String {
+        if count >= 5 { return "Working on it..." }
+        switch count {
+        case 1: return "Checking your data..."
+        case 2: return "Looking deeper..."
+        case 3: return "Almost done..."
+        default: return "Working on it..."
+        }
+    }
+}
 
 #Preview {
     AICoachView()
