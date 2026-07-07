@@ -10,6 +10,7 @@ The same TimeMaster iOS app, compiled as a native macOS application. Not Catalys
 4. **CLI tool integration** — `timemaster-tool` (F09-C) installed alongside the app
 5. **AGENTS.md auto-discovery** — external AI agents read the root AGENTS.md to bootstrap
 6. **1:1 feature parity** — every iOS feature works identically on Mac
+7. **Widgets ported** — same F08 widgets compile for macOS Notification Center — tap widget → opens workout detail in Mac app, same deep-link flow
 
 ## Architecture
 
@@ -29,6 +30,7 @@ External AI (Claude Code / Cursor)
 User flow:
   Finder → ~/Documents/TimeMaster/ → browse Exercises Database/ → double-click manifest.json
   Claude Code → "create a push-day workout from my shoulder exercises" → calls CLI → done
+  Widget → tap Notification Center widget → deep-links to WorkoutDetailView in the Mac app
 ```
 
 ## Platform Differences
@@ -43,6 +45,7 @@ User flow:
 | **External AI** | AI runs inside the app | AI runs outside, accesses filesystem via CLI |
 | **Codebase** | Same Swift files | Same Swift files |
 | **Media picker** | PhotosPicker, camera | NSOpenPanel, drag-and-drop from Finder |
+| **Widgets** | Home Screen / Today View | Notification Center / Desktop |
 | **Build target** | iOS 17+ | macOS 14+ |
 
 ## Key Design Decisions
@@ -85,6 +88,7 @@ User flow:
 - [ ] All iOS features work on Mac (workout creation, timer, analytics, AI chat)
 - [ ] Media import via drag-and-drop and file picker
 - [ ] Keyboard shortcuts: Cmd+N new workout, Cmd+W close window, Cmd+, settings
+- [ ] Widget appears in macOS Notification Center, tap deep-links to workout detail
 
 ## Dependencies
 - F09-A — TimeMasterCore (shared library, used by both platforms)
