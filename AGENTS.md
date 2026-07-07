@@ -1,7 +1,8 @@
 # AGENTS.md — AI Project Management System
 
 ## 0. About This Project
-Time-Master — iOS workout timer app (SwiftUI, iOS 16+). Users create custom workouts with timed sections, photo guidance, and one-tap sequential playback. Includes AI coach (25 providers), video import from computer server, analytics, background music, motivational quotes, notifications, and home screen widget. 8 features documented, all built and verified.
+<!-- Other AI agents: fill this section with a brief explanation of what this project is, what it builds, and why it exists. Keep it to 3-5 lines. -->
+_[To be filled by the project's AI agents.]_
 
 ---
 
@@ -9,39 +10,27 @@ Time-Master — iOS workout timer app (SwiftUI, iOS 16+). Users create custom wo
 
 When opening this project, determine which state the project is in:
 
-### State A: Empty repo — no `genesis/`, no `features/`, no `CYCLES.md`
-1. Ask user: "What are we building? Give me the raw idea."
-2. Create `genesis/ORIGINAL IDEA.md` with whatever the user says — raw, unfiltered.
-3. Ask user: "Want me to expand this into an `INITIAL IDEA.md` that explores the super-structure (what the whole system looks like, major parts, how they connect)?"
-4. If yes: create `genesis/INITIAL IDEA.md`. If no: proceed.
-5. Ask user: "What should be Feature 01?"
-6. Create `features/DOCKS.md` index + `genesis/F01-raw/DOCKS.md` (raw feature, not final)
-7. Create `CYCLES.md` with Cycle 0
-8. Run AUDIT for F01, then implement
+### State A: Empty repo — no `features/`, no `CYCLES.md`
+1. Read `genesis/`, external references, `STYLES.md`.
+2. Ask user: "What should be Feature 01?"
+3. Create `features/DOCKS.md` index + `genesis/F01-raw/DOCKS.md`.
+4. Create `CYCLES.md` with Cycle 0. Run AUDIT for F01.
 
-### State B: Has `genesis/` but no `features/`
-1. Read everything in `genesis/`: `ORIGINAL IDEA.md`, `INITIAL IDEA.md` (if exists), `REFERENCE/`
-2. Read `STYLES.md` if present
-3. Propose feature breakdown to user (all F01–FNN)
-4. Create all raw feature DOCKS.md files in `genesis/FXX-raw/`
-5. Create `features/DOCKS.md` index
-6. Create `CYCLES.md`
-7. Run AUDIT for F01, then implement
+### State B: Has `genesis/` + `STYLES.md` but no `features/`
+1. Read `genesis/`, `STYLES.md`, dependency/reference code.
+2. Propose feature breakdown to user (F01–FNN).
+3. Create all DOCKS.md files + `features/DOCKS.md` index.
+4. Create `CYCLES.md`. Run AUDIT for F01.
 
 ### State C: Has `features/`, `CYCLES.md`, active feature docs
-1. Read `features/DOCKS.md` — understand full project map
-2. Read `CYCLES.md` — find current active cycle
-3. Read the active feature's DOCKS.md + all its dependency DOCKS.md files
-4. Ask user: "Continue Cycle N for FXX?" or "Start next feature?"
-5. If starting: run AUDIT Protocol (P01) for that feature
-6. If continuing: pick up from last verified phase
+1. Read `features/DOCKS.md`, `CYCLES.md`, active feature's DOCKS.md + dependencies.
+2. Ask user: "Continue Cycle N for FXX?" or "Start next feature?"
+3. If starting: run AUDIT. If continuing: pick up from last verified phase.
 
 ### State D: Existing codebase with old/missing documentation — needs conversion
-1. Run the Project Conversion Protocol (P07) — audit the entire project
-2. Discover: what docs exist, what old system (if any), what the codebase contains
-3. Propose conversion plan: what gets mapped where, what gets created from code
-4. User approves → execute conversion
-5. After conversion → State B or C (depending on what was created)
+1. Run Project Conversion Protocol (P07).
+2. Discover docs, classify project, propose conversion plan.
+3. User approves → execute. Result: State B or C.
 
 ---
 
@@ -252,23 +241,58 @@ If a sub-feature is complex enough to warrant its own breakdown, it gets sub-sub
 - Unlimited depth. Every single one gets a DOCKS.md and verification evidence.
 
 ### CYCLES.md Format
+
+**CYCLES.md is the user's progress dashboard.** Every cycle and todo is planned WITH the user. The user can add, remove, or reorder todos at any time. AI may propose cycles, user approves.
+
+Format is a static checkbox tree — no shifting sections, no "In Progress" / "Queued" dynamics:
+
 ```markdown
 # CYCLES.md — Project Name
+**Planned with user:** [date]
+
+---
 
 ## Cycle 0 — Documentation
-- [x] Project structure + all DOCKS.md files
-- [x] CYCLES.md created
+- [x] Project scaffold (`projinit`)
+- [x] genesis/ORIGINAL IDEA.md
+- [x] STYLES.md conventions decided
+- [x] Feature breakdown: F01 → F08 mapped
+- [x] features/DOCKS.md index
+- [x] All DOCKS.md files drafted
 
 ## Cycle 1 — First Build
-- [x] F00 — Bootstrap
+- [x] F00 — Bootstrap / scaffold code
 - [ ] F01 — Feature Name
-  - [ ] F01-A Sub-feature
-    - [x] F01-A-a Sub-sub-feature — verified: [evidence]
-  - [ ] F01-B Sub-feature
+  - [ ] F01-A — Sub-feature name
+    - [ ] Detail: [specific task]
+    - [ ] Detail: [specific task]
+    - [ ] Verified: build, deploy, test, evidence
+  - [ ] F01-B — Sub-feature name
+    - [ ] Detail: [specific task]
+    - [ ] Verified: build, deploy, test, evidence
+- [ ] Connect F01 → F02 ready
 
 ## Cycle 2 — Next Phase
 - [ ] F02 — Another Feature
+  - [ ] F02-A — Sub-feature
+    - [ ] Detail: [specific task]
+  - [ ] F02-B — Sub-feature
+
+## Cycle 3 — Parallel (proposed by AI)
+- [ ] F03 — Feature A (no deps)
+  - [ ] F03-A — Sub-feature
+- [ ] F04 — Feature B (no deps)
+  - [ ] F04-A — Sub-feature
 ```
+
+**Rules:**
+- Cycles are planned together — user says what goes in each cycle.
+- AI can propose cycles ("These 3 features are independent — cycle 3 could be parallel"). User accepts, rejects, or adjusts.
+- Nest as deep as needed. Every sub-feature, sub-sub-feature, and specific task gets its own line.
+- Only `[ ]` (pending) and `[x]` (done) — no intermediate states. Verification details go in the feature's DOCKS.md or audit, not here.
+- Nothing shifts. The tree stays where the user put it.
+- User can add arbitrary todos mid-cycle ("also fix the header alignment"). AI adds them under the right feature.
+- Token limit awareness: each prompt task should fit ~250-300k tokens. If a sub-feature is huge, split it into deeper sub-tasks.
 
 ### Cycle 0 — Documentation Reorganization
 A special pre-code cycle. Runs ONCE at project start or after a major re-plan:
