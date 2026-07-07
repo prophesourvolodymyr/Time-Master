@@ -1,0 +1,236 @@
+import Foundation
+
+public final class SchemaManager {
+    private let fs: FileSystemHelper
+
+    public init(fs: FileSystemHelper) {
+        self.fs = fs
+    }
+
+    public func generateSchema() throws -> SchemaDefinition {
+        let objects: [String: ObjectSchema] = [
+            "exercise": ObjectSchema(
+                description: "A single exercise in the database. Can be nested inside folders.",
+                folderPath: "Exercises Database/{folderPath}/{id}",
+                manifestName: "manifest.json",
+                required: ["id", "name", "duration", "restAfter", "createdAt", "updatedAt"],
+                properties: [
+                    "id": PropertySchema(type: "string", description: "UUID string — also used as folder name"),
+                    "name": PropertySchema(type: "string", description: "Display name of the exercise"),
+                    "details": PropertySchema(type: "string", description: "Instructions, description, or notes", optional: true),
+                    "duration": PropertySchema(type: "integer", description: "Default duration in seconds", format: "seconds"),
+                    "restAfter": PropertySchema(type: "integer", description: "Rest after this exercise in seconds", format: "seconds"),
+                    "workoutType": PropertySchema(type: "object", description: "Assigned workout type (Strength, Cardio, etc.)", optional: true),
+                    "mediaFilenames": PropertySchema(type: "array<string>", description: "References to files in Media/", optional: true),
+                    "linkURLs": PropertySchema(type: "array<string>", description: "External links (YouTube, articles, etc.)", optional: true),
+                    "createdAt": PropertySchema(type: "string", description: "ISO 8601 creation timestamp", format: "date-time"),
+                    "updatedAt": PropertySchema(type: "string", description: "ISO 8601 last-modified timestamp", format: "date-time"),
+                    "sets": PropertySchema(type: "integer", description: "Default number of sets", optional: true),
+                    "restBetweenSets": PropertySchema(type: "integer", description: "Rest between sets in seconds", optional: true),
+                ]
+            ),
+            "workout": ObjectSchema(
+                description: "A workout plan composed of sections that reference exercises.",
+                folderPath: "Workouts/{id}",
+                manifestName: "manifest.json",
+                required: ["id", "name", "type", "sections", "createdAt"],
+                properties: [
+                    "id": PropertySchema(type: "string", description: "UUID string — also used as folder name"),
+                    "name": PropertySchema(type: "string", description: "Display name of the workout"),
+                    "type": PropertySchema(type: "object", description: "WorkoutType { id, name, iconName, colorHex }"),
+                    "sections": PropertySchema(type: "array<object>", description: "Ordered list of WorkoutSectionManifest"),
+                    "musicTrackFilenames": PropertySchema(type: "array<string>", description: "Music files in Music/", optional: true),
+                    "colorHex": PropertySchema(type: "string", description: "Display color", optional: true),
+                    "createdAt": PropertySchema(type: "string", description: "ISO 8601 creation timestamp", format: "date-time"),
+                    "restBetweenSections": PropertySchema(type: "integer", description: "Rest between sections in seconds"),
+                    "imageFilename": PropertySchema(type: "string", description: "Cover image in Media/", optional: true),
+                ]
+            ),
+            "historyEntry": ObjectSchema(
+                description: "Completed workout log entry stored in JSONL format.",
+                folderPath: "History/entries.jsonl",
+                manifestName: "entries.jsonl",
+                required: ["id", "workoutId", "workoutName", "completedAt", "durationCompleted"],
+                properties: [
+                    "id": PropertySchema(type: "string", description: "UUID string"),
+                    "workoutId": PropertySchema(type: "string", description: "ID of the workout performed"),
+                    "workoutName": PropertySchema(type: "string", description: "Name of the workout performed"),
+                    "completedAt": PropertySchema(type: "string", description: "ISO 8601 completion timestamp", format: "date-time"),
+                    "durationCompleted": PropertySchema(type: "integer", description: "Actual duration completed in seconds"),
+                    "workoutType": PropertySchema(type: "object", description: "WorkoutType at time of completion"),
+                    "isPartial": PropertySchema(type: "boolean", description: "Whether workout was partially completed"),
+                    "elapsedSeconds": PropertySchema(type: "integer", description: "Elapsed seconds for partial workouts"),
+                ]
+            ),
+            "config": ObjectSchema(
+                description: "App configuration — custom types, schedule, goals.",
+                folderPath: "Config/",
+                manifestName: "manifest.json",
+                required: ["weeklyGoal"],
+                properties: [
+                    "customWorkoutTypes": PropertySchema(type: "array<object>", description: "User-defined workout types"),
+                    "weeklyGoal": PropertySchema(type: "integer", description: "Weekly workout goal (1-7)"),
+                    "restDays": PropertySchema(type: "array<string>", description: "ISO date strings for rest days"),
+                    "trainingDays": PropertySchema(type: "array<integer>", description: "Days of week for training (1=Mon, 7=Sun)"),
+                    "trainingStartDate": PropertySchema(type: "string", description: "Start date of training schedule", format: "date-time"),
+                    "trainingDurationMonths": PropertySchema(type: "integer", description: "Training schedule duration"),
+                    "typeSchedules": PropertySchema(type: "array<object>", description: "Per-type workout schedules"),
+                ]
+            ),
+        ]
+
+        let tools: [ToolSchema] = [
+            ToolSchema(name: "listExercises", description: "List all exercises in the database", write: false),
+            ToolSchema(name: "getExercise", description: "Read a single exercise manifest", write: false, parameters: [
+                "id": PropertySchema(type: "string", description: "Exercise UUID"),
+            ]),
+            ToolSchema(name: "searchExercises", description: "Search exercises by name or type", write: false, parameters: [
+                "query": PropertySchema(type: "string", description: "Search term for name matching"),
+                "type": PropertySchema(type: "string", description: "Optional workout type filter", optional: true),
+            ]),
+            ToolSchema(name: "createExercise", description: "Create a new exercise folder with manifest", write: true, parameters: [
+                "id": PropertySchema(type: "string", description: "UUID for the new exercise"),
+                "name": PropertySchema(type: "string", description: "Exercise name"),
+                "duration": PropertySchema(type: "integer", description: "Duration in seconds", optional: true),
+            ]),
+            ToolSchema(name: "updateExercise", description: "Update an existing exercise manifest", write: true, parameters: [
+                "id": PropertySchema(type: "string", description: "Exercise UUID to update"),
+            ]),
+            ToolSchema(name: "deleteExercise", description: "Move an exercise to .trash/", write: true, parameters: [
+                "id": PropertySchema(type: "string", description: "Exercise UUID to delete"),
+            ]),
+            ToolSchema(name: "listWorkouts", description: "List all workout manifests", write: false),
+            ToolSchema(name: "getWorkout", description: "Read a single workout manifest", write: false, parameters: [
+                "id": PropertySchema(type: "string", description: "Workout UUID"),
+            ]),
+            ToolSchema(name: "createWorkout", description: "Create a new workout plan", write: true, parameters: [
+                "id": PropertySchema(type: "string", description: "UUID for the new workout"),
+                "name": PropertySchema(type: "string", description: "Workout name"),
+            ]),
+            ToolSchema(name: "getStats", description: "Get workout statistics", write: false, parameters: [
+                "type": PropertySchema(type: "string", description: "Optional workout type filter", optional: true),
+                "days": PropertySchema(type: "integer", description: "Number of days to look back", optional: true),
+            ]),
+        ]
+
+        let directories: [String: String] = [
+            "Exercises Database": "All exercises, nested in folders",
+            "Workouts": "Workout plans referencing exercise IDs",
+            "Media": "Shared media storage (UUID filenames)",
+            "Workspace": "AI sandbox — ignored by the app",
+            "Knowledge": "AI system prompt material (.md files)",
+            "skills": "Reusable agent skill definitions",
+            "Config": "App configuration",
+            "History": "Completed workout logs (JSONL)",
+            "Music": "Background music files",
+            "Backups": "Auto-backups before AI sessions",
+            ".trash": "Soft-deleted items (30-day retention)",
+        ]
+
+        return SchemaDefinition(
+            version: "1.0.0",
+            objects: objects,
+            tools: tools,
+            filesystem: FilesystemSchema(root: "TimeMaster", directories: directories)
+        )
+    }
+
+    public func writeSchema() throws {
+        let schema = try generateSchema()
+        try fs.writeAtomically(to: fs.schemaURL, value: schema)
+    }
+
+    public func validate<T: Encodable>(manifest: T, type: String, schema: SchemaDefinition? = nil) -> ValidationResult {
+        let def = schema ?? (try? generateSchema()) ?? SchemaDefinition(version: "1.0.0", objects: [:], tools: [], filesystem: FilesystemSchema())
+
+        guard let objectSchema = def.objects[type] else {
+            return ValidationResult(valid: false, errors: ["Unknown object type: \(type)"])
+        }
+
+        let mirror = Mirror(reflecting: manifest)
+        var errors: [String] = []
+        var warnings: [String] = []
+
+        for required in objectSchema.required {
+            let child = mirror.children.first { $0.label == required }
+            if child == nil {
+                errors.append("Missing required field: \(required)")
+            } else {
+                if let optionalValue = child?.value as? OptionalProtocol, optionalValue.isNil {
+                    errors.append("Required field is nil: \(required)")
+                }
+            }
+        }
+
+        for prop in objectSchema.properties {
+            let child = mirror.children.first { $0.label == prop.key }
+            if let value = child?.value {
+                if let propType = validatePropertyType(value: value, expectedType: prop.value.type, format: prop.value.format) {
+                    if prop.value.optional == false {
+                        errors.append("Field \(prop.key): \(propType)")
+                    } else {
+                        warnings.append("Field \(prop.key): \(propType)")
+                    }
+                }
+            }
+        }
+
+        return ValidationResult(
+            valid: errors.isEmpty,
+            errors: errors,
+            warnings: warnings
+        )
+    }
+
+    private func validatePropertyType(value: Any, expectedType: String, format: String?) -> String? {
+        if format == "date-time" {
+            if value is Date { return nil }
+            if value is String { return nil }
+            return "expected date or date string, got \(type(of: value))"
+        }
+        if expectedType.hasPrefix("array") {
+            if value is [Any] { return nil }
+            if value is NSArray { return nil }
+            return "expected array, got \(type(of: value))"
+        }
+        switch expectedType {
+        case "string":
+            return value is String ? nil : "expected string, got \(type(of: value))"
+        case "integer":
+            if value is Int { return nil }
+            if value is NSNumber { return nil }
+            return "expected integer, got \(type(of: value))"
+        case "boolean":
+            return value is Bool ? nil : "expected boolean, got \(type(of: value))"
+        case "object":
+            return nil
+        default:
+            return nil
+        }
+    }
+}
+
+public struct ValidationResult {
+    public let valid: Bool
+    public let errors: [String]
+    public let warnings: [String]
+
+    public init(valid: Bool, errors: [String] = [], warnings: [String] = []) {
+        self.valid = valid
+        self.errors = errors
+        self.warnings = warnings
+    }
+}
+
+private protocol OptionalProtocol {
+    var isNil: Bool { get }
+}
+
+extension Optional: OptionalProtocol {
+    var isNil: Bool {
+        switch self {
+        case .none: return true
+        case .some: return false
+        }
+    }
+}

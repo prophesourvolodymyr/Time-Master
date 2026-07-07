@@ -223,12 +223,12 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: 10 tool schemas, function-calling loop, session context injection, streaming pause/resume
 
 ### Build (pending)
-- [ ] F09-A — TimeMasterCore
-  - [ ] Detail: Create Swift Package, implement DatabaseManager + SchemaManager + MigrationManager
-  - [ ] Detail: Bootstrap directory structure on first launch
-  - [ ] Detail: Atomic writes with validation
-  - [ ] Detail: .trash/ soft-delete, approval gate for AI writes
-  - [ ] Verified: all F09-A DOCKS.md checklist items
+- [x] F09-A — TimeMasterCore
+  - [x] Detail: Create Swift Package, implement DatabaseManager + SchemaManager + MigrationManager
+  - [x] Detail: Bootstrap directory structure on first launch
+  - [x] Detail: Atomic writes with validation
+  - [x] Detail: .trash/ soft-delete, approval gate for AI writes
+  - [x] Verified: all F09-A DOCKS.md checklist items (25 tests, 0 failures, macOS arm64, 2026-07-06)
 - [ ] F09-B — Knowledge Layer
   - [ ] Detail: Create Knowledge/ directory + AGENTS.md + skills/ at bootstrap
   - [ ] Detail: AISystemPromptBuilder reads Knowledge/*.md into prompt prefix
