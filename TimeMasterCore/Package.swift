@@ -12,11 +12,20 @@ let package = Package(
             name: "TimeMasterCore",
             targets: ["TimeMasterCore"]
         ),
+        .executable(
+            name: "timemaster-tool",
+            targets: ["timemaster-tool"]
+        ),
     ],
     targets: [
         .target(
             name: "TimeMasterCore",
             path: "Sources"
+        ),
+        .executableTarget(
+            name: "timemaster-tool",
+            dependencies: ["TimeMasterCore"],
+            path: "CLI"
         ),
         .testTarget(
             name: "TimeMasterCoreTests",

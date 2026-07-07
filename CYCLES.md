@@ -238,10 +238,10 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Create Knowledge/ directory + AGENTS.md + skills/ at bootstrap
   - [x] Detail: AISystemPromptBuilder reads Knowledge/*.md into prompt prefix
   - [x] Verified: F09-B DOCKS.md checklist (36 tests, 0 failures, macOS arm64, 2026-07-06)
-- [ ] F09-C — CLI Tool
-  - [ ] Detail: Build timemaster-tool binary, all 12 sub-commands
-  - [ ] Detail: Install to /usr/local/bin, test from Terminal
-  - [ ] Verified: F09-C DOCKS.md checklist
+- [x] F09-C — CLI Tool
+  - [x] Detail: Build timemaster-tool binary, all 12 sub-commands
+  - [x] Detail: Install to /usr/local/bin, test from Terminal
+  - [x] Verified: F09-C DOCKS.md checklist (49 tests, 0 failures, macOS arm64, 2026-07-06)
 - [ ] F09-D — AI Tool Calling
   - [ ] Detail: ToolRouter routes calls → DatabaseManager
   - [ ] Detail: Function-calling loop in AIProvider, context injection

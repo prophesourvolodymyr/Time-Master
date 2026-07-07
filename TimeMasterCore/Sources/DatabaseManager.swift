@@ -532,6 +532,12 @@ Query the TimeMaster exercise database.
         return pendingApprovals.count
     }
 
+    // MARK: - Validation
+
+    public func validateAll() -> [(path: String, valid: Bool, errors: [String], warnings: [String])] {
+        return schemaManager.validateAll()
+    }
+
     // MARK: - Backup/Restore
 
     public func createAutoBackup() throws -> URL {

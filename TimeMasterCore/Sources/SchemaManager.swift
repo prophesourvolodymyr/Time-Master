@@ -140,6 +140,59 @@ public final class SchemaManager {
         try fs.writeAtomically(to: fs.schemaURL, value: schema)
     }
 
+    public func validateAll() -> [(path: String, valid: Bool, errors: [String], warnings: [String])] {
+        var results: [(String, Bool, [String], [String])] = []
+        let schema = (try? generateSchema()) ?? SchemaDefinition(version: "1.0.0")
+        let fsDecoder = JSONDecoder()
+        fsDecoder.dateDecodingStrategy = .iso8601
+
+        let exercisesDir = fs.exercisesDatabaseDirectory
+        if fs.directoryExists(at: exercisesDir) {
+            validateDirectory(exercisesDir, basePath: "Exercises Database", type: "exercise", schema: schema, decoder: fsDecoder, results: &results)
+        }
+
+        let workoutsDir = fs.workoutsDirectory
+        if fs.directoryExists(at: workoutsDir) {
+            let entries = (try? fs.listDirectory(workoutsDir)) ?? []
+            for entry in entries {
+                let manifestURL = entry.appendingPathComponent("manifest.json")
+                if fs.fileExists(at: manifestURL) {
+                    if let manifest: WorkoutManifest = try? fs.readManifest(from: manifestURL, decoder: fsDecoder) {
+                        let result = validate(manifest: manifest, type: "workout", schema: schema)
+                        let path = "Workouts/\(entry.lastPathComponent)"
+                        results.append((path, result.valid, result.errors, result.warnings))
+                    } else {
+                        results.append(("Workouts/\(entry.lastPathComponent)", false, ["Failed to parse manifest.json"], []))
+                    }
+                }
+            }
+        }
+
+        return results
+    }
+
+    private func validateDirectory(_ dir: URL, basePath: String, type: String, schema: SchemaDefinition, decoder: JSONDecoder, results: inout [(String, Bool, [String], [String])]) {
+        let entries = (try? fs.listDirectory(dir, skipNonSchema: false)) ?? []
+        for entry in entries {
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            if isDir.boolValue {
+                let manifestURL = entry.appendingPathComponent("manifest.json")
+                if fs.fileExists(at: manifestURL) {
+                    let relPath = basePath + "/\(entry.lastPathComponent)"
+                    if let manifest: ExerciseManifest = try? fs.readManifest(from: manifestURL, decoder: decoder) {
+                        let result = validate(manifest: manifest, type: "exercise", schema: schema)
+                        results.append((relPath, result.valid, result.errors, result.warnings))
+                    } else {
+                        results.append((relPath, false, ["Failed to parse manifest.json"], []))
+                    }
+                }
+                let subPath = basePath + "/\(entry.lastPathComponent)"
+                validateDirectory(entry, basePath: subPath, type: type, schema: schema, decoder: decoder, results: &results)
+            }
+        }
+    }
+
     public func validate<T: Encodable>(manifest: T, type: String, schema: SchemaDefinition? = nil) -> ValidationResult {
         let def = schema ?? (try? generateSchema()) ?? SchemaDefinition(version: "1.0.0", objects: [:], tools: [], filesystem: FilesystemSchema())
 
