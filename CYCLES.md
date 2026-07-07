@@ -1,6 +1,8 @@
 # CYCLES.md — Time-Master
 **Planned with user:** 2026-07-04, revised 2026-07-06
 
+<!-- V0.1: Cycle 0 | V0.2: Cycle 1-3 | V1.0: Cycle 4-5 | V2.0: Cycle 6-7 -->
+
 ---
 
 ## Cycle 0 — Documentation

@@ -283,7 +283,16 @@ Format is a static checkbox tree — no shifting sections, no "In Progress" / "Q
   - [ ] F03-A — Sub-feature
 - [ ] F04 — Feature B (no deps)
   - [ ] F04-A — Sub-feature
+
+<!-- VERSION MARKERS — optional, anywhere in the file -->
+<!-- V0.1: Cycle 1-2 | V0.2: Cycle 3-5 | V1.0: Cycle 6-9 -->
 ```
+
+**Version markers:** Cycles can be grouped into version ranges with a comment anywhere in the file. This gives the user a high-level timeline without breaking the static tree. Example:
+```
+<!-- V0.1: Cycle 1-2 | V0.2: Cycle 3-5 | V1.0: Cycle 6-9 -->
+```
+The user defines the versions. AI can suggest them based on the feature roadmap.
 
 **Rules:**
 - Cycles are planned together — user says what goes in each cycle.
@@ -359,6 +368,7 @@ Reusable workflow definitions stored in `protocols/`. Each protocol is a `.md` f
 - Follow STYLES.md conventions
 - Test on target hardware before closing any feature
 - Write verification EVIDENCE, not just checkmarks
+- Update CYCLES.md after completing any todo — mark it `[x]`
 
 ### Never
 - Hardcode positions or dimensions
@@ -486,7 +496,8 @@ Brief summary of what the previous agent built, verified, and any decisions made
 ## Agent Rules (Mandatory — DO NOT SKIP)
 1. **NO SUB-AGENTS:** Do NOT spawn sub-agents to review this repository. Do all work yourself in this session.
 2. **COMMIT AFTER DONE:** After completing every task, commit with a clear message describing what was built.
-3. **GENERATE THE NEXT PROMPT:** After finishing all tasks and committing, create the next prompt file. Read the relevant DOCKS.md to learn what comes next. The next prompt MUST include:
+3. **UPDATE CYCLES.md:** After verifying a task, mark it `[x]` in CYCLES.md. This is the user's progress dashboard — keep it current.
+4. **GENERATE THE NEXT PROMPT:** After finishing all tasks and committing, create the next prompt file. Read the relevant DOCKS.md to learn what comes next. The next prompt MUST include:
    - What was built and verified in THIS session (so the next agent has context)
    - What the next task is (with direct paths to relevant DOCKS.md files)
    - Any decisions made this session that affect future work
