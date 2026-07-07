@@ -252,47 +252,70 @@ Format is a static checkbox tree — no shifting sections, no "In Progress" / "Q
 
 ---
 
+## Dependency Chain
+Shows how all features connect. Top-level view of the entire project.
+
+F01 (Core Data Layer) ──┐
+                         ├── F09 (File-Based Data Architecture)
+F06 (AI Coach) ─────────┘
+                              │
+                    F09-A (TimeMasterCore)
+                      FIRST — everything depends on it
+                         │
+              ┌──────────┴──────────┐
+        F09-B (Knowledge)     F09-C (CLI Tool)
+          └──────────┬──────────┘
+                     │
+              F09-D (AI Tool Calling)
+                     │
+         ┌───────────┼───────────┐
+    F01-A (migrate)  F05-A-v2   F06-B (AI in chat)
+
+---
+
+# V0.1 — Core Foundation
+
 ## Cycle 0 — Documentation
 - [x] Project scaffold (`projinit`)
 - [x] genesis/ORIGINAL IDEA.md
 - [x] STYLES.md conventions decided
-- [x] Feature breakdown: F01 → F08 mapped
+- [x] Feature breakdown: F01 → F09 mapped
 - [x] features/DOCKS.md index
 - [x] All DOCKS.md files drafted
 
-## Cycle 1 — First Build
+## Cycle 1 — F01 + F06: Foundation
 - [x] F00 — Bootstrap / scaffold code
-- [ ] F01 — Feature Name
-  - [ ] F01-A — Sub-feature name
-    - [ ] Detail: [specific task]
-    - [ ] Detail: [specific task]
-    - [ ] Verified: build, deploy, test, evidence
-  - [ ] F01-B — Sub-feature name
+- [ ] F01 — Core Data Layer
+  - [ ] F01-A — Data models + storage
     - [ ] Detail: [specific task]
     - [ ] Verified: build, deploy, test, evidence
-- [ ] Connect F01 → F02 ready
+  - [ ] F01-B — Data access layer
+- [ ] F06 — AI Coach
+  - [ ] F06-A — Coaching engine
+  - [ ] F06-B — Coach UI
 
-## Cycle 2 — Next Phase
-- [ ] F02 — Another Feature
-  - [ ] F02-A — Sub-feature
-    - [ ] Detail: [specific task]
-  - [ ] F02-B — Sub-feature
+---
 
-## Cycle 3 — Parallel (proposed by AI)
-- [ ] F03 — Feature A (no deps)
-  - [ ] F03-A — Sub-feature
-- [ ] F04 — Feature B (no deps)
-  - [ ] F04-A — Sub-feature
+# V0.2 — Architecture Layer
 
-<!-- VERSION MARKERS — optional, anywhere in the file -->
-<!-- V0.1: Cycle 1-2 | V0.2: Cycle 3-5 | V1.0: Cycle 6-9 -->
+## Cycle 2 — F09: Data Architecture
+- [ ] F09 — File-Based Data Architecture
+  - [ ] F09-A — TimeMasterCore (FIRST)
+    - [ ] Detail: core engine
+    - [ ] Verified: build, deploy, test, evidence
+  - [ ] F09-B — Knowledge system
+  - [ ] F09-C — CLI Tool
+  - [ ] F09-D — AI Tool Calling
+
+---
+
+# V1.0 — Full Integration
+
+## Cycle 3 — Parallel
+- [ ] F01-A-v2 — Data migration (from old system)
+- [ ] F05-A-v2 — Updated UI
+- [ ] F06-B-v2 — AI in chat
 ```
-
-**Version markers:** Cycles can be grouped into version ranges with a comment anywhere in the file. This gives the user a high-level timeline without breaking the static tree. Example:
-```
-<!-- V0.1: Cycle 1-2 | V0.2: Cycle 3-5 | V1.0: Cycle 6-9 -->
-```
-The user defines the versions. AI can suggest them based on the feature roadmap.
 
 **Rules:**
 - Cycles are planned together — user says what goes in each cycle.
@@ -302,6 +325,8 @@ The user defines the versions. AI can suggest them based on the feature roadmap.
 - Nothing shifts. The tree stays where the user put it.
 - User can add arbitrary todos mid-cycle ("also fix the header alignment"). AI adds them under the right feature.
 - Token limit awareness: each prompt task should fit ~250-300k tokens. If a sub-feature is huge, split it into deeper sub-tasks.
+- **Version markers:** Use `# VX.X — Name` as section titles to group cycles into releases.
+- **Dependency chain:** A top-level ASCII diagram shows how all features connect — placed at the top of CYCLES.md for quick reference.
 
 ### Cycle 0 — Documentation Reorganization
 A special pre-code cycle. Runs ONCE at project start or after a major re-plan:

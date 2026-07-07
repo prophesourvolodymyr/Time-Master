@@ -3,7 +3,29 @@
 
 <!-- V0.1: Cycle 0 | V0.2: Cycle 1-3 | V1.0: Cycle 4-5 | V2.0: Cycle 6-7 -->
 
+## Dependency Chain
+
+```
+F01 (Core Data Layer) ──┐
+                         ├── F09 (File-Based Data Architecture)
+F06 (AI Coach) ─────────┘
+                              │
+                    F09-A (TimeMasterCore)
+                      FIRST — everything depends on it
+                         │
+              ┌──────────┴──────────┐
+        F09-B (Knowledge)     F09-C (CLI Tool)
+          └──────────┬──────────┘
+                     │
+              F09-D (AI Tool Calling)
+                     │
+         ┌───────────┼───────────┐
+    F01-A (migrate)  F05-A-v2   F06-B (AI in chat)
+```
+
 ---
+
+## Cycle 0 — Documentation
 
 ## Cycle 0 — Documentation
 - [x] Project scaffold (`projinit`)
