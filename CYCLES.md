@@ -234,10 +234,10 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Atomic writes with validation
   - [x] Detail: .trash/ soft-delete, approval gate for AI writes
   - [x] Verified: all F09-A DOCKS.md checklist items (25 tests, 0 failures, macOS arm64, 2026-07-06)
-- [ ] F09-B — Knowledge Layer
-  - [ ] Detail: Create Knowledge/ directory + AGENTS.md + skills/ at bootstrap
-  - [ ] Detail: AISystemPromptBuilder reads Knowledge/*.md into prompt prefix
-  - [ ] Verified: F09-B DOCKS.md checklist
+- [x] F09-B — Knowledge Layer
+  - [x] Detail: Create Knowledge/ directory + AGENTS.md + skills/ at bootstrap
+  - [x] Detail: AISystemPromptBuilder reads Knowledge/*.md into prompt prefix
+  - [x] Verified: F09-B DOCKS.md checklist (36 tests, 0 failures, macOS arm64, 2026-07-06)
 - [ ] F09-C — CLI Tool
   - [ ] Detail: Build timemaster-tool binary, all 12 sub-commands
   - [ ] Detail: Install to /usr/local/bin, test from Terminal

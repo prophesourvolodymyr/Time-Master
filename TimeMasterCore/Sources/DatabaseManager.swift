@@ -78,7 +78,133 @@ public final class DatabaseManager {
         if !fs.fileExists(at: fs.schemaURL) {
             try schemaManager.writeSchema()
         }
+
+        if !fs.fileExists(at: fs.agentsURL) {
+            let agentsContent = bootstrapAgentsContent()
+            try fs.writeAtomically(to: fs.agentsURL, data: agentsContent.data(using: .utf8)!)
+        }
+
+        try bootstrapSkillFile(name: "create-exercise.md", content: bootstrapCreateExerciseContent())
+        try bootstrapSkillFile(name: "build-workout.md", content: bootstrapBuildWorkoutContent())
+        try bootstrapSkillFile(name: "search-database.md", content: bootstrapSearchDatabaseContent())
+
+        try bootstrapKnowledgeFile(name: "fitness-philosophy.md", title: "Fitness Philosophy")
+        try bootstrapKnowledgeFile(name: "nutrition-rules.md", title: "Nutrition Rules")
+        try bootstrapKnowledgeFile(name: "recovery-protocols.md", title: "Recovery Protocols")
+
         return fs.dataRoot
+    }
+
+    private func bootstrapSkillFile(name: String, content: String) throws {
+        let url = fs.skillsDirectory.appendingPathComponent(name)
+        guard !fs.fileExists(at: url) else { return }
+        try fs.writeAtomically(to: url, data: content.data(using: .utf8)!)
+    }
+
+    private func bootstrapKnowledgeFile(name: String, title: String) throws {
+        let url = fs.knowledgeDirectory.appendingPathComponent(name)
+        guard !fs.fileExists(at: url) else { return }
+        let content = "# \(title)\n\nAdd your \(title.lowercased()) here.\n"
+        try fs.writeAtomically(to: url, data: content.data(using: .utf8)!)
+    }
+
+    private func bootstrapAgentsContent() -> String {
+        return """
+# TimeMaster Data Directory
+
+This is the local file-system database for TimeMaster, a fitness app.
+
+## Structure
+- **Exercises Database/** — all exercises (folders with manifest.json + guide.md)
+- **Workouts/** — workout plans referencing exercise IDs
+- **Media/** — shared media storage (UUID filenames)
+- **Knowledge/** — AI system prompt material (loaded on session start)
+- **Workspace/** — free-form AI workspace (app ignores this)
+- **skills/** — reusable agent skill definitions
+- **Config/** — app configuration
+- **History/** — workout history (JSONL)
+- **Music/** — background music tracks
+- **Backups/** — automatic backups
+- **.trash/** — soft-deleted items
+
+## How to Interact
+DO NOT edit files directly. Use the CLI tool:
+
+```
+timemaster-tool <command> [args]
+```
+
+### Available Commands
+| Command | Description |
+|---|---|
+| `list-exercises` | List all exercises, optionally filtered by type or query |
+| `get-exercise <id>` | Read full manifest and guide for an exercise |
+| `create-exercise <json>` | Create a new exercise folder with manifest |
+| `update-exercise <id> <json>` | Update an existing exercise manifest |
+| `delete-exercise <id>` | Move an exercise to .trash/ |
+| `search-exercises <query>` | Search exercises by name |
+| `list-workouts` | List all workout plans |
+| `build-workout <json>` | Create a workout from exercise IDs |
+| `list-folders` | Browse the Exercises Database folder tree |
+| `get-stats` | View workout statistics and streaks |
+| `list-types` | List all workout types |
+| `validate` | Check the entire database for errors |
+| `import-media <path>` | Copy a media file to Media/ |
+
+## Schema
+See `schema.json` for the full data contract — exercise fields, workout fields, valid types, and constraints.
+
+## Read/Write Rules
+- **Safe to read:** Any directory. The CLI tool queries via `DatabaseManager`.
+- **Safe to write:** Only via `timemaster-tool` commands. The tool validates before writing.
+- **Workspace/:** Free zone. AI can create, read, and delete anything here. The app ignores it.
+- **Never edit:** `schema.json`, `AGENTS.md`, or files inside `.trash/`.
+- **Media:** Use `import-media` to copy files into `Media/`. Files get UUID names.
+
+## Skills
+See `skills/` for reusable skill files. Load a skill to get step-by-step instructions for common tasks.
+"""
+    }
+
+    private func bootstrapCreateExerciseContent() -> String {
+        return """
+# create-exercise
+Create a new exercise in the TimeMaster database.
+
+## Steps
+1. Generate a UUID for the exercise ID
+2. Determine the parent folder path (e.g., "Upper Body/Push")
+3. Create the exercise manifest with required fields: id, name, duration, restAfter
+4. Write the manifest.json via `timemaster-tool create-exercise`
+5. Optionally create guide.md with instructions and details
+"""
+    }
+
+    private func bootstrapBuildWorkoutContent() -> String {
+        return """
+# build-workout
+Assemble a workout plan from exercises in the database.
+
+## Steps
+1. Search for exercises using `timemaster-tool search-exercises`
+2. Select exercises that match the user's goal and type
+3. Determine section order, duration, sets, and rest periods
+4. Create the workout manifest with sections referencing exercise IDs
+5. Write via `timemaster-tool create-workout`
+"""
+    }
+
+    private func bootstrapSearchDatabaseContent() -> String {
+        return """
+# search-database
+Query the TimeMaster exercise database.
+
+## Steps
+1. Use `timemaster-tool search-exercises` with a query string
+2. Filter results by workout type if needed
+3. Use `timemaster-tool get-exercise` to read full details
+4. Navigate folders with `timemaster-tool list-folders`
+"""
     }
 
     // MARK: - Exercise CRUD

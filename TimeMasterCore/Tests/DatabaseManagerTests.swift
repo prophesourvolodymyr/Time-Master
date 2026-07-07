@@ -33,6 +33,50 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertTrue(fs.directoryExists(at: fs.backupsDirectory))
         XCTAssertTrue(fs.directoryExists(at: fs.trashDirectory))
         XCTAssertTrue(fs.fileExists(at: fs.schemaURL))
+        XCTAssertTrue(fs.fileExists(at: fs.agentsURL))
+        XCTAssertTrue(fs.fileExists(at: fs.skillsDirectory.appendingPathComponent("create-exercise.md")))
+        XCTAssertTrue(fs.fileExists(at: fs.skillsDirectory.appendingPathComponent("build-workout.md")))
+        XCTAssertTrue(fs.fileExists(at: fs.skillsDirectory.appendingPathComponent("search-database.md")))
+        XCTAssertTrue(fs.fileExists(at: fs.knowledgeDirectory.appendingPathComponent("fitness-philosophy.md")))
+        XCTAssertTrue(fs.fileExists(at: fs.knowledgeDirectory.appendingPathComponent("nutrition-rules.md")))
+        XCTAssertTrue(fs.fileExists(at: fs.knowledgeDirectory.appendingPathComponent("recovery-protocols.md")))
+    }
+
+    func testBootstrapAgentsContent() throws {
+        try db.bootstrapIfNeeded()
+        let data = try fs.readRawData(from: fs.agentsURL)
+        let content = String(data: data, encoding: .utf8) ?? ""
+        XCTAssertTrue(content.contains("TimeMaster Data Directory"))
+        XCTAssertTrue(content.contains("schema.json"))
+        XCTAssertTrue(content.contains("timemaster-tool"))
+        XCTAssertTrue(content.contains("Workspace"))
+        XCTAssertTrue(content.contains("Exercises Database"))
+        XCTAssertTrue(content.contains("create-exercise"))
+        XCTAssertTrue(content.contains("search-exercises"))
+        XCTAssertTrue(content.contains("skills/"))
+    }
+
+    func testBootstrapKnowledgeFilesHaveContent() throws {
+        try db.bootstrapIfNeeded()
+        let healthURL = fs.knowledgeDirectory.appendingPathComponent("fitness-philosophy.md")
+        let data = try fs.readRawData(from: healthURL)
+        let content = String(data: data, encoding: .utf8) ?? ""
+        XCTAssertTrue(content.contains("# Fitness Philosophy"))
+    }
+
+    func testBootstrapDoesNotOverwriteExistingFiles() throws {
+        try db.bootstrapIfNeeded()
+
+        let agentsData = try fs.readRawData(from: fs.agentsURL)
+        let skillData = try fs.readRawData(from: fs.skillsDirectory.appendingPathComponent("create-exercise.md"))
+
+        try db.bootstrapIfNeeded()
+
+        let agentsData2 = try fs.readRawData(from: fs.agentsURL)
+        let skillData2 = try fs.readRawData(from: fs.skillsDirectory.appendingPathComponent("create-exercise.md"))
+
+        XCTAssertEqual(agentsData, agentsData2)
+        XCTAssertEqual(skillData, skillData2)
     }
 
     func testBootstrapIdempotent() throws {
