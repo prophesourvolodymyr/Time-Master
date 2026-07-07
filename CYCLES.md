@@ -19,6 +19,9 @@ F06 (AI Coach) ─────────┘
                      │
               F09-D (AI Tool Calling)
                      │
+              F09-E (Mac App)
+              1:1 iOS clone — external AI bridge
+                     │
          ┌───────────┼───────────┐
     F01-A (migrate)  F05-A-v2   F06-B (AI in chat)
 ```
@@ -221,6 +224,8 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: 12 sub-commands, JSON I/O, read-only mode, Claude/Cursor integration
 - [x] F09-D/DOCKS.md — AI Tool Calling
   - [x] Detail: 10 tool schemas, function-calling loop, session context injection, streaming pause/resume
+- [x] F09-E/DOCKS.md — Mac App
+  - [x] Detail: native macOS target, 1:1 SwiftUI codebase, non-sandboxed, Finder-browsable, CLI + external AI handshake
 
 ### Build (pending)
 - [x] F09-A — TimeMasterCore
@@ -242,6 +247,12 @@ F06 (AI Coach) ─────────┘
   - [ ] Detail: Function-calling loop in AIProvider, context injection
   - [ ] Detail: Max 5 tool calls per message, approval gate for writes
   - [ ] Verified: F09-D DOCKS.md checklist
+- [ ] F09-E — Mac App
+  - [ ] Detail: Add macOS target to Xcode project
+  - [ ] Detail: Platform-adaptive UI (#if os(macOS) where needed)
+  - [ ] Detail: Non-sandboxed ~/Documents/TimeMaster/ path
+  - [ ] Detail: Bundle timemaster-tool CLI with app
+  - [ ] Verified: F09-E DOCKS.md checklist
 
 ### Migration (after F09-A)
 - [ ] F01-A — Migrate models to file manifests

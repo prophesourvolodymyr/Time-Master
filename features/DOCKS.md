@@ -32,6 +32,7 @@
 | F09 | F09-B | Knowledge Layer + AGENTS.md | pending |
 | F09 | F09-C | CLI Tool (`timemaster-tool`) | pending |
 | F09 | F09-D | AI Tool Calling (in-app + external) | pending |
+| F09 | F09-E | Mac App (native macOS build) | pending |
 | F01 | F01-A | Migrate models to file manifests | pending (after F09-A) |
 | F05 | F05-A-v2 | Import → Exercises Database/ | pending (after F09-A) |
 | F06 | F06-B | AI Database Creation (tool-calling) | pending (after F09-D) |
