@@ -2,6 +2,7 @@ import SwiftUI
 #if os(iOS)
 import WidgetKit
 #endif
+import TimeMasterCore
 
 // MARK: - Splash Screen
 
@@ -37,12 +38,20 @@ struct SplashView: View {
 
 @main
 struct TimeMasterApp: App {
-    @StateObject private var store = WorkoutStore()
-    @StateObject private var databaseStore = DatabaseStore.shared
+    @StateObject private var store: WorkoutStore
+    @StateObject private var databaseStore: DatabaseStore
     @StateObject private var resumeManager = WorkoutResumeManager.shared
     @State private var showSplash = true
     @State private var showResumePrompt = false
     @State private var resumePlayerWorkout: Workout?
+
+    init() {
+        MigrationManager.migrateIfNeeded()
+        let ws = WorkoutStore()
+        let ds = DatabaseStore.shared
+        _store = StateObject(wrappedValue: ws)
+        _databaseStore = StateObject(wrappedValue: ds)
+    }
 
     var body: some Scene {
         #if os(macOS)

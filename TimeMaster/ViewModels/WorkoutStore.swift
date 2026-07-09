@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import SwiftUI
 import WidgetKit
+import TimeMasterCore
 
 class WorkoutStore: ObservableObject {
     @Published var workouts: [Workout] = []
@@ -24,18 +25,67 @@ class WorkoutStore: ObservableObject {
     @Published var trainingStartDate: Date = Date()
     @Published var trainingDurationMonths: Int = 3
 
+    private var isMigrated: Bool { MigrationManager.isMigrationComplete }
+
     init() {
-        loadWorkouts()
-        loadHistory()
-        loadRestDays()
-        loadSchedules()
-        loadCustomTypes()
-        loadTrainingSchedule()
-        loadGoal()
-        if workouts.isEmpty {
-            seedDefaultWorkouts()   // saveWorkouts() is called inside seed
+        if isMigrated {
+            loadFromFileSystem()
         } else {
-            saveWorkouts()          // push existing workouts to App Group on every launch
+            loadWorkouts()
+            loadHistory()
+            loadRestDays()
+            loadSchedules()
+            loadCustomTypes()
+            loadTrainingSchedule()
+            loadGoal()
+            if workouts.isEmpty {
+                seedDefaultWorkouts()
+            } else {
+                saveWorkouts()
+            }
+        }
+    }
+
+    // MARK: - File System Loading
+
+    private func loadFromFileSystem() {
+        let db = DatabaseManager.shared
+
+        let manifests = (try? db.listWorkouts()) ?? []
+        workouts = manifests.map { $0.toAppWorkout() }
+
+        let history = (try? db.readHistory()) ?? []
+        historyEntries = history.map { $0.toAppHistoryEntry() }
+
+        let config: ConfigManifest
+        do {
+            config = try db.loadConfig()
+        } catch {
+            config = ConfigManifest()
+        }
+        customWorkoutTypes = config.customWorkoutTypes.map { WorkoutType(core: $0) }
+        restDays = Set(config.restDays)
+        let goalVal = config.weeklyGoal
+        if goalVal >= 1, goalVal <= 7 { weeklyGoal = goalVal }
+        trainingDays = Set(config.trainingDays)
+        trainingStartDate = config.trainingStartDate
+        trainingDurationMonths = config.trainingDurationMonths
+        typeSchedules = config.typeSchedules.map { ts in
+            TypeSchedule(
+                id: UUID(uuidString: ts.id) ?? UUID(),
+                folderID: UUID(uuidString: ts.folderID) ?? UUID(),
+                type: WorkoutType(core: ts.type),
+                daysOfWeek: Set(ts.daysOfWeek),
+                startDate: ts.startDate,
+                durationMonths: ts.durationMonths,
+                weeklyGoal: ts.weeklyGoal
+            )
+        }
+
+        if workouts.isEmpty {
+            seedDefaultWorkouts()
+        } else {
+            saveWorkouts()
         }
     }
 
@@ -420,5 +470,63 @@ class WorkoutStore: ObservableObject {
         }
 
         return (current, best)
+    }
+}
+
+// MARK: - TimeMasterCore → App Model Conversion
+
+extension WorkoutType {
+    init(core: TimeMasterCore.WorkoutType) {
+        self.id = core.id
+        self.name = core.name
+        self.iconName = core.iconName
+        self.colorHex = core.colorHex
+    }
+}
+
+extension WorkoutManifest {
+    func toAppWorkout() -> Workout {
+        Workout(
+            id: UUID(uuidString: id) ?? UUID(),
+            name: name,
+            type: WorkoutType(core: type),
+            sections: sections.map { $0.toAppSection() },
+            createdAt: createdAt,
+            restBetweenSections: restBetweenSections,
+            colorHex: colorHex,
+            imageFilename: imageFilename,
+            musicTrackFilenames: musicTrackFilenames
+        )
+    }
+}
+
+extension WorkoutSectionManifest {
+    func toAppSection() -> Section {
+        Section(
+            id: UUID(),
+            name: name,
+            duration: duration,
+            isTimerEnabled: isTimerEnabled,
+            mediaItems: mediaFilenames.map { MediaItem(filename: $0, type: .photo) },
+            sets: sets,
+            restBetweenSets: restBetweenSets,
+            customRestAfter: customRestAfter,
+            prepareTime: prepareTime
+        )
+    }
+}
+
+extension HistoryEntry {
+    func toAppHistoryEntry() -> WorkoutHistoryEntry {
+        WorkoutHistoryEntry(
+            id: UUID(uuidString: id) ?? UUID(),
+            workoutId: UUID(uuidString: workoutId) ?? UUID(),
+            workoutName: workoutName,
+            completedAt: completedAt,
+            durationCompleted: durationCompleted,
+            workoutType: WorkoutType(core: workoutType),
+            isPartial: isPartial,
+            elapsedSeconds: elapsedSeconds
+        )
     }
 }

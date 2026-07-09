@@ -258,10 +258,13 @@ F06 (AI Coach) ─────────┘
   - [x] Verified: F09-E DOCKS.md checklist (builds, 49 tests pass, 2026-07-07)
 
 ### Migration (after F09-A)
-- [ ] F01-A — Migrate models to file manifests
-  - [ ] Detail: MigrationManager converts UserDefaults JSON → Exercises Database/ folders
-  - [ ] Detail: WorkoutStore → reads/writes via TimeMasterCore
-  - [ ] Verified: all existing data migrates without loss
+- [x] F01-A — Migrate models to file manifests
+  - [x] Detail: MigrationManager.migrateFromUserDefaults() reads all 11 UserDefaults keys
+  - [x] Detail: WorkoutStore + DatabaseStore load from DatabaseManager after migration
+  - [x] Detail: TimeMasterApp triggers MigrationManager.migrateIfNeeded() in init()
+  - [x] Detail: Migration marker (.migration_complete) prevents re-migration
+  - [x] Detail: Backup JSON written to Backups/ before migration
+  - [x] Verified: 14 MigrationTests pass + 49 existing tests pass, macOS arm64, 2026-07-09
 - [ ] F05-A-v2 — Import writes to Exercises Database/
   - [ ] Detail: BackupManager.importBackup creates file-based manifests
   - [ ] Verified: import ZIP → creates correct folder structure

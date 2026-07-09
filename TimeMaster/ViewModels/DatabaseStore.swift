@@ -1,4 +1,5 @@
 import Foundation
+import TimeMasterCore
 
 class DatabaseStore: ObservableObject {
     static let shared = DatabaseStore()
@@ -11,13 +12,92 @@ class DatabaseStore: ObservableObject {
     private let rootNotesKey     = "exercise_database_root_notes_v1"
     private let rootExercisesKey = "exercise_database_root_exercises_v1"
 
+    private var isMigrated: Bool { MigrationManager.isMigrationComplete }
+
     private init() {
-        load()
+        if isMigrated {
+            loadFromFileSystem()
+        } else {
+            load()
+        }
     }
 
     /// Public alias — reloads all data from UserDefaults.
     /// Call after a backup import to refresh in-memory state.
-    func reload() { load() }
+    func reload() {
+        if isMigrated {
+            loadFromFileSystem()
+        } else {
+            load()
+        }
+    }
+
+    // MARK: - File System Loading
+
+    private func loadFromFileSystem() {
+        let db = DatabaseManager.shared
+        let base = db.exercisesDatabaseURL
+        let fs = FileSystemHelper(dataRoot: db.dataRoot)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let (folders, exercises) = walkExerciseDirectory(base, fs: fs, decoder: decoder)
+        rootFolders = folders
+        rootExercises = exercises
+        rootNotes = []
+    }
+
+    private func walkExerciseDirectory(
+        _ dir: URL,
+        fs: FileSystemHelper,
+        decoder: JSONDecoder,
+        parentPath: String = ""
+    ) -> (folders: [ExerciseFolder], exercises: [Exercise]) {
+        var folders: [ExerciseFolder] = []
+        var exercises: [Exercise] = []
+
+        let entries = (try? fs.listDirectory(dir, skipNonSchema: false)) ?? []
+        for entry in entries {
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { continue }
+
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+            if fs.fileExists(at: manifestURL) {
+                if let manifest: ExerciseManifest = try? fs.readManifest(from: manifestURL, decoder: decoder) {
+                    exercises.append(convertExercise(manifest))
+                }
+            } else {
+                let name = entry.lastPathComponent
+                let childPath = parentPath.isEmpty ? name : "\(parentPath)/\(name)"
+                let (subfolders, subExercises) = walkExerciseDirectory(entry, fs: fs, decoder: decoder, parentPath: childPath)
+
+                var folder = ExerciseFolder(name: name)
+                folder.subfolders = subfolders
+                folder.exercises = subExercises
+                folders.append(folder)
+            }
+        }
+
+        return (folders, exercises)
+    }
+
+    private func convertExercise(_ manifest: ExerciseManifest) -> Exercise {
+        let mediaItems: [MediaItem]
+        if !manifest.mediaFilenames.isEmpty {
+            mediaItems = manifest.mediaFilenames.map { MediaItem(filename: $0, type: .photo) }
+        } else {
+            mediaItems = []
+        }
+        return Exercise(
+            id: UUID(uuidString: manifest.id) ?? UUID(),
+            name: manifest.name,
+            description: manifest.details,
+            duration: manifest.duration,
+            restAfter: manifest.restAfter,
+            mediaItems: mediaItems
+        )
+    }
 
     // MARK: - Persistence
 

@@ -202,6 +202,19 @@ public final class MigrationManager {
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
+    private static let migrationMarkerName = ".migration_complete"
+
+    public var isComplete: Bool {
+        let markerURL = fs.configDirectory.appendingPathComponent(Self.migrationMarkerName)
+        return fs.fileExists(at: markerURL)
+    }
+
+    public static var isMigrationComplete: Bool {
+        let fs = FileSystemHelper(dataRoot: DatabaseManager.shared.dataRoot)
+        let markerURL = fs.configDirectory.appendingPathComponent(migrationMarkerName)
+        return fs.fileExists(at: markerURL)
+    }
+
     public init(db: DatabaseManager) {
         self.db = db
         self.fs = FileSystemHelper(dataRoot: db.dataRoot)
@@ -210,6 +223,61 @@ public final class MigrationManager {
         self.encoder = JSONEncoder()
         self.encoder.outputFormatting = [.prettyPrinted]
         self.encoder.dateEncodingStrategy = .iso8601
+    }
+
+    public func migrateFromUserDefaults() throws -> MigrationSummary {
+        guard !isComplete else {
+            return MigrationSummary()
+        }
+
+        let ud = UserDefaults.standard
+        let udDecoder = JSONDecoder()
+
+        let workoutsData = ud.data(forKey: "workouts")
+        let historyData = ud.data(forKey: "workout_history")
+        let foldersData = ud.data(forKey: "exercise_database_v2")
+        let rootExercisesData = ud.data(forKey: "exercise_database_root_exercises_v1")
+        let customTypesData = ud.data(forKey: "custom_workout_types")
+        let restDaysData = ud.data(forKey: "workout_rest_days")
+        let weeklyGoalData = ud.data(forKey: "workout_weekly_goal")
+        let trainingDaysData = ud.data(forKey: "training_days")
+        let trainingStartInterval = ud.double(forKey: "training_start_date")
+        let trainingDuration = ud.integer(forKey: "training_duration_months")
+        let typeSchedulesData = ud.data(forKey: "workout_type_schedules")
+
+        let trainingStartValue: Double? = trainingStartInterval > 0 ? trainingStartInterval : nil
+        let trainingDurationValue: Int? = trainingDuration > 0 ? trainingDuration : nil
+
+        let summary = try migrateFrom(
+            workoutsData: workoutsData,
+            historyData: historyData,
+            foldersData: foldersData,
+            rootExercisesData: rootExercisesData,
+            customTypesData: customTypesData,
+            restDaysData: restDaysData,
+            weeklyGoalData: weeklyGoalData,
+            trainingDaysData: trainingDaysData,
+            trainingStartInterval: trainingStartValue,
+            trainingDuration: trainingDurationValue,
+            typeSchedulesData: typeSchedulesData,
+            decoder: udDecoder
+        )
+
+        try markMigrationComplete()
+        return summary
+    }
+
+    @discardableResult
+    public static func migrateIfNeeded() -> MigrationSummary? {
+        guard !isMigrationComplete else { return nil }
+        let manager = MigrationManager(db: DatabaseManager.shared)
+        return try? manager.migrateFromUserDefaults()
+    }
+
+    private func markMigrationComplete() throws {
+        let markerURL = fs.configDirectory.appendingPathComponent(Self.migrationMarkerName)
+        let content = "\(Int(Date().timeIntervalSince1970))"
+        try fs.writeAtomically(to: markerURL, data: content.data(using: .utf8)!)
     }
 
     @discardableResult
@@ -224,8 +292,10 @@ public final class MigrationManager {
         trainingDaysData: Data?,
         trainingStartInterval: Double?,
         trainingDuration: Int?,
-        typeSchedulesData: Data?
+        typeSchedulesData: Data?,
+        decoder: JSONDecoder? = nil
     ) throws -> MigrationSummary {
+        let activeDecoder = decoder ?? self.decoder
         try db.bootstrapIfNeeded()
 
         let backupTimestamp = Int(Date().timeIntervalSince1970)
@@ -252,7 +322,9 @@ public final class MigrationManager {
             backupDict["restDays"] = try JSONSerialization.jsonObject(with: data)
         }
         if let data = weeklyGoalData {
-            backupDict["weeklyGoal"] = try JSONSerialization.jsonObject(with: data)
+            if let obj = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed) {
+                backupDict["weeklyGoal"] = obj
+            }
         }
         if let data = trainingDaysData {
             backupDict["trainingDays"] = try JSONSerialization.jsonObject(with: data)
@@ -272,7 +344,7 @@ public final class MigrationManager {
 
         var workoutsMigrated = 0
         if let data = workoutsData {
-            let workouts = try decoder.decode([MigratableWorkout].self, from: data)
+            let workouts = try activeDecoder.decode([MigratableWorkout].self, from: data)
             for w in workouts {
                 let id = w.id
                 let type = WorkoutType(
@@ -346,12 +418,12 @@ public final class MigrationManager {
         }
 
         if let data = foldersData {
-            let rootFolders = try decoder.decode([MigratableExerciseFolder].self, from: data)
+            let rootFolders = try activeDecoder.decode([MigratableExerciseFolder].self, from: data)
             try migrateFolders(rootFolders, parentPath: nil)
         }
 
         if let data = rootExercisesData {
-            let exercises = try decoder.decode([MigratableExercise].self, from: data)
+            let exercises = try activeDecoder.decode([MigratableExercise].self, from: data)
             for ex in exercises {
                 let exID = ex.id.isEmpty ? UUID().uuidString : ex.id
                 let manifest = ExerciseManifest(
@@ -369,7 +441,7 @@ public final class MigrationManager {
 
         var historyMigrated = 0
         if let data = historyData {
-            let entries = try decoder.decode([MigratableHistoryEntry].self, from: data)
+            let entries = try activeDecoder.decode([MigratableHistoryEntry].self, from: data)
             for entry in entries {
                 let historyEntry = HistoryEntry(
                     id: entry.id.isEmpty ? UUID().uuidString : entry.id,
@@ -394,7 +466,7 @@ public final class MigrationManager {
         var configMigrated = false
         var customTypes: [WorkoutType] = []
         if let data = customTypesData {
-            let legacyTypes = try decoder.decode([MigratableWorkoutType].self, from: data)
+            let legacyTypes = try activeDecoder.decode([MigratableWorkoutType].self, from: data)
             customTypes = legacyTypes.map {
                 WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName ?? "star.fill", colorHex: $0.colorHex ?? "FFFFFF")
             }
@@ -402,17 +474,17 @@ public final class MigrationManager {
 
         var restDays: [String] = []
         if let data = restDaysData {
-            restDays = (try? decoder.decode([String].self, from: data)) ?? []
+            restDays = (try? activeDecoder.decode([String].self, from: data)) ?? []
         }
 
         var weeklyGoal = 4
         if let data = weeklyGoalData {
-            weeklyGoal = (try? decoder.decode(Int.self, from: data)) ?? 4
+            weeklyGoal = (try? activeDecoder.decode(Int.self, from: data)) ?? 4
         }
 
         var trainingDays: [Int] = []
         if let data = trainingDaysData {
-            trainingDays = (try? decoder.decode([Int].self, from: data)) ?? []
+            trainingDays = (try? activeDecoder.decode([Int].self, from: data)) ?? []
         }
 
         let startDate = trainingStartInterval.map { Date(timeIntervalSince1970: $0) } ?? Date()
@@ -420,7 +492,7 @@ public final class MigrationManager {
 
         var typeSchedules: [TypeScheduleManifest] = []
         if let data = typeSchedulesData {
-            let legacy = try decoder.decode([MigratableTypeSchedule].self, from: data)
+            let legacy = try activeDecoder.decode([MigratableTypeSchedule].self, from: data)
             typeSchedules = legacy.map {
                 TypeScheduleManifest(
                     id: $0.id ?? UUID().uuidString,
