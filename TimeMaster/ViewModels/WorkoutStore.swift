@@ -201,12 +201,17 @@ class WorkoutStore: ObservableObject {
         saveHistory()
     }
 
-    /// Re-reads both workouts and history from UserDefaults.
+    /// Re-reads data from the active store (file system or UserDefaults).
     /// Call after a backup import to refresh in-memory state.
     func reload() {
-        loadWorkouts()
-        loadHistory()
-        saveWorkouts()   // sync App Group so widget reflects imported data
+        if isMigrated {
+            loadFromFileSystem()
+            saveWorkouts()   // sync App Group so widget reflects imported data
+        } else {
+            loadWorkouts()
+            loadHistory()
+            saveWorkouts()
+        }
     }
 
     private func saveWorkouts() {

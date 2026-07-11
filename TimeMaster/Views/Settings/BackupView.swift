@@ -263,14 +263,15 @@ struct BackupView: View {
         isImporting = true
         Task.detached(priority: .userInitiated) {
             do {
-                try BackupManager.shared.importBackup(
+                let summary = try BackupManager.shared.importBackup(
                     from: url,
                     workoutStore: workoutStore,
                     databaseStore: databaseStore
                 )
                 await MainActor.run {
                     isImporting = false
-                    show(title: "Import Complete", message: "All new items have been added to your library.")
+                    let msg = "Exercises: \(summary.exercisesImported), Workouts: \(summary.workoutsImported), History: \(summary.historyImported)"
+                    show(title: "Import Complete", message: msg)
                 }
             } catch {
                 await MainActor.run {

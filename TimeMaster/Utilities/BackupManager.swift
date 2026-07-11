@@ -1,5 +1,6 @@
 import Foundation
 import ZIPFoundation
+import TimeMasterCore
 
 // MARK: - Manifest
 
@@ -14,15 +15,27 @@ struct BackupManifest: Codable {
     var rootExercises: [Exercise]
 }
 
+// MARK: - Import Summary
+
+struct ImportSummary {
+    var exercisesImported: Int = 0
+    var foldersCreated: Int = 0
+    var workoutsImported: Int = 0
+    var historyImported: Int = 0
+    var mediaImported: Int = 0
+    var duplicatesSkipped: Int = 0
+}
+
 // MARK: - BackupManager
 
-/// Handles export (pack → ZIP) and import (unZIP → merge) of all app data.
+/// Handles export (pack → ZIP) and import (unZIP → file system via DatabaseManager).
 final class BackupManager {
 
     static let shared = BackupManager()
     private init() {}
 
     private let fm = FileManager.default
+    private let db = DatabaseManager.shared
 
     // MARK: - Export
 
@@ -48,8 +61,6 @@ final class BackupManager {
     }
 
     /// Builds a `.zip` archive containing all data + media.
-    /// Pass a snapshot captured on the main thread; this method runs on any thread.
-    /// Returns the URL of the file in Documents/Backups/ ready to share.
     func export(snapshot: ExportSnapshot) throws -> URL {
 
         // 1. Build manifest
@@ -62,7 +73,7 @@ final class BackupManager {
         )
         let manifestData = try JSONEncoder().encode(manifest)
 
-        // 2. Prepare output path in Documents/Backups/ (tmp/ causes share sheet failures)
+        // 2. Prepare output path in Documents/Backups/
         let backupsDir = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Backups", isDirectory: true)
         try? fm.createDirectory(at: backupsDir, withIntermediateDirectories: true)
@@ -117,17 +128,17 @@ final class BackupManager {
         return destURL
     }
 
-    // MARK: - Import (merge)
+    // MARK: - Import (file-based)
 
-    /// Unzips the backup file, merges data into stores (skips items whose UUID
-    /// already exists) and copies missing media files.
+    /// Unzips the backup file and writes data to the file-system database
+    /// via DatabaseManager. Stores are reloaded after import to pick up changes.
+    @discardableResult
     func importBackup(
         from url: URL,
         workoutStore: WorkoutStore,
         databaseStore: DatabaseStore
-    ) throws {
+    ) throws -> ImportSummary {
 
-        // Security-scoped access for files picked via fileImporter
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
 
@@ -147,20 +158,11 @@ final class BackupManager {
         let manifestData = try Data(contentsOf: manifestURL)
         let manifest = try JSONDecoder().decode(BackupManifest.self, from: manifestData)
 
-        // 3. Merge on main thread (stores are @Published / ObservableObject)
-        DispatchQueue.main.sync {
-            mergeWorkouts(manifest.workouts, into: workoutStore)
-            mergeHistory(manifest.workoutHistory, into: workoutStore)
-            mergeFolders(manifest.folders, into: databaseStore)
-            mergeRootExercises(manifest.rootExercises, into: databaseStore)
-            mergeRootNotes(manifest.rootNotes, into: databaseStore)
-        }
+        // 3. Bootstrap directories
+        try db.bootstrapIfNeeded()
 
-        // 4. Copy media files (skip existing)
-        let photosDir = PhotoManager.shared.photosDirectoryURL
-        if !fm.fileExists(atPath: photosDir.path) {
-            try fm.createDirectory(at: photosDir, withIntermediateDirectories: true)
-        }
+        // 4. Import media files with UUID filenames → build mapping
+        var mediaMap: [String: String] = [:]
         let mediaDir = tmpDir.appendingPathComponent("media")
         if fm.fileExists(atPath: mediaDir.path) {
             let files = (try? fm.contentsOfDirectory(
@@ -168,98 +170,180 @@ final class BackupManager {
                 includingPropertiesForKeys: nil
             )) ?? []
             for src in files {
-                let dest = photosDir.appendingPathComponent(src.lastPathComponent)
-                if !fm.fileExists(atPath: dest.path) {
-                    try fm.copyItem(at: src, to: dest)
+                let original = src.lastPathComponent
+                if let uuidFilename = try? db.importMedia(from: src) {
+                    mediaMap[original] = uuidFilename
                 }
             }
         }
 
-        // 5. Persist merged state — reload on main thread so @Published updates are safe
+        // 5. Import exercises from folder tree (recursive)
+        var exercisesImported = 0
+        var foldersCreated = 0
+        var duplicatesSkipped = 0
+
+        func importFolders(_ folders: [ExerciseFolder], parentPath: String?) {
+            for folder in folders {
+                let folderName = folder.name.replacingOccurrences(of: "/", with: "-")
+                let path = parentPath.map { "\($0)/\(folderName)" } ?? folderName
+                _ = try? db.createFolder(name: folderName, parentPath: parentPath)
+                foldersCreated += 1
+
+                let folderType: TimeMasterCore.WorkoutType? = folder.workoutType.map {
+                    TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
+                }
+
+                for exercise in folder.exercises {
+                    let exID = exercise.id.uuidString
+                    let exerciseDir = exercisesBase.appendingPathComponent("\(path)/\(exID)", isDirectory: true)
+                    if fm.fileExists(atPath: exerciseDir.path) {
+                        duplicatesSkipped += 1
+                        continue
+                    }
+
+                    let manifest = ExerciseManifest(
+                        id: exID,
+                        name: exercise.name,
+                        details: exercise.details,
+                        duration: exercise.duration,
+                        restAfter: exercise.restAfter,
+                        workoutType: folderType,
+                        mediaFilenames: exercise.mediaItems.map { mediaMap[$0.filename] ?? $0.filename }
+                    )
+                    do {
+                        try db.createExercise(id: exID, manifest: manifest, parentPath: path)
+                        exercisesImported += 1
+                    } catch {
+                        print("[BackupManager] Failed to import exercise \(exID): \(error)")
+                    }
+                }
+
+                importFolders(folder.subfolders, parentPath: path)
+            }
+        }
+
+        importFolders(manifest.folders, parentPath: nil)
+
+        // 6. Import root exercises
+        for exercise in manifest.rootExercises {
+            let exID = exercise.id.uuidString
+            let exerciseDir = exercisesBase.appendingPathComponent(exID, isDirectory: true)
+            if fm.fileExists(atPath: exerciseDir.path) {
+                duplicatesSkipped += 1
+                continue
+            }
+
+            let manifest = ExerciseManifest(
+                id: exID,
+                name: exercise.name,
+                details: exercise.details,
+                duration: exercise.duration,
+                restAfter: exercise.restAfter,
+                mediaFilenames: exercise.mediaItems.map { mediaMap[$0.filename] ?? $0.filename }
+            )
+            do {
+                try db.createExercise(id: exID, manifest: manifest)
+                exercisesImported += 1
+            } catch {
+                print("[BackupManager] Failed to import root exercise \(exID): \(error)")
+            }
+        }
+
+        // 7. Import workouts
+        var workoutsImported = 0
+        for workout in manifest.workouts {
+            let wID = workout.id.uuidString
+            let workoutDir = db.dataRoot.appendingPathComponent("Workouts/\(wID)", isDirectory: true)
+            if fm.fileExists(atPath: workoutDir.path) {
+                duplicatesSkipped += 1
+                continue
+            }
+
+            let manifest = WorkoutManifest(
+                id: wID,
+                name: workout.name,
+                type: TimeMasterCore.WorkoutType(
+                    id: workout.type.id,
+                    name: workout.type.name,
+                    iconName: workout.type.iconName,
+                    colorHex: workout.type.colorHex
+                ),
+                sections: workout.sections.map { section in
+                    WorkoutSectionManifest(
+                        exerciseID: "",
+                        name: section.name,
+                        duration: section.duration,
+                        sets: section.sets,
+                        restBetweenSets: section.restBetweenSets,
+                        prepareTime: section.prepareTime,
+                        customRestAfter: section.customRestAfter,
+                        isTimerEnabled: section.isTimerEnabled,
+                        mediaFilenames: section.mediaItems.map { mediaMap[$0.filename] ?? $0.filename }
+                    )
+                },
+                musicTrackFilenames: workout.musicTrackFilenames,
+                colorHex: workout.colorHex,
+                createdAt: workout.createdAt,
+                restBetweenSections: workout.restBetweenSections,
+                imageFilename: workout.imageFilename
+            )
+            do {
+                try db.createWorkout(id: wID, manifest: manifest)
+                workoutsImported += 1
+            } catch {
+                print("[BackupManager] Failed to import workout \(wID): \(error)")
+            }
+        }
+
+        // 8. Import history entries
+        var historyImported = 0
+        for entry in manifest.workoutHistory {
+            let historyEntry = HistoryEntry(
+                id: entry.id.uuidString,
+                workoutId: entry.workoutId.uuidString,
+                workoutName: entry.workoutName,
+                completedAt: entry.completedAt,
+                durationCompleted: entry.durationCompleted,
+                workoutType: TimeMasterCore.WorkoutType(
+                    id: entry.workoutType.id,
+                    name: entry.workoutType.name,
+                    iconName: entry.workoutType.iconName,
+                    colorHex: entry.workoutType.colorHex
+                ),
+                isPartial: entry.isPartial,
+                elapsedSeconds: entry.elapsedSeconds
+            )
+            do {
+                try db.appendHistoryEntry(historyEntry)
+                historyImported += 1
+            } catch {
+                print("[BackupManager] Failed to import history entry \(entry.id): \(error)")
+            }
+        }
+
+        // 9. Reload stores on main thread (@Published properties)
         DispatchQueue.main.sync {
             workoutStore.reload()
             databaseStore.reload()
         }
+
+        return ImportSummary(
+            exercisesImported: exercisesImported,
+            foldersCreated: foldersCreated,
+            workoutsImported: workoutsImported,
+            historyImported: historyImported,
+            mediaImported: mediaMap.count,
+            duplicatesSkipped: duplicatesSkipped
+        )
     }
 
-    // MARK: - Merge helpers
-
-    private func mergeWorkouts(_ incoming: [Workout], into store: WorkoutStore) {
-        let existing = Set(store.workouts.map(\.id))
-        let newOnes = incoming.filter { !existing.contains($0.id) }
-        guard !newOnes.isEmpty else { return }
-        store.workouts.append(contentsOf: newOnes)
-        // Persist via reflection-free approach: write directly to UserDefaults
-        saveToUserDefaults(store.workouts, key: "workouts")
-    }
-
-    private func mergeHistory(_ incoming: [WorkoutHistoryEntry], into store: WorkoutStore) {
-        let existing = Set(store.historyEntries.map(\.id))
-        let newOnes = incoming.filter { !existing.contains($0.id) }
-        guard !newOnes.isEmpty else { return }
-        store.historyEntries.append(contentsOf: newOnes)
-        store.historyEntries.sort { $0.completedAt > $1.completedAt }
-        saveToUserDefaults(store.historyEntries, key: "workout_history")
-    }
-
-    private func mergeFolders(_ incoming: [ExerciseFolder], into store: DatabaseStore) {
-        var folders = store.rootFolders
-        mergeExerciseFolderArray(&folders, with: incoming)
-        store.rootFolders = folders
-        saveToUserDefaults(folders, key: "exercise_database_v2")
-    }
-
-    private func mergeExerciseFolderArray(
-        _ existing: inout [ExerciseFolder],
-        with incoming: [ExerciseFolder]
-    ) {
-        let existingIDs = Set(existing.map(\.id))
-        for folder in incoming {
-            if existingIDs.contains(folder.id) {
-                // Recurse into subfolders of the matching existing folder
-                if let idx = existing.firstIndex(where: { $0.id == folder.id }) {
-                    mergeExerciseFolderArray(&existing[idx].subfolders, with: folder.subfolders)
-                    // Merge exercises inside this folder
-                    let existingExIDs = Set(existing[idx].exercises.map(\.id))
-                    let newEx = folder.exercises.filter { !existingExIDs.contains($0.id) }
-                    existing[idx].exercises.append(contentsOf: newEx)
-                    // Merge notes inside this folder
-                    let existingNoteIDs = Set(existing[idx].notes.map(\.id))
-                    let newNotes = folder.notes.filter { !existingNoteIDs.contains($0.id) }
-                    existing[idx].notes.append(contentsOf: newNotes)
-                }
-            } else {
-                existing.append(folder)
-            }
-        }
-    }
-
-    private func mergeRootExercises(_ incoming: [Exercise], into store: DatabaseStore) {
-        let existing = Set(store.rootExercises.map(\.id))
-        let newOnes = incoming.filter { !existing.contains($0.id) }
-        guard !newOnes.isEmpty else { return }
-        store.rootExercises.append(contentsOf: newOnes)
-        saveToUserDefaults(store.rootExercises, key: "exercise_database_root_exercises_v1")
-    }
-
-    private func mergeRootNotes(_ incoming: [DatabaseNote], into store: DatabaseStore) {
-        let existing = Set(store.rootNotes.map(\.id))
-        let newOnes = incoming.filter { !existing.contains($0.id) }
-        guard !newOnes.isEmpty else { return }
-        store.rootNotes.append(contentsOf: newOnes)
-        saveToUserDefaults(store.rootNotes, key: "exercise_database_root_notes_v1")
-    }
-
-    private func saveToUserDefaults<T: Encodable>(_ value: T, key: String) {
-        if let data = try? JSONEncoder().encode(value) {
-            UserDefaults.standard.set(data, forKey: key)
-        }
+    private var exercisesBase: URL {
+        db.exercisesDatabaseURL
     }
 
     // MARK: - Folder Export
 
     /// Exports a single folder (with optional item filtering) to Documents/Exports/<name>.zip.
-    /// Runs on any thread; pass IDs captured on the main thread.
     func exportFolder(
         _ folder: ExerciseFolder,
         selectedExerciseIDs: Set<UUID>,

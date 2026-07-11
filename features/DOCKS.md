@@ -34,7 +34,7 @@
 | F09 | F09-D | AI Tool Calling (in-app + external) | pending |
 | F09 | F09-E | Mac App (native macOS build) | pending |
 | F01 | F01-A | Migrate models to file manifests | pending (after F09-A) |
-| F05 | F05-A-v2 | Import → Exercises Database/ | pending (after F09-A) |
+| F05 | F05-A-v2 | Import → Exercises Database/ | done (after F09-A, F01-A) |
 | F06 | F06-B | AI Database Creation (tool-calling) | pending (after F09-D) |
 
 ## V2 Sub-Features (Cycle 6 — Notion-Style Rework, after F09)

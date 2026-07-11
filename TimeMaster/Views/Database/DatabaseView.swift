@@ -456,13 +456,13 @@ struct DatabaseView: View {
         let workoutStore = WorkoutStore()
         Task.detached {
             do {
-                try BackupManager.shared.importBackup(
+                let summary = try BackupManager.shared.importBackup(
                     from: url,
                     workoutStore: workoutStore,
                     databaseStore: store
                 )
                 await MainActor.run {
-                    store.reload()
+                    print("[DatabaseView] Import complete: \(summary.exercisesImported) exercises, \(summary.workoutsImported) workouts, \(summary.historyImported) history, \(summary.mediaImported) media, \(summary.duplicatesSkipped) duplicates skipped")
                 }
             } catch {
                 print("Database import error: \(error)")
