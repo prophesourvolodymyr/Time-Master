@@ -8,6 +8,7 @@ struct WorkoutPickerSheet: View {
 
     @State private var duration: Int
     @State private var sets: Int
+    @State private var reps: Int
     @State private var restAfter: Int
     @State private var restBetweenSets: Int
     @State private var showToast = false
@@ -17,6 +18,7 @@ struct WorkoutPickerSheet: View {
         self.page = page
         _duration = State(initialValue: page.manifest.duration ?? 30)
         _sets = State(initialValue: page.manifest.sets ?? 1)
+        _reps = State(initialValue: page.manifest.sets != nil ? 12 : 0)
         _restAfter = State(initialValue: page.manifest.restAfter ?? 10)
         _restBetweenSets = State(initialValue: page.manifest.restBetweenSets ?? 10)
     }
@@ -70,6 +72,7 @@ struct WorkoutPickerSheet: View {
             HStack(spacing: 8) {
                 compactStepper(label: "Dur.", value: $duration, range: 5...600, step: 5, unit: "s")
                 compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
+                compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
                 compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
                 compactStepper(label: "Btwn", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
             }
@@ -160,6 +163,7 @@ struct WorkoutPickerSheet: View {
             name: page.title,
             duration: duration,
             sets: sets,
+            repCount: reps > 0 ? reps : nil,
             restBetweenSets: restBetweenSets,
             customRestAfter: restAfter,
             prepareTime: 4

@@ -65,6 +65,7 @@ struct Section: Identifiable, Codable, Equatable {
     var isTimerEnabled: Bool      // when false the section has no countdown (reps/sets only)
     // Sets
     var sets: Int             // how many times this section repeats (≥ 1)
+    var repCount: Int?        // reps per set (e.g. 12 reps)
     var restBetweenSets: Int  // rest between set repetitions; only used when sets > 1
     var prepareTime: Int
     var customRestAfter: Int?
@@ -79,6 +80,7 @@ struct Section: Identifiable, Codable, Equatable {
         mediaItems: [MediaItem] = [],
         restAfter: Int = 0,
         sets: Int = 1,
+        repCount: Int? = nil,
         restBetweenSets: Int = 10,
         customRestAfter: Int? = nil,
         prepareTime: Int = 4
@@ -88,6 +90,7 @@ struct Section: Identifiable, Codable, Equatable {
         self.duration = max(5, duration)
         self.isTimerEnabled = isTimerEnabled
         self.sets = max(1, sets)
+        self.repCount = repCount.map { max(1, $0) }
         self.restBetweenSets = max(0, restBetweenSets)
         self.customRestAfter = customRestAfter
         self.prepareTime = max(0, prepareTime)
@@ -106,7 +109,7 @@ struct Section: Identifiable, Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id, name, duration, isTimerEnabled
-        case sets, restBetweenSets, customRestAfter, prepareTime
+        case sets, repCount, restBetweenSets, customRestAfter, prepareTime
         case mediaItems
         case photoFilenames
         case photoFilename
@@ -120,6 +123,7 @@ struct Section: Identifiable, Codable, Equatable {
         duration       = try c.decodeIfPresent(Int.self,    forKey: .duration) ?? 30
         isTimerEnabled = try c.decodeIfPresent(Bool.self,   forKey: .isTimerEnabled) ?? true
         sets           = max(1, try c.decodeIfPresent(Int.self, forKey: .sets) ?? 1)
+        repCount       = try c.decodeIfPresent(Int.self, forKey: .repCount)
         restBetweenSets = try c.decodeIfPresent(Int.self, forKey: .restBetweenSets) ?? 10
         prepareTime    = try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4
 
@@ -150,6 +154,7 @@ struct Section: Identifiable, Codable, Equatable {
         try c.encode(duration,        forKey: .duration)
         try c.encode(isTimerEnabled,  forKey: .isTimerEnabled)
         try c.encode(sets,            forKey: .sets)
+        try c.encodeIfPresent(repCount, forKey: .repCount)
         try c.encode(restBetweenSets, forKey: .restBetweenSets)
         try c.encodeIfPresent(customRestAfter, forKey: .customRestAfter)
         try c.encode(prepareTime,     forKey: .prepareTime)

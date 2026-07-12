@@ -318,10 +318,19 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: "Add to Workout" button in page detail view
   - [x] Detail: DatabaseStore.duplicatePage() — copies page with cover + media
   - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, no regressions (2026-07-11)
-- [ ] F02-A-b — Drag-to-Build + Sets
-  - [ ] Detail: Drag exercise into workout, configure sets/reps inline
-- [ ] F02-A-c — Bundle Section Mode
-  - [ ] Detail: Group multiple exercises into one timed section
+- [x] F02-A-b — Drag-to-Build + Sets
+  - [x] Detail: Drag exercise into workout, configure sets/reps inline
+  - [x] Detail: DatabasePageBrowserSheet — embedded V2 browser in workout context (grid/list, search/filter/sort)
+  - [x] Detail: Inline SectionConfigCard with editable Dur/Sets/Reps/Rest/Btwn steppers, Confirm/Cancel
+  - [x] Detail: repCount field on Section + WorkoutSectionManifest, displayed during playback
+  - [x] Detail: Reps stepper in WorkoutPickerSheet + DatabasePageBrowserSheet
+  - [x] Detail: Drag-to-reorder sections with drag handles in WorkoutDetailView
+  - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, 2026-07-11
+- [x] F02-A-c — Bundle Section Mode
+  - [x] Detail: Group multiple exercises into one timed section via bundle toggle in browser sheet
+  - [x] Detail: Bundle creates ONE section named after first page with all page names in subtitle
+  - [x] Detail: Total sets sums across all bundled pages' workoutConfig
+  - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, 2026-07-11
 - [ ] F02-A-d — Player Page Popup
   - [ ] Detail: Tap image/title during workout → exercise page overlay with floating player controls
 

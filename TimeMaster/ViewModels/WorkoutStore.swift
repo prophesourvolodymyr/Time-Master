@@ -514,6 +514,7 @@ extension WorkoutSectionManifest {
             isTimerEnabled: isTimerEnabled,
             mediaItems: mediaFilenames.map { MediaItem(filename: $0, type: .photo) },
             sets: sets,
+            repCount: repCount,
             restBetweenSets: restBetweenSets,
             customRestAfter: customRestAfter,
             prepareTime: prepareTime

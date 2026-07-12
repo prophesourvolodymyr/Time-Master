@@ -3,6 +3,7 @@ import PhotosUI
 
 struct WorkoutDetailView: View {
     @EnvironmentObject var store: WorkoutStore
+    @EnvironmentObject var databaseStore: DatabaseStore
     @State private var showingSectionEditor = false
     @State private var editingSection: Section?
     @State private var showingDeleteAlert = false
@@ -10,9 +11,12 @@ struct WorkoutDetailView: View {
     @State private var showPlayer = false
     @State private var showingWorkoutSettings = false
     @State private var mediaPreviewSection: Section? = nil
+    @State private var showBrowserSheet = false
 
     let workoutID: UUID
     @State private var sectionIDs: [UUID] = []
+
+    @State private var pendingSection: PendingSectionConfig?
 
     private var workout: Workout {
         store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
@@ -26,7 +30,7 @@ struct WorkoutDetailView: View {
         ZStack {
             Theme.background.ignoresSafeArea()
 
-            if workout.sections.isEmpty {
+            if workout.sections.isEmpty && pendingSection == nil {
                 emptySectionsView
             } else {
                 VStack(spacing: 0) {
@@ -37,12 +41,8 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(workout.name)
         #if os(iOS)
-#if os(iOS)
-#if os(iOS)
-.navigationBarTitleDisplayMode(.large)
-#endif
-#endif
-#endif
+        .navigationBarTitleDisplayMode(.large)
+        #endif
         .onAppear { sectionIDs = workout.sections.map(\.id) }
         .onChange(of: workout.sections.count) { _ in sectionIDs = workout.sections.map(\.id) }
         .sheet(isPresented: $showPlayer) {
@@ -66,6 +66,7 @@ struct WorkoutDetailView: View {
             Button("Delete", role: .destructive) {
                 if let section = sectionToDelete {
                     store.deleteSection(in: workout, section: section)
+                    sectionIDs = workout.sections.map(\.id)
                 }
                 sectionToDelete = nil
             }
@@ -77,6 +78,38 @@ struct WorkoutDetailView: View {
         }
         .sheet(isPresented: $showingWorkoutSettings) {
             WorkoutSettingsView(workoutID: workoutID, store: store)
+        }
+        .sheet(isPresented: $showBrowserSheet) {
+            DatabasePageBrowserSheet(
+                workout: workout,
+                onAdd: { page, dur, sets, reps, restAfter, restBetween in
+                    pendingSection = PendingSectionConfig(
+                        name: page.title,
+                        duration: dur,
+                        sets: sets,
+                        repCount: reps > 0 ? reps : nil,
+                        restAfter: restAfter,
+                        restBetweenSets: restBetween
+                    )
+                },
+                onAddBundle: { pages, dur, sets, reps, restAfter, restBetween in
+                    let bundleName = pages.first?.title ?? "Bundle"
+                    let subNames = pages.map { $0.title }
+                    let totalSets = pages.reduce(sets) { acc, page in
+                        acc + (page.manifest.sets ?? 1)
+                    }
+                    pendingSection = PendingSectionConfig(
+                        name: "Bundle: \(bundleName) (\(subNames.joined(separator: ", ")))",
+                        duration: dur,
+                        sets: totalSets,
+                        repCount: reps > 0 ? reps : nil,
+                        restAfter: restAfter,
+                        restBetweenSets: restBetween
+                    )
+                }
+            )
+            .environmentObject(databaseStore)
+            .environmentObject(store)
         }
     }
 
@@ -111,11 +144,30 @@ struct WorkoutDetailView: View {
                 .cornerRadius(12)
             }
             .padding(.top, 8)
+            Button {
+                showBrowserSheet = true
+            } label: {
+                HStack {
+                    Image(systemName: "folder.fill.badge.plus")
+                    Text("Browse Exercises")
+                }
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.7))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.3), lineWidth: 1))
+            }
         }
     }
 
     private var sectionList: some View {
         List {
+            if let pending = pendingSection {
+                pendingConfigCard(pending)
+                    .listRowBackground(Theme.surface)
+                    .listRowSeparatorTint(Theme.separator)
+            }
+
             ForEach(sectionIDs, id: \.self) { id in
                 if let section = workout.sections.first(where: { $0.id == id }) {
                     sectionCell(section, id: id)
@@ -144,13 +196,165 @@ struct WorkoutDetailView: View {
     }
 
     @ViewBuilder
+    private func pendingConfigCard(_ pending: PendingSectionConfig) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "slider.horizontal.3")
+                    .foregroundColor(Theme.textSecondary)
+                Text("Configure New Section")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+            }
+
+            Text(pending.name)
+                .font(.callout.weight(.medium))
+                .foregroundColor(.white)
+                .lineLimit(2)
+
+            HStack(spacing: 6) {
+                inlineStepper(label: "Dur", value: Binding(
+                    get: { pending.duration },
+                    set: { pendingSection?.duration = $0 }
+                ), range: 5...600, step: 5, unit: "s")
+                inlineStepper(label: "Sets", value: Binding(
+                    get: { pending.sets },
+                    set: { pendingSection?.sets = $0 }
+                ), range: 1...50, step: 1, unit: "")
+                inlineStepper(label: "Reps", value: Binding(
+                    get: { pending.repCount ?? 0 },
+                    set: { pendingSection?.repCount = ($0 > 0 ? $0 : nil) }
+                ), range: 0...100, step: 1, unit: "")
+                inlineStepper(label: "Rest", value: Binding(
+                    get: { pending.restAfter },
+                    set: { pendingSection?.restAfter = $0 }
+                ), range: 0...120, step: 5, unit: "s")
+                inlineStepper(label: "Btwn", value: Binding(
+                    get: { pending.restBetweenSets },
+                    set: { pendingSection?.restBetweenSets = $0 }
+                ), range: 0...120, step: 5, unit: "s")
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    pendingSection = nil
+                } label: {
+                    Text("Cancel")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(8)
+                }
+
+                Button {
+                    confirmPendingSection(pending)
+                } label: {
+                    Text("Confirm")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.white)
+                        .cornerRadius(8)
+                }
+            }
+        }
+        .padding(12)
+        .background(Theme.surface2.opacity(0.6))
+        .cornerRadius(12)
+        .padding(.vertical, 6)
+    }
+
+    private func inlineStepper(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: 8))
+                .foregroundColor(Theme.textSecondary)
+            Text("\(value.wrappedValue)\(unit)")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white)
+            HStack(spacing: 3) {
+                Button {
+                    let new = value.wrappedValue - step
+                    if new >= range.lowerBound { value.wrappedValue = new }
+                } label: {
+                    Image(systemName: "minus").font(.system(size: 7, weight: .bold))
+                        .foregroundColor(.white).frame(width: 16, height: 16)
+                        .background(Theme.surface).cornerRadius(3)
+                }
+                Button {
+                    let new = value.wrappedValue + step
+                    if new <= range.upperBound { value.wrappedValue = new }
+                } label: {
+                    Image(systemName: "plus").font(.system(size: 7, weight: .bold))
+                        .foregroundColor(.white).frame(width: 16, height: 16)
+                        .background(Theme.surface).cornerRadius(3)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+        .background(Theme.surface)
+        .cornerRadius(6)
+    }
+
+    private func confirmPendingSection(_ pending: PendingSectionConfig) {
+        let section = Section(
+            name: pending.name,
+            duration: pending.duration,
+            sets: pending.sets,
+            repCount: pending.repCount,
+            restBetweenSets: pending.restBetweenSets,
+            customRestAfter: pending.restAfter,
+            prepareTime: 4
+        )
+        store.addSection(to: workout, section: section)
+        sectionIDs = workout.sections.map(\.id)
+        pendingSection = nil
+    }
+
+    @ViewBuilder
     private func sectionCell(_ section: Section, id: UUID) -> some View {
         let idx = sectionIDs.firstIndex(of: id) ?? 0
         let isLast = idx == sectionIDs.count - 1
         VStack(spacing: 0) {
-            SectionRow(section: section, onThumbnailTap: section.mediaItems.isEmpty ? nil : {
-                mediaPreviewSection = section
-            })
+            HStack(spacing: 12) {
+                mediaThumbnail(section)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(section.name)
+                            .font(.headline)
+                            .foregroundColor(Theme.textPrimary)
+                            .lineLimit(1)
+                        if section.sets > 1 {
+                            Text("\(section.sets)×")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(5)
+                        }
+                        if let reps = section.repCount {
+                            Text("\(reps) reps")
+                                .font(.caption.weight(.medium))
+                                .foregroundColor(Theme.textSecondary)
+                        }
+                    }
+                    HStack(spacing: 10) {
+                        Label("\(section.duration)s", systemImage: "timer")
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                }
+                Spacer()
+                Image(systemName: "line.3.horizontal")
+                    .font(.title3)
+                    .foregroundColor(Theme.textSecondary.opacity(0.5))
+            }
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
             .onTapGesture {
                 editingSection = section
@@ -161,6 +365,26 @@ struct WorkoutDetailView: View {
                     rest: restBinding(for: idx),
                     defaultRest: workout.restBetweenSections
                 )
+            }
+        }
+    }
+
+    private func mediaThumbnail(_ section: Section) -> some View {
+        Group {
+            if let item = section.mediaItems.first {
+                MediaThumbnailView(item: item, size: 60, cornerRadius: 12)
+                    .onTapGesture {
+                        mediaPreviewSection = section
+                    }
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Theme.surface2)
+                    Image(systemName: "figure.run")
+                        .font(.title2)
+                        .foregroundColor(Theme.textSecondary)
+                }
+                .frame(width: 60, height: 60)
             }
         }
     }
@@ -233,6 +457,14 @@ struct WorkoutDetailView: View {
                     .foregroundColor(.white)
             }
         }
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                showBrowserSheet = true
+            } label: {
+                Image(systemName: "folder.fill.badge.plus")
+            }
+            .foregroundColor(.white)
+        }
     }
 
     // MARK: - Helpers
@@ -269,6 +501,15 @@ struct WorkoutDetailView: View {
         }
         return false
     }
+}
+
+struct PendingSectionConfig {
+    var name: String
+    var duration: Int
+    var sets: Int
+    var repCount: Int?
+    var restAfter: Int
+    var restBetweenSets: Int
 }
 
 private struct RestSeparatorRow: View {
@@ -362,12 +603,8 @@ private struct WorkoutSettingsView: View {
             }
             .navigationTitle("Workout Settings")
             #if os(iOS)
-#if os(iOS)
-#if os(iOS)
-.navigationBarTitleDisplayMode(.inline)
-#endif
-#endif
-#endif
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)

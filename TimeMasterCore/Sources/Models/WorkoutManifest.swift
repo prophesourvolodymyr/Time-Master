@@ -5,6 +5,7 @@ public struct WorkoutSectionManifest: Codable, Equatable {
     public var name: String
     public var duration: Int
     public var sets: Int
+    public var repCount: Int?
     public var restBetweenSets: Int
     public var prepareTime: Int
     public var customRestAfter: Int?
@@ -16,6 +17,7 @@ public struct WorkoutSectionManifest: Codable, Equatable {
         name: String,
         duration: Int = 30,
         sets: Int = 1,
+        repCount: Int? = nil,
         restBetweenSets: Int = 10,
         prepareTime: Int = 4,
         customRestAfter: Int? = nil,
@@ -26,6 +28,7 @@ public struct WorkoutSectionManifest: Codable, Equatable {
         self.name = name
         self.duration = max(5, duration)
         self.sets = max(1, sets)
+        self.repCount = repCount.map { max(1, $0) }
         self.restBetweenSets = max(0, restBetweenSets)
         self.prepareTime = max(0, prepareTime)
         self.customRestAfter = customRestAfter

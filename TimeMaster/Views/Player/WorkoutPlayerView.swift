@@ -339,9 +339,20 @@ struct WorkoutPlayerView: View {
                         .padding(.horizontal, 32)
 
                     if let section = currentSection, section.sets > 1 {
-                        Text("Set \(currentSetIndex + 1) / \(section.sets)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.55))
+                        VStack(spacing: 2) {
+                            Text("Set \(currentSetIndex + 1) / \(section.sets)")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.55))
+                            if let reps = section.repCount {
+                                Text("\(reps) reps")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+                        }
+                    } else if let section = currentSection, let reps = section.repCount {
+                        Text("\(reps) reps")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.5))
                     }
                 }
 
