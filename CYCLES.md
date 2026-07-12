@@ -286,9 +286,12 @@ F06 (AI Coach) ─────────┘
 
 ### Foundation
 - [ ] F01-B — Unified Page Model
-  - [ ] Detail: ExercisePage struct replaces ExerciseFolder + Exercise + TrayItem
-  - [ ] Detail: Every page has cover image, markdown body, media, links, nested sub-pages
-  - [ ] Detail: Unlimited nesting with parent/child relationships
+  - [x] Detail: DOCKS.md written (comprehensive spec: model, states, animations, migration, verification)
+  - [ ] Detail: ExercisePageManifest + ExercisePage models implemented
+  - [ ] Detail: DatabaseManager page CRUD + walkPageTree
+  - [ ] Detail: DatabaseStore rewritten as flat page store
+  - [ ] Detail: Migration from ExerciseManifest/ExerciseFolder → ExercisePageManifest
+  - [ ] Detail: Verified: build, tests, no data loss
 - [ ] F05-B — Notion-Style Pages UI
   - [ ] Detail: Exercise page opens as rich view (not just edit form)
   - [ ] Detail: Inline video playback (YouTube, Instagram embeds)
