@@ -30,9 +30,15 @@ struct AICoachView: View {
                         pendingAttachName: $pendingAttachName,
                         isFocused:         $inputFocused,
                         isLoading:         store.isLoading,
+                        isApprovalPending: store.pendingApproval != nil,
                         onSend:            sendMessage,
                         onAttach:          { showingFilePicker = true }
                     )
+                }
+                if let approval = store.pendingApproval {
+                    ApprovalCardView(approval: approval, store: store)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(10)
                 }
             }
             .navigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
@@ -61,6 +67,7 @@ struct AICoachView: View {
             ) { result in
                 handleFileImport(result)
             }
+            .animation(.spring(response: 0.38, dampingFraction: 0.82), value: store.pendingApproval != nil)
         }
     }
 
@@ -114,24 +121,6 @@ struct AICoachView: View {
         } else if let data = try? Data(contentsOf: url) {
             pendingAttachName    = url.lastPathComponent
             pendingAttachContent = "[Binary file – \(data.count) bytes, cannot display as text]"
-        }
-    }
-
-    // MARK: - Session context injection on new session
-
-    private func injectSessionContextIfNeeded() {
-        guard !store.sessionContextInjected else { return }
-        store.sessionContextInjected = true
-        let fs = TimeMasterCore.FileSystemHelper()
-        let promptBuilder = TimeMasterCore.AISystemPromptBuilder(fs: fs)
-        let db = TimeMasterCore.DatabaseManager.shared
-        DispatchQueue.global(qos: .userInitiated).async {
-            guard let ctx = try? promptBuilder.buildSessionContext(db: db) else { return }
-            let systemMsg = ctx.toSystemMessage()
-            let fullPrompt = "\(store.soulPrompt)\n\n\(systemMsg)"
-            DispatchQueue.main.async {
-                store.soulPrompt = fullPrompt
-            }
         }
     }
 }
@@ -486,6 +475,7 @@ private struct ChatInputBar: View {
     @Binding var pendingAttachName: String?
     var isFocused: FocusState<Bool>.Binding
     let isLoading: Bool
+    let isApprovalPending: Bool
     let onSend: () -> Void
     let onAttach: () -> Void
 
@@ -522,29 +512,45 @@ private struct ChatInputBar: View {
                         .foregroundColor(pendingAttachName != nil ? .white : Color.white.opacity(0.45))
                 }
                 .frame(width: 36, height: 36)
+                .disabled(isApprovalPending)
 
                 // Text field
-                TextField("Message…", text: $text, axis: .vertical)
-                    .lineLimit(1...6)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color(hex: "1C1C1C"))
-                    .cornerRadius(20)
-                    .foregroundColor(.white)
-                    .tint(.white)
-                    .focused(isFocused)
-                    .onSubmit { if canSend { onSend() } }
+                if isApprovalPending {
+                    Text("Review the requested changes above...")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color.white.opacity(0.35))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color(hex: "1C1C1C"))
+                        .cornerRadius(20)
+                } else {
+                    TextField("Message…", text: $text, axis: .vertical)
+                        .lineLimit(1...6)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color(hex: "1C1C1C"))
+                        .cornerRadius(20)
+                        .foregroundColor(.white)
+                        .tint(.white)
+                        .focused(isFocused)
+                        .onSubmit { if canSend { onSend() } }
+                }
 
                 // Send
                 Button(action: onSend) {
                     ZStack {
                         Circle()
-                            .fill(canSend && !isLoading ? Color.white : Color.white.opacity(0.12))
+                            .fill(canSend && !isLoading && !isApprovalPending ? Color.white : Color.white.opacity(0.12))
                             .frame(width: 36, height: 36)
                         if isLoading {
                             ProgressView()
                                 .tint(Color.white.opacity(0.6))
                                 .scaleEffect(0.75)
+                        } else if isApprovalPending {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color.white.opacity(0.3))
                         } else {
                             Image(systemName: "arrow.up")
                                 .font(.system(size: 15, weight: .bold))
@@ -552,7 +558,7 @@ private struct ChatInputBar: View {
                         }
                     }
                 }
-                .disabled(!canSend || isLoading)
+                .disabled(!canSend || isLoading || isApprovalPending)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -783,6 +789,101 @@ private struct ToolCallIndicator: View {
         case 2: return "Looking deeper..."
         case 3: return "Almost done..."
         default: return "Working on it..."
+        }
+    }
+}
+
+// MARK: - ApprovalCardView
+
+private struct ApprovalCardView: View {
+    let approval: ApprovalRequest
+    @ObservedObject var store: AIStore
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "FFD60A"))
+                    Text("AI wants to make changes")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 8)
+
+                Text(approval.summary)
+                    .font(.system(size: 13))
+                    .foregroundColor(Color.white.opacity(0.7))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+
+                if !approval.details.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(approval.details.keys.sorted(), id: \.self) { key in
+                            HStack(spacing: 4) {
+                                Text(key + ":")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color.white.opacity(0.4))
+                                Text(approval.details[key] ?? "")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color.white.opacity(0.6))
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
+                }
+
+                HStack(spacing: 10) {
+                    Button(action: { store.rejectCurrentToolCall() }) {
+                        Text("Reject")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color.white.opacity(0.6))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.white.opacity(0.08))
+                            .cornerRadius(12)
+                    }
+                    Button(action: { store.approveCurrentToolCall() }) {
+                        Text("Approve")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color(hex: "FFD60A"))
+                            .cornerRadius(12)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(hex: "1C1C1C"))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color(hex: "FFD60A").opacity(0.3), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+        }
+    }
+
+    private var iconName: String {
+        switch approval.toolName {
+        case "create_exercise": return "figure.strengthtraining.traditional"
+        case "create_folder": return "folder.badge.plus"
+        case "build_workout": return "list.bullet.clipboard"
+        case "add_media_note": return "note.text.badge.plus"
+        default: return "hammer"
         }
     }
 }

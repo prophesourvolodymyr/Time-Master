@@ -92,6 +92,13 @@ struct ResponseWithTools {
     let toolCalls: [ToolCall]
 }
 
+struct ApprovalRequest: Identifiable {
+    let id: UUID
+    let toolName: String
+    let summary: String
+    let details: [String: String]
+}
+
 // MARK: - AIStore
 
 final class AIStore: ObservableObject {
@@ -122,6 +129,13 @@ final class AIStore: ObservableObject {
     let toolRouter = ToolRouter()
     private let maxToolCallIterations = 5
     var sessionContextInjected = false
+
+    @Published var pendingApproval: ApprovalRequest?
+    private var approvalContinuation: CheckedContinuation<Bool, Never>?
+
+    private let writeOperations: Set<String> = [
+        "create_exercise", "create_folder", "build_workout", "add_media_note",
+    ]
 
     // MARK: - Provider helpers
 
@@ -291,6 +305,14 @@ final class AIStore: ObservableObject {
         }.joined(separator: "\n\n")
     }
 
+    private func buildDatabaseContext() -> String {
+        let fs = TimeMasterCore.FileSystemHelper()
+        let promptBuilder = TimeMasterCore.AISystemPromptBuilder(fs: fs)
+        let db = TimeMasterCore.DatabaseManager.shared
+        guard let ctx = try? promptBuilder.buildSessionContext(db: db) else { return "" }
+        return ctx.toSystemMessage()
+    }
+
     // MARK: - Mutations
 
     private func mutateCurrentSession(_ block: (inout ChatSession) -> Void) {
@@ -315,6 +337,67 @@ final class AIStore: ObservableObject {
             if let idx = session.messages.firstIndex(where: { $0.id == id }) {
                 session.messages[idx] = replacement
             }
+        }
+    }
+
+    // MARK: - Approval gate
+
+    func approveCurrentToolCall() {
+        approvalContinuation?.resume(returning: true)
+        approvalContinuation = nil
+    }
+
+    func rejectCurrentToolCall() {
+        approvalContinuation?.resume(returning: false)
+        approvalContinuation = nil
+    }
+
+    private func buildApprovalSummary(toolName: String, args: [String: Any]) -> String {
+        switch toolName {
+        case "create_exercise":
+            let name = args["name"] as? String ?? "New Exercise"
+            let type = args["type"] as? String ?? "Other"
+            return "Create exercise \"\(name)\" (Type: \(type))"
+        case "create_folder":
+            let name = args["name"] as? String ?? "New Folder"
+            return "Create folder \"\(name)\""
+        case "build_workout":
+            let name = args["name"] as? String ?? "New Workout"
+            let sections = args["sections"] as? [[String: Any]] ?? []
+            return "Build workout \"\(name)\" (\(sections.count) sections)"
+        case "add_media_note":
+            let exerciseID = args["exerciseID"] as? String ?? ""
+            return "Add note to exercise \(exerciseID.prefix(8))..."
+        default:
+            return "\(toolName): \(args.keys.joined(separator: ", "))"
+        }
+    }
+
+    private func buildApprovalDetails(toolName: String, args: [String: Any]) -> [String: String] {
+        switch toolName {
+        case "create_exercise":
+            var d: [String: String] = [:]
+            if let n = args["name"] as? String { d["Name"] = n }
+            if let t = args["type"] as? String { d["Type"] = t }
+            if let dur = args["duration"] as? Int { d["Duration"] = "\(dur)s" }
+            if let ra = args["restAfter"] as? Int { d["Rest"] = "\(ra)s" }
+            if let det = args["details"] as? String, !det.isEmpty { d["Description"] = det }
+            return d
+        case "create_folder":
+            var d: [String: String] = [:]
+            if let n = args["name"] as? String { d["Name"] = n }
+            if let p = args["parentID"] as? String { d["Parent"] = p }
+            return d
+        case "build_workout":
+            var d: [String: String] = [:]
+            if let n = args["name"] as? String { d["Name"] = n }
+            if let t = args["type"] as? String { d["Type"] = t }
+            if let s = args["sections"] as? [[String: Any]] { d["Sections"] = "\(s.count)" }
+            return d
+        case "add_media_note":
+            return ["Note": args["note"] as? String ?? ""]
+        default:
+            return args.compactMapValues { "\($0)" }
         }
     }
 
@@ -359,6 +442,7 @@ final class AIStore: ObservableObject {
                     replaceLoadingMessage(id: placeholderID, with: assistantMsg)
                     isLoading = false
                 }
+                DatabaseStore.shared.reload()
             }
         } catch {
             let errMsg = ChatMessage(role: .assistant, content: "⚠️ \(error.localizedDescription)")
@@ -423,6 +507,20 @@ final class AIStore: ObservableObject {
             apiMessages.append(["role": "assistant", "content": response.text.isEmpty ? "Calling tools..." : response.text])
 
             for tc in response.toolCalls {
+                if writeOperations.contains(tc.name) {
+                    let summary = buildApprovalSummary(toolName: tc.name, args: tc.arguments)
+                    let details = buildApprovalDetails(toolName: tc.name, args: tc.arguments)
+                    let req = ApprovalRequest(id: UUID(), toolName: tc.name, summary: summary, details: details)
+                    await MainActor.run { pendingApproval = req }
+                    let approved = await withCheckedContinuation { [weak self] cont in
+                        self?.approvalContinuation = cont
+                    }
+                    await MainActor.run { pendingApproval = nil }
+                    guard approved else {
+                        apiMessages.append(["role": "tool", "content": "TOOL REJECTED: User declined \(tc.name).", "tool_call_id": tc.id])
+                        continue
+                    }
+                }
                 let result = await toolRouter.execute(toolName: tc.name, args: tc.arguments)
                 let toolContent: String
                 if result.success {
@@ -508,6 +606,12 @@ final class AIStore: ObservableObject {
         var apiMessages: [[String: Any]] = []
 
         var systemContent = soulPrompt
+
+        let dbContext = buildDatabaseContext()
+        if !dbContext.isEmpty {
+            systemContent += "\n\n## Current Database State\n\(dbContext)"
+        }
+
         let knowledge = loadKnowledgeContext()
         if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
         apiMessages.append(["role": "system", "content": systemContent])
@@ -696,18 +800,12 @@ final class AIStore: ObservableObject {
     ) async throws -> ResponseWithTools {
         guard let url = URL(string: "\(base)/messages") else { throw AIError.invalidURL }
 
-        var systemPrompt = soulPrompt
-        let knowledge = loadKnowledgeContext()
-        if !knowledge.isEmpty { systemPrompt += "\n\n# Knowledge\n\(knowledge)" }
-
+        var systemPrompt = ""
         var anthropicMessages: [[String: Any]] = []
         for msg in apiMessages {
             let role = msg["role"] as? String ?? ""
             if role == "system" {
-                let content = msg["content"] as? String ?? ""
-                if !content.isEmpty && !systemPrompt.contains(content) {
-                    systemPrompt += "\n\n\(content)"
-                }
+                systemPrompt = msg["content"] as? String ?? ""
                 continue
             }
             if role == "tool" {

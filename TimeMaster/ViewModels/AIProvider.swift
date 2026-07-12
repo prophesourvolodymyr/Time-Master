@@ -450,16 +450,19 @@ extension AIProvider {
                 "type": "function",
                 "function": [
                     "name": "create_exercise",
-                    "description": "Create a new exercise in the database. Generates an ID and saves the manifest.",
+                    "description": "Create a new exercise in the database. Generates an ID and saves the manifest with guide.md.",
                     "parameters": [
                         "type": "object",
                         "properties": [
                             "name": ["type": "string", "description": "Exercise name"],
                             "type": ["type": "string", "description": "Workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
                             "duration": ["type": "integer", "description": "Duration in seconds (default 30)"],
+                            "restAfter": ["type": "integer", "description": "Rest after exercise in seconds (default 10)"],
                             "parentID": ["type": "string", "description": "Parent folder to place exercise in"],
                             "details": ["type": "string", "description": "Exercise description/instructions"],
                             "sets": ["type": "integer", "description": "Default number of sets"],
+                            "mediaFilenames": ["type": "array", "items": ["type": "string"], "description": "Media filenames to attach"],
+                            "linkURLs": ["type": "array", "items": ["type": "string"], "description": "External link URLs"],
                         ],
                         "required": ["name"],
                     ],
@@ -504,6 +507,7 @@ extension AIProvider {
                         "properties": [
                             "name": ["type": "string", "description": "Workout name"],
                             "type": ["type": "string", "description": "Workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
+                            "restBetweenSections": ["type": "integer", "description": "Rest between sections in seconds (default 30)"],
                             "sections": [
                                 "type": "array",
                                 "description": "Array of section objects with exerciseID, name, duration, sets, restBetweenSets, prepareTime",
@@ -522,6 +526,18 @@ extension AIProvider {
                             ],
                         ],
                         "required": ["name"],
+                    ],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "get_stats",
+                    "description": "Get overall workout statistics: total workouts, current streak, best streak, and total duration. No parameters needed.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [:],
+                        "required": [],
                     ],
                 ],
             ],
@@ -598,16 +614,19 @@ extension AIProvider {
             ],
             [
                 "name": "create_exercise",
-                "description": "Create a new exercise in the database. Generates an ID and saves the manifest.",
+                "description": "Create a new exercise in the database. Generates an ID and saves the manifest with guide.md.",
                 "input_schema": [
                     "type": "object",
                     "properties": [
                         "name": ["type": "string", "description": "Exercise name"],
                         "type": ["type": "string", "description": "Workout type: Strength, Stretch, Cardio, HIIT, Yoga, Face, Other"],
                         "duration": ["type": "integer", "description": "Duration in seconds (default 30)"],
+                        "restAfter": ["type": "integer", "description": "Rest after exercise in seconds (default 10)"],
                         "parentID": ["type": "string", "description": "Parent folder to place exercise in"],
                         "details": ["type": "string", "description": "Exercise description/instructions"],
                         "sets": ["type": "integer", "description": "Default number of sets"],
+                        "mediaFilenames": ["type": "array", "items": ["type": "string"], "description": "Media filenames to attach"],
+                        "linkURLs": ["type": "array", "items": ["type": "string"], "description": "External link URLs"],
                     ],
                     "required": ["name"],
                 ],
@@ -643,6 +662,7 @@ extension AIProvider {
                     "properties": [
                         "name": ["type": "string", "description": "Workout name"],
                         "type": ["type": "string", "description": "Workout type"],
+                        "restBetweenSections": ["type": "integer", "description": "Rest between sections in seconds (default 30)"],
                         "sections": [
                             "type": "array",
                             "description": "Array of section objects",
@@ -661,6 +681,15 @@ extension AIProvider {
                         ],
                     ],
                     "required": ["name"],
+                ],
+            ],
+            [
+                "name": "get_stats",
+                "description": "Get overall workout statistics: total workouts, current streak, best streak, and total duration. No parameters needed.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [:],
+                    "required": [],
                 ],
             ],
             [

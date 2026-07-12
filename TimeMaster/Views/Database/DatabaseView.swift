@@ -44,24 +44,18 @@ struct MediaThumbnailView: View {
             ZStack {
                 if let thumbnail = thumbnail {
 #if os(iOS)
-#if os(iOS)
                     Image(uiImage: thumbnail)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                    #elseif os(macOS)
-                    Image(nsImage: thumbnail)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                    #endif
                         .frame(width: size, height: size)
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                    #elseif os(macOS)
+#elseif os(macOS)
                     Image(nsImage: thumbnail)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: size, height: size)
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                    #endif
+#endif
                 } else {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(Theme.surface)

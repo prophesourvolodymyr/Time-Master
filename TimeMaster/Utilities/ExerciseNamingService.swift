@@ -16,7 +16,9 @@ enum ExerciseNamingService {
         apiKey: String,
         model: String
     ) async throws -> String {
-        try await suggestName(jpegData: image.jpegData(compressionQuality: 0.7), apiKey: apiKey, model: model)
+        let jpegData = image.jpegData(compressionQuality: 0.7)
+        guard let data = jpegData else { throw NamingError.imageEncodingFailed }
+        return try await suggestName(jpegData: data, apiKey: apiKey, model: model)
     }
     #elseif os(macOS)
     static func suggestName(

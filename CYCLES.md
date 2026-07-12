@@ -270,10 +270,14 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: WorkoutStore.reload() reads from file system post-migration
   - [x] Detail: ImportSummary returned with counts (exercises, workouts, history, media)
   - [x] Verified: macOS arm64 build succeeds, all 63 core tests pass, 2026-07-11
-- [ ] F06-B — AI Tool Calling in Chat
-  - [ ] Detail: AICoachView shows tool call progress, approval cards
-  - [ ] Detail: Knowledge injection on session start
-  - [ ] Verified: AI can search, create, and explain exercises via chat
+- [x] F06-B — AI Tool Calling in Chat
+  - [x] Detail: AICoachView shows tool call progress, approval cards
+  - [x] Detail: Knowledge injection on session start
+  - [x] Detail: Write approval gate with continuation-based UI
+  - [x] Detail: Database context injected into system prompt via AISystemPromptBuilder
+  - [x] Detail: DatabaseStore reload after AI creates exercises
+  - [x] Detail: Tool schemas enhanced (restAfter, mediaFilenames, restBetweenSections, get_stats)
+  - [x] Verified: macOS arm64 build succeeds, F06-B DOCKS.md checklist, 2026-07-11
 
 ---
 

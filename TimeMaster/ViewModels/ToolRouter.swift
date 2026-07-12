@@ -46,6 +46,7 @@ final class ToolRouter {
         case "get_recent_workouts": return try getRecentWorkouts(args)
         case "build_workout": return try buildWorkout(args)
         case "get_analytics": return try getAnalytics(args)
+        case "get_stats": return try getStats(args)
         case "add_media_note": return try addMediaNote(args)
         default:
             throw ToolError.unknownTool(name)
@@ -140,9 +141,12 @@ final class ToolRouter {
         let name = args["name"] as? String ?? "New Exercise"
         let typeName = args["type"] as? String
         let duration = args["duration"] as? Int ?? 30
+        let restAfter = args["restAfter"] as? Int ?? 10
         let parentPath = args["parentID"] as? String
         let details = args["details"] as? String ?? ""
         let sets = args["sets"] as? Int
+        let mediaFilenames = args["mediaFilenames"] as? [String] ?? []
+        let linkURLs = args["linkURLs"] as? [String] ?? []
 
         let type: WT? = typeName.flatMap { name in
             WT.builtIn.first { $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame }
@@ -153,18 +157,25 @@ final class ToolRouter {
             name: name,
             details: details,
             duration: duration,
-            restAfter: 10,
+            restAfter: restAfter,
             workoutType: type,
+            mediaFilenames: mediaFilenames,
+            linkURLs: linkURLs,
             sets: sets
         )
         try db.createExercise(id: id, manifest: manifest, parentPath: parentPath)
         var result: [String: Any] = [
             "id": id,
             "name": name,
+            "duration": duration,
+            "restAfter": restAfter,
             "message": "Exercise '\(name)' created successfully.",
         ]
         if let p = parentPath {
             result["parentPath"] = p
+        }
+        if let wt = type {
+            result["type"] = wt.name
         }
         let jsonData = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         return String(data: jsonData, encoding: .utf8) ?? "{}"
@@ -213,6 +224,7 @@ final class ToolRouter {
         let name = args["name"] as? String ?? "New Workout"
         let typeName = args["type"] as? String ?? "Strength"
         let type = WT.builtIn.first { $0.name.localizedCaseInsensitiveCompare(typeName) == .orderedSame } ?? .strength
+        let restBetweenSections = args["restBetweenSections"] as? Int ?? 30
         let sectionsRaw = args["sections"] as? [[String: Any]] ?? []
 
         var sections: [CoreWorkoutSectionManifest] = []
@@ -239,15 +251,17 @@ final class ToolRouter {
             id: id,
             name: name,
             type: type,
-            sections: sections
+            sections: sections,
+            restBetweenSections: restBetweenSections
         )
         try db.createWorkout(id: id, manifest: manifest)
         let buildResult: [String: Any] = [
             "id": id,
             "name": name,
             "type": type.name,
-            "sections": sectionsRaw,
+            "sectionsCount": sections.count,
             "totalDuration": manifest.totalDuration,
+            "restBetweenSections": restBetweenSections,
             "message": "Workout '\(name)' created with \(sections.count) sections.",
         ]
         let jsonData = try JSONSerialization.data(withJSONObject: buildResult, options: [.prettyPrinted, .sortedKeys])
@@ -269,6 +283,23 @@ final class ToolRouter {
             "bestStreak": stats.bestStreak,
             "totalDurationSeconds": stats.totalDuration,
             "totalDurationMinutes": stats.totalDuration / 60,
+        ]
+        let jsonData = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        return String(data: jsonData, encoding: .utf8) ?? "{}"
+    }
+
+    // MARK: - get_stats
+
+    private func getStats(_ args: [String: Any]) throws -> String {
+        let stats = try db.getStats()
+        let exercises = (try? db.searchAllExercises()) ?? []
+        let result: [String: Any] = [
+            "totalWorkouts": stats.count,
+            "currentStreak": stats.streak,
+            "bestStreak": stats.bestStreak,
+            "totalDurationSeconds": stats.totalDuration,
+            "totalDurationMinutes": stats.totalDuration / 60,
+            "totalExercises": exercises.count,
         ]
         let jsonData = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
         return String(data: jsonData, encoding: .utf8) ?? "{}"
