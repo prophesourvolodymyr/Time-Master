@@ -438,6 +438,74 @@ Query the TimeMaster exercise database.
         }
     }
 
+    public func reorderChildren(parentID: String, childIDs: [String]) throws {
+        let parentFolder = try resolvePageFolder(id: parentID)
+        var manifest = try getPage(id: parentID)
+        manifest.childIDs = childIDs
+        manifest.updatedAt = Date()
+        let manifestURL = parentFolder.appendingPathComponent("manifest.json")
+        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+    }
+
+    public func readGuideContent(pageID: String) throws -> String {
+        let folder = try resolvePageFolder(id: pageID)
+        let guideURL = folder.appendingPathComponent("guide.md")
+        guard fs.fileExists(at: guideURL) else { return "" }
+        let data = try fs.readRawData(from: guideURL)
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    @discardableResult
+    public func uploadCoverImage(pageID: String, sourceURL: URL) throws -> String {
+        let folder = try resolvePageFolder(id: pageID)
+        let ext = sourceURL.pathExtension.isEmpty ? "jpg" : sourceURL.pathExtension
+        let filename = "cover.\(ext)"
+        let dest = folder.appendingPathComponent(filename)
+        if fs.fileExists(at: dest) {
+            try fs.moveToTrash(source: dest)
+        }
+        try fs.copyItem(from: sourceURL, to: dest)
+        var manifest = try getPage(id: pageID)
+        manifest.coverImageFilename = filename
+        manifest.updatedAt = Date()
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        return filename
+    }
+
+    @discardableResult
+    public func uploadMediaToPage(pageID: String, sourceURL: URL) throws -> String {
+        let folder = try resolvePageFolder(id: pageID)
+        let mediaDir = folder.appendingPathComponent("media", isDirectory: true)
+        try fs.ensureDirectory(mediaDir)
+        let ext = sourceURL.pathExtension.isEmpty ? "jpg" : sourceURL.pathExtension
+        let uuid = UUID().uuidString
+        let filename = "\(uuid).\(ext)"
+        let dest = mediaDir.appendingPathComponent(filename)
+        try fs.copyItem(from: sourceURL, to: dest)
+        var manifest = try getPage(id: pageID)
+        if manifest.mediaFilenames.count >= 20 { return filename }
+        manifest.mediaFilenames.append(filename)
+        manifest.updatedAt = Date()
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        return filename
+    }
+
+    public func removeMediaFromPage(pageID: String, filename: String) throws {
+        let folder = try resolvePageFolder(id: pageID)
+        let mediaDir = folder.appendingPathComponent("media", isDirectory: true)
+        let file = mediaDir.appendingPathComponent(filename)
+        if fs.fileExists(at: file) {
+            try fs.moveToTrash(source: file)
+        }
+        var manifest = try getPage(id: pageID)
+        manifest.mediaFilenames.removeAll { $0 == filename }
+        manifest.updatedAt = Date()
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+    }
+
     public func movePage(id: String, newParentID: String?, newOrder: Int) throws {
         let currentFolder = try resolvePageFolder(id: id)
         var manifest = try getPage(id: id)

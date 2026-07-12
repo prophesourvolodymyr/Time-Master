@@ -128,6 +128,7 @@
 		21990D58D7BF402D958A4B45 /* PageCreationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BDBB46BB4F54B91B3C23ECD /* PageCreationSheet.swift */; };
 		9628FB638C7747388AB7AA38 /* PageMediaGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = F07847D0987B403187B75D3D /* PageMediaGallery.swift */; };
 		41716CFF6E124EC8AE89092E /* PageLinkPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6421924249264A81895DEAEA /* PageLinkPreview.swift */; };
+		9B8A3D52F1C640E595B27A1F /* VideoEmbedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3A4B5F6C7D8E9F0A1B2 /* VideoEmbedCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -202,6 +203,7 @@
 		4BDBB46BB4F54B91B3C23ECD /* PageCreationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageCreationSheet.swift; sourceTree = "<group>"; };
 		F07847D0987B403187B75D3D /* PageMediaGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageMediaGallery.swift; sourceTree = "<group>"; };
 		6421924249264A81895DEAEA /* PageLinkPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLinkPreview.swift; sourceTree = "<group>"; };
+		C1D2E3A4B5F6C7D8E9F0A1B2 /* VideoEmbedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEmbedCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -450,6 +452,7 @@
 				4BDBB46BB4F54B91B3C23ECD /* PageCreationSheet.swift */,
 				F07847D0987B403187B75D3D /* PageMediaGallery.swift */,
 				6421924249264A81895DEAEA /* PageLinkPreview.swift */,
+				C1D2E3A4B5F6C7D8E9F0A1B2 /* VideoEmbedCard.swift */,
 			);
 			path = Database;
 			sourceTree = "<group>";
@@ -619,6 +622,7 @@
 				21990D58D7BF402D958A4B45 /* PageCreationSheet.swift in Sources */,
 				9628FB638C7747388AB7AA38 /* PageMediaGallery.swift in Sources */,
 				41716CFF6E124EC8AE89092E /* PageLinkPreview.swift in Sources */,
+				9B8A3D52F1C640E595B27A1F /* VideoEmbedCard.swift in Sources */,
 				E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */,
 				5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */,
 				C0F8874E24C547F42DACA009 /* ImportSheetView.swift in Sources */,
@@ -737,6 +741,7 @@
 				21990D58D7BF402D958A4B45 /* PageCreationSheet.swift in Sources */,
 				9628FB638C7747388AB7AA38 /* PageMediaGallery.swift in Sources */,
 				41716CFF6E124EC8AE89092E /* PageLinkPreview.swift in Sources */,
+				9B8A3D52F1C640E595B27A1F /* VideoEmbedCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

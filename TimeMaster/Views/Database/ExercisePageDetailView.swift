@@ -1,5 +1,8 @@
 import SwiftUI
 import TimeMasterCore
+#if os(iOS)
+import PhotosUI
+#endif
 
 struct ExercisePageDetailView: View {
     @EnvironmentObject var store: DatabaseStore
@@ -10,6 +13,11 @@ struct ExercisePageDetailView: View {
     @State private var mediaGalleryPresented = false
     @State private var selectedMediaIndex = 0
     @State private var linkMetadata: [LinkMetadata] = []
+    @State private var guideContent: String = ""
+    @State private var showMediaPicker = false
+    #if os(iOS)
+    @State private var pendingMediaItems: [PhotosPickerItem] = []
+    #endif
 
     private var page: ExercisePage? { store.page(id: pageID) }
     private var children: [ExercisePage] { store.children(of: pageID) }
@@ -44,6 +52,16 @@ struct ExercisePageDetailView: View {
                 }
                 .foregroundColor(.white)
             }
+            #if os(iOS)
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showMediaPicker = true
+                } label: {
+                    Image(systemName: "photo.badge.plus")
+                }
+                .foregroundColor(.white)
+            }
+            #endif
         }
         .sheet(isPresented: $isEditing) {
             if let page = page {
@@ -63,6 +81,7 @@ struct ExercisePageDetailView: View {
             }
         }
         .task {
+            loadGuideContent()
             guard let page = page else { return }
             if !page.manifest.linkURLs.isEmpty {
                 linkMetadata = await LinkMetadataFetcher.fetchMetadata(
@@ -71,6 +90,21 @@ struct ExercisePageDetailView: View {
                 )
             }
         }
+        .onChange(of: isEditing) { newValue in
+            if !newValue { loadGuideContent() }
+        }
+        #if os(iOS)
+        .photosPicker(
+            isPresented: $showMediaPicker,
+            selection: $pendingMediaItems,
+            maxSelectionCount: 10,
+            matching: .any(of: [.images, .videos])
+        )
+        .onChange(of: pendingMediaItems) { items in
+            guard let page = page, !items.isEmpty else { return }
+            uploadPickedMedia(items: items, pageID: page.manifest.id)
+        }
+        #endif
     }
 
     @ViewBuilder
@@ -137,10 +171,19 @@ struct ExercisePageDetailView: View {
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.white.opacity(0.5))
                     }
-                    Text(crumb.title)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
-                        .lineLimit(1)
+                    if crumb.id != pageID {
+                        NavigationLink(destination: ExercisePageDetailView(pageID: crumb.id)) {
+                            Text(crumb.title)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                                .lineLimit(1)
+                        }
+                    } else {
+                        Text(crumb.title)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(1)
+                    }
                 }
             }
             .padding(.bottom, 2)
@@ -253,7 +296,7 @@ struct ExercisePageDetailView: View {
             }
 
             if page.hasLinks {
-                PageLinkList(
+                VideoEmbedListView(
                     urls: page.manifest.linkURLs,
                     metadata: linkMetadata
                 ) { urlString in
@@ -288,7 +331,7 @@ struct ExercisePageDetailView: View {
             Text("Guide")
                 .font(.headline)
                 .foregroundColor(Theme.textPrimary)
-            MarkdownTextView(text: page.manifest.markdownBody)
+            MarkdownTextView(text: guideContent.isEmpty ? page.manifest.markdownBody : guideContent)
         }
     }
 
@@ -394,6 +437,40 @@ struct ExercisePageDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    private func loadGuideContent() {
+        guard let page = page else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let content = try? DatabaseManager.shared.readGuideContent(pageID: page.manifest.id),
+               !content.isEmpty {
+                DispatchQueue.main.async {
+                    guideContent = content
+                }
+            }
+        }
+    }
+
+    #if os(iOS)
+    private func uploadPickedMedia(items: [PhotosPickerItem], pageID: String) {
+        for item in items {
+            item.loadTransferable(type: Data.self) { result in
+                guard case .success(let data) = result else { return }
+                let tempDir = FileManager.default.temporaryDirectory
+                let tempURL = tempDir.appendingPathComponent(UUID().uuidString + ".jpg")
+                do {
+                    try data.write(to: tempURL)
+                    _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: tempURL)
+                    DispatchQueue.main.async {
+                        store.reload()
+                        loadGuideContent()
+                    }
+                    try? FileManager.default.removeItem(at: tempURL)
+                } catch {}
+            }
+        }
+        pendingMediaItems = []
+    }
+    #endif
 }
 
 private struct ScrollOffsetKey: PreferenceKey {

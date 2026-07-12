@@ -297,9 +297,16 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: UI integration: DatabaseView V2 adaptation, ExercisePageDetailView, PageCreationSheet, PageMediaGallery, PageLinkPreview, page reorder/move (2026-07-11)
   - [x] Verified: macOS arm64 build succeeds, 63/63 tests pass, V2 page tree renders, page creation/edit/delete works, media viewer + link previews implemented (2026-07-11)
 - [ ] F05-B — Notion-Style Pages UI
-  - [ ] Detail: Exercise page opens as rich view (not just edit form)
-  - [ ] Detail: Inline video playback (YouTube, Instagram embeds)
-  - [ ] Detail: Link attachments with previews
+  - [x] Detail: Exercise page opens as rich view (not just edit form)
+  - [x] Detail: Inline video playback (YouTube, Instagram embeds) — VideoEmbedCard with rich media cards, YouTube thumbnail via oembed, platform detection, play overlays
+  - [x] Detail: Link attachments with previews — VideoEmbedListView replaces PageLinkList, AsyncImage thumbnails
+  - [x] Detail: Cover image upload from detail view — PhotosPicker, save to cover.{ext}, manifest update
+  - [x] Detail: Media upload to page — PhotosPicker, save to media/ subdir, preview grid with delete, max 20
+  - [x] Detail: Edit-to-Guide integration — loadGuideContent() reads full guide.md from disk, reloads on edit dismiss
+  - [x] Detail: Page reorder persistence — root pages persist via persistRootPageOrder(), DatabaseManager.reorderChildren()
+  - [x] Detail: Breadcrumb navigation — tappable NavigationLinks, navigate back to ancestor pages
+  - [x] Detail: New VideoEmbedCard.swift + DatabaseManager methods (reorderChildren, uploadCoverImage, uploadMediaToPage, readGuideContent, removeMediaFromPage)
+  - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, no regressions (2026-07-11)
 
 ### Workout Builder
 - [ ] F02-A-a — Database Browser + Workout Page

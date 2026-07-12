@@ -731,6 +731,7 @@ struct DatabaseView: View {
             }
             .onMove { indices, offset in
                 store.rootPages.move(fromOffsets: indices, toOffset: offset)
+                store.persistRootPageOrder()
             }
         }
         #if os(iOS)

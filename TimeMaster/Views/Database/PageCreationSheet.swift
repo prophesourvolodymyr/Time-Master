@@ -1,5 +1,8 @@
 import SwiftUI
 import TimeMasterCore
+#if os(iOS)
+import PhotosUI
+#endif
 
 struct PageCreationSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -22,6 +25,18 @@ struct PageCreationSheet: View {
     @State private var linkURLsText: String = ""
     @State private var showIconPicker = false
     @State private var showDeleteConfirm = false
+    @State private var showCoverPicker = false
+    @State private var showMediaPicker = false
+    @State private var coverImageFilename: String?
+    @State private var mediaFilenames: [String] = []
+    @State private var pendingCoverData: Data?
+    @State private var pendingMediaData: [(filename: String, data: Data)] = []
+    #if os(iOS)
+    @State private var pendingCoverItem: PhotosPickerItem?
+    @State private var pendingMediaItems: [PhotosPickerItem] = []
+    #endif
+    @State private var coverPreviewImage: Image?
+    @State private var mediaPreviewThumbnails: [(filename: String, image: Image?)] = []
 
     init(page: ExercisePage? = nil, parentID: String? = nil, onSave: @escaping (ExercisePageManifest, String?) -> Void) {
         self.existingPage = page
@@ -39,6 +54,8 @@ struct PageCreationSheet: View {
         _sets = State(initialValue: page?.manifest.sets ?? 1)
         _restBetweenSets = State(initialValue: page?.manifest.restBetweenSets ?? 0)
         _linkURLsText = State(initialValue: page?.manifest.linkURLs.joined(separator: "\n") ?? "")
+        _coverImageFilename = State(initialValue: page?.manifest.coverImageFilename)
+        _mediaFilenames = State(initialValue: page?.manifest.mediaFilenames ?? [])
     }
 
     var body: some View {
@@ -49,6 +66,8 @@ struct PageCreationSheet: View {
                     VStack(spacing: 20) {
                         titleCard
                         iconCard
+                        coverImageCard
+                        if existingPage != nil { mediaUploadCard }
                         workoutTypeCard
                         timingCard
                         markdownCard
@@ -73,6 +92,27 @@ struct PageCreationSheet: View {
             .sheet(isPresented: $showIconPicker) {
                 IconPickerSheet(selectedIcon: $iconName)
             }
+            #if os(iOS)
+            .photosPicker(
+                isPresented: $showCoverPicker,
+                selection: $pendingCoverItem,
+                matching: .images
+            )
+            .photosPicker(
+                isPresented: $showMediaPicker,
+                selection: $pendingMediaItems,
+                maxSelectionCount: 10,
+                matching: .any(of: [.images, .videos])
+            )
+            .onChange(of: pendingCoverItem) { item in
+                guard let item = item else { return }
+                handleCoverPick(item: item)
+            }
+            .onChange(of: pendingMediaItems) { items in
+                guard !items.isEmpty else { return }
+                handleMediaPicks(items: items)
+            }
+            #endif
             .confirmationDialog(
                 "Delete \"\(title)\"?",
                 isPresented: $showDeleteConfirm,
@@ -126,6 +166,136 @@ struct PageCreationSheet: View {
                 .padding(14)
                 .background(Theme.surface)
                 .cornerRadius(10)
+            }
+        }
+    }
+
+    private var coverImageCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Cover Image").font(.headline).foregroundColor(Theme.textPrimary)
+            if let fileName = coverImageFilename, let page = existingPage {
+                let coverURL = page.coverImageURL
+                if let url = coverURL {
+                    coverPreview(for: url)
+                        .overlay(alignment: .topTrailing) {
+                            Button {
+                                coverImageFilename = nil
+                                coverPreviewImage = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.white)
+                                    .padding(6)
+                            }
+                        }
+                }
+            } else if let preview = coverPreviewImage {
+                preview
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 160)
+                    .clipped()
+                    .cornerRadius(10)
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            coverImageFilename = nil
+                            coverPreviewImage = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                                .padding(6)
+                        }
+                    }
+            }
+            Button { showCoverPicker = true } label: {
+                HStack {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .foregroundColor(Theme.textSecondary)
+                    Text(coverImageFilename != nil || coverPreviewImage != nil ? "Change Cover Image" : "Upload Cover Image")
+                        .foregroundColor(Theme.textSecondary)
+                    Spacer()
+                }
+                .padding(14)
+                .background(Theme.surface)
+                .cornerRadius(10)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func coverPreview(for url: URL) -> some View {
+        #if os(iOS)
+        if let data = try? Data(contentsOf: url), let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(height: 160)
+                .clipped()
+                .cornerRadius(10)
+        }
+        #elseif os(macOS)
+        if let data = try? Data(contentsOf: url), let nsImage = NSImage(data: data) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(height: 160)
+                .clipped()
+                .cornerRadius(10)
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private var mediaUploadCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Media").font(.headline).foregroundColor(Theme.textPrimary)
+
+            if !mediaFilenames.isEmpty {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                    ForEach(mediaFilenames, id: \.self) { filename in
+                        ZStack(alignment: .topTrailing) {
+                            if let preview = mediaPreviewThumbnails.first(where: { $0.filename == filename })?.image {
+                                preview
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(height: 80)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            } else {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Theme.surface)
+                                    .frame(height: 80)
+                                    .overlay(Image(systemName: "photo")
+                                        .foregroundColor(Theme.textSecondary.opacity(0.4)))
+                            }
+                            Button {
+                                removeMedia(filename: filename)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .shadow(color: .black.opacity(0.5), radius: 2)
+                                    .padding(4)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if mediaFilenames.count < 20 {
+                Button { showMediaPicker = true } label: {
+                    HStack {
+                        Image(systemName: "plus.rectangle.on.rectangle")
+                            .foregroundColor(Theme.textSecondary)
+                        Text("Add Media (\(mediaFilenames.count)/20)")
+                            .foregroundColor(Theme.textSecondary)
+                        Spacer()
+                    }
+                    .padding(14)
+                    .background(Theme.surface)
+                    .cornerRadius(10)
+                }
             }
         }
     }
@@ -312,12 +482,16 @@ struct PageCreationSheet: View {
             manifest.restBetweenSets = workoutType != nil ? restBetweenSets : nil
             manifest.tags = parsedTags
             manifest.linkURLs = parsedURLs
+            manifest.coverImageFilename = coverImageFilename
+            manifest.mediaFilenames = mediaFilenames
             manifest.updatedAt = Date()
         } else {
             manifest = ExercisePageManifest(
                 title: trimmedTitle,
+                coverImageFilename: coverImageFilename,
                 iconName: iconName.isEmpty ? nil : iconName,
                 markdownBody: markdownBody,
+                mediaFilenames: mediaFilenames,
                 linkURLs: parsedURLs,
                 workoutType: coreWT,
                 duration: workoutType != nil ? duration : nil,
@@ -330,7 +504,116 @@ struct PageCreationSheet: View {
         }
 
         onSave(manifest, parentID)
+
+        if existingPage == nil {
+            if let coverData = pendingCoverData, let newFilename = manifest.coverImageFilename {
+                let pageID = manifest.id
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let tempDir = FileManager.default.temporaryDirectory
+                    let tempURL = tempDir.appendingPathComponent(newFilename)
+                    do {
+                        try coverData.write(to: tempURL)
+                        try DatabaseManager.shared.uploadCoverImage(pageID: pageID, sourceURL: tempURL)
+                        try? FileManager.default.removeItem(at: tempURL)
+                    } catch {}
+                }
+            }
+            for (filename, data) in pendingMediaData {
+                let pageID = manifest.id
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let tempDir = FileManager.default.temporaryDirectory
+                    let tempURL = tempDir.appendingPathComponent(filename)
+                    do {
+                        try data.write(to: tempURL)
+                        try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: tempURL)
+                        try? FileManager.default.removeItem(at: tempURL)
+                    } catch {}
+                }
+            }
+        }
+
         dismiss()
+    }
+
+    #if os(iOS)
+    private func handleCoverPick(item: PhotosPickerItem) {
+        item.loadTransferable(type: Data.self) { result in
+            guard case .success(let data) = result else { return }
+            if let uiImage = UIImage(data: data) {
+                DispatchQueue.main.async {
+                    coverPreviewImage = Image(uiImage: uiImage)
+                }
+            }
+            let pageID = existingPage?.manifest.id
+            if let id = pageID {
+                let tempDir = FileManager.default.temporaryDirectory
+                let tempURL = tempDir.appendingPathComponent("cover_tmp.jpg")
+                do {
+                    try data.write(to: tempURL)
+                    let filename = try DatabaseManager.shared.uploadCoverImage(pageID: id, sourceURL: tempURL)
+                    DispatchQueue.main.async {
+                        coverImageFilename = filename
+                        if let page = existingPage, let url = page.coverImageURL {
+                            if let data = try? Data(contentsOf: url), let img = UIImage(data: data) {
+                                coverPreviewImage = Image(uiImage: img)
+                            }
+                        }
+                    }
+                    try? FileManager.default.removeItem(at: tempURL)
+                } catch {}
+            } else {
+                DispatchQueue.main.async {
+                    coverImageFilename = "cover.jpg"
+                    pendingCoverData = data
+                }
+            }
+        }
+    }
+
+    private func handleMediaPicks(items: [PhotosPickerItem]) {
+        for item in items {
+            item.loadTransferable(type: Data.self) { result in
+                guard case .success(let data) = result else { return }
+                let pageID = existingPage?.manifest.id
+                let filename = UUID().uuidString + ".jpg"
+                if let id = pageID {
+                    let tempDir = FileManager.default.temporaryDirectory
+                    let tempURL = tempDir.appendingPathComponent(filename)
+                    do {
+                        try data.write(to: tempURL)
+                        let uploaded = try DatabaseManager.shared.uploadMediaToPage(pageID: id, sourceURL: tempURL)
+                        DispatchQueue.main.async {
+                            if !mediaFilenames.contains(uploaded) {
+                                mediaFilenames.append(uploaded)
+                            }
+                        }
+                        try? FileManager.default.removeItem(at: tempURL)
+                    } catch {}
+                } else {
+                    DispatchQueue.main.async {
+                        if !mediaFilenames.contains(filename) {
+                            mediaFilenames.append(filename)
+                        }
+                        pendingMediaData.append((filename: filename, data: data))
+                    }
+                }
+            }
+        }
+        pendingMediaItems = []
+    }
+    #endif
+
+    private func removeMedia(filename: String) {
+        guard let page = existingPage else {
+            mediaFilenames.removeAll { $0 == filename }
+            return
+        }
+        do {
+            try DatabaseManager.shared.removeMediaFromPage(pageID: page.manifest.id, filename: filename)
+            mediaFilenames.removeAll { $0 == filename }
+        } catch {
+            mediaFilenames.removeAll { $0 == filename }
+        }
     }
 }
 

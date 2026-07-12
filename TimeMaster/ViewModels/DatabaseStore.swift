@@ -86,6 +86,28 @@ class DatabaseStore: ObservableObject {
         loadPagesFromFileSystem()
     }
 
+    func createPageWithMedia(manifest: ExercisePageManifest, parentID: String?, coverData: Data?, mediaData: [(filename: String, data: Data)]) throws {
+        try DatabaseManager.shared.createPage(manifest: manifest, parentID: parentID)
+
+        if let coverData = coverData, let coverFilename = manifest.coverImageFilename {
+            let tempDir = FileManager.default.temporaryDirectory
+            let tempURL = tempDir.appendingPathComponent(coverFilename)
+            try coverData.write(to: tempURL)
+            try DatabaseManager.shared.uploadCoverImage(pageID: manifest.id, sourceURL: tempURL)
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        for (filename, data) in mediaData {
+            let tempDir = FileManager.default.temporaryDirectory
+            let tempURL = tempDir.appendingPathComponent(filename)
+            try data.write(to: tempURL)
+            try DatabaseManager.shared.uploadMediaToPage(pageID: manifest.id, sourceURL: tempURL)
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        loadPagesFromFileSystem()
+    }
+
     func updatePage(id: String, manifest: ExercisePageManifest, newParentID: String?) throws {
         try DatabaseManager.shared.updatePage(id: id, manifest: manifest, newParentID: newParentID)
         loadPagesFromFileSystem()
@@ -93,6 +115,22 @@ class DatabaseStore: ObservableObject {
 
     func deletePage(id: String) throws {
         try DatabaseManager.shared.deletePage(id: id)
+        loadPagesFromFileSystem()
+    }
+
+    func reorderChildren(parentID: String, childIDs: [String]) throws {
+        try DatabaseManager.shared.reorderChildren(parentID: parentID, childIDs: childIDs)
+        loadPagesFromFileSystem()
+    }
+
+    func persistRootPageOrder() {
+        for (index, page) in rootPages.enumerated() {
+            var updatedManifest = page.manifest
+            updatedManifest.order = index
+            do {
+                try DatabaseManager.shared.updatePage(id: updatedManifest.id, manifest: updatedManifest, newParentID: nil)
+            } catch {}
+        }
         loadPagesFromFileSystem()
     }
 
