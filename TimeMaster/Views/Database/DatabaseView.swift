@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import AVFoundation
+import TimeMasterCore
 #if os(macOS)
 import AVKit
 #endif
@@ -391,19 +392,79 @@ struct DatabaseView: View {
     @State private var exerciseToMove: Exercise?
     @State private var noteToMove: DatabaseNote?
     @State private var folderToExport: ExerciseFolder?
+    @State private var showingCreatePage = false
+    @State private var selectedPage: ExercisePage?
+    @State private var pageToMove: ExercisePage?
 
     var body: some View {
-        NavigationStack {
+        let isV2 = MigrationManager.isV2PageMigrationComplete
+
+        return NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
-                rootList
+                if isV2 && !store.rootPages.isEmpty {
+                    pageTreeView
+                } else if !isV2 {
+                    rootList
+                } else {
+                    v2EmptyState
+                }
             }
             .navigationTitle("Exercise Database")
-            .toolbar { rootToolbar }
+            .toolbar {
+                if isV2 {
+                    #if os(iOS)
+                    EditButton().foregroundColor(.white)
+                    #endif
+                } else {
+                    #if os(iOS)
+                    EditButton().foregroundColor(.white)
+                    #endif
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showingImport = true } label: {
+                        Image(systemName: "video.badge.plus")
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showingDatabaseImport = true } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        if isV2 {
+                            Button { showingCreatePage = true } label: {
+                                Label("New Page", systemImage: "doc.badge.plus")
+                            }
+                        } else {
+                            Button { showingNewFolderSheet = true } label: {
+                                Label("New Folder", systemImage: "folder.badge.plus")
+                            }
+                            Button { showingAddRootNote = true } label: {
+                                Label("New Note", systemImage: "note.text.badge.plus")
+                            }
+                            Button { showingAddRootExercise = true } label: {
+                                Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle.fill").font(.title3)
+                    }
+                }
+            }
             .sheet(isPresented: $showingNewFolderSheet) {
                 NewFolderSheet { name, colorHex, workoutType in
                     store.addRootFolder(name: name, colorHex: colorHex, workoutType: workoutType)
                 }
+            }
+            .sheet(isPresented: $showingCreatePage) {
+                PageCreationSheet(parentID: nil) { manifest, _ in
+                    try? store.createPage(manifest: manifest, parentID: nil)
+                }
+                .environmentObject(WorkoutStore())
             }
             .sheet(isPresented: $showingImport) {
                 ImportSheetView()
@@ -631,6 +692,126 @@ struct DatabaseView: View {
     }
 
     // createRootFolder handled inline by NewFolderSheet callback
+
+    // MARK: - V2 Page Tree
+
+    private var toolbarContent: some ToolbarContent {
+        Group {
+            ToolbarItem(placement: .primaryAction) {
+                #if os(iOS)
+                EditButton().foregroundColor(.white)
+                #endif
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button { showingImport = true } label: {
+                    Image(systemName: "video.badge.plus")
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button { showingDatabaseImport = true } label: {
+                    Image(systemName: "square.and.arrow.down")
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button { showingCreatePage = true } label: {
+                        Label("New Page", systemImage: "doc.badge.plus")
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill").font(.title3)
+                }
+            }
+        }
+    }
+
+    private var pageTreeView: some View {
+        List {
+            ForEach(store.rootPages) { page in
+                pageRow(page)
+            }
+            .onMove { indices, offset in
+                store.rootPages.move(fromOffsets: indices, toOffset: offset)
+            }
+        }
+        #if os(iOS)
+        .listStyle(.insetGrouped)
+        #endif
+        .scrollContentBackground(.hidden)
+    }
+
+    @ViewBuilder
+    private func pageRow(_ page: ExercisePage) -> some View {
+        if page.isContainer {
+            NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                PageCardView(page: page)
+            }
+            .listRowBackground(Theme.surface)
+            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                Button { pageToMove = page } label: {
+                    Label("Move", systemImage: "folder")
+                }
+                .tint(Color.white.opacity(0.8))
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    try? store.deletePage(id: page.manifest.id)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+            }
+        } else {
+            NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                PageCardView(page: page)
+            }
+            .listRowBackground(Theme.surface)
+            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                Button { pageToMove = page } label: {
+                    Label("Move", systemImage: "folder")
+                }
+                .tint(Color.white.opacity(0.8))
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    try? store.deletePage(id: page.manifest.id)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+            }
+        }
+    }
+
+    private var v2EmptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.badge.plus")
+                .font(.system(size: 44))
+                .foregroundColor(Theme.textSecondary)
+            Text("No pages yet")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+            Text("Tap + to create your first page.")
+                .font(.subheadline)
+                .foregroundColor(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+            Button {
+                showingCreatePage = true
+            } label: {
+                Text("Create First Page")
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.white)
+                    .cornerRadius(10)
+            }
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 48)
+    }
+
+    // MARK: - V2 Sheets (continued in body extensions)
 }
 
 // MARK: - FolderDetailView

@@ -294,6 +294,8 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Schema updated with page object + 8 page tools
   - [x] Detail: Verified: macOS arm64 build succeeds, 63/63 tests pass, no regressions (2026-07-11)
   - [ ] Detail: Next: DatabaseStore UI integration, ExercisePageDetailView, page creation UI
+  - [x] Detail: UI integration: DatabaseView V2 adaptation, ExercisePageDetailView, PageCreationSheet, PageMediaGallery, PageLinkPreview, page reorder/move (2026-07-11)
+  - [x] Verified: macOS arm64 build succeeds, 63/63 tests pass, V2 page tree renders, page creation/edit/delete works, media viewer + link previews implemented (2026-07-11)
 - [ ] F05-B — Notion-Style Pages UI
   - [ ] Detail: Exercise page opens as rich view (not just edit form)
   - [ ] Detail: Inline video playback (YouTube, Instagram embeds)
