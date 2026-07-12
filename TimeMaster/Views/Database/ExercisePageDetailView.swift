@@ -6,6 +6,7 @@ import PhotosUI
 
 struct ExercisePageDetailView: View {
     @EnvironmentObject var store: DatabaseStore
+    @EnvironmentObject var workoutStore: WorkoutStore
     let pageID: UUID
 
     @State private var scrollOffset: CGFloat = 0
@@ -15,6 +16,9 @@ struct ExercisePageDetailView: View {
     @State private var linkMetadata: [LinkMetadata] = []
     @State private var guideContent: String = ""
     @State private var showMediaPicker = false
+    @State private var showWorkoutPicker = false
+    @State private var childToEdit: ExercisePage?
+    @State private var childToAddWorkout: ExercisePage?
     #if os(iOS)
     @State private var pendingMediaItems: [PhotosPickerItem] = []
     #endif
@@ -47,6 +51,15 @@ struct ExercisePageDetailView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showWorkoutPicker = true
+                } label: {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                }
+                .foregroundColor(.white)
+                .help("Add to Workout")
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button(isEditing ? "Done" : "Edit") {
                     isEditing.toggle()
                 }
@@ -68,7 +81,13 @@ struct ExercisePageDetailView: View {
                 PageCreationSheet(page: page) { manifest, _ in
                     try? store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: manifest.parentID)
                 }
-                .environmentObject(WorkoutStore())
+                .environmentObject(workoutStore)
+            }
+        }
+        .sheet(isPresented: $showWorkoutPicker) {
+            if let page = page {
+                WorkoutPickerSheet(page: page)
+                    .environmentObject(workoutStore)
             }
         }
         .sheet(isPresented: $mediaGalleryPresented) {
@@ -397,12 +416,29 @@ struct ExercisePageDetailView: View {
 
             ForEach(children) { child in
                 NavigationLink(destination: ExercisePageDetailView(pageID: child.id)) {
-                    PageCardView(page: child)
+                    PageCardView(
+                        page: child,
+                        onAddToWorkout: { childToAddWorkout = child },
+                        onEdit: { childToEdit = child },
+                        onAddChild: { },
+                        onDuplicate: { try? store.duplicatePage(child) },
+                        onDelete: { try? store.deletePage(id: child.manifest.id) }
+                    )
                         .padding(12)
                         .background(Theme.surface)
                         .cornerRadius(12)
                 }
             }
+        }
+        .sheet(item: $childToEdit) { child in
+            PageCreationSheet(page: child) { manifest, _ in
+                try? store.updatePage(id: child.manifest.id, manifest: manifest, newParentID: manifest.parentID)
+            }
+            .environmentObject(workoutStore)
+        }
+        .sheet(item: $childToAddWorkout) { child in
+            WorkoutPickerSheet(page: child)
+                .environmentObject(workoutStore)
         }
     }
 

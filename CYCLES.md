@@ -309,8 +309,15 @@ F06 (AI Coach) ─────────┘
   - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, no regressions (2026-07-11)
 
 ### Workout Builder
-- [ ] F02-A-a — Database Browser + Workout Page
-  - [ ] Detail: Browse exercises as cards/pages, drag-to-workout
+- [x] F02-A-a — Database Browser + Workout Page
+  - [x] Detail: Browse exercises as cards/pages, drag-to-workout
+  - [x] Detail: Grid/list toggle, sort by name/date/type, filter chips (All/Containers/Leaves/per-type)
+  - [x] Detail: Search bar with real-time filtering by title/content/tags
+  - [x] Detail: Context menu on cards (Add to Workout, Edit, Add Child, Duplicate, Delete)
+  - [x] Detail: WorkoutPickerSheet — lists workouts, pre-fills section config from page workoutConfig
+  - [x] Detail: "Add to Workout" button in page detail view
+  - [x] Detail: DatabaseStore.duplicatePage() — copies page with cover + media
+  - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, no regressions (2026-07-11)
 - [ ] F02-A-b — Drag-to-Build + Sets
   - [ ] Detail: Drag exercise into workout, configure sets/reps inline
 - [ ] F02-A-c — Bundle Section Mode

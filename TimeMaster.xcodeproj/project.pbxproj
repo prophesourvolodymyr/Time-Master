@@ -129,6 +129,7 @@
 		9628FB638C7747388AB7AA38 /* PageMediaGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = F07847D0987B403187B75D3D /* PageMediaGallery.swift */; };
 		41716CFF6E124EC8AE89092E /* PageLinkPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6421924249264A81895DEAEA /* PageLinkPreview.swift */; };
 		9B8A3D52F1C640E595B27A1F /* VideoEmbedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3A4B5F6C7D8E9F0A1B2 /* VideoEmbedCard.swift */; };
+		06A5503934B94C2E9EDB9999 /* WorkoutPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DFE8E2119D54AD9B73B0984 /* WorkoutPickerSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -204,6 +205,7 @@
 		F07847D0987B403187B75D3D /* PageMediaGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageMediaGallery.swift; sourceTree = "<group>"; };
 		6421924249264A81895DEAEA /* PageLinkPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLinkPreview.swift; sourceTree = "<group>"; };
 		C1D2E3A4B5F6C7D8E9F0A1B2 /* VideoEmbedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEmbedCard.swift; sourceTree = "<group>"; };
+		9DFE8E2119D54AD9B73B0984 /* WorkoutPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPickerSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -453,6 +455,7 @@
 				F07847D0987B403187B75D3D /* PageMediaGallery.swift */,
 				6421924249264A81895DEAEA /* PageLinkPreview.swift */,
 				C1D2E3A4B5F6C7D8E9F0A1B2 /* VideoEmbedCard.swift */,
+				9DFE8E2119D54AD9B73B0984 /* WorkoutPickerSheet.swift */,
 			);
 			path = Database;
 			sourceTree = "<group>";
@@ -623,6 +626,7 @@
 				9628FB638C7747388AB7AA38 /* PageMediaGallery.swift in Sources */,
 				41716CFF6E124EC8AE89092E /* PageLinkPreview.swift in Sources */,
 				9B8A3D52F1C640E595B27A1F /* VideoEmbedCard.swift in Sources */,
+				06A5503934B94C2E9EDB9999 /* WorkoutPickerSheet.swift in Sources */,
 				E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */,
 				5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */,
 				C0F8874E24C547F42DACA009 /* ImportSheetView.swift in Sources */,
@@ -742,6 +746,7 @@
 				9628FB638C7747388AB7AA38 /* PageMediaGallery.swift in Sources */,
 				41716CFF6E124EC8AE89092E /* PageLinkPreview.swift in Sources */,
 				9B8A3D52F1C640E595B27A1F /* VideoEmbedCard.swift in Sources */,
+				06A5503934B94C2E9EDB9999 /* WorkoutPickerSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

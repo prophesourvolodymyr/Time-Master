@@ -382,6 +382,7 @@ struct NoteEditorView: View {
 
 struct DatabaseView: View {
     @EnvironmentObject var store: DatabaseStore
+    @EnvironmentObject var workoutStore: WorkoutStore
     @State private var showingNewFolderSheet     = false
     @State private var showingImport             = false
     @State private var showingDatabaseImport     = false
@@ -395,6 +396,14 @@ struct DatabaseView: View {
     @State private var showingCreatePage = false
     @State private var selectedPage: ExercisePage?
     @State private var pageToMove: ExercisePage?
+    @State private var isGridMode = false
+    @State private var sortOption: PageSortOption = .name
+    @State private var filterOption: PageFilterOption = .all
+    @State private var searchText = ""
+    @State private var pageToEdit: ExercisePage?
+    @State private var pageToAddWorkout: ExercisePage?
+    @State private var showingAddChildPage = false
+    @State private var childParentPage: ExercisePage?
 
     var body: some View {
         let isV2 = MigrationManager.isV2PageMigrationComplete
@@ -410,17 +419,37 @@ struct DatabaseView: View {
                     v2EmptyState
                 }
             }
-            .navigationTitle("Exercise Database")
+            .navigationTitle(searchText.isEmpty ? "Exercise Database" : "Search")
             .toolbar {
                 if isV2 {
-                    #if os(iOS)
-                    EditButton().foregroundColor(.white)
-                    #endif
-                } else {
-                    #if os(iOS)
-                    EditButton().foregroundColor(.white)
-                    #endif
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) { isGridMode.toggle() }
+                        } label: {
+                            Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
+                        }
+                        .foregroundColor(.white)
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            ForEach(PageSortOption.allCases, id: \.self) { option in
+                                Button {
+                                    sortOption = option
+                                } label: {
+                                    Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .foregroundColor(.white)
+                    }
                 }
+                #if os(iOS)
+                ToolbarItem(placement: .primaryAction) {
+                    EditButton().foregroundColor(.white)
+                }
+                #endif
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -464,7 +493,28 @@ struct DatabaseView: View {
                 PageCreationSheet(parentID: nil) { manifest, _ in
                     try? store.createPage(manifest: manifest, parentID: nil)
                 }
-                .environmentObject(WorkoutStore())
+                .environmentObject(workoutStore)
+            }
+            .sheet(item: $pageToEdit) { page in
+                PageCreationSheet(page: page) { manifest, _ in
+                    try? store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: manifest.parentID)
+                }
+                .environmentObject(workoutStore)
+            }
+            .sheet(item: $pageToAddWorkout) { page in
+                WorkoutPickerSheet(page: page)
+                    .environmentObject(workoutStore)
+            }
+            .sheet(isPresented: $showingAddChildPage) {
+                if let parent = childParentPage {
+                    PageCreationSheet(parentID: parent.manifest.id) { manifest, _ in
+                        try? store.createPage(manifest: manifest, parentID: parent.manifest.id)
+                    }
+                    .environmentObject(workoutStore)
+                }
+            }
+            .onChange(of: showingAddChildPage) { newValue in
+                if !newValue { childParentPage = nil }
             }
             .sheet(isPresented: $showingImport) {
                 ImportSheetView()
@@ -725,8 +775,98 @@ struct DatabaseView: View {
     }
 
     private var pageTreeView: some View {
+        VStack(spacing: 0) {
+            if !isGridMode {
+                searchBarView
+                filterChipsRow
+            }
+
+            if filteredRootPages.isEmpty {
+                noResultsView
+            } else if isGridMode {
+                gridContentView
+            } else {
+                listContentView
+            }
+        }
+    }
+
+    private var searchBarView: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(Theme.textSecondary.opacity(0.6))
+            TextField("Search pages...", text: $searchText)
+                .foregroundColor(Theme.textPrimary)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(Theme.textSecondary.opacity(0.6))
+                }
+            }
+        }
+        .padding(10)
+        .background(Theme.surface)
+        .cornerRadius(10)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+
+    private var filterChipsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                filterChip(.all, label: "All")
+                filterChip(.container, label: "Containers")
+                filterChip(.leaf, label: "Leaves")
+                ForEach(uniqueWorkoutTypes) { type in
+                    filterChip(.type(type.id), label: type.name)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func filterChip(_ option: PageFilterOption, label: String) -> some View {
+        let isActive = filterOption == option
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { filterOption = option }
+        } label: {
+            Text(label)
+                .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                .foregroundColor(isActive ? .black : Theme.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(isActive ? Color.white : Theme.surface)
+                .cornerRadius(14)
+        }
+    }
+
+    private var noResultsView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: searchText.isEmpty ? "doc.text.magnifyingglass" : "magnifyingglass")
+                .font(.system(size: 36))
+                .foregroundColor(Theme.textSecondary.opacity(0.4))
+            Text(searchText.isEmpty ? "No pages match filter" : "No results for \"\(searchText)\"")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+            if !searchText.isEmpty {
+                Button("Clear Search") {
+                    searchText = ""
+                }
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.8))
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+
+    private var listContentView: some View {
         List {
-            ForEach(store.rootPages) { page in
+            ForEach(filteredRootPages) { page in
                 pageRow(page)
             }
             .onMove { indices, offset in
@@ -740,46 +880,98 @@ struct DatabaseView: View {
         .scrollContentBackground(.hidden)
     }
 
+    private let gridColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+
+    private var gridContentView: some View {
+        ScrollView {
+            searchBarView
+                .padding(.horizontal, 0)
+            LazyVGrid(columns: gridColumns, spacing: 10) {
+                ForEach(filteredRootPages) { page in
+                    NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                        PageCardView(
+                            page: page,
+                            isGridMode: true,
+                            onAddToWorkout: { pageToAddWorkout = page },
+                            onEdit: { pageToEdit = page },
+                            onAddChild: { childParentPage = page; showingAddChildPage = true },
+                            onDuplicate: { try? store.duplicatePage(page) },
+                            onDelete: { try? store.deletePage(id: page.manifest.id) }
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+    }
+
+    private var uniqueWorkoutTypes: [FilterTypeChip] {
+        var seen = Set<String>()
+        var result: [FilterTypeChip] = []
+        for page in store.rootPages {
+            if let wt = page.manifest.workoutType, !seen.contains(wt.id) {
+                seen.insert(wt.id)
+                result.append(FilterTypeChip(id: wt.id, name: wt.name, colorHex: wt.colorHex))
+            }
+        }
+        return result.sorted { $0.name < $1.name }
+    }
+
+    private var filteredRootPages: [ExercisePage] {
+        var pages = store.rootPages
+
+        switch filterOption {
+        case .all: break
+        case .container: pages = pages.filter { $0.isContainer }
+        case .leaf: pages = pages.filter { $0.isLeaf }
+        case .type(let typeId): pages = pages.filter { $0.manifest.workoutType?.id == typeId }
+        }
+
+        if !searchText.isEmpty {
+            pages = pages.filter { page in
+                page.title.localizedCaseInsensitiveContains(searchText) ||
+                page.manifest.markdownBody.localizedCaseInsensitiveContains(searchText) ||
+                page.manifest.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            }
+        }
+
+        switch sortOption {
+        case .name: pages.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
+        case .dateCreated: pages.sort { $0.manifest.createdAt > $1.manifest.createdAt }
+        case .workoutType: pages.sort { ($0.manifest.workoutType?.name ?? "zzz") < ($1.manifest.workoutType?.name ?? "zzz") }
+        }
+
+        return pages
+    }
+
     @ViewBuilder
     private func pageRow(_ page: ExercisePage) -> some View {
-        if page.isContainer {
-            NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
-                PageCardView(page: page)
+        NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+            PageCardView(
+                page: page,
+                onAddToWorkout: { pageToAddWorkout = page },
+                onEdit: { pageToEdit = page },
+                onAddChild: { childParentPage = page; showingAddChildPage = true },
+                onDuplicate: { try? store.duplicatePage(page) },
+                onDelete: { try? store.deletePage(id: page.manifest.id) }
+            )
+        }
+        .listRowBackground(Theme.surface)
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button { pageToMove = page } label: {
+                Label("Move", systemImage: "folder")
             }
-            .listRowBackground(Theme.surface)
-            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                Button { pageToMove = page } label: {
-                    Label("Move", systemImage: "folder")
-                }
-                .tint(Color.white.opacity(0.8))
+            .tint(Color.white.opacity(0.8))
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                try? store.deletePage(id: page.manifest.id)
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
-            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                Button(role: .destructive) {
-                    try? store.deletePage(id: page.manifest.id)
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-                .tint(.red)
-            }
-        } else {
-            NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
-                PageCardView(page: page)
-            }
-            .listRowBackground(Theme.surface)
-            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                Button { pageToMove = page } label: {
-                    Label("Move", systemImage: "folder")
-                }
-                .tint(Color.white.opacity(0.8))
-            }
-            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                Button(role: .destructive) {
-                    try? store.deletePage(id: page.manifest.id)
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-                .tint(.red)
-            }
+            .tint(.red)
         }
     }
 
@@ -2407,8 +2599,36 @@ private struct ExportSectionHeader: View {
     }
 }
 
+enum PageSortOption: String, CaseIterable {
+    case name
+    case dateCreated
+    case workoutType
+
+    var label: String {
+        switch self {
+        case .name: return "Name"
+        case .dateCreated: return "Date Created"
+        case .workoutType: return "Workout Type"
+        }
+    }
+}
+
+enum PageFilterOption: Hashable {
+    case all
+    case container
+    case leaf
+    case type(String)
+}
+
+struct FilterTypeChip: Identifiable {
+    let id: String
+    let name: String
+    let colorHex: String
+}
+
 #Preview {
     DatabaseView()
         .environmentObject(DatabaseStore.shared)
+        .environmentObject(WorkoutStore())
         .preferredColorScheme(.dark)
 }

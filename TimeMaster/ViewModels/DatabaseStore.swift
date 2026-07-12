@@ -139,6 +139,55 @@ class DatabaseStore: ObservableObject {
         loadPagesFromFileSystem()
     }
 
+    func duplicatePage(_ page: ExercisePage) throws {
+        var newManifest = page.manifest
+        newManifest.id = UUID().uuidString
+        newManifest.title = "\(page.title) Copy"
+        newManifest.createdAt = Date()
+        newManifest.updatedAt = Date()
+        newManifest.childIDs = []
+        newManifest.parentID = page.manifest.parentID
+        newManifest.order = page.manifest.order + 1
+        try DatabaseManager.shared.createPage(manifest: newManifest, parentID: page.manifest.parentID)
+
+        if let coverFilename = page.manifest.coverImageFilename {
+            let sourceDir = DatabaseManager.shared.exercisesDatabaseURL
+            if let existingFolder = resolvePageFolderURL(id: page.manifest.id) {
+                let sourceURL = existingFolder.appendingPathComponent(coverFilename)
+                if FileManager.default.fileExists(atPath: sourceURL.path) {
+                    try? DatabaseManager.shared.uploadCoverImage(pageID: newManifest.id, sourceURL: sourceURL)
+                }
+            }
+        }
+
+        for filename in page.manifest.mediaFilenames {
+            if let existingFolder = resolvePageFolderURL(id: page.manifest.id) {
+                let sourceURL = existingFolder.appendingPathComponent("media", isDirectory: true).appendingPathComponent(filename)
+                if FileManager.default.fileExists(atPath: sourceURL.path) {
+                    try? DatabaseManager.shared.uploadMediaToPage(pageID: newManifest.id, sourceURL: sourceURL)
+                }
+            }
+        }
+
+        loadPagesFromFileSystem()
+    }
+
+    private func resolvePageFolderURL(id: String) -> URL? {
+        let base = DatabaseManager.shared.exercisesDatabaseURL
+        func find(in dir: URL) -> URL? {
+            guard let entries = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isDirectoryKey]) else { return nil }
+            for entry in entries {
+                var isDir: ObjCBool = false
+                FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+                guard isDir.boolValue else { continue }
+                if entry.lastPathComponent == id { return entry }
+                if let found = find(in: entry) { return found }
+            }
+            return nil
+        }
+        return find(in: base)
+    }
+
     // MARK: - V1 Legacy (backward compatible)
 
     private func loadFromFileSystem() {

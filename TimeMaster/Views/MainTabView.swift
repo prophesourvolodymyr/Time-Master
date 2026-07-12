@@ -39,6 +39,7 @@ struct MainTabView: View {
 
             DatabaseView()
                 .environmentObject(databaseStore)
+                .environmentObject(workoutStore)
                 .tabItem { Label("Database", systemImage: "cylinder.split.1x2") }
                 .tag(1)
 
@@ -72,6 +73,7 @@ struct MainTabView: View {
         case 1:
             DatabaseView()
                 .environmentObject(databaseStore)
+                .environmentObject(workoutStore)
         case 2:
             AnalyticsView()
                 .environmentObject(workoutStore)
