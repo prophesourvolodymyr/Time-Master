@@ -282,16 +282,18 @@ F06 (AI Coach) ─────────┘
 ---
 
 ## Cycle 7 — V2: Notion-Style Rework
-**PLANNED from IDEA.md — no code written**
+**Phase 2 code completed 2026-07-11 — models, CRUD, migration, schema done**
 
 ### Foundation
 - [ ] F01-B — Unified Page Model
   - [x] Detail: DOCKS.md written (comprehensive spec: model, states, animations, migration, verification)
-  - [ ] Detail: ExercisePageManifest + ExercisePage models implemented
-  - [ ] Detail: DatabaseManager page CRUD + walkPageTree
-  - [ ] Detail: DatabaseStore rewritten as flat page store
-  - [ ] Detail: Migration from ExerciseManifest/ExerciseFolder → ExercisePageManifest
-  - [ ] Detail: Verified: build, tests, no data loss
+  - [x] Detail: ExercisePageManifest + ExercisePage + PageTreeBuilder models implemented
+  - [x] Detail: DatabaseManager page CRUD + walkPageTree + searchPages + movePage
+  - [x] Detail: DatabaseStore rewritten as flat page store with V1 backward compat
+  - [x] Detail: Migration from ExerciseManifest/ExerciseFolder → ExercisePageManifest
+  - [x] Detail: Schema updated with page object + 8 page tools
+  - [x] Detail: Verified: macOS arm64 build succeeds, 63/63 tests pass, no regressions (2026-07-11)
+  - [ ] Detail: Next: DatabaseStore UI integration, ExercisePageDetailView, page creation UI
 - [ ] F05-B — Notion-Style Pages UI
   - [ ] Detail: Exercise page opens as rich view (not just edit form)
   - [ ] Detail: Inline video playback (YouTube, Instagram embeds)

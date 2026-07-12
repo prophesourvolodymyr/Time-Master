@@ -207,8 +207,9 @@ Query the TimeMaster exercise database.
 """
     }
 
-    // MARK: - Exercise CRUD
+    // MARK: - Exercise CRUD (deprecated — use Page CRUD)
 
+    @available(*, deprecated, message: "Use createPage(manifest:parentID:)")
     public func createExercise(id: String, manifest: ExerciseManifest, parentPath: String? = nil) throws {
         let base = fs.exercisesDatabaseDirectory
         let folder: URL
@@ -225,6 +226,7 @@ Query the TimeMaster exercise database.
         try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
     }
 
+    @available(*, deprecated, message: "Use updatePage(id:manifest:newParentID:)")
     public func updateExercise(id: String, manifest: ExerciseManifest, parentPath: String? = nil) throws {
         let base = fs.exercisesDatabaseDirectory
         let folder: URL
@@ -245,6 +247,7 @@ Query the TimeMaster exercise database.
         try fs.writeAtomically(to: manifestURL, value: updated, encoder: encoder)
     }
 
+    @available(*, deprecated, message: "Use deletePage(id:)")
     public func deleteExercise(id: String, parentPath: String? = nil) throws {
         let base = fs.exercisesDatabaseDirectory
         let folder: URL
@@ -259,6 +262,7 @@ Query the TimeMaster exercise database.
         try fs.moveToTrash(source: folder)
     }
 
+    @available(*, deprecated, message: "Use getPage(id:)")
     public func getExercise(id: String, parentPath: String? = nil) throws -> ExerciseManifest {
         let base = fs.exercisesDatabaseDirectory
         let folder: URL
@@ -271,6 +275,7 @@ Query the TimeMaster exercise database.
         return try fs.readManifest(from: manifestURL, decoder: decoder)
     }
 
+    @available(*, deprecated, message: "Use searchPages(query:type:)")
     public func searchExercises(query: String, type: WorkoutType? = nil) throws -> [(manifest: ExerciseManifest, path: String)] {
         var results: [(ExerciseManifest, String)] = []
         try walkExercises(in: fs.exercisesDatabaseDirectory, relativePath: "") { manifest, relPath in
@@ -283,6 +288,7 @@ Query the TimeMaster exercise database.
         return results
     }
 
+    @available(*, deprecated, message: "Use walkPageTree(in:)")
     public func searchAllExercises() throws -> [ExerciseManifest] {
         var results: [ExerciseManifest] = []
         try walkExercises(in: fs.exercisesDatabaseDirectory, relativePath: "") { manifest, _ in
@@ -291,6 +297,7 @@ Query the TimeMaster exercise database.
         return results
     }
 
+    @available(*, deprecated, message: "Use walkPageTree(in:)")
     private func walkExercises(in directory: URL, relativePath: String, visitor: (ExerciseManifest, String) throws -> Void) throws {
         let entries = try fs.listDirectory(directory, skipNonSchema: false)
         for entry in entries {
@@ -307,6 +314,217 @@ Query the TimeMaster exercise database.
                 try walkExercises(in: entry, relativePath: relativePath.isEmpty ? entry.lastPathComponent : "\(relativePath)/\(entry.lastPathComponent)", visitor: visitor)
             }
         }
+    }
+
+    // MARK: - Page CRUD
+
+    public func createPage(manifest: ExercisePageManifest, parentID: String? = nil) throws {
+        let folder = try pageFolder(for: manifest.id, parentID: parentID)
+        try fs.ensureDirectory(folder)
+
+        let mediaDir = folder.appendingPathComponent("media", isDirectory: true)
+        try fs.ensureDirectory(mediaDir)
+
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+
+        let guideURL = folder.appendingPathComponent("guide.md")
+        let guideContent = "# \(manifest.title)\n\n\(manifest.markdownBody.isEmpty ? "Add content here." : manifest.markdownBody)"
+        try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
+    }
+
+    public func updatePage(id: String, manifest: ExercisePageManifest, newParentID: String? = nil) throws {
+        let currentFolder = try resolvePageFolder(id: id)
+        guard fs.directoryExists(at: currentFolder) else {
+            throw FileSystemHelper.Error.notFound(currentFolder.path)
+        }
+
+        if let parentID = newParentID, parentID != manifest.parentID {
+            let newFolder = try pageFolder(for: id, parentID: parentID)
+            if currentFolder.path != newFolder.path {
+                try fs.ensureDirectory(newFolder.deletingLastPathComponent())
+                try FileManager.default.moveItem(at: currentFolder, to: newFolder)
+                var updated = manifest
+                updated.parentID = parentID
+                updated.updatedAt = Date()
+                let manifestURL = newFolder.appendingPathComponent("manifest.json")
+                try fs.writeAtomically(to: manifestURL, value: updated, encoder: encoder)
+                let guideURL = newFolder.appendingPathComponent("guide.md")
+                let guideContent = "# \(updated.title)\n\n\(updated.markdownBody.isEmpty ? "Add content here." : updated.markdownBody)"
+                try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
+                return
+            }
+        }
+
+        let folder = currentFolder
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        if fs.fileExists(at: manifestURL) {
+            try fs.moveToTrash(source: manifestURL)
+        }
+        var updated = manifest
+        updated.updatedAt = Date()
+        try fs.writeAtomically(to: manifestURL, value: updated, encoder: encoder)
+
+        let guideURL = folder.appendingPathComponent("guide.md")
+        let guideContent = "# \(updated.title)\n\n\(updated.markdownBody.isEmpty ? "Add content here." : updated.markdownBody)"
+        try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
+    }
+
+    public func deletePage(id: String) throws {
+        let folder = try resolvePageFolder(id: id)
+        guard fs.directoryExists(at: folder) else {
+            throw FileSystemHelper.Error.notFound(folder.path)
+        }
+        try fs.moveToTrash(source: folder)
+    }
+
+    public func getPage(id: String) throws -> ExercisePageManifest {
+        let folder = try resolvePageFolder(id: id)
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        return try fs.readManifest(from: manifestURL, decoder: decoder)
+    }
+
+    public func searchPages(query: String, type: WorkoutType? = nil) throws -> [(ExercisePageManifest, path: String)] {
+        let all = try walkPageTree(in: fs.exercisesDatabaseDirectory)
+        var results: [(ExercisePageManifest, path: String)] = []
+        for (manifest, path) in all {
+            let titleMatch = query.isEmpty || manifest.title.localizedCaseInsensitiveContains(query)
+            let contentMatch = query.isEmpty || manifest.markdownBody.localizedCaseInsensitiveContains(query)
+            let typeMatch = type == nil || manifest.workoutType?.id == type?.id
+            if (titleMatch || contentMatch) && typeMatch {
+                results.append((manifest, path))
+            }
+        }
+        return results
+    }
+
+    public func walkPageTree(in directory: URL) throws -> [(ExercisePageManifest, path: String)] {
+        var results: [(ExercisePageManifest, path: String)] = []
+        try walkPageTreeRecursive(directory, relativePath: "", into: &results)
+        return results
+    }
+
+    private func walkPageTreeRecursive(_ directory: URL, relativePath: String, into results: inout [(ExercisePageManifest, path: String)]) throws {
+        let entries = try fs.listDirectory(directory, skipNonSchema: false)
+        for entry in entries {
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { continue }
+
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+            let pageRelPath = relativePath.isEmpty ? entry.lastPathComponent : "\(relativePath)/\(entry.lastPathComponent)"
+
+            if fs.fileExists(at: manifestURL) {
+                if let manifest: ExercisePageManifest = try? fs.readManifest(from: manifestURL, decoder: decoder) {
+                    var updatedManifest = manifest
+                    let childDirs = try childDirectoryIDs(in: entry)
+                    updatedManifest.childIDs = childDirs
+                    results.append((updatedManifest, pageRelPath))
+                }
+            }
+            try walkPageTreeRecursive(entry, relativePath: pageRelPath, into: &results)
+        }
+    }
+
+    private func childDirectoryIDs(in directory: URL) throws -> [String] {
+        let entries = try fs.listDirectory(directory, skipNonSchema: false)
+        return entries.compactMap { entry in
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { return nil }
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+            guard fs.fileExists(at: manifestURL) else { return nil }
+            return entry.lastPathComponent
+        }
+    }
+
+    public func movePage(id: String, newParentID: String?, newOrder: Int) throws {
+        let currentFolder = try resolvePageFolder(id: id)
+        var manifest = try getPage(id: id)
+
+        let newFolder = try pageFolder(for: id, parentID: newParentID)
+        if currentFolder.path != newFolder.path {
+            try fs.ensureDirectory(newFolder.deletingLastPathComponent())
+            try FileManager.default.moveItem(at: currentFolder, to: newFolder)
+        }
+
+        manifest.parentID = newParentID
+        manifest.order = newOrder
+        manifest.updatedAt = Date()
+        let manifestURL = newFolder.appendingPathComponent("manifest.json")
+        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+    }
+
+    public func getPagePath(id: String) throws -> String {
+        let targetFolder = try resolvePageFolder(id: id)
+        let base = fs.exercisesDatabaseDirectory.path
+
+        let allPages = try walkPageTree(in: fs.exercisesDatabaseDirectory)
+        let pageLookup = Dictionary(uniqueKeysWithValues: allPages.map { ($0.0.id, ($0.0, $0.1)) })
+
+        var pathComponents: [String] = []
+        var current = pageLookup[id]
+        while let (manifest, _) = current {
+            pathComponents.insert(manifest.title, at: 0)
+            if let parentID = manifest.parentID {
+                current = pageLookup[parentID]
+            } else {
+                current = nil
+            }
+        }
+        return pathComponents.joined(separator: "/")
+    }
+
+    public func listRootPages() throws -> [(name: String, path: String, manifest: ExercisePageManifest)] {
+        let base = fs.exercisesDatabaseDirectory
+        let entries = try fs.listDirectory(base, skipNonSchema: false)
+        return entries.compactMap { entry in
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { return nil }
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+            guard fs.fileExists(at: manifestURL) else { return nil }
+            guard let manifest: ExercisePageManifest = try? fs.readManifest(from: manifestURL, decoder: decoder) else { return nil }
+            return (manifest.title, entry.lastPathComponent, manifest)
+        }
+    }
+
+    private func pageFolder(for id: String, parentID: String?) throws -> URL {
+        let base = fs.exercisesDatabaseDirectory
+        if let parentID = parentID {
+            let parentFolder = try resolvePageFolder(id: parentID)
+            return parentFolder.appendingPathComponent(id, isDirectory: true)
+        } else {
+            return base.appendingPathComponent(id, isDirectory: true)
+        }
+    }
+
+    private func resolvePageFolder(id: String) throws -> URL {
+        let base = fs.exercisesDatabaseDirectory
+        let directURL = base.appendingPathComponent(id, isDirectory: true)
+        if fs.directoryExists(at: directURL) {
+            return directURL
+        }
+        if let found = findPageFolder(id: id, in: base) {
+            return found
+        }
+        return directURL
+    }
+
+    private func findPageFolder(id: String, in directory: URL) -> URL? {
+        guard let entries = try? fs.listDirectory(directory, skipNonSchema: false) else { return nil }
+        for entry in entries {
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { continue }
+            if entry.lastPathComponent == id {
+                return entry
+            }
+            if let found = findPageFolder(id: id, in: entry) {
+                return found
+            }
+        }
+        return nil
     }
 
     // MARK: - Folder Operations

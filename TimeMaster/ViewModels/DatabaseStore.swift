@@ -4,35 +4,104 @@ import TimeMasterCore
 class DatabaseStore: ObservableObject {
     static let shared = DatabaseStore()
 
-    @Published var rootFolders: [ExerciseFolder] = []
-    @Published var rootNotes: [DatabaseNote] = []
-    @Published var rootExercises: [Exercise] = []
+    @Published var rootPages: [ExercisePage] = []
+    @Published var allPagesFlat: [ExercisePage] = []
 
     private let foldersKey       = "exercise_database_v2"
     private let rootNotesKey     = "exercise_database_root_notes_v1"
     private let rootExercisesKey = "exercise_database_root_exercises_v1"
 
-    private var isMigrated: Bool { MigrationManager.isMigrationComplete }
+    @Published var rootFolders: [ExerciseFolder] = []
+    @Published var rootNotes: [DatabaseNote] = []
+    @Published var rootExercises: [Exercise] = []
+
+    private var isV1Migrated: Bool { MigrationManager.isMigrationComplete }
+    private var isV2PageMigrated: Bool { MigrationManager.isV2PageMigrationComplete }
 
     private init() {
-        if isMigrated {
+        if isV2PageMigrated {
+            loadPagesFromFileSystem()
+        } else if isV1Migrated {
             loadFromFileSystem()
         } else {
             load()
         }
     }
 
-    /// Public alias — reloads all data from UserDefaults.
-    /// Call after a backup import to refresh in-memory state.
     func reload() {
-        if isMigrated {
+        if isV2PageMigrated {
+            loadPagesFromFileSystem()
+        } else if isV1Migrated {
             loadFromFileSystem()
         } else {
             load()
         }
     }
 
-    // MARK: - File System Loading
+    // MARK: - V2 Page Loading
+
+    private func loadPagesFromFileSystem() {
+        let db = DatabaseManager.shared
+        let base = db.exercisesDatabaseURL
+
+        let flatManifests: [(ExercisePageManifest, String)]
+        do {
+            flatManifests = try db.walkPageTree(in: base)
+        } catch {
+            return
+        }
+
+        allPagesFlat = flatManifests.map { (manifest, path) in
+            let pageURL = base.appendingPathComponent(path, isDirectory: true)
+            return ExercisePage(from: manifest, baseURL: pageURL, path: path)
+        }
+
+        rootPages = PageTreeBuilder.build(from: allPagesFlat)
+    }
+
+    var pageTree: [ExercisePage] {
+        PageTreeBuilder.build(from: allPagesFlat)
+    }
+
+    func page(id: UUID) -> ExercisePage? {
+        allPagesFlat.first { $0.id == id }
+    }
+
+    func children(of parentID: UUID) -> [ExercisePage] {
+        guard let parent = page(id: parentID) else { return [] }
+        return parent.manifest.childIDs.compactMap { childID in
+            guard let childUUID = UUID(uuidString: childID) else { return nil }
+            return page(id: childUUID)
+        }
+    }
+
+    func breadcrumbs(for pageID: UUID) -> [ExercisePage] {
+        PageTreeBuilder.breadcrumbs(for: pageID, in: allPagesFlat)
+    }
+
+    // MARK: - Page CRUD (V2)
+
+    func createPage(manifest: ExercisePageManifest, parentID: String?) throws {
+        try DatabaseManager.shared.createPage(manifest: manifest, parentID: parentID)
+        loadPagesFromFileSystem()
+    }
+
+    func updatePage(id: String, manifest: ExercisePageManifest, newParentID: String?) throws {
+        try DatabaseManager.shared.updatePage(id: id, manifest: manifest, newParentID: newParentID)
+        loadPagesFromFileSystem()
+    }
+
+    func deletePage(id: String) throws {
+        try DatabaseManager.shared.deletePage(id: id)
+        loadPagesFromFileSystem()
+    }
+
+    func movePage(id: String, newParentID: String?, newOrder: Int) throws {
+        try DatabaseManager.shared.movePage(id: id, newParentID: newParentID, newOrder: newOrder)
+        loadPagesFromFileSystem()
+    }
+
+    // MARK: - V1 Legacy (backward compatible)
 
     private func loadFromFileSystem() {
         let db = DatabaseManager.shared
@@ -99,7 +168,7 @@ class DatabaseStore: ObservableObject {
         )
     }
 
-    // MARK: - Persistence
+    // MARK: - V0 Legacy (UserDefaults, pre-migration)
 
     func load() {
         if let data = UserDefaults.standard.data(forKey: foldersKey),

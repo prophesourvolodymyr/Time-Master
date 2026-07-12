@@ -225,6 +225,170 @@ public final class MigrationManager {
         self.encoder.dateEncodingStrategy = .iso8601
     }
 
+    // MARK: - V2 Page Migration
+
+    private static let v2PagesMarkerName = ".migration_v2_pages_complete"
+
+    public var isV2PageMigrationComplete: Bool {
+        let markerURL = fs.configDirectory.appendingPathComponent(Self.v2PagesMarkerName)
+        return fs.fileExists(at: markerURL)
+    }
+
+    public static var isV2PageMigrationComplete: Bool {
+        let fs = FileSystemHelper(dataRoot: DatabaseManager.shared.dataRoot)
+        let markerURL = fs.configDirectory.appendingPathComponent(v2PagesMarkerName)
+        return fs.fileExists(at: markerURL)
+    }
+
+    public func migrateToV2Pages() throws -> MigrationSummary {
+        guard !isV2PageMigrationComplete else {
+            return MigrationSummary()
+        }
+
+        let exercisesDir = fs.exercisesDatabaseDirectory
+        guard fs.directoryExists(at: exercisesDir) else {
+            try markV2MigrationComplete()
+            return MigrationSummary()
+        }
+
+        let backupTimestamp = Int(Date().timeIntervalSince1970)
+        let backupURL = fs.backupsDirectory.appendingPathComponent("v2-page-migration-\(backupTimestamp)")
+        try fs.ensureDirectory(backupURL)
+        let backupTarget = backupURL.appendingPathComponent("Exercises Database")
+        if fs.directoryExists(at: exercisesDir) {
+            try FileManager.default.copyItem(at: exercisesDir, to: backupTarget)
+        }
+
+        let pageDecoder = JSONDecoder()
+        pageDecoder.dateDecodingStrategy = .iso8601
+
+        var pagesCreated = 0
+        var pagesConverted = 0
+
+        try migrateDirectoryToV2Pages(exercisesDir, parentID: nil, decoder: pageDecoder, pagesCreated: &pagesCreated, pagesConverted: &pagesConverted)
+
+        try markV2MigrationComplete()
+
+        return MigrationSummary(foldersMigrated: pagesCreated + pagesConverted, backupURL: backupURL)
+    }
+
+    private func migrateDirectoryToV2Pages(
+        _ directory: URL,
+        parentID: String?,
+        decoder: JSONDecoder,
+        pagesCreated: inout Int,
+        pagesConverted: inout Int
+    ) throws {
+        let entries = try fs.listDirectory(directory, skipNonSchema: false)
+
+        for entry in entries {
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { continue }
+
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+
+            if fs.fileExists(at: manifestURL) {
+                let data = try fs.readRawData(from: manifestURL)
+                if let _ = try? decoder.decode(ExercisePageManifest.self, from: data) as ExercisePageManifest {
+                    var pageManifest = try decoder.decode(ExercisePageManifest.self, from: data)
+                    if pageManifest.parentID == nil && parentID != nil {
+                        pageManifest.parentID = parentID
+                    }
+                    let childIDs = try childPageIDs(in: entry)
+                    if pageManifest.childIDs != childIDs {
+                        pageManifest.childIDs = childIDs
+                        pageManifest.updatedAt = Date()
+                        try fs.writeAtomically(to: manifestURL, value: pageManifest)
+                    }
+                    pagesConverted += 1
+                    ensureGuideMDExists(at: entry, title: pageManifest.title, body: pageManifest.markdownBody)
+
+                    try migrateDirectoryToV2Pages(entry, parentID: pageManifest.id, decoder: decoder, pagesCreated: &pagesCreated, pagesConverted: &pagesConverted)
+                } else if let oldManifest: ExerciseManifest = try? decoder.decode(ExerciseManifest.self, from: data) {
+                    let pageManifest = convertExerciseManifestToPage(oldManifest, parentID: parentID)
+                    let childIDs = try childPageIDs(in: entry)
+                    var updated = pageManifest
+                    updated.childIDs = childIDs
+                    try fs.writeAtomically(to: manifestURL, value: updated)
+                    ensureGuideMDExists(at: entry, title: updated.title, body: updated.markdownBody)
+                    pagesConverted += 1
+
+                    try migrateDirectoryToV2Pages(entry, parentID: updated.id, decoder: decoder, pagesCreated: &pagesCreated, pagesConverted: &pagesConverted)
+                }
+            } else {
+                let pageManifest = createFolderAsPage(name: entry.lastPathComponent, parentID: parentID)
+                let childIDs = try childPageIDs(in: entry)
+                var updated = pageManifest
+                updated.childIDs = childIDs
+                try fs.writeAtomically(to: manifestURL, value: updated)
+                ensureGuideMDExists(at: entry, title: updated.title, body: updated.markdownBody)
+                pagesCreated += 1
+
+                try migrateDirectoryToV2Pages(entry, parentID: updated.id, decoder: decoder, pagesCreated: &pagesCreated, pagesConverted: &pagesConverted)
+            }
+        }
+    }
+
+    private func childPageIDs(in directory: URL) throws -> [String] {
+        let entries = try fs.listDirectory(directory, skipNonSchema: false)
+        return entries.compactMap { entry in
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { return nil }
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+            guard fs.fileExists(at: manifestURL) else { return nil }
+            return entry.lastPathComponent
+        }
+    }
+
+    private func convertExerciseManifestToPage(_ old: ExerciseManifest, parentID: String?) -> ExercisePageManifest {
+        return ExercisePageManifest(
+            id: old.id,
+            title: old.name,
+            markdownBody: old.details,
+            mediaFilenames: old.mediaFilenames,
+            linkURLs: old.linkURLs,
+            workoutType: old.workoutType,
+            duration: old.duration,
+            restAfter: old.restAfter,
+            sets: old.sets,
+            restBetweenSets: old.restBetweenSets,
+            parentID: parentID,
+            createdAt: old.createdAt,
+            updatedAt: old.updatedAt
+        )
+    }
+
+    private func createFolderAsPage(name: String, parentID: String?) -> ExercisePageManifest {
+        return ExercisePageManifest(
+            id: UUID().uuidString,
+            title: name,
+            parentID: parentID,
+            order: 0
+        )
+    }
+
+    private func ensureGuideMDExists(at directory: URL, title: String, body: String) {
+        let guideURL = directory.appendingPathComponent("guide.md")
+        guard !fs.fileExists(at: guideURL) else { return }
+        let content = "# \(title)\n\n\(body.isEmpty ? "Add content here." : body)"
+        try? fs.writeAtomically(to: guideURL, data: content.data(using: .utf8)!)
+    }
+
+    private func markV2MigrationComplete() throws {
+        let markerURL = fs.configDirectory.appendingPathComponent(Self.v2PagesMarkerName)
+        let content = "\(Int(Date().timeIntervalSince1970))"
+        try fs.writeAtomically(to: markerURL, data: content.data(using: .utf8)!)
+    }
+
+    @discardableResult
+    public static func migrateToV2PagesIfNeeded() -> MigrationSummary? {
+        guard !isV2PageMigrationComplete else { return nil }
+        let manager = MigrationManager(db: DatabaseManager.shared)
+        return try? manager.migrateToV2Pages()
+    }
+
     public func migrateFromUserDefaults() throws -> MigrationSummary {
         guard !isComplete else {
             return MigrationSummary()

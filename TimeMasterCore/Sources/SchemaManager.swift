@@ -9,6 +9,33 @@ public final class SchemaManager {
 
     public func generateSchema() throws -> SchemaDefinition {
         let objects: [String: ObjectSchema] = [
+            "page": ObjectSchema(
+                description: "A unified page in the Exercises Database. Pages can nest at unlimited depth. Every folder with manifest.json IS a page.",
+                folderPath: "Exercises Database/{parentPath}/{id}",
+                manifestName: "manifest.json",
+                required: ["id", "title", "markdownBody", "createdAt", "updatedAt"],
+                properties: [
+                    "id": PropertySchema(type: "string", description: "UUID string — also used as folder name"),
+                    "title": PropertySchema(type: "string", description: "Display name of the page"),
+                    "coverImageFilename": PropertySchema(type: "string", description: "Cover image filename in page folder root", optional: true),
+                    "iconName": PropertySchema(type: "string", description: "SF Symbol name for fallback icon when no cover", optional: true),
+                    "markdownBody": PropertySchema(type: "string", description: "Rich content — stored as guide.md, cached for search"),
+                    "mediaFilenames": PropertySchema(type: "array<string>", description: "Media files in page's media/ subdir", optional: true),
+                    "linkURLs": PropertySchema(type: "array<string>", description: "External URLs (YouTube, Instagram, TikTok, web)", optional: true),
+                    "linkMetadata": PropertySchema(type: "array<object>", description: "Pre-fetched metadata for link previews", optional: true),
+                    "workoutType": PropertySchema(type: "object", description: "Assigned workout type (Strength, Cardio, etc.)", optional: true),
+                    "duration": PropertySchema(type: "integer", description: "Duration in seconds if used as workout section", format: "seconds", optional: true),
+                    "restAfter": PropertySchema(type: "integer", description: "Rest after this exercise in seconds", format: "seconds", optional: true),
+                    "sets": PropertySchema(type: "integer", description: "Default set count", optional: true),
+                    "restBetweenSets": PropertySchema(type: "integer", description: "Rest between sets in seconds", optional: true),
+                    "tags": PropertySchema(type: "array<string>", description: "User-defined tags for filtering", optional: true),
+                    "childIDs": PropertySchema(type: "array<string>", description: "Ordered list of child page IDs", optional: true),
+                    "parentID": PropertySchema(type: "string", description: "Parent page ID — nil = root page", optional: true),
+                    "order": PropertySchema(type: "integer", description: "Manual sort position among siblings"),
+                    "createdAt": PropertySchema(type: "string", description: "ISO 8601 creation timestamp", format: "date-time"),
+                    "updatedAt": PropertySchema(type: "string", description: "ISO 8601 last-modified timestamp", format: "date-time"),
+                ]
+            ),
             "exercise": ObjectSchema(
                 description: "A single exercise in the database. Can be nested inside folders.",
                 folderPath: "Exercises Database/{folderPath}/{id}",
@@ -80,6 +107,31 @@ public final class SchemaManager {
         ]
 
         let tools: [ToolSchema] = [
+            ToolSchema(name: "listPages", description: "List all pages in the Exercises Database", write: false),
+            ToolSchema(name: "getPage", description: "Read a single page manifest", write: false, parameters: [
+                "id": PropertySchema(type: "string", description: "Page UUID"),
+            ]),
+            ToolSchema(name: "searchPages", description: "Search pages by title, content, or type", write: false, parameters: [
+                "query": PropertySchema(type: "string", description: "Search term for title/content matching"),
+                "type": PropertySchema(type: "string", description: "Optional workout type filter", optional: true),
+            ]),
+            ToolSchema(name: "createPage", description: "Create a new page folder with manifest and guide.md", write: true, parameters: [
+                "title": PropertySchema(type: "string", description: "Page title"),
+                "parentID": PropertySchema(type: "string", description: "Optional parent page UUID", optional: true),
+            ]),
+            ToolSchema(name: "updatePage", description: "Update an existing page manifest", write: true, parameters: [
+                "id": PropertySchema(type: "string", description: "Page UUID to update"),
+            ]),
+            ToolSchema(name: "deletePage", description: "Move a page (and children) to .trash/", write: true, parameters: [
+                "id": PropertySchema(type: "string", description: "Page UUID to delete"),
+            ]),
+            ToolSchema(name: "movePage", description: "Move a page to a different parent", write: true, parameters: [
+                "id": PropertySchema(type: "string", description: "Page UUID to move"),
+                "newParentID": PropertySchema(type: "string", description: "New parent page UUID", optional: true),
+            ]),
+            ToolSchema(name: "getPagePath", description: "Get breadcrumb path string for a page", write: false, parameters: [
+                "id": PropertySchema(type: "string", description: "Page UUID"),
+            ]),
             ToolSchema(name: "listExercises", description: "List all exercises in the database", write: false),
             ToolSchema(name: "getExercise", description: "Read a single exercise manifest", write: false, parameters: [
                 "id": PropertySchema(type: "string", description: "Exercise UUID"),

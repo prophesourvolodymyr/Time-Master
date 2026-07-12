@@ -1,5 +1,6 @@
 import Foundation
 
+@available(*, deprecated, message: "Use ExercisePageManifest")
 public struct ExerciseManifest: Codable {
     public var id: String
     public var name: String

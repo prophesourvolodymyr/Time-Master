@@ -54,6 +54,8 @@
 		EE0001EE0001EE0001EE0008 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0007 /* ExerciseAISettingsView.swift */; };
 		EE0001EE0001EE0001EE000A /* MediaPreviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0001EE0001EE0001EE0009 /* MediaPreviewSheet.swift */; };
 		F09D0012F09D0012F09D0012 /* ToolRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09D0011F09D0011F09D0011 /* ToolRouter.swift */; };
+		EPR0001EPR0001EPR0001EPR0001 /* ExercisePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPR0002EPR0002EPR0002EPR0002 /* ExercisePage.swift */; };
+		PTB0001PTB0001PTB0001PTB0001 /* PageTreeBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = PTB0002PTB0002PTB0002PTB0002 /* PageTreeBuilder.swift */; };
 		CC0001CC0001CC0001CC0001 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0005 /* KeychainHelper.swift */; };
 		CC0001CC0001CC0001CC000A /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC000B /* AIProvider.swift */; };
 		CC0001CC0001CC0001CC0002 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0001CC0001CC0001CC0006 /* AIStore.swift */; };
@@ -116,6 +118,8 @@
 		C29DB9F92E596EA06C1478E0 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = F09D0011F09D0011F09D0011; };
 		8F6F21F4FFA42C2BAFADE9CF /* Info-macOS.plist in Resources */ = {isa = PBXBuildFile; fileRef = ABE32A81CCD1EDB98AF4A535 /* Info-macOS.plist */; };
 		C6890622EBE12B022CA21AAC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
+		PGB001PGB001PGB001PGB001 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = EPR0002EPR0002EPR0002EPR0002; };
+		PGB002PGB002PGB002PGB002 /* Swift source in Sources */ = {isa = PBXBuildFile; fileRef = PTB0002PTB0002PTB0002PTB0002; };
 
 
 
@@ -184,6 +188,8 @@
 		1248480EE0FAD3437A7BF903 /* MacFilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacFilePicker.swift; sourceTree = "<group>"; };
 		ABE32A81CCD1EDB98AF4A535 /* Info-macOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info-macOS.plist"; sourceTree = "<group>"; };
 		F3473097C914C79468A24D85 /* TimeMaster-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "TimeMaster-macOS.entitlements"; sourceTree = "<group>"; };
+		EPR0002EPR0002EPR0002EPR0002 /* ExercisePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePage.swift; sourceTree = "<group>"; };
+		PTB0002PTB0002PTB0002PTB0002 /* PageTreeBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageTreeBuilder.swift; sourceTree = "<group>"; };
 
 
 /* End PBXFileReference section */
@@ -237,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */,
+				EPR0002EPR0002EPR0002EPR0002 /* ExercisePage.swift */,
 				F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */,
 				282193241415BB7A32B3786C /* Workout.swift */,
 				42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */,
@@ -380,6 +387,7 @@
 				CC0001CC0001CC0001CC000B /* AIProvider.swift */,
 				CC0001CC0001CC0001CC0006 /* AIStore.swift */,
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
+				PTB0002PTB0002PTB0002PTB0002 /* PageTreeBuilder.swift */,
 				F09D0011F09D0011F09D0011 /* ToolRouter.swift */,
 				DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */,
 				604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */,
@@ -632,6 +640,8 @@
 				CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */,
 				BE73226A68324F38ACB61D7A /* WorkoutResumeManager.swift in Sources */,
 				F09D0012F09D0012F09D0012 /* ToolRouter.swift in Sources */,
+				EPR0001EPR0001EPR0001EPR0001 /* ExercisePage.swift in Sources */,
+				PTB0001PTB0001PTB0001PTB0001 /* PageTreeBuilder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -700,6 +710,8 @@
 				C29DB9F92E596EA06C1478E0 /* Swift source in Sources */,
 				F55ED656CFE9042C500FB243 /* Swift source in Sources */,
 				22DC11137331445FB1CC2667 /* Swift source in Sources */,
+				PGB001PGB001PGB001PGB001 /* Swift source in Sources */,
+				PGB002PGB002PGB002PGB002 /* Swift source in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

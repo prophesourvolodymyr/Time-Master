@@ -37,6 +37,7 @@ struct DatabaseNote: Identifiable, Codable, Equatable {
 
 // MARK: - Exercise
 
+@available(*, deprecated, message: "Use ExercisePage")
 struct Exercise: Identifiable, Codable {
     var id: UUID = UUID()
     var name: String
@@ -117,6 +118,7 @@ struct Exercise: Identifiable, Codable {
 
 // MARK: - ExerciseFolder
 
+@available(*, deprecated, message: "Use ExercisePage with manifest.childIDs")
 struct ExerciseFolder: Identifiable, Codable {
     var id: UUID = UUID()
     var name: String

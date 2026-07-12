@@ -112,8 +112,8 @@ final class SchemaValidationTests: XCTestCase {
         let schema = try JSONDecoder().decode(SchemaDefinition.self, from: data)
 
         XCTAssertEqual(schema.version, "1.0.0")
-        XCTAssertEqual(schema.objects.count, 4)
-        XCTAssertEqual(schema.tools.count, 10)
+        XCTAssertEqual(schema.objects.count, 5)
+        XCTAssertEqual(schema.tools.count, 18)
         XCTAssertEqual(schema.filesystem.directories.count, 11)
         XCTAssertEqual(schema.filesystem.root, "TimeMaster")
     }

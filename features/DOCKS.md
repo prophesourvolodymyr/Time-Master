@@ -41,7 +41,7 @@
 
 | Parent | Code | Sub-Feature | Status |
 |--------|------|-------------|--------|
-| F01 | F01-B | Unified Page Model | documenting |
+| F01 | F01-B | Unified Page Model | in_progress |
 | F02 | F02-A | Workout Builder Rework | pending |
 | F04 | F04-B | Flame Streak + Per-Type Analytics | pending |
 | F07 | F07-B | Notification Pipeline | pending |
