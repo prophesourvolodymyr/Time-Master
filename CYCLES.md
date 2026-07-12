@@ -342,8 +342,9 @@ F06 (AI Coach) ─────────┘
   - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, no regressions (2026-07-11)
 
 ### Player & Analytics
-- [ ] F03-C — Player Overlay
-  - [ ] Detail: Floating controls bar (pause, skip, music) during exercise page view
+- [x] F03-C — Player Overlay
+  - [x] Detail: Floating controls bar (pause, stop, skip, timer, section progress, dismiss) during exercise page view, delivered via F02-A-d (2026-07-11)
+  - [ ] Detail: Music button not included in FloatingControlsBar; defer to a future enhancement
 - [ ] F04-B — Flame Streak + Per-Type Analytics
   - [ ] Detail: Animated fire icon for streak number
   - [ ] Detail: Per-type analytics breakdown in calendar page
