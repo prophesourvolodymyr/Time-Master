@@ -48,6 +48,7 @@ struct WorkoutDetailView: View {
         .sheet(isPresented: $showPlayer) {
             WorkoutPlayerView(workout: workout)
                 .environmentObject(store)
+                .environmentObject(DatabaseStore.shared)
         }
         .toolbar { toolbarItems }
         .sheet(isPresented: $showingSectionEditor) {

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4CB8DA92AEDD4FBFB7C82761 /* ExercisePageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6033DD5C27B44860B3942449 /* ExercisePageOverlay.swift */; };
+		14330195FEF14CBC9FD74DFA /* FloatingControlsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EA3F081DF3444ACB3E5C867 /* FloatingControlsBar.swift */; };
 		0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */; };
 		11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
 		BF0001BF0001BF0001BF0001 /* DatabasePageBrowserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF0002BF0002BF0002BF0002 /* DatabasePageBrowserSheet.swift */; };
@@ -154,6 +156,8 @@
 		69344764F8B3AC313FF4CBC5 /* TimeMaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		811BB55E3BD88B54CD74BF4C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorView.swift; sourceTree = "<group>"; };
+		6033DD5C27B44860B3942449 /* ExercisePageOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePageOverlay.swift; sourceTree = "<group>"; };
+		1EA3F081DF3444ACB3E5C867 /* FloatingControlsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingControlsBar.swift; sourceTree = "<group>"; };
 		9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlayerView.swift; sourceTree = "<group>"; };
 		B26870953ABC5C4610D424C6 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionRow.swift; sourceTree = "<group>"; };
@@ -394,6 +398,8 @@
 			isa = PBXGroup;
 			children = (
 				9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */,
+				6033DD5C27B44860B3942449 /* ExercisePageOverlay.swift */,
+				1EA3F081DF3444ACB3E5C867 /* FloatingControlsBar.swift */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -669,6 +675,8 @@
 				8774DCE1AA5D3C75471D2821 /* WorkoutHistory.swift in Sources */,
 				2E0C54F31F1BD8B352CE6FF1 /* WorkoutListView.swift in Sources */,
 				0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */,
+				4CB8DA92AEDD4FBFB7C82761 /* ExercisePageOverlay.swift in Sources */,
+				14330195FEF14CBC9FD74DFA /* FloatingControlsBar.swift in Sources */,
 				CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */,
 				BE73226A68324F38ACB61D7A /* WorkoutResumeManager.swift in Sources */,
 				F09D0012F09D0012F09D0012 /* ToolRouter.swift in Sources */,
@@ -752,6 +760,8 @@
 				9B8A3D52F1C640E595B27A1F /* VideoEmbedCard.swift in Sources */,
 				06A5503934B94C2E9EDB9999 /* WorkoutPickerSheet.swift in Sources */,
 				BF0001BF0001BF0001BF0001 /* DatabasePageBrowserSheet.swift in Sources */,
+				4CB8DA92AEDD4FBFB7C82761 /* ExercisePageOverlay.swift in Sources */,
+				14330195FEF14CBC9FD74DFA /* FloatingControlsBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

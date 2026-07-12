@@ -86,6 +86,7 @@ struct TimeMasterApp: App {
             .sheet(item: $resumePlayerWorkout) { w in
                 WorkoutPlayerView(workout: w)
                     .environmentObject(store)
+                    .environmentObject(databaseStore)
             }
         }
         .windowStyle(.titleBar)
@@ -121,6 +122,7 @@ struct TimeMasterApp: App {
             .sheet(item: $resumePlayerWorkout) { w in
                 WorkoutPlayerView(workout: w)
                     .environmentObject(store)
+                    .environmentObject(databaseStore)
             }
         }
         #endif

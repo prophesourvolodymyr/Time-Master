@@ -331,8 +331,15 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Bundle creates ONE section named after first page with all page names in subtitle
   - [x] Detail: Total sets sums across all bundled pages' workoutConfig
   - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, 2026-07-11
-- [ ] F02-A-d — Player Page Popup
-  - [ ] Detail: Tap image/title during workout → exercise page overlay with floating player controls
+- [x] F02-A-d — Player Page Popup
+  - [x] Detail: Tap exercise name (with book.pages icon) during workout → full ExercisePage overlay
+  - [x] Detail: ExercisePageOverlay shows cover image, markdown guide, media grid, YouTube/Instagram embeds, tags, workout config badges
+  - [x] Detail: FloatingControlsBar — semi-transparent pill with countdown/elapsed time, pause/stop/skip buttons, section progress, dismiss chevron
+  - [x] Detail: pageID field added to Section model (Codable, optional UUID) for page linking
+  - [x] Detail: WorkoutPickerSheet passes page.id when creating sections from pages
+  - [x] Detail: WorkoutSectionManifest.exerciseID mapped to Section.pageID during conversion
+  - [x] Detail: DatabaseStore injected into WorkoutPlayerView via all sheet presentations
+  - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, no regressions (2026-07-11)
 
 ### Player & Analytics
 - [ ] F03-C — Player Overlay

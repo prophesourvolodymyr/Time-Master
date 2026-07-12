@@ -517,7 +517,8 @@ extension WorkoutSectionManifest {
             repCount: repCount,
             restBetweenSets: restBetweenSets,
             customRestAfter: customRestAfter,
-            prepareTime: prepareTime
+            prepareTime: prepareTime,
+            pageID: UUID(uuidString: exerciseID)
         )
     }
 }

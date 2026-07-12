@@ -19,6 +19,7 @@ extension Image {
 
 struct WorkoutPlayerView: View {
     @EnvironmentObject var store: WorkoutStore
+    @EnvironmentObject var databaseStore: DatabaseStore
     @Environment(\.dismiss) var dismiss
 
     let workout: Workout
@@ -87,6 +88,9 @@ struct WorkoutPlayerView: View {
     @State private var nextSectionImages: [NSImage?] = []
     #endif
 
+    // F02-A-d: Page overlay
+    @State private var showPageOverlay = false
+
     // MARK: - Computed
 
     private var currentSection: Section? {
@@ -144,6 +148,34 @@ struct WorkoutPlayerView: View {
                     mediaOverlayView(item: item)
                 }
             }
+            .overlay {
+                if showPageOverlay, let section = currentSection, let pageID = section.pageID {
+                    ExercisePageOverlay(
+                        pageID: pageID,
+                        sectionName: section.name,
+                        sectionIndex: currentSectionIndex,
+                        totalSections: workout.sections.count,
+                        timeRemaining: timeRemaining,
+                        elapsedSeconds: elapsedSeconds,
+                        isPaused: isPaused,
+                        isTimerEnabled: section.isTimerEnabled,
+                        isRest: isSetRest || isSectionRest,
+                        onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
+                        onStop: { stopWorkout() },
+                        onSkip: {
+                            timer?.invalidate()
+                            endWorkPeriod()
+                        },
+                        onDismiss: {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                showPageOverlay = false
+                            }
+                        }
+                    )
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeOut(duration: 0.3), value: showPageOverlay)
     }
 
     // MARK: - Content routing
@@ -331,12 +363,33 @@ struct WorkoutPlayerView: View {
 
                 // Section name + sets indicator
                 VStack(spacing: 6) {
-                    Text(currentSection?.name ?? "")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(.white)
+                    if let section = currentSection, section.pageID != nil {
+                        Button {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                showPageOverlay = true
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(section.name)
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(.white)
+                                Image(systemName: "book.pages")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                        .buttonStyle(.plain)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.horizontal, 32)
+                    } else {
+                        Text(currentSection?.name ?? "")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.horizontal, 32)
+                    }
 
                     if let section = currentSection, section.sets > 1 {
                         VStack(spacing: 2) {

@@ -69,6 +69,8 @@ struct Section: Identifiable, Codable, Equatable {
     var restBetweenSets: Int  // rest between set repetitions; only used when sets > 1
     var prepareTime: Int
     var customRestAfter: Int?
+    // Page reference
+    var pageID: UUID?
 
     init(
         id: UUID = UUID(),
@@ -83,7 +85,8 @@ struct Section: Identifiable, Codable, Equatable {
         repCount: Int? = nil,
         restBetweenSets: Int = 10,
         customRestAfter: Int? = nil,
-        prepareTime: Int = 4
+        prepareTime: Int = 4,
+        pageID: UUID? = nil
     ) {
         self.id = id
         self.name = name
@@ -94,6 +97,7 @@ struct Section: Identifiable, Codable, Equatable {
         self.restBetweenSets = max(0, restBetweenSets)
         self.customRestAfter = customRestAfter
         self.prepareTime = max(0, prepareTime)
+        self.pageID = pageID
         if !mediaItems.isEmpty {
             self.mediaItems = mediaItems
         } else if !photoFilenames.isEmpty {
@@ -114,6 +118,7 @@ struct Section: Identifiable, Codable, Equatable {
         case photoFilenames
         case photoFilename
         case restAfter
+        case pageID
     }
 
     init(from decoder: Decoder) throws {
@@ -126,6 +131,7 @@ struct Section: Identifiable, Codable, Equatable {
         repCount       = try c.decodeIfPresent(Int.self, forKey: .repCount)
         restBetweenSets = try c.decodeIfPresent(Int.self, forKey: .restBetweenSets) ?? 10
         prepareTime    = try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4
+        pageID         = try c.decodeIfPresent(UUID.self, forKey: .pageID)
 
         if let v = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
             customRestAfter = v
@@ -159,6 +165,7 @@ struct Section: Identifiable, Codable, Equatable {
         try c.encodeIfPresent(customRestAfter, forKey: .customRestAfter)
         try c.encode(prepareTime,     forKey: .prepareTime)
         try c.encode(mediaItems,      forKey: .mediaItems)
+        try c.encodeIfPresent(pageID, forKey: .pageID)
     }
 }
 

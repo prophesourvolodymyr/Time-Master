@@ -166,7 +166,8 @@ struct WorkoutPickerSheet: View {
             repCount: reps > 0 ? reps : nil,
             restBetweenSets: restBetweenSets,
             customRestAfter: restAfter,
-            prepareTime: 4
+            prepareTime: 4,
+            pageID: page.id
         )
         workoutStore.addSection(to: workout, section: newSection)
 
