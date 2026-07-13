@@ -1,7 +1,7 @@
 # CYCLES.md — Time-Master
-**Planned with user:** 2026-07-04, revised 2026-07-06
+**Planned with user:** 2026-07-04, revised 2026-07-06 and 2026-07-13
 
-<!-- V0.1: Cycle 0 | V0.2: Cycle 1-3 | V1.0: Cycle 4-5 | V2.0: Cycle 6-7 -->
+<!-- V0.1: Cycle 0 | V0.2: Cycle 1-3 | V1.0: Cycle 4-5 | V2.0: Cycle 6-7 | V2.0+: Cycle 8-9 | V0.3: Cycle 10 -->
 
 ## Dependency Chain
 
@@ -285,7 +285,7 @@ F06 (AI Coach) ─────────┘
 **Phase 2 code completed 2026-07-11 — models, CRUD, migration, schema done**
 
 ### Foundation
-- [ ] F01-B — Unified Page Model
+- [x] F01-B — Unified Page Model
   - [x] Detail: DOCKS.md written (comprehensive spec: model, states, animations, migration, verification)
   - [x] Detail: ExercisePageManifest + ExercisePage + PageTreeBuilder models implemented
   - [x] Detail: DatabaseManager page CRUD + walkPageTree + searchPages + movePage
@@ -293,10 +293,10 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Migration from ExerciseManifest/ExerciseFolder → ExercisePageManifest
   - [x] Detail: Schema updated with page object + 8 page tools
   - [x] Detail: Verified: macOS arm64 build succeeds, 63/63 tests pass, no regressions (2026-07-11)
-  - [ ] Detail: Next: DatabaseStore UI integration, ExercisePageDetailView, page creation UI
+  - [x] Detail: DatabaseStore UI integration, ExercisePageDetailView, page creation UI completed
   - [x] Detail: UI integration: DatabaseView V2 adaptation, ExercisePageDetailView, PageCreationSheet, PageMediaGallery, PageLinkPreview, page reorder/move (2026-07-11)
-  - [x] Verified: macOS arm64 build succeeds, 63/63 tests pass, V2 page tree renders, page creation/edit/delete works, media viewer + link previews implemented (2026-07-11)
-- [ ] F05-B — Notion-Style Pages UI
+  - [x] Verified: macOS arm64 build succeeds, 63/63 tests pass, V2 page tree renders, page creation/edit/delete works, media viewer + link previews implemented (2026-07-11); iPhone 16 Pro simulator migration created `.migration_v2_pages_complete` and V2 page manifests with `guide.md` files (iOS 18.6, 2026-07-13)
+- [x] F05-B — Notion-Style Pages UI
   - [x] Detail: Exercise page opens as rich view (not just edit form)
   - [x] Detail: Inline video playback (YouTube, Instagram embeds) — VideoEmbedCard with rich media cards, YouTube thumbnail via oembed, platform detection, play overlays
   - [x] Detail: Link attachments with previews — VideoEmbedListView replaces PageLinkList, AsyncImage thumbnails
@@ -306,6 +306,8 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: Page reorder persistence — root pages persist via persistRootPageOrder(), DatabaseManager.reorderChildren()
   - [x] Detail: Breadcrumb navigation — tappable NavigationLinks, navigate back to ancestor pages
   - [x] Detail: New VideoEmbedCard.swift + DatabaseManager methods (reorderChildren, uploadCoverImage, uploadMediaToPage, readGuideContent, removeMediaFromPage)
+  - [x] Detail: Page-creation parity repair — every page can add children; root/child/grandchild pages use the same cover and media editor; image/video imports preserve their file types and reload after persistence (2026-07-13)
+  - [x] Detail: Regression test verifies a root → child → grandchild tree with independent cover, photo, and video storage paths (2026-07-13)
   - [x] Verified: macOS arm64 build succeeds, 63/63 core tests pass, no regressions (2026-07-11)
 
 ### Workout Builder
@@ -344,21 +346,161 @@ F06 (AI Coach) ─────────┘
 ### Player & Analytics
 - [x] F03-C — Player Overlay
   - [x] Detail: Floating controls bar (pause, stop, skip, timer, section progress, dismiss) during exercise page view, delivered via F02-A-d (2026-07-11)
-  - [ ] Detail: Music button not included in FloatingControlsBar; defer to a future enhancement
-- [ ] F04-B — Flame Streak + Per-Type Analytics
-  - [ ] Detail: Animated fire icon for streak number
-  - [ ] Detail: Per-type analytics breakdown in calendar page
+  - [x] Detail: Music control added to FloatingControlsBar; respects the workout playlist (macOS build, 2026-07-13)
+- [x] F04-B — Flame Streak + Per-Type Analytics
+  - [x] Detail: Animated fire icon for streak number
+  - [x] Detail: Per-type analytics breakdown with weekly progress and adherence
 
 ### Extras
-- [ ] F07-B — Notification Pipeline
-  - [ ] Detail: Motivational, human-written push notifications
-  - [ ] Detail: Scheduled notifications tied to training schedule
-- [ ] F07-C — Workout Types & Schedules (extended)
-  - [ ] Detail: Per-type schedule UI (not just global)
-  - [ ] Detail: Schedule templates, recurring patterns
-- [ ] Mac App
-  - [ ] Detail: Native macOS build using same TimeMasterCore
-  - [ ] Detail: Finder integration for Exercises Database/ folder
+- [x] F07-B — Notification Pipeline
+  - [x] Detail: Motivational, human-written push notifications
+  - [x] Detail: Scheduled notifications tied to per-type training schedules and rest days
+- [x] F07-C — Workout Types & Schedules (extended)
+  - [x] Detail: Per-type schedule UI (not just global)
+  - [x] Detail: Recurring weekly patterns with dated schedule windows
+- [x] Mac App
+  - [x] Detail: Native macOS build using same TimeMasterCore
+  - [x] Detail: Finder integration for Exercises Database/ folder
+  - [x] Verified: Debug macOS build succeeded, launched from `/private/tmp/TimeMasterDerived/Build/Products/Debug/TimeMaster-macOS.app`; 64 TimeMasterCore tests passed, arm64, 2026-07-13
+
+---
+
+## Cycle 8 — Mac Readiness & Daily Flow
+**Added 2026-07-13 from user request**
+
+- [x] F10 — Agent Settings Control
+  - [x] Detail: AI can read the user-safe settings snapshot
+  - [x] Detail: AI proposes and applies supported setting changes only after explicit in-chat approval
+  - [x] Verified: tool schemas, approval gate, validation, and persistence compile in the launched macOS build; 64 core tests pass, 2026-07-13
+- [ ] F11 — Resilient Background Timer
+  - [x] Detail: Persist a timestamped timer checkpoint whenever the app backgrounds or is interrupted
+  - [x] Detail: Reconcile elapsed wall-clock time on return, even on devices without Live Activities
+  - [x] Detail: Request the longest permitted iOS background task window without claiming indefinite execution
+  - [ ] Verified: timer survives background/foreground and relaunch with correct elapsed state (requires a timed workout run on a device)
+- [x] F12 — Home Dashboard & Quick Start
+  - [x] Detail: Daily home dashboard with quick analytics, next workout, and recovery/training context
+  - [x] Detail: Quick start starts a selected or suggested workout without navigating through its detail screen
+  - [x] Detail: Empty state guides a new user to create a workout or use the exercise database
+  - [x] Verified: Home is the initial macOS destination in the successfully launched native Debug build; 64 core tests pass, 2026-07-13
+
+---
+
+## Cycle 9 — V2 Workout Database Completion
+**Built 2026-07-13 from the workout-builder and nested-page defects**
+
+- [x] F02-A — Page-backed workout creation and playback
+  - [x] Detail: Workout sections now persist `SectionMode` and ordered `SetSlot` records, with backward-compatible decoding of legacy scalar sections
+  - [x] Detail: Builder browser reads `DatabaseStore.allPagesFlat`, so root, child, and arbitrarily deep pages are selectable; legacy folder/exercise picker is no longer used for new sections
+  - [x] Detail: New sections retain the selected page ID; Add Set, Add Drop/Add Item, rest-exercise linking, slot reorder, and slot removal all write through `WorkoutStore` to the file database
+  - [x] Detail: WorkoutStore creates/updates/deletes file-based workout manifests after migration and keeps widget/UserDefaults mirrors in sync
+  - [x] Detail: Timed playback uses per-slot durations/rests; bundle playback is self-paced with next/previous swipe navigation and page overlay access
+  - [x] Detail: Rest pages can be assigned per slot and opened directly from the rest screen
+  - [x] Verified: 66 TimeMasterCore tests pass (including nested slot/bundle manifest round-trip); macOS arm64 Debug build succeeds; iOS `TimeMaster` simulator Debug build succeeds; installed/launched on iPhone 16 Pro Simulator, iOS 18.6, bundle `com.vovas.TimeMaster`; screenshot captured 2026-07-13
+
+---
+
+# V0.3 — Cleanup & Real-World Stability
+
+## Cycle 10 — Bug Fixes & Real-World Polish
+**Planned with user: 2026-07-13 from `genesis/ISSUES.md` after Cycle 9 build**
+**Goal: clean polished app — fixes the freezing, the monolithic database model, the old/empty editor picker, the macOS visual glitches, and turns the Home dashboard from a "latest workout" tile into a real today-only schedule board.**
+
+### Phase 0 — Stability (must land first)
+- [ ] F13 — Stability & Freeze Investigation
+  - [ ] F13-A — Reproduce freeze across home → workout → player; home → database → page detail; settings open/close; rapid tab switches
+  - [ ] F13-B — Move main-thread file I/O (cover image, guide.md, media thumbnails) to background queues with cached published values
+  - [ ] F13-C — Debounce / coalesce `DatabaseStore.reload()` storms after sheet dismiss
+  - [ ] F13-D — Audit `PreferenceKey` scroll-offset usage and remove frame-by-frame re-renders
+  - [ ] F13-E — Audit `Timer` + `AVQueuePlayer` + `AVPlayerLooper` retain cycles in player + media carousel
+  - [ ] F13-F — Hoist any recreated `@StateObject` to a long-living owner
+  - [ ] Verified: 30s idle + 5-sheet open/close sequence + two phase transitions + 20 rapid tab switches with no main-thread stall; macOS + iOS arm64 builds succeed; core tests pass
+
+### Phase 1 — Database hierarchy + editor picker (parallelizable later features depend on this)
+- [ ] F14 — Database Hierarchy Model (root container vs leaf exercise)
+  - [ ] F14-A — Add `PageKind` enum (`.container` / `.leaf`) to `ExercisePageManifest`; legacy fallback decoding
+  - [ ] F14-B — Split `PageCreationSheet` into container form (cover + tag, NO duration/sets/media) and leaf form (NO cover, duration + sets + reps + rest + media + markdown + links)
+  - [ ] F14-C — Leaf cover fallback: `ExercisePage.coverImageURL` returns first `mediaFilenames` item when no explicit cover
+  - [ ] F14-D — Detail view hides workout config badge and "Add to Workout" button on container pages
+  - [ ] F14-E — Container-of-container creation works to unlimited depth (`Add Child Page` on container)
+  - [ ] F14-F — `schema.json` + `ToolRouter` expose `create_container_page` and `create_exercise_page` with per-kind field validation; rejects `duration`/`sets` on container or `coverImageFilename` on leaf
+  - [ ] F14-G — Migration: split any existing malformed container pages that have `duration`/`sets` into a container + child exercise
+  - [ ] Verified: new container form has no duration/sets; new leaf form has no cover; leaf cover falls back to first media; AI tool rejects out-of-kind fields; macOS + iOS builds succeed; core tests pass
+
+- [ ] F23 — Editor Database Picker Fix (old/empty DB issue)
+  - [ ] F23-A — Replace every "Add exercise to workout" sheet with `DatabasePageBrowserSheet` (NOT legacy `DatabaseSectionPickerView`); audit + remove `DatabaseSectionPickerView` from production callers
+  - [ ] F23-B — `DatabaseStore.reload()` runs immediately before opening the browser sheet
+  - [ ] F23-C — `WorkoutPickerSheet` writes a new page-backed section to the chosen workout via `WorkoutStore.updateWorkout` → `DatabaseManager` manifest write
+  - [ ] F23-D — `WorkoutDetailView.handlePageSelection` stamps `Section.pageID = page.id` and persists
+  - [ ] Verified: workout editor never shows the old V1 folder picker; freshly-imported DB pages immediately selectable in the editor; section persists across re-open; macOS + iOS builds succeed; core tests pass
+
+### Phase 2 — V2 Workout Management + V2 Player (paired)
+- [ ] F15 — V2 Workout Management Rework
+  - [ ] F15-A — V2 `WorkoutListView` card grid with page-backed cover thumbnails, today-only filter (consumes F20), scheduled-time badges, empty state
+  - [ ] F15-B — V2 `WorkoutDetailView` single-pane editor: section list with inline expandable slot editor (Dur/Sets/Reps/Rest/Btwn), Add Set / Add Drop / Set Rest Exercise actions inline, rest separators
+  - [ ] F15-C — `WorkoutStore.updateWorkout` writes ONLY via `DatabaseManager` manifest; remove any UserDefaults-only write path
+  - [ ] F15-D — Add-to-Workout from database leaf page → new section lands at end of picked workout and persists
+  - [ ] F15-E — Drag-to-reorder sections persists across launches
+  - [ ] F15-F — macOS sidebar → detail three-pane flow opens without modal sheet for normal edits
+  - [ ] Verified: create, add-first-exercise, edit inline, reorder, add-from-database, delete all persist; macOS sidebar linkage works; macOS + iOS builds succeed; core tests pass
+
+- [ ] F16 — V2 Player Rework
+  - [ ] F16-A — Extract `WorkoutPlayerEngine` (ObservableObject owning phase, sectionIndex, slotIndex, elapsed, timeRemaining, musicTracks)
+  - [ ] F16-B — `WorkoutPlayerView` becomes pure render of engine state
+  - [ ] F16-C — Page-backed slot resolving (cover, guide preview, media carousel) with legacy-slot fallback
+  - [ ] F16-D — Background-safe checkpoints on iOS `.didEnterBackground` and on macOS `windowDidResignKey`
+  - [ ] F16-E — `ExercisePageOverlay` + `FloatingControlsBar` open with smooth transition; never blocks timer; dismisses cleanly
+  - [ ] F16-F — Skip-section + skip-rest always land on deterministic next state
+  - [ ] F16-G — macOS player presented as full-window modal (no half-clipped smear across sidebar)
+  - [ ] Verified: warmUp → active → setRest → active → sectionRest → next active → completed flow without missed ticks; page overlay opens/closes cleanly; macOS + iOS builds succeed; core tests pass
+
+### Phase 3 — Home dashboard, scheduling, settings UX (parallelizable)
+- [ ] F22 — Per-Type Time-of-Day Schedule
+  - [ ] F22-A — Extend `TypeSchedule` with `startTime: TimeOfDay?` and `durationMinutes: Int?`
+  - [ ] F22-B — `WorkoutTypesSettingsView` adds Start Time picker + Duration stepper; "9:00 – 9:30" hint (no extra subtitle per minimalist style)
+  - [ ] F22-C — Persist across launches; load on app start
+  - [ ] Verified: per-type time shows in settings, persists, drives home-dashboard times; macOS + iOS builds succeed
+
+- [ ] F20 — Scheduled-Today Home Widget & Missed-Red Indicator
+  - [ ] F20-A — `ScheduledWorkout` model: workout, scheduledStart, scheduledFinish, status
+  - [ ] F20-B — `WorkoutStore.scheduledWorkouts(for:)` returns today's scheduled workouts ordered by start time
+  - [ ] F20-C — Home dashboard "Today" section: prominent Quick Start card (first pending) + compact today list with start times + status chip
+  - [ ] F20-D — Missed status when `now > scheduledStart` AND not completed; missed entry sorts to bottom of today list with red chip
+  - [ ] F20-E — Skip / Start Now actions on missed entries
+  - [ ] F20-F — iOS widget mirrors first-scheduled + missed-red
+  - [ ] F20-G — 60s dashboard refresh timer; refresh on `WorkoutStore` change
+  - [ ] Verified: today-only list renders with start times; missed entries drop and turn red; widget mirrors; macOS + iOS builds succeed; core tests pass
+
+- [ ] F21 — Home Quick Settings Access
+  - [ ] F21-A — Add gear toolbar item to `HomeDashboardView`; opens `SettingsView` sheet
+  - [ ] F21-B — Settings sheet uses the safe dismiss path from F18 on macOS
+  - [ ] Verified: gear visible on Home (iOS + macOS); opens settings sheet; closes without crash; macOS + iOS builds succeed
+
+### Phase 4 — Music + UI minimalist cleanup (parallelizable, polish)
+- [ ] F19 — Music Behavior (general upload + sequential default)
+  - [ ] F19-A — `MusicManager.startPlayback(tracks:)` builds `AVQueuePlayer` queue with `actionAtEnd = .advanceToNextMedia`; queue-level loop after last track (NOT per-track loop)
+  - [ ] F19-B — `jumpToTrack(i)` rebuilds queue from index `i` and continues to end → loops to track 0
+  - [ ] F19-C — Per-workout Repeat-One toggle (default OFF) wraps current track in `AVPlayerLooper`; toggle off restores queue
+  - [ ] F19-D — `FloatingControlsBar` playlist popover + Repeat-One button
+  - [ ] F19-E — Settings music library stays global; remove any per-workout upload hint
+  - [ ] Verified: tracks advance sequentially; mid-workout jump continues from there; Repeat-One loops current; pause/resume works; macOS + iOS builds succeed
+
+- [ ] F18 — macOS Polish (window clip, box artifacts, settings crash)
+  - [ ] F18-A — Sidebar background fills full column with `Theme.background.ignoresSafeArea()` (no color clip)
+  - [ ] F18-B — Remove `GroupBox`/bordered containers around navigation links in `AnalyticsView`, `WorkoutPlayerView`, etc.
+  - [ ] F18-C — Settings sheet safe dismiss on macOS (⌘W + cancel); no crash; sheet does not overlap title strip
+  - [ ] F18-D — iOS layout unchanged after macOS fixes
+  - [ ] Verified: sidebar background full-bleed; no border boxes behind navigation links; settings opens/closes cleanly on macOS; iOS unchanged; macOS + iOS builds succeed; core tests pass
+
+- [ ] F17 — Minimalist Text Cleanup
+  - [ ] F17-A — Audit every view for subtitle/explanatory text; classify keep / shorten / remove
+  - [ ] F17-B — Home dashboard: drop "Your day is still open" / "Move how you feel" subtitle; keep greeting + one short chip
+  - [ ] F17-C — DatabaseView "Tap + to add a folder, note, or exercise." removed; toolbar "+" alone
+  - [ ] F17-D — Page detail "This page is empty. Tap Edit to add a guide, media, links, and more." removed
+  - [ ] F17-E — `SettingsView` per-row subtitles removed; keep accessibility labels for VoiceOver
+  - [ ] F17-F — WorkoutListView empty subtitle removed; "Create Workout" CTA only
+  - [ ] F17-G — Empty-state paragraphs trimmed to ≤1 short sentence
+  - [ ] F17-H — Record minimalist-text rule in `STYLES.md`
+  - [ ] Verified: no explanatory subtitle line on Home; settings rows title-only; voice-over still speaks descriptive labels; macOS + iOS builds succeed
 
 ---
 
@@ -369,5 +511,8 @@ F06 (AI Coach) ─────────┘
 - Cycle 5: dynamic types, analytics rework, vacation, prepare time, fixes (built 2026-07-05 to 2026-07-06).
 - Cycle 6: Revolution REV-01 — file-based data architecture (DOCUMENTED 2026-07-06, NOT BUILT).
 - Cycle 7: V2 Notion-style rework from IDEA.md (PLANNED, no code written).
+- Cycle 8: Mac readiness & daily flow (planned 2026-07-13).
+- Cycle 9: V2 workout database completion from workout-builder defect feedback.
+- Cycle 10: real-world polish from ISSUES.md — stability, database hierarchy, V2 workout + player reworks, mac UI polish, minimalist cleanup, scheduled-today Home, music behavior (planned 2026-07-13).
 - server.py and start_server.command are F05 companion files.
 - .gitignore covers xcuserdata, DerivedData, .ipa, .DS_Store.
