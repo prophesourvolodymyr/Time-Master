@@ -526,7 +526,11 @@ struct DatabaseView: View {
                 if !newValue { childParentPage = nil }
             }
             .sheet(isPresented: $showingImport) {
+#if os(macOS)
+                MacVideoImportSheet()
+#else
                 ImportSheetView()
+#endif
             }
             .sheet(isPresented: $showingAddRootNote) {
                 NoteEditorView(folderID: nil).environmentObject(store)

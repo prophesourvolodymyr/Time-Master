@@ -1,8 +1,5 @@
 import SwiftUI
 import AVFoundation
-#if os(macOS)
-import AVKit
-#endif
 
 // MARK: - VideoEditorView
 
@@ -78,7 +75,7 @@ struct VideoEditorView: View {
                     flashPlayHint()
                 }
             #elseif os(macOS)
-            VideoPlayer(player: vm.player)
+            MacVideoPlayerView(player: vm.player)
                 .aspectRatio(contentMode: .fit)
                 .frame(maxWidth: .infinity)
             #endif
@@ -422,7 +419,7 @@ private struct MediaPreviewOverlay: View {
             PlayerLayerView(player: player, gravity: .resizeAspect)
                 .ignoresSafeArea()
             #elseif os(macOS)
-            VideoPlayer(player: player)
+            MacVideoPlayerView(player: player)
                 .aspectRatio(contentMode: .fit)
             #endif
         } else if case .clip = media {

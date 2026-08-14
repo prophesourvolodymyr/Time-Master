@@ -22,13 +22,16 @@
 		1F014AA42226639BBE471F24 /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E287CB0142E9444C0E8CE06 /* BackupManager.swift */; };
 		1F38F1E5BDA6E33ABCFF446E /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F596DD500BCC620B6E3318 /* MusicManager.swift */; };
 		1FB477637AC9EC02C7CB82AE /* WorkoutTypesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CA3D35330EB704FCDFB8B2 /* WorkoutTypesSettingsView.swift */; };
+		20DE70D5B08F45B91DFE946E /* MacVideoEditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */; };
 		20F019992B3164F1D0AA6505 /* DatabaseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */; };
 		21BA70DFF7E86CAE36A5C37B /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26870953ABC5C4610D424C6 /* AudioManager.swift */; };
 		231E7E1E2C99753E61EBEE54 /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A /* PhotoManager.swift */; };
 		2543624AAD36591073E219EA /* PageMediaGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D163AA4744C0E86692930FB6 /* PageMediaGallery.swift */; };
 		25AE8340C3DD506C78A63CE2 /* PageCreationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A3A1CAF77CA030B8E930D9 /* PageCreationSheet.swift */; };
 		2681C7964176B8B24E7E591B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F807BCDB518D68ED40746740 /* Theme.swift */; };
+		26A31AF3709B259294075DCC /* MacVideoDatabaseImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */; };
 		26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */; };
+		28C9BA6DB2D0CDF328F955D5 /* MacVideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC332F0025272F928B063C5 /* MacVideoEditorView.swift */; };
 		29158F6F1C5270FBE2A7B861 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C /* Workout.swift */; };
 		2961777529AC80F2A9570C32 /* ExerciseNamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F451370DBD282BA9ED115D /* ExerciseNamingService.swift */; };
 		298AD304188737C7C50AFBD4 /* TimeMasterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */; };
@@ -42,10 +45,14 @@
 		36662D83C3CB3D8D357DEB4C /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 85E2120C60EC88EBCAB370DF /* ZIPFoundation */; };
 		38F4D6D6E4EB92879758A36F /* BatchConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */; };
 		3ADF98953F934302D315ED4D /* ExercisePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521D9DCA4A8F38702E195D6 /* ExercisePage.swift */; };
+		3C42A22EDDA3D4E08D4DEECC /* MacVideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC332F0025272F928B063C5 /* MacVideoEditorView.swift */; };
 		3E9F5D16097670B3CD457766 /* ExercisePageDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA214153A177B646B5716F8F /* ExercisePageDetailView.swift */; };
 		408A3749AC93ECD68CF94B10 /* WorkoutRemindersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7A902D00787142161E1D0 /* WorkoutRemindersView.swift */; };
+		42395E6AB9C8F12679CA99A8 /* MacVideoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3896E1DB54CF274AE19918D9 /* MacVideoSource.swift */; };
 		44313C07E2AC07FE3A4B99D8 /* PageLinkPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE37AEFDB6AEF4406879D5A3 /* PageLinkPreview.swift */; };
 		456D34AD6F57FBF2E8B267C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
+		45E020960E9572DFC4C18512 /* MacVideoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3896E1DB54CF274AE19918D9 /* MacVideoSource.swift */; };
+		4692522E636D242DDBB76692 /* MacVideoDatabaseImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */; };
 		47CABD616B106BCCE27006DC /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */; };
 		4986FBC4105C7ECB9A1DF962 /* AsyncCoverImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */; };
 		4AAB34B6F3ADC836006D7721 /* MotivationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108D87DB2422C2B7434532CE /* MotivationManager.swift */; };
@@ -54,6 +61,7 @@
 		4C5EC5E1E873C67D607478DA /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADDE983BD98A183CACB5A0A /* NotificationManager.swift */; };
 		4D34183ADD9043FD3D2457EE /* MusicSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544CDDB388219EA439FC403E /* MusicSettingsView.swift */; };
 		51521585263E680D0796CD7D /* MotivationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 262C63F71236516065104666 /* MotivationSettingsView.swift */; };
+		518B2DE773F5BA3742F43985 /* MacVideoImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */; };
 		5246CEED03110373718500FB /* ServerDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974234249F4F5FE01C287372 /* ServerDiscovery.swift */; };
 		56E37DD04D21CBCBCEE65195 /* AICoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2B31A2CB068DFC3D3CF6C9 /* AICoachView.swift */; };
 		588BAA67DE57B021348373EF /* WorkoutRemindersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A7A902D00787142161E1D0 /* WorkoutRemindersView.swift */; };
@@ -82,15 +90,18 @@
 		8738B5C840599628FD8BD930 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADDE983BD98A183CACB5A0A /* NotificationManager.swift */; };
 		8766E931A44209E4AE84B482 /* VideoEmbedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2174535363CFC988D190B790 /* VideoEmbedCard.swift */; };
 		8774DCE1AA5D3C75471D2821 /* WorkoutHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */; };
+		895B628DEFD5D54381D4A684 /* MacVideoEditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */; };
 		8ACEDC7512FEB9A0F8708243 /* PageTreeBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2175E25BF275E3B9D91DDA /* PageTreeBuilder.swift */; };
 		8ADC60A7F1B2F25CE2EEC828 /* TrayItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */; };
 		8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
 		8E7C11DD25A21C06BAFAF5AF /* Info-macOS.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9991CAB36F9339458080C09D /* Info-macOS.plist */; };
+		90F67F23C5E12ED3F7D9E680 /* MacVideoDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */; };
 		915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A /* PhotoManager.swift */; };
 		95A50701B3F318C1C99F6983 /* MotivationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 262C63F71236516065104666 /* MotivationSettingsView.swift */; };
 		95F3A280CFA2C2673F4C0137 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811BB55E3BD88B54CD74BF4C /* HistoryView.swift */; };
 		96444760F84DA562E3C1E961 /* ExerciseDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */; };
 		973D6FCA54ADE1593D0B32B2 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3323F148BE5A75196E090AC /* MainTabView.swift */; };
+		97CFB293859EC231EAE8424A /* MacVideoDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C91983F7949FD5F87F9C1B /* MacVideoDraft.swift */; };
 		99D84511BC7FC327EF67428E /* HomeDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1982E564F4214D2342CB79D /* HomeDashboardView.swift */; };
 		9AFD9091F109575DF5835A11 /* DatabasePageBrowserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC65261AB128B4346DD0F22 /* DatabasePageBrowserSheet.swift */; };
 		9CC9684997DA3660B5666198 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */; };
@@ -105,6 +116,7 @@
 		AA7714A8E81C30CF1B9F4F96 /* VideoEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */; };
 		AAD684B85FF8425C89AC4A5E /* TimeMasterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 252C84030B2F7B9008ABFAF3 /* TimeMasterCore */; };
 		AE60993DD2ED3AED3CFCDFC1 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A30541E8A14548A023A7CCF /* AIProvider.swift */; };
+		B8F9E5AEDE24CB233157AD65 /* MacVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FAA1EDC1D9F05C4B0B3716 /* MacVideoPlayerView.swift */; };
 		BB4F39D0883462DD08776419 /* TrayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FC162E9FB73397A81F0F44 /* TrayCardView.swift */; };
 		BC268E0D78881E52B0CD40BD /* MacFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6C47C92F10694708275E65 /* MacFilePicker.swift */; };
 		C0A3DF2E1C1A7D06EC0EB6CC /* WorkoutPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901825E1313282F9A698669C /* WorkoutPickerSheet.swift */; };
@@ -115,6 +127,7 @@
 		C335456F7D0ADC15B973B7B8 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
 		C40C12C08BB9ED640B0E3180 /* TrayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FC162E9FB73397A81F0F44 /* TrayCardView.swift */; };
 		C41EE83CD7FE2D8173CD2935 /* VideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */; };
+		C471F3D37C9C871EAAC793F6 /* MacVideoDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C91983F7949FD5F87F9C1B /* MacVideoDraft.swift */; };
 		C5A780D6F56613ABECE8AC4F /* PageCreationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A3A1CAF77CA030B8E930D9 /* PageCreationSheet.swift */; };
 		C60778CBF61696E62E033E5A /* MediaPreviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F435C38E0A49A5A662AEB9F /* MediaPreviewSheet.swift */; };
 		C70C335647F399430B311108 /* MacCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DCFAED7489A746DEF2AFCA /* MacCommands.swift */; };
@@ -135,6 +148,7 @@
 		DF365B3329D18015F0D078D8 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26870953ABC5C4610D424C6 /* AudioManager.swift */; };
 		E4243D9BD9F55DC011375CE8 /* AISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0008579785FB963981CED211 /* AISettingsView.swift */; };
 		E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */; };
+		E623E0AC865B7423CA80DD09 /* MacVideoImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */; };
 		E73352D93E3783385F9CD7EE /* ExercisePageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */; };
 		E813EC740EF6CDB8788BA959 /* SwiftMP3 in Frameworks */ = {isa = PBXBuildFile; productRef = 318EF0BBBA22FEF901B5BD35 /* SwiftMP3 */; };
 		FC0A57C11234567890ABCDEF /* DurationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0A57C11234567890ABCDEF /* DurationPickerView.swift */; };
@@ -144,10 +158,12 @@
 		ECBD34FE7A571F71D33AF9AC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7C3D82BCDAF71304D5E180 /* SettingsView.swift */; };
 		ECE7205F6CD799125CF0242A /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */; };
 		F50E9255146C52CF69E82427 /* TrayItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */; };
+		F545A726C5187E6B3F704EE9 /* MacVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FAA1EDC1D9F05C4B0B3716 /* MacVideoPlayerView.swift */; };
 		F603AE4A1CCA210169FB679A /* ExercisePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521D9DCA4A8F38702E195D6 /* ExercisePage.swift */; };
 		F6838F3448F9386FB0F33390 /* BatchConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */; };
 		F8D8047E415F5842E87BF5FD /* PageLinkPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE37AEFDB6AEF4406879D5A3 /* PageLinkPreview.swift */; };
 		F935766F4C0248DC6754248D /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D582991CAE01E1427BA7D5B /* KeychainHelper.swift */; };
+		F982C089FE894F470B34954C /* MacVideoDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */; };
 		FD452ABA07833934841CC4E0 /* AISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0008579785FB963981CED211 /* AISettingsView.swift */; };
 		FE7FC7E6D762841DA8BBCB52 /* MotivationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108D87DB2422C2B7434532CE /* MotivationManager.swift */; };
 /* End PBXBuildFile section */
@@ -167,17 +183,21 @@
 		1A30541E8A14548A023A7CCF /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSectionPickerView.swift; sourceTree = "<group>"; };
 		2174535363CFC988D190B790 /* VideoEmbedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEmbedCard.swift; sourceTree = "<group>"; };
+		22FAA1EDC1D9F05C4B0B3716 /* MacVideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoPlayerView.swift; sourceTree = "<group>"; };
+		23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoEditorModel.swift; sourceTree = "<group>"; };
 		262C63F71236516065104666 /* MotivationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationSettingsView.swift; sourceTree = "<group>"; };
 		282193241415BB7A32B3786C /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
 		2E89B236DA27477DE058ABD6 /* ToolRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRouter.swift; sourceTree = "<group>"; };
 		2F435C38E0A49A5A662AEB9F /* MediaPreviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewSheet.swift; sourceTree = "<group>"; };
 		31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncCoverImage.swift; sourceTree = "<group>"; };
+		3896E1DB54CF274AE19918D9 /* MacVideoSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoSource.swift; sourceTree = "<group>"; };
 		3C6AF2DDD32ED947B58D02B0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerSettingsView.swift; sourceTree = "<group>"; };
 		42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistory.swift; sourceTree = "<group>"; };
 		47FC162E9FB73397A81F0F44 /* TrayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayCardView.swift; sourceTree = "<group>"; };
 		4C6FF36A9DF857B888B29855 /* TimeMaster.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMaster.entitlements; sourceTree = "<group>"; };
 		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDownloadService.swift; sourceTree = "<group>"; };
 		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
 		52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchConfirmView.swift; sourceTree = "<group>"; };
 		544CDDB388219EA439FC403E /* MusicSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSettingsView.swift; sourceTree = "<group>"; };
@@ -195,11 +215,15 @@
 		7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePageOverlay.swift; sourceTree = "<group>"; };
 		811BB55E3BD88B54CD74BF4C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorView.swift; sourceTree = "<group>"; };
+		87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoImportSheet.swift; sourceTree = "<group>"; };
 		901825E1313282F9A698669C /* WorkoutPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPickerSheet.swift; sourceTree = "<group>"; };
+		93C91983F7949FD5F87F9C1B /* MacVideoDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDraft.swift; sourceTree = "<group>"; };
 		974234249F4F5FE01C287372 /* ServerDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDiscovery.swift; sourceTree = "<group>"; };
 		9991CAB36F9339458080C09D /* Info-macOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-macOS.plist"; sourceTree = "<group>"; };
 		9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlayerView.swift; sourceTree = "<group>"; };
 		9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutResumeManager.swift; sourceTree = "<group>"; };
+		9BC332F0025272F928B063C5 /* MacVideoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoEditorView.swift; sourceTree = "<group>"; };
+		A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDatabaseImporter.swift; sourceTree = "<group>"; };
 		A1982E564F4214D2342CB79D /* HomeDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDashboardView.swift; sourceTree = "<group>"; };
 		A1CCEB17200A24DBE2751D49 /* TimeMaster-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "TimeMaster-macOS.entitlements"; sourceTree = "<group>"; };
 		A9F596DD500BCC620B6E3318 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
@@ -259,6 +283,11 @@
 			children = (
 				52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */,
 				0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */,
+				93C91983F7949FD5F87F9C1B /* MacVideoDraft.swift */,
+				9BC332F0025272F928B063C5 /* MacVideoEditorView.swift */,
+				87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */,
+				22FAA1EDC1D9F05C4B0B3716 /* MacVideoPlayerView.swift */,
+				3896E1DB54CF274AE19918D9 /* MacVideoSource.swift */,
 				3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */,
 				47FC162E9FB73397A81F0F44 /* TrayCardView.swift */,
 				84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */,
@@ -425,6 +454,7 @@
 				1A30541E8A14548A023A7CCF /* AIProvider.swift */,
 				08AAEB576B7DB134E5212C54 /* AIStore.swift */,
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
+				23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */,
 				BF2175E25BF275E3B9D91DDA /* PageTreeBuilder.swift */,
 				2E89B236DA27477DE058ABD6 /* ToolRouter.swift */,
 				DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */,
@@ -488,6 +518,8 @@
 		E77C50DF73EE34BD211B8CF4 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */,
+				50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */,
 				974234249F4F5FE01C287372 /* ServerDiscovery.swift */,
 				D264DD465BC99BACA5CD3668 /* VideoDownloadService.swift */,
 				D84B5A5EA777C4BE497FC8C1 /* VideoTrimService.swift */,
@@ -637,6 +669,14 @@
 				F935766F4C0248DC6754248D /* KeychainHelper.swift in Sources */,
 				C70C335647F399430B311108 /* MacCommands.swift in Sources */,
 				A8E33311034B7C801C07CDAB /* MacFilePicker.swift in Sources */,
+				4692522E636D242DDBB76692 /* MacVideoDatabaseImporter.swift in Sources */,
+				90F67F23C5E12ED3F7D9E680 /* MacVideoDownloadService.swift in Sources */,
+				97CFB293859EC231EAE8424A /* MacVideoDraft.swift in Sources */,
+				20DE70D5B08F45B91DFE946E /* MacVideoEditorModel.swift in Sources */,
+				3C42A22EDDA3D4E08D4DEECC /* MacVideoEditorView.swift in Sources */,
+				518B2DE773F5BA3742F43985 /* MacVideoImportSheet.swift in Sources */,
+				B8F9E5AEDE24CB233157AD65 /* MacVideoPlayerView.swift in Sources */,
+				42395E6AB9C8F12679CA99A8 /* MacVideoSource.swift in Sources */,
 				A52B57AED83D34523ACF7433 /* MainTabView.swift in Sources */,
 				C60778CBF61696E62E033E5A /* MediaPreviewSheet.swift in Sources */,
 				FE7FC7E6D762841DA8BBCB52 /* MotivationManager.swift in Sources */,
@@ -711,6 +751,14 @@
 				6B201BE5D8D6C8685E62EC17 /* KeychainHelper.swift in Sources */,
 				D1E0A29BD844E89585013B3A /* MacCommands.swift in Sources */,
 				BC268E0D78881E52B0CD40BD /* MacFilePicker.swift in Sources */,
+				26A31AF3709B259294075DCC /* MacVideoDatabaseImporter.swift in Sources */,
+				F982C089FE894F470B34954C /* MacVideoDownloadService.swift in Sources */,
+				C471F3D37C9C871EAAC793F6 /* MacVideoDraft.swift in Sources */,
+				895B628DEFD5D54381D4A684 /* MacVideoEditorModel.swift in Sources */,
+				28C9BA6DB2D0CDF328F955D5 /* MacVideoEditorView.swift in Sources */,
+				E623E0AC865B7423CA80DD09 /* MacVideoImportSheet.swift in Sources */,
+				F545A726C5187E6B3F704EE9 /* MacVideoPlayerView.swift in Sources */,
+				45E020960E9572DFC4C18512 /* MacVideoSource.swift in Sources */,
 				973D6FCA54ADE1593D0B32B2 /* MainTabView.swift in Sources */,
 				2E7A0499465CDAF7F07FDC34 /* MediaPreviewSheet.swift in Sources */,
 				4AAB34B6F3ADC836006D7721 /* MotivationManager.swift in Sources */,
