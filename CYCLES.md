@@ -395,7 +395,10 @@ F06 (AI Coach) ─────────┘
   - [x] Detail: WorkoutStore creates/updates/deletes file-based workout manifests after migration and keeps widget/UserDefaults mirrors in sync
   - [x] Detail: Timed playback uses per-slot durations/rests; bundle playback is self-paced with next/previous swipe navigation and page overlay access
   - [x] Detail: Rest pages can be assigned per slot and opened directly from the rest screen
-  - [x] Verified: 66 TimeMasterCore tests pass (including nested slot/bundle manifest round-trip); macOS arm64 Debug build succeeds; iOS `TimeMaster` simulator Debug build succeeds; installed/launched on iPhone 16 Pro Simulator, iOS 18.6, bundle `com.vovas.TimeMaster`; screenshot captured 2026-07-13
+  - [x] Detail: Browser quick preview shows cover fallback, media count, links, tags, guide summary, and full media gallery; containers are visible but cannot be added as workout sections
+  - [x] Detail: Expanded builder sections expose inline duration/reps/rest controls, passive-rest clearing, and drag reorder for slots and selected bundle items
+  - [x] Detail: Bundle player supports inline media preview, full page opening, next-exercise context, and mid-workout reorder persistence
+  - [x] Verified: 67 TimeMasterCore tests pass (including nested slot/bundle manifest round-trip); macOS arm64 Debug build succeeds; iOS `TimeMaster` simulator Debug build succeeds; installed/launched on iPhone 16 Pro Simulator, iOS 18.6, bundle `com.vovas.TimeMaster`; screenshot captured 2026-07-13
 
 ---
 
@@ -409,26 +412,28 @@ F06 (AI Coach) ─────────┘
 - [ ] F13 — Stability & Freeze Investigation
   - [ ] F13-A — Reproduce freeze across home → workout → player; home → database → page detail; settings open/close; rapid tab switches
   - [ ] F13-B — Move main-thread file I/O (cover image, guide.md, media thumbnails) to background queues with cached published values
-  - [ ] F13-C — Debounce / coalesce `DatabaseStore.reload()` storms after sheet dismiss
-  - [ ] F13-D — Audit `PreferenceKey` scroll-offset usage and remove frame-by-frame re-renders
+  - [x] F13-C — Debounce / coalesce `DatabaseStore.reload()` storms after sheet dismiss
+  - [x] F13-D — Audit `PreferenceKey` scroll-offset usage and remove frame-by-frame re-renders
   - [ ] F13-E — Audit `Timer` + `AVQueuePlayer` + `AVPlayerLooper` retain cycles in player + media carousel
   - [ ] F13-F — Hoist any recreated `@StateObject` to a long-living owner
   - [ ] Verified: 30s idle + 5-sheet open/close sequence + two phase transitions + 20 rapid tab switches with no main-thread stall; macOS + iOS arm64 builds succeed; core tests pass
 
 ### Phase 1 — Database hierarchy + editor picker (parallelizable later features depend on this)
-- [ ] F14 — Database Hierarchy Model (root container vs leaf exercise)
-  - [ ] F14-A — Add `PageKind` enum (`.container` / `.leaf`) to `ExercisePageManifest`; legacy fallback decoding
-  - [ ] F14-B — Split `PageCreationSheet` into container form (cover + tag, NO duration/sets/media) and leaf form (NO cover, duration + sets + reps + rest + media + markdown + links)
-  - [ ] F14-C — Leaf cover fallback: `ExercisePage.coverImageURL` returns first `mediaFilenames` item when no explicit cover
-  - [ ] F14-D — Detail view hides workout config badge and "Add to Workout" button on container pages
-  - [ ] F14-E — Container-of-container creation works to unlimited depth (`Add Child Page` on container)
-  - [ ] F14-F — `schema.json` + `ToolRouter` expose `create_container_page` and `create_exercise_page` with per-kind field validation; rejects `duration`/`sets` on container or `coverImageFilename` on leaf
-  - [ ] F14-G — Migration: split any existing malformed container pages that have `duration`/`sets` into a container + child exercise
-  - [ ] Verified: new container form has no duration/sets; new leaf form has no cover; leaf cover falls back to first media; AI tool rejects out-of-kind fields; macOS + iOS builds succeed; core tests pass
+ - [x] F14 — Database Hierarchy Model (root container vs leaf exercise)
+   - [x] F14-A — Add `PageKind` enum (`.container` / `.leaf`) to `ExercisePageManifest`; legacy fallback decoding
+   - [x] F14-B — Split `PageCreationSheet` into container form (cover, NO duration/sets/media) and leaf form (NO cover, duration + sets + reps + rest + media + markdown + links)
+   - [x] F14-C — Leaf cover fallback: `ExercisePage.coverImageURL` returns first `mediaFilenames` item when no explicit cover
+   - [x] F14-D — Detail view hides workout config badge and "Add to Workout" button on container pages
+   - [x] F14-E — Container-of-container creation works to unlimited depth (`Add Child Page` on container)
+   - [x] F14-F — `schema.json` + `ToolRouter` expose `create_container_page` and `create_exercise_page` with per-kind field validation; rejects `duration`/`sets` on container or `coverImageFilename` on leaf
+   - [x] F14-G — Migration: split any existing malformed container pages that have `duration`/`sets` into a container + child exercise
+   - [x] F14-H — Root containers own workout type; nested containers and leaves inherit it and cannot override it
+   - [x] F14-I — Remove legacy tags and clean cached page manifests/UserDefaults database snapshots
+   - [x] Verified: hierarchy tests pass, cached manifests contain no tags or container timing, macOS build succeeds; human verification remains required
 
 - [ ] F23 — Editor Database Picker Fix (old/empty DB issue)
-  - [ ] F23-A — Replace every "Add exercise to workout" sheet with `DatabasePageBrowserSheet` (NOT legacy `DatabaseSectionPickerView`); audit + remove `DatabaseSectionPickerView` from production callers
-  - [ ] F23-B — `DatabaseStore.reload()` runs immediately before opening the browser sheet
+  - [x] F23-A — Replace every "Add exercise to workout" sheet with `DatabasePageBrowserSheet` (NOT legacy `DatabaseSectionPickerView`); audit + remove `DatabaseSectionPickerView` from production callers
+  - [x] F23-B — `DatabaseStore.reload()` runs immediately before opening the browser sheet
   - [ ] F23-C — `WorkoutPickerSheet` writes a new page-backed section to the chosen workout via `WorkoutStore.updateWorkout` → `DatabaseManager` manifest write
   - [ ] F23-D — `WorkoutDetailView.handlePageSelection` stamps `Section.pageID = page.id` and persists
   - [ ] Verified: workout editor never shows the old V1 folder picker; freshly-imported DB pages immediately selectable in the editor; section persists across re-open; macOS + iOS builds succeed; core tests pass
@@ -477,17 +482,19 @@ F06 (AI Coach) ─────────┘
 
 ### Phase 4 — Music + UI minimalist cleanup (parallelizable, polish)
 - [ ] F19 — Music Behavior (general upload + sequential default)
-  - [ ] F19-A — `MusicManager.startPlayback(tracks:)` builds `AVQueuePlayer` queue with `actionAtEnd = .advanceToNextMedia`; queue-level loop after last track (NOT per-track loop)
-  - [ ] F19-B — `jumpToTrack(i)` rebuilds queue from index `i` and continues to end → loops to track 0
-  - [ ] F19-C — Per-workout Repeat-One toggle (default OFF) wraps current track in `AVPlayerLooper`; toggle off restores queue
+  - [x] F19-A — `MusicManager.startPlayback(tracks:)` builds `AVQueuePlayer` queue with `actionAtEnd = .advanceToNextMedia`; queue-level loop after last track (NOT per-track loop)
+  - [x] F19-B — `jumpToTrack(i)` rebuilds queue from index `i` and continues to end → loops to track 0
+  - [x] F19-C — Per-workout Repeat-One toggle (default OFF) wraps current track in `AVPlayerLooper`; toggle off restores queue
+  - [x] F19-D-v2 — Import video files from Music Settings and convert them to headless MP3 with SwiftMP3
+  - [x] F19-E-v2 — Explicit whole-library vs specific per-workout playlist selection persists in `WorkoutManifest`
   - [ ] F19-D — `FloatingControlsBar` playlist popover + Repeat-One button
   - [ ] F19-E — Settings music library stays global; remove any per-workout upload hint
   - [ ] Verified: tracks advance sequentially; mid-workout jump continues from there; Repeat-One loops current; pause/resume works; macOS + iOS builds succeed
 
 - [ ] F18 — macOS Polish (window clip, box artifacts, settings crash)
-  - [ ] F18-A — Sidebar background fills full column with `Theme.background.ignoresSafeArea()` (no color clip)
+  - [x] F18-A — Sidebar background fills full column with `Theme.background.ignoresSafeArea()` (no color clip)
   - [ ] F18-B — Remove `GroupBox`/bordered containers around navigation links in `AnalyticsView`, `WorkoutPlayerView`, etc.
-  - [ ] F18-C — Settings sheet safe dismiss on macOS (⌘W + cancel); no crash; sheet does not overlap title strip
+  - [x] F18-C — Settings sheet safe dismiss on macOS (⌘W + cancel); no crash; sheet does not overlap title strip
   - [ ] F18-D — iOS layout unchanged after macOS fixes
   - [ ] Verified: sidebar background full-bleed; no border boxes behind navigation links; settings opens/closes cleanly on macOS; iOS unchanged; macOS + iOS builds succeed; core tests pass
 

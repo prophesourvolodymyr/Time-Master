@@ -22,7 +22,7 @@ struct WorkoutPlayerView: View {
     @EnvironmentObject var databaseStore: DatabaseStore
     @Environment(\.dismiss) var dismiss
 
-    let workout: Workout
+    @State private var workout: Workout
 
     // Navigation
     @State private var currentSectionIndex  = 0
@@ -90,12 +90,54 @@ struct WorkoutPlayerView: View {
 
     // F02-A-d: Page overlay
     @State private var showPageOverlay = false
+    @State private var overlayPageID: UUID?
+    @State private var overlayPageName = ""
+    @State private var showBundleInlinePreview = false
+    @State private var bundleMediaIndex = 0
+    @State private var showBundleMediaViewer = false
+    @State private var showBundleReorder = false
+
+    init(workout: Workout) {
+        _workout = State(initialValue: workout)
+    }
 
     // MARK: - Computed
 
     private var currentSection: Section? {
         guard currentSectionIndex < workout.sections.count else { return nil }
         return workout.sections[currentSectionIndex]
+    }
+
+    private var currentSlot: SetSlot? {
+        guard let section = currentSection else { return nil }
+        return section.effectiveSlots[safe: currentSetIndex]
+    }
+
+    private var isBundleActive: Bool {
+        currentSection?.mode == .bundle && !isWarmUp && !isSetRest && !isSectionRest
+    }
+
+    private var nextExerciseName: String? {
+        if let section = currentSection,
+           section.mode == .bundle,
+           let next = section.effectiveSlots[safe: currentSetIndex + 1] {
+            return next.name
+        }
+        return workout.sections[safe: currentSectionIndex + 1]?.name
+    }
+
+    private var restSlot: SetSlot? {
+        guard isSetRest, let section = currentSection else { return nil }
+        return section.effectiveSlots[safe: max(0, currentSetIndex - 1)]
+    }
+
+    private func openPageOverlay(id: UUID?, name: String) {
+        guard let id else { return }
+        overlayPageID = id
+        overlayPageName = name
+        withAnimation(.easeOut(duration: 0.3)) {
+            showPageOverlay = true
+        }
     }
 
     // MARK: - Body
@@ -111,14 +153,16 @@ struct WorkoutPlayerView: View {
                 AudioManager.shared.activateSession()
                 loadCurrentMedia()
                 tryResumeState()
-                registerBackgroundHandlers()
             }
             .onChange(of: currentSectionIndex) { _ in
                 currentMediaIndex = 0
                 loadCurrentMedia()
             }
-            .onChange(of: currentMediaIndex) { _ in
-                setupVideoIfNeeded()
+             .onChange(of: currentMediaIndex) { _ in
+                 setupVideoIfNeeded()
+             }
+            .onChange(of: currentSetIndex) { _ in
+                showBundleInlinePreview = false
             }
             .onDisappear {
                 #if os(iOS)
@@ -135,6 +179,7 @@ struct WorkoutPlayerView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 endBackgroundTask()
+                reconcileAfterInterruption()
             }
             #endif
             .alert("Stop Workout?", isPresented: $showingCloseConfirmation) {
@@ -149,18 +194,21 @@ struct WorkoutPlayerView: View {
                 }
             }
             .overlay {
-                if showPageOverlay, let section = currentSection, let pageID = section.pageID {
+                if showPageOverlay, let section = currentSection, let pageID = overlayPageID ?? currentSlot?.exercisePageID ?? section.pageID {
                     ExercisePageOverlay(
                         pageID: pageID,
-                        sectionName: section.name,
+                        sectionName: overlayPageName.isEmpty ? (currentSlot?.name ?? section.name) : overlayPageName,
                         sectionIndex: currentSectionIndex,
                         totalSections: workout.sections.count,
                         timeRemaining: timeRemaining,
                         elapsedSeconds: elapsedSeconds,
                         isPaused: isPaused,
-                        isTimerEnabled: section.isTimerEnabled,
-                        isRest: isSetRest || isSectionRest,
-                        onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
+                        isTimerEnabled: section.mode == .timed && section.isTimerEnabled,
+                         isRest: isSetRest || isSectionRest,
+                         isMusicPlaying: musicManager.isPlaying,
+                         nextExerciseName: nextExerciseName,
+                         onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
+                        onMusicToggle: toggleOverlayMusic,
                         onStop: { stopWorkout() },
                         onSkip: {
                             timer?.invalidate()
@@ -169,13 +217,32 @@ struct WorkoutPlayerView: View {
                         onDismiss: {
                             withAnimation(.easeOut(duration: 0.3)) {
                                 showPageOverlay = false
+                                overlayPageID = nil
+                                overlayPageName = ""
                             }
                         }
                     )
                     .transition(.opacity)
                 }
             }
-            .animation(.easeOut(duration: 0.3), value: showPageOverlay)
+             .animation(.easeOut(duration: 0.3), value: showPageOverlay)
+            .sheet(isPresented: $showBundleReorder) {
+                BundleReorderSheet(
+                    slots: currentSection?.effectiveSlots ?? [],
+                    onMove: moveBundleSlots
+                )
+            }
+            .sheet(isPresented: $showBundleMediaViewer) {
+                if let page = currentSlot.flatMap({ slot in
+                    slot.exercisePageID.flatMap { databaseStore.page(id: $0) }
+                }) {
+                    PageMediaGallery(
+                        urls: page.mediaURLs,
+                        selectedIndex: $bundleMediaIndex,
+                        isPresented: $showBundleMediaViewer
+                    )
+                }
+            }
     }
 
     // MARK: - Content routing
@@ -344,6 +411,16 @@ struct WorkoutPlayerView: View {
     // MARK: - Active Section
 
     private var activeSectionView: some View {
+        Group {
+            if isBundleActive {
+                bundleSectionView
+            } else {
+                timedSectionView
+            }
+        }
+    }
+
+    private var timedSectionView: some View {
         VStack(spacing: 0) {
             // Top bar
             HStack {
@@ -363,14 +440,12 @@ struct WorkoutPlayerView: View {
 
                 // Section name + sets indicator
                 VStack(spacing: 6) {
-                    if let section = currentSection, section.pageID != nil {
+                    if let section = currentSection, let pageID = currentSlot?.exercisePageID ?? section.pageID {
                         Button {
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                showPageOverlay = true
-                            }
+                            openPageOverlay(id: pageID, name: currentSlot?.name ?? section.name)
                         } label: {
                             HStack(spacing: 6) {
-                                Text(section.name)
+                                Text(currentSlot?.name ?? section.name)
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(.white)
                                 Image(systemName: "book.pages")
@@ -383,7 +458,7 @@ struct WorkoutPlayerView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.horizontal, 32)
                     } else {
-                        Text(currentSection?.name ?? "")
+                        Text(currentSlot?.name ?? currentSection?.name ?? "")
                             .font(.system(size: 26, weight: .bold))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
@@ -391,18 +466,18 @@ struct WorkoutPlayerView: View {
                             .padding(.horizontal, 32)
                     }
 
-                    if let section = currentSection, section.sets > 1 {
+                    if let section = currentSection, section.slotCount > 1 {
                         VStack(spacing: 2) {
-                            Text("Set \(currentSetIndex + 1) / \(section.sets)")
+                            Text("Set \(currentSetIndex + 1) / \(section.slotCount)")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.white.opacity(0.55))
-                            if let reps = section.repCount {
+                            if let reps = currentSlot?.repCount ?? section.repCount {
                                 Text("\(reps) reps")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(.white.opacity(0.4))
                             }
                         }
-                    } else if let section = currentSection, let reps = section.repCount {
+                    } else if let section = currentSection, let reps = currentSlot?.repCount ?? section.repCount {
                         Text("\(reps) reps")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.5))
@@ -421,6 +496,170 @@ struct WorkoutPlayerView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var bundleSectionView: some View {
+        VStack(spacing: 0) {
+            HStack {
+                closeButton(confirmed: true)
+                Spacer()
+                musicButton
+                sectionBadge
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 18) {
+                Text("BUNDLE · SELF-PACED")
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(2)
+                    .foregroundColor(.white.opacity(0.55))
+
+                if let slot = currentSlot {
+                    VStack(spacing: 12) {
+                        Button {
+                            showBundleInlinePreview.toggle()
+                        } label: {
+                            VStack(spacing: 12) {
+                                bundleCover(for: slot)
+                                Text(slot.name)
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                if let pageID = slot.exercisePageID,
+                                   let page = databaseStore.page(id: pageID),
+                                   !page.manifest.markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    Text(String(page.manifest.markdownBody
+                                        .replacingOccurrences(of: "#", with: "")
+                                        .prefix(140)))
+                                        .font(.subheadline)
+                                        .foregroundColor(.white.opacity(0.65))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(3)
+                                }
+                                Label(
+                                    showBundleInlinePreview ? "Hide Preview" : "Preview Media",
+                                    systemImage: showBundleInlinePreview ? "chevron.up" : "photo"
+                                )
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(28)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(24)
+                        }
+                        .buttonStyle(.plain)
+
+                        if showBundleInlinePreview,
+                           let pageID = slot.exercisePageID,
+                           let page = databaseStore.page(id: pageID) {
+                            if page.hasMedia {
+                                PageMediaGalleryGrid(urls: page.mediaURLs) { index in
+                                    bundleMediaIndex = index
+                                    showBundleMediaViewer = true
+                                }
+                                .padding(.horizontal, 8)
+                            } else {
+                                Text("This exercise has no media yet.")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+
+                        if slot.exercisePageID != nil {
+                            Button {
+                                openPageOverlay(id: slot.exercisePageID, name: slot.name)
+                            } label: {
+                                Label("Open Page", systemImage: "book.pages")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                Text("\(currentSetIndex + 1) / \(currentSection?.slotCount ?? 1)")
+                    .font(.headline.monospacedDigit())
+                    .foregroundColor(.white.opacity(0.65))
+
+                Button {
+                    endWorkPeriod()
+                } label: {
+                    Label(
+                        currentSetIndex + 1 < (currentSection?.slotCount ?? 1) ? "Next Technique" : "Complete Bundle",
+                        systemImage: "arrow.right.circle.fill"
+                    )
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.white)
+                    .cornerRadius(14)
+                }
+
+                Button {
+                    showBundleReorder = true
+                } label: {
+                    Label("Reorder Techniques", systemImage: "line.3.horizontal")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .gesture(
+            DragGesture(minimumDistance: 40)
+                .onEnded { value in
+                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                    if value.translation.width > 0, currentSetIndex > 0 {
+                        currentSetIndex -= 1
+                    } else if value.translation.width < 0 {
+                        endWorkPeriod()
+                    }
+                }
+        )
+    }
+
+    @ViewBuilder
+    private func bundleCover(for slot: SetSlot) -> some View {
+        if let pageID = slot.exercisePageID,
+           let page = databaseStore.page(id: pageID),
+           let url = page.coverImageURL {
+            AsyncCoverImage(
+                url: url,
+                fallbackIcon: page.manifest.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"),
+                fallbackColor: Color(hex: page.effectiveWorkoutType?.colorHex ?? "FFFFFF"),
+                height: 150,
+                overlayGradient: false
+            )
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        } else if let pageID = slot.exercisePageID, let page = databaseStore.page(id: pageID) {
+            bundleFallbackCover(page: page)
+        } else {
+            Image(systemName: "rectangle.stack.fill")
+                .font(.system(size: 42))
+                .foregroundColor(.white.opacity(0.8))
+        }
+    }
+
+    private func bundleFallbackCover(page: ExercisePage) -> some View {
+        RoundedRectangle(cornerRadius: 16)
+            .fill(Color(hex: page.effectiveWorkoutType?.colorHex ?? "FFFFFF").opacity(0.22))
+            .frame(maxWidth: .infinity)
+            .frame(height: 150)
+            .overlay {
+                Image(systemName: page.manifest.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"))
+                    .font(.system(size: 48))
+                    .foregroundColor(.white.opacity(0.7))
+            }
     }
 
     private var sectionBadge: some View {
@@ -456,11 +695,15 @@ struct WorkoutPlayerView: View {
     private var mediaCarouselContent: some View {
         if let item = loadedMedia[safe: currentMediaIndex] {
             if item.type == .video, let player = videoPlayer {
-                VideoPlayer(player: player)
-                    .frame(width: 260, height: 260)
-                    .onTapGesture {
-                        overlayMediaItem = item
-                        showMediaOverlay = true
+                    VideoPlayer(player: player)
+                        .frame(width: 260, height: 260)
+                        .onTapGesture {
+                        if let pageID = currentSlot?.exercisePageID ?? currentSection?.pageID {
+                            openPageOverlay(id: pageID, name: currentSlot?.name ?? currentSection?.name ?? item.filename)
+                        } else {
+                            overlayMediaItem = item
+                            showMediaOverlay = true
+                        }
                     }
             } else if let outer = mediaImages[safe: currentMediaIndex], let img = outer {
                 Image.platformImg(img)
@@ -468,9 +711,13 @@ struct WorkoutPlayerView: View {
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 260, height: 260)
                     .onTapGesture {
-                        overlayMediaItem = item
-                        overlayImage = img
-                        showMediaOverlay = true
+                        if let pageID = currentSlot?.exercisePageID ?? currentSection?.pageID {
+                            openPageOverlay(id: pageID, name: currentSlot?.name ?? currentSection?.name ?? item.filename)
+                        } else {
+                            overlayMediaItem = item
+                            overlayImage = img
+                            showMediaOverlay = true
+                        }
                     }
             }
         }
@@ -551,6 +798,24 @@ struct WorkoutPlayerView: View {
 
                 restContextLabel
 
+                if let slot = restSlot,
+                   let pageID = slot.restExercisePageID,
+                   let page = databaseStore.page(id: pageID) {
+                    Button {
+                        openPageOverlay(id: pageID, name: page.title)
+                    } label: {
+                        Label("Rest exercise: \(page.title)", systemImage: "figure.cooldown")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.white.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+
             if !restExtensionText.isEmpty {
                 Text(restExtensionText)
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
@@ -595,7 +860,7 @@ struct WorkoutPlayerView: View {
     @ViewBuilder
     private var restContextLabel: some View {
         if isSetRest, let section = currentSection {
-            Text("Set \(currentSetIndex) of \(section.sets)")
+            Text("Set \(currentSetIndex) of \(section.slotCount)")
                 .font(.title3)
                 .foregroundColor(.white.opacity(0.65))
                 .multilineTextAlignment(.center)
@@ -778,7 +1043,7 @@ struct WorkoutPlayerView: View {
     }
 
     private var musicButton: some View {
-        let tracks = workout.musicTrackFilenames
+        let tracks = selectedMusicTracks
         let hasTracks = !tracks.isEmpty
         return Button {
             guard hasTracks else { return }
@@ -788,7 +1053,7 @@ struct WorkoutPlayerView: View {
                 MusicManager.shared.startPlayback(tracks: tracks)
             }
         } label: {
-            Image(systemName: musicManager.isPlaying ? "music.note" : "music.note.list")
+            Image(systemName: musicManager.repeatOne ? "repeat.1" : (musicManager.isPlaying ? "music.note" : "music.note.list"))
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(hasTracks ? .white : .white.opacity(0.25))
                 .frame(width: 40, height: 40)
@@ -796,6 +1061,18 @@ struct WorkoutPlayerView: View {
                     hasTracks ? (musicManager.isPlaying ? 0.25 : 0.12) : 0.06
                 ))
                 .clipShape(Circle())
+        }
+        .contextMenu {
+            if hasTracks {
+                Button {
+                    musicManager.toggleRepeatOne()
+                } label: {
+                    Label(
+                        musicManager.repeatOne ? "Play Playlist" : "Repeat Current Track",
+                        systemImage: musicManager.repeatOne ? "repeat" : "repeat.1"
+                    )
+                }
+            }
         }
     }
 
@@ -809,12 +1086,12 @@ struct WorkoutPlayerView: View {
         isSectionRest       = false
         isWarmUp            = false
         resetMotivationTimer()
-        if !workout.musicTrackFilenames.isEmpty {
-            MusicManager.shared.startPlayback(tracks: workout.musicTrackFilenames)
+        if !selectedMusicTracks.isEmpty {
+            MusicManager.shared.startPlayback(tracks: selectedMusicTracks)
         }
         if let section = currentSection {
-            timeRemaining = section.duration
-            AudioManager.shared.speak(section.name)
+            timeRemaining = currentSlot?.duration ?? section.duration
+            AudioManager.shared.speak(currentSlot?.name ?? section.name)
             startTimer()
         }
     }
@@ -840,6 +1117,15 @@ struct WorkoutPlayerView: View {
     }
 
     private func tick() {
+        if isBundleActive {
+            elapsedSeconds += 1
+            autoSaveCounter += 1
+            if autoSaveCounter >= 5 {
+                autoSaveCounter = 0
+                saveResumeState()
+            }
+            return
+        }
         if timeRemaining > 0 {
             timeRemaining -= 1
             elapsedSeconds += 1
@@ -893,8 +1179,23 @@ struct WorkoutPlayerView: View {
               state.workoutId == workout.id
         else { return }
         didInitFromResume = true
+        restore(from: state)
+    }
+
+    /// iOS can suspend a normal app at any time, especially on devices without
+    /// Live Activities. Reconstructing from the timestamped checkpoint keeps the
+    /// workout honest without promising background execution that iOS cannot give.
+    private func reconcileAfterInterruption() {
+        guard !workoutCompleted,
+              let state = WorkoutResumeManager.shared.resumeState,
+              state.workoutId == workout.id
+        else { return }
+        restore(from: state)
+    }
+
+    private func restore(from checkpoint: ResumeState) {
+        let state = reconciledState(from: checkpoint)
         showingWarmUpPicker = false
-        isWarmUp = false
         currentSectionIndex = state.currentSectionIndex
         currentSetIndex = state.currentSetIndex
         timeRemaining = state.timeRemaining
@@ -919,21 +1220,127 @@ struct WorkoutPlayerView: View {
             isSetRest = false
             isSectionRest = false
         }
+        guard !workoutCompleted else {
+            completeWorkout()
+            return
+        }
         loadCurrentMedia()
         resetMotivationTimer()
         if !isPaused {
             startTimer()
         }
+        saveResumeState()
+    }
+
+    private func reconciledState(from checkpoint: ResumeState) -> ResumeState {
+        var state = checkpoint
+        guard !checkpoint.isPaused else { return state }
+        if workout.sections.indices.contains(state.currentSectionIndex),
+           workout.sections[state.currentSectionIndex].mode == .bundle,
+           state.phase == .active {
+            state.savedAt = Date()
+            return state
+        }
+        var elapsedToConsume = max(0, Int(Date().timeIntervalSince(checkpoint.savedAt)))
+        guard elapsedToConsume > 0 else { return state }
+
+        while elapsedToConsume > 0 {
+            if state.timeRemaining > elapsedToConsume {
+                state.timeRemaining -= elapsedToConsume
+                state.elapsedSeconds += elapsedToConsume
+                elapsedToConsume = 0
+                break
+            }
+
+            let consumed = max(0, state.timeRemaining)
+            state.elapsedSeconds += consumed
+            elapsedToConsume -= consumed
+            guard advanceReconciledPhase(&state) else {
+                workoutCompleted = true
+                break
+            }
+        }
+        state.savedAt = Date()
+        return state
+    }
+
+    /// Advances a checkpoint without scheduling a Timer or speaking audio. It is
+    /// deliberately the same state machine used by the visible timer.
+    private func advanceReconciledPhase(_ state: inout ResumeState) -> Bool {
+        switch state.phase {
+        case .warmUp:
+            state.phase = .active
+            state.currentSectionIndex = 0
+            state.currentSetIndex = 0
+            guard let first = workout.sections.first else { return false }
+            state.timeRemaining = first.effectiveSlots.first?.duration ?? first.duration
+            return true
+        case .setRest:
+            state.phase = .active
+            guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
+            state.timeRemaining = workout.sections[state.currentSectionIndex].effectiveSlots[safe: state.currentSetIndex]?.duration ?? workout.sections[state.currentSectionIndex].duration
+            return true
+        case .active:
+            guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
+            let section = workout.sections[state.currentSectionIndex]
+            if section.mode == .bundle { return false }
+            if state.currentSetIndex + 1 < section.slotCount {
+                state.currentSetIndex += 1
+                state.phase = .setRest
+                state.timeRemaining = section.effectiveSlots[safe: state.currentSetIndex - 1]?.restAfter ?? section.restBetweenSets
+                return true
+            }
+            state.currentSetIndex = 0
+            if state.currentSectionIndex + 1 >= workout.sections.count { return false }
+            let rest = section.customRestAfter ?? workout.restBetweenSections
+            if rest > 0 {
+                state.phase = .sectionRest
+                state.timeRemaining = rest
+            } else {
+                state.currentSectionIndex += 1
+                state.phase = .active
+                state.timeRemaining = workout.sections[state.currentSectionIndex].effectiveSlots.first?.duration ?? workout.sections[state.currentSectionIndex].duration
+            }
+            return true
+        case .sectionRest:
+            state.currentSectionIndex += 1
+            state.currentSetIndex = 0
+            guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
+            state.phase = .active
+            state.timeRemaining = workout.sections[state.currentSectionIndex].effectiveSlots.first?.duration ?? workout.sections[state.currentSectionIndex].duration
+            return true
+        }
+    }
+
+    private func moveBundleSlots(from source: IndexSet, to destination: Int) {
+        guard workout.sections.indices.contains(currentSectionIndex),
+              workout.sections[currentSectionIndex].mode == .bundle else { return }
+
+        var updated = workout
+        var slots = updated.sections[currentSectionIndex].effectiveSlots
+        slots.move(fromOffsets: source, toOffset: destination)
+        updated.sections[currentSectionIndex].slots = slots
+        updated.sections[currentSectionIndex].sets = slots.count
+        workout = updated
+        store.updateWorkout(updated)
     }
 
     /// Called when the work timer for a set reaches zero.
     private func endWorkPeriod() {
         guard let section = currentSection else { return }
-        if currentSetIndex + 1 < section.sets {
+        if section.mode == .bundle {
+            if currentSetIndex + 1 < section.slotCount {
+                currentSetIndex += 1
+                AudioManager.shared.speak(currentSlot?.name ?? "Next technique")
+            } else {
+                currentSetIndex = 0
+                advanceToNextSection()
+            }
+        } else if currentSetIndex + 1 < section.slotCount {
             // More sets remaining — rest between sets
             currentSetIndex += 1
             isSetRest     = true
-            timeRemaining = section.restBetweenSets
+            timeRemaining = section.effectiveSlots[safe: currentSetIndex - 1]?.restAfter ?? section.restBetweenSets
             AudioManager.shared.speak("Rest")
             startTimer()
         } else {
@@ -956,8 +1363,8 @@ struct WorkoutPlayerView: View {
     private func endSetRest() {
         isSetRest = false
         if let section = currentSection {
-            timeRemaining = section.duration
-            AudioManager.shared.speak(section.name)
+            timeRemaining = currentSlot?.duration ?? section.duration
+            AudioManager.shared.speak(currentSlot?.name ?? section.name)
             startTimer()
         }
     }
@@ -979,8 +1386,8 @@ struct WorkoutPlayerView: View {
         if currentSectionIndex >= workout.sections.count {
             completeWorkout()
         } else if let section = currentSection {
-            timeRemaining = section.duration
-            AudioManager.shared.speak(section.name)
+            timeRemaining = currentSlot?.duration ?? section.duration
+            AudioManager.shared.speak(currentSlot?.name ?? section.name)
             startTimer()
         }
     }
@@ -1004,6 +1411,20 @@ struct WorkoutPlayerView: View {
     private func pauseTimer()  {
         isPaused = true
         videoPlayer?.pause()
+    }
+
+    private func toggleOverlayMusic() {
+        if musicManager.isPlaying {
+            musicManager.stopPlayback()
+        } else {
+            musicManager.startPlayback(tracks: selectedMusicTracks)
+        }
+    }
+
+    private var selectedMusicTracks: [String] {
+        workout.musicTrackFilenames.isEmpty
+            ? musicManager.trackFilenames
+            : workout.musicTrackFilenames
     }
     private func resumeTimer() {
         isPaused = false
@@ -1054,7 +1475,7 @@ struct WorkoutPlayerView: View {
     /// 3-second countdown beep (milestone ≤ 3).
     private func checkTimeAnnouncement() {
         guard let section = currentSection else { return }
-        let total = section.duration
+        let total = currentSlot?.duration ?? section.duration
         guard total >= 8 else { return }
         let quarter = total / 4
         guard quarter > 3 else { return }
@@ -1127,6 +1548,7 @@ struct WorkoutPlayerView: View {
 
     private func stopVideo() {
         videoPlayer?.pause()
+        videoPlayer?.removeAllItems()
         videoLooper = nil
         videoPlayer = nil
     }
@@ -1140,19 +1562,10 @@ struct WorkoutPlayerView: View {
     }
 
     #if os(iOS)
-    private func registerBackgroundHandlers() {
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didEnterBackgroundNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
-            saveResumeState()
-        }
-    }
-
     private func beginBackgroundTask() {
         endBackgroundTask()
         backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "WorkoutTimer") {
+            self.saveResumeState()
             self.endBackgroundTask()
         }
     }
@@ -1163,7 +1576,6 @@ struct WorkoutPlayerView: View {
         backgroundTaskID = .invalid
     }
     #elseif os(macOS)
-    private func registerBackgroundHandlers() {}
     private func beginBackgroundTask() {}
     private func endBackgroundTask() {}
     #endif
@@ -1340,6 +1752,48 @@ private struct ConfettiView: View {
             #endif
             particles = (0..<120).map { _ in
                 ConfettiParticle.random(screenWidth: screenW)
+            }
+        }
+    }
+}
+
+private struct BundleReorderSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let slots: [SetSlot]
+    let onMove: (IndexSet, Int) -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(slots) { slot in
+                    HStack(spacing: 12) {
+                        Image(systemName: "line.3.horizontal")
+                            .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(slot.name)
+                                .font(.headline)
+                            Text("Technique \(slots.firstIndex(where: { $0.id == slot.id }).map { $0 + 1 } ?? 0)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .onMove(perform: onMove)
+            }
+            .navigationTitle("Reorder Techniques")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+                #if os(iOS)
+                ToolbarItem(placement: .primaryAction) {
+                    EditButton()
+                }
+                #endif
             }
         }
     }

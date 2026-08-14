@@ -60,4 +60,5 @@ Models/
 - [ ] Instagram/Facebook/TikTok links open in Safari
 - [ ] Child pages support infinite nesting
 - [ ] Type tags filter correctly, custom types from F07-C appear
-- [ ] compiles without errors
+- [x] Compiles without errors: iOS Simulator and macOS Debug builds succeeded on 2026-07-13.
+- [x] Storage regression: `testNestedPagesKeepTheirOwnCoverAndMediaAtEveryDepth` created root → child → grandchild pages and verified independent cover/photo/video files at their page-local paths; full TimeMasterCore suite passed 65/65 on 2026-07-13.

@@ -9,6 +9,7 @@ The exercise database is currently monolithic: every page can be configured with
   - **Container** form: title, icon, cover image (optional), tags, workout-type tag. No duration/sets/reps/rest fields. No media-uploader. No markdown guide required (but allowed).
   - **Leaf (exercise)** form: title, icon (optional), workout-type tag, duration + sets + reps + rest + rest-between-sets, markdown guide, external links, tags, media uploader NO cover photo field — cover derives from first uploaded media.
 - Sub-folder (container-of-container) creation allowed to unlimited depth. Existing tree already supports it; UI parity must confirm it.
+- Direct leaf pages inherit their nearest container's effective workout type dynamically. A nested container may select its own explicit type; that override becomes the inherited type for its descendants.
 - `ExercisePage.coverImageURL` for a leaf with no explicit cover returns the first item in `mediaFilenames` (so leaf cards always show a thumbnail).
 - `ExercisePage.coverImageURL` for a container honors the explicit `coverImageFilename` only.
 - AI tool-calling schema (`schema.json` and `F09-D` tool definitions) gets two distinct tools:
@@ -74,13 +75,15 @@ CreateExercisePageSchema (AI tool)
 ## Files
 
 - `TimeMaster/Models/ExercisePage.swift` — `PageKind` enum, decoding legacy fallback
-- `TimeMasterCore/Sources/TimeMasterCore/Models/ExercisePageManifest.swift` — schema kinds
+- `TimeMasterCore/Sources/Models/ExercisePageManifest.swift` — schema kinds
 - `TimeMaster/Views/Database/PageCreationSheet.swift` — split form by kind
 - `TimeMaster/Views/Database/ExercisePageDetailView.swift` — hide workout config on containers, hide "Add to Workout" on containers
 - `TimeMaster/Views/Database/PageCardView.swift` — leaf cover = first media fallback
-- `TimeMasterCore/Sources/TimeMasterCore/Schema/schema.json` — two distinct create tools, validation rules
+- `TimeMaster/ViewModels/DatabaseStore.swift` — resolves nearest container workout type for display and filtering without copying it into leaf manifests
+- `TimeMasterCore/Sources/SchemaManager.swift` — two distinct create tools, validation rules
 - `TimeMaster/ViewModels/ToolRouter.swift` — reject out-of-kind fields per tool
-- `TimeMaster/ViewModels/DatabaseStore.swift` — validation gate for createPage / updatePage
+- `TimeMasterCore/Sources/DatabaseManager.swift` — validation gate and parent-child manifest updates
+- `TimeMasterCore/Sources/MigrationManager.swift` — malformed container normalization
 
 ## Dependencies
 
@@ -93,6 +96,8 @@ CreateExercisePageSchema (AI tool)
 - `genesis/REFERENCE/` — none
 
 ## Verification
+
+Implementation evidence: macOS Debug build succeeded; iOS Simulator Debug build succeeded; `swift test` passed all 67 core tests, including page-kind validation and schema tool coverage. Device and migration-against-real-user-data checks remain pending.
 
 - [ ] New container page form has NO duration/sets/reps/rest/media fields
 - [ ] New leaf page form has NO cover-photo uploader

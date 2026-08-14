@@ -113,7 +113,9 @@ final class SchemaValidationTests: XCTestCase {
 
         XCTAssertEqual(schema.version, "1.0.0")
         XCTAssertEqual(schema.objects.count, 5)
-        XCTAssertEqual(schema.tools.count, 18)
+        XCTAssertEqual(schema.tools.count, 20)
+        XCTAssertTrue(schema.tools.contains { $0.name == "create_container_page" })
+        XCTAssertTrue(schema.tools.contains { $0.name == "create_exercise_page" })
         XCTAssertEqual(schema.filesystem.directories.count, 11)
         XCTAssertEqual(schema.filesystem.root, "TimeMaster")
     }

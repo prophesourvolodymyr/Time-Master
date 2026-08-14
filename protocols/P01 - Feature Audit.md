@@ -149,7 +149,7 @@ After presenting findings, user may:
    - What: [description]
    - Why: [benefit]
    - Complexity: Low / Medium / High
-   - [ ] Yes  [ ] No  [ ] Modify
+   - User decision: Yes / No / Modify
 
 2. **[Idea title]**
    - ...
@@ -182,7 +182,7 @@ Your response: _
 
 3. **FREEDOM OF DEPTH.** A tiny feature gets a tiny audit. A massive feature gets a massive audit. No minimum or maximum.
 
-4. **AI INITIATIVES.** Proactively suggest other protocols (REV-01, BRW-01, Visual Mockup) when the situation calls for it. Don't wait for the user to remember they exist.
+4. **AI INITIATIVES.** Proactively suggest other protocols (REV-01, BRW-01) and explain the visual-planning option when the situation calls for it. Don't wait for the user to remember they exist.
 
 5. **ITERATE UNTIL SOLID.** Phase 2 can loop. User asks more questions → AI researches more → tighter audit. Stop only when user approves.
 
@@ -192,13 +192,13 @@ Your response: _
 
 ---
 
-## DEFINITION OF DONE
+## COMPLETION CRITERIA
 
-- [ ] All existing docs for the feature read and understood
-- [ ] Scope confirmed with user
-- [ ] Gaps identified and questioned
-- [ ] External research performed (if applicable)
-- [ ] AI-generated ideas proposed
-- [ ] Problems and risks flagged
-- [ ] Audit delivered in chat
-- [ ] User approved (or looped Phase 2 until satisfied)
+- All existing docs for the feature are read and understood
+- Scope is confirmed with the user
+- Gaps are identified and questioned
+- External research is performed when applicable
+- AI-generated ideas are proposed
+- Problems and risks are flagged
+- The audit is delivered in chat
+- The user approves, or Phase 2 loops until the audit is satisfactory

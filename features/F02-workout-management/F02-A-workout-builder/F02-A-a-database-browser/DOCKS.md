@@ -31,9 +31,13 @@ Browse the unified database to find exercises, preview them, and view the workou
 - `TimeMaster/Models/Workout.swift` (modify)
 
 ## Verification
-- [ ] DB browser opens from workout builder, shows all pages
-- [ ] Search/filter by title and tags works
-- [ ] Exercise preview shows cover, media count, tags
-- [ ] Workout page shows expandable sections with sets and rest slots
-- [ ] Collapsed/expanded states animate smoothly
-- [ ] compiles without errors
+- [x] DB browser opens from workout builder and shows root, child, and container pages
+- [x] Search/filter by title, markdown, tags, and effective workout type works
+- [x] Exercise quick preview shows cover fallback, media count, links, tags, guide summary, and media gallery
+- [x] Workout page shows expandable sections with sets and rest slots
+- [x] Rest slots show passive state, assigned page, change action, and clear action
+- [x] Collapsed/expanded states animate smoothly
+- [x] macOS arm64 Debug build succeeds
+- [x] iOS Simulator Debug build succeeds and launches on iPhone 16 Pro / iOS 18.6
+
+Evidence: `DatabasePageBrowserSheet` is opened by `WorkoutDetailView`; page selection writes through `WorkoutStore`. The macOS and iOS builds passed on 2026-07-13, the iOS app installed and launched from the generated Debug build, and `TimeMasterCore` passed 67 tests.

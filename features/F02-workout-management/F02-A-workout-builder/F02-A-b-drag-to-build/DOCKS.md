@@ -67,11 +67,14 @@ struct SetSlot: Identifiable, Codable {
 - `TimeMaster/Views/WorkoutDetail/SetSlotRow.swift` (new)
 
 ## Verification
-- [ ] Create work section: pick exercise, configure sets
-- [ ] Add set: new slot appears with rest between
-- [ ] Add drop: pick different exercise, short rest auto-set
-- [ ] Rest slot: pick exercise from DB → thumbnail appears
-- [ ] Rest slot: clear → passive rest shown
-- [ ] Create bundle section: pick multiple pages, reorder via drag
-- [ ] Sections, sets, bundle items all draggable
-- [ ] compiles without errors
+- [x] Create work section: pick exercise, configure sets, reps, duration, and rest inline
+- [x] Add set: new slot appears with persisted rest between slots
+- [x] Add drop: pick a different exercise; 5-second default rest is available
+- [x] Rest slot: pick exercise from DB and show its title in the builder
+- [x] Rest slot: clear and return to passive rest
+- [x] Create bundle section: pick multiple pages and reorder the selected list via drag
+- [x] Sections, sets, and bundle items support drag/menu reorder and persist through `WorkoutStore`
+- [x] macOS arm64 Debug build succeeds
+- [x] iOS Simulator Debug build succeeds
+
+Evidence: `WorkoutDetailView` persists every section and slot mutation through `WorkoutStore`; `Workout.swift` and `WorkoutManifest` preserve ordered slots and section modes. Both app targets compiled on 2026-07-13 and the core persistence suite passed 67 tests.

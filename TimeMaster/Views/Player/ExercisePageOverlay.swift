@@ -13,7 +13,10 @@ struct ExercisePageOverlay: View {
     let isPaused: Bool
     let isTimerEnabled: Bool
     let isRest: Bool
+    let isMusicPlaying: Bool
+    let nextExerciseName: String?
     let onPause: () -> Void
+    let onMusicToggle: () -> Void
     let onStop: () -> Void
     let onSkip: () -> Void
     let onDismiss: () -> Void
@@ -48,7 +51,10 @@ struct ExercisePageOverlay: View {
                     isPaused: isPaused,
                     isTimerEnabled: isTimerEnabled,
                     isRest: isRest,
+                    isMusicPlaying: isMusicPlaying,
+                    nextExerciseName: nextExerciseName,
                     onPause: onPause,
+                    onMusicToggle: onMusicToggle,
                     onStop: onStop,
                     onSkip: onSkip,
                     onDismiss: onDismiss
@@ -83,7 +89,7 @@ struct ExercisePageOverlay: View {
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.4), radius: 3)
                     .lineLimit(2)
-                if let wt = page.manifest.workoutType {
+                if let wt = page.effectiveWorkoutType {
                     HStack(spacing: 4) {
                         Image(systemName: wt.iconName).font(.caption)
                         Text(wt.name).font(.caption.weight(.medium))
@@ -102,46 +108,11 @@ struct ExercisePageOverlay: View {
     }
 
     private func coverImageView(url: URL) -> some View {
-        #if os(iOS)
-        if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
-            return AnyView(
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 220)
-                    .clipped()
-                    .overlay(
-                        LinearGradient(
-                            colors: [.clear, .black.opacity(0.55)],
-                            startPoint: .center,
-                            endPoint: .bottom
-                        )
-                    )
-            )
-        }
-        #elseif os(macOS)
-        if let data = try? Data(contentsOf: url), let image = NSImage(data: data) {
-            return AnyView(
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 220)
-                    .clipped()
-                    .overlay(
-                        LinearGradient(
-                            colors: [.clear, .black.opacity(0.55)],
-                            startPoint: .center,
-                            endPoint: .bottom
-                        )
-                    )
-            )
-        }
-        #endif
-        return AnyView(gradientCoverView(page: page!))
+        AsyncCoverImage(url: url, height: 220, overlayGradient: true)
     }
 
     private func iconCoverView(iconName: String, page: ExercisePage) -> some View {
-        let color = page.manifest.workoutType?.colorHex ?? "FFFFFF"
+        let color = page.effectiveWorkoutType?.colorHex ?? "FFFFFF"
         return AnyView(
             ZStack {
                 Color(hex: color).opacity(0.3)
@@ -221,9 +192,6 @@ struct ExercisePageOverlay: View {
                 }
             }
 
-            if !page.manifest.tags.isEmpty {
-                tagsBlock(page: page)
-            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 20)
@@ -274,24 +242,6 @@ struct ExercisePageOverlay: View {
         .cornerRadius(10)
     }
 
-    private func tagsBlock(page: ExercisePage) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Tags")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
-            HStack(spacing: 6) {
-                ForEach(page.manifest.tags, id: \.self) { tag in
-                    Text("#\(tag)")
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(Theme.textSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.06))
-                        .cornerRadius(6)
-                }
-            }
-        }
-    }
 
     private var emptyPageView: some View {
         VStack(spacing: 12) {

@@ -17,7 +17,8 @@ enum PageTreeBuilder {
             children: children,
             coverImageURL: root.coverImageURL,
             mediaURLs: root.mediaURLs,
-            path: root.path
+            path: root.path,
+            inheritedWorkoutType: root.inheritedWorkoutType
         )
     }
 

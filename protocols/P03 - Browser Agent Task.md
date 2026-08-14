@@ -80,10 +80,10 @@ AI creates a single, concise, actionable prompt saved to `/junk/browser-agent-pr
 
 ---
 
-## DEFINITION OF DONE
+## COMPLETION CRITERIA
 
-- [ ] AI suggested browser agent prompt instead of asking user to do manual browser work
-- [ ] User approved generating the prompt
-- [ ] Prompt saved to `/junk/browser-agent-prompt.md`
-- [ ] Prompt covers all URLs and tasks in one file
-- [ ] Prompt clearly states what info to bring back
+- The AI suggests a browser-agent prompt instead of asking the user to perform manual browser work
+- The user approves generating the prompt
+- The prompt is saved to `/junk/browser-agent-prompt.md`
+- One prompt covers all URLs and tasks for the session
+- The prompt clearly states the information to return

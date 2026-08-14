@@ -318,13 +318,29 @@ Query the TimeMaster exercise database.
 
     // MARK: - Page CRUD
 
-    public func createPage(manifest: ExercisePageManifest, parentID: String? = nil) throws {
-        let folder = try pageFolder(for: manifest.id, parentID: parentID)
-        try fs.ensureDirectory(folder)
+    private func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?) -> ExercisePageManifest {
+        var normalized = manifest
+        normalized.parentID = parentID
 
-        let mediaDir = folder.appendingPathComponent("media", isDirectory: true)
-        try fs.ensureDirectory(mediaDir)
+        if normalized.pageKind == .container, parentID == nil {
+            normalized.workoutType = normalized.workoutType ?? .other
+        } else {
+            normalized.workoutType = nil
+        }
+        if normalized.pageKind == .container {
+            normalized.duration = nil
+            normalized.restAfter = nil
+            normalized.sets = nil
+            normalized.restBetweenSets = nil
+        } else {
+            normalized.coverImageFilename = nil
+            normalized.childIDs = []
+        }
+        return normalized
+    }
 
+
+    private func writePageFiles(_ manifest: ExercisePageManifest, in folder: URL) throws {
         let manifestURL = folder.appendingPathComponent("manifest.json")
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
 
@@ -333,42 +349,168 @@ Query the TimeMaster exercise database.
         try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
     }
 
+    private func validatePageManifest(_ manifest: ExercisePageManifest, parentID: String?) throws {
+        if manifest.pageKind == .leaf, parentID == nil {
+            throw FileSystemHelper.Error.invalidPageKind("exercise pages must be inside a container")
+        }
+
+        if let parentID {
+            guard parentID != manifest.id else {
+                throw FileSystemHelper.Error.invalidPageKind("a page cannot be its own parent")
+            }
+            let parent = try getPage(id: parentID)
+            guard parent.pageKind == .container else {
+                throw FileSystemHelper.Error.invalidPageKind("pages can only be nested inside containers")
+            }
+
+            var ancestorID = parent.parentID
+            while let ancestor = ancestorID {
+                guard ancestor != manifest.id else {
+                    throw FileSystemHelper.Error.invalidPageKind("a page cannot be moved inside its own descendants")
+                }
+                ancestorID = try getPage(id: ancestor).parentID
+            }
+        }
+
+        if manifest.pageKind == .container {
+            if manifest.duration != nil || manifest.restAfter != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
+                throw FileSystemHelper.Error.invalidPageKind("containers cannot have workout timing")
+            }
+            if parentID != nil, manifest.workoutType != nil {
+                throw FileSystemHelper.Error.invalidPageKind("nested containers inherit the root container workout type")
+            }
+        } else {
+            if manifest.coverImageFilename != nil {
+                throw FileSystemHelper.Error.invalidPageKind("exercise pages use their first media item as the cover")
+            }
+            guard manifest.duration != nil else {
+                throw FileSystemHelper.Error.invalidPageKind("exercise pages require a duration")
+            }
+            if !manifest.childIDs.isEmpty {
+                throw FileSystemHelper.Error.invalidPageKind("exercise pages cannot contain child pages")
+            }
+            if manifest.workoutType != nil {
+                throw FileSystemHelper.Error.invalidPageKind("exercise pages inherit the root container workout type")
+            }
+        }
+    }
+
+    private func pageIDs(parentID: String?) throws -> [String] {
+        if let parentID {
+            return try getPage(id: parentID).childIDs
+        }
+
+        let entries = try fs.listDirectory(fs.exercisesDatabaseDirectory, skipNonSchema: false)
+        let orderedEntries: [(id: String, order: Int, position: Int)] = entries.enumerated().compactMap { item -> (id: String, order: Int, position: Int)? in
+            let position = item.offset
+            let entry = item.element
+            var isDir: ObjCBool = false
+            FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
+            guard isDir.boolValue else { return nil }
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+            guard fs.fileExists(at: manifestURL),
+                  let manifest: ExercisePageManifest = try? fs.readManifest(from: manifestURL, decoder: decoder),
+                  manifest.parentID == nil else { return nil }
+            return (id: manifest.id, order: manifest.order, position: position)
+        }
+        return orderedEntries
+            .sorted {
+                if $0.order != $1.order { return $0.order < $1.order }
+                return $0.position < $1.position
+            }
+            .map(\.id)
+    }
+
+    private func persistChildOrdering(parentID: String?, childIDs: [String]) throws {
+        let orderedIDs = Array(NSOrderedSet(array: childIDs)) as? [String] ?? childIDs
+        if let parentID {
+            var parent = try getPage(id: parentID)
+            parent.childIDs = orderedIDs
+            parent.updatedAt = Date()
+            try writePageFiles(parent, in: try resolvePageFolder(id: parentID))
+        }
+
+        for (index, childID) in orderedIDs.enumerated() {
+            var child = try getPage(id: childID)
+            child.parentID = parentID
+            child.order = index
+            child.updatedAt = Date()
+            try writePageFiles(child, in: try resolvePageFolder(id: childID))
+        }
+    }
+
+    public func createPage(manifest: ExercisePageManifest, parentID: String? = nil) throws {
+        let resolvedParentID = parentID ?? manifest.parentID
+        if resolvedParentID != nil, manifest.workoutType != nil {
+            throw FileSystemHelper.Error.invalidPageKind("only the absolute root container may define a workout type")
+        }
+        var candidate = manifest
+        candidate.parentID = resolvedParentID
+        try validatePageManifest(candidate, parentID: resolvedParentID)
+        var manifest = normalizedPageManifest(candidate, parentID: resolvedParentID)
+        try validatePageManifest(manifest, parentID: manifest.parentID)
+        if manifest.parentID != nil {
+            manifest.order = try pageIDs(parentID: manifest.parentID).count
+        } else {
+            manifest.order = try pageIDs(parentID: nil).count
+        }
+
+        let folder = try pageFolder(for: manifest.id, parentID: manifest.parentID)
+        try fs.ensureDirectory(folder)
+        try fs.ensureDirectory(folder.appendingPathComponent("media", isDirectory: true))
+        try writePageFiles(manifest, in: folder)
+
+        if let parentID = manifest.parentID {
+            var parent = try getPage(id: parentID)
+            if !parent.childIDs.contains(manifest.id) {
+                parent.childIDs.append(manifest.id)
+            }
+            try persistChildOrdering(parentID: parentID, childIDs: parent.childIDs)
+        }
+    }
+
     public func updatePage(id: String, manifest: ExercisePageManifest, newParentID: String? = nil) throws {
+        let existing = try getPage(id: id)
+        let resolvedParentID = newParentID ?? manifest.parentID
+        var candidate = manifest
+        candidate.parentID = resolvedParentID
+        candidate.id = id
+        try validatePageManifest(candidate, parentID: resolvedParentID)
+        var updated = normalizedPageManifest(candidate, parentID: resolvedParentID)
+        updated.id = id
+        try validatePageManifest(updated, parentID: resolvedParentID)
+
         let currentFolder = try resolvePageFolder(id: id)
         guard fs.directoryExists(at: currentFolder) else {
             throw FileSystemHelper.Error.notFound(currentFolder.path)
         }
 
-        if let parentID = newParentID, parentID != manifest.parentID {
-            let newFolder = try pageFolder(for: id, parentID: parentID)
+        if existing.parentID != resolvedParentID {
+            let newFolder = try pageFolder(for: id, parentID: resolvedParentID)
             if currentFolder.path != newFolder.path {
                 try fs.ensureDirectory(newFolder.deletingLastPathComponent())
                 try FileManager.default.moveItem(at: currentFolder, to: newFolder)
-                var updated = manifest
-                updated.parentID = parentID
-                updated.updatedAt = Date()
-                let manifestURL = newFolder.appendingPathComponent("manifest.json")
-                try fs.writeAtomically(to: manifestURL, value: updated, encoder: encoder)
-                let guideURL = newFolder.appendingPathComponent("guide.md")
-                let guideContent = "# \(updated.title)\n\n\(updated.markdownBody.isEmpty ? "Add content here." : updated.markdownBody)"
-                try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
-                return
+                updated.order = try pageIDs(parentID: resolvedParentID).count
             }
         }
 
-        let folder = currentFolder
-        let manifestURL = folder.appendingPathComponent("manifest.json")
-        if fs.fileExists(at: manifestURL) {
-            try fs.moveToTrash(source: manifestURL)
-        }
-        var updated = manifest
         updated.updatedAt = Date()
-        try fs.writeAtomically(to: manifestURL, value: updated, encoder: encoder)
+        let destinationFolder = try resolvePageFolder(id: id)
+        try writePageFiles(updated, in: destinationFolder)
 
-        let guideURL = folder.appendingPathComponent("guide.md")
-        let guideContent = "# \(updated.title)\n\n\(updated.markdownBody.isEmpty ? "Add content here." : updated.markdownBody)"
-        try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
+        guard existing.parentID != resolvedParentID else { return }
+        var oldIDs = try pageIDs(parentID: existing.parentID)
+        oldIDs.removeAll { $0 == id }
+        try persistChildOrdering(parentID: existing.parentID, childIDs: oldIDs)
+
+        var newIDs = try pageIDs(parentID: resolvedParentID)
+        newIDs.removeAll { $0 == id }
+        let insertionIndex = min(max(updated.order, 0), newIDs.count)
+        newIDs.insert(id, at: insertionIndex)
+        try persistChildOrdering(parentID: resolvedParentID, childIDs: newIDs)
     }
+
+
 
     public func deletePage(id: String) throws {
         let folder = try resolvePageFolder(id: id)
@@ -491,6 +633,18 @@ Query the TimeMaster exercise database.
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
         return filename
     }
+    public func pageMediaURL(pageID: String, filename: String) throws -> URL {
+        let folder = try resolvePageFolder(id: pageID)
+        return folder
+            .appendingPathComponent("media", isDirectory: true)
+            .appendingPathComponent(filename)
+    }
+
+    public func pageCoverURL(pageID: String, filename: String) throws -> URL {
+        let folder = try resolvePageFolder(id: pageID)
+        return folder.appendingPathComponent(filename)
+    }
+
 
     public func removeMediaFromPage(pageID: String, filename: String) throws {
         let folder = try resolvePageFolder(id: pageID)
@@ -508,24 +662,56 @@ Query the TimeMaster exercise database.
 
     public func movePage(id: String, newParentID: String?, newOrder: Int) throws {
         let currentFolder = try resolvePageFolder(id: id)
-        var manifest = try getPage(id: id)
+        let existing = try getPage(id: id)
+        let resolvedParent = newParentID
 
-        let newFolder = try pageFolder(for: id, parentID: newParentID)
+        if let resolvedParent {
+            guard resolvedParent != id else {
+                throw FileSystemHelper.Error.invalidPageKind("a page cannot be its own parent")
+            }
+            guard (try getPage(id: resolvedParent)).pageKind == .container else {
+                throw FileSystemHelper.Error.invalidPageKind("pages can only be nested inside containers")
+            }
+            var ancestorID = try getPage(id: resolvedParent).parentID
+            while let ancestor = ancestorID {
+                guard ancestor != id else {
+                    throw FileSystemHelper.Error.invalidPageKind("a page cannot be moved inside its own descendants")
+                }
+                ancestorID = try getPage(id: ancestor).parentID
+            }
+        }
+
+        var moved = existing
+        moved.parentID = resolvedParent
+        moved.order = newOrder
+        moved.updatedAt = Date()
+        let normalized = normalizedPageManifest(moved, parentID: resolvedParent)
+        try validatePageManifest(normalized, parentID: resolvedParent)
+
+        let newFolder = try pageFolder(for: id, parentID: resolvedParent)
         if currentFolder.path != newFolder.path {
             try fs.ensureDirectory(newFolder.deletingLastPathComponent())
             try FileManager.default.moveItem(at: currentFolder, to: newFolder)
         }
+        try writePageFiles(normalized, in: newFolder)
 
-        manifest.parentID = newParentID
-        manifest.order = newOrder
-        manifest.updatedAt = Date()
-        let manifestURL = newFolder.appendingPathComponent("manifest.json")
-        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        if let oldParentID = existing.parentID {
+            var oldParent = try getPage(id: oldParentID)
+            oldParent.childIDs.removeAll { $0 == id }
+            oldParent.updatedAt = Date()
+            try writePageFiles(oldParent, in: try resolvePageFolder(id: oldParentID))
+        }
+        if let resolvedParent {
+            var newParent = try getPage(id: resolvedParent)
+            newParent.childIDs.removeAll { $0 == id }
+            let insertionIndex = min(max(newOrder, 0), newParent.childIDs.count)
+            newParent.childIDs.insert(id, at: insertionIndex)
+            newParent.updatedAt = Date()
+            try writePageFiles(newParent, in: try resolvePageFolder(id: resolvedParent))
+        }
     }
 
     public func getPagePath(id: String) throws -> String {
-        let targetFolder = try resolvePageFolder(id: id)
-        let base = fs.exercisesDatabaseDirectory.path
 
         let allPages = try walkPageTree(in: fs.exercisesDatabaseDirectory)
         let pageLookup = Dictionary(uniqueKeysWithValues: allPages.map { ($0.0.id, ($0.0, $0.1)) })
@@ -702,6 +888,18 @@ Query the TimeMaster exercise database.
             guard let lineData = line.data(using: .utf8) else { return nil }
             return try? decoder.decode(HistoryEntry.self, from: lineData)
         }
+    }
+
+    public func replaceHistory(_ entries: [HistoryEntry]) throws {
+        let url = fs.historyDirectory.appendingPathComponent("entries.jsonl")
+        let lines = try entries.map { entry -> String in
+            guard let line = String(data: try encoder.encode(entry), encoding: .utf8) else {
+                throw FileSystemHelper.Error.writeFailed(url.path)
+            }
+            return line.replacingOccurrences(of: "\n", with: "")
+        }
+        let content = lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n"
+        try fs.writeAtomically(to: url, data: Data(content.utf8))
     }
 
     // MARK: - Config

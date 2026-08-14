@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 struct SectionEditorView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var databaseStore: DatabaseStore
+    @EnvironmentObject var workoutStore: WorkoutStore
 
     let section: Section?
     let onSave: (Section) -> Void
@@ -20,6 +21,7 @@ struct SectionEditorView: View {
     @State private var prepareTime: Int
     @State private var useCustomRest: Bool
     @State private var customRestAfter: Int
+    @State private var pageID: UUID?
     @State private var mediaItems: [MediaItem]
     #if os(iOS)
     @State private var pendingItems: [PhotosPickerItem] = []
@@ -41,6 +43,7 @@ struct SectionEditorView: View {
         let cra = section?.customRestAfter
         _useCustomRest    = State(initialValue: cra != nil)
         _customRestAfter  = State(initialValue: cra ?? 30)
+        _pageID           = State(initialValue: section?.pageID)
         _prepareTime      = State(initialValue: section?.prepareTime ?? 4)
         _mediaItems       = State(initialValue: section?.mediaItems ?? [])
     }
@@ -120,21 +123,29 @@ struct SectionEditorView: View {
         }
         #endif
         .sheet(isPresented: $showingDatabasePicker) {
-            DatabaseSectionPickerView { selected in
-                name             = selected.name
-                isTimerEnabled   = selected.isTimerEnabled
-                duration         = selected.duration
-                sets             = selected.sets
-                restBetweenSets  = selected.restBetweenSets
-                mediaItems       = selected.mediaItems
-                if let cra = selected.customRestAfter {
-                    useCustomRest   = true
-                    customRestAfter = cra
-                } else {
-                    useCustomRest = false
-                }
+            DatabasePageBrowserSheet(
+                workout: Workout(name: "Section picker"),
+                onAdd: { page, dur, selectedSets, reps, restAfter, restBetween in
+                    pageID = page.id
+                    name = page.title
+                    isTimerEnabled = true
+                    duration = dur
+                    sets = selectedSets
+                    restBetweenSets = restBetween
+                    customRestAfter = restAfter
+                    useCustomRest = restAfter > 0
+                    mediaItems = []
+                    showingDatabasePicker = false
+                },
+                onAddBundle: { _, _, _, _, _, _ in }
+            )
+            .environmentObject(databaseStore)
+            .environmentObject(workoutStore)
+        }
+        .onChange(of: showingDatabasePicker) { isPresented in
+            if isPresented {
+                databaseStore.reload()
             }
-            .environmentObject(DatabaseStore.shared)
         }
         .fileImporter(
             isPresented: $showingFilePicker,
@@ -489,6 +500,7 @@ struct SectionEditorView: View {
         saved.restBetweenSets = restBetweenSets
         saved.customRestAfter = useCustomRest ? customRestAfter : nil
         saved.mediaItems      = mediaItems
+        saved.pageID           = pageID
         onSave(saved)
         dismiss()
     }
@@ -497,5 +509,6 @@ struct SectionEditorView: View {
 #Preview {
     SectionEditorView(section: nil) { _ in }
         .environmentObject(DatabaseStore.shared)
+        .environmentObject(WorkoutStore())
         .preferredColorScheme(.dark)
 }

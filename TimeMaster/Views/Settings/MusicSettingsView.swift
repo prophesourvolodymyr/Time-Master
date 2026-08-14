@@ -37,12 +37,26 @@ struct MusicSettingsView: View {
 #endif
         .fileImporter(
             isPresented: $showFilePicker,
-            allowedContentTypes: [UTType.audio, UTType.mp3, UTType.mpeg4Audio],
+             allowedContentTypes: [UTType.audio, UTType.movie, UTType.mp3, UTType.mpeg4Audio],
             allowsMultipleSelection: true
         ) { result in
             switch result {
             case .success(let urls):
-                for url in urls { manager.importTrack(from: url) }
+                 Task {
+                     do {
+                         for url in urls {
+                             let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased())
+                             if isVideo {
+                                 try await manager.importTrackAsync(from: url)
+                             } else {
+                                 manager.importTrack(from: url)
+                             }
+                         }
+                     } catch {
+                         importError = error.localizedDescription
+                         showImportError = true
+                     }
+                 }
             case .failure(let err):
                 importError = err.localizedDescription
                 showImportError = true
@@ -93,7 +107,7 @@ struct MusicSettingsView: View {
             } else {
                 ForEach(manager.trackFilenames, id: \.self) { fn in
                     HStack(spacing: 12) {
-                        Image(systemName: "music.note")
+                         Image(systemName: fn.lowercased().hasSuffix(".mp3") ? "music.note" : "waveform")
                             .foregroundColor(.white)
                             .frame(width: 20)
                         Text(manager.displayName(for: fn))

@@ -1,12 +1,18 @@
 import SwiftUI
 import TimeMasterCore
+import UniformTypeIdentifiers
 #if os(iOS)
 import PhotosUI
 #endif
 
+private struct PendingPageMedia {
+    let temporaryURL: URL
+}
+
 struct PageCreationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var workoutStore: WorkoutStore
+    @EnvironmentObject var databaseStore: DatabaseStore
 
     let existingPage: ExercisePage?
     let parentID: String?
@@ -14,10 +20,10 @@ struct PageCreationSheet: View {
     let onSave: (ExercisePageManifest, String?) -> Void
 
     @State private var title: String
+    @State private var pageKind: ExercisePageManifest.PageKind
     @State private var iconName: String = ""
     @State private var workoutType: WorkoutType? = nil
     @State private var markdownBody: String = ""
-    @State private var tags: String = ""
     @State private var duration: Int = 30
     @State private var restAfter: Int = 0
     @State private var sets: Int = 1
@@ -30,7 +36,7 @@ struct PageCreationSheet: View {
     @State private var coverImageFilename: String?
     @State private var mediaFilenames: [String] = []
     @State private var pendingCoverData: Data?
-    @State private var pendingMediaData: [(filename: String, data: Data)] = []
+    @State private var pendingMediaFiles: [PendingPageMedia] = []
     #if os(iOS)
     @State private var pendingCoverItem: PhotosPickerItem?
     @State private var pendingMediaItems: [PhotosPickerItem] = []
@@ -40,15 +46,15 @@ struct PageCreationSheet: View {
 
     init(page: ExercisePage? = nil, parentID: String? = nil, onSave: @escaping (ExercisePageManifest, String?) -> Void) {
         self.existingPage = page
-        self.parentID = parentID
+        self.parentID = parentID ?? page?.manifest.parentID
         self.onSave = onSave
         _title = State(initialValue: page?.manifest.title ?? "")
+        _pageKind = State(initialValue: page?.manifest.pageKind ?? (parentID == nil ? .container : .leaf))
         _iconName = State(initialValue: page?.manifest.iconName ?? "")
         if let wt = page?.manifest.workoutType {
             _workoutType = State(initialValue: WorkoutType(id: wt.id, name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex))
         }
         _markdownBody = State(initialValue: page?.manifest.markdownBody ?? "")
-        _tags = State(initialValue: page?.manifest.tags.joined(separator: ", ") ?? "")
         _duration = State(initialValue: page?.manifest.duration ?? 30)
         _restAfter = State(initialValue: page?.manifest.restAfter ?? 0)
         _sets = State(initialValue: page?.manifest.sets ?? 1)
@@ -65,14 +71,23 @@ struct PageCreationSheet: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         titleCard
+                        pageKindCard
                         iconCard
-                        coverImageCard
-                        if existingPage != nil { mediaUploadCard }
-                        workoutTypeCard
-                        timingCard
+                        if pageKind == .container {
+                            coverImageCard
+                        } else {
+                            mediaUploadCard
+                        }
+                        if pageKind == .container && parentID == nil {
+                            workoutTypeCard
+                        } else {
+                            inheritedWorkoutTypeCard
+                        }
+                        if pageKind == .leaf {
+                            timingCard
+                        }
                         markdownCard
                         linksCard
-                        tagsCard
                         if existingPage != nil { deleteCard }
                         saveButton
                     }
@@ -82,6 +97,24 @@ struct PageCreationSheet: View {
             .navigationTitle(existingPage == nil ? "New Page" : "Edit Page")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
+            #if os(macOS)
+            .fileImporter(
+                isPresented: $showCoverPicker,
+                allowedContentTypes: [.image],
+                allowsMultipleSelection: false
+            ) { result in
+                guard case .success(let urls) = result, let url = urls.first else { return }
+                handleMacCoverPick(url)
+            }
+            .fileImporter(
+                isPresented: $showMediaPicker,
+                allowedContentTypes: [.image, .movie],
+                allowsMultipleSelection: true
+            ) { result in
+                guard case .success(let urls) = result else { return }
+                urls.forEach(stageMedia)
+            }
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -139,6 +172,44 @@ struct PageCreationSheet: View {
                 .cornerRadius(10)
                 .foregroundColor(Theme.textPrimary)
         }
+    }
+
+    private var pageKindCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Page Type")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+
+            if parentID != nil {
+                Label("Pages inside a container are exercises.", systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+            } else {
+                HStack(spacing: 8) {
+                    kindButton(.container, title: "Container", icon: "folder.fill")
+                    kindButton(.leaf, title: "Exercise", icon: "figure.run")
+                }
+            }
+        }
+    }
+
+    private func kindButton(
+        _ kind: ExercisePageManifest.PageKind,
+        title: String,
+        icon: String
+    ) -> some View {
+        Button {
+            pageKind = kind
+        } label: {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(pageKind == kind ? .semibold : .regular))
+                .foregroundColor(pageKind == kind ? .black : .white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .background(pageKind == kind ? Color.white : Theme.surface)
+                .cornerRadius(9)
+        }
+        .buttonStyle(.plain)
     }
 
     private var iconCard: some View {
@@ -307,7 +378,7 @@ struct PageCreationSheet: View {
                 Button {
                     workoutType = nil
                 } label: {
-                    Text("None")
+                    Text(inheritedWorkoutType.map { "Inherit \($0.name)" } ?? "None")
                         .font(.subheadline.weight(workoutType == nil ? .semibold : .regular))
                         .foregroundColor(.white)
                         .padding(.vertical, 10)
@@ -336,16 +407,36 @@ struct PageCreationSheet: View {
     }
 
     @ViewBuilder
+    private var inheritedWorkoutTypeCard: some View {
+        if let inheritedWorkoutType {
+            HStack(spacing: 8) {
+                Image(systemName: inheritedWorkoutType.iconName)
+                    .foregroundColor(Color(hex: inheritedWorkoutType.colorHex))
+                Text("Uses \(inheritedWorkoutType.name) from its container")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textSecondary)
+                Spacer()
+            }
+            .padding(12)
+            .background(Theme.surface)
+            .cornerRadius(10)
+        }
+    }
+
+    private var inheritedWorkoutType: TimeMasterCore.WorkoutType? {
+        guard let parentID, let uuid = UUID(uuidString: parentID) else { return nil }
+        return databaseStore.page(id: uuid)?.effectiveWorkoutType
+    }
+
+    @ViewBuilder
     private var timingCard: some View {
-        if workoutType != nil {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Workout Config").font(.headline).foregroundColor(Theme.textPrimary)
-                VStack(spacing: 8) {
-                    stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s")
-                    stepperRow(label: "Rest After", value: $restAfter, range: 0...120, step: 5, unit: "s")
-                    stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
-                    stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Workout Config").font(.headline).foregroundColor(Theme.textPrimary)
+            VStack(spacing: 8) {
+                stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s")
+                stepperRow(label: "Rest After", value: $restAfter, range: 0...120, step: 5, unit: "s")
+                stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
+                stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
             }
         }
     }
@@ -405,20 +496,6 @@ struct PageCreationSheet: View {
         }
     }
 
-    private var tagsCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Tags").font(.headline).foregroundColor(Theme.textPrimary)
-            TextField("e.g., beginner, mobility, warmup", text: $tags)
-                .padding(14)
-                .background(Theme.surface)
-                .cornerRadius(10)
-                .foregroundColor(Theme.textPrimary)
-            Text("Comma-separated")
-                .font(.caption2)
-                .foregroundColor(Theme.textSecondary)
-                .padding(.leading, 4)
-        }
-    }
 
     @ViewBuilder
     private var deleteCard: some View {
@@ -454,51 +531,46 @@ struct PageCreationSheet: View {
         let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
         guard !trimmedTitle.isEmpty else { return }
 
-        let parsedTags = tags
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-
         let parsedURLs = linkURLsText
             .split(separator: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
 
-        var coreWT: TimeMasterCore.WorkoutType? = nil
-        if let wt = workoutType {
-            coreWT = TimeMasterCore.WorkoutType(id: wt.id, name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex)
-        }
+        let coreWT: TimeMasterCore.WorkoutType? = {
+            guard pageKind == .container, parentID == nil, let wt = workoutType else { return nil }
+            return TimeMasterCore.WorkoutType(id: wt.id, name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex)
+        }()
 
         var manifest: ExercisePageManifest
         if let existing = existingPage {
             manifest = existing.manifest
             manifest.title = trimmedTitle
             manifest.iconName = iconName.isEmpty ? nil : iconName
+            manifest.pageKind = pageKind
             manifest.workoutType = coreWT
             manifest.markdownBody = markdownBody
-            manifest.duration = workoutType != nil ? duration : nil
-            manifest.restAfter = workoutType != nil ? restAfter : nil
-            manifest.sets = workoutType != nil ? sets : nil
-            manifest.restBetweenSets = workoutType != nil ? restBetweenSets : nil
-            manifest.tags = parsedTags
+            manifest.duration = pageKind == .leaf ? duration : nil
+            manifest.restAfter = pageKind == .leaf ? restAfter : nil
+            manifest.sets = pageKind == .leaf ? sets : nil
+            manifest.restBetweenSets = pageKind == .leaf ? restBetweenSets : nil
             manifest.linkURLs = parsedURLs
-            manifest.coverImageFilename = coverImageFilename
-            manifest.mediaFilenames = mediaFilenames
+            manifest.coverImageFilename = pageKind == .container ? coverImageFilename : nil
+            manifest.mediaFilenames = pageKind == .leaf ? mediaFilenames : []
             manifest.updatedAt = Date()
         } else {
             manifest = ExercisePageManifest(
                 title: trimmedTitle,
-                coverImageFilename: coverImageFilename,
+                pageKind: pageKind,
+                coverImageFilename: pageKind == .container ? coverImageFilename : nil,
                 iconName: iconName.isEmpty ? nil : iconName,
                 markdownBody: markdownBody,
-                mediaFilenames: mediaFilenames,
+                mediaFilenames: pageKind == .leaf ? mediaFilenames : [],
                 linkURLs: parsedURLs,
                 workoutType: coreWT,
-                duration: workoutType != nil ? duration : nil,
-                restAfter: workoutType != nil ? restAfter : nil,
-                sets: workoutType != nil ? sets : nil,
-                restBetweenSets: workoutType != nil ? restBetweenSets : nil,
-                tags: parsedTags,
+                duration: pageKind == .leaf ? duration : nil,
+                restAfter: pageKind == .leaf ? restAfter : nil,
+                sets: pageKind == .leaf ? sets : nil,
+                restBetweenSets: pageKind == .leaf ? restBetweenSets : nil,
                 parentID: parentID
             )
         }
@@ -506,28 +578,32 @@ struct PageCreationSheet: View {
         onSave(manifest, parentID)
 
         if existingPage == nil {
-            if let coverData = pendingCoverData, let newFilename = manifest.coverImageFilename {
-                let pageID = manifest.id
-                DispatchQueue.global(qos: .userInitiated).async {
-                    let tempDir = FileManager.default.temporaryDirectory
-                    let tempURL = tempDir.appendingPathComponent(newFilename)
+            let pageID = manifest.id
+            let coverData = pendingCoverData
+            let mediaFiles = pendingMediaFiles
+            DispatchQueue.global(qos: .userInitiated).async { [weak databaseStore] in
+                if let coverData = coverData, manifest.pageKind == .container {
+                    let temporaryCoverURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString + "-" + (manifest.coverImageFilename ?? "cover.jpg"))
                     do {
-                        try coverData.write(to: tempURL)
-                        try DatabaseManager.shared.uploadCoverImage(pageID: pageID, sourceURL: tempURL)
-                        try? FileManager.default.removeItem(at: tempURL)
+                        try coverData.write(to: temporaryCoverURL)
+                        let uploadedFilename = try DatabaseManager.shared.uploadCoverImage(
+                            pageID: pageID,
+                            sourceURL: temporaryCoverURL
+                        )
+                        databaseStore?.publishUploadedMedia(pageID: pageID, coverFilename: uploadedFilename)
                     } catch {}
+                    try? FileManager.default.removeItem(at: temporaryCoverURL)
                 }
-            }
-            for (filename, data) in pendingMediaData {
-                let pageID = manifest.id
-                DispatchQueue.global(qos: .userInitiated).async {
-                    let tempDir = FileManager.default.temporaryDirectory
-                    let tempURL = tempDir.appendingPathComponent(filename)
+                for media in mediaFiles {
                     do {
-                        try data.write(to: tempURL)
-                        try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: tempURL)
-                        try? FileManager.default.removeItem(at: tempURL)
+                        let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
+                            pageID: pageID,
+                            sourceURL: media.temporaryURL
+                        )
+                        databaseStore?.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename])
                     } catch {}
+                    try? FileManager.default.removeItem(at: media.temporaryURL)
                 }
             }
         }
@@ -538,7 +614,7 @@ struct PageCreationSheet: View {
     #if os(iOS)
     private func handleCoverPick(item: PhotosPickerItem) {
         item.loadTransferable(type: Data.self) { result in
-            guard case .success(let data) = result else { return }
+            guard case .success(let data?) = result else { return }
             if let uiImage = UIImage(data: data) {
                 DispatchQueue.main.async {
                     coverPreviewImage = Image(uiImage: uiImage)
@@ -553,11 +629,7 @@ struct PageCreationSheet: View {
                     let filename = try DatabaseManager.shared.uploadCoverImage(pageID: id, sourceURL: tempURL)
                     DispatchQueue.main.async {
                         coverImageFilename = filename
-                        if let page = existingPage, let url = page.coverImageURL {
-                            if let data = try? Data(contentsOf: url), let img = UIImage(data: data) {
-                                coverPreviewImage = Image(uiImage: img)
-                            }
-                        }
+                        DatabaseStore.shared.reload()
                     }
                     try? FileManager.default.removeItem(at: tempURL)
                 } catch {}
@@ -571,38 +643,96 @@ struct PageCreationSheet: View {
     }
 
     private func handleMediaPicks(items: [PhotosPickerItem]) {
-        for item in items {
-            item.loadTransferable(type: Data.self) { result in
-                guard case .success(let data) = result else { return }
-                let pageID = existingPage?.manifest.id
-                let filename = UUID().uuidString + ".jpg"
-                if let id = pageID {
-                    let tempDir = FileManager.default.temporaryDirectory
-                    let tempURL = tempDir.appendingPathComponent(filename)
-                    do {
-                        try data.write(to: tempURL)
-                        let uploaded = try DatabaseManager.shared.uploadMediaToPage(pageID: id, sourceURL: tempURL)
-                        DispatchQueue.main.async {
-                            if !mediaFilenames.contains(uploaded) {
-                                mediaFilenames.append(uploaded)
-                            }
-                        }
-                        try? FileManager.default.removeItem(at: tempURL)
-                    } catch {}
-                } else {
-                    DispatchQueue.main.async {
-                        if !mediaFilenames.contains(filename) {
-                            mediaFilenames.append(filename)
-                        }
-                        pendingMediaData.append((filename: filename, data: data))
-                    }
+        Task { @MainActor in
+            for item in items {
+                let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .audiovisualContent) }
+                if isVideo, let movie = try? await item.loadTransferable(type: MovieFile.self) {
+                    stageMedia(movie.url)
+                } else if let data = try? await item.loadTransferable(type: Data.self) {
+                    stageMedia(data: data, pathExtension: "jpg")
                 }
             }
+            pendingMediaItems = []
         }
-        pendingMediaItems = []
     }
     #endif
 
+    private func stageMedia(data: Data, pathExtension: String) {
+        let temporaryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString + "." + pathExtension)
+        do {
+            try data.write(to: temporaryURL)
+            stageMedia(temporaryURL)
+            try? FileManager.default.removeItem(at: temporaryURL)
+        } catch {}
+    }
+
+    private func stageMedia(_ sourceURL: URL) {
+        let temporaryURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString + "-" + (sourceURL.lastPathComponent.isEmpty ? "media.jpg" : sourceURL.lastPathComponent))
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: temporaryURL)
+            if let pageID = existingPage?.manifest.id {
+                let uploaded = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
+                try? FileManager.default.removeItem(at: temporaryURL)
+                if !mediaFilenames.contains(uploaded) {
+                    mediaFilenames.append(uploaded)
+                }
+                databaseStore.updatePageMedia(pageID: pageID, mediaFilenames: [uploaded])
+                let mediaURL = try? DatabaseManager.shared.pageMediaURL(pageID: pageID, filename: uploaded)
+                loadMediaPreview(filename: uploaded, url: mediaURL)
+            } else {
+                let previewName = temporaryURL.lastPathComponent
+                if !mediaFilenames.contains(previewName) {
+                    mediaFilenames.append(previewName)
+                    pendingMediaFiles.append(PendingPageMedia(temporaryURL: temporaryURL))
+                    loadMediaPreview(filename: previewName, url: temporaryURL)
+                } else {
+                    try? FileManager.default.removeItem(at: temporaryURL)
+                }
+            }
+        } catch {}
+    }
+
+    private func loadMediaPreview(filename: String, url: URL?) {
+        guard let url else { return }
+        Task {
+            let image = await PhotoManager.shared.asyncLoadImage(from: url)
+            guard let image else { return }
+            #if os(iOS)
+            let preview = Image(uiImage: image)
+            #elseif os(macOS)
+            let preview = Image(nsImage: image)
+            #endif
+            await MainActor.run {
+                mediaPreviewThumbnails.removeAll { $0.filename == filename }
+                mediaPreviewThumbnails.append((filename: filename, image: preview))
+            }
+        }
+    }
+
+    #if os(macOS)
+    private func handleMacCoverPick(_ url: URL) {
+        guard let data = try? Data(contentsOf: url) else { return }
+        if let pageID = existingPage?.manifest.id {
+            let temporaryURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("cover." + (url.pathExtension.isEmpty ? "jpg" : url.pathExtension))
+            do {
+                try data.write(to: temporaryURL)
+                let filename = try DatabaseManager.shared.uploadCoverImage(pageID: pageID, sourceURL: temporaryURL)
+                coverImageFilename = filename
+                try? FileManager.default.removeItem(at: temporaryURL)
+                databaseStore.publishUploadedMedia(pageID: pageID, coverFilename: filename)
+            } catch {}
+        } else {
+            coverImageFilename = "cover." + (url.pathExtension.isEmpty ? "jpg" : url.pathExtension)
+            pendingCoverData = data
+            if let image = NSImage(data: data) {
+                coverPreviewImage = Image(nsImage: image)
+            }
+        }
+    }
+    #endif
     private func removeMedia(filename: String) {
         guard let page = existingPage else {
             mediaFilenames.removeAll { $0 == filename }

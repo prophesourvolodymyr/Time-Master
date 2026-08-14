@@ -73,12 +73,13 @@ class WorkoutStore: ObservableObject {
         typeSchedules = config.typeSchedules.map { ts in
             TypeSchedule(
                 id: UUID(uuidString: ts.id) ?? UUID(),
-                folderID: UUID(uuidString: ts.folderID) ?? UUID(),
+                folderID: UUID(uuidString: ts.folderID),
                 type: WorkoutType(core: ts.type),
                 daysOfWeek: Set(ts.daysOfWeek),
                 startDate: ts.startDate,
                 durationMonths: ts.durationMonths,
-                weeklyGoal: ts.weeklyGoal
+                weeklyGoal: ts.weeklyGoal,
+                endedAt: ts.endedAt
             )
         }
 
@@ -125,6 +126,9 @@ class WorkoutStore: ObservableObject {
             }
         }
         workouts.removeAll { $0.id == workout.id }
+        if isMigrated {
+            try? DatabaseManager.shared.deleteWorkout(id: workout.id.uuidString)
+        }
         saveWorkouts()
     }
 
@@ -189,16 +193,23 @@ class WorkoutStore: ObservableObject {
         historyEntries.insert(entry, at: 0)
         saveHistory()
         NotificationManager.shared.sendPostWorkoutCelebration()
+        NotificationManager.shared.notifyWorkoutCompleted(
+            totalWorkouts: historyEntries.count,
+            streak: streakInfo().current
+        )
+        NotificationManager.shared.refreshMissedDayNudges(schedules: typeSchedules, history: historyEntries)
     }
 
     func clearHistory() {
         historyEntries.removeAll()
         saveHistory()
+        NotificationManager.shared.refreshMissedDayNudges(schedules: typeSchedules, history: historyEntries)
     }
 
     func deleteHistoryEntries(at offsets: IndexSet) {
         historyEntries.remove(atOffsets: offsets)
         saveHistory()
+        NotificationManager.shared.refreshMissedDayNudges(schedules: typeSchedules, history: historyEntries)
     }
 
     /// Re-reads data from the active store (file system or UserDefaults).
@@ -215,6 +226,17 @@ class WorkoutStore: ObservableObject {
     }
 
     private func saveWorkouts() {
+        if isMigrated {
+            let db = DatabaseManager.shared
+            for workout in workouts {
+                let manifest = workout.coreManifest
+                if (try? db.getWorkout(id: manifest.id)) != nil {
+                    try? db.updateWorkout(id: manifest.id, manifest: manifest)
+                } else {
+                    try? db.createWorkout(id: manifest.id, manifest: manifest)
+                }
+            }
+        }
         if let data = try? JSONEncoder().encode(workouts) {
             userDefaults.set(data, forKey: workoutsKey)
         }
@@ -245,6 +267,22 @@ class WorkoutStore: ObservableObject {
     }
 
     private func saveHistory() {
+        if isMigrated {
+            let history = historyEntries.map { entry in
+                HistoryEntry(
+                    id: entry.id.uuidString,
+                    workoutId: entry.workoutId.uuidString,
+                    workoutName: entry.workoutName,
+                    completedAt: entry.completedAt,
+                    durationCompleted: entry.durationCompleted,
+                    workoutType: entry.workoutType.core,
+                    isPartial: entry.isPartial,
+                    elapsedSeconds: entry.elapsedSeconds
+                )
+            }
+            try? DatabaseManager.shared.replaceHistory(history)
+            return
+        }
         if let data = try? JSONEncoder().encode(historyEntries) {
             userDefaults.set(data, forKey: historyKey)
         }
@@ -266,6 +304,10 @@ class WorkoutStore: ObservableObject {
     }
 
     func saveRestDays() {
+        if isMigrated {
+            saveConfigToFileSystem()
+            return
+        }
         if let data = try? JSONEncoder().encode(restDays) {
             userDefaults.set(data, forKey: restDaysKey)
         }
@@ -293,6 +335,11 @@ class WorkoutStore: ObservableObject {
             restDays.insert(key)
         }
         saveRestDays()
+        NotificationManager.shared.applyPreferences(
+            NotificationManager.shared.preferences,
+            schedules: typeSchedules,
+            restDays: restDays
+        )
     }
 
     func isRestDay(_ date: Date) -> Bool {
@@ -309,7 +356,7 @@ class WorkoutStore: ObservableObject {
            dayStart <= trainingEndDate {
             return true
         }
-        for schedule in typeSchedules where schedule.isActive {
+        for schedule in typeSchedules where schedule.isActive(on: date) {
             if schedule.daysOfWeek.contains(monBased),
                dayStart >= cal.startOfDay(for: schedule.startDate) {
                 return true
@@ -328,7 +375,7 @@ class WorkoutStore: ObservableObject {
         let monBased = (weekday + 5) % 7 + 1
         let dayStart = cal.startOfDay(for: date)
         return typeSchedules
-            .filter { $0.isActive && $0.daysOfWeek.contains(monBased) && dayStart >= cal.startOfDay(for: $0.startDate) }
+            .filter { $0.isActive(on: date) && $0.daysOfWeek.contains(monBased) && dayStart >= cal.startOfDay(for: $0.startDate) }
             .map { $0.type }
     }
 
@@ -347,20 +394,30 @@ class WorkoutStore: ObservableObject {
     // MARK: - Schedule CRUD
 
     func addSchedule(_ schedule: TypeSchedule) {
+        let start = Calendar.current.startOfDay(for: schedule.startDate)
+        for index in typeSchedules.indices where typeSchedules[index].type.id == schedule.type.id && typeSchedules[index].isActive(on: start) {
+            typeSchedules[index].endedAt = start
+        }
         typeSchedules.append(schedule)
         saveSchedules()
+        NotificationManager.shared.rescheduleNotifications(for: typeSchedules)
+        NotificationManager.shared.refreshMissedDayNudges(schedules: typeSchedules, history: historyEntries)
     }
 
     func updateSchedule(_ schedule: TypeSchedule) {
         if let idx = typeSchedules.firstIndex(where: { $0.id == schedule.id }) {
             typeSchedules[idx] = schedule
             saveSchedules()
+            NotificationManager.shared.rescheduleNotifications(for: typeSchedules)
+            NotificationManager.shared.refreshMissedDayNudges(schedules: typeSchedules, history: historyEntries)
         }
     }
 
     func deleteSchedule(id: UUID) {
         typeSchedules.removeAll { $0.id == id }
         saveSchedules()
+        NotificationManager.shared.rescheduleNotifications(for: typeSchedules)
+        NotificationManager.shared.refreshMissedDayNudges(schedules: typeSchedules, history: historyEntries)
     }
 
     private func loadSchedules() {
@@ -371,9 +428,37 @@ class WorkoutStore: ObservableObject {
     }
 
     private func saveSchedules() {
+        if isMigrated {
+            saveConfigToFileSystem()
+            return
+        }
         if let data = try? JSONEncoder().encode(typeSchedules) {
             userDefaults.set(data, forKey: schedulesKey)
         }
+    }
+
+    private func saveConfigToFileSystem() {
+        let db = DatabaseManager.shared
+        guard var config = try? db.loadConfig() else { return }
+        config.typeSchedules = typeSchedules.map {
+            TypeScheduleManifest(
+                id: $0.id.uuidString,
+                folderID: $0.folderID?.uuidString ?? "",
+                type: $0.type.core,
+                daysOfWeek: Array($0.daysOfWeek).sorted(),
+                startDate: $0.startDate,
+                durationMonths: $0.durationMonths,
+                weeklyGoal: $0.weeklyGoal,
+                endedAt: $0.endedAt
+            )
+        }
+        config.customWorkoutTypes = customWorkoutTypes.map(\.core)
+        config.restDays = Array(restDays).sorted()
+        config.trainingDays = Array(trainingDays).sorted()
+        config.trainingStartDate = trainingStartDate
+        config.trainingDurationMonths = trainingDurationMonths
+        config.weeklyGoal = weeklyGoal
+        try? db.saveConfig(config)
     }
 
     private let customTypesKey = "custom_workout_types"
@@ -405,6 +490,10 @@ class WorkoutStore: ObservableObject {
     }
 
     private func saveCustomTypes() {
+        if isMigrated {
+            saveConfigToFileSystem()
+            return
+        }
         if let data = try? JSONEncoder().encode(customWorkoutTypes) {
             userDefaults.set(data, forKey: customTypesKey)
         }
@@ -415,6 +504,10 @@ class WorkoutStore: ObservableObject {
     private let trainingDurationKey = "training_duration_months"
 
     func saveTrainingSchedule() {
+        if isMigrated {
+            saveConfigToFileSystem()
+            return
+        }
         if let data = try? JSONEncoder().encode(Array(trainingDays)) {
             userDefaults.set(data, forKey: trainingDaysKey)
         }
@@ -476,6 +569,42 @@ class WorkoutStore: ObservableObject {
 
         return (current, best)
     }
+
+    func typeStats(for type: WorkoutType, asOf date: Date = Date()) -> (sessionsThisWeek: Int, totalSeconds: Int, streak: Int, adherence: Double?) {
+        let calendar = Calendar.current
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? date
+        let entries = historyEntries.filter { $0.workoutType.id == type.id }
+        let sessionsThisWeek = entries.filter { $0.completedAt >= weekStart }.count
+        let totalSeconds = entries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) }
+        let daySet = Set(entries.map { calendar.startOfDay(for: $0.completedAt) })
+        let activeSchedule = typeSchedules.last { $0.type.id == type.id && $0.isActive(on: date) }
+        var streak = 0
+        var cursor = calendar.startOfDay(for: date)
+        if !daySet.contains(cursor), let previous = calendar.date(byAdding: .day, value: -1, to: cursor) {
+            cursor = previous
+        }
+        while true {
+            if daySet.contains(cursor) {
+                streak += 1
+            } else if let schedule = activeSchedule,
+                      cursor >= calendar.startOfDay(for: schedule.startDate),
+                      schedule.daysOfWeek.contains((calendar.component(.weekday, from: cursor) + 5) % 7 + 1) {
+                break
+            }
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = previous
+        }
+        let adherence: Double?
+        if let schedule = activeSchedule {
+            let scheduledDays = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: weekStart) }
+                .filter { schedule.daysOfWeek.contains((calendar.component(.weekday, from: $0) + 5) % 7 + 1) && $0 <= date }
+            let completed = scheduledDays.filter { daySet.contains(calendar.startOfDay(for: $0)) }.count
+            adherence = scheduledDays.isEmpty ? nil : Double(completed) / Double(scheduledDays.count)
+        } else {
+            adherence = nil
+        }
+        return (sessionsThisWeek, totalSeconds, streak, adherence)
+    }
 }
 
 // MARK: - TimeMasterCore → App Model Conversion
@@ -487,6 +616,15 @@ extension WorkoutType {
         self.iconName = core.iconName
         self.colorHex = core.colorHex
     }
+
+    var core: TimeMasterCore.WorkoutType {
+        TimeMasterCore.WorkoutType(
+            id: id,
+            name: name,
+            iconName: iconName,
+            colorHex: colorHex
+        )
+    }
 }
 
 extension WorkoutManifest {
@@ -497,6 +635,7 @@ extension WorkoutManifest {
             type: WorkoutType(core: type),
             sections: sections.map { $0.toAppSection() },
             createdAt: createdAt,
+            prepareTime: prepareTime,
             restBetweenSections: restBetweenSections,
             colorHex: colorHex,
             imageFilename: imageFilename,
@@ -510,6 +649,7 @@ extension WorkoutSectionManifest {
         Section(
             id: UUID(),
             name: name,
+            alias: alias,
             duration: duration,
             isTimerEnabled: isTimerEnabled,
             mediaItems: mediaFilenames.map { MediaItem(filename: $0, type: .photo) },
@@ -518,7 +658,150 @@ extension WorkoutSectionManifest {
             restBetweenSets: restBetweenSets,
             customRestAfter: customRestAfter,
             prepareTime: prepareTime,
-            pageID: UUID(uuidString: exerciseID)
+            pageID: UUID(uuidString: exerciseID),
+            mode: mode == .bundle ? .bundle : .timed,
+            slots: slots.map { $0.toAppSlot() },
+            bigRestRow: bigRestRow.map { $0.toAppRestRow() }
+        )
+    }
+}
+
+extension WorkoutRestRowManifest {
+    func toAppRestRow() -> RestRow {
+        RestRow(
+            id: UUID(uuidString: id) ?? UUID(),
+            kind: kind == .big ? .big : .normal,
+            duration: duration,
+            contents: contents.map { $0.toAppRestContent() }
+        )
+    }
+}
+
+extension WorkoutRestContentManifest {
+    func toAppRestContent() -> RestContent {
+        RestContent(
+            id: UUID(uuidString: id) ?? UUID(),
+            kind: kind == .stretch ? .stretch : .note,
+            pageID: UUID(uuidString: pageID ?? ""),
+            text: text
+        )
+    }
+}
+
+extension WorkoutDropSetManifest {
+    func toAppDropSet() -> DropSet {
+        DropSet(
+            id: UUID(uuidString: id) ?? UUID(),
+            exercisePageID: UUID(uuidString: exerciseID),
+            name: name,
+            alias: alias,
+            duration: duration,
+            restAfter: restAfter
+        )
+    }
+}
+
+extension WorkoutSetSlotManifest {
+    func toAppSlot() -> SetSlot {
+        SetSlot(
+            id: UUID(uuidString: id) ?? UUID(),
+            exercisePageID: UUID(uuidString: exerciseID),
+            name: name,
+            alias: alias,
+            duration: duration,
+            repCount: repCount,
+            restAfter: restAfter,
+            restExercisePageID: UUID(uuidString: restExerciseID ?? ""),
+            drops: drops.map { $0.toAppDropSet() },
+            restRow: restRow.map { $0.toAppRestRow() }
+        )
+    }
+}
+
+extension Workout {
+    var coreManifest: WorkoutManifest {
+        WorkoutManifest(
+            id: id.uuidString,
+            name: name,
+            type: type.core,
+            sections: sections.map(\.coreManifest),
+            musicTrackFilenames: musicTrackFilenames,
+            colorHex: colorHex,
+            createdAt: createdAt,
+            prepareTime: prepareTime,
+            restBetweenSections: restBetweenSections,
+            imageFilename: imageFilename
+        )
+    }
+}
+extension Section {
+    var coreManifest: WorkoutSectionManifest {
+        WorkoutSectionManifest(
+            exerciseID: pageID?.uuidString ?? "",
+            name: name,
+            alias: alias,
+            duration: duration,
+            sets: sets,
+            repCount: repCount,
+            restBetweenSets: restBetweenSets,
+            prepareTime: prepareTime,
+            customRestAfter: customRestAfter,
+            isTimerEnabled: isTimerEnabled,
+            mediaFilenames: mediaItems.map(\.filename),
+            slots: slots.map(\.coreManifest),
+            bigRestRow: bigRestRow?.coreManifest
+        )
+    }
+}
+
+extension RestRow {
+    var coreManifest: WorkoutRestRowManifest {
+        WorkoutRestRowManifest(
+            id: id.uuidString,
+            kind: kind == .big ? .big : .normal,
+            duration: duration,
+            contents: contents.map(\.coreManifest)
+        )
+    }
+}
+
+extension RestContent {
+    var coreManifest: WorkoutRestContentManifest {
+        WorkoutRestContentManifest(
+            id: id.uuidString,
+            kind: kind == .stretch ? .stretch : .note,
+            pageID: pageID?.uuidString,
+            text: text
+        )
+    }
+}
+
+extension DropSet {
+    var coreManifest: WorkoutDropSetManifest {
+        WorkoutDropSetManifest(
+            id: id.uuidString,
+            exerciseID: exercisePageID?.uuidString ?? "",
+            name: name,
+            alias: alias,
+            duration: duration,
+            restAfter: restAfter
+        )
+    }
+}
+
+extension SetSlot {
+    var coreManifest: WorkoutSetSlotManifest {
+        WorkoutSetSlotManifest(
+            id: id.uuidString,
+            exerciseID: exercisePageID?.uuidString ?? "",
+            name: name,
+            alias: alias,
+            duration: duration,
+            repCount: repCount,
+            restAfter: restAfter,
+            restExerciseID: restExercisePageID?.uuidString,
+            drops: drops.map(\.coreManifest),
+            restRow: restRow?.coreManifest
         )
     }
 }

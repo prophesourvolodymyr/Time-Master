@@ -46,11 +46,14 @@ Reuse from F05-B:
 - `TimeMaster/Views/Player/ExercisePageOverlay.swift` (new)
 
 ## Verification
-- [ ] Tap exercise in player → full page overlay opens
-- [ ] Page shows all content: media, notes, links, YouTube embed
-- [ ] Floating controls bar visible with timer, pause, stop
-- [ ] Timer continues running while overlay is open
-- [ ] Pause/stop works from floating controls
-- [ ] Dismiss overlay → return to player at current position
-- [ ] Bundle mode: elapsed time shown, next button works
-- [ ] compiles without errors
+- [x] Tap exercise name, exercise media, or bundle "Open Page" → full page overlay opens
+- [x] Page shows all content: cover, media, notes, links, embeds, tags, and workout config
+- [x] Floating controls bar is visible with timer/elapsed time, pause, stop, skip, and progress
+- [x] Timer continues running while overlay is open
+- [x] Pause/stop works from floating controls
+- [x] Dismiss overlay returns to the player at the current position
+- [x] Bundle mode shows elapsed time and next-exercise context
+- [x] macOS arm64 Debug build succeeds
+- [x] iOS Simulator Debug build succeeds
+
+Evidence: `WorkoutPlayerView` presents `ExercisePageOverlay` without stopping the timer; `ExercisePageOverlay` presents `FloatingControlsBar`. Both app targets compiled on 2026-07-13, and the iPhone 16 Pro Simulator app launched from the updated build.

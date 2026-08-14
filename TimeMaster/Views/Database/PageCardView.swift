@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PageCardView: View {
     let page: ExercisePage
@@ -8,7 +9,8 @@ struct PageCardView: View {
     var onAddChild: (() -> Void)? = nil
     var onDuplicate: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
-
+    var onMoveIntoContainer: ((String) -> Void)? = nil
+    @State private var isDropTargeted = false
     var body: some View {
         Group {
             if isGridMode {
@@ -17,6 +19,21 @@ struct PageCardView: View {
                 listRow
             }
         }
+        .onDrag {
+            NSItemProvider(object: page.manifest.id as NSString)
+        }
+        .onDrop(of: [UTType.plainText], isTargeted: $isDropTargeted) { providers in
+            guard page.isContainer, let onMoveIntoContainer else { return false }
+            providers.first?.loadObject(ofClass: NSString.self) { object, _ in
+                guard let id = object as? String, id != page.manifest.id else { return }
+                DispatchQueue.main.async { onMoveIntoContainer(id) }
+            }
+            return true
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: isGridMode ? 14 : 10)
+                .stroke(isDropTargeted ? Color.white.opacity(0.9) : Color.clear, lineWidth: 2)
+        )
     }
 
     private var gridCard: some View {
@@ -43,7 +60,7 @@ struct PageCardView: View {
 
     @ViewBuilder
     private var contextMenuContent: some View {
-        if let onAddToWorkout = onAddToWorkout {
+        if page.isLeaf, let onAddToWorkout = onAddToWorkout {
             Button { onAddToWorkout() } label: {
                 Label("Add to Workout", systemImage: "figure.strengthtraining.traditional")
             }
@@ -73,11 +90,13 @@ struct PageCardView: View {
 
     private var coverHeroGrid: some View {
         ZStack(alignment: .bottomLeading) {
-            if let iconName = page.manifest.iconName {
+            if let coverURL = page.coverImageURL {
+                coverImageGrid(url: coverURL)
+            } else if let iconName = page.manifest.iconName {
                 iconCoverGrid(iconName: iconName)
             } else if page.isContainer {
                 gradientCoverGrid(iconName: "folder.fill", color: nil)
-            } else if let wt = page.manifest.workoutType {
+            } else if let wt = page.effectiveWorkoutType {
                 gradientCoverGrid(iconName: wt.iconName, color: Color(hex: wt.colorHex))
             } else {
                 gradientCoverGrid(iconName: "doc.text.fill", color: nil)
@@ -101,7 +120,7 @@ struct PageCardView: View {
                         .background(Color.black.opacity(0.3))
                         .cornerRadius(3)
                     }
-                    if let wt = page.manifest.workoutType {
+                    if let wt = page.effectiveWorkoutType {
                         Text(wt.name)
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(Color(hex: wt.colorHex))
@@ -116,8 +135,13 @@ struct PageCardView: View {
         .frame(height: 120)
     }
 
+    private func coverImageGrid(url: URL) -> some View {
+        AsyncCoverImage(url: url, height: 120, contentMode: .fill, overlayGradient: false)
+            .frame(height: 120)
+    }
+
     private func iconCoverGrid(iconName: String) -> some View {
-        let color = page.manifest.workoutType?.colorHex ?? "FFFFFF"
+        let color = page.effectiveWorkoutType?.colorHex ?? "FFFFFF"
         return AnyView(
             ZStack {
                 Color(hex: color).opacity(0.25)
@@ -176,10 +200,6 @@ struct PageCardView: View {
                 if page.hasWorkoutConfig {
                     Text("\(page.manifest.duration ?? 0)s")
                 }
-                if !page.manifest.tags.isEmpty {
-                    Text(page.manifest.tags.prefix(2).joined(separator: ", "))
-                        .lineLimit(1)
-                }
             }
             .font(.system(size: 9))
             .foregroundColor(Theme.textSecondary.opacity(0.7))
@@ -200,32 +220,13 @@ struct PageCardView: View {
     }
 
     private func coverImage(url: URL) -> some View {
-        #if os(iOS)
-        if let data = try? Data(contentsOf: url), let uiImage = UIImage(data: data) {
-            return AnyView(
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 48, height: 48)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            )
-        }
-        #elseif os(macOS)
-        if let data = try? Data(contentsOf: url), let nsImage = NSImage(data: data) {
-            return AnyView(
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 48, height: 48)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            )
-        }
-        #endif
-        return AnyView(gradientFallback)
+        AsyncCoverImage(url: url, height: 48, overlayGradient: false)
+            .frame(width: 48, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private func iconFallback(iconName: String) -> some View {
-        let color = page.manifest.workoutType?.colorHex ?? "FFFFFF"
+        let color = page.effectiveWorkoutType?.colorHex ?? "FFFFFF"
         return AnyView(
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(hex: color).opacity(0.25))
@@ -266,10 +267,10 @@ struct PageCardView: View {
                 if page.isContainer {
                     childCountBadge
                 }
-                if let wt = page.manifest.workoutType {
+                if let wt = page.effectiveWorkoutType {
                     workoutTypeTag(name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex)
                 }
-                if page.isLeaf && page.manifest.workoutType == nil && !page.isContainer {
+                if page.isLeaf && page.effectiveWorkoutType == nil && !page.isContainer {
                     Text("Page")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(Theme.textSecondary.opacity(0.6))

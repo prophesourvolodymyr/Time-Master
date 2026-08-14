@@ -1,8 +1,21 @@
 import AVFoundation
 import Combine
+import SwiftMP3
 
 /// Manages background workout music playback from Documents/Music/.
 final class MusicManager: ObservableObject {
+
+    enum ImportError: LocalizedError {
+        case noAudioTrack
+        case readerFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .noAudioTrack: return "The selected video has no audio track."
+            case .readerFailed: return "The video audio could not be read."
+            }
+        }
+    }
 
     static let shared = MusicManager()
     private init() {
@@ -26,6 +39,8 @@ final class MusicManager: ObservableObject {
 
     @Published var trackFilenames: [String] = []
     @Published var isPlaying: Bool = false
+    @Published private(set) var activePlaylist: [String] = []
+    @Published var repeatOne = false
     /// 0.0 – 1.0 volume stored in UserDefaults, applied whenever playback starts.
     @Published var volume: Float = 0.7 {
         didSet {
@@ -71,6 +86,81 @@ final class MusicManager: ObservableObject {
         } catch {}
     }
 
+    func importTrackAsync(from url: URL) async throws {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+        let filename = UUID().uuidString + "_" + url.deletingPathExtension().lastPathComponent + ".mp3"
+        let destination = musicDir.appendingPathComponent(filename)
+        try await Task.detached(priority: .userInitiated) {
+            try Self.convertVideoToMP3(sourceURL: url, destinationURL: destination)
+        }.value
+
+        await MainActor.run {
+            trackFilenames.append(filename)
+            UserDefaults.standard.set(trackFilenames, forKey: filenamesKey)
+        }
+    }
+
+    private static func convertVideoToMP3(sourceURL: URL, destinationURL: URL) throws {
+        let asset = AVAsset(url: sourceURL)
+        guard let track = asset.tracks(withMediaType: .audio).first else {
+            throw ImportError.noAudioTrack
+        }
+
+        let outputSettings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatLinearPCM,
+            AVSampleRateKey: 44_100,
+            AVNumberOfChannelsKey: 2,
+            AVLinearPCMBitDepthKey: 32,
+            AVLinearPCMIsFloatKey: true,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false
+        ]
+        let reader = try AVAssetReader(asset: asset)
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: outputSettings)
+        output.alwaysCopiesSampleData = false
+        guard reader.canAdd(output) else { throw ImportError.readerFailed }
+        reader.add(output)
+        guard reader.startReading() else { throw ImportError.readerFailed }
+
+        var encoder = MP3Encoder(options: MP3EncoderOptions(
+            sampleRate: 44_100,
+            bitrateKbps: 192,
+            mode: .stereo
+        ))
+        var audioData = Data()
+
+        while let sampleBuffer = output.copyNextSampleBuffer() {
+            guard let blockBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) else { continue }
+            var lengthAtOffset = 0
+            var totalLength = 0
+            var dataPointer: UnsafeMutablePointer<Int8>?
+            CMBlockBufferGetDataPointer(
+                blockBuffer,
+                atOffset: 0,
+                lengthAtOffsetOut: &lengthAtOffset,
+                totalLengthOut: &totalLength,
+                dataPointerOut: &dataPointer
+            )
+            guard let dataPointer, totalLength > 0 else { continue }
+            let sampleCount = totalLength / MemoryLayout<Float>.size
+            let samples = UnsafeBufferPointer(
+                start: UnsafeRawPointer(dataPointer).assumingMemoryBound(to: Float.self),
+                count: sampleCount
+            )
+            audioData.append(encoder.appendSamples(Array(samples)))
+        }
+
+        guard reader.status == .completed else { throw ImportError.readerFailed }
+        audioData.append(encoder.flush())
+
+        var mp3Data = Data()
+        mp3Data.append(encoder.makeXingHeader())
+        mp3Data.append(audioData)
+        try mp3Data.write(to: destinationURL, options: .atomic)
+    }
+
     func deleteTrack(at offsets: IndexSet) {
         for i in offsets {
             let fn = trackFilenames[i]
@@ -104,7 +194,11 @@ final class MusicManager: ObservableObject {
 
     func stopPlayback() {
         player.pause()
+        player.removeAllItems()
+        looper = nil
+        removeEndObserver()
         isPlaying = false
+        activePlaylist = []
     }
 
     func togglePlayback() {
@@ -112,19 +206,28 @@ final class MusicManager: ObservableObject {
     }
 
     func startPlayback(tracks: [String]? = nil) {
-        guard tracks != nil || !trackFilenames.isEmpty else { return }
+        let requested = tracks?.isEmpty == false ? tracks! : trackFilenames
+        guard !requested.isEmpty else { return }
         #if os(iOS)
         #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
         #endif
         #endif
-        if let tracks = tracks, !tracks.isEmpty {
-            rebuildAndPlay(filenames: tracks)
-        } else {
-            rebuildAndPlay()
-        }
+        rebuildAndPlay(filenames: requested)
         isPlaying = true
+    }
+
+    func jumpToTrack(index: Int) {
+        guard activePlaylist.indices.contains(index) else { return }
+        rebuildAndPlay(filenames: activePlaylist, startIndex: index)
+        isPlaying = true
+    }
+
+    func toggleRepeatOne() {
+        repeatOne.toggle()
+        guard isPlaying, !activePlaylist.isEmpty else { return }
+        rebuildAndPlay(filenames: activePlaylist)
     }
 
     func setPlaylist(_ filenames: [String]) {
@@ -134,38 +237,42 @@ final class MusicManager: ObservableObject {
         }
         guard !valid.isEmpty else { return }
         trackFilenames = valid
-        if isPlaying { rebuildAndPlay() }
+        if isPlaying { rebuildAndPlay(filenames: valid) }
     }
 
     // MARK: - Queue management
 
     private func rebuildAndPlay(filenames: [String]? = nil) {
-        // Tear down old observer / looper
-        if let obs = endObserver {
-            NotificationCenter.default.removeObserver(obs)
-            endObserver = nil
-        }
+        rebuildAndPlay(filenames: filenames, startIndex: 0)
+    }
+
+    private func rebuildAndPlay(filenames: [String]? = nil, startIndex: Int) {
+        removeEndObserver()
         looper = nil
         player.pause()
         player.removeAllItems()
 
-        let source = filenames ?? trackFilenames
+        let source = filenames ?? (activePlaylist.isEmpty ? trackFilenames : activePlaylist)
         let urls = source.compactMap { fn -> URL? in
             let u = musicDir.appendingPathComponent(fn)
             return FileManager.default.fileExists(atPath: u.path) ? u : nil
         }
         guard !urls.isEmpty else { return }
+        activePlaylist = source
+        let orderedURLs = startIndex > 0
+            ? Array(urls.dropFirst(startIndex)) + Array(urls.prefix(startIndex))
+            : urls
 
-        if urls.count == 1 {
+        if repeatOne {
             // Single track — loop via AVPlayerLooper.
             // IMPORTANT: the template item must NOT be pre-loaded into the player's
             // queue; AVPlayerLooper manages the queue internally.
-            let item = AVPlayerItem(url: urls[0])
+            let item = AVPlayerItem(url: orderedURLs[0])
             player = AVQueuePlayer()          // empty queue — looper fills it
             looper = AVPlayerLooper(player: player, templateItem: item)
         } else {
-            // Multiple tracks — re-queue when exhausted
-            for url in urls {
+            // Queue all selected tracks, then rebuild from track zero when exhausted.
+            for url in orderedURLs {
                 player.insert(AVPlayerItem(url: url), after: nil)
             }
             endObserver = NotificationCenter.default.addObserver(
@@ -174,10 +281,11 @@ final class MusicManager: ObservableObject {
                 queue: .main
             ) { [weak self] _ in
                 guard let self else { return }
-                // One item left means the last one just finished (it's still currentItem)
+                // One item left means the final selected track just finished.
                 if self.player.items().count <= 1 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        self.reloadMultiQueue()
+                        guard self.isPlaying else { return }
+                        self.rebuildAndPlay(filenames: self.activePlaylist)
                     }
                 }
             }
@@ -187,13 +295,10 @@ final class MusicManager: ObservableObject {
         player.play()
     }
 
-    private func reloadMultiQueue() {
-        let urls = trackFilenames.compactMap { fn -> URL? in
-            let u = musicDir.appendingPathComponent(fn)
-            return FileManager.default.fileExists(atPath: u.path) ? u : nil
+    private func removeEndObserver() {
+        if let obs = endObserver {
+            NotificationCenter.default.removeObserver(obs)
+            endObserver = nil
         }
-        player.removeAllItems()
-        for url in urls { player.insert(AVPlayerItem(url: url), after: nil) }
-        if isPlaying { player.play() }
     }
 }

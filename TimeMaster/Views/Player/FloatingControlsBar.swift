@@ -9,7 +9,10 @@ struct FloatingControlsBar: View {
     let isPaused: Bool
     let isTimerEnabled: Bool
     let isRest: Bool
+    let isMusicPlaying: Bool
+    let nextExerciseName: String?
     let onPause: () -> Void
+    let onMusicToggle: () -> Void
     let onStop: () -> Void
     let onSkip: () -> Void
     let onDismiss: () -> Void
@@ -73,12 +76,27 @@ struct FloatingControlsBar: View {
             Text("\(sectionIndex + 1) of \(totalSections)")
                 .font(.system(size: 9, weight: .medium))
                 .foregroundColor(.white.opacity(0.45))
+            if let nextExerciseName {
+                Text("Next: \(nextExerciseName)")
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundColor(.white.opacity(0.4))
+                    .lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity)
     }
 
     private var controlsGroup: some View {
         HStack(spacing: 6) {
+            Button(action: onMusicToggle) {
+                Image(systemName: isMusicPlaying ? "music.note" : "music.note.slash")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+                    .background(isMusicPlaying ? Color.white.opacity(0.28) : Color.white.opacity(0.15))
+                    .clipShape(Circle())
+            }
+
             Button(action: onPause) {
                 Image(systemName: isPaused ? "play.fill" : "pause.fill")
                     .font(.system(size: 12, weight: .bold))
@@ -128,7 +146,10 @@ struct FloatingControlsBar: View {
                 isPaused: false,
                 isTimerEnabled: true,
                 isRest: false,
+                isMusicPlaying: false,
+                nextExerciseName: "Shoulder Press",
                 onPause: {},
+                onMusicToggle: {},
                 onStop: {},
                 onSkip: {},
                 onDismiss: {}

@@ -9,7 +9,11 @@ struct ImportSheetView: View {
     @State private var urlText        = ""
     @State private var isDownloading  = false
     @State private var downloadError: String?
+    #if os(iOS)
     @State private var pickerItem: PhotosPickerItem?
+    #else
+    @State private var showingFilePicker = false
+    #endif
     @State private var showingSettings = false
     @State private var showingEditor   = false
     @State private var videoURL: URL?
@@ -31,13 +35,7 @@ struct ImportSheetView: View {
             }
             .navigationTitle("Import Video")
             #if os(iOS)
-            #if os(iOS)
-#if os(iOS)
-#if os(iOS)
-.navigationBarTitleDisplayMode(.inline)
-#endif
-#endif
-#endif
+            .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -56,10 +54,22 @@ struct ImportSheetView: View {
                 editorCover
             }
         }
+        #if os(iOS)
         .onChange(of: pickerItem) { item in
             guard let item else { return }
             loadLocalVideo(item)
         }
+        #else
+        .macFilePicker(
+            isPresented: $showingFilePicker,
+            allowedTypes: [.movie],
+            allowsMultiple: false
+        ) { urls in
+            guard let url = urls.first else { return }
+            videoURL = url
+            showingEditor = true
+        }
+        #endif
     }
 
     // MARK: - Editor Cover
@@ -79,23 +89,35 @@ struct ImportSheetView: View {
 
     private var localPickerCard: some View {
         VStack(alignment: .leading, spacing: 12) {
+            #if os(iOS)
             Text("From Camera Roll")
                 .font(.headline).foregroundColor(Theme.textPrimary)
             PhotosPicker(selection: $pickerItem, matching: .videos) {
-                HStack {
-                    Image(systemName: "photo.on.rectangle")
-                        .font(.title2).foregroundColor(Theme.textPrimary)
-                    Text("Choose Video")
-                        .font(.headline).foregroundColor(Theme.textPrimary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(Theme.textSecondary)
-                }
-                .padding(16)
-                .background(Theme.surface)
-                .cornerRadius(12)
+                pickerRow(title: "Choose Video", systemImage: "photo.on.rectangle")
             }
+            #else
+            Text("From This Mac")
+                .font(.headline).foregroundColor(Theme.textPrimary)
+            Button { showingFilePicker = true } label: {
+                pickerRow(title: "Choose Video", systemImage: "folder")
+            }
+            #endif
         }
+    }
+
+    private func pickerRow(title: String, systemImage: String) -> some View {
+        HStack {
+            Image(systemName: systemImage)
+                .font(.title2).foregroundColor(Theme.textPrimary)
+            Text(title)
+                .font(.headline).foregroundColor(Theme.textPrimary)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundColor(Theme.textSecondary)
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(12)
     }
 
     private var downloadCard: some View {
@@ -144,6 +166,7 @@ struct ImportSheetView: View {
 
     // MARK: - Actions
 
+    #if os(iOS)
     private func loadLocalVideo(_ item: PhotosPickerItem) {
         Task { @MainActor in
             if let file = try? await item.loadTransferable(type: MovieFile.self) {
@@ -153,6 +176,7 @@ struct ImportSheetView: View {
             pickerItem = nil
         }
     }
+    #endif
 
     private func startDownload() {
         downloadError = nil
@@ -173,3 +197,4 @@ struct ImportSheetView: View {
         }
     }
 }
+

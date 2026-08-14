@@ -77,6 +77,9 @@ struct WorkoutListView: View {
                       let workout = store.workouts.first(where: { $0.id == id }) else { return }
                 navigationPath = [workout]
             }
+            .onReceive(NotificationCenter.default.publisher(for: .newWorkoutCommand)) { _ in
+                showingAddWorkout = true
+            }
         }
     }
 

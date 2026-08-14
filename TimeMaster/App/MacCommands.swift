@@ -1,5 +1,7 @@
 #if os(macOS)
 import SwiftUI
+import AppKit
+import TimeMasterCore
 
 struct TimeMasterCommands: Commands {
     var body: some Commands {
@@ -33,10 +35,18 @@ struct TimeMasterCommands: Commands {
             .keyboardShortcut(",", modifiers: .command)
         }
 
+        CommandMenu("Database") {
+            Button("Show Exercises Database in Finder") {
+                let url = DatabaseManager.shared.exercisesDatabaseURL
+                try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+            .keyboardShortcut("o", modifiers: [.command, .option])
+        }
+
         CommandGroup(replacing: .appSettings) {}
 
         TextEditingCommands()
-        WindowCommands()
     }
 }
 
@@ -74,8 +84,4 @@ struct WindowCommands: Commands {
     }
 }
 
-extension Notification.Name {
-    static let newWorkoutCommand   = Notification.Name("com.timemaster.newWorkoutCommand")
-    static let openSettingsCommand = Notification.Name("com.timemaster.openSettingsCommand")
-}
 #endif

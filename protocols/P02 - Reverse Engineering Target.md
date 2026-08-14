@@ -404,16 +404,16 @@ features/<FeatureName>/RE-RESEARCH/
 
 ---
 
-## DEFINITION OF DONE
+## COMPLETION CRITERIA
 
-- [ ] Target catalog is comprehensive (searched all categories)
-- [ ] At least one target fully analyzed (static OR dynamic)
-- [ ] Plain English explanation delivered to user and they confirmed understanding
-- [ ] Feature logic documented as pseudo-code
-- [ ] All unknowns explicitly listed (and each one investigated at least once)
-- [ ] Deep dive performed: error paths, edge cases, background behavior checked — not just happy path
-- [ ] Reimplementation spec is complete enough to code from
-- [ ] Knowledge archive is saved in RE-RESEARCH/
+- The target catalog is comprehensive and searches all categories
+- At least one target is fully analyzed through static or dynamic analysis
+- A plain-English explanation is delivered and understood by the user
+- Feature logic is documented as pseudo-code
+- All unknowns are explicitly listed and each is investigated at least once
+- Error paths, edge cases, and background behavior are checked, not only the happy path
+- The reimplementation specification is complete enough to build from
+- The knowledge archive is saved in `RE-RESEARCH/`
 
 ---
 
@@ -685,4 +685,3 @@ gem install cfpropertylist
 **If `brew install` fails with permission error:** ask user to run the exact command.
 **If `pip3 install` fails:** try `--user` flag, then `--break-system-packages` (if recent macOS Python).
 **If nothing works:** tell user the exact error and the command they need to run. Do NOT give up silently — exhaust all auto-install paths first.
-

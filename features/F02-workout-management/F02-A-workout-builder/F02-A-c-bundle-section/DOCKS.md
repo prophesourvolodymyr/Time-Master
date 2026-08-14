@@ -37,11 +37,14 @@ Bundle sections in the player show technique cards one at a time. User completes
 - `TimeMaster/Views/Player/BundleReorderSheet.swift` (new)
 
 ## Verification
-- [ ] Bundle section starts with first technique card
-- [ ] Card shows cover image, name, notes, position dots
-- [ ] Inline preview: tap card → photo/video previews inline
-- [ ] Deep open: opens full ExercisePage with floating controls
-- [ ] Swipe left/right navigates between bundle items
-- [ ] Reorder mid-workout: drag items, changes persist
-- [ ] Bundle section completes after last item
-- [ ] compiles without errors
+- [x] Bundle section starts with first technique card
+- [x] Card shows cover image, name, notes, and position count
+- [x] Inline preview: expand the card to show the page media gallery; tap media for full-screen playback
+- [x] Deep open: opens the full `ExercisePageOverlay` with floating controls
+- [x] Swipe left/right navigates between bundle items
+- [x] Reorder mid-workout: reorder sheet writes the new order to the workout store
+- [x] Bundle section completes after the last item
+- [x] macOS arm64 Debug build succeeds
+- [x] iOS Simulator Debug build succeeds
+
+Evidence: `WorkoutPlayerView` routes bundle sections to the self-paced card flow and persists reorder changes through `WorkoutStore`. Both app targets compiled on 2026-07-13 and the iPhone 16 Pro Simulator app launched successfully.

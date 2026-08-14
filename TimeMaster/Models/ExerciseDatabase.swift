@@ -180,19 +180,27 @@ struct ExerciseFolder: Identifiable, Codable {
 
 struct TypeSchedule: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
-    var folderID: UUID
+    var folderID: UUID?
     var type: WorkoutType
     var daysOfWeek: Set<Int>
     var startDate: Date
     var durationMonths: Int
     var weeklyGoal: Int
+    var endedAt: Date?
 
     var endDate: Date {
-        Calendar.current.date(byAdding: .month, value: durationMonths, to: startDate) ?? startDate
+        guard durationMonths > 0 else { return .distantFuture }
+        return Calendar.current.date(byAdding: .month, value: durationMonths, to: startDate) ?? startDate
     }
 
     var isActive: Bool {
-        Date() <= endDate
+        isActive(on: Date())
+    }
+
+    func isActive(on date: Date) -> Bool {
+        let day = Calendar.current.startOfDay(for: date)
+        guard day >= Calendar.current.startOfDay(for: startDate), day <= endDate else { return false }
+        return endedAt.map { day < Calendar.current.startOfDay(for: $0) } ?? true
     }
 
     static func == (lhs: TypeSchedule, rhs: TypeSchedule) -> Bool {

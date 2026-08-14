@@ -2,6 +2,7 @@ import SwiftUI
 import TimeMasterCore
 #if os(iOS)
 import PhotosUI
+import UniformTypeIdentifiers
 #endif
 
 struct ExercisePageDetailView: View {
@@ -9,7 +10,6 @@ struct ExercisePageDetailView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     let pageID: UUID
 
-    @State private var scrollOffset: CGFloat = 0
     @State private var isEditing = false
     @State private var mediaGalleryPresented = false
     @State private var selectedMediaIndex = 0
@@ -17,6 +17,8 @@ struct ExercisePageDetailView: View {
     @State private var guideContent: String = ""
     @State private var showMediaPicker = false
     @State private var showWorkoutPicker = false
+    @State private var showingAddChildPage = false
+    @State private var childPageParent: ExercisePage?
     @State private var childToEdit: ExercisePage?
     @State private var childToAddWorkout: ExercisePage?
     #if os(iOS)
@@ -33,13 +35,8 @@ struct ExercisePageDetailView: View {
 
             if let page = page {
                 ScrollView {
-                    scrollOffsetReader
                     coverHero(page: page)
                     detailContent(page: page)
-                }
-                .coordinateSpace(name: "scroll")
-                .onPreferenceChange(ScrollOffsetKey.self) { offset in
-                    scrollOffset = offset
                 }
             } else {
                 emptyPageView
@@ -50,20 +47,33 @@ struct ExercisePageDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showWorkoutPicker = true
-                } label: {
-                    Image(systemName: "figure.strengthtraining.traditional")
+            if page?.isLeaf == true {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showWorkoutPicker = true
+                    } label: {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                    }
+                    .foregroundColor(.white)
+                    .help("Add to Workout")
                 }
-                .foregroundColor(.white)
-                .help("Add to Workout")
             }
             ToolbarItem(placement: .primaryAction) {
                 Button(isEditing ? "Done" : "Edit") {
                     isEditing.toggle()
                 }
                 .foregroundColor(.white)
+            }
+            if page?.isContainer == true {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingAddChildPage = true
+                    } label: {
+                        Image(systemName: "doc.badge.plus")
+                    }
+                    .foregroundColor(.white)
+                    .help("Add Child Page")
+                }
             }
             #if os(iOS)
             ToolbarItem(placement: .primaryAction) {
@@ -89,6 +99,17 @@ struct ExercisePageDetailView: View {
                 WorkoutPickerSheet(page: page)
                     .environmentObject(workoutStore)
             }
+        }
+        .sheet(isPresented: $showingAddChildPage) {
+            if let parent = childPageParent ?? page {
+                PageCreationSheet(parentID: parent.manifest.id) { manifest, parentID in
+                    try? store.createPage(manifest: manifest, parentID: parentID)
+                }
+                .environmentObject(workoutStore)
+            }
+        }
+        .onChange(of: showingAddChildPage) { isPresented in
+            if !isPresented { childPageParent = nil }
         }
         .sheet(isPresented: $mediaGalleryPresented) {
             if let page = page {
@@ -126,32 +147,16 @@ struct ExercisePageDetailView: View {
         #endif
     }
 
-    @ViewBuilder
-    private var scrollOffsetReader: some View {
-        GeometryReader { geo in
-            Color.clear.preference(
-                key: ScrollOffsetKey.self,
-                value: geo.frame(in: .named("scroll")).minY
-            )
-        }
-        .frame(height: 0)
-    }
-
     private func coverHero(page: ExercisePage) -> some View {
         let baseHeight: CGFloat = 220
-        let parallaxOffset = scrollOffset > 0 ? -scrollOffset * 0.5 : 0
-        let totalHeight = max(baseHeight + parallaxOffset, baseHeight * 0.6)
 
         return ZStack(alignment: .bottomLeading) {
             if let coverURL = page.coverImageURL {
                 coverImageView(url: coverURL)
-                    .frame(height: totalHeight)
             } else if let iconName = page.manifest.iconName {
                 iconHeroView(iconName: iconName, page: page)
-                    .frame(height: totalHeight)
             } else {
                 gradientHeroView(page: page)
-                    .frame(height: totalHeight)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -163,7 +168,7 @@ struct ExercisePageDetailView: View {
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.4), radius: 3)
                     .lineLimit(2)
-                if let wt = page.manifest.workoutType {
+                if let wt = page.effectiveWorkoutType {
                     HStack(spacing: 4) {
                         Image(systemName: wt.iconName).font(.caption)
                         Text(wt.name).font(.caption.weight(.medium))
@@ -177,8 +182,8 @@ struct ExercisePageDetailView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 16)
         }
+        .frame(height: baseHeight)
         .clipped()
-        .offset(y: parallaxOffset > 0 ? 0 : parallaxOffset)
     }
 
     private var breadcrumbRow: some View {
@@ -210,44 +215,11 @@ struct ExercisePageDetailView: View {
     }
 
     private func coverImageView(url: URL) -> some View {
-        #if os(iOS)
-        if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
-            return AnyView(
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .clipped()
-                    .overlay(
-                        LinearGradient(
-                            colors: [.clear, .black.opacity(0.55)],
-                            startPoint: .center,
-                            endPoint: .bottom
-                        )
-                    )
-            )
-        }
-        #elseif os(macOS)
-        if let data = try? Data(contentsOf: url), let image = NSImage(data: data) {
-            return AnyView(
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .clipped()
-                    .overlay(
-                        LinearGradient(
-                            colors: [.clear, .black.opacity(0.55)],
-                            startPoint: .center,
-                            endPoint: .bottom
-                        )
-                    )
-            )
-        }
-        #endif
-        return AnyView(gradientHeroView(page: page!))
+        AsyncCoverImage(url: url, height: 220, overlayGradient: true)
     }
 
     private func iconHeroView(iconName: String, page: ExercisePage) -> some View {
-        let color = page.manifest.workoutType?.colorHex ?? "FFFFFF"
+        let color = page.effectiveWorkoutType?.colorHex ?? "FFFFFF"
         return AnyView(
             ZStack {
                 Color(hex: color).opacity(0.3)
@@ -255,6 +227,7 @@ struct ExercisePageDetailView: View {
                     .font(.system(size: 64))
                     .foregroundColor(Color(hex: color).opacity(0.7))
             }
+            .frame(height: 220)
             .overlay(
                 LinearGradient(
                     colors: [.clear, .black.opacity(0.55)],
@@ -328,11 +301,8 @@ struct ExercisePageDetailView: View {
                 }
             }
 
-            if !page.manifest.tags.isEmpty {
-                tagsSection(page: page)
-            }
 
-            if !children.isEmpty {
+            if page.isContainer && !children.isEmpty {
                 childrenSection
             }
 
@@ -389,30 +359,25 @@ struct ExercisePageDetailView: View {
         .cornerRadius(10)
     }
 
-    private func tagsSection(page: ExercisePage) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Tags")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
-            FlowLayout(spacing: 6) {
-                ForEach(page.manifest.tags, id: \.self) { tag in
-                    Text("#\(tag)")
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(Theme.textSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.06))
-                        .cornerRadius(6)
-                }
-            }
-        }
-    }
 
     private var childrenSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Child Pages")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
+            HStack {
+                Text("Child Pages")
+                    .font(.headline)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                if page?.isContainer == true {
+                    Button {
+                        childPageParent = page
+                        showingAddChildPage = true
+                    } label: {
+                        Label("Add", systemImage: "plus")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundColor(.white)
+                }
+            }
 
             ForEach(children) { child in
                 NavigationLink(destination: ExercisePageDetailView(pageID: child.id)) {
@@ -420,9 +385,16 @@ struct ExercisePageDetailView: View {
                         page: child,
                         onAddToWorkout: { childToAddWorkout = child },
                         onEdit: { childToEdit = child },
-                        onAddChild: { },
+                        onAddChild: { childPageParent = child; showingAddChildPage = true },
                         onDuplicate: { try? store.duplicatePage(child) },
-                        onDelete: { try? store.deletePage(id: child.manifest.id) }
+                        onDelete: { try? store.deletePage(id: child.manifest.id) },
+                        onMoveIntoContainer: { sourceID in
+                            try? store.movePage(
+                                id: sourceID,
+                                newParentID: child.manifest.id,
+                                newOrder: child.children.count
+                            )
+                        }
                     )
                         .padding(12)
                         .background(Theme.surface)
@@ -488,32 +460,31 @@ struct ExercisePageDetailView: View {
 
     #if os(iOS)
     private func uploadPickedMedia(items: [PhotosPickerItem], pageID: String) {
-        for item in items {
-            item.loadTransferable(type: Data.self) { result in
-                guard case .success(let data) = result else { return }
-                let tempDir = FileManager.default.temporaryDirectory
-                let tempURL = tempDir.appendingPathComponent(UUID().uuidString + ".jpg")
-                do {
-                    try data.write(to: tempURL)
-                    _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: tempURL)
-                    DispatchQueue.main.async {
-                        store.reload()
-                        loadGuideContent()
-                    }
-                    try? FileManager.default.removeItem(at: tempURL)
-                } catch {}
+        Task { @MainActor in
+            for item in items {
+                let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .audiovisualContent) }
+                let sourceURL: URL?
+                if isVideo, let movie = try? await item.loadTransferable(type: MovieFile.self) {
+                    sourceURL = movie.url
+                } else if let data = try? await item.loadTransferable(type: Data.self) {
+                    let temporaryURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString + ".jpg")
+                    try? data.write(to: temporaryURL)
+                    sourceURL = temporaryURL
+                } else {
+                    sourceURL = nil
+                }
+
+                guard let sourceURL = sourceURL else { continue }
+                defer { try? FileManager.default.removeItem(at: sourceURL) }
+                _ = try? DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: sourceURL)
             }
+            store.reload()
+            loadGuideContent()
+            pendingMediaItems = []
         }
-        pendingMediaItems = []
     }
     #endif
-}
-
-private struct ScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
 }
 
 private struct FlowLayout: Layout {

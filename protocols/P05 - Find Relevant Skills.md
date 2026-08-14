@@ -110,11 +110,11 @@ If this skill was found FOR a specific feature (e.g., "find a skill for F03's an
 
 ---
 
-## DEFINITION OF DONE
+## COMPLETION CRITERIA
 
-- [ ] Domain and task clarified
-- [ ] Leaderboard checked and CLI search ran
-- [ ] Quality verified (installs, source, stars)
-- [ ] Recommendations presented to user
-- [ ] Skill installed (if user approved)
-- [ ] Feature docs updated with skill reference (if applicable)
+- The domain and task are clarified
+- The leaderboard is checked and the CLI search runs
+- Quality is verified through installs, source, and stars
+- Recommendations are presented to the user
+- The chosen skill is installed when the user approves
+- Relevant feature docs reference the skill when applicable

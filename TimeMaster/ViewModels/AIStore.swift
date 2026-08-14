@@ -134,7 +134,7 @@ final class AIStore: ObservableObject {
     private var approvalContinuation: CheckedContinuation<Bool, Never>?
 
     private let writeOperations: Set<String> = [
-        "create_exercise", "create_folder", "build_workout", "add_media_note",
+        "create_exercise", "create_folder", "build_workout", "add_media_note", "update_settings",
     ]
 
     // MARK: - Provider helpers
@@ -368,6 +368,8 @@ final class AIStore: ObservableObject {
         case "add_media_note":
             let exerciseID = args["exerciseID"] as? String ?? ""
             return "Add note to exercise \(exerciseID.prefix(8))..."
+        case "update_settings":
+            return "Update app settings"
         default:
             return "\(toolName): \(args.keys.joined(separator: ", "))"
         }
@@ -396,6 +398,8 @@ final class AIStore: ObservableObject {
             return d
         case "add_media_note":
             return ["Note": args["note"] as? String ?? ""]
+        case "update_settings":
+            return args.compactMapValues { "\($0)" }
         default:
             return args.compactMapValues { "\($0)" }
         }

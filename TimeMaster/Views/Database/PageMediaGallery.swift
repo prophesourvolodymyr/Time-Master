@@ -65,19 +65,7 @@ struct PageMediaGallery: View {
     }
 
     private func videoPlayer(url: URL) -> some View {
-        #if os(iOS)
-        PlayerLayerView(player: AVPlayer(url: url), gravity: .resizeAspect)
-            .onAppear {
-                let player = AVPlayer(url: url)
-                player.play()
-            }
-        #elseif os(macOS)
-        VideoPlayer(player: AVPlayer(url: url))
-            .onAppear {
-                let player = AVPlayer(url: url)
-                player.play()
-            }
-        #endif
+        PageGalleryVideoPlayer(url: url)
     }
 
     private func zoomableImageView(url: URL) -> some View {
@@ -86,6 +74,35 @@ struct PageMediaGallery: View {
         #elseif os(macOS)
         MacOSImageView(url: url)
         #endif
+    }
+}
+
+private struct PageGalleryVideoPlayer: View {
+    let url: URL
+    @State private var player: AVPlayer?
+
+    var body: some View {
+        Group {
+            if let player = player {
+                #if os(iOS)
+                PlayerLayerView(player: player, gravity: .resizeAspect)
+                #elseif os(macOS)
+                VideoPlayer(player: player)
+                    .aspectRatio(contentMode: .fit)
+                #endif
+            } else {
+                ProgressView().tint(.white)
+            }
+        }
+        .onAppear {
+            guard player == nil else { return }
+            let newPlayer = AVPlayer(url: url)
+            player = newPlayer
+            newPlayer.play()
+        }
+        .onDisappear {
+            player?.pause()
+        }
     }
 }
 

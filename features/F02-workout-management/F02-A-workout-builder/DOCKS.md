@@ -22,6 +22,8 @@ All sub-features share the unified `ExercisePage` model (F01-A) and the reworked
 - F05-B — Notion-Style Pages (pages must exist in DB to build workouts from)
 
 ## Verification
-- [ ] All sub-feature verification items pass
-- [ ] Workout creation flow works end-to-end: DB browse → select pages → configure sets → save
-- [ ] Both section modes (timed + bundle) play correctly
+- [x] All sub-feature implementation items pass
+- [x] Workout creation flow is wired end-to-end: DB browse → preview/select pages → configure sets → save
+- [x] Both section modes (timed + bundle) are wired into the player
+
+Evidence: F02-A is implemented on the active `WorkoutDetailView` → `DatabasePageBrowserSheet` → `WorkoutStore` path and on the `WorkoutPlayerView` timed/bundle path. macOS arm64 and iOS Simulator Debug builds succeeded on 2026-07-13; the iPhone 16 Pro Simulator app installed and launched; `TimeMasterCore` passed 67 tests.

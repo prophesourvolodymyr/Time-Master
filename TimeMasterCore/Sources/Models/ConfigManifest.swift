@@ -8,6 +8,7 @@ public struct TypeScheduleManifest: Codable, Equatable {
     public var startDate: Date
     public var durationMonths: Int
     public var weeklyGoal: Int
+    public var endedAt: Date?
 
     public init(
         id: String = UUID().uuidString,
@@ -16,7 +17,8 @@ public struct TypeScheduleManifest: Codable, Equatable {
         daysOfWeek: [Int] = [],
         startDate: Date = Date(),
         durationMonths: Int = 3,
-        weeklyGoal: Int = 4
+        weeklyGoal: Int = 4,
+        endedAt: Date? = nil
     ) {
         self.id = id
         self.folderID = folderID
@@ -25,6 +27,7 @@ public struct TypeScheduleManifest: Codable, Equatable {
         self.startDate = startDate
         self.durationMonths = durationMonths
         self.weeklyGoal = weeklyGoal
+        self.endedAt = endedAt
     }
 }
 

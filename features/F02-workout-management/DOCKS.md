@@ -3,11 +3,11 @@
 CRUD UI for workouts and sections: list, detail, section editor, photo picker, drag-and-drop reorder.
 
 ## V2 Sub-Features
-- [ ] **F02-A** — Workout Builder Rework
-  - [ ] F02-A-a — Database Browser + Workout Page
-  - [ ] F02-A-b — Drag-to-Build + Sets
-  - [ ] F02-A-c — Bundle Section Mode
-  - [ ] F02-A-d — Player Page Popup
+- [x] **F02-A** — Workout Builder Rework
+  - [x] F02-A-a — Database Browser + Workout Page
+  - [x] F02-A-b — Drag-to-Build + Sets
+  - [x] F02-A-c — Bundle Section Mode
+  - [x] F02-A-d — Player Page Popup
 
 ## What We Build
 - WorkoutListView: main workout list with floating "+" button, swipe-to-delete
@@ -66,3 +66,5 @@ Views/
 - [x] Delete section → removed from workout
 - [x] "Start Workout" disabled when no sections, enabled when sections exist
 - [x] Verified on iPhone 16 Pro Simulator / iOS 18.6: full build pass, 0 errors
+
+F02-A evidence: the page-backed builder, slot persistence, bundle mode, inline media preview, bundle reorder sheet, and player page overlay are connected to the active app paths. macOS arm64 and iOS Simulator Debug builds succeeded on 2026-07-13; the simulator app installed and launched; 67 `TimeMasterCore` tests passed.

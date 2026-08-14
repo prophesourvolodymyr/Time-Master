@@ -10,6 +10,12 @@ class DatabaseStore: ObservableObject {
     private let foldersKey       = "exercise_database_v2"
     private let rootNotesKey     = "exercise_database_root_notes_v1"
     private let rootExercisesKey = "exercise_database_root_exercises_v1"
+    private let legacyDatabaseKeys = [
+        "exercise_database_v2",
+        "exercise_database_root_notes_v1",
+        "exercise_database_root_exercises_v1"
+    ]
+    private var reloadWorkItem: DispatchWorkItem?
 
     @Published var rootFolders: [ExerciseFolder] = []
     @Published var rootNotes: [DatabaseNote] = []
@@ -19,6 +25,7 @@ class DatabaseStore: ObservableObject {
     private var isV2PageMigrated: Bool { MigrationManager.isV2PageMigrationComplete }
 
     private init() {
+        legacyDatabaseKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
         if isV2PageMigrated {
             loadPagesFromFileSystem()
         } else if isV1Migrated {
@@ -29,34 +36,106 @@ class DatabaseStore: ObservableObject {
     }
 
     func reload() {
+        reloadWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+
+            let snapshot: (() -> Void)? = {
+                if self.isV2PageMigrated {
+                    let snapshot = self.pageSnapshotFromFileSystem()
+                    return {
+                        self.allPagesFlat = snapshot.flat
+                        self.rootPages = snapshot.roots
+                    }
+                }
+
+                if self.isV1Migrated {
+                    let snapshot = self.legacySnapshotFromFileSystem()
+                    return {
+                        self.rootFolders = snapshot.folders
+                        self.rootExercises = snapshot.exercises
+                    }
+                }
+
+                let folders = self.defaultFolders()
+                return {
+                    self.rootFolders = folders
+                }
+            }()
+
+            guard let snapshot else { return }
+            DispatchQueue.main.async(execute: snapshot)
+        }
+
+        reloadWorkItem = workItem
+        DispatchQueue.global(qos: .userInitiated).async(execute: workItem)
+    }
+
+    func reloadImmediately() {
+        reloadWorkItem?.cancel()
+
         if isV2PageMigrated {
-            loadPagesFromFileSystem()
+            let snapshot = pageSnapshotFromFileSystem()
+            allPagesFlat = snapshot.flat
+            rootPages = snapshot.roots
         } else if isV1Migrated {
-            loadFromFileSystem()
+            let snapshot = legacySnapshotFromFileSystem()
+            rootFolders = snapshot.folders
+            rootExercises = snapshot.exercises
         } else {
-            load()
+            rootFolders = defaultFolders()
         }
     }
 
     // MARK: - V2 Page Loading
 
     private func loadPagesFromFileSystem() {
+        let snapshot = pageSnapshotFromFileSystem()
+        allPagesFlat = snapshot.flat
+        rootPages = snapshot.roots
+    }
+
+    private func pageSnapshotFromFileSystem() -> (flat: [ExercisePage], roots: [ExercisePage]) {
         let db = DatabaseManager.shared
         let base = db.exercisesDatabaseURL
-
         let flatManifests: [(ExercisePageManifest, String)]
+
         do {
             flatManifests = try db.walkPageTree(in: base)
         } catch {
-            return
+            return ([], [])
         }
 
-        allPagesFlat = flatManifests.map { (manifest, path) in
+        let rawPages = flatManifests.map { (manifest, path) in
             let pageURL = base.appendingPathComponent(path, isDirectory: true)
             return ExercisePage(from: manifest, baseURL: pageURL, path: path)
         }
+        let lookup = Dictionary(uniqueKeysWithValues: rawPages.map { ($0.id, $0) })
+        let flat = rawPages.map { page in
+            ExercisePage(
+                manifest: page.manifest,
+                coverImageURL: page.coverImageURL,
+                mediaURLs: page.mediaURLs,
+                path: page.path,
+                inheritedWorkoutType: inheritedWorkoutType(for: page, lookup: lookup)
+            )
+        }
+        return (flat, PageTreeBuilder.build(from: flat))
+    }
 
-        rootPages = PageTreeBuilder.build(from: allPagesFlat)
+    private func inheritedWorkoutType(
+        for page: ExercisePage,
+        lookup: [UUID: ExercisePage]
+    ) -> TimeMasterCore.WorkoutType? {
+        var currentID = page.manifest.parentID.flatMap(UUID.init(uuidString:))
+        while let id = currentID, let parent = lookup[id] {
+            if let type = parent.manifest.workoutType {
+                return type
+            }
+            currentID = parent.manifest.parentID.flatMap(UUID.init(uuidString:))
+        }
+        return nil
     }
 
     var pageTree: [ExercisePage] {
@@ -82,45 +161,135 @@ class DatabaseStore: ObservableObject {
     // MARK: - Page CRUD (V2)
 
     func createPage(manifest: ExercisePageManifest, parentID: String?) throws {
-        try DatabaseManager.shared.createPage(manifest: manifest, parentID: parentID)
-        loadPagesFromFileSystem()
-    }
-
-    func createPageWithMedia(manifest: ExercisePageManifest, parentID: String?, coverData: Data?, mediaData: [(filename: String, data: Data)]) throws {
-        try DatabaseManager.shared.createPage(manifest: manifest, parentID: parentID)
-
-        if let coverData = coverData, let coverFilename = manifest.coverImageFilename {
-            let tempDir = FileManager.default.temporaryDirectory
-            let tempURL = tempDir.appendingPathComponent(coverFilename)
-            try coverData.write(to: tempURL)
-            try DatabaseManager.shared.uploadCoverImage(pageID: manifest.id, sourceURL: tempURL)
-            try? FileManager.default.removeItem(at: tempURL)
-        }
-
-        for (filename, data) in mediaData {
-            let tempDir = FileManager.default.temporaryDirectory
-            let tempURL = tempDir.appendingPathComponent(filename)
-            try data.write(to: tempURL)
-            try DatabaseManager.shared.uploadMediaToPage(pageID: manifest.id, sourceURL: tempURL)
-            try? FileManager.default.removeItem(at: tempURL)
-        }
-
-        loadPagesFromFileSystem()
+        var persistedManifest = manifest
+        persistedManifest.parentID = parentID ?? manifest.parentID
+        try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
+        publishCreatedPage(persistedManifest)
     }
 
     func updatePage(id: String, manifest: ExercisePageManifest, newParentID: String?) throws {
         try DatabaseManager.shared.updatePage(id: id, manifest: manifest, newParentID: newParentID)
-        loadPagesFromFileSystem()
+        reload()
     }
 
     func deletePage(id: String) throws {
         try DatabaseManager.shared.deletePage(id: id)
-        loadPagesFromFileSystem()
+        reload()
+    }
+
+    func createPageWithMedia(
+        manifest: ExercisePageManifest,
+        parentID: String?,
+        coverData: Data?,
+        mediaData: [(filename: String, data: Data)]
+    ) throws {
+        var persistedManifest = manifest
+        persistedManifest.parentID = parentID ?? manifest.parentID
+        if !mediaData.isEmpty {
+            persistedManifest.mediaFilenames = []
+        }
+        try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
+        publishCreatedPage(persistedManifest)
+
+        let pageID = persistedManifest.id
+        let coverUpload = coverData.flatMap { data -> (String, Data)? in
+            guard let filename = persistedManifest.coverImageFilename else { return nil }
+            return (filename, data)
+        }
+        guard coverUpload != nil || !mediaData.isEmpty else { return }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+
+            if let (filename, data) = coverUpload {
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + "-" + filename)
+                do {
+                    try data.write(to: tempURL)
+                    let uploadedFilename = try DatabaseManager.shared.uploadCoverImage(
+                        pageID: pageID,
+                        sourceURL: tempURL
+                    )
+                    self.publishUploadedMedia(pageID: pageID, coverFilename: uploadedFilename)
+                } catch {}
+                try? FileManager.default.removeItem(at: tempURL)
+            }
+
+            for (filename, data) in mediaData {
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + "-" + filename)
+                do {
+                    try data.write(to: tempURL)
+                    let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
+                        pageID: pageID,
+                        sourceURL: tempURL
+                    )
+                    self.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename])
+                } catch {}
+                try? FileManager.default.removeItem(at: tempURL)
+            }
+        }
+    }
+
+    func publishUploadedMedia(
+        pageID: String,
+        coverFilename: String? = nil,
+        mediaFilenames: [String] = []
+    ) {
+        let update = { [weak self] in
+            guard let self, let index = self.allPagesFlat.firstIndex(where: { $0.manifest.id == pageID }) else { return }
+            var manifest = self.allPagesFlat[index].manifest
+            if let coverFilename {
+                manifest.coverImageFilename = coverFilename
+            }
+            for filename in mediaFilenames where !manifest.mediaFilenames.contains(filename) {
+                manifest.mediaFilenames.append(filename)
+            }
+
+            let currentPage = self.allPagesFlat[index]
+            let coverURL: URL?
+            if manifest.pageKind == .container, let filename = manifest.coverImageFilename {
+                coverURL = try? DatabaseManager.shared.pageCoverURL(pageID: pageID, filename: filename)
+            } else if manifest.pageKind == .leaf, let filename = manifest.mediaFilenames.first {
+                coverURL = try? DatabaseManager.shared.pageMediaURL(pageID: pageID, filename: filename)
+            } else {
+                coverURL = nil
+            }
+            let mediaURLs = manifest.mediaFilenames.compactMap {
+                try? DatabaseManager.shared.pageMediaURL(pageID: pageID, filename: $0)
+            }
+            self.allPagesFlat[index] = ExercisePage(
+                manifest: manifest,
+                coverImageURL: coverURL,
+                mediaURLs: mediaURLs,
+                path: currentPage.path,
+                inheritedWorkoutType: currentPage.inheritedWorkoutType
+            )
+            self.rootPages = PageTreeBuilder.build(from: self.allPagesFlat)
+        }
+
+        if Thread.isMainThread {
+            update()
+        } else {
+            DispatchQueue.main.async(execute: update)
+        }
+    }
+    
+    func updatePageMedia(
+        pageID: String,
+        coverFilename: String? = nil,
+        mediaFilenames: [String] = []
+    ) {
+        publishUploadedMedia(
+            pageID: pageID,
+            coverFilename: coverFilename,
+            mediaFilenames: mediaFilenames
+        )
     }
 
     func reorderChildren(parentID: String, childIDs: [String]) throws {
         try DatabaseManager.shared.reorderChildren(parentID: parentID, childIDs: childIDs)
-        loadPagesFromFileSystem()
+        reload()
     }
 
     func persistRootPageOrder() {
@@ -131,12 +300,12 @@ class DatabaseStore: ObservableObject {
                 try DatabaseManager.shared.updatePage(id: updatedManifest.id, manifest: updatedManifest, newParentID: nil)
             } catch {}
         }
-        loadPagesFromFileSystem()
+        reload()
     }
 
     func movePage(id: String, newParentID: String?, newOrder: Int) throws {
         try DatabaseManager.shared.movePage(id: id, newParentID: newParentID, newOrder: newOrder)
-        loadPagesFromFileSystem()
+        reload()
     }
 
     func duplicatePage(_ page: ExercisePage) throws {
@@ -169,7 +338,7 @@ class DatabaseStore: ObservableObject {
             }
         }
 
-        loadPagesFromFileSystem()
+        reload()
     }
 
     private func resolvePageFolderURL(id: String) -> URL? {
@@ -187,20 +356,66 @@ class DatabaseStore: ObservableObject {
         }
         return find(in: base)
     }
+    
+    private func publishCreatedPage(_ manifest: ExercisePageManifest) {
+        let publish = { [weak self] in
+            guard let self else { return }
+
+            var pages = self.allPagesFlat
+            let parentUUID = manifest.parentID.flatMap(UUID.init(uuidString:))
+            let inheritedType = parentUUID.flatMap { self.page(id: $0)?.effectiveWorkoutType }
+
+            if let parentUUID,
+               let parentIndex = pages.firstIndex(where: { $0.id == parentUUID }) {
+                var parentManifest = pages[parentIndex].manifest
+                if !parentManifest.childIDs.contains(manifest.id) {
+                    parentManifest.childIDs.append(manifest.id)
+                }
+                pages[parentIndex] = ExercisePage(
+                    manifest: parentManifest,
+                    coverImageURL: pages[parentIndex].coverImageURL,
+                    mediaURLs: pages[parentIndex].mediaURLs,
+                    path: pages[parentIndex].path,
+                    inheritedWorkoutType: pages[parentIndex].inheritedWorkoutType
+                )
+            }
+
+            let page = ExercisePage(
+                manifest: manifest,
+                inheritedWorkoutType: inheritedType
+            )
+            if let pageIndex = pages.firstIndex(where: { $0.id == page.id }) {
+                pages[pageIndex] = page
+            } else {
+                pages.append(page)
+            }
+            self.allPagesFlat = pages
+            self.rootPages = PageTreeBuilder.build(from: pages)
+        }
+
+        if Thread.isMainThread {
+            publish()
+        } else {
+            DispatchQueue.main.async(execute: publish)
+        }
+    }
 
     // MARK: - V1 Legacy (backward compatible)
 
     private func loadFromFileSystem() {
+        let snapshot = legacySnapshotFromFileSystem()
+        rootFolders = snapshot.folders
+        rootExercises = snapshot.exercises
+        rootNotes = []
+    }
+
+    private func legacySnapshotFromFileSystem() -> (folders: [ExerciseFolder], exercises: [Exercise]) {
         let db = DatabaseManager.shared
         let base = db.exercisesDatabaseURL
         let fs = FileSystemHelper(dataRoot: db.dataRoot)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-
-        let (folders, exercises) = walkExerciseDirectory(base, fs: fs, decoder: decoder)
-        rootFolders = folders
-        rootExercises = exercises
-        rootNotes = []
+        return walkExerciseDirectory(base, fs: fs, decoder: decoder)
     }
 
     private func walkExerciseDirectory(

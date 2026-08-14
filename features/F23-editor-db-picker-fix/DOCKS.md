@@ -59,6 +59,8 @@ ExercisePageDetailView toolbar "Add to Workout" button
 
 ## Verification
 
+Implementation evidence: macOS and iOS Simulator Debug builds succeeded after routing the section editor through `DatabasePageBrowserSheet`; core tests passed. Interactive picker selection and persistence remain pending.
+
 - [ ] From WorkoutDetailView, "Add First Exercise" → V2 DatabasePageBrowserSheet opens (no V1 folder root)
 - [ ] From ExercisePageDetailView, "Add to Workout" button → a new page-backed section appears in the chosen workout, persisted to disk manifest
 - [ ] Designer imported via AI into the DB → reload home + open workout editor → new page visible in browser

@@ -189,6 +189,40 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertEqual(workouts[0].sections.count, 2)
     }
 
+    func testWorkoutSlotsAndBundleModeRoundTrip() throws {
+        try db.bootstrapIfNeeded()
+        let id = UUID().uuidString
+        let timedSlot = WorkoutSetSlotManifest(
+            id: "timed-slot",
+            exerciseID: "nested-page-1",
+            name: "Push-up",
+            duration: 45,
+            repCount: 12,
+            restAfter: 20,
+            restExerciseID: "rest-page"
+        )
+        let bundleSlot = WorkoutSetSlotManifest(
+            id: "bundle-slot",
+            exerciseID: "nested-page-2",
+            name: "Mobility flow"
+        )
+        let manifest = WorkoutManifest(
+            id: id,
+            name: "Nested Page Workout",
+            sections: [
+                WorkoutSectionManifest(exerciseID: "nested-page-1", name: "Timed", slots: [timedSlot]),
+                WorkoutSectionManifest(exerciseID: "nested-page-2", name: "Bundle", mode: .bundle, slots: [bundleSlot])
+            ]
+        )
+
+        try db.createWorkout(id: id, manifest: manifest)
+        let saved = try XCTUnwrap(db.getWorkout(id: id))
+
+        XCTAssertEqual(saved.sections[0].slots, [timedSlot])
+        XCTAssertEqual(saved.sections[1].mode, .bundle)
+        XCTAssertEqual(saved.sections[1].slots, [bundleSlot])
+    }
+
     func testHistoryAppendAndRead() throws {
         try db.bootstrapIfNeeded()
         let entry1 = HistoryEntry(
@@ -210,6 +244,21 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertEqual(entries.count, 2)
         XCTAssertEqual(entries[0].workoutName, "Morning HIIT")
         XCTAssertEqual(entries[1].workoutName, "Evening Yoga")
+    }
+
+    func testReplaceHistoryOverwritesExistingEntries() throws {
+        try db.bootstrapIfNeeded()
+        try db.appendHistoryEntry(HistoryEntry(workoutId: "old", workoutName: "Old Workout", durationCompleted: 60))
+
+        let replacement = [
+            HistoryEntry(workoutId: "one", workoutName: "New Workout One", durationCompleted: 60),
+            HistoryEntry(workoutId: "two", workoutName: "New Workout Two", durationCompleted: 60)
+        ]
+        try db.replaceHistory(replacement)
+
+        let saved = try db.readHistory()
+        XCTAssertEqual(saved.count, 2)
+        XCTAssertEqual(saved.map(\.workoutName), ["New Workout One", "New Workout Two"])
     }
 
     func testConfigSaveAndLoad() throws {
@@ -343,5 +392,92 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertTrue(filename.hasSuffix(".jpg") || filename.contains("."))
         let destFile = fs.mediaDirectory.appendingPathComponent(filename)
         XCTAssertTrue(fs.fileExists(at: destFile))
+    }
+
+    func testNestedPagesKeepTheirOwnCoverAndMediaAtEveryDepth() throws {
+        try db.bootstrapIfNeeded()
+
+        let root = ExercisePageManifest(id: "root", title: "Root")
+        let child = ExercisePageManifest(id: "child", title: "Child", parentID: root.id)
+        let grandchild = ExercisePageManifest(id: "grandchild", title: "Grandchild", parentID: child.id)
+        try db.createPage(manifest: root)
+        try db.createPage(manifest: child, parentID: root.id)
+        try db.createPage(manifest: grandchild, parentID: child.id)
+
+        let coverSource = tempDir.appendingPathComponent("cover.png")
+        let photoSource = tempDir.appendingPathComponent("photo.jpg")
+        let videoSource = tempDir.appendingPathComponent("clip.mov")
+        try Data("cover".utf8).write(to: coverSource)
+        try Data("photo".utf8).write(to: photoSource)
+        try Data("video".utf8).write(to: videoSource)
+
+        let coverFilename = try db.uploadCoverImage(pageID: child.id, sourceURL: coverSource)
+        let photoFilename = try db.uploadMediaToPage(pageID: child.id, sourceURL: photoSource)
+        let videoFilename = try db.uploadMediaToPage(pageID: grandchild.id, sourceURL: videoSource)
+
+        let pages = try db.walkPageTree(in: fs.exercisesDatabaseDirectory)
+        let pagesByID = Dictionary(uniqueKeysWithValues: pages.map { ($0.0.id, $0) })
+
+        XCTAssertEqual(pagesByID[root.id]?.0.childIDs, [child.id])
+        XCTAssertEqual(pagesByID[child.id]?.0.childIDs, [grandchild.id])
+        XCTAssertEqual(pagesByID[child.id]?.0.coverImageFilename, coverFilename)
+        XCTAssertEqual(pagesByID[child.id]?.0.mediaFilenames, [photoFilename])
+        XCTAssertEqual(pagesByID[grandchild.id]?.0.mediaFilenames, [videoFilename])
+        XCTAssertTrue(fs.fileExists(at: fs.exercisesDatabaseDirectory.appendingPathComponent("root/child/" + coverFilename)))
+        XCTAssertTrue(fs.fileExists(at: fs.exercisesDatabaseDirectory.appendingPathComponent("root/child/media/" + photoFilename)))
+        XCTAssertTrue(fs.fileExists(at: fs.exercisesDatabaseDirectory.appendingPathComponent("root/child/grandchild/media/" + videoFilename)))
+    }
+
+    func testPageKindsEnforceContainerAndExerciseRules() throws {
+        try db.bootstrapIfNeeded()
+
+        let root = ExercisePageManifest(id: "container", title: "Strength", pageKind: .container)
+        try db.createPage(manifest: root)
+
+        let exercise = ExercisePageManifest(
+            id: "exercise",
+            title: "Push-up",
+            pageKind: .leaf,
+            mediaFilenames: ["push-up.jpg"],
+            duration: 30,
+            parentID: root.id
+        )
+        try db.createPage(manifest: exercise, parentID: root.id)
+        XCTAssertEqual(try db.getPage(id: exercise.id).pageKind, .leaf)
+
+        let invalidContainer = ExercisePageManifest(
+            id: "invalid-container",
+            title: "Invalid",
+            pageKind: .container,
+            duration: 30
+        )
+        XCTAssertThrowsError(try db.createPage(manifest: invalidContainer))
+
+        let invalidLeaf = ExercisePageManifest(
+            id: "invalid-leaf",
+            title: "Invalid",
+            pageKind: .leaf,
+            coverImageFilename: "cover.jpg",
+            duration: 30,
+            parentID: root.id
+        )
+        XCTAssertThrowsError(try db.createPage(manifest: invalidLeaf, parentID: root.id))
+    }
+
+    func testNestedContainersInheritRootWorkoutTypeAndRejectOverrides() throws {
+        try db.bootstrapIfNeeded()
+        let root = ExercisePageManifest(id: "typed-root", title: "Root", workoutType: .strength)
+        try db.createPage(manifest: root)
+
+        let nested = ExercisePageManifest(id: "nested", title: "Nested", parentID: root.id)
+        try db.createPage(manifest: nested, parentID: root.id)
+        XCTAssertNil(try db.getPage(id: nested.id).workoutType)
+
+        let leaf = ExercisePageManifest(id: "nested-leaf", title: "Leaf", pageKind: .leaf, duration: 30, parentID: nested.id)
+        try db.createPage(manifest: leaf, parentID: nested.id)
+        XCTAssertNil(try db.getPage(id: leaf.id).workoutType)
+
+        let invalidNested = ExercisePageManifest(id: "invalid-nested", title: "Invalid", workoutType: .hiit, parentID: root.id)
+        XCTAssertThrowsError(try db.createPage(manifest: invalidNested, parentID: root.id))
     }
 }

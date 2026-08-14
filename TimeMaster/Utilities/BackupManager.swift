@@ -259,34 +259,13 @@ final class BackupManager {
                 continue
             }
 
-            let manifest = WorkoutManifest(
-                id: wID,
-                name: workout.name,
-                type: TimeMasterCore.WorkoutType(
-                    id: workout.type.id,
-                    name: workout.type.name,
-                    iconName: workout.type.iconName,
-                    colorHex: workout.type.colorHex
-                ),
-                sections: workout.sections.map { section in
-                    WorkoutSectionManifest(
-                        exerciseID: "",
-                        name: section.name,
-                        duration: section.duration,
-                        sets: section.sets,
-                        restBetweenSets: section.restBetweenSets,
-                        prepareTime: section.prepareTime,
-                        customRestAfter: section.customRestAfter,
-                        isTimerEnabled: section.isTimerEnabled,
-                        mediaFilenames: section.mediaItems.map { mediaMap[$0.filename] ?? $0.filename }
-                    )
-                },
-                musicTrackFilenames: workout.musicTrackFilenames,
-                colorHex: workout.colorHex,
-                createdAt: workout.createdAt,
-                restBetweenSections: workout.restBetweenSections,
-                imageFilename: workout.imageFilename
-            )
+            var manifest = workout.coreManifest
+            manifest.id = wID
+            manifest.sections = manifest.sections.map { section in
+                var section = section
+                section.mediaFilenames = section.mediaFilenames.map { mediaMap[$0] ?? $0 }
+                return section
+            }
             do {
                 try db.createWorkout(id: wID, manifest: manifest)
                 workoutsImported += 1

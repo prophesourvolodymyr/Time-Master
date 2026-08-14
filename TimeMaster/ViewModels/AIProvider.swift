@@ -571,6 +571,42 @@ extension AIProvider {
                     ],
                 ],
             ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "get_settings",
+                    "description": "Read the user-safe app settings snapshot. API keys, provider credentials, filesystem paths, and music files are never returned.",
+                    "parameters": ["type": "object", "properties": [:], "required": []],
+                ],
+            ],
+            [
+                "type": "function",
+                "function": [
+                    "name": "update_settings",
+                    "description": "Propose changes to supported app settings. The user must approve every update before it is saved. Only use fields the user explicitly asked to change.",
+                    "parameters": [
+                        "type": "object",
+                        "properties": [
+                            "extraRestSeconds": ["type": "integer", "description": "5 to 120 seconds in five-second increments"],
+                            "motivationEnabled": ["type": "boolean"],
+                            "motivationInterval": ["type": "integer", "description": "30 to 120 seconds in five-second increments"],
+                            "notifications": [
+                                "type": "object",
+                                "properties": [
+                                    "enabled": ["type": "boolean"],
+                                    "reminderHour": ["type": "integer", "description": "0 through 23"],
+                                    "reminderMinute": ["type": "integer", "description": "0 through 59"],
+                                    "reminderLeadMinutes": ["type": "integer", "description": "0 to 60 in five-minute increments"],
+                                    "streakMotivationEnabled": ["type": "boolean"],
+                                    "missedDayNudgesEnabled": ["type": "boolean"],
+                                    "restDayAffirmationsEnabled": ["type": "boolean"],
+                                ],
+                            ],
+                        ],
+                        "required": [],
+                    ],
+                ],
+            ],
         ]
     }
 
@@ -714,6 +750,36 @@ extension AIProvider {
                         "note": ["type": "string", "description": "Note content to append"],
                     ],
                     "required": ["exerciseID", "note"],
+                ],
+            ],
+            [
+                "name": "get_settings",
+                "description": "Read the user-safe app settings snapshot. Credentials and API keys are never returned.",
+                "input_schema": ["type": "object", "properties": [:], "required": []],
+            ],
+            [
+                "name": "update_settings",
+                "description": "Propose a supported setting change. The user must approve before it is saved.",
+                "input_schema": [
+                    "type": "object",
+                    "properties": [
+                        "extraRestSeconds": ["type": "integer"],
+                        "motivationEnabled": ["type": "boolean"],
+                        "motivationInterval": ["type": "integer"],
+                        "notifications": [
+                            "type": "object",
+                            "properties": [
+                                "enabled": ["type": "boolean"],
+                                "reminderHour": ["type": "integer"],
+                                "reminderMinute": ["type": "integer"],
+                                "reminderLeadMinutes": ["type": "integer"],
+                                "streakMotivationEnabled": ["type": "boolean"],
+                                "missedDayNudgesEnabled": ["type": "boolean"],
+                                "restDayAffirmationsEnabled": ["type": "boolean"],
+                            ],
+                        ],
+                    ],
+                    "required": [],
                 ],
             ],
         ]

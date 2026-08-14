@@ -148,11 +148,11 @@ If this skill relates to a specific feature, note it in the feature's DOCKS.md o
 
 ---
 
-## DEFINITION OF DONE
+## COMPLETION CRITERIA
 
-- [ ] Task confirmed as skill-worthy
-- [ ] Scope confirmed with user
-- [ ] `/skills/` directory exists
-- [ ] Skill file created with name, steps, rules, gotchas, and example
-- [ ] User reviewed and approved
-- [ ] Relevant feature docs updated with skill reference (if applicable)
+- The task is confirmed as skill-worthy
+- Scope is confirmed with the user
+- The `/skills/` directory exists
+- A skill file covers its name, steps, rules, gotchas, and example
+- The user reviews and approves it
+- Relevant feature docs reference the skill when applicable

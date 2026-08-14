@@ -6,14 +6,22 @@ import AppKit
 #endif
 import AVFoundation
 
+#if os(iOS)
+typealias PhotoPlatformImage = UIImage
+#elseif os(macOS)
+typealias PhotoPlatformImage = NSImage
+#endif
+
 class PhotoManager {
     static let shared = PhotoManager()
     private let fileManager = FileManager.default
     private let documentsDirectory: URL
+    private let cache = NSCache<NSString, PhotoPlatformImage>()
 
     private init() {
         documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         createPhotosDirectoryIfNeeded()
+        cache.countLimit = 80
     }
 
     private var photosDirectory: URL {
@@ -150,4 +158,26 @@ class PhotoManager {
         }
     }
     #endif
+}
+
+extension PhotoManager {
+    func asyncLoadImage(from url: URL) async -> PhotoPlatformImage? {
+        if let cached = cache.object(forKey: url.absoluteString as NSString) {
+            return cached
+        }
+        guard let data = try? await Task.detached(priority: .userInitiated, operation: {
+            try Data(contentsOf: url)
+        }).value else { return nil }
+        #if os(iOS)
+        guard let image = UIImage(data: data) else { return nil }
+        #else
+        guard let image = NSImage(data: data) else { return nil }
+        #endif
+        cache.setObject(image, forKey: url.absoluteString as NSString)
+        return image
+    }
+
+    func clearCache() {
+        cache.removeAllObjects()
+    }
 }

@@ -419,18 +419,20 @@ struct DatabaseView: View {
                     v2EmptyState
                 }
             }
-            .navigationTitle(searchText.isEmpty ? "Exercise Database" : "Search")
+            .onChange(of: store.allPagesFlat.count) { _ in
+                store.reloadImmediately()
+            }
+            .navigationTitle(databaseTitle(isV2: isV2))
             .toolbar {
                 if isV2 {
-                    ToolbarItem(placement: .primaryAction) {
+                    ToolbarItemGroup(placement: .primaryAction) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) { isGridMode.toggle() }
                         } label: {
                             Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
                         }
                         .foregroundColor(.white)
-                    }
-                    ToolbarItem(placement: .primaryAction) {
+
                         Menu {
                             ForEach(PageSortOption.allCases, id: \.self) { option in
                                 Button {
@@ -450,23 +452,17 @@ struct DatabaseView: View {
                     EditButton().foregroundColor(.white)
                 }
                 #endif
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItemGroup(placement: .primaryAction) {
                     Button { showingImport = true } label: {
                         Image(systemName: "video.badge.plus")
                     }
-                }
-                ToolbarItem(placement: .primaryAction) {
                     Button { showingDatabaseImport = true } label: {
                         Image(systemName: "square.and.arrow.down")
                     }
-                }
-                ToolbarItem(placement: .primaryAction) {
                     Menu {
                         if isV2 {
                             Button { showingCreatePage = true } label: {
-                                Label("New Page", systemImage: "doc.badge.plus")
+                                Label("New Container", systemImage: "folder.badge.plus")
                             }
                         } else {
                             Button { showingNewFolderSheet = true } label: {
@@ -490,16 +486,23 @@ struct DatabaseView: View {
                 }
             }
             .sheet(isPresented: $showingCreatePage) {
-                PageCreationSheet(parentID: nil) { manifest, _ in
-                    try? store.createPage(manifest: manifest, parentID: nil)
+                PageCreationSheet { manifest, parentID in
+                    try? store.createPageWithMedia(
+                        manifest: manifest,
+                        parentID: parentID,
+                        coverData: nil,
+                        mediaData: []
+                    )
                 }
                 .environmentObject(workoutStore)
+                .environmentObject(store)
             }
             .sheet(item: $pageToEdit) { page in
-                PageCreationSheet(page: page) { manifest, _ in
-                    try? store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: manifest.parentID)
+                PageCreationSheet(page: page) { manifest, parentID in
+                    try? store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: parentID)
                 }
                 .environmentObject(workoutStore)
+                .environmentObject(store)
             }
             .sheet(item: $pageToAddWorkout) { page in
                 WorkoutPickerSheet(page: page)
@@ -507,10 +510,16 @@ struct DatabaseView: View {
             }
             .sheet(isPresented: $showingAddChildPage) {
                 if let parent = childParentPage {
-                    PageCreationSheet(parentID: parent.manifest.id) { manifest, _ in
-                        try? store.createPage(manifest: manifest, parentID: parent.manifest.id)
+                    PageCreationSheet(parentID: parent.manifest.id) { manifest, parentID in
+                        try? store.createPageWithMedia(
+                            manifest: manifest,
+                            parentID: parentID,
+                            coverData: nil,
+                            mediaData: []
+                        )
                     }
                     .environmentObject(workoutStore)
+                    .environmentObject(store)
                 }
             }
             .onChange(of: showingAddChildPage) { newValue in
@@ -532,19 +541,19 @@ struct DatabaseView: View {
                 EditExerciseView(exercise: exercise, folderID: nil).environmentObject(store)
             }
             .sheet(item: $exerciseToMove) { exercise in
-                FolderPickerSheet(currentFolderID: nil) { destID in
-                    store.moveExercise(id: exercise.id, fromFolderID: nil, toFolderID: destID)
+                FolderPickerSheet(currentFolderID: nil) { destinationID in
+                    store.moveExercise(id: exercise.id, fromFolderID: nil, toFolderID: destinationID)
                 }
                 .environmentObject(store)
             }
             .sheet(item: $noteToMove) { note in
-                FolderPickerSheet(currentFolderID: nil) { destID in
-                    store.moveNote(id: note.id, fromFolderID: nil, toFolderID: destID)
+                FolderPickerSheet(currentFolderID: nil) { destinationID in
+                    store.moveNote(id: note.id, fromFolderID: nil, toFolderID: destinationID)
                 }
                 .environmentObject(store)
             }
-            .sheet(item: $folderToExport) { f in
-                FolderExportSheet(folder: f)
+            .sheet(item: $folderToExport) { folder in
+                FolderExportSheet(folder: folder)
             }
             .fileImporter(
                 isPresented: $showingDatabaseImport,
@@ -554,6 +563,16 @@ struct DatabaseView: View {
                 handleDatabaseImport(result)
             }
         }
+    }
+
+    private func databaseTitle(isV2: Bool) -> String {
+        guard searchText.isEmpty else { return "Search" }
+        if isV2 {
+            let count = store.allPagesFlat.count
+            return count == 0 ? "Exercise Database" : "Exercise Database · \(count)"
+        }
+        let count = store.rootFolders.count + store.rootExercises.count + store.rootNotes.count
+        return count == 0 ? "Exercise Database" : "Exercise Database · \(count)"
     }
 
     private func handleDatabaseImport(_ result: Result<[URL], Error>) {
@@ -896,7 +915,14 @@ struct DatabaseView: View {
                             onEdit: { pageToEdit = page },
                             onAddChild: { childParentPage = page; showingAddChildPage = true },
                             onDuplicate: { try? store.duplicatePage(page) },
-                            onDelete: { try? store.deletePage(id: page.manifest.id) }
+                            onDelete: { try? store.deletePage(id: page.manifest.id) },
+                            onMoveIntoContainer: { sourceID in
+                                try? store.movePage(
+                                    id: sourceID,
+                                    newParentID: page.manifest.id,
+                                    newOrder: page.children.count
+                                )
+                            }
                         )
                     }
                     .buttonStyle(.plain)
@@ -911,7 +937,7 @@ struct DatabaseView: View {
         var seen = Set<String>()
         var result: [FilterTypeChip] = []
         for page in store.rootPages {
-            if let wt = page.manifest.workoutType, !seen.contains(wt.id) {
+            if let wt = page.effectiveWorkoutType, !seen.contains(wt.id) {
                 seen.insert(wt.id)
                 result.append(FilterTypeChip(id: wt.id, name: wt.name, colorHex: wt.colorHex))
             }
@@ -926,21 +952,20 @@ struct DatabaseView: View {
         case .all: break
         case .container: pages = pages.filter { $0.isContainer }
         case .leaf: pages = pages.filter { $0.isLeaf }
-        case .type(let typeId): pages = pages.filter { $0.manifest.workoutType?.id == typeId }
+        case .type(let typeId): pages = pages.filter { $0.effectiveWorkoutType?.id == typeId }
         }
 
         if !searchText.isEmpty {
             pages = pages.filter { page in
                 page.title.localizedCaseInsensitiveContains(searchText) ||
-                page.manifest.markdownBody.localizedCaseInsensitiveContains(searchText) ||
-                page.manifest.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
+                page.manifest.markdownBody.localizedCaseInsensitiveContains(searchText)
             }
         }
 
         switch sortOption {
         case .name: pages.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
         case .dateCreated: pages.sort { $0.manifest.createdAt > $1.manifest.createdAt }
-        case .workoutType: pages.sort { ($0.manifest.workoutType?.name ?? "zzz") < ($1.manifest.workoutType?.name ?? "zzz") }
+        case .workoutType: pages.sort { ($0.effectiveWorkoutType?.name ?? "zzz") < ($1.effectiveWorkoutType?.name ?? "zzz") }
         }
 
         return pages
@@ -955,7 +980,14 @@ struct DatabaseView: View {
                 onEdit: { pageToEdit = page },
                 onAddChild: { childParentPage = page; showingAddChildPage = true },
                 onDuplicate: { try? store.duplicatePage(page) },
-                onDelete: { try? store.deletePage(id: page.manifest.id) }
+                onDelete: { try? store.deletePage(id: page.manifest.id) },
+                onMoveIntoContainer: { sourceID in
+                    try? store.movePage(
+                        id: sourceID,
+                        newParentID: page.manifest.id,
+                        newOrder: page.children.count
+                    )
+                }
             )
         }
         .listRowBackground(Theme.surface)

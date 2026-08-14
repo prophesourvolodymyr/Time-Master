@@ -170,17 +170,7 @@ struct WorkoutPickerSheet: View {
             pageID: page.id
         )
         workoutStore.addSection(to: workout, section: newSection)
-
-        toastWorkoutName = workout.name
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-            showToast = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-            withAnimation(.easeOut(duration: 0.3)) {
-                showToast = false
-            }
-            dismiss()
-        }
+        dismiss()
     }
 
     private var toastBanner: some View {

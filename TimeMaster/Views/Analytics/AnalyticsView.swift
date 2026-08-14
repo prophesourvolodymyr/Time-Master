@@ -144,6 +144,9 @@ struct AnalyticsView: View {
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
                 StreakCard()
+                if selectedType == nil {
+                    TypeAnalyticsBreakdown()
+                }
                 TrainingScheduleCard()
                 ActivityHeatmap(entries: filteredEntries)
                 HistoryListSection(entries: filteredEntries, store: store)
@@ -297,6 +300,7 @@ private struct LifetimeStatsStrip: View {
 
 private struct StreakCard: View {
     @EnvironmentObject var store: WorkoutStore
+    @State private var flamePulse = false
 
     private var streak: (current: Int, best: Int) {
         store.streakInfo()
@@ -304,21 +308,32 @@ private struct StreakCard: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            streakItem(value: streak.current, label: "Current Streak", emoji: "fire")
+            streakItem(value: streak.current, label: "Current Streak", isFlame: true)
             Rectangle().fill(Color.white.opacity(0.1)).frame(width: 1, height: 50)
-            streakItem(value: streak.best, label: "Best Streak", emoji: "trophy")
+            streakItem(value: streak.best, label: "Best Streak", isFlame: false)
         }
         .padding(16)
         .background(Theme.surface)
         .cornerRadius(16)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                flamePulse = true
+            }
+        }
     }
 
-    private func streakItem(value: Int, label: String, emoji: String) -> some View {
+    private func streakItem(value: Int, label: String, isFlame: Bool) -> some View {
         VStack(spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
+                if isFlame {
+                    Image(systemName: value == 0 ? "flame" : "flame.fill")
+                        .font(.system(size: value >= 7 ? 25 : 20, weight: .bold))
+                        .foregroundStyle(value == 0 ? AnyShapeStyle(Theme.textSecondary) : AnyShapeStyle(LinearGradient(colors: [.red, .orange, .yellow], startPoint: .bottom, endPoint: .top)))
+                        .scaleEffect(flamePulse && value > 0 ? 1.14 : 0.94)
+                }
                 Text("\(value)")
                     .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(Theme.textPrimary)
+                    .foregroundStyle(isFlame && value > 0 ? AnyShapeStyle(LinearGradient(colors: [.red, .orange, .yellow], startPoint: .bottom, endPoint: .top)) : AnyShapeStyle(Theme.textPrimary))
                 Text(value == 1 ? "day" : "days")
                     .font(.subheadline)
                     .foregroundColor(Theme.textSecondary)
@@ -326,6 +341,66 @@ private struct StreakCard: View {
             Text(label).font(.caption).foregroundColor(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private struct TypeAnalyticsBreakdown: View {
+    @EnvironmentObject private var store: WorkoutStore
+    @StateObject private var goals = GoalsManager.shared
+
+    private var types: [WorkoutType] {
+        WorkoutType.all(custom: store.customWorkoutTypes).filter { type in
+            store.historyEntries.contains { $0.workoutType.id == type.id } ||
+            store.typeSchedules.contains { $0.type.id == type.id && $0.isActive }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("By Workout Type")
+                .font(.headline).foregroundColor(Theme.textPrimary)
+            if types.isEmpty {
+                Text("Complete a workout or set a type schedule to see a breakdown.")
+                    .font(.subheadline).foregroundColor(Theme.textSecondary)
+            } else {
+                ForEach(types, id: \.id) { type in
+                    row(for: type)
+                }
+            }
+        }
+        .padding(16).background(Theme.surface).cornerRadius(16)
+    }
+
+    private func row(for type: WorkoutType) -> some View {
+        let stats = store.typeStats(for: type)
+        let goal = goals.goal(for: type)
+        let progress = goal > 0 ? min(Double(stats.sessionsThisWeek) / Double(goal), 1) : 0
+        return VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: type.iconName)
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color(hex: type.colorHex)).cornerRadius(9)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(type.name).font(.subheadline.weight(.semibold)).foregroundColor(Theme.textPrimary)
+                    Text("\(stats.sessionsThisWeek) this week · \(stats.totalSeconds / 60)m total · \(stats.streak)d streak")
+                        .font(.caption).foregroundColor(Theme.textSecondary)
+                }
+                Spacer()
+                if let adherence = stats.adherence {
+                    Text("\(Int((adherence * 100).rounded()))%")
+                        .font(.caption.weight(.bold)).foregroundColor(Color(hex: type.colorHex))
+                }
+            }
+            if goal > 0 {
+                ProgressView(value: progress)
+                    .tint(Color(hex: type.colorHex))
+                Text("\(stats.sessionsThisWeek) of \(goal) weekly goal")
+                    .font(.caption2).foregroundColor(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(10).background(Theme.background.opacity(0.6)).cornerRadius(12)
     }
 }
 

@@ -191,19 +191,19 @@ For projects discovered from code only:
 
 ---
 
-## DEFINITION OF DONE
+## COMPLETION CRITERIA
 
-### Phase 1 Done:
-- [ ] Complete catalog of all existing documentation
-- [ ] Project classified (old system / partial / undocumented)
-- [ ] Conversion map presented to user
-- [ ] User approved the plan
+### Phase 1
+- A complete catalog of existing documentation exists
+- The project is classified as old system, partial, or undocumented
+- A conversion map is presented to the user
+- The user approves the plan
 
-### Phase 2 Done:
-- [ ] `projinit` scaffold installed
-- [ ] Old documentation archived to `features/_archive/old-system/`
-- [ ] `genesis/ORIGINAL IDEA.md` created
-- [ ] `features/DOCKS.md` index created
-- [ ] All features have DOCKS.md (in features/ or genesis/raw)
-- [ ] `CYCLES.md` populated
-- [ ] Nothing deleted — everything preserved or archived
+### Phase 2
+- The `projinit` scaffold is installed
+- Old documentation is archived to `features/_archive/old-system/`
+- `genesis/ORIGINAL IDEA.md` exists
+- `features/DOCKS.md` indexes the feature tree
+- Every feature has a DOCKS.md in `features/` or `genesis/`
+- `CYCLES.md` is populated
+- Nothing is deleted: everything is preserved or archived

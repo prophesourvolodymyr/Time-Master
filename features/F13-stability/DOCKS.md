@@ -45,6 +45,7 @@ Diagnostic pass
 - `TimeMaster/Views/Player/WorkoutPlayerView.swift` — Timer + AVQueuePlayer + AVPlayerLooper lifecycle review
 - `TimeMaster/ViewModels/DatabaseStore.swift` — reload() callers, debounce if many call in same runloop
 - `TimeMaster/Utilities/PhotoManager.swift` — cache thumbnails, never block main thread
+- `TimeMaster/Views/AsyncCoverImage.swift` — async cached cover loader used by page, card, overlay, and player cover paths
 - Any view using `GeometryReader` + `PreferenceKey` for scroll offset — remove or batch
 
 ## Dependencies
@@ -57,6 +58,8 @@ Diagnostic pass
 - `genesis/REFERENCE/` — none needed
 
 ## Verification
+
+Implementation evidence: macOS Debug build succeeded with Xcode; `swift test` passed all 67 core tests. Hardware freeze flows remain unchecked until the app is exercised on the target device.
 
 - [ ] Fresh launch → 30s idle in Home → no main-thread stalls
 - [ ] Open a page detail from grid → smooth scroll through 200-point content

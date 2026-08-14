@@ -1,7 +1,9 @@
-# F19 — Music Behavior (general upload + sequential default)
+# F19 — Music Library, Conversion, and Per-workout Playback
 
 Today the user uploads music tracks inside Settings. Each workout can select a subset via Workout Settings. Inside the player, if the user manually picks the second track and it finishes, the player just loops the second track instead of advancing. Per ISSUES.md the desired behavior is:
 - **Settings** music upload stays general (one shared library) — that's already the design; we only need to make sure no per-workout upload exists.
+- Video files imported into the global music library are converted offline to headless MP3 files by the app; the source video is not retained as a music track.
+- Workout Settings explicitly offers either the whole global library or a selected subset for that workout. The selection is persisted in the workout manifest.
 - **Default** playback during a workout is sequential over the playlist: track 1 → track 2 → … → track N → back to track 1 (queue-level loop), regardless of whether the user manually jumped to a different track mid-workout.
 - A per-workout "Repeat one" toggle is optional and OFF by default. When ON, the current track loops until the user advances manually.
 
@@ -14,6 +16,7 @@ Today the user uploads music tracks inside Settings. Each workout can select a s
   - "Repeat one" mode: when ON, replace the queue with a single looping `AVPlayerLooper`-wrapped item; when OFF, restore queue.
 - A user jump to track index `i` mid-workout: replace queue from index `i` onward and continue; once queue ends, loop back to track 0 (NOT track `i`).
 - Settings music library UI clarifies: "These tracks play during a workout. Pick subsets per workout inside the workout's settings."
+- `MusicManager.importTrackAsync(from:)` extracts interleaved PCM from a video and encodes it to MP3 using the MIT-licensed `SwiftMP3` package.
   - Ensure Settings has NO per-workout upload; only the global library.
   - Workout Settings sheet keeps the "select subset" UI; clarifying subtitle is removed for minimalist text goals.
 - Player floating controls bar exposes a small music scrubber/playlist button (open the per-workout playlist) and a Repeat-one toggle button.
@@ -37,7 +40,8 @@ MusicManager
 
 | State | Behavior |
 |---|---|
-| workout launched, no music selected | no playback unless user opens playlist and picks a track manually |
+| workout launched, no music selected | whole global library plays sequentially |
+| workout launched, specific playlist selected | only the persisted workout tracks play sequentially |
 | workout launched, playlist selected | queue starts at track 0, advances each item |
 | user jumps mid-workout to track 2 | queue continues from track 2; once reaches end, loops back to track 0 |
 | workout paused | queue pauses; resume on timer resume |
@@ -59,6 +63,7 @@ MusicManager
 - `TimeMaster/Views/WorkoutDetail/WorkoutDetailView.swift` — `WorkoutSettingsView` selection UI stays; clarify copy
 - `TimeMaster/Views/Player/FloatingControlsBar.swift` — add playlist/repeat buttons
 - `TimeMaster/Views/Player/WorkoutPlayerView.swift` — music button switches to playlist popover instead of single-track action
+- `project.yml` / `TimeMaster.xcodeproj/project.pbxproj` — SwiftMP3 package dependency
 
 ## Dependencies
 
@@ -70,6 +75,8 @@ MusicManager
 - `genesis/ISSUES.md` — "the purchase to like the second one when it's finished and person does not select another one it just goes onto loop … inside of the settings that music upload has to be general"
 
 ## Verification
+
+Implementation evidence: macOS and iOS Simulator Debug builds succeeded with SwiftMP3 linked; audio conversion and playback still need manual verification.
 
 - [ ] Settings → Background Music: only a global library; no per-workout upload exists
 - [ ] Start workout with selected tracks → plays track 1, then auto-advances to track 2, then to track N, then loops back to track 1

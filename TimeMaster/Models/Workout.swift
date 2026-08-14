@@ -56,25 +56,190 @@ struct WorkoutType: Identifiable, Codable, Hashable {
     }
 }
 
+enum SectionMode: String, Codable, Equatable {
+    case timed
+    case bundle
+}
+
+enum RestRowKind: String, Codable, Equatable {
+    case normal
+    case big
+}
+
+enum RestContentKind: String, Codable, Equatable {
+    case note
+    case stretch
+}
+
+struct RestContent: Identifiable, Codable, Equatable {
+    var id: UUID
+    var kind: RestContentKind
+    var pageID: UUID?
+    var text: String
+
+    init(
+        id: UUID = UUID(),
+        kind: RestContentKind = .note,
+        pageID: UUID? = nil,
+        text: String = ""
+    ) {
+        self.id = id
+        self.kind = kind
+        self.pageID = pageID
+        self.text = text
+    }
+}
+
+struct RestRow: Identifiable, Codable, Equatable {
+    var id: UUID
+    var kind: RestRowKind
+    var duration: Int
+    var contents: [RestContent]
+
+    init(
+        id: UUID = UUID(),
+        kind: RestRowKind = .normal,
+        duration: Int = 30,
+        contents: [RestContent] = []
+    ) {
+        self.id = id
+        self.kind = kind
+        self.duration = max(0, duration)
+        self.contents = contents
+    }
+}
+
+struct DropSet: Identifiable, Codable, Equatable {
+    var id: UUID
+    var exercisePageID: UUID?
+    var name: String
+    var alias: String?
+    var duration: Int
+    var restAfter: Int
+
+    init(
+        id: UUID = UUID(),
+        exercisePageID: UUID? = nil,
+        name: String,
+        alias: String? = nil,
+        duration: Int = 30,
+        restAfter: Int = 10
+    ) {
+        self.id = id
+        self.exercisePageID = exercisePageID
+        self.name = name
+        self.alias = alias
+        self.duration = max(5, duration)
+        self.restAfter = max(0, restAfter)
+    }
+
+    var displayName: String {
+        alias?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? alias! : name
+    }
+}
+
+struct SetSlot: Identifiable, Codable, Equatable {
+    var id: UUID
+    var exercisePageID: UUID?
+    var name: String
+    var alias: String?
+    var duration: Int
+    var repCount: Int?
+    var restAfter: Int
+    var restExercisePageID: UUID?
+    var drops: [DropSet]
+    var restRow: RestRow?
+
+    init(
+        id: UUID = UUID(),
+        exercisePageID: UUID? = nil,
+        name: String,
+        alias: String? = nil,
+        duration: Int = 30,
+        repCount: Int? = nil,
+        restAfter: Int = 10,
+        restExercisePageID: UUID? = nil,
+        drops: [DropSet] = [],
+        restRow: RestRow? = nil
+    ) {
+        self.id = id
+        self.exercisePageID = exercisePageID
+        self.name = name
+        self.alias = alias
+        self.duration = max(5, duration)
+        self.repCount = repCount.map { max(1, $0) }
+        self.restAfter = max(0, restAfter)
+        self.restExercisePageID = restExercisePageID
+        self.drops = drops
+        self.restRow = restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, exercisePageID, name, alias, duration, repCount, restAfter
+        case restExercisePageID, drops, restRow
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        exercisePageID = try c.decodeIfPresent(UUID.self, forKey: .exercisePageID)
+        name = try c.decode(String.self, forKey: .name)
+        alias = try c.decodeIfPresent(String.self, forKey: .alias)
+        duration = max(5, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
+        repCount = try c.decodeIfPresent(Int.self, forKey: .repCount).map { max(1, $0) }
+        restAfter = max(0, try c.decodeIfPresent(Int.self, forKey: .restAfter) ?? 10)
+        restExercisePageID = try c.decodeIfPresent(UUID.self, forKey: .restExercisePageID)
+        drops = try c.decodeIfPresent([DropSet].self, forKey: .drops) ?? []
+        restRow = try c.decodeIfPresent(RestRow.self, forKey: .restRow)
+        if restRow == nil, restAfter > 0 {
+            restRow = RestRow(duration: restAfter)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encodeIfPresent(exercisePageID, forKey: .exercisePageID)
+        try c.encode(name, forKey: .name)
+        try c.encodeIfPresent(alias, forKey: .alias)
+        try c.encode(duration, forKey: .duration)
+        try c.encodeIfPresent(repCount, forKey: .repCount)
+        try c.encode(restAfter, forKey: .restAfter)
+        try c.encodeIfPresent(restExercisePageID, forKey: .restExercisePageID)
+        try c.encode(drops, forKey: .drops)
+        try c.encodeIfPresent(restRow, forKey: .restRow)
+    }
+
+    var displayName: String {
+        alias?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? alias! : name
+    }
+
+    var effectiveRestRow: RestRow? {
+        restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
+    }
+}
+
 struct Section: Identifiable, Codable, Equatable {
     var id: UUID
     var name: String
+    var alias: String?
     var duration: Int
     var mediaItems: [MediaItem]
-    // Timer
-    var isTimerEnabled: Bool      // when false the section has no countdown (reps/sets only)
-    // Sets
-    var sets: Int             // how many times this section repeats (≥ 1)
-    var repCount: Int?        // reps per set (e.g. 12 reps)
-    var restBetweenSets: Int  // rest between set repetitions; only used when sets > 1
+    var isTimerEnabled: Bool
+    var sets: Int
+    var repCount: Int?
+    var restBetweenSets: Int
     var prepareTime: Int
     var customRestAfter: Int?
-    // Page reference
     var pageID: UUID?
+    var mode: SectionMode
+    var slots: [SetSlot]
+    var bigRestRow: RestRow?
 
     init(
         id: UUID = UUID(),
         name: String,
+        alias: String? = nil,
         duration: Int = 30,
         isTimerEnabled: Bool = true,
         photoFilename: String? = nil,
@@ -86,10 +251,14 @@ struct Section: Identifiable, Codable, Equatable {
         restBetweenSets: Int = 10,
         customRestAfter: Int? = nil,
         prepareTime: Int = 4,
-        pageID: UUID? = nil
+        pageID: UUID? = nil,
+        mode: SectionMode = .timed,
+        slots: [SetSlot] = [],
+        bigRestRow: RestRow? = nil
     ) {
         self.id = id
         self.name = name
+        self.alias = alias
         self.duration = max(5, duration)
         self.isTimerEnabled = isTimerEnabled
         self.sets = max(1, sets)
@@ -98,6 +267,21 @@ struct Section: Identifiable, Codable, Equatable {
         self.customRestAfter = customRestAfter
         self.prepareTime = max(0, prepareTime)
         self.pageID = pageID
+        self.mode = mode
+        self.bigRestRow = bigRestRow ?? RestRow(kind: .big, duration: customRestAfter ?? restAfter)
+        if !slots.isEmpty {
+            self.slots = slots
+        } else {
+            self.slots = (0..<max(1, sets)).map { _ in
+                SetSlot(
+                    exercisePageID: pageID,
+                    name: name,
+                    duration: duration,
+                    repCount: repCount,
+                    restAfter: restBetweenSets
+                )
+            }
+        }
         if !mediaItems.isEmpty {
             self.mediaItems = mediaItems
         } else if !photoFilenames.isEmpty {
@@ -109,39 +293,41 @@ struct Section: Identifiable, Codable, Equatable {
         }
     }
 
-    // MARK: Custom Codable
-
     enum CodingKeys: String, CodingKey {
-        case id, name, duration, isTimerEnabled
+        case id, name, alias, duration, isTimerEnabled
         case sets, repCount, restBetweenSets, customRestAfter, prepareTime
-        case mediaItems
-        case photoFilenames
-        case photoFilename
-        case restAfter
-        case pageID
+        case mediaItems, photoFilenames, photoFilename, restAfter
+        case pageID, mode, slots, bigRestRow
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id             = try c.decodeIfPresent(UUID.self,   forKey: .id)       ?? UUID()
-        name           = try c.decode(String.self,           forKey: .name)
-        duration       = try c.decodeIfPresent(Int.self,    forKey: .duration) ?? 30
-        isTimerEnabled = try c.decodeIfPresent(Bool.self,   forKey: .isTimerEnabled) ?? true
-        sets           = max(1, try c.decodeIfPresent(Int.self, forKey: .sets) ?? 1)
-        repCount       = try c.decodeIfPresent(Int.self, forKey: .repCount)
-        restBetweenSets = try c.decodeIfPresent(Int.self, forKey: .restBetweenSets) ?? 10
-        prepareTime    = try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4
-        pageID         = try c.decodeIfPresent(UUID.self, forKey: .pageID)
-
-        if let v = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
-            customRestAfter = v
-        } else if let v = try c.decodeIfPresent(Int.self, forKey: .restAfter), v > 0 {
-            customRestAfter = v
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try c.decode(String.self, forKey: .name)
+        alias = try c.decodeIfPresent(String.self, forKey: .alias)
+        duration = max(5, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
+        isTimerEnabled = try c.decodeIfPresent(Bool.self, forKey: .isTimerEnabled) ?? true
+        sets = max(1, try c.decodeIfPresent(Int.self, forKey: .sets) ?? 1)
+        repCount = try c.decodeIfPresent(Int.self, forKey: .repCount).map { max(1, $0) }
+        restBetweenSets = max(0, try c.decodeIfPresent(Int.self, forKey: .restBetweenSets) ?? 10)
+        prepareTime = max(0, try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4)
+        pageID = try c.decodeIfPresent(UUID.self, forKey: .pageID)
+        mode = try c.decodeIfPresent(SectionMode.self, forKey: .mode) ?? .timed
+        var decodedSlots = try c.decodeIfPresent([SetSlot].self, forKey: .slots) ?? []
+        if let value = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
+            customRestAfter = value
         } else {
-            customRestAfter = nil
+            customRestAfter = try c.decodeIfPresent(Int.self, forKey: .restAfter)
         }
-
-        // mediaItems: new key first, fall back to legacy keys
+        bigRestRow = try c.decodeIfPresent(RestRow.self, forKey: .bigRestRow)
+        if bigRestRow == nil {
+            bigRestRow = RestRow(kind: .big, duration: customRestAfter ?? 30)
+        }
+        if decodedSlots.isEmpty {
+            slots = []
+        } else {
+            slots = decodedSlots
+        }
         if let arr = try c.decodeIfPresent([MediaItem].self, forKey: .mediaItems) {
             mediaItems = arr
         } else if let arr = try c.decodeIfPresent([String].self, forKey: .photoFilenames) {
@@ -155,17 +341,45 @@ struct Section: Identifiable, Codable, Equatable {
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(id,              forKey: .id)
-        try c.encode(name,            forKey: .name)
-        try c.encode(duration,        forKey: .duration)
-        try c.encode(isTimerEnabled,  forKey: .isTimerEnabled)
-        try c.encode(sets,            forKey: .sets)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encodeIfPresent(alias, forKey: .alias)
+        try c.encode(duration, forKey: .duration)
+        try c.encode(isTimerEnabled, forKey: .isTimerEnabled)
+        try c.encode(sets, forKey: .sets)
         try c.encodeIfPresent(repCount, forKey: .repCount)
         try c.encode(restBetweenSets, forKey: .restBetweenSets)
         try c.encodeIfPresent(customRestAfter, forKey: .customRestAfter)
-        try c.encode(prepareTime,     forKey: .prepareTime)
-        try c.encode(mediaItems,      forKey: .mediaItems)
+        try c.encode(prepareTime, forKey: .prepareTime)
+        try c.encode(mediaItems, forKey: .mediaItems)
         try c.encodeIfPresent(pageID, forKey: .pageID)
+        try c.encode(mode, forKey: .mode)
+        try c.encode(slots, forKey: .slots)
+        try c.encodeIfPresent(bigRestRow, forKey: .bigRestRow)
+    }
+
+    var effectiveSlots: [SetSlot] {
+        slots.isEmpty
+            ? (0..<max(1, sets)).map { _ in
+                SetSlot(
+                    exercisePageID: pageID,
+                    name: name,
+                    duration: duration,
+                    repCount: repCount,
+                    restAfter: restBetweenSets
+                )
+            }
+            : slots
+    }
+
+    var slotCount: Int { max(1, effectiveSlots.count) }
+
+    var calculatedDuration: Int {
+        effectiveSlots.reduce(0) { total, slot in
+            let drops = slot.drops.reduce(0) { $0 + $1.duration + $1.restAfter }
+            let rest = slot.effectiveRestRow?.duration ?? 0
+            return total + slot.duration + drops + rest
+        }
     }
 }
 
@@ -175,6 +389,7 @@ struct Workout: Identifiable, Codable, Equatable {
     var type: WorkoutType
     var sections: [Section]
     var createdAt: Date
+    var prepareTime: Int
     var restBetweenSections: Int
     var colorHex: String
     var imageFilename: String?
@@ -186,6 +401,7 @@ struct Workout: Identifiable, Codable, Equatable {
         type: WorkoutType = .strength,
         sections: [Section] = [],
         createdAt: Date = Date(),
+        prepareTime: Int = 4,
         restBetweenSections: Int = 30,
         colorHex: String = "FFFFFF",
         imageFilename: String? = nil,
@@ -196,6 +412,7 @@ struct Workout: Identifiable, Codable, Equatable {
         self.type = type
         self.sections = sections
         self.createdAt = createdAt
+        self.prepareTime = max(0, prepareTime)
         self.restBetweenSections = max(0, restBetweenSections)
         self.colorHex = colorHex
         self.imageFilename = imageFilename
@@ -203,49 +420,46 @@ struct Workout: Identifiable, Codable, Equatable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, type, sections, createdAt, restBetweenSections, colorHex
-        case imageFilename, musicTrackFilenames
+        case id, name, type, sections, createdAt, prepareTime, restBetweenSections
+        case colorHex, imageFilename, musicTrackFilenames
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id                  = try c.decodeIfPresent(UUID.self,        forKey: .id)       ?? UUID()
-        name                = try c.decode(String.self,               forKey: .name)
-        type                = try c.decodeIfPresent(WorkoutType.self, forKey: .type)     ?? .strength
-        sections            = try c.decodeIfPresent([Section].self,   forKey: .sections) ?? []
-        createdAt           = try c.decodeIfPresent(Date.self,        forKey: .createdAt) ?? Date()
-        restBetweenSections = try c.decodeIfPresent(Int.self, forKey: .restBetweenSections) ?? 30
-        colorHex            = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "FFFFFF"
-        imageFilename       = try c.decodeIfPresent(String.self, forKey: .imageFilename)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try c.decode(String.self, forKey: .name)
+        type = try c.decodeIfPresent(WorkoutType.self, forKey: .type) ?? .strength
+        sections = try c.decodeIfPresent([Section].self, forKey: .sections) ?? []
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        prepareTime = max(0, try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4)
+        restBetweenSections = max(0, try c.decodeIfPresent(Int.self, forKey: .restBetweenSections) ?? 30)
+        colorHex = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "FFFFFF"
+        imageFilename = try c.decodeIfPresent(String.self, forKey: .imageFilename)
         musicTrackFilenames = try c.decodeIfPresent([String].self, forKey: .musicTrackFilenames) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(id,                  forKey: .id)
-        try c.encode(name,                forKey: .name)
-        try c.encode(type,                forKey: .type)
-        try c.encode(sections,            forKey: .sections)
-        try c.encode(createdAt,           forKey: .createdAt)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(type, forKey: .type)
+        try c.encode(sections, forKey: .sections)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(prepareTime, forKey: .prepareTime)
         try c.encode(restBetweenSections, forKey: .restBetweenSections)
-        try c.encode(colorHex,            forKey: .colorHex)
+        try c.encode(colorHex, forKey: .colorHex)
         try c.encodeIfPresent(imageFilename, forKey: .imageFilename)
         try c.encode(musicTrackFilenames, forKey: .musicTrackFilenames)
     }
 
     var totalDuration: Int {
-        guard !sections.isEmpty else { return 0 }
-        let total = sections.reduce(0) { acc, s in
-            let workTime = s.duration * s.sets + s.restBetweenSets * max(0, s.sets - 1)
-            let restTime = s.customRestAfter ?? restBetweenSections
-            return acc + workTime + restTime
-        }
-        let lastRest = sections.last.map { $0.customRestAfter ?? restBetweenSections } ?? 0
-        return total - lastRest
+        sections.reduce(0) { $0 + $1.calculatedDuration + ($1.bigRestRow?.duration ?? restBetweenSections) }
     }
 
     var sectionCount: Int { sections.count }
 }
+
+
 
 // MARK: - Hashable (keyed by id — required for NavigationPath)
 

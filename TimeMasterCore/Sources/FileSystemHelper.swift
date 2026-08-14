@@ -8,6 +8,7 @@ public final class FileSystemHelper {
         case decodeFailed(String)
         case trashFailed(String)
         case notFound(String)
+        case invalidPageKind(String)
 
         public var errorDescription: String? {
             switch self {
@@ -17,6 +18,7 @@ public final class FileSystemHelper {
             case .decodeFailed(let reason): "Failed to decode data: \(reason)"
             case .trashFailed(let path): "Failed to move to trash: \(path)"
             case .notFound(let path): "Not found: \(path)"
+            case .invalidPageKind(let reason): "Invalid page kind: \(reason)"
             }
         }
     }
@@ -168,14 +170,24 @@ public final class FileSystemHelper {
         fileManager.fileExists(atPath: source.path, isDirectory: &isDir)
 
         if isDir.boolValue {
-            let dest = trashDirectory.appendingPathComponent("\(timestamp)-\(name)", isDirectory: true)
+            let dest = uniqueTrashURL(timestamp: timestamp, name: name, isDirectory: true)
             try fileManager.moveItem(at: source, to: dest)
         } else {
-            let folder = trashDirectory.appendingPathComponent("\(timestamp)-\(name)", isDirectory: true)
+            let folder = uniqueTrashURL(timestamp: timestamp, name: name, isDirectory: true)
             try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
             let dest = folder.appendingPathComponent(name)
             try fileManager.moveItem(at: source, to: dest)
         }
+    }
+
+    private func uniqueTrashURL(timestamp: Int, name: String, isDirectory: Bool) -> URL {
+        var suffix = 0
+        var candidate = trashDirectory.appendingPathComponent("\(timestamp)-\(name)", isDirectory: isDirectory)
+        while fileManager.fileExists(atPath: candidate.path) {
+            suffix += 1
+            candidate = trashDirectory.appendingPathComponent("\(timestamp)-\(suffix)-\(name)", isDirectory: isDirectory)
+        }
+        return candidate
     }
 
     public func fileExists(at url: URL) -> Bool {

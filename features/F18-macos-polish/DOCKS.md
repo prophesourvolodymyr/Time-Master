@@ -69,6 +69,8 @@ AnalyticsView on macOS
 
 ## Verification
 
+Implementation evidence: macOS Debug build succeeded after sidebar background and settings presentation changes. Interactive close/reopen testing remains pending on macOS hardware.
+
 - [ ] macOS sidebar fills the full column with `Theme.background`, no lighter strip at edge
 - [ ] Analytics page on macOS shows navigation links without a visible box/frame
 - [ ] Player on macOS shows rest and page transition hints without a visible box

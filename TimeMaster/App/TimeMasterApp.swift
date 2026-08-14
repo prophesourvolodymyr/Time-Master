@@ -47,6 +47,9 @@ struct TimeMasterApp: App {
 
     init() {
         MigrationManager.migrateIfNeeded()
+        MigrationManager.migrateToV2PagesIfNeeded()
+        MigrationManager.normalizeV2PageKindsIfNeeded()
+        MigrationManager.cleanLegacyPageCacheIfNeeded()
         let ws = WorkoutStore()
         let ds = DatabaseStore.shared
         _store = StateObject(wrappedValue: ws)
@@ -54,7 +57,6 @@ struct TimeMasterApp: App {
     }
 
     var body: some Scene {
-        #if os(macOS)
         WindowGroup {
             ZStack {
                 MainTabView()
@@ -89,42 +91,9 @@ struct TimeMasterApp: App {
                     .environmentObject(databaseStore)
             }
         }
+        #if os(macOS)
         .windowStyle(.titleBar)
         .commands { TimeMasterCommands() }
-        #else
-        WindowGroup {
-            ZStack {
-                MainTabView()
-                    .environmentObject(store)
-                    .environmentObject(databaseStore)
-                    .preferredColorScheme(.dark)
-                    .onOpenURL { url in handleDeepLink(url) }
-
-                if showSplash {
-                    SplashView()
-                        .transition(.opacity)
-                        .zIndex(1)
-                }
-            }
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    withAnimation(.easeOut(duration: 0.4)) {
-                        showSplash = false
-                    }
-                    checkResumeState()
-                }
-            }
-            .sheet(isPresented: $showResumePrompt, onDismiss: {
-                if resumePlayerWorkout != nil { resumeManager.clearResumeState() }
-            }) {
-                resumePromptSheet
-            }
-            .sheet(item: $resumePlayerWorkout) { w in
-                WorkoutPlayerView(workout: w)
-                    .environmentObject(store)
-                    .environmentObject(databaseStore)
-            }
-        }
         #endif
     }
 
@@ -250,4 +219,6 @@ struct TimeMasterApp: App {
 extension Notification.Name {
     static let launchWorkout    = Notification.Name("com.timemaster.launchWorkout")
     static let openWorkoutDetail = Notification.Name("com.timemaster.openWorkoutDetail")
+    static let newWorkoutCommand = Notification.Name("com.timemaster.newWorkoutCommand")
+    static let openSettingsCommand = Notification.Name("com.timemaster.openSettingsCommand")
 }

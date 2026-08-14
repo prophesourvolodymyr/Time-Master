@@ -1,6 +1,15 @@
 {
-  "originHash" : "718914d45ecf9f3b9316066a1b85b711aa5f4444983c1f3344d5c342bb6849a6",
+  "originHash" : "5e3e7ce03463275fc885537c4a69d5597cb84d77decec1824b677eb23f55e683",
   "pins" : [
+    {
+      "identity" : "swift-mp3",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mierau/swift-mp3.git",
+      "state" : {
+        "revision" : "c33793f5e5725e941b12efd375691db7c98b86ec",
+        "version" : "1.0.0"
+      }
+    },
     {
       "identity" : "zipfoundation",
       "kind" : "remoteSourceControl",

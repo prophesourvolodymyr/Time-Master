@@ -2,25 +2,20 @@ import SwiftUI
 import UserNotifications
 
 struct WorkoutRemindersView: View {
+    @EnvironmentObject private var store: WorkoutStore
 
     // MARK: - State
 
-    @State private var schedule: WorkoutSchedule = NotificationManager.shared.schedule
+    @State private var preferences: NotificationPreferences = NotificationManager.shared.preferences
     @State private var permissionDenied = false
     @State private var showSettingsAlert  = false
 
-    // Day labels: Calendar weekday 1=Sun … 7=Sat, displayed Mon–Sun
-    private let dayOrder: [Int]    = [2, 3, 4, 5, 6, 7, 1]
-    private let dayLabels: [Int: String] = [
-        1: "Sun", 2: "Mon", 3: "Tue", 4: "Wed", 5: "Thu", 6: "Fri", 7: "Sat"
-    ]
-
     // Binding-style DatePicker helper
     @State private var pickerTime: Date = {
-        let s = NotificationManager.shared.schedule
+        let s = NotificationManager.shared.preferences
         var c = DateComponents()
-        c.hour   = s.hour
-        c.minute = s.minute
+        c.hour   = s.reminderHour
+        c.minute = s.reminderMinute
         return Calendar.current.date(from: c) ?? Date()
     }()
 
@@ -44,13 +39,13 @@ struct WorkoutRemindersView: View {
                             Text("Workout Reminders")
                                 .font(.body)
                                 .foregroundColor(.white)
-                            Text("Daily push notifications on training days")
+                            Text("Warm, schedule-aware reminders")
                                 .font(.caption)
                                 .foregroundColor(Theme.textSecondary)
                         }
                         Spacer()
                         Toggle("", isOn: Binding(
-                            get: { schedule.isEnabled },
+                            get: { preferences.isEnabled },
                             set: { newValue in handleToggle(newValue) }
                         ))
                         .labelsHidden()
@@ -66,31 +61,7 @@ struct WorkoutRemindersView: View {
                 .listRowSeparatorTint(Theme.separator)
 
                 // MARK: Day picker (only when enabled)
-                if schedule.isEnabled {
-                    SwiftUI.Section {
-                        LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7),
-                            spacing: 0
-                        ) {
-                            ForEach(dayOrder, id: \.self) { day in
-                                DayButton(
-                                    label: dayLabels[day] ?? "",
-                                    selected: schedule.days.contains(day)
-                                ) {
-                                    toggleDay(day)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 6)
-                    } header: {
-                        Text("Active Days")
-                            .foregroundColor(Theme.textSecondary)
-                            .font(.caption)
-                    }
-                    .listRowBackground(Theme.surface)
-                    .listRowSeparatorTint(Theme.separator)
-
-                    // MARK: Time picker
+                if preferences.isEnabled {
                     SwiftUI.Section {
                         DatePicker(
                             "Workout time",
@@ -102,8 +73,8 @@ struct WorkoutRemindersView: View {
                         .foregroundColor(.white)
                         .onChange(of: pickerTime) { newDate in
                             let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
-                            schedule.hour   = comps.hour   ?? 9
-                            schedule.minute = comps.minute ?? 0
+                            preferences.reminderHour = comps.hour ?? 9
+                            preferences.reminderMinute = comps.minute ?? 0
                             commit()
                         }
                     } header: {
@@ -114,11 +85,32 @@ struct WorkoutRemindersView: View {
                     .listRowBackground(Theme.surface)
                     .listRowSeparatorTint(Theme.separator)
 
+                    SwiftUI.Section {
+                        Stepper(value: $preferences.reminderLeadMinutes, in: 0...60, step: 5) {
+                            Text("Remind \(preferences.reminderLeadMinutes) min before")
+                                .foregroundColor(.white)
+                        }
+                        .onChange(of: preferences.reminderLeadMinutes) { _ in commit() }
+                        Toggle("Streak milestones", isOn: $preferences.streakMotivationEnabled)
+                            .onChange(of: preferences.streakMotivationEnabled) { _ in commit() }
+                        Toggle("Missed-day nudges", isOn: $preferences.missedDayNudgesEnabled)
+                            .onChange(of: preferences.missedDayNudgesEnabled) { _ in commit() }
+                        Toggle("Rest-day affirmations", isOn: $preferences.restDayAffirmationsEnabled)
+                            .onChange(of: preferences.restDayAffirmationsEnabled) { _ in commit() }
+                    } header: {
+                        Text("Notification Style")
+                            .foregroundColor(Theme.textSecondary)
+                            .font(.caption)
+                    }
+                    .tint(.white)
+                    .listRowBackground(Theme.surface)
+                    .listRowSeparatorTint(Theme.separator)
+
                     // MARK: Info footer
                     SwiftUI.Section {
                         VStack(alignment: .leading, spacing: 10) {
                             Label {
-                                Text("At workout time: \"Time to Train\"")
+                                Text("Training days come from your per-type schedules.")
                                     .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             } icon: {
@@ -127,7 +119,7 @@ struct WorkoutRemindersView: View {
                                     .foregroundColor(Theme.textSecondary)
                             }
                             Label {
-                                Text("2 hours later: \"Imagine the feeling now.\"")
+                                Text("Missed-day nudges are checked against completed workouts.")
                                     .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             } icon: {
@@ -168,26 +160,26 @@ struct WorkoutRemindersView: View {
                 #endif
             }
             Button("Cancel", role: .cancel) {
-                schedule.isEnabled = false
+                preferences.isEnabled = false
                 commit()
             }
         } message: {
             Text("Please enable notifications for TimeMaster in Settings to use this feature.")
         }
-        .onAppear { checkPermissionStatus() }
+            .onAppear { checkPermissionStatus() }
     }
 
     // MARK: - Helpers
 
     private func handleToggle(_ newValue: Bool) {
         guard newValue else {
-            schedule.isEnabled = false
+            preferences.isEnabled = false
             commit()
             return
         }
         NotificationManager.shared.requestPermission { granted in
             if granted {
-                schedule.isEnabled = true
+                preferences.isEnabled = true
                 commit()
             } else {
                 showSettingsAlert = true
@@ -195,52 +187,23 @@ struct WorkoutRemindersView: View {
         }
     }
 
-    private func toggleDay(_ day: Int) {
-        if schedule.days.contains(day) {
-            schedule.days.remove(day)
-        } else {
-            schedule.days.insert(day)
-        }
-        commit()
-    }
-
     private func commit() {
-        NotificationManager.shared.schedule = schedule
-        NotificationManager.shared.scheduleWorkoutNotifications(schedule)
+        NotificationManager.shared.applyPreferences(
+            preferences,
+            schedules: store.typeSchedules,
+            restDays: store.restDays
+        )
     }
 
     private func checkPermissionStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             DispatchQueue.main.async {
-                if settings.authorizationStatus == .denied, schedule.isEnabled {
-                    schedule.isEnabled = false
+                if settings.authorizationStatus == .denied, preferences.isEnabled {
+                    preferences.isEnabled = false
                     commit()
                 }
             }
         }
-    }
-}
-
-// MARK: - DayButton
-
-private struct DayButton: View {
-    let label:    String
-    let selected: Bool
-    let action:   () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(selected ? .black : Theme.textSecondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(selected ? Color.white : Color.white.opacity(0.08))
-                )
-        }
-        .buttonStyle(.plain)
     }
 }
 

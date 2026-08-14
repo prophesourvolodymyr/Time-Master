@@ -1,22 +1,27 @@
 import SwiftUI
-import PhotosUI
+import UniformTypeIdentifiers
 
 struct WorkoutDetailView: View {
     @EnvironmentObject var store: WorkoutStore
     @EnvironmentObject var databaseStore: DatabaseStore
-    @State private var showingSectionEditor = false
-    @State private var editingSection: Section?
     @State private var showingDeleteAlert = false
     @State private var sectionToDelete: Section?
     @State private var showPlayer = false
     @State private var showingWorkoutSettings = false
     @State private var mediaPreviewSection: Section? = nil
+    @State private var inspectedPageID: UUID?
+    @State private var durationEdit: DurationEditTarget?
+    @State private var expandedRestRowIDs: Set<UUID> = []
+    @State private var noteEditTarget: RestNoteTarget?
     @State private var showBrowserSheet = false
 
     let workoutID: UUID
     @State private var sectionIDs: [UUID] = []
 
     @State private var pendingSection: PendingSectionConfig?
+    @State private var expandedSectionIDs: Set<UUID> = []
+    @State private var draggedSlotID: UUID?
+    @State private var browserTarget: BuilderBrowserTarget = .newSection
 
     private var workout: Workout {
         store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
@@ -51,17 +56,6 @@ struct WorkoutDetailView: View {
                 .environmentObject(DatabaseStore.shared)
         }
         .toolbar { toolbarItems }
-        .sheet(isPresented: $showingSectionEditor) {
-            SectionEditorView(section: editingSection) { savedSection in
-                if editingSection != nil {
-                    store.updateSection(in: workout, section: savedSection)
-                } else {
-                    store.addSection(to: workout, section: savedSection)
-                }
-                autoSyncExerciseToDatabase(savedSection)
-            }
-            .environmentObject(DatabaseStore.shared)
-        }
         .alert("Delete Section", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { sectionToDelete = nil }
             Button("Delete", role: .destructive) {
@@ -77,6 +71,39 @@ struct WorkoutDetailView: View {
         .sheet(item: $mediaPreviewSection) { section in
             MediaPreviewSheet(items: section.mediaItems)
         }
+        .sheet(
+            isPresented: Binding(
+                get: { inspectedPageID != nil },
+                set: { if !$0 { inspectedPageID = nil } }
+            )
+        ) {
+            if let pageID = inspectedPageID {
+                WorkoutPageInspector(pageID: pageID)
+                    .environmentObject(databaseStore)
+                    .environmentObject(store)
+            }
+        }
+        .sheet(item: $durationEdit) { target in
+            DurationEditorSheet(
+                title: target.title,
+                seconds: target.seconds,
+                onSave: { seconds in
+                    updateDuration(target, seconds: seconds)
+                }
+            )
+        }
+        .sheet(item: $noteEditTarget) { target in
+            RestNoteEditorSheet(
+                initialText: target.text,
+                onSave: { text in
+                    updateRestContent(target, content: RestContent(
+                        id: target.contentID ?? UUID(),
+                        kind: .note,
+                        text: text
+                    ))
+                }
+            )
+        }
         .sheet(isPresented: $showingWorkoutSettings) {
             WorkoutSettingsView(workoutID: workoutID, store: store)
         }
@@ -84,16 +111,17 @@ struct WorkoutDetailView: View {
             DatabasePageBrowserSheet(
                 workout: workout,
                 onAdd: { page, dur, sets, reps, restAfter, restBetween in
-                    pendingSection = PendingSectionConfig(
-                        name: page.title,
+                    handlePageSelection(
+                        page,
                         duration: dur,
                         sets: sets,
-                        repCount: reps > 0 ? reps : nil,
+                        reps: reps,
                         restAfter: restAfter,
-                        restBetweenSets: restBetween
+                        restBetween: restBetween
                     )
                 },
                 onAddBundle: { pages, dur, sets, reps, restAfter, restBetween in
+                    guard case .newSection = browserTarget else { return }
                     let bundleName = pages.first?.title ?? "Bundle"
                     let subNames = pages.map { $0.title }
                     let totalSets = pages.reduce(sets) { acc, page in
@@ -101,11 +129,22 @@ struct WorkoutDetailView: View {
                     }
                     pendingSection = PendingSectionConfig(
                         name: "Bundle: \(bundleName) (\(subNames.joined(separator: ", ")))",
+                        pageID: pages.first?.id,
                         duration: dur,
                         sets: totalSets,
                         repCount: reps > 0 ? reps : nil,
                         restAfter: restAfter,
-                        restBetweenSets: restBetween
+                        restBetweenSets: restBetween,
+                        mode: .bundle,
+                        slots: pages.map {
+                            SetSlot(
+                                exercisePageID: $0.id,
+                                name: $0.title,
+                                duration: $0.manifest.duration ?? dur,
+                                repCount: $0.manifest.sets != nil ? max(1, reps) : nil,
+                                restAfter: restAfter
+                            )
+                        }
                     )
                 }
             )
@@ -122,7 +161,8 @@ struct WorkoutDetailView: View {
                 .font(.system(size: 60))
                 .foregroundColor(Theme.textSecondary)
             Text("No Sections Yet")
-                .font(.title2).fontWeight(.semibold)
+                .font(.title2)
+                .fontWeight(.semibold)
                 .foregroundColor(Theme.textPrimary)
             Text("Exercises define the structure of your workout.")
                 .font(.subheadline)
@@ -130,8 +170,9 @@ struct WorkoutDetailView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Button {
-                editingSection = nil
-                showingSectionEditor = true
+                browserTarget = .newSection
+                databaseStore.reloadImmediately()
+                showBrowserSheet = true
             } label: {
                 HStack {
                     Image(systemName: "plus.circle.fill")
@@ -146,6 +187,8 @@ struct WorkoutDetailView: View {
             }
             .padding(.top, 8)
             Button {
+                browserTarget = .newSection
+                databaseStore.reloadImmediately()
                 showBrowserSheet = true
             } label: {
                 HStack {
@@ -183,9 +226,17 @@ struct WorkoutDetailView: View {
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
-                                editingSection = section
-                                showingSectionEditor = true
-                            } label: { Label("Edit", systemImage: "pencil") }
+                                if expandedSectionIDs.contains(section.id) {
+                                    expandedSectionIDs.remove(section.id)
+                                } else {
+                                    expandedSectionIDs.insert(section.id)
+                                }
+                            } label: {
+                                Label(
+                                    expandedSectionIDs.contains(section.id) ? "Collapse" : "Edit",
+                                    systemImage: expandedSectionIDs.contains(section.id) ? "chevron.up" : "pencil"
+                                )
+                            }
                             .tint(Color.white.opacity(0.3))
                         }
                 }
@@ -273,25 +324,39 @@ struct WorkoutDetailView: View {
             Text(label)
                 .font(.system(size: 8))
                 .foregroundColor(Theme.textSecondary)
-            Text("\(value.wrappedValue)\(unit)")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.white)
-            HStack(spacing: 3) {
-                Button {
-                    let new = value.wrappedValue - step
-                    if new >= range.lowerBound { value.wrappedValue = new }
-                } label: {
-                    Image(systemName: "minus").font(.system(size: 7, weight: .bold))
-                        .foregroundColor(.white).frame(width: 16, height: 16)
-                        .background(Theme.surface).cornerRadius(3)
-                }
-                Button {
-                    let new = value.wrappedValue + step
-                    if new <= range.upperBound { value.wrappedValue = new }
-                } label: {
-                    Image(systemName: "plus").font(.system(size: 7, weight: .bold))
-                        .foregroundColor(.white).frame(width: 16, height: 16)
-                        .background(Theme.surface).cornerRadius(3)
+            if unit == "s" {
+                DurationPickerView(
+                    seconds: value,
+                    range: range,
+                    step: step,
+                    compact: true
+                )
+                .frame(maxWidth: .infinity)
+            } else {
+                Text("\(value.wrappedValue)\(unit)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.white)
+                HStack(spacing: 3) {
+                    Button {
+                        let new = value.wrappedValue - step
+                        if new >= range.lowerBound { value.wrappedValue = new }
+                    } label: {
+                        Image(systemName: "minus").font(.system(size: 7, weight: .bold))
+                            .foregroundColor(.white).frame(width: 16, height: 16)
+                            .background(Theme.surface).cornerRadius(3)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Decrease \(label)")
+                    Button {
+                        let new = value.wrappedValue + step
+                        if new <= range.upperBound { value.wrappedValue = new }
+                    } label: {
+                        Image(systemName: "plus").font(.system(size: 7, weight: .bold))
+                            .foregroundColor(.white).frame(width: 16, height: 16)
+                            .background(Theme.surface).cornerRadius(3)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Increase \(label)")
                 }
             }
         }
@@ -309,107 +374,439 @@ struct WorkoutDetailView: View {
             repCount: pending.repCount,
             restBetweenSets: pending.restBetweenSets,
             customRestAfter: pending.restAfter,
-            prepareTime: 4
+            prepareTime: 4,
+            pageID: pending.pageID,
+            mode: pending.mode,
+            slots: pending.slots.isEmpty ? [
+                SetSlot(
+                    exercisePageID: pending.pageID,
+                    name: pending.name,
+                    duration: pending.duration,
+                    repCount: pending.repCount,
+                    restAfter: pending.restBetweenSets
+                )
+            ] : pending.slots
         )
         store.addSection(to: workout, section: section)
         sectionIDs = workout.sections.map(\.id)
         pendingSection = nil
     }
 
-    @ViewBuilder
     private func sectionCell(_ section: Section, id: UUID) -> some View {
-        let idx = sectionIDs.firstIndex(of: id) ?? 0
-        let isLast = idx == sectionIDs.count - 1
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                mediaThumbnail(section)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(section.name)
-                            .font(.headline)
-                            .foregroundColor(Theme.textPrimary)
-                            .lineLimit(1)
-                        if section.sets > 1 {
-                            Text("\(section.sets)×")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.white.opacity(0.15))
-                                .cornerRadius(5)
-                        }
-                        if let reps = section.repCount {
-                            Text("\(reps) reps")
-                                .font(.caption.weight(.medium))
-                                .foregroundColor(Theme.textSecondary)
-                        }
-                    }
-                    HStack(spacing: 10) {
-                        Label("\(section.duration)s", systemImage: "timer")
-                            .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
+        let isExpanded = expandedSectionIDs.contains(section.id)
+        let bigRest = section.bigRestRow ?? RestRow(
+            id: section.id,
+            kind: .big,
+            duration: section.customRestAfter ?? workout.restBetweenSections
+        )
+
+        return VStack(spacing: 6) {
+            sectionHeader(section, isExpanded: isExpanded)
+
+            if isExpanded {
+                VStack(spacing: 6) {
+                    ForEach(Array(section.effectiveSlots.enumerated()), id: \.element.id) { slotIndex, slot in
+                        slotRows(section: section, slot: slot, index: slotIndex)
                     }
                 }
-                Spacer()
-                Image(systemName: "line.3.horizontal")
-                    .font(.title3)
-                    .foregroundColor(Theme.textSecondary.opacity(0.5))
+                .padding(.leading, 12)
+                .padding(.trailing, 4)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .padding(.vertical, 8)
+
+            restRowView(
+                bigRest,
+                target: RestTarget(sectionID: section.id, slotID: nil, isBig: true)
+            )
+        }
+        .padding(.vertical, 4)
+        .animation(.spring(response: 0.28, dampingFraction: 0.86), value: isExpanded)
+    }
+
+    private func sectionHeader(_ section: Section, isExpanded: Bool) -> some View {
+        HStack(spacing: 10) {
+            pageThumbnailButton(
+                pageID: section.pageID,
+                size: 42,
+                fallbackIcon: section.mode == .bundle ? "rectangle.stack.fill" : "figure.run"
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text("\(section.slotCount)×")
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundColor(Theme.textPrimary)
+                    Text(formatCompactDuration(section.effectiveSlots.first?.duration ?? section.duration))
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundColor(Theme.textPrimary)
+                    Text(section.name)
+                        .font(.headline.weight(.medium))
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+
+                HStack(spacing: 8) {
+                    if let reps = section.repCount {
+                        Text("\(reps) reps")
+                    }
+                    Text(section.mode == .bundle ? "Bundle" : "Timed")
+                    Text(formatCompactDuration(section.calculatedDuration))
+                }
+                .font(.caption)
+                .foregroundColor(Theme.textSecondary)
+            }
             .contentShape(Rectangle())
-            .onTapGesture {
-                editingSection = section
-                showingSectionEditor = true
+            .onTapGesture { toggleSection(section.id) }
+
+            Spacer(minLength: 4)
+
+            Button {
+                toggleSection(section.id)
+            } label: {
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Theme.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .background(Theme.surface2)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            if !isLast {
-                RestSeparatorRow(
-                    rest: restBinding(for: idx),
-                    defaultRest: workout.restBetweenSections
+            .buttonStyle(.plain)
+            .accessibilityLabel(isExpanded ? "Collapse \(section.name)" : "Expand \(section.name)")
+        }
+        .padding(10)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func toggleSection(_ id: UUID) {
+        if expandedSectionIDs.contains(id) {
+            expandedSectionIDs.remove(id)
+        } else {
+            expandedSectionIDs.insert(id)
+        }
+    }
+
+    private func slotRows(section: Section, slot: SetSlot, index: Int) -> some View {
+        VStack(spacing: 4) {
+            setRow(section: section, slot: slot, index: index)
+                .onDrag {
+                    draggedSlotID = slot.id
+                    return NSItemProvider(object: slot.id.uuidString as NSString)
+                }
+                .onDrop(
+                    of: [.text],
+                    delegate: SlotDropDelegate(
+                        sourceID: draggedSlotID,
+                        targetID: slot.id,
+                        move: { source, target in
+                            moveSlot(in: section.id, sourceID: source, before: target)
+                        }
+                    )
+                )
+
+            ForEach(slot.drops) { drop in
+                dropRow(section: section, slot: slot, drop: drop)
+                restRowView(
+                    RestRow(id: drop.id, kind: .normal, duration: drop.restAfter),
+                    target: RestTarget(
+                        sectionID: section.id,
+                        slotID: slot.id,
+                        dropID: drop.id,
+                        isBig: false
+                    )
                 )
             }
+
+            let rest = slot.restRow ?? RestRow(
+                id: slot.id,
+                kind: .normal,
+                duration: slot.restAfter
+            )
+            restRowView(
+                rest,
+                target: RestTarget(sectionID: section.id, slotID: slot.id, isBig: false)
+            )
         }
     }
 
-    private func mediaThumbnail(_ section: Section) -> some View {
-        Group {
-            if let item = section.mediaItems.first {
-                MediaThumbnailView(item: item, size: 60, cornerRadius: 12)
-                    .onTapGesture {
-                        mediaPreviewSection = section
+    private func setRow(section: Section, slot: SetSlot, index: Int) -> some View {
+        HStack(spacing: 8) {
+            pageThumbnailButton(
+                pageID: slot.exercisePageID,
+                size: 34,
+                fallbackIcon: "figure.run"
+            )
+
+            VStack(alignment: .leading, spacing: 1) {
+                Button {
+                    inspectedPageID = slot.exercisePageID
+                } label: {
+                    Text(slot.displayName)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+                .buttonStyle(.plain)
+
+                Text("Set \(index + 1)")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+            }
+
+            Spacer(minLength: 4)
+
+            durationButton(
+                text: formatCompactDuration(slot.duration),
+                title: "Set \(index + 1) duration",
+                seconds: slot.duration
+            ) {
+                durationEdit = DurationEditTarget(
+                    title: "Set \(index + 1) duration",
+                    seconds: slot.duration,
+                    kind: .slot(section.id, slot.id)
+                )
+            }
+
+            Button {
+                openBrowser(.addDrop(section.id, slot.id))
+            } label: {
+                Image(systemName: "plus")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(Theme.textPrimary)
+                    .frame(width: 28, height: 28)
+                    .background(Theme.surface2)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add drop set to \(slot.displayName)")
+        }
+        .padding(8)
+        .background(Theme.surface2.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func dropRow(section: Section, slot: SetSlot, drop: DropSet) -> some View {
+        HStack(spacing: 8) {
+            pageThumbnailButton(
+                pageID: drop.exercisePageID,
+                size: 28,
+                fallbackIcon: "arrow.down.right"
+            )
+
+            Text(drop.displayName)
+                .font(.subheadline)
+                .foregroundColor(Theme.textPrimary)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            durationButton(
+                text: formatCompactDuration(drop.duration),
+                title: "\(drop.displayName) duration",
+                seconds: drop.duration
+            ) {
+                durationEdit = DurationEditTarget(
+                    title: "\(drop.displayName) duration",
+                    seconds: drop.duration,
+                    kind: .drop(section.id, slot.id, drop.id)
+                )
+            }
+
+            Button(role: .destructive) {
+                mutateSection(id: section.id) { updated in
+                    var slots = updated.effectiveSlots
+                    guard let slotIndex = slots.firstIndex(where: { $0.id == slot.id }) else { return }
+                    slots[slotIndex].drops.removeAll { $0.id == drop.id }
+                    updated.slots = slots
+                }
+            } label: {
+                Image(systemName: "minus.circle")
+                    .font(.caption)
+                    .foregroundColor(.red.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove \(drop.displayName)")
+        }
+        .padding(.leading, 18)
+        .padding(.vertical, 5)
+        .padding(.trailing, 8)
+        .background(Theme.surface.opacity(0.85))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func durationButton(
+        text: String,
+        title: String,
+        seconds: Int,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundColor(Theme.textPrimary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 5)
+                .background(Theme.surface)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(formatCompactDuration(seconds))
+    }
+
+    private func pageThumbnailButton(pageID: UUID?, size: CGFloat, fallbackIcon: String) -> some View {
+        Button {
+            inspectedPageID = pageID
+        } label: {
+            pageThumbnail(pageID: pageID, size: size, fallbackIcon: fallbackIcon)
+        }
+        .buttonStyle(.plain)
+        .disabled(pageID == nil)
+        .accessibilityLabel(pageID == nil ? "No page preview" : "Open page preview")
+    }
+
+    private func pageThumbnail(pageID: UUID?, size: CGFloat, fallbackIcon: String) -> some View {
+        let page = pageID.flatMap { databaseStore.page(id: $0) }
+        return AsyncCoverImage(
+            url: page?.coverImageURL,
+            fallbackIcon: page?.manifest.iconName ?? fallbackIcon,
+            fallbackColor: page?.effectiveWorkoutType.map { Color(hex: $0.colorHex) },
+            height: size,
+            contentMode: .fill,
+            overlayGradient: false
+        )
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: min(9, size / 4)))
+    }
+
+    private func restRowView(_ row: RestRow, target: RestTarget) -> some View {
+        let isExpanded = expandedRestRowIDs.contains(row.id)
+        return VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: row.kind == .big ? "square.stack.3d.up.fill" : "pause.fill")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+
+                Text(row.kind == .big ? "BIG REST" : "REST")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(Theme.textPrimary)
+
+                durationButton(
+                    text: formatCompactDuration(row.duration),
+                    title: row.kind == .big ? "Big rest duration" : "Rest duration",
+                    seconds: row.duration
+                ) {
+                    durationEdit = DurationEditTarget(
+                        title: row.kind == .big ? "Big rest duration" : "Rest duration",
+                        seconds: row.duration,
+                        kind: .rest(target)
+                    )
+                }
+
+                Spacer(minLength: 4)
+
+                restActionMenu(target: target)
+
+                Button {
+                    if expandedRestRowIDs.contains(row.id) {
+                        expandedRestRowIDs.remove(row.id)
+                    } else {
+                        expandedRestRowIDs.insert(row.id)
                     }
-            } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Theme.surface2)
-                    Image(systemName: "figure.run")
-                        .font(.title2)
+                } label: {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isExpanded ? "Collapse rest contents" : "Expand rest contents")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+
+            if isExpanded {
+                VStack(spacing: 3) {
+                    if row.contents.isEmpty {
+                        Text("Add a note or stretch")
+                            .font(.caption)
+                            .foregroundColor(Theme.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 34)
+                            .padding(.bottom, 5)
+                    } else {
+                        ForEach(row.contents) { content in
+                            restContentRow(content, target: target)
+                        }
+                    }
+                }
+                .padding(.bottom, 6)
+            }
+        }
+        .background(row.kind == .big ? Theme.surface2.opacity(0.9) : Theme.surface2.opacity(0.58))
+        .clipShape(RoundedRectangle(cornerRadius: row.kind == .big ? 11 : 8))
+    }
+
+    private func restActionMenu(target: RestTarget) -> some View {
+        Menu {
+            Button("Add Note", systemImage: "note.text") {
+                noteEditTarget = RestNoteTarget(target: target, contentID: nil, text: "")
+            }
+            Button("Add Stretch", systemImage: "figure.cooldown") {
+                openBrowser(.restStretch(target))
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.caption.weight(.bold))
+                .foregroundColor(Theme.textPrimary)
+                .frame(width: 26, height: 26)
+                .background(Theme.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+        }
+        .menuStyle(.borderlessButton)
+        .accessibilityLabel("Add rest content")
+    }
+
+    private func restContentRow(_ content: RestContent, target: RestTarget) -> some View {
+        HStack(spacing: 7) {
+            pageThumbnailButton(
+                pageID: content.pageID,
+                size: 24,
+                fallbackIcon: content.kind == .stretch ? "figure.cooldown" : "note.text"
+            )
+
+            Text(content.text.isEmpty ? (content.kind == .stretch ? "Stretch" : "Note") : content.text)
+                .font(.caption)
+                .foregroundColor(Theme.textPrimary)
+                .lineLimit(1)
+
+            Spacer()
+
+            if content.kind == .note {
+                Button {
+                    noteEditTarget = RestNoteTarget(target: target, contentID: content.id, text: content.text)
+                } label: {
+                    Image(systemName: "pencil")
+                        .font(.caption2)
                         .foregroundColor(Theme.textSecondary)
                 }
-                .frame(width: 60, height: 60)
+                .buttonStyle(.plain)
             }
+
+            Button(role: .destructive) {
+                removeRestContent(target, contentID: content.id)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption2.weight(.bold))
+                    .foregroundColor(.red.opacity(0.8))
+            }
+            .buttonStyle(.plain)
         }
+        .padding(.leading, 30)
+        .padding(.trailing, 10)
+        .padding(.vertical, 3)
     }
 
-    private func restBinding(for idx: Int) -> Binding<Int> {
-        Binding<Int>(
-            get: {
-                guard idx < sectionIDs.count,
-                      let id = sectionIDs[safe: idx],
-                      let section = workout.sections.first(where: { $0.id == id })
-                else { return workout.restBetweenSections }
-                return section.customRestAfter ?? workout.restBetweenSections
-            },
-            set: { newVal in
-                guard idx < sectionIDs.count,
-                      let id = sectionIDs[safe: idx] else { return }
-                var w = workout
-                if let sIdx = w.sections.firstIndex(where: { $0.id == id }) {
-                    w.sections[sIdx].customRestAfter = newVal
-                    store.updateWorkout(w)
-                }
-            }
-        )
-    }
 
     @ViewBuilder
     private var startButton: some View {
@@ -448,23 +845,29 @@ struct WorkoutDetailView: View {
                 Image(systemName: "ellipsis.circle")
                     .foregroundColor(.white)
             }
+            .accessibilityLabel("Workout actions")
         }
         ToolbarItem(placement: .primaryAction) {
             Button {
-                editingSection = nil
-                showingSectionEditor = true
+                browserTarget = .newSection
+                databaseStore.reloadImmediately()
+                showBrowserSheet = true
             } label: {
                 Image(systemName: "plus")
                     .foregroundColor(.white)
             }
+            .accessibilityLabel("Add exercise")
         }
         ToolbarItem(placement: .primaryAction) {
             Button {
+                browserTarget = .newSection
+                databaseStore.reloadImmediately()
                 showBrowserSheet = true
             } label: {
                 Image(systemName: "folder.fill.badge.plus")
+                    .foregroundColor(.white)
             }
-            .foregroundColor(.white)
+            .accessibilityLabel("Browse exercises")
         }
     }
 
@@ -477,40 +880,351 @@ struct WorkoutDetailView: View {
         store.updateWorkout(w)
     }
 
-    private func autoSyncExerciseToDatabase(_ section: Section) {
-        let db = DatabaseStore.shared
-        let nameExists = exerciseExistsInDatabase(name: section.name, store: db)
-        if !nameExists {
-            let exercise = Exercise(
-                name: section.name,
-                duration: section.duration,
-                mediaItems: section.mediaItems
+    private func handlePageSelection(
+        _ page: ExercisePage,
+        duration: Int,
+        sets: Int,
+        reps: Int,
+        restAfter: Int,
+        restBetween: Int
+    ) {
+        switch browserTarget {
+        case .newSection:
+            pendingSection = PendingSectionConfig(
+                name: page.title,
+                pageID: page.id,
+                duration: duration,
+                sets: sets,
+                repCount: reps > 0 ? reps : nil,
+                restAfter: restAfter,
+                restBetweenSets: restBetween
             )
-            db.addRootExercise(exercise)
+        case .addDrop(let sectionID, let slotID):
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }),
+                      page.id != section.pageID,
+                      !slots[slotIndex].drops.contains(where: { $0.exercisePageID == page.id }) else { return }
+                slots[slotIndex].drops.append(
+                    DropSet(
+                        exercisePageID: page.id,
+                        name: page.title,
+                        duration: duration,
+                        restAfter: restAfter
+                    )
+                )
+                section.slots = slots
+            }
+        case .setRestExercise(let sectionID, let slotID):
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                if let index = slots.firstIndex(where: { $0.id == slotID }) {
+                    slots[index].restExercisePageID = page.id
+                    section.slots = slots
+                }
+            }
+        case .restStretch(let target):
+            mutateRestRow(target) { row in
+                row.contents.append(
+                    RestContent(
+                        kind: .stretch,
+                        pageID: page.id,
+                        text: page.title
+                    )
+                )
+            }
+        }
+        showBrowserSheet = false
+    }
+
+    private func mutateSection(id: UUID, _ mutate: (inout Section) -> Void) {
+        var updatedWorkout = workout
+        guard let index = updatedWorkout.sections.firstIndex(where: { $0.id == id }) else { return }
+        mutate(&updatedWorkout.sections[index])
+        store.updateWorkout(updatedWorkout)
+        sectionIDs = updatedWorkout.sections.map(\.id)
+    }
+
+    private func moveSlot(in sectionID: UUID, from source: Int, to destination: Int) {
+        mutateSection(id: sectionID) { section in
+            guard source != destination else { return }
+            var slots = section.effectiveSlots
+            guard slots.indices.contains(source), slots.indices.contains(destination) else { return }
+            let slot = slots.remove(at: source)
+            slots.insert(slot, at: destination)
+            section.slots = slots
+            section.sets = slots.count
         }
     }
 
-    private func exerciseExistsInDatabase(name: String, store: DatabaseStore) -> Bool {
-        if store.rootExercises.contains(where: { $0.name == name }) { return true }
-        return folderContainsExercise(name: name, folders: store.rootFolders)
+    private func removeSlot(in sectionID: UUID, at index: Int) {
+        mutateSection(id: sectionID) { section in
+            var slots = section.effectiveSlots
+            guard slots.count > 1, slots.indices.contains(index) else { return }
+            slots.remove(at: index)
+            section.slots = slots
+            section.sets = slots.count
+        }
     }
 
-    private func folderContainsExercise(name: String, folders: [ExerciseFolder]) -> Bool {
-        for f in folders {
-            if f.exercises.contains(where: { $0.name == name }) { return true }
-            if folderContainsExercise(name: name, folders: f.subfolders) { return true }
+    private func moveSlot(in sectionID: UUID, sourceID: UUID?, before targetID: UUID) {
+        guard let sourceID, sourceID != targetID else { return }
+        mutateSection(id: sectionID) { section in
+            var slots = section.effectiveSlots
+            guard let sourceIndex = slots.firstIndex(where: { $0.id == sourceID }) else { return }
+            let movedSlot = slots.remove(at: sourceIndex)
+            let targetIndex = slots.firstIndex(where: { $0.id == targetID }) ?? slots.endIndex
+            slots.insert(movedSlot, at: targetIndex)
+            section.slots = slots
+            section.sets = slots.count
         }
-        return false
+        draggedSlotID = nil
     }
+
+
+    private func openBrowser(_ target: BuilderBrowserTarget) {
+        browserTarget = target
+        databaseStore.reloadImmediately()
+        showBrowserSheet = true
+    }
+
+    private func formatCompactDuration(_ seconds: Int) -> String {
+        let minutes = max(0, seconds) / 60
+        let remainder = max(0, seconds) % 60
+        return String(format: "%d:%02d", minutes, remainder)
+    }
+
+    private func updateDuration(_ target: DurationEditTarget, seconds: Int) {
+        switch target.kind {
+        case .slot(let sectionID, let slotID):
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
+                slots[index].duration = max(5, seconds)
+                section.slots = slots
+            }
+        case .drop(let sectionID, let slotID, let dropID):
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }),
+                      let dropIndex = slots[slotIndex].drops.firstIndex(where: { $0.id == dropID }) else { return }
+                slots[slotIndex].drops[dropIndex].duration = max(5, seconds)
+                section.slots = slots
+            }
+        case .rest(let restTarget):
+            mutateRestRow(restTarget) { row in
+                row.duration = max(0, seconds)
+            }
+        }
+    }
+
+    private func mutateRestRow(_ target: RestTarget, _ mutate: (inout RestRow) -> Void) {
+        mutateSection(id: target.sectionID) { section in
+            if target.isBig {
+                var row = section.bigRestRow ?? RestRow(
+                    id: section.id,
+                    kind: .big,
+                    duration: section.customRestAfter ?? workout.restBetweenSections
+                )
+                mutate(&row)
+                section.bigRestRow = row
+                section.customRestAfter = row.duration
+                return
+            }
+
+            var slots = section.effectiveSlots
+            guard let slotID = target.slotID,
+                  let slotIndex = slots.firstIndex(where: { $0.id == slotID }) else { return }
+
+            if let dropID = target.dropID,
+               let dropIndex = slots[slotIndex].drops.firstIndex(where: { $0.id == dropID }) {
+                let drop = slots[slotIndex].drops[dropIndex]
+                var row = RestRow(id: drop.id, kind: .normal, duration: drop.restAfter)
+                mutate(&row)
+                slots[slotIndex].drops[dropIndex].restAfter = row.duration
+            } else {
+                var row = slots[slotIndex].restRow ?? RestRow(
+                    id: slots[slotIndex].id,
+                    kind: .normal,
+                    duration: slots[slotIndex].restAfter
+                )
+                mutate(&row)
+                slots[slotIndex].restRow = row
+                slots[slotIndex].restAfter = row.duration
+            }
+            section.slots = slots
+        }
+    }
+
+    private func updateRestContent(_ target: RestNoteTarget, content: RestContent) {
+        mutateRestRow(target.target) { row in
+            if let index = row.contents.firstIndex(where: { $0.id == content.id }) {
+                row.contents[index] = content
+            } else {
+                row.contents.append(content)
+            }
+        }
+    }
+
+    private func removeRestContent(_ target: RestTarget, contentID: UUID) {
+        mutateRestRow(target) { row in
+            row.contents.removeAll { $0.id == contentID }
+        }
+    }
+
 }
 
 struct PendingSectionConfig {
     var name: String
+    var pageID: UUID?
     var duration: Int
     var sets: Int
     var repCount: Int?
     var restAfter: Int
     var restBetweenSets: Int
+    var mode: SectionMode = .timed
+    var slots: [SetSlot] = []
+}
+
+private enum BuilderBrowserTarget {
+    case newSection
+    case addDrop(UUID, UUID)
+    case setRestExercise(UUID, UUID)
+    case restStretch(RestTarget)
+}
+
+private struct RestTarget {
+    let sectionID: UUID
+    let slotID: UUID?
+    let dropID: UUID?
+    let isBig: Bool
+
+    init(sectionID: UUID, slotID: UUID?, dropID: UUID? = nil, isBig: Bool) {
+        self.sectionID = sectionID
+        self.slotID = slotID
+        self.dropID = dropID
+        self.isBig = isBig
+    }
+}
+
+private enum DurationEditKind {
+    case slot(UUID, UUID)
+    case drop(UUID, UUID, UUID)
+    case rest(RestTarget)
+}
+
+private struct DurationEditTarget: Identifiable {
+    let id = UUID()
+    let title: String
+    let seconds: Int
+    let kind: DurationEditKind
+}
+
+private struct RestNoteTarget: Identifiable {
+    let id = UUID()
+    let target: RestTarget
+    let contentID: UUID?
+    let text: String
+}
+
+private struct WorkoutPageInspector: View {
+    let pageID: UUID
+
+    var body: some View {
+        NavigationStack {
+            ExercisePageDetailView(pageID: pageID)
+        }
+    }
+}
+
+private struct DurationEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let initialSeconds: Int
+    let onSave: (Int) -> Void
+    @State private var seconds: Int
+
+    init(title: String, seconds: Int, onSave: @escaping (Int) -> Void) {
+        self.title = title
+        self.initialSeconds = seconds
+        self.onSave = onSave
+        _seconds = State(initialValue: seconds)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                DurationPickerView(seconds: $seconds, range: 5...3600, step: 5)
+                Text("Changes apply to this row only.")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.background.ignoresSafeArea())
+            .navigationTitle(title)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(seconds)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct RestNoteEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let initialText: String
+    let onSave: (String) -> Void
+    @State private var text: String
+
+    init(initialText: String, onSave: @escaping (String) -> Void) {
+        self.initialText = initialText
+        self.onSave = onSave
+        _text = State(initialValue: initialText)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Write a short cue for this rest interval.")
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+                TextEditor(text: $text)
+                    .scrollContentBackground(.hidden)
+                    .padding(10)
+                    .background(Theme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Theme.background.ignoresSafeArea())
+            .navigationTitle("Rest Note")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(text.trimmingCharacters(in: .whitespacesAndNewlines))
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
 }
 
 private struct RestSeparatorRow: View {
@@ -555,6 +1269,18 @@ private struct RestSeparatorRow: View {
     }
 }
 
+private struct SlotDropDelegate: DropDelegate {
+    let sourceID: UUID?
+    let targetID: UUID
+    let move: (UUID?, UUID) -> Void
+
+    func dropEntered(info: DropInfo) {
+        move(sourceID, targetID)
+    }
+
+    func performDrop(info: DropInfo) -> Bool { true }
+}
+
 // MARK: - WorkoutSettingsView
 
 private struct WorkoutSettingsView: View {
@@ -567,6 +1293,7 @@ private struct WorkoutSettingsView: View {
     @State private var restBetweenSections: Int
     @State private var colorHex: String
     @State private var selectedTrackIndices: Set<Int>
+    @State private var useGlobalLibrary: Bool
 
     init(workoutID: UUID, store: WorkoutStore) {
         self.workoutID = workoutID
@@ -582,6 +1309,7 @@ private struct WorkoutSettingsView: View {
             }
             return set
         }())
+        _useGlobalLibrary = State(initialValue: w.musicTrackFilenames.isEmpty)
     }
 
     private var workout: Workout {
@@ -659,13 +1387,22 @@ private struct WorkoutSettingsView: View {
                     .font(.subheadline)
                     .foregroundColor(Theme.textSecondary)
             } else {
+                Toggle("Use entire music library", isOn: Binding(
+                    get: { useGlobalLibrary },
+                    set: { newValue in
+                        useGlobalLibrary = newValue
+                        if newValue { selectedTrackIndices.removeAll() }
+                    }
+                ))
+                .tint(.white)
+
                 VStack(spacing: 6) {
                     ForEach(Array(musicManager.trackFilenames.enumerated()), id: \.offset) { index, filename in
                         HStack(spacing: 12) {
                             Image(systemName: selectedTrackIndices.contains(index) ? "checkmark.circle.fill" : "circle")
                                 .font(.title3)
                                 .foregroundColor(selectedTrackIndices.contains(index) ? .white : Color.white.opacity(0.28))
-                            Text(filename)
+                             Text(musicManager.displayName(for: filename))
                                 .font(.subheadline)
                                 .foregroundColor(Theme.textPrimary)
                                 .lineLimit(1)
@@ -673,6 +1410,7 @@ private struct WorkoutSettingsView: View {
                         }
                         .contentShape(Rectangle())
                         .onTapGesture {
+                            useGlobalLibrary = false
                             if selectedTrackIndices.contains(index) {
                                 selectedTrackIndices.remove(index)
                             } else {
@@ -685,7 +1423,7 @@ private struct WorkoutSettingsView: View {
                 .padding(14)
                 .background(Theme.surface)
                 .cornerRadius(12)
-                Text("Selected tracks play during this workout. If none selected, all tracks play.")
+                Text("Turn this off to choose a specific playlist for this workout.")
                     .font(.caption)
                     .foregroundColor(Theme.textSecondary)
             }
@@ -723,7 +1461,7 @@ private struct WorkoutSettingsView: View {
         var w = workout
         w.restBetweenSections = restBetweenSections
         w.colorHex = colorHex
-        w.musicTrackFilenames = selectedTrackIndices.sorted().map {
+        w.musicTrackFilenames = useGlobalLibrary ? [] : selectedTrackIndices.sorted().map {
             musicManager.trackFilenames[$0]
         }
         store.updateWorkout(w)
