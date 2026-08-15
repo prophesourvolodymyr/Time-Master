@@ -71,7 +71,9 @@ struct TimeMasterApp: App {
                         .zIndex(1)
                 }
             }
+            #if os(macOS)
             .frame(minWidth: 800, minHeight: 600)
+            #endif
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     withAnimation(.easeOut(duration: 0.4)) {

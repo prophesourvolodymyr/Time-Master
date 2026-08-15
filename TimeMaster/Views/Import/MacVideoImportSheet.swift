@@ -19,8 +19,7 @@ struct MacVideoImportSheet: View {
             if let source {
                 MacVideoEditorView(
                     source: source,
-                    onBack: discardCurrentSource,
-                    onSaved: completeImport
+                    onBack: discardCurrentSource
                 )
             } else {
                 sourcePicker
@@ -172,11 +171,6 @@ struct MacVideoImportSheet: View {
         source = nil
     }
 
-    private func completeImport() {
-        source?.discardManagedFiles()
-        source = nil
-        dismiss()
-    }
 
     private func presentError(_ message: String) {
         errorMessage = message

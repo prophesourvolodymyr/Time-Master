@@ -266,6 +266,7 @@ public final class MigrationManager {
 
                     normalized.duration = nil
                     normalized.restAfter = nil
+                    normalized.prepareTime = nil
                     normalized.sets = nil
                     normalized.restBetweenSets = nil
                     normalized.mediaFilenames = []
@@ -305,6 +306,7 @@ public final class MigrationManager {
                     cleaned.mediaFilenames = []
                     cleaned.duration = nil
                     cleaned.restAfter = nil
+                    cleaned.prepareTime = nil
                     cleaned.sets = nil
                     cleaned.restBetweenSets = nil
                 }

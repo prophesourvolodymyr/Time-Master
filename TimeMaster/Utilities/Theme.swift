@@ -4,6 +4,7 @@ struct Theme {
     // Defined but ONLY used in AnalyticsView.swift
     static let primary       = Color(hex: "FF6B35")
     static let accent        = Color(hex: "4ECDC4")
+    static let restAccent = Color(hex: "FF9500")
 
     // App-wide monochrome palette
     static let background    = Color(hex: "0A0A0A")
@@ -24,6 +25,95 @@ struct Theme {
         ("AF52DE", "Purple"),
         ("FF2D55", "Pink"),
     ]
+}
+ 
+enum AppToolbar {
+    @ToolbarContentBuilder
+    static func item<Content: View>(
+        placement: ToolbarItemPlacement,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some ToolbarContent {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            ToolbarItem(placement: placement, content: content)
+                .sharedBackgroundVisibility(.visible)
+        } else {
+            ToolbarItem(placement: placement, content: content)
+        }
+    }
+
+    @ToolbarContentBuilder
+    static func group<Content: View>(
+        placement: ToolbarItemPlacement,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some ToolbarContent {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            ToolbarItemGroup(placement: placement, content: content)
+                .sharedBackgroundVisibility(.visible)
+        } else {
+            ToolbarItemGroup(placement: placement, content: content)
+        }
+    }
+}
+
+private struct AppOpeningFade<ID: Hashable>: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let id: ID
+    @State private var isVisible = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isVisible ? 1 : 0)
+            .offset(y: isVisible || reduceMotion ? 0 : 8)
+            .task(id: id) {
+                guard !reduceMotion else {
+                    isVisible = true
+                    return
+                }
+
+                isVisible = false
+                await Task.yield()
+
+                guard !Task.isCancelled else { return }
+                withAnimation(.smooth(duration: 0.32)) {
+                    isVisible = true
+                }
+            }
+    }
+}
+
+private struct AppHeaderFade: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        content
+            .overlay(alignment: .top) {
+                LinearGradient(
+                    stops: [
+                        .init(color: Theme.background.opacity(0.98), location: 0),
+                        .init(color: Theme.background.opacity(0.9), location: 0.25),
+                        .init(color: Theme.background.opacity(0.58), location: 0.58),
+                        .init(color: Theme.background.opacity(0), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 140)
+                .ignoresSafeArea(edges: .top)
+                .allowsHitTesting(false)
+            }
+        #else
+        content
+        #endif
+    }
+}
+
+extension View {
+    func appOpeningFade<ID: Hashable>(id: ID) -> some View {
+        modifier(AppOpeningFade(id: id))
+    }
+
+    func appHeaderFade() -> some View {
+        modifier(AppHeaderFade())
+    }
 }
 
 // MARK: - IconColorPicker

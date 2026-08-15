@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct BackupView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
+    @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @ObservedObject var databaseStore: DatabaseStore = .shared
 
     // Export
@@ -240,7 +241,8 @@ struct BackupView: View {
         // Snapshot store state HERE on the main thread before going background
         let snap = BackupManager.shared.snapshot(
             workoutStore: workoutStore,
-            databaseStore: databaseStore
+            databaseStore: databaseStore,
+            outdoorStore: outdoorStore
         )
         Task.detached(priority: .userInitiated) {
             do {
@@ -266,11 +268,12 @@ struct BackupView: View {
                 let summary = try BackupManager.shared.importBackup(
                     from: url,
                     workoutStore: workoutStore,
-                    databaseStore: databaseStore
+                    databaseStore: databaseStore,
+                    outdoorStore: outdoorStore
                 )
                 await MainActor.run {
                     isImporting = false
-                    let msg = "Exercises: \(summary.exercisesImported), Workouts: \(summary.workoutsImported), History: \(summary.historyImported)"
+                    let msg = "Exercises: \(summary.exercisesImported), Workouts: \(summary.workoutsImported), History: \(summary.historyImported), Outdoor: \(summary.outdoorActivitiesImported)"
                     show(title: "Import Complete", message: msg)
                 }
             } catch {
@@ -307,6 +310,7 @@ struct ShareSheet: UIViewControllerRepresentable {
     NavigationStack {
         BackupView()
             .environmentObject(WorkoutStore())
+            .environmentObject(OutdoorActivityStore())
     }
     .preferredColorScheme(.dark)
 }

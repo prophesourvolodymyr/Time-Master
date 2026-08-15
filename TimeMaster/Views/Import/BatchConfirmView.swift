@@ -57,12 +57,10 @@ struct BatchConfirmView: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Back") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    saveButton
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Back") { dismiss() }
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { saveButton
+                                 }
             }
             .onAppear { initDefaults() }
         }

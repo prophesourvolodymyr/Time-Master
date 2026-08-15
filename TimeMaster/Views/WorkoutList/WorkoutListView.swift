@@ -3,13 +3,22 @@ import WidgetKit
 
 struct WorkoutListView: View {
     @EnvironmentObject var store: WorkoutStore
+    @EnvironmentObject private var outdoorStore: OutdoorActivityStore
+    @Binding var requestedWorkoutID: UUID?
     @State private var navigationPath: [Workout] = []
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
     @State private var newWorkoutColor: String = "FFFFFF"
+    #if os(iOS)
+    @State private var activeOutdoorKind: OutdoorActivityKind?
+    #endif
     @State private var showingSettings = false
+    @Namespace private var workoutTransitionNamespace
 
+    init(requestedWorkoutID: Binding<UUID?> = .constant(nil)) {
+        _requestedWorkoutID = requestedWorkoutID
+    }
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
@@ -22,7 +31,7 @@ struct WorkoutListView: View {
                         LazyVStack(spacing: 12) {
                             ForEach(store.workouts) { workout in
                                 NavigationLink(value: workout) {
-                                    WorkoutCard(workout: workout)
+                                    workoutCardLabel(for: workout)
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .contextMenu {
@@ -47,40 +56,81 @@ struct WorkoutListView: View {
             }
             .navigationTitle("Workouts")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showingSettings = true } label: {
-                        Image(systemName: "gearshape")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                    }
+                AppToolbar.item(placement: .primaryAction) { Button { showingSettings = true } label: {
+                    Image(systemName: "gearshape")
+                        .font(.title3)
+                        .foregroundColor(.white)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showingAddWorkout = true } label: {
-                        Image(systemName: "plus")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                    }
+                                 }
+                AppToolbar.item(placement: .primaryAction) { Button { showingAddWorkout = true } label: {
+                    Image(systemName: "plus")
+                        .font(.title3)
+                        .foregroundColor(.white)
                 }
+                                 }
             }
             .navigationDestination(for: Workout.self) { workout in
-                WorkoutDetailView(workout: workout)
+                workoutDestination(for: workout)
             }
             .sheet(isPresented: $showingAddWorkout) {
                 addWorkoutSheet
             }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView().environmentObject(store)
+            #if os(iOS)
+            .sheet(item: $activeOutdoorKind) { kind in
+                OutdoorRecorderView(kind: kind, store: outdoorStore, plannedRoute: nil)
             }
-            // Widget deep-link: push straight to the workout detail
-            .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notif in
-                guard let id = notif.userInfo?["workoutID"] as? UUID,
-                      let workout = store.workouts.first(where: { $0.id == id }) else { return }
-                navigationPath = [workout]
+            #endif
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+                    .environmentObject(store)
+                    .environmentObject(outdoorStore)
+            }
+            .onAppear {
+                openRequestedWorkout(requestedWorkoutID)
+            }
+            .onChange(of: requestedWorkoutID) { workoutID in
+                openRequestedWorkout(workoutID)
             }
             .onReceive(NotificationCenter.default.publisher(for: .newWorkoutCommand)) { _ in
                 showingAddWorkout = true
             }
         }
+    }
+
+    private func openRequestedWorkout(_ workoutID: UUID?) {
+        guard let workoutID else { return }
+        defer { requestedWorkoutID = nil }
+
+        guard let workout = store.workouts.first(where: { $0.id == workoutID }) else { return }
+        navigationPath = [workout]
+    }
+
+    @ViewBuilder
+    private func workoutCardLabel(for workout: Workout) -> some View {
+        #if os(iOS)
+        if #available(iOS 18.0, *) {
+            WorkoutCard(workout: workout)
+                .matchedTransitionSource(id: workout.id, in: workoutTransitionNamespace)
+        } else {
+            WorkoutCard(workout: workout)
+        }
+        #else
+        WorkoutCard(workout: workout)
+        #endif
+    }
+
+    @ViewBuilder
+    private func workoutDestination(for workout: Workout) -> some View {
+        #if os(iOS)
+        if #available(iOS 18.0, *) {
+            WorkoutDetailView(workout: workout)
+                .navigationTransition(.zoom(sourceID: workout.id, in: workoutTransitionNamespace))
+        } else {
+            WorkoutDetailView(workout: workout)
+        }
+        #else
+        WorkoutDetailView(workout: workout)
+        #endif
     }
 
     // MARK: - Sub-views
@@ -104,6 +154,23 @@ struct WorkoutListView: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 24) {
+                    #if os(iOS)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Outdoor activity").font(.headline).foregroundColor(Theme.textPrimary)
+                        HStack(spacing: 10) {
+                            Button {
+                                showingAddWorkout = false
+                                activeOutdoorKind = .runWalk
+                            } label: { Label("Run & Walk", systemImage: "figure.run") }
+                                .buttonStyle(.bordered)
+                            Button {
+                                showingAddWorkout = false
+                                activeOutdoorKind = .bike
+                            } label: { Label("Bike", systemImage: "bicycle") }
+                                .buttonStyle(.bordered)
+                        }
+                    }
+                    #endif
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Name")
                             .font(.headline)
@@ -156,11 +223,19 @@ struct WorkoutListView: View {
 
                     Button {
                         if !newWorkoutName.isEmpty {
-                            store.addWorkout(name: newWorkoutName, type: newWorkoutType, colorHex: newWorkoutColor)
+                            let createdWorkout = store.addWorkout(
+                                name: newWorkoutName,
+                                type: newWorkoutType,
+                                colorHex: newWorkoutColor
+                            )
                             newWorkoutName = ""
                             newWorkoutType = .strength
                             newWorkoutColor = "FFFFFF"
                             showingAddWorkout = false
+                            Task { @MainActor in
+                                await Task.yield()
+                                navigationPath = [createdWorkout]
+                            }
                         }
                     } label: {
                         Text("Create Workout")
@@ -176,23 +251,18 @@ struct WorkoutListView: View {
                 .padding(16)
             }
             .navigationTitle("New Workout")
-            #if os(iOS)
-#if os(iOS)
 #if os(iOS)
 .navigationBarTitleDisplayMode(.inline)
 #endif
-#endif
-#endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        newWorkoutName = ""
-                        newWorkoutType = .strength
-                        newWorkoutColor = "FFFFFF"
-                        showingAddWorkout = false
-                    }
-                    .foregroundColor(.white)
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") {
+                    newWorkoutName = ""
+                    newWorkoutType = .strength
+                    newWorkoutColor = "FFFFFF"
+                    showingAddWorkout = false
                 }
+                .foregroundColor(.white)
+                                 }
             }
         }
     }

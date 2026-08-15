@@ -82,54 +82,66 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
     public var id: String
     public var exerciseID: String
     public var name: String
+    public var nestedWorkoutID: String?
     public var alias: String?
     public var duration: Int
     public var repCount: Int?
     public var restAfter: Int
     public var restExerciseID: String?
+    public var prepareTime: Int?
     public var drops: [WorkoutDropSetManifest]
+    public var children: [WorkoutSetSlotManifest]
     public var restRow: WorkoutRestRowManifest?
 
     public init(
         id: String = UUID().uuidString,
         exerciseID: String,
         name: String,
+        nestedWorkoutID: String? = nil,
         alias: String? = nil,
         duration: Int = 30,
         repCount: Int? = nil,
         restAfter: Int = 10,
+        prepareTime: Int? = nil,
         restExerciseID: String? = nil,
         drops: [WorkoutDropSetManifest] = [],
+        children: [WorkoutSetSlotManifest] = [],
         restRow: WorkoutRestRowManifest? = nil
     ) {
         self.id = id
         self.exerciseID = exerciseID
+        self.nestedWorkoutID = nestedWorkoutID
         self.name = name
         self.alias = alias
         self.duration = max(5, duration)
         self.repCount = repCount.map { max(1, $0) }
         self.restAfter = max(0, restAfter)
+        self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
         self.restExerciseID = restExerciseID
         self.drops = drops
+        self.children = children
         self.restRow = restRow ?? (restAfter > 0 ? WorkoutRestRowManifest(duration: restAfter) : nil)
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, exerciseID, name, alias, duration, repCount, restAfter
-        case restExerciseID, drops, restRow
+        case id, exerciseID, nestedWorkoutID, name, alias, duration, repCount, restAfter, prepareTime
+        case restExerciseID, drops, children, restRow
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
         exerciseID = try c.decodeIfPresent(String.self, forKey: .exerciseID) ?? ""
+        nestedWorkoutID = try c.decodeIfPresent(String.self, forKey: .nestedWorkoutID)
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Exercise"
         alias = try c.decodeIfPresent(String.self, forKey: .alias)
         duration = max(5, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
         repCount = try c.decodeIfPresent(Int.self, forKey: .repCount).map { max(1, $0) }
         restAfter = max(0, try c.decodeIfPresent(Int.self, forKey: .restAfter) ?? 10)
+        prepareTime = try c.decodeIfPresent(Int.self, forKey: .prepareTime).map { min(30, max(0, $0)) }
         restExerciseID = try c.decodeIfPresent(String.self, forKey: .restExerciseID)
         drops = try c.decodeIfPresent([WorkoutDropSetManifest].self, forKey: .drops) ?? []
+        children = try c.decodeIfPresent([WorkoutSetSlotManifest].self, forKey: .children) ?? []
         restRow = try c.decodeIfPresent(WorkoutRestRowManifest.self, forKey: .restRow)
         if restRow == nil, restAfter > 0 {
             restRow = WorkoutRestRowManifest(duration: restAfter)
@@ -140,18 +152,22 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
         try c.encode(exerciseID, forKey: .exerciseID)
+        try c.encodeIfPresent(nestedWorkoutID, forKey: .nestedWorkoutID)
         try c.encode(name, forKey: .name)
         try c.encodeIfPresent(alias, forKey: .alias)
         try c.encode(duration, forKey: .duration)
         try c.encodeIfPresent(repCount, forKey: .repCount)
         try c.encode(restAfter, forKey: .restAfter)
+        try c.encodeIfPresent(prepareTime, forKey: .prepareTime)
         try c.encodeIfPresent(restExerciseID, forKey: .restExerciseID)
         try c.encode(drops, forKey: .drops)
+        try c.encode(children, forKey: .children)
         try c.encodeIfPresent(restRow, forKey: .restRow)
     }
 }
 
-public struct WorkoutSectionManifest: Codable, Equatable {
+public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
+    public var id: String
     public var exerciseID: String
     public var name: String
     public var alias: String?
@@ -168,12 +184,13 @@ public struct WorkoutSectionManifest: Codable, Equatable {
     public var bigRestRow: WorkoutRestRowManifest?
 
     enum CodingKeys: String, CodingKey {
-        case exerciseID, name, alias, duration, sets, repCount, restBetweenSets
+        case id, exerciseID, name, alias, duration, sets, repCount, restBetweenSets
         case prepareTime, customRestAfter, isTimerEnabled, mediaFilenames, mode, slots
         case bigRestRow
     }
 
     public init(
+        id: String = UUID().uuidString,
         exerciseID: String,
         name: String,
         alias: String? = nil,
@@ -189,6 +206,7 @@ public struct WorkoutSectionManifest: Codable, Equatable {
         slots: [WorkoutSetSlotManifest] = [],
         bigRestRow: WorkoutRestRowManifest? = nil
     ) {
+        self.id = id
         self.exerciseID = exerciseID
         self.name = name
         self.alias = alias
@@ -207,6 +225,7 @@ public struct WorkoutSectionManifest: Codable, Equatable {
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
         exerciseID = try c.decodeIfPresent(String.self, forKey: .exerciseID) ?? ""
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Section"
         alias = try c.decodeIfPresent(String.self, forKey: .alias)
@@ -225,6 +244,7 @@ public struct WorkoutSectionManifest: Codable, Equatable {
 
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
         try c.encode(exerciseID, forKey: .exerciseID)
         try c.encode(name, forKey: .name)
         try c.encodeIfPresent(alias, forKey: .alias)
@@ -316,18 +336,37 @@ public struct WorkoutManifest: Codable {
     public var totalDuration: Int {
         sections.reduce(0) { total, section in
             let slots = section.slots
-            let workTime: Int
+            let sectionDuration: Int
             if slots.isEmpty {
-                workTime = section.duration * section.sets + section.restBetweenSets * max(0, section.sets - 1)
-            } else if section.mode == .timed {
-                workTime = slots.reduce(0) { subtotal, slot in
-                    let drops = slot.drops.reduce(0) { $0 + $1.duration + $1.restAfter }
-                    return subtotal + slot.duration + drops + (slot.restRow?.duration ?? slot.restAfter)
-                }
+                let preparation = section.prepareTime * section.sets
+                let rests = section.restBetweenSets * max(0, section.sets - 1)
+                let work = section.mode == .timed ? section.duration * section.sets : 0
+                sectionDuration = preparation + work + rests
             } else {
-                workTime = 0
+                sectionDuration = slots.enumerated().reduce(0) { subtotal, entry in
+                    let (index, slot) = entry
+                    let preparation = slot.prepareTime ?? section.prepareTime
+                    let dropDuration: Int
+                    if section.mode == .timed {
+                        dropDuration = slot.drops.reduce(0) { $0 + $1.duration + $1.restAfter }
+                    } else {
+                        dropDuration = slot.drops.reduce(0) { $0 + $1.restAfter }
+                    }
+                    let work = section.mode == .timed ? slot.duration : 0
+                    let rest = index < slots.count - 1 ? (slot.restRow?.duration ?? slot.restAfter) : 0
+                    return subtotal + preparation + work + dropDuration + rest
+                }
             }
-            return total + workTime + (section.bigRestRow?.duration ?? restBetweenSections)
+
+            let sectionRest: Int
+            if let bigRestRow = section.bigRestRow {
+                sectionRest = bigRestRow.duration
+            } else if section.customRestAfter == 0 {
+                sectionRest = 0
+            } else {
+                sectionRest = restBetweenSections
+            }
+            return total + sectionDuration + sectionRest
         }
     }
 }

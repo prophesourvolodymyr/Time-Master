@@ -30,9 +30,8 @@ struct DatabaseSectionPickerView: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }
+                                 }
             }
         }
     }

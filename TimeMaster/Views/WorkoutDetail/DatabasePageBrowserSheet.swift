@@ -7,8 +7,9 @@ struct DatabasePageBrowserSheet: View {
     @EnvironmentObject var workoutStore: WorkoutStore
 
     let workout: Workout
-    let onAdd: (ExercisePage, Int, Int, Int, Int, Int) -> Void
-    let onAddBundle: ([ExercisePage], Int, Int, Int, Int, Int) -> Void
+    let onAdd: (ExercisePage, Int, Int, Int, Int, Int, Int) -> Void
+    let onAddBundle: ([WorkoutBundleSource], Int, Int, Int, Int, Int, Int) -> Void
+    let onNewExercise: (() -> Void)?
 
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
@@ -25,8 +26,22 @@ struct DatabasePageBrowserSheet: View {
     @State private var sets: Int = 1
     @State private var reps: Int = 0
     @State private var restAfter: Int = 5
+    @State private var prepareTime: Int = 4
     @State private var restBetweenSets: Int = 10
     @State private var showToast = false
+    init(
+        workout: Workout,
+        onAdd: @escaping (ExercisePage, Int, Int, Int, Int, Int, Int) -> Void,
+        onAddBundle: @escaping ([WorkoutBundleSource], Int, Int, Int, Int, Int, Int) -> Void,
+        onNewExercise: (() -> Void)? = nil,
+        initialBundleMode: Bool = false
+    ) {
+        self.workout = workout
+        self.onAdd = onAdd
+        self.onAddBundle = onAddBundle
+        self.onNewExercise = onNewExercise
+        _isBundleMode = State(initialValue: initialBundleMode)
+    }
 
     private var pages: [ExercisePage] {
         store.allPagesFlat
@@ -66,9 +81,16 @@ struct DatabasePageBrowserSheet: View {
         return result.sorted { $0.name < $1.name }
     }
 
-    private var selectedBundlePages: [ExercisePage] {
+
+    private var selectedBundleSources: [WorkoutBundleSource] {
         bundleOrder.compactMap { id in
-            pages.first { $0.manifest.id == id }
+            if let page = pages.first(where: { "page:\($0.manifest.id)" == id }) {
+                return .page(page)
+            }
+            if let workout = workoutStore.workouts.first(where: { "workout:\($0.id.uuidString)" == id }) {
+                return .workout(workout)
+            }
+            return nil
         }
     }
 
@@ -79,6 +101,7 @@ struct DatabasePageBrowserSheet: View {
         reps = page.manifest.sets != nil ? 12 : 0
         restAfter = page.manifest.restAfter ?? 5
         restBetweenSets = page.manifest.restBetweenSets ?? 10
+        prepareTime = WorkoutSectionBuilder.defaultPrepareTime(for: page)
     }
 
     var body: some View {
@@ -102,7 +125,7 @@ struct DatabasePageBrowserSheet: View {
                     if previewPage != nil, !isBundleMode {
                         previewBar
                     }
-            if isBundleMode, !selectedBundleIDs.isEmpty {
+                    if isBundleMode, !bundleOrder.isEmpty {
                         bundleBar
                     }
                 }
@@ -112,47 +135,55 @@ struct DatabasePageBrowserSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }.foregroundColor(.white)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isGridMode.toggle()
+                AppToolbar.item(placement: .cancellationAction) { Button("Close") { dismiss() }.foregroundColor(.white)
+                                 }
+                if onNewExercise != nil {
+                    AppToolbar.item(placement: .primaryAction) {
+                        Button {
+                            dismiss()
+                            onNewExercise?()
+                        } label: {
+                            Image(systemName: "figure.run.circle.fill")
                         }
-                    } label: {
-                        Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
+                        .foregroundColor(.white)
+                        .accessibilityLabel("New Exercise")
                     }
-                    .foregroundColor(.white)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        ForEach(PageSortOption.allCases, id: \.self) { option in
-                            Button {
-                                sortOption = option
-                            } label: {
-                                Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
-                            }
+                AppToolbar.item(placement: .primaryAction) { Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isGridMode.toggle()
+                    }
+                } label: {
+                    Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
+                }
+                .foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .primaryAction) { Menu {
+                    ForEach(PageSortOption.allCases, id: \.self) { option in
+                        Button {
+                            sortOption = option
+                        } label: {
+                            Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
                         }
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
                     }
-                    .foregroundColor(.white)
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isBundleMode.toggle()
-                            if !isBundleMode {
-                                selectedBundleIDs.removeAll()
-                                bundleOrder.removeAll()
-                            }
+                .foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .primaryAction) { Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isBundleMode.toggle()
+                        if !isBundleMode {
+                            selectedBundleIDs.removeAll()
+                            bundleOrder.removeAll()
                         }
-                    } label: {
-                        Image(systemName: isBundleMode ? "rectangle.stack.fill" : "rectangle.stack")
                     }
-                    .foregroundColor(isBundleMode ? .yellow : .white)
+                } label: {
+                    Image(systemName: isBundleMode ? "rectangle.stack.fill" : "rectangle.stack")
                 }
+                .foregroundColor(isBundleMode ? .yellow : .white)
+                                 }
             }
             .overlay(alignment: .bottom) {
                 if showToast {
@@ -166,11 +197,14 @@ struct DatabasePageBrowserSheet: View {
                     page: page,
                     canAdd: page.isLeaf,
                     onAdd: {
-                        onAdd(page, duration, sets, reps, restAfter, restBetweenSets)
+                        onAdd(page, duration, sets, reps, restAfter, restBetweenSets, prepareTime)
                         detailPreviewPage = nil
                         previewPage = nil
                     }
                 )
+            }
+            .task {
+                store.reload()
             }
         }
     }
@@ -235,6 +269,20 @@ struct DatabasePageBrowserSheet: View {
             Text("No pages found")
                 .font(.headline)
                 .foregroundColor(Theme.textPrimary)
+            if let onNewExercise {
+                Button {
+                    dismiss()
+                    onNewExercise()
+                } label: {
+                    Label("New Exercise", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.white)
+                        .clipShape(Capsule())
+                }
+            }
         }
         .frame(maxHeight: .infinity)
         .padding(.vertical, 60)
@@ -317,9 +365,9 @@ struct DatabasePageBrowserSheet: View {
                 LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
                 if isBundleMode {
                     VStack(alignment: .leading, spacing: 2) {
-                        Image(systemName: selectedBundleIDs.contains(page.manifest.id) ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: selectedBundleIDs.contains("page:\(page.manifest.id)") ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 18))
-                            .foregroundColor(selectedBundleIDs.contains(page.manifest.id) ? .yellow : .white.opacity(0.6))
+                            .foregroundColor(selectedBundleIDs.contains("page:\(page.manifest.id)") ? .yellow : .white.opacity(0.6))
                     }
                     .padding(8)
                 }
@@ -350,9 +398,9 @@ struct DatabasePageBrowserSheet: View {
     private func pageListRow(_ page: ExercisePage) -> some View {
         HStack(spacing: 12) {
             if isBundleMode {
-                Image(systemName: selectedBundleIDs.contains(page.manifest.id) ? "checkmark.circle.fill" : "circle")
+                Image(systemName: selectedBundleIDs.contains("page:\(page.manifest.id)") ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundColor(selectedBundleIDs.contains(page.manifest.id) ? .yellow : Color.white.opacity(0.3))
+                    .foregroundColor(selectedBundleIDs.contains("page:\(page.manifest.id)") ? .yellow : Color.white.opacity(0.3))
             }
             coverThumb(page)
             VStack(alignment: .leading, spacing: 2) {
@@ -409,13 +457,20 @@ struct DatabasePageBrowserSheet: View {
 
     private func toggleBundleSelection(_ page: ExercisePage) {
         guard page.isLeaf else { return }
-        if selectedBundleIDs.contains(page.manifest.id) {
-            selectedBundleIDs.remove(page.manifest.id)
-            bundleOrder.removeAll { $0 == page.manifest.id }
+        let id = "page:\(page.manifest.id)"
+        if selectedBundleIDs.contains(id) {
+            selectedBundleIDs.remove(id)
+            bundleOrder.removeAll { $0 == id }
         } else {
-            selectedBundleIDs.insert(page.manifest.id)
-            bundleOrder.append(page.manifest.id)
+            selectedBundleIDs.insert(id)
+            bundleOrder.append(id)
         }
+    }
+
+
+    private func toggleBundleSelection(_ source: WorkoutBundleSource) {
+        guard case .page(let page) = source else { return }
+        toggleBundleSelection(page)
     }
 
     private var previewBar: some View {
@@ -436,16 +491,17 @@ struct DatabasePageBrowserSheet: View {
                         }
                     }
 
-                    HStack(spacing: 6) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
                         compactStepper(label: "Dur", value: $duration, range: 5...600, step: 5, unit: "s")
                         compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
                         compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
                         compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
                         compactStepper(label: "Btwn", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                        compactStepper(label: "Prep", value: $prepareTime, range: 0...30, step: 1, unit: "s")
                     }
 
                     Button {
-                        onAdd(page, duration, sets, reps, restAfter, restBetweenSets)
+                        onAdd(page, duration, sets, reps, restAfter, restBetweenSets, prepareTime)
                         showToastMessage("Added \(page.title)")
                         previewPage = nil
                     } label: {
@@ -481,31 +537,32 @@ struct DatabasePageBrowserSheet: View {
             Divider().background(Theme.separator)
 
             VStack(spacing: 8) {
-                let selectedPages = selectedBundlePages
-                Text("\(selectedPages.count) pages selected")
+                let selectedSources = selectedBundleSources
+                Text("\(selectedSources.count) items selected")
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(Theme.textPrimary)
 
-                HStack(spacing: 6) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
                     compactStepper(label: "Dur", value: $duration, range: 5...600, step: 5, unit: "s")
                     compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
                     compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
                     compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
                     compactStepper(label: "Btwn", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                    compactStepper(label: "Prep", value: $prepareTime, range: 0...30, step: 1, unit: "s")
                 }
 
-                if !selectedPages.isEmpty {
+                if !selectedSources.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(selectedPages) { page in
+                            ForEach(selectedSources) { source in
                                 HStack(spacing: 5) {
                                     Image(systemName: "line.3.horizontal")
                                         .font(.caption2)
-                                    Text(page.title)
+                                    Text(source.title)
                                         .font(.caption)
                                         .lineLimit(1)
                                     Button {
-                                        toggleBundleSelection(page)
+                                        toggleBundleSelection(source)
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
                                             .font(.caption)
@@ -517,14 +574,14 @@ struct DatabasePageBrowserSheet: View {
                                 .background(Color.yellow.opacity(0.18))
                                 .clipShape(Capsule())
                                 .onDrag {
-                                    draggedBundleID = page.manifest.id
-                                    return NSItemProvider(object: page.manifest.id as NSString)
+                                    draggedBundleID = source.id
+                                    return NSItemProvider(object: source.id as NSString)
                                 }
                                 .onDrop(
                                     of: [.text],
                                     delegate: BundlePageDropDelegate(
                                         sourceID: draggedBundleID,
-                                        targetID: page.manifest.id,
+                                        targetID: source.id,
                                         move: { source, target in moveBundlePage(source, before: target) }
                                     )
                                 )
@@ -535,7 +592,7 @@ struct DatabasePageBrowserSheet: View {
                 }
 
                 Button {
-                    onAddBundle(selectedPages, duration, sets, reps, restAfter, restBetweenSets)
+                    onAddBundle(selectedSources, duration, sets, reps, restAfter, restBetweenSets, prepareTime)
                     showToastMessage("Bundle created")
                     selectedBundleIDs.removeAll()
                     bundleOrder.removeAll()
@@ -574,9 +631,10 @@ struct DatabasePageBrowserSheet: View {
             DispatchQueue.main.async {
                 guard page.isLeaf else { return }
                 if asBundle {
-                    if !selectedBundleIDs.contains(page.manifest.id) {
-                        selectedBundleIDs.insert(page.manifest.id)
-                        bundleOrder.append(page.manifest.id)
+                    let id = "page:\(page.manifest.id)"
+                    if !selectedBundleIDs.contains(id) {
+                        selectedBundleIDs.insert(id)
+                        bundleOrder.append(id)
                     }
                     isBundleMode = true
                 } else {
@@ -595,6 +653,11 @@ struct DatabasePageBrowserSheet: View {
         let targetIndex = bundleOrder.firstIndex(of: targetID) ?? bundleOrder.endIndex
         bundleOrder.insert(sourceID, at: targetIndex)
         draggedBundleID = nil
+    }
+
+    private func formatCompactDuration(_ seconds: Int) -> String {
+        let clampedSeconds = max(0, seconds)
+        return String(format: "%d:%02d", clampedSeconds / 60, clampedSeconds % 60)
     }
 
     private func compactStepper(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
@@ -736,9 +799,8 @@ private struct ExercisePageQuickPreview: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Close") { dismiss() }
+                                 }
             }
         }
         .sheet(isPresented: $showingMedia) {

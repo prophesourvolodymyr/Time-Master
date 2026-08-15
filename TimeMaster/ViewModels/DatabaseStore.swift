@@ -16,6 +16,7 @@ class DatabaseStore: ObservableObject {
         "exercise_database_root_exercises_v1"
     ]
     private var reloadWorkItem: DispatchWorkItem?
+    private var reloadGeneration = 0
 
     @Published var rootFolders: [ExerciseFolder] = []
     @Published var rootNotes: [DatabaseNote] = []
@@ -37,6 +38,8 @@ class DatabaseStore: ObservableObject {
 
     func reload() {
         reloadWorkItem?.cancel()
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
 
         let workItem = DispatchWorkItem { [weak self] in
             guard let self else { return }
@@ -45,6 +48,7 @@ class DatabaseStore: ObservableObject {
                 if self.isV2PageMigrated {
                     let snapshot = self.pageSnapshotFromFileSystem()
                     return {
+                        guard self.reloadGeneration == generation else { return }
                         self.allPagesFlat = snapshot.flat
                         self.rootPages = snapshot.roots
                     }
@@ -53,6 +57,7 @@ class DatabaseStore: ObservableObject {
                 if self.isV1Migrated {
                     let snapshot = self.legacySnapshotFromFileSystem()
                     return {
+                        guard self.reloadGeneration == generation else { return }
                         self.rootFolders = snapshot.folders
                         self.rootExercises = snapshot.exercises
                     }
@@ -60,6 +65,7 @@ class DatabaseStore: ObservableObject {
 
                 let folders = self.defaultFolders()
                 return {
+                    guard self.reloadGeneration == generation else { return }
                     self.rootFolders = folders
                 }
             }()
@@ -74,6 +80,7 @@ class DatabaseStore: ObservableObject {
 
     func reloadImmediately() {
         reloadWorkItem?.cancel()
+        reloadGeneration &+= 1
 
         if isV2PageMigrated {
             let snapshot = pageSnapshotFromFileSystem()
@@ -87,6 +94,13 @@ class DatabaseStore: ObservableObject {
             rootFolders = defaultFolders()
         }
     }
+
+    private func invalidatePendingReloads() {
+        reloadWorkItem?.cancel()
+        reloadWorkItem = nil
+        reloadGeneration &+= 1
+    }
+
 
     // MARK: - V2 Page Loading
 
@@ -163,6 +177,7 @@ class DatabaseStore: ObservableObject {
     func createPage(manifest: ExercisePageManifest, parentID: String?) throws {
         var persistedManifest = manifest
         persistedManifest.parentID = parentID ?? manifest.parentID
+        invalidatePendingReloads()
         try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
         publishCreatedPage(persistedManifest)
     }
@@ -188,6 +203,7 @@ class DatabaseStore: ObservableObject {
         if !mediaData.isEmpty {
             persistedManifest.mediaFilenames = []
         }
+        invalidatePendingReloads()
         try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
         publishCreatedPage(persistedManifest)
 

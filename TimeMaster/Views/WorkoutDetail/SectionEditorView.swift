@@ -17,11 +17,14 @@ struct SectionEditorView: View {
     @State private var isTimerEnabled: Bool
     @State private var duration: Int
     @State private var sets: Int
+    @State private var repCount: Int?
     @State private var restBetweenSets: Int
     @State private var prepareTime: Int
     @State private var useCustomRest: Bool
     @State private var customRestAfter: Int
     @State private var pageID: UUID?
+    @State private var mode: SectionMode
+    @State private var draftSlots: [SetSlot]
     @State private var mediaItems: [MediaItem]
     #if os(iOS)
     @State private var pendingItems: [PhotosPickerItem] = []
@@ -39,11 +42,14 @@ struct SectionEditorView: View {
         _isTimerEnabled   = State(initialValue: section?.isTimerEnabled ?? true)
         _duration         = State(initialValue: section?.duration ?? 30)
         _sets             = State(initialValue: section?.sets ?? 1)
+        _repCount         = State(initialValue: section?.repCount)
         _restBetweenSets  = State(initialValue: section?.restBetweenSets ?? 10)
         let cra = section?.customRestAfter
         _useCustomRest    = State(initialValue: cra != nil)
         _customRestAfter  = State(initialValue: cra ?? 30)
         _pageID           = State(initialValue: section?.pageID)
+        _mode             = State(initialValue: section?.mode ?? .timed)
+        _draftSlots       = State(initialValue: section?.effectiveSlots ?? [])
         _prepareTime      = State(initialValue: section?.prepareTime ?? 4)
         _mediaItems       = State(initialValue: section?.mediaItems ?? [])
     }
@@ -80,14 +86,12 @@ struct SectionEditorView: View {
             )
             #elseif os(macOS)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { saveSection() }
-                        .disabled(name.isEmpty)
-                        .foregroundColor(name.isEmpty ? Color.white.opacity(0.3) : .white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") { saveSection() }
+                    .disabled(name.isEmpty)
+                    .foregroundColor(name.isEmpty ? Color.white.opacity(0.3) : .white)
+                                 }
             }
             #endif
         }
@@ -125,19 +129,36 @@ struct SectionEditorView: View {
         .sheet(isPresented: $showingDatabasePicker) {
             DatabasePageBrowserSheet(
                 workout: Workout(name: "Section picker"),
-                onAdd: { page, dur, selectedSets, reps, restAfter, restBetween in
-                    pageID = page.id
-                    name = page.title
-                    isTimerEnabled = true
-                    duration = dur
-                    sets = selectedSets
-                    restBetweenSets = restBetween
-                    customRestAfter = restAfter
-                    useCustomRest = restAfter > 0
-                    mediaItems = []
-                    showingDatabasePicker = false
+                onAdd: { page, dur, selectedSets, reps, restAfter, restBetween, preparation in
+                    let configuration = WorkoutSectionImportConfiguration(
+                        duration: dur,
+                        sets: selectedSets,
+                        repCount: reps > 0 ? reps : nil,
+                        restAfter: restAfter,
+                        restBetweenSets: restBetween,
+                        prepareTime: preparation
+                    )
+                    guard let imported = WorkoutSectionBuilder.makeSection(
+                        page: page,
+                        configuration: configuration
+                    ) else { return }
+                    applyImportedSection(imported)
                 },
-                onAddBundle: { _, _, _, _, _, _ in }
+                onAddBundle: { sources, dur, selectedSets, reps, restAfter, restBetween, preparation in
+                    let configuration = WorkoutSectionImportConfiguration(
+                        duration: dur,
+                        sets: selectedSets,
+                        repCount: reps > 0 ? reps : nil,
+                        restAfter: restAfter,
+                        restBetweenSets: restBetween,
+                        prepareTime: preparation
+                    )
+                    guard let imported = WorkoutSectionBuilder.makeBundle(
+                        sources: sources,
+                        configuration: configuration
+                    ) else { return }
+                    applyImportedSection(imported)
+                }
             )
             .environmentObject(databaseStore)
             .environmentObject(workoutStore)
@@ -490,17 +511,93 @@ struct SectionEditorView: View {
         }
     }
 
+    private func applyImportedSection(_ imported: Section) {
+        pageID = imported.pageID
+        name = imported.name
+        isTimerEnabled = imported.isTimerEnabled
+        duration = imported.duration
+        sets = imported.sets
+        repCount = imported.repCount
+        restBetweenSets = imported.restBetweenSets
+        prepareTime = imported.prepareTime
+        customRestAfter = imported.customRestAfter ?? 0
+        useCustomRest = imported.customRestAfter != nil
+        mediaItems = imported.mediaItems
+        mode = imported.mode
+        draftSlots = imported.slots
+        showingDatabasePicker = false
+    }
+
     private func saveSection() {
-        var saved = section ?? Section(name: name, duration: duration)
-        saved.name            = name
-        saved.isTimerEnabled  = isTimerEnabled
-        saved.duration        = duration
-        saved.prepareTime     = prepareTime
-        saved.sets            = sets
-        saved.restBetweenSets = restBetweenSets
-        saved.customRestAfter = useCustomRest ? customRestAfter : nil
-        saved.mediaItems      = mediaItems
-        saved.pageID           = pageID
+        let configuration = WorkoutSectionImportConfiguration(
+            duration: duration,
+            sets: sets,
+            repCount: repCount,
+            restAfter: customRestAfter,
+            restBetweenSets: restBetweenSets,
+            prepareTime: prepareTime
+        )
+        let page = pageID.flatMap { databaseStore.page(id: $0) }
+        var slots = draftSlots
+
+        if slots.isEmpty,
+           let page,
+           let imported = WorkoutSectionBuilder.makeSection(
+                page: page,
+                configuration: configuration
+           ) {
+            slots = imported.slots
+        }
+
+        if slots.count > configuration.sets {
+            slots.removeLast(slots.count - configuration.sets)
+        }
+
+        let generatedSlots = page.map {
+            WorkoutSectionBuilder.makeSlots(
+                page: $0,
+                duration: configuration.duration,
+                sets: configuration.sets,
+                repCount: configuration.repCount,
+                restBetweenSets: configuration.restBetweenSets
+            )
+        } ?? []
+
+        while slots.count < configuration.sets {
+            if generatedSlots.indices.contains(slots.count) {
+                slots.append(generatedSlots[slots.count])
+            } else {
+                slots.append(
+                    SetSlot(
+                        exercisePageID: pageID,
+                        name: name,
+                        duration: configuration.duration,
+                        repCount: configuration.repCount,
+                        restAfter: 0
+                    )
+                )
+            }
+        }
+
+        if let finalSlotIndex = slots.indices.last {
+            slots[finalSlotIndex].restAfter = 0
+            slots[finalSlotIndex].restRow = nil
+            slots[finalSlotIndex].restExercisePageID = nil
+        }
+
+        var saved = section ?? Section(name: name, duration: configuration.duration)
+        saved.name = name
+        saved.isTimerEnabled = isTimerEnabled
+        saved.duration = configuration.duration
+        saved.prepareTime = configuration.prepareTime
+        saved.sets = slots.count
+        saved.repCount = configuration.repCount
+        saved.restBetweenSets = configuration.restBetweenSets
+        saved.customRestAfter = useCustomRest ? configuration.restAfter : nil
+        saved.mediaItems = mediaItems
+        saved.pageID = pageID
+        saved.mode = mode
+        saved.slots = slots
         onSave(saved)
         dismiss()
     }

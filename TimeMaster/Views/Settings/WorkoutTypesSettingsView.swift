@@ -203,14 +203,12 @@ private struct TypeScheduleSheet: View {
             }
             .navigationTitle("\(type.name) Schedule")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .foregroundColor(selectedDays.isEmpty ? Color.white.opacity(0.3) : .white)
-                        .disabled(selectedDays.isEmpty)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") { save() }
+                    .foregroundColor(selectedDays.isEmpty ? Color.white.opacity(0.3) : .white)
+                    .disabled(selectedDays.isEmpty)
+                                 }
             }
             .onAppear { loadActiveSchedule() }
         }
@@ -422,16 +420,14 @@ private struct TypeEditorSheet: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { Button("Create") {
+                    onSave(name.trimmingCharacters(in: .whitespaces), selectedIcon, colorHex)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") {
-                        onSave(name.trimmingCharacters(in: .whitespaces), selectedIcon, colorHex)
-                    }
-                    .foregroundColor(name.trimmingCharacters(in: .whitespaces).isEmpty ? Color.white.opacity(0.3) : .white)
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                .foregroundColor(name.trimmingCharacters(in: .whitespaces).isEmpty ? Color.white.opacity(0.3) : .white)
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                                 }
             }
         }
     }
@@ -579,9 +575,8 @@ private struct TypeGoalSheet: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
             }
         }
     }

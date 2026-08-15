@@ -16,8 +16,10 @@ struct PageCreationSheet: View {
 
     let existingPage: ExercisePage?
     let parentID: String?
+    let leafFirst: Bool
 
-    let onSave: (ExercisePageManifest, String?) -> Void
+    let onSave: (ExercisePageManifest, String?) throws -> Void
+    let onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)?
 
     @State private var title: String
     @State private var pageKind: ExercisePageManifest.PageKind
@@ -25,18 +27,22 @@ struct PageCreationSheet: View {
     @State private var workoutType: WorkoutType? = nil
     @State private var markdownBody: String = ""
     @State private var duration: Int = 30
+    @State private var prepareTime: Int = 4
     @State private var restAfter: Int = 0
     @State private var sets: Int = 1
     @State private var restBetweenSets: Int = 0
+    @State private var dropSetTemplates: [PageDropSetTemplate] = []
     @State private var linkURLsText: String = ""
     @State private var showIconPicker = false
     @State private var showDeleteConfirm = false
     @State private var showCoverPicker = false
     @State private var showMediaPicker = false
+    @State private var showDropSetPicker = false
     @State private var coverImageFilename: String?
     @State private var mediaFilenames: [String] = []
     @State private var pendingCoverData: Data?
     @State private var pendingMediaFiles: [PendingPageMedia] = []
+    @State private var saveErrorMessage: String?
     #if os(iOS)
     @State private var pendingCoverItem: PhotosPickerItem?
     @State private var pendingMediaItems: [PhotosPickerItem] = []
@@ -44,12 +50,20 @@ struct PageCreationSheet: View {
     @State private var coverPreviewImage: Image?
     @State private var mediaPreviewThumbnails: [(filename: String, image: Image?)] = []
 
-    init(page: ExercisePage? = nil, parentID: String? = nil, onSave: @escaping (ExercisePageManifest, String?) -> Void) {
+    init(
+        page: ExercisePage? = nil,
+        parentID: String? = nil,
+        leafFirst: Bool = false,
+        onSave: @escaping (ExercisePageManifest, String?) throws -> Void,
+        onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)? = nil
+    ) {
         self.existingPage = page
         self.parentID = parentID ?? page?.manifest.parentID
+        self.leafFirst = leafFirst
         self.onSave = onSave
+        self.onSaveWithMedia = onSaveWithMedia
         _title = State(initialValue: page?.manifest.title ?? "")
-        _pageKind = State(initialValue: page?.manifest.pageKind ?? (parentID == nil ? .container : .leaf))
+        _pageKind = State(initialValue: page?.manifest.pageKind ?? (leafFirst || parentID != nil ? .leaf : .container))
         _iconName = State(initialValue: page?.manifest.iconName ?? "")
         if let wt = page?.manifest.workoutType {
             _workoutType = State(initialValue: WorkoutType(id: wt.id, name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex))
@@ -57,8 +71,10 @@ struct PageCreationSheet: View {
         _markdownBody = State(initialValue: page?.manifest.markdownBody ?? "")
         _duration = State(initialValue: page?.manifest.duration ?? 30)
         _restAfter = State(initialValue: page?.manifest.restAfter ?? 0)
+        _prepareTime = State(initialValue: page?.manifest.prepareTime ?? 4)
         _sets = State(initialValue: page?.manifest.sets ?? 1)
         _restBetweenSets = State(initialValue: page?.manifest.restBetweenSets ?? 0)
+        _dropSetTemplates = State(initialValue: page?.manifest.dropSetTemplates ?? [])
         _linkURLsText = State(initialValue: page?.manifest.linkURLs.joined(separator: "\n") ?? "")
         _coverImageFilename = State(initialValue: page?.manifest.coverImageFilename)
         _mediaFilenames = State(initialValue: page?.manifest.mediaFilenames ?? [])
@@ -71,6 +87,12 @@ struct PageCreationSheet: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         titleCard
+                        if let saveErrorMessage {
+                            Text(saveErrorMessage)
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         pageKindCard
                         iconCard
                         if pageKind == .container {
@@ -85,6 +107,7 @@ struct PageCreationSheet: View {
                         }
                         if pageKind == .leaf {
                             timingCard
+                            dropSetTemplatesCard
                         }
                         markdownCard
                         linksCard
@@ -117,13 +140,47 @@ struct PageCreationSheet: View {
             }
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(.white)
                 }
             }
             .sheet(isPresented: $showIconPicker) {
                 IconPickerSheet(selectedIcon: $iconName)
+            }
+            .sheet(isPresented: $showDropSetPicker) {
+                DatabasePageBrowserSheet(
+                    workout: Workout(name: "Drop Set Templates"),
+                    onAdd: { page, _, _, _, _, _, _ in
+                        dropSetTemplates.append(
+                            PageDropSetTemplate(
+                                setIndex: max(0, sets - 1),
+                                exerciseID: page.manifest.id,
+                                name: page.manifest.title,
+                                duration: page.manifest.duration ?? 30,
+                                restAfter: page.manifest.restAfter ?? 0
+                            )
+                        )
+                        showDropSetPicker = false
+                    },
+                    onAddBundle: { sources, _, _, _, _, _, _ in
+                        for source in sources {
+                            guard case .page(let page) = source else { continue }
+                            dropSetTemplates.append(
+                                PageDropSetTemplate(
+                                    setIndex: max(0, sets - 1),
+                                    exerciseID: page.manifest.id,
+                                    name: page.manifest.title,
+                                    duration: page.manifest.duration ?? 30,
+                                    restAfter: page.manifest.restAfter ?? 0
+                                )
+                            )
+                        }
+                        showDropSetPicker = false
+                    }
+                )
+                .environmentObject(databaseStore)
+                .environmentObject(workoutStore)
             }
             #if os(iOS)
             .photosPicker(
@@ -434,6 +491,7 @@ struct PageCreationSheet: View {
             Text("Workout Config").font(.headline).foregroundColor(Theme.textPrimary)
             VStack(spacing: 8) {
                 stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s")
+                stepperRow(label: "Prepare Time", value: $prepareTime, range: 0...30, step: 1, unit: "s")
                 stepperRow(label: "Rest After", value: $restAfter, range: 0...120, step: 5, unit: "s")
                 stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
                 stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
@@ -452,6 +510,79 @@ struct PageCreationSheet: View {
         .background(Theme.surface)
         .cornerRadius(10)
     }
+    private var dropSetTemplatesCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Drop Sets")
+                    .font(.headline)
+                    .foregroundColor(Theme.textPrimary)
+                Spacer()
+                Button {
+                    showDropSetPicker = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(Theme.textPrimary)
+                .accessibilityLabel("Add drop set exercise")
+            }
+
+            if dropSetTemplates.isEmpty {
+                Text("Add a drop-set exercise from the database, then choose the set it follows.")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textSecondary)
+            } else {
+                ForEach($dropSetTemplates) { $template in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.down.right")
+                                .foregroundColor(Theme.textSecondary)
+                            Text(template.name)
+                                .foregroundColor(Theme.textPrimary)
+                                .lineLimit(1)
+                            Spacer()
+                            Button(role: .destructive) {
+                                dropSetTemplates.removeAll { $0.id == template.id }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Remove \(template.name)")
+                        }
+
+                        HStack {
+                            Text("After set")
+                                .foregroundColor(Theme.textSecondary)
+                            Spacer()
+                            Stepper(
+                                "\(template.setIndex + 1)",
+                                value: $template.setIndex,
+                                in: 0...max(0, sets - 1)
+                            )
+                            .labelsHidden()
+                            Text("\(template.setIndex + 1)")
+                                .foregroundColor(Theme.textPrimary)
+                                .monospacedDigit()
+                                .frame(minWidth: 24, alignment: .trailing)
+                        }
+
+                        HStack {
+                            Text("Duration \(template.duration)s · Rest \(template.restAfter)s")
+                                .font(.caption)
+                                .foregroundColor(Theme.textSecondary)
+                            Spacer()
+                        }
+                    }
+                    .padding(12)
+                    .background(Theme.surface)
+                    .cornerRadius(10)
+                }
+            }
+        }
+    }
+
 
     private var markdownCard: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -540,6 +671,17 @@ struct PageCreationSheet: View {
             guard pageKind == .container, parentID == nil, let wt = workoutType else { return nil }
             return TimeMasterCore.WorkoutType(id: wt.id, name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex)
         }()
+        let normalizedDropSetTemplates = dropSetTemplates.map {
+            PageDropSetTemplate(
+                id: $0.id,
+                setIndex: min(max(0, $0.setIndex), max(0, sets - 1)),
+                exerciseID: $0.exerciseID,
+                name: $0.name,
+                duration: $0.duration,
+                restAfter: $0.restAfter
+            )
+        }
+        let normalizedPrepareTime = min(30, max(0, prepareTime))
 
         var manifest: ExercisePageManifest
         if let existing = existingPage {
@@ -553,9 +695,13 @@ struct PageCreationSheet: View {
             manifest.restAfter = pageKind == .leaf ? restAfter : nil
             manifest.sets = pageKind == .leaf ? sets : nil
             manifest.restBetweenSets = pageKind == .leaf ? restBetweenSets : nil
+            manifest.prepareTime = pageKind == .leaf ? normalizedPrepareTime : nil
             manifest.linkURLs = parsedURLs
             manifest.coverImageFilename = pageKind == .container ? coverImageFilename : nil
             manifest.mediaFilenames = pageKind == .leaf ? mediaFilenames : []
+            manifest.dropSetTemplates = pageKind == .leaf
+                ? normalizedDropSetTemplates
+                : []
             manifest.updatedAt = Date()
         } else {
             manifest = ExercisePageManifest(
@@ -569,43 +715,59 @@ struct PageCreationSheet: View {
                 workoutType: coreWT,
                 duration: pageKind == .leaf ? duration : nil,
                 restAfter: pageKind == .leaf ? restAfter : nil,
+                prepareTime: pageKind == .leaf ? normalizedPrepareTime : nil,
                 sets: pageKind == .leaf ? sets : nil,
                 restBetweenSets: pageKind == .leaf ? restBetweenSets : nil,
+                dropSetTemplates: pageKind == .leaf ? normalizedDropSetTemplates : [],
                 parentID: parentID
             )
         }
 
-        onSave(manifest, parentID)
-
-        if existingPage == nil {
-            let pageID = manifest.id
-            let coverData = pendingCoverData
-            let mediaFiles = pendingMediaFiles
-            DispatchQueue.global(qos: .userInitiated).async { [weak databaseStore] in
-                if let coverData = coverData, manifest.pageKind == .container {
-                    let temporaryCoverURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString + "-" + (manifest.coverImageFilename ?? "cover.jpg"))
-                    do {
-                        try coverData.write(to: temporaryCoverURL)
-                        let uploadedFilename = try DatabaseManager.shared.uploadCoverImage(
-                            pageID: pageID,
-                            sourceURL: temporaryCoverURL
-                        )
-                        databaseStore?.publishUploadedMedia(pageID: pageID, coverFilename: uploadedFilename)
-                    } catch {}
-                    try? FileManager.default.removeItem(at: temporaryCoverURL)
+        do {
+            if existingPage == nil, let onSaveWithMedia {
+                let mediaData: [(filename: String, data: Data)] = pendingMediaFiles.compactMap { media in
+                    guard let data = try? Data(contentsOf: media.temporaryURL) else { return nil }
+                    return (filename: media.temporaryURL.lastPathComponent, data: data)
                 }
-                for media in mediaFiles {
-                    do {
-                        let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
-                            pageID: pageID,
-                            sourceURL: media.temporaryURL
-                        )
-                        databaseStore?.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename])
-                    } catch {}
-                    try? FileManager.default.removeItem(at: media.temporaryURL)
+                try onSaveWithMedia(manifest, parentID, pendingCoverData, mediaData)
+                pendingMediaFiles.forEach { try? FileManager.default.removeItem(at: $0.temporaryURL) }
+            } else {
+                try onSave(manifest, parentID)
+
+                if existingPage == nil {
+                    let pageID = manifest.id
+                    let coverData = pendingCoverData
+                    let mediaFiles = pendingMediaFiles
+                    DispatchQueue.global(qos: .userInitiated).async { [weak databaseStore] in
+                        if let coverData = coverData, manifest.pageKind == .container {
+                            let temporaryCoverURL = FileManager.default.temporaryDirectory
+                                .appendingPathComponent(UUID().uuidString + "-" + (manifest.coverImageFilename ?? "cover.jpg"))
+                            do {
+                                try coverData.write(to: temporaryCoverURL)
+                                let uploadedFilename = try DatabaseManager.shared.uploadCoverImage(
+                                    pageID: pageID,
+                                    sourceURL: temporaryCoverURL
+                                )
+                                databaseStore?.publishUploadedMedia(pageID: pageID, coverFilename: uploadedFilename)
+                            } catch {}
+                            try? FileManager.default.removeItem(at: temporaryCoverURL)
+                        }
+                        for media in mediaFiles {
+                            do {
+                                let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
+                                    pageID: pageID,
+                                    sourceURL: media.temporaryURL
+                                )
+                                databaseStore?.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename])
+                            } catch {}
+                            try? FileManager.default.removeItem(at: media.temporaryURL)
+                        }
+                    }
                 }
             }
+        } catch {
+            saveErrorMessage = error.localizedDescription
+            return
         }
 
         dismiss()
@@ -823,7 +985,7 @@ private struct IconPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }.foregroundColor(.white)
                 }
             }

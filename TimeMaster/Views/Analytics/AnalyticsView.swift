@@ -34,6 +34,7 @@ final class GoalsManager: ObservableObject {
 
 struct AnalyticsView: View {
     @EnvironmentObject var store: WorkoutStore
+    @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @StateObject private var goalsManager = GoalsManager.shared
     @State private var selectedType: WorkoutType? = nil
     @State private var showingClearAlert = false
@@ -68,12 +69,11 @@ struct AnalyticsView: View {
 #endif
             .toolbar {
                 if !store.historyEntries.isEmpty {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button { showingClearAlert = true } label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(Color.white.opacity(0.45))
-                        }
+                    AppToolbar.item(placement: .primaryAction) { Button { showingClearAlert = true } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(Color.white.opacity(0.45))
                     }
+                                         }
                 }
             }
             .alert("Clear History?", isPresented: $showingClearAlert) {
@@ -143,12 +143,14 @@ struct AnalyticsView: View {
                     )
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
+                if selectedType == nil, !outdoorStore.activities.filter(\.finished).isEmpty {
+                    OutdoorAnalyticsSummary(activities: outdoorStore.activities.filter(\.finished))
+                }
                 StreakCard()
                 if selectedType == nil {
                     TypeAnalyticsBreakdown()
                 }
-                TrainingScheduleCard()
-                ActivityHeatmap(entries: filteredEntries)
+                ActivityHeatmap(entries: filteredEntries, outdoorActivities: outdoorStore.activities)
                 HistoryListSection(entries: filteredEntries, store: store)
             }
             .padding(16)
@@ -191,6 +193,32 @@ struct AnalyticsView: View {
         .padding(16)
         .background(Theme.surface)
         .cornerRadius(16)
+    }
+}
+
+private struct OutdoorAnalyticsSummary: View {
+    let activities: [OutdoorActivity]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            cell(icon: "figure.run", value: "\(activities.filter { $0.kind == .runWalk }.count)", label: "Run & Walk")
+            Divider().frame(height: 42)
+            cell(icon: "bicycle", value: "\(activities.filter { $0.kind == .bike }.count)", label: "Bike")
+            Divider().frame(height: 42)
+            cell(icon: "point.topleft.down.curvedto.point.bottomright.up", value: String(format: "%.1f km", activities.reduce(0) { $0 + $1.distanceMeters } / 1000), label: "Distance")
+        }
+        .padding(16)
+        .background(Theme.surface)
+        .cornerRadius(16)
+    }
+
+    private func cell(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 5) {
+            Image(systemName: icon).foregroundColor(.cyan)
+            Text(value).font(.headline.monospacedDigit()).foregroundColor(Theme.textPrimary)
+            Text(label).font(.caption2).foregroundColor(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -467,6 +495,7 @@ private struct TrainingScheduleCard: View {
 private struct ActivityHeatmap: View {
     @EnvironmentObject var store: WorkoutStore
     let entries: [WorkoutHistoryEntry]
+    let outdoorActivities: [OutdoorActivity]
     @State private var showCalendar = false
 
     private let weeksCount = 24
@@ -526,12 +555,14 @@ private struct ActivityHeatmap: View {
                 let date = dateFor(week: w, day: d)
                 let isFuture = date > Date()
                 let isRest = store.isRestDay(date)
-                let isScheduled = store.isScheduledDay(date)
+                let isScheduled = !store.scheduledTypes(for: date).isEmpty
                 let hasWorkout = store.hasWorkout(on: date)
-                let count = isFuture ? 0 : workoutCount(on: date)
+                let hasOutdoor = outdoorActivities.contains { Calendar.current.isDate($0.startedAt, inSameDayAs: date) }
+                let hasActivity = hasWorkout || hasOutdoor
+                let count = isFuture ? 0 : workoutCount(on: date) + outdoorCount(on: date)
 
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasWorkout, count: count, isScheduled: isScheduled))
+                    .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
                     .aspectRatio(1, contentMode: .fit)
             }
         }
@@ -564,6 +595,10 @@ private struct ActivityHeatmap: View {
         let start = cal.startOfDay(for: date)
         guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return 0 }
         return entries.filter { $0.completedAt >= start && $0.completedAt < end }.count
+    }
+
+    private func outdoorCount(on date: Date) -> Int {
+        outdoorActivities.filter { Calendar.current.isDate($0.startedAt, inSameDayAs: date) }.count
     }
 
     private func cellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int, isScheduled: Bool) -> Color {
@@ -646,27 +681,25 @@ private struct CalendarPage: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                AppToolbar.item(placement: .primaryAction) { Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showYearView.toggle()
+                    }
+                } label: {
+                    Image(systemName: showYearView ? "calendar" : "square.grid.2x2")
+                        .foregroundColor(.white)
+                }
+                                 }
+                AppToolbar.item(placement: .primaryAction) { HStack(spacing: 12) {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            showYearView.toggle()
-                        }
+                        showVacationSheet = true
                     } label: {
-                        Image(systemName: showYearView ? "calendar" : "square.grid.2x2")
+                        Image(systemName: "moon.zzz.fill")
                             .foregroundColor(.white)
                     }
+                    Button("Done") { dismiss() }.foregroundColor(.white)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 12) {
-                        Button {
-                            showVacationSheet = true
-                        } label: {
-                            Image(systemName: "moon.zzz.fill")
-                                .foregroundColor(.white)
-                        }
-                        Button("Done") { dismiss() }.foregroundColor(.white)
-                    }
-                }
+                                 }
             }
             .sheet(isPresented: $showVacationSheet) {
                 VacationSheet()
@@ -1140,9 +1173,8 @@ private struct DayInfoSheet: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() }.foregroundColor(.white)
+                                 }
             }
         }
     }
@@ -1241,13 +1273,11 @@ private struct VacationSheet: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Set Vacation") { applyVacation() }
-                        .foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { Button("Set Vacation") { applyVacation() }
+                    .foregroundColor(.white)
+                                 }
             }
         }
     }
@@ -1327,4 +1357,5 @@ private struct HistoryListSection: View {
     AnalyticsView()
         .environmentObject(WorkoutStore())
         .preferredColorScheme(.dark)
+        .environmentObject(OutdoorActivityStore())
 }

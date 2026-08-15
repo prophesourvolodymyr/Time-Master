@@ -48,7 +48,7 @@ struct ExercisePageDetailView: View {
         #endif
         .toolbar {
             if page?.isLeaf == true {
-                ToolbarItem(placement: .primaryAction) {
+                AppToolbar.item(placement: .primaryAction) {
                     Button {
                         showWorkoutPicker = true
                     } label: {
@@ -58,14 +58,14 @@ struct ExercisePageDetailView: View {
                     .help("Add to Workout")
                 }
             }
-            ToolbarItem(placement: .primaryAction) {
+            AppToolbar.item(placement: .primaryAction) {
                 Button(isEditing ? "Done" : "Edit") {
                     isEditing.toggle()
                 }
                 .foregroundColor(.white)
             }
             if page?.isContainer == true {
-                ToolbarItem(placement: .primaryAction) {
+                AppToolbar.item(placement: .primaryAction) {
                     Button {
                         showingAddChildPage = true
                     } label: {
@@ -76,7 +76,7 @@ struct ExercisePageDetailView: View {
                 }
             }
             #if os(iOS)
-            ToolbarItem(placement: .primaryAction) {
+            AppToolbar.item(placement: .primaryAction) {
                 Button {
                     showMediaPicker = true
                 } label: {
@@ -89,7 +89,7 @@ struct ExercisePageDetailView: View {
         .sheet(isPresented: $isEditing) {
             if let page = page {
                 PageCreationSheet(page: page) { manifest, _ in
-                    try? store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: manifest.parentID)
+                    try store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: manifest.parentID)
                 }
                 .environmentObject(workoutStore)
             }
@@ -103,7 +103,7 @@ struct ExercisePageDetailView: View {
         .sheet(isPresented: $showingAddChildPage) {
             if let parent = childPageParent ?? page {
                 PageCreationSheet(parentID: parent.manifest.id) { manifest, parentID in
-                    try? store.createPage(manifest: manifest, parentID: parentID)
+                    try store.createPage(manifest: manifest, parentID: parentID)
                 }
                 .environmentObject(workoutStore)
             }
@@ -404,7 +404,7 @@ struct ExercisePageDetailView: View {
         }
         .sheet(item: $childToEdit) { child in
             PageCreationSheet(page: child) { manifest, _ in
-                try? store.updatePage(id: child.manifest.id, manifest: manifest, newParentID: manifest.parentID)
+                try store.updatePage(id: child.manifest.id, manifest: manifest, newParentID: manifest.parentID)
             }
             .environmentObject(workoutStore)
         }

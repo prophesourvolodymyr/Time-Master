@@ -20,6 +20,20 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.timemaster.TimeMaster</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>timemaster</string>
+			</array>
+		</dict>
+	</array>
+
 	<!-- Privacy usage descriptions -->
 	<key>NSCameraUsageDescription</key>
 	<string>Time-Master needs camera access to take photos of your exercises</string>
@@ -27,6 +41,8 @@
 	<string>Time-Master needs photo library access to add photos of your exercises</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Time-Master needs local network access to discover the companion server automatically</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Time-Master records your active Run &amp; Walk or Bike route while you exercise.</string>
 
 	<!-- UI settings -->
 	<key>UIStatusBarStyle</key>
@@ -60,6 +76,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>location</string>
 	</array>
 </dict>
 </plist>

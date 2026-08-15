@@ -113,10 +113,12 @@ class WorkoutStore: ObservableObject {
 
     // MARK: - CRUD
 
-    func addWorkout(name: String, type: WorkoutType = .strength, colorHex: String = "FFFFFF") {
+    @discardableResult
+    func addWorkout(name: String, type: WorkoutType = .strength, colorHex: String = "FFFFFF") -> Workout {
         let workout = Workout(name: name, type: type, colorHex: colorHex)
         workouts.append(workout)
         saveWorkouts()
+        return workout
     }
 
     func deleteWorkout(_ workout: Workout) {
@@ -169,6 +171,133 @@ class WorkoutStore: ObservableObject {
            let sectionIndex = workouts[workoutIndex].sections.firstIndex(where: { $0.id == section.id }) {
             workouts[workoutIndex].sections[sectionIndex] = section
             saveWorkouts()
+        }
+    }
+
+    func workout(id: UUID) -> Workout? {
+        workouts.first { $0.id == id }
+    }
+
+    func canNestWorkout(_ childID: UUID, in parentID: UUID) -> Bool {
+        guard childID != parentID,
+              workout(id: childID) != nil,
+              workout(id: parentID) != nil else {
+            return false
+        }
+        var visited: Set<UUID> = []
+        return !workoutReaches(childID, targetID: parentID, visited: &visited)
+    }
+
+    func flattenedWorkout(_ source: Workout) -> Workout {
+        var flattened = source
+        flattened.sections = source.sections.map { section in
+            var result = section
+            result.slots = flattenSlots(
+                section.effectiveSlots,
+                visited: [source.id]
+            )
+            result.sets = max(1, result.slots.count)
+            return result
+        }
+        return flattened
+    }
+
+    private func workoutReaches(
+        _ sourceID: UUID,
+        targetID: UUID,
+        visited: inout Set<UUID>
+    ) -> Bool {
+        guard visited.insert(sourceID).inserted,
+              let source = workout(id: sourceID) else {
+            return false
+        }
+
+        for slot in source.sections.flatMap(\.effectiveSlots) {
+            if slotReferences(slot, targetID: targetID, visited: &visited) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func slotReferences(
+        _ slot: SetSlot,
+        targetID: UUID,
+        visited: inout Set<UUID>
+    ) -> Bool {
+        if slot.nestedWorkoutID == targetID {
+            return true
+        }
+        if let nestedID = slot.nestedWorkoutID,
+           workoutReaches(nestedID, targetID: targetID, visited: &visited) {
+            return true
+        }
+        return slot.children.contains {
+            slotReferences($0, targetID: targetID, visited: &visited)
+        }
+    }
+
+    private func flattenSlots(
+        _ slots: [SetSlot],
+        visited: Set<UUID>
+    ) -> [SetSlot] {
+        slots.flatMap { flattenSlot($0, visited: visited) }
+    }
+
+    private func flattenSlot(
+        _ slot: SetSlot,
+        visited: Set<UUID>
+    ) -> [SetSlot] {
+        if let nestedID = slot.nestedWorkoutID,
+           !visited.contains(nestedID),
+           let nested = workout(id: nestedID) {
+            var expanded: [SetSlot] = []
+            let nestedVisited = visited.union([nestedID])
+            for section in nested.sections {
+                expanded.append(contentsOf: flattenSlots(section.effectiveSlots, visited: nestedVisited))
+                let sectionRest = section.bigRestRow?.duration
+                    ?? (section.customRestAfter == 0 ? 0 : nested.restBetweenSections)
+                if sectionRest > 0, let lastIndex = expanded.indices.last {
+                    appendRest(
+                        duration: sectionRest,
+                        row: section.bigRestRow,
+                        to: &expanded[lastIndex]
+                    )
+                }
+            }
+
+            guard !expanded.isEmpty else { return [slot] }
+            if let preparation = slot.prepareTime {
+                expanded[0].prepareTime = preparation
+            }
+            if slot.restAfter > 0 {
+                appendRest(duration: slot.restAfter, row: slot.restRow, to: &expanded[expanded.count - 1])
+            }
+            return expanded
+        }
+
+        var parent = slot
+        let children = flattenSlots(slot.children, visited: visited)
+        parent.children = []
+        return [parent] + children
+    }
+
+    private func appendRest(
+        duration: Int,
+        row: RestRow?,
+        to slot: inout SetSlot
+    ) {
+        guard duration > 0 else { return }
+        slot.restAfter += duration
+        if let row {
+            var rest = row
+            rest.kind = .normal
+            rest.duration = duration
+            slot.restRow = rest
+        } else if slot.restRow == nil {
+            slot.restRow = RestRow(duration: slot.restAfter)
+        } else {
+            slot.restRow?.duration = slot.restAfter
         }
     }
 
@@ -647,7 +776,7 @@ extension WorkoutManifest {
 extension WorkoutSectionManifest {
     func toAppSection() -> Section {
         Section(
-            id: UUID(),
+            id: UUID(uuidString: id) ?? UUID(),
             name: name,
             alias: alias,
             duration: duration,
@@ -706,13 +835,16 @@ extension WorkoutSetSlotManifest {
         SetSlot(
             id: UUID(uuidString: id) ?? UUID(),
             exercisePageID: UUID(uuidString: exerciseID),
+            nestedWorkoutID: UUID(uuidString: nestedWorkoutID ?? ""),
             name: name,
             alias: alias,
             duration: duration,
             repCount: repCount,
             restAfter: restAfter,
+            prepareTime: prepareTime,
             restExercisePageID: UUID(uuidString: restExerciseID ?? ""),
             drops: drops.map { $0.toAppDropSet() },
+            children: children.map { $0.toAppSlot() },
             restRow: restRow.map { $0.toAppRestRow() }
         )
     }
@@ -737,6 +869,7 @@ extension Workout {
 extension Section {
     var coreManifest: WorkoutSectionManifest {
         WorkoutSectionManifest(
+            id: id.uuidString,
             exerciseID: pageID?.uuidString ?? "",
             name: name,
             alias: alias,
@@ -748,6 +881,7 @@ extension Section {
             customRestAfter: customRestAfter,
             isTimerEnabled: isTimerEnabled,
             mediaFilenames: mediaItems.map(\.filename),
+            mode: mode == .bundle ? .bundle : .timed,
             slots: slots.map(\.coreManifest),
             bigRestRow: bigRestRow?.coreManifest
         )
@@ -795,12 +929,15 @@ extension SetSlot {
             id: id.uuidString,
             exerciseID: exercisePageID?.uuidString ?? "",
             name: name,
+            nestedWorkoutID: nestedWorkoutID?.uuidString,
             alias: alias,
             duration: duration,
             repCount: repCount,
             restAfter: restAfter,
+            prepareTime: prepareTime,
             restExerciseID: restExercisePageID?.uuidString,
             drops: drops.map(\.coreManifest),
+            children: children.map(\.coreManifest),
             restRow: restRow?.coreManifest
         )
     }

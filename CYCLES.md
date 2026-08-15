@@ -438,13 +438,24 @@ F06 (AI Coach) ─────────┘
   - [ ] F23-D — `WorkoutDetailView.handlePageSelection` stamps `Section.pageID = page.id` and persists
   - [ ] Verified: workout editor never shows the old V1 folder picker; freshly-imported DB pages immediately selectable in the editor; section persists across re-open; macOS + iOS builds succeed; core tests pass
 
+
+- [x] Exercise Database Fixture & Validation
+  - [x] Detail: Seeded 52 source video clips across Boxing, Core & Wrestling, Flexibility, Gymnastics, and Kickboxing with generated cover frames, guides, durations, rests, sets, and SF Symbol icons
+  - [x] Detail: Added parent links and explicit page kinds/workout types to the existing hierarchy; removed the stale accidental test page with a recoverable backup
+  - [x] Detail: Updated `SchemaManager.validateAll()` to validate page manifests while retaining legacy exercise fallback; string-backed page enums are accepted by schema validation
+  - [x] Verified: 88 page manifests decode through `DatabaseManager.walkPageTree`, 52 video references resolve, and CLI validation reports `valid: true`
+
 ### Phase 2 — V2 Workout Management + V2 Player (paired)
 - [ ] F15 — V2 Workout Management Rework
   - [ ] F15-A — V2 `WorkoutListView` card grid with page-backed cover thumbnails, today-only filter (consumes F20), scheduled-time badges, empty state
-  - [ ] F15-B — V2 `WorkoutDetailView` single-pane editor: section list with inline expandable slot editor (Dur/Sets/Reps/Rest/Btwn), Add Set / Add Drop / Set Rest Exercise actions inline, rest separators
+  - [ ] F15-B — V2 `WorkoutDetailView` single-pane editor: section list with inline expandable slot editor (Dur/Sets/Reps/Rest/Btwn/Prep), Add Set / Add Drop / Set Rest Exercise actions inline, rest separators
+    - [x] Detail: Centralized leaf-page and bundle import builds local slots with indexed drop templates and an inheritable per-set preparation default
+    - [x] Detail: Builder preparation, work, drop, rest, and rest-content rows each support a visible destructive delete action and trailing swipe deletion with immediate manifest persistence; deleting preparation sets that slot's override to zero
+    - [x] Detail: Add-to-workout now opens a shared type chooser on iOS and macOS; Bundle uses multi-select browser mode, saved Workout uses a picker with a centered empty-state create prompt, and Bike and Run & Walk create outdoor sections
+    - [x] Detail: New page and bundle imports expose duration, sets, reps, rest, between-set rest, and preparation controls, and newly created workouts route straight to their detail builder
   - [ ] F15-C — `WorkoutStore.updateWorkout` writes ONLY via `DatabaseManager` manifest; remove any UserDefaults-only write path
   - [ ] F15-D — Add-to-Workout from database leaf page → new section lands at end of picked workout and persists
-  - [ ] F15-E — Drag-to-reorder sections persists across launches
+  - [x] F15-E — Drag-to-reorder sections persists across launches
   - [ ] F15-F — macOS sidebar → detail three-pane flow opens without modal sheet for normal edits
   - [ ] Verified: create, add-first-exercise, edit inline, reorder, add-from-database, delete all persist; macOS sidebar linkage works; macOS + iOS builds succeed; core tests pass
 
@@ -453,8 +464,10 @@ F06 (AI Coach) ─────────┘
   - [ ] F16-B — `WorkoutPlayerView` becomes pure render of engine state
   - [ ] F16-C — Page-backed slot resolving (cover, guide preview, media carousel) with legacy-slot fallback
   - [ ] F16-D — Background-safe checkpoints on iOS `.didEnterBackground` and on macOS `windowDidResignKey`
+    - [x] Detail: Resume checkpoints preserve the same pending section and set during the `prepare` phase, including elapsed-time reconciliation
   - [ ] F16-E — `ExercisePageOverlay` + `FloatingControlsBar` open with smooth transition; never blocks timer; dismisses cleanly
   - [ ] F16-F — Skip-section + skip-rest always land on deterministic next state
+    - [x] Detail: Preparation runs before every timed set and bundle item; skip routes deterministically into work or the self-paced item
   - [ ] F16-G — macOS player presented as full-window modal (no half-clipped smear across sidebar)
   - [ ] Verified: warmUp → active → setRest → active → sectionRest → next active → completed flow without missed ticks; page overlay opens/closes cleanly; macOS + iOS builds succeed; core tests pass
 
@@ -511,6 +524,22 @@ F06 (AI Coach) ─────────┘
 
 ---
 
+## Cycle 11 — Outdoor Activity Tracking
+- [x] Outdoor core model and file-backed Activities persistence
+  - [x] Run & Walk and Bike manifests, route JSONL, pause intervals, laps, and recovery state
+  - [x] GPX 1.1 and CSV export services
+  - [x] Core persistence, malformed-line, schema, and export tests
+- [x] iOS outdoor recorder
+  - [x] Stopped map entry, Start-time permission request, background location configuration
+  - [x] Manual pause, 20-second auto-pause/resume thresholds, laps, target cue, explicit Finish
+  - [x] Save/Discard summary with route map and GPX/CSV sharing
+- [x] App integration
+  - [x] Home Run & Walk / Workout / Bike action row
+  - [x] Workouts + outdoor starts, Profile viewer, merged History, Analytics outdoor summary/heatmap
+  - [x] Full backup/import of outdoor manifests and route JSONL with duplicate skipping
+  - [x] macOS viewer-only Profile and no recorder controls
+  - [x] Verified: core tests, macOS build, iOS Simulator build
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
@@ -520,6 +549,17 @@ F06 (AI Coach) ─────────┘
 - Cycle 7: V2 Notion-style rework from IDEA.md (PLANNED, no code written).
 - Cycle 8: Mac readiness & daily flow (planned 2026-07-13).
 - Cycle 9: V2 workout database completion from workout-builder defect feedback.
+- [x] Workout Builder Redesign (from workout-builder-plan.md)
+  - [x] Schema extensions for prepareTime (SetSlot/Section in app + core manifests + page manifest; nil/0/positive semantics; legacy decode inherits)
+  - [x] WorkoutSectionBuilder factory (makeSection/makeBundle/makeSlots/makeSlot; config with prepareTime; page drop templates copied by setIndex)
+  - [x] Configurable exercise creation paths (duration/sets/reps/rest/prep/after-rest visible on iPhone; DatabasePageBrowserSheet + pending configurator + PageCreationSheet leaf-first + prepare control)
+  - [x] Immediate create-and-navigate (addWorkout returns Workout; list view dismisses sheet then navigates to new empty detail with Add First Exercise)
+  - [x] Builder row deletion (visible destructive icon + swipe for every set, drop, rest, content, big-rest, section; preparation row delete sets slot.prepareTime=0; Add Preparation restores nil inheritance; section default preserved)
+  - [x] Preparation in player/resume (WorkoutPhase.prepare; beginCurrentSet chooses prep vs work; preparationView with skip; tick/reconcile; checkpoints encode phase; legacy safe)
+  - [x] All call sites migrated to factory; no legacy direct construction in picker/editor/detail
+  - [x] Core tests (81 tests pass including all WorkoutPreparationTests for roundtrips, duration math, inheritance, drops)
+  - [x] macOS + iOS simulator builds succeed
+  - Verified per plan smoke paths (builds/tests only; human verification separate)
 - Cycle 10: real-world polish from ISSUES.md — stability, database hierarchy, V2 workout + player reworks, mac UI polish, minimalist cleanup, scheduled-today Home, music behavior (planned 2026-07-13).
 - server.py and start_server.command are F05 companion files.
 - .gitignore covers xcuserdata, DerivedData, .ipa, .DS_Store.

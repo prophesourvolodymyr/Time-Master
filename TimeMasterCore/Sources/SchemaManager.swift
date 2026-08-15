@@ -27,6 +27,7 @@ public final class SchemaManager {
                     "workoutType": PropertySchema(type: "object", description: "Assigned only to the absolute root container; all descendants inherit it", optional: true),
                     "duration": PropertySchema(type: "integer", description: "Leaf exercise duration in seconds; forbidden on containers", format: "seconds", optional: true),
                     "restAfter": PropertySchema(type: "integer", description: "Rest after this exercise in seconds", format: "seconds", optional: true),
+                    "prepareTime": PropertySchema(type: "integer", description: "Preparation before each set in seconds; leaf exercises only", format: "seconds", optional: true),
                     "sets": PropertySchema(type: "integer", description: "Default set count", optional: true),
                     "restBetweenSets": PropertySchema(type: "integer", description: "Rest between sets in seconds", format: "seconds", optional: true),
                     "childIDs": PropertySchema(type: "array<string>", description: "Ordered list of child page IDs; containers only", optional: true),
@@ -87,6 +88,31 @@ public final class SchemaManager {
                     "workoutType": PropertySchema(type: "object", description: "WorkoutType at time of completion"),
                     "isPartial": PropertySchema(type: "boolean", description: "Whether workout was partially completed"),
                     "elapsedSeconds": PropertySchema(type: "integer", description: "Elapsed seconds for partial workouts"),
+                ]
+            ),
+            "outdoorActivity": ObjectSchema(
+                description: "A GPS-backed Run & Walk or Bike activity with a route stored as JSONL.",
+                folderPath: "Activities/{id}",
+                manifestName: "manifest.json",
+                required: ["id", "kind", "title", "startedAt", "elapsedSeconds", "movingSeconds", "distanceMeters", "trackPointCount", "recordingState", "finished"],
+                properties: [
+                    "id": PropertySchema(type: "string", description: "UUID string — also used as folder name"),
+                    "kind": PropertySchema(type: "string", description: "runWalk or bike"),
+                    "title": PropertySchema(type: "string", description: "Display name"),
+                    "startedAt": PropertySchema(type: "string", description: "ISO 8601 start timestamp", format: "date-time"),
+                    "endedAt": PropertySchema(type: "string", description: "ISO 8601 finish timestamp", format: "date-time", optional: true),
+                    "elapsedSeconds": PropertySchema(type: "integer", description: "Elapsed seconds"),
+                    "movingSeconds": PropertySchema(type: "integer", description: "Moving seconds"),
+                    "distanceMeters": PropertySchema(type: "number", description: "Distance in meters"),
+                    "averageSpeedMetersPerSecond": PropertySchema(type: "number", description: "Average moving speed", optional: true),
+                    "maxSpeedMetersPerSecond": PropertySchema(type: "number", description: "Maximum speed", optional: true),
+                    "timeTargetSeconds": PropertySchema(type: "integer", description: "Optional target", optional: true),
+                    "pauseIntervals": PropertySchema(type: "array<object>", description: "Manual and automatic pause intervals", optional: true),
+                    "laps": PropertySchema(type: "array<object>", description: "Lap markers", optional: true),
+                    "trackPointCount": PropertySchema(type: "integer", description: "Number of route points"),
+                    "recordingState": PropertySchema(type: "string", description: "Current recording state"),
+                    "finished": PropertySchema(type: "boolean", description: "Whether the activity was explicitly finished"),
+                    "plannedRouteID": PropertySchema(type: "string", description: "Optional ID of chosen planned route for this activity", optional: true),
                 ]
             ),
             "config": ObjectSchema(
@@ -190,13 +216,14 @@ public final class SchemaManager {
             "skills": "Reusable agent skill definitions",
             "Config": "App configuration",
             "History": "Completed workout logs (JSONL)",
+            "Activities": "Private outdoor activity manifests and route JSONL files",
             "Music": "Background music files",
             "Backups": "Auto-backups before AI sessions",
             ".trash": "Soft-deleted items (30-day retention)",
         ]
 
         return SchemaDefinition(
-            version: "1.0.0",
+            version: "1.1.0",
             objects: objects,
             tools: tools,
             filesystem: FilesystemSchema(root: "TimeMaster", directories: directories)
@@ -213,10 +240,10 @@ public final class SchemaManager {
         let schema = (try? generateSchema()) ?? SchemaDefinition(version: "1.0.0")
         let fsDecoder = JSONDecoder()
         fsDecoder.dateDecodingStrategy = .iso8601
-
         let exercisesDir = fs.exercisesDatabaseDirectory
+
         if fs.directoryExists(at: exercisesDir) {
-            validateDirectory(exercisesDir, basePath: "Exercises Database", type: "exercise", schema: schema, decoder: fsDecoder, results: &results)
+            validatePageDirectory(exercisesDir, basePath: "Exercises Database", schema: schema, decoder: fsDecoder, results: &results)
         }
 
         let workoutsDir = fs.workoutsDirectory
@@ -239,25 +266,34 @@ public final class SchemaManager {
         return results
     }
 
-    private func validateDirectory(_ dir: URL, basePath: String, type: String, schema: SchemaDefinition, decoder: JSONDecoder, results: inout [(String, Bool, [String], [String])]) {
+    private func validatePageDirectory(
+        _ dir: URL,
+        basePath: String,
+        schema: SchemaDefinition,
+        decoder: JSONDecoder,
+        results: inout [(String, Bool, [String], [String])]
+    ) {
         let entries = (try? fs.listDirectory(dir, skipNonSchema: false)) ?? []
         for entry in entries {
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
-            if isDir.boolValue {
-                let manifestURL = entry.appendingPathComponent("manifest.json")
-                if fs.fileExists(at: manifestURL) {
-                    let relPath = basePath + "/\(entry.lastPathComponent)"
-                    if let manifest: ExerciseManifest = try? fs.readManifest(from: manifestURL, decoder: decoder) {
-                        let result = validate(manifest: manifest, type: "exercise", schema: schema)
-                        results.append((relPath, result.valid, result.errors, result.warnings))
-                    } else {
-                        results.append((relPath, false, ["Failed to parse manifest.json"], []))
-                    }
+            guard isDir.boolValue else { continue }
+
+            let manifestURL = entry.appendingPathComponent("manifest.json")
+            let relPath = basePath + "/\(entry.lastPathComponent)"
+            if fs.fileExists(at: manifestURL) {
+                if let manifest: ExercisePageManifest = try? fs.readManifest(from: manifestURL, decoder: decoder) {
+                    let result = validate(manifest: manifest, type: "page", schema: schema)
+                    results.append((relPath, result.valid, result.errors, result.warnings))
+                } else if let manifest: ExerciseManifest = try? fs.readManifest(from: manifestURL, decoder: decoder) {
+                    let result = validate(manifest: manifest, type: "exercise", schema: schema)
+                    results.append((relPath, result.valid, result.errors, result.warnings))
+                } else {
+                    results.append((relPath, false, ["Failed to parse manifest.json"], []))
                 }
-                let subPath = basePath + "/\(entry.lastPathComponent)"
-                validateDirectory(entry, basePath: subPath, type: type, schema: schema, decoder: decoder, results: &results)
             }
+
+            validatePageDirectory(entry, basePath: relPath, schema: schema, decoder: decoder, results: &results)
         }
     }
 
@@ -316,7 +352,8 @@ public final class SchemaManager {
         }
         switch expectedType {
         case "string":
-            return value is String ? nil : "expected string, got \(type(of: value))"
+            if value is String || Mirror(reflecting: value).displayStyle == .enum { return nil }
+            return "expected string, got \(type(of: value))"
         case "integer":
             if value is Int { return nil }
             if value is NSNumber { return nil }

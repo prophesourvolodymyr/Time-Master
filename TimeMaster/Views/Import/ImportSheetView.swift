@@ -38,10 +38,10 @@ struct ImportSheetView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                ToolbarItem(placement: .primaryAction) {
+                AppToolbar.item(placement: .primaryAction) {
                     Button { showingSettings = true } label: {
                         Image(systemName: "gear")
                     }

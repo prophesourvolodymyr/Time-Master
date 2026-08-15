@@ -73,22 +73,20 @@ struct AICoachView: View {
 
     @ToolbarContentBuilder
     private var chatToolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button { showingSessions = true } label: {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .foregroundColor(.white)
-            }
+        AppToolbar.item(placement: .primaryAction) { Button { showingSessions = true } label: {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .foregroundColor(.white)
         }
-        ToolbarItemGroup(placement: .primaryAction) {
-            Button { store.newSession() } label: {
-                Image(systemName: "square.and.pencil")
-                    .foregroundColor(.white)
-            }
-            Button { showingSettings = true } label: {
-                Image(systemName: "gearshape.fill")
-                    .foregroundColor(Color.white.opacity(0.7))
-            }
+                 }
+        AppToolbar.group(placement: .primaryAction) { Button { store.newSession() } label: {
+            Image(systemName: "square.and.pencil")
+                .foregroundColor(.white)
         }
+        Button { showingSettings = true } label: {
+            Image(systemName: "gearshape.fill")
+                .foregroundColor(Color.white.opacity(0.7))
+        }
+                 }
     }
 
     private func sendMessage() {
@@ -685,19 +683,17 @@ struct SessionsListSheet: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Done") { isPresented = false }
+                AppToolbar.item(placement: .primaryAction) { Button("Done") { isPresented = false }
+                    .foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .primaryAction) { Button {
+                    store.newSession()
+                    isPresented = false
+                } label: {
+                    Label("New Chat", systemImage: "square.and.pencil")
                         .foregroundColor(.white)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        store.newSession()
-                        isPresented = false
-                    } label: {
-                        Label("New Chat", systemImage: "square.and.pencil")
-                            .foregroundColor(.white)
-                    }
-                }
+                                 }
             }
         }
     }

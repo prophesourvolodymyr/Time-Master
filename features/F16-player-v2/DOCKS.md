@@ -4,7 +4,7 @@ The user reports the player is "the same, old feature". The current player suppo
 
 ## What We Build
 
-- A single phase-machine state object (`WorkoutPlayerEngine`) that owns phase, current section, current slot, elapsed time, and checkpoints. The view becomes a pure render of the engine state.
+- A single phase-machine state object (`WorkoutPlayerEngine`) that owns phase, current section, current slot, elapsed time, and checkpoints. The view becomes a pure render of the engine state; preparation is an explicit phase before each enabled timed set or bundle item.
 - Page-backed slot rendering: each slot resolves to an `ExercisePage` (cover, markdown preview, media carousel). If a slot has no page (legacy), it falls back to its inline `name` + `mediaItems`.
 - Background-safe checkpoints triggered on `.didEnterBackground` (iOS) and `.windowDidResignKey` (macOS) — restore works across both platforms.
 - Music playback uses `MusicManager.startPlayback(tracks: workout.selectedTrackFilenames)` with `AVQueuePlayer` looping *over the selected track list*, not over a single track. When the user manually picks track N mid-workout, after track N finishes the queue advances to track N+1 (not loop N). Only if the user explicitly enables repeat-one for this workout do tracks loop individually.
@@ -19,7 +19,7 @@ The user reports the player is "the same, old feature". The current player suppo
 ```
 WorkoutPlayerView
   └─ WorkoutPlayerEngine (ObservableObject)
-      ├─ phase: WorkoutPhase  // warmUp / active / setRest / sectionRest / completed
+      ├─ phase: WorkoutPhase  // warmUp / prepare / active / setRest / sectionRest / completed
       ├─ currentSectionIndex, currentSlotIndex
       ├─ elapsedSeconds, timeRemaining
       ├─ musicTracks: [String]  // from workout.musicTrackFilenames
@@ -40,10 +40,11 @@ MusicManager.startPlayback(tracks:)
 |---|---|---|
 | warmUpPicker | warm-up duration grid + Start/Skip | no timer running |
 | warmUp | "WARM UP" countdown + pause + skip | timer ticks `warmUpDuration` seconds |
-| active (timed) | section media carousel + name + set N/M + countdown + pause + skip | timer ticks `slot.duration` |
-| active (bundle) | bundle cover + name + index/total + Next | self-paced; elapsed counter advances; no auto-advance |
-| setRest | "REST BETWEEN SETS" + countdown + skip + extend | timer ticks `slot.restAfter` |
-| sectionRest | "REST" + next preview + skip + extend | timer ticks `section.customRestAfter ?? workout.restBetweenSections` |
+| active (timed) | section media carousel + name + set N/M + countdown + pause + skip | timer ticks `slot.duration` after preparation completes |
+| active (bundle) | bundle cover + name + index/total + Next | self-paced after preparation; elapsed counter advances; no auto-advance |
+| prepare | "PREPARATION" countdown + pending slot name + pause + skip | timer ticks `section.preparationTime(for: slot)`; the slot index remains unchanged for resume and page overlays |
+| setRest | "REST BETWEEN SETS" + countdown + skip + extend | timer ticks `slot.restAfter`, then starts the next slot’s preparation decision |
+| sectionRest | "REST" + next preview + skip + extend | timer ticks `section.customRestAfter ?? workout.restBetweenSections`, then starts the next section’s first preparation decision |
 | completed | confetti + Done | timer stopped, history entry written |
 | page overlay active | full-screen `ExercisePageOverlay` + `FloatingControlsBar` | timer keeps running in background; overlay dismiss returns to phase view |
 
@@ -65,7 +66,7 @@ MusicManager.startPlayback(tracks:)
 - `TimeMaster/Views/Player/FloatingControlsBar.swift` — already V2, integrate with engine state
 - `TimeMaster/Views/Player/ExercisePageOverlay.swift` — already V2, verify dismiss path
 - `TimeMaster/Utilities/MusicManager.swift` — AVQueuePlayer over selected list, queue-level loop only
-- `TimeMaster/ViewModels/WorkoutResumeManager.swift` — checkpoint already correct; consume from engine
+- `TimeMaster/ViewModels/WorkoutResumeManager.swift` — serializes warm-up, preparation, active, and rest checkpoints
 
 ## Dependencies
 

@@ -13,6 +13,7 @@ struct BackupManifest: Codable {
     var folders: [ExerciseFolder]
     var rootNotes: [DatabaseNote]
     var rootExercises: [Exercise]
+    var outdoorActivities: [OutdoorActivity]? = nil
 }
 
 // MARK: - Import Summary
@@ -22,6 +23,7 @@ struct ImportSummary {
     var foldersCreated: Int = 0
     var workoutsImported: Int = 0
     var historyImported: Int = 0
+    var outdoorActivitiesImported: Int = 0
     var mediaImported: Int = 0
     var duplicatesSkipped: Int = 0
 }
@@ -46,16 +48,25 @@ final class BackupManager {
         let workoutHistory: [WorkoutHistoryEntry]
         let folders: [ExerciseFolder]
         let rootNotes: [DatabaseNote]
+        let outdoorActivities: [OutdoorActivity]
+        let outdoorRoutes: [String: [OutdoorTrackPoint]]
         let rootExercises: [Exercise]
     }
 
     /// Call this on the main thread to capture current store state.
-    func snapshot(workoutStore: WorkoutStore, databaseStore: DatabaseStore) -> ExportSnapshot {
-        ExportSnapshot(
+    func snapshot(workoutStore: WorkoutStore, databaseStore: DatabaseStore, outdoorStore: OutdoorActivityStore) -> ExportSnapshot {
+        let outdoorActivities = outdoorStore.activities
+        var outdoorRoutes: [String: [OutdoorTrackPoint]] = [:]
+        for activity in outdoorActivities {
+            outdoorRoutes[activity.id.uuidString] = outdoorStore.trackPoints(for: activity)
+        }
+        return ExportSnapshot(
             workouts:       workoutStore.workouts,
             workoutHistory: workoutStore.historyEntries,
             folders:        databaseStore.rootFolders,
             rootNotes:      databaseStore.rootNotes,
+            outdoorActivities: outdoorActivities,
+            outdoorRoutes: outdoorRoutes,
             rootExercises:  databaseStore.rootExercises
         )
     }
@@ -69,7 +80,8 @@ final class BackupManager {
             workoutHistory: snapshot.workoutHistory,
             folders:        snapshot.folders,
             rootNotes:      snapshot.rootNotes,
-            rootExercises:  snapshot.rootExercises
+            rootExercises:  snapshot.rootExercises,
+            outdoorActivities: snapshot.outdoorActivities
         )
         let manifestData = try JSONEncoder().encode(manifest)
 
@@ -125,6 +137,23 @@ final class BackupManager {
             }
         }
 
+        let routeEncoder = JSONEncoder()
+        routeEncoder.dateEncodingStrategy = .iso8601
+        for activity in snapshot.outdoorActivities {
+            let routeLines = try (snapshot.outdoorRoutes[activity.id.uuidString] ?? []).map { point -> String in
+                String(data: try routeEncoder.encode(point.coreValue), encoding: .utf8) ?? ""
+            }
+            let routeData = Data((routeLines.joined(separator: "\n") + (routeLines.isEmpty ? "" : "\n")).utf8)
+            try archive.addEntry(
+                with: "activities/\(activity.id.uuidString)/track.jsonl",
+                type: .file,
+                uncompressedSize: UInt32(routeData.count),
+                provider: { position, size in
+                    routeData.subdata(in: Int(position) ..< Int(position) + Int(size))
+                }
+            )
+        }
+
         return destURL
     }
 
@@ -132,11 +161,11 @@ final class BackupManager {
 
     /// Unzips the backup file and writes data to the file-system database
     /// via DatabaseManager. Stores are reloaded after import to pick up changes.
-    @discardableResult
     func importBackup(
         from url: URL,
         workoutStore: WorkoutStore,
-        databaseStore: DatabaseStore
+        databaseStore: DatabaseStore,
+        outdoorStore: OutdoorActivityStore
     ) throws -> ImportSummary {
 
         let accessing = url.startAccessingSecurityScopedResource()
@@ -300,10 +329,39 @@ final class BackupManager {
             }
         }
 
-        // 9. Reload stores on main thread (@Published properties)
+        // 9. Import outdoor activities and their raw route files.
+        var outdoorActivitiesImported = 0
+        let routeDecoder = JSONDecoder()
+        routeDecoder.dateDecodingStrategy = .iso8601
+        for activity in manifest.outdoorActivities ?? [] {
+            let id = activity.id.uuidString
+            let folder = db.dataRoot.appendingPathComponent("Activities/\(id)", isDirectory: true)
+            if fm.fileExists(atPath: folder.path) {
+                duplicatesSkipped += 1
+                continue
+            }
+            do {
+                try db.createOutdoorActivity(id: id, manifest: activity.coreValue)
+                let routeURL = tmpDir.appendingPathComponent("activities/\(id)/track.jsonl")
+                if fm.fileExists(atPath: routeURL.path) {
+                    let text = try String(contentsOf: routeURL)
+                    for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+                        if let point = try? routeDecoder.decode(TimeMasterCore.OutdoorTrackPoint.self, from: Data(line.utf8)) {
+                            try db.appendOutdoorTrackPoint(id: id, point: point)
+                        }
+                    }
+                }
+                outdoorActivitiesImported += 1
+            } catch {
+                print("[BackupManager] Failed to import outdoor activity \(id): \(error)")
+            }
+        }
+
+        // 10. Reload stores on main thread (@Published properties)
         DispatchQueue.main.sync {
             workoutStore.reload()
             databaseStore.reload()
+            outdoorStore.reload()
         }
 
         return ImportSummary(
@@ -311,6 +369,7 @@ final class BackupManager {
             foldersCreated: foldersCreated,
             workoutsImported: workoutsImported,
             historyImported: historyImported,
+            outdoorActivitiesImported: outdoorActivitiesImported,
             mediaImported: mediaMap.count,
             duplicatesSkipped: duplicatesSkipped
         )

@@ -70,6 +70,7 @@ public final class DatabaseManager {
             fs.historyDirectory,
             fs.musicDirectory,
             fs.backupsDirectory,
+            fs.outdoorActivitiesDirectory,
             fs.trashDirectory,
         ]
         for dir in dirs {
@@ -330,6 +331,7 @@ Query the TimeMaster exercise database.
         if normalized.pageKind == .container {
             normalized.duration = nil
             normalized.restAfter = nil
+            normalized.prepareTime = nil
             normalized.sets = nil
             normalized.restBetweenSets = nil
         } else {
@@ -373,7 +375,7 @@ Query the TimeMaster exercise database.
         }
 
         if manifest.pageKind == .container {
-            if manifest.duration != nil || manifest.restAfter != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
+            if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
                 throw FileSystemHelper.Error.invalidPageKind("containers cannot have workout timing")
             }
             if parentID != nil, manifest.workoutType != nil {
@@ -856,6 +858,62 @@ Query the TimeMaster exercise database.
             return try? fs.readManifest(from: manifestURL, decoder: decoder)
         }
     }
+    // MARK: - Outdoor Activities
+
+    private func outdoorActivityDirectory(_ id: String) -> URL {
+        fs.outdoorActivitiesDirectory.appendingPathComponent(id, isDirectory: true)
+    }
+
+    public func createOutdoorActivity(id: String, manifest: OutdoorActivityManifest) throws {
+        let folder = outdoorActivityDirectory(id)
+        try fs.ensureDirectory(folder)
+        try fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: manifest, encoder: encoder)
+    }
+
+    public func updateOutdoorActivity(id: String, manifest: OutdoorActivityManifest) throws {
+        let folder = outdoorActivityDirectory(id)
+        guard fs.directoryExists(at: folder) else { throw FileSystemHelper.Error.notFound(folder.path) }
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        if fs.fileExists(at: manifestURL) { try fs.moveToTrash(source: manifestURL) }
+        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+    }
+
+    public func getOutdoorActivity(id: String) throws -> OutdoorActivityManifest {
+        try fs.readManifest(from: outdoorActivityDirectory(id).appendingPathComponent("manifest.json"), decoder: decoder)
+    }
+
+    public func listOutdoorActivities() throws -> [OutdoorActivityManifest] {
+        let entries = try fs.listDirectory(fs.outdoorActivitiesDirectory)
+        return entries.compactMap { entry in
+            try? fs.readManifest(from: entry.appendingPathComponent("manifest.json"), decoder: decoder)
+        }.sorted { $0.startedAt > $1.startedAt }
+    }
+
+    public func readOutdoorTrackPoints(id: String) throws -> [OutdoorTrackPoint] {
+        let url = outdoorActivityDirectory(id).appendingPathComponent("track.jsonl")
+        guard fs.fileExists(at: url) else { return [] }
+        let data = try fs.readRawData(from: url)
+        guard let text = String(data: data, encoding: .utf8) else { return [] }
+        return text.split(separator: "\n", omittingEmptySubsequences: true).compactMap { line in
+            try? decoder.decode(OutdoorTrackPoint.self, from: Data(line.utf8))
+        }
+    }
+
+    public func appendOutdoorTrackPoint(id: String, point: OutdoorTrackPoint) throws {
+        let folder = outdoorActivityDirectory(id)
+        guard fs.directoryExists(at: folder) else { throw FileSystemHelper.Error.notFound(folder.path) }
+        let lineEncoder = JSONEncoder()
+        lineEncoder.dateEncodingStrategy = .iso8601
+        let line = try lineEncoder.encode(point)
+        try fs.appendLineAtomically(to: folder.appendingPathComponent("track.jsonl"), data: line + Data([0x0A]))
+    }
+
+    public func deleteOutdoorActivity(id: String) throws {
+        let folder = outdoorActivityDirectory(id)
+        guard fs.directoryExists(at: folder) else { throw FileSystemHelper.Error.notFound(folder.path) }
+        try fs.moveToTrash(source: folder)
+    }
+
 
     // MARK: - History
 

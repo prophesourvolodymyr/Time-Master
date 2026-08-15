@@ -20,14 +20,14 @@ final class SchemaValidationTests: XCTestCase {
 
     func testGenerateSchemaProducesValidJSON() throws {
         let schema = try schemaManager.generateSchema()
-        XCTAssertEqual(schema.version, "1.0.0")
+        XCTAssertEqual(schema.version, "1.1.0")
 
         let data = try JSONEncoder().encode(schema)
         let json = String(data: data, encoding: .utf8)!
         XCTAssertTrue(json.contains("exercise"))
         XCTAssertTrue(json.contains("workout"))
         XCTAssertTrue(json.contains("historyEntry"))
-        XCTAssertTrue(json.contains("config"))
+        XCTAssertTrue(json.contains("outdoorActivity"))
 
         let obj = try JSONSerialization.jsonObject(with: data) as! [String: Any]
         XCTAssertNotNil(obj["version"])
@@ -106,17 +106,38 @@ final class SchemaValidationTests: XCTestCase {
         XCTAssertTrue(result.valid, "Valid manifest should pass validation. Errors: \(result.errors)")
     }
 
+    func testValidateAllAcceptsPageManifests() throws {
+        let pageFolder = fs.exercisesDatabaseDirectory.appendingPathComponent("Container")
+        try FileManager.default.createDirectory(at: pageFolder, withIntermediateDirectories: true)
+
+        let manifest = ExercisePageManifest(
+            id: UUID().uuidString,
+            title: "Page Exercise",
+            pageKind: .leaf,
+            markdownBody: "A page.",
+            duration: 30,
+            restAfter: 10
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(manifest).write(to: pageFolder.appendingPathComponent("manifest.json"))
+
+        let results = schemaManager.validateAll()
+        XCTAssertEqual(results.count, 1)
+        XCTAssertTrue(results[0].valid, "Page manifest should pass validation. Errors: \(results[0].errors)")
+    }
+
     func testWriteSchemaProducesReadableFile() throws {
         try schemaManager.writeSchema()
         let data = try fs.readRawData(from: fs.schemaURL)
         let schema = try JSONDecoder().decode(SchemaDefinition.self, from: data)
 
-        XCTAssertEqual(schema.version, "1.0.0")
-        XCTAssertEqual(schema.objects.count, 5)
+        XCTAssertEqual(schema.version, "1.1.0")
+        XCTAssertEqual(schema.objects.count, 6)
         XCTAssertEqual(schema.tools.count, 20)
         XCTAssertTrue(schema.tools.contains { $0.name == "create_container_page" })
         XCTAssertTrue(schema.tools.contains { $0.name == "create_exercise_page" })
-        XCTAssertEqual(schema.filesystem.directories.count, 11)
+        XCTAssertEqual(schema.filesystem.directories.count, 12)
         XCTAssertEqual(schema.filesystem.root, "TimeMaster")
     }
 

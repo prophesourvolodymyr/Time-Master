@@ -242,10 +242,9 @@ struct NoteDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { saveAndDismiss() }
-                        .foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .confirmationAction) { Button("Done") { saveAndDismiss() }
+                    .foregroundColor(.white)
+                                 }
             }
             .onAppear {
                 guard !loaded, let n = storedNote else { return }
@@ -313,11 +312,10 @@ struct NoteEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { saveNote() }
-                        .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") { saveNote() }
+                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                                 }
             }
         }
     }
@@ -383,6 +381,7 @@ struct NoteEditorView: View {
 struct DatabaseView: View {
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
+    @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @State private var showingNewFolderSheet     = false
     @State private var showingImport             = false
     @State private var showingDatabaseImport     = false
@@ -419,66 +418,60 @@ struct DatabaseView: View {
                     v2EmptyState
                 }
             }
-            .onChange(of: store.allPagesFlat.count) { _ in
-                store.reloadImmediately()
-            }
             .navigationTitle(databaseTitle(isV2: isV2))
             .toolbar {
                 if isV2 {
-                    ToolbarItemGroup(placement: .primaryAction) {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) { isGridMode.toggle() }
-                        } label: {
-                            Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
-                        }
-                        .foregroundColor(.white)
-
-                        Menu {
-                            ForEach(PageSortOption.allCases, id: \.self) { option in
-                                Button {
-                                    sortOption = option
-                                } label: {
-                                    Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                        }
-                        .foregroundColor(.white)
+                    AppToolbar.group(placement: .primaryAction) { Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { isGridMode.toggle() }
+                    } label: {
+                        Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
                     }
-                }
-                #if os(iOS)
-                ToolbarItem(placement: .primaryAction) {
-                    EditButton().foregroundColor(.white)
-                }
-                #endif
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Button { showingImport = true } label: {
-                        Image(systemName: "video.badge.plus")
-                    }
-                    Button { showingDatabaseImport = true } label: {
-                        Image(systemName: "square.and.arrow.down")
-                    }
+                    .foregroundColor(.white)
+                    
                     Menu {
-                        if isV2 {
-                            Button { showingCreatePage = true } label: {
-                                Label("New Container", systemImage: "folder.badge.plus")
-                            }
-                        } else {
-                            Button { showingNewFolderSheet = true } label: {
-                                Label("New Folder", systemImage: "folder.badge.plus")
-                            }
-                            Button { showingAddRootNote = true } label: {
-                                Label("New Note", systemImage: "note.text.badge.plus")
-                            }
-                            Button { showingAddRootExercise = true } label: {
-                                Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
+                        ForEach(PageSortOption.allCases, id: \.self) { option in
+                            Button {
+                                sortOption = option
+                            } label: {
+                                Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
                             }
                         }
                     } label: {
-                        Image(systemName: "plus.circle.fill").font(.title3)
+                        Image(systemName: "arrow.up.arrow.down")
                     }
+                    .foregroundColor(.white)
+                                         }
                 }
+                #if os(iOS)
+                AppToolbar.item(placement: .primaryAction) { EditButton().foregroundColor(.white)
+                                 }
+                #endif
+                AppToolbar.group(placement: .primaryAction) { Button { showingImport = true } label: {
+                    Image(systemName: "video.badge.plus")
+                }
+                Button { showingDatabaseImport = true } label: {
+                    Image(systemName: "square.and.arrow.down")
+                }
+                Menu {
+                    if isV2 {
+                        Button { showingCreatePage = true } label: {
+                            Label("New Container", systemImage: "folder.badge.plus")
+                        }
+                    } else {
+                        Button { showingNewFolderSheet = true } label: {
+                            Label("New Folder", systemImage: "folder.badge.plus")
+                        }
+                        Button { showingAddRootNote = true } label: {
+                            Label("New Note", systemImage: "note.text.badge.plus")
+                        }
+                        Button { showingAddRootExercise = true } label: {
+                            Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill").font(.title3)
+                }
+                                 }
             }
             .sheet(isPresented: $showingNewFolderSheet) {
                 NewFolderSheet { name, colorHex, workoutType in
@@ -487,7 +480,7 @@ struct DatabaseView: View {
             }
             .sheet(isPresented: $showingCreatePage) {
                 PageCreationSheet { manifest, parentID in
-                    try? store.createPageWithMedia(
+                    try store.createPageWithMedia(
                         manifest: manifest,
                         parentID: parentID,
                         coverData: nil,
@@ -499,7 +492,7 @@ struct DatabaseView: View {
             }
             .sheet(item: $pageToEdit) { page in
                 PageCreationSheet(page: page) { manifest, parentID in
-                    try? store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: parentID)
+                    try store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: parentID)
                 }
                 .environmentObject(workoutStore)
                 .environmentObject(store)
@@ -511,7 +504,7 @@ struct DatabaseView: View {
             .sheet(isPresented: $showingAddChildPage) {
                 if let parent = childParentPage {
                     PageCreationSheet(parentID: parent.manifest.id) { manifest, parentID in
-                        try? store.createPageWithMedia(
+                        try store.createPageWithMedia(
                             manifest: manifest,
                             parentID: parentID,
                             coverData: nil,
@@ -587,7 +580,8 @@ struct DatabaseView: View {
                 let summary = try BackupManager.shared.importBackup(
                     from: url,
                     workoutStore: workoutStore,
-                    databaseStore: store
+                    databaseStore: store,
+                    outdoorStore: outdoorStore
                 )
                 await MainActor.run {
                     print("[DatabaseView] Import complete: \(summary.exercisesImported) exercises, \(summary.workoutsImported) workouts, \(summary.historyImported) history, \(summary.mediaImported) media, \(summary.duplicatesSkipped) duplicates skipped")
@@ -732,36 +726,32 @@ struct DatabaseView: View {
 
     @ToolbarContentBuilder
     private var rootToolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            #if os(iOS)
-            EditButton().foregroundColor(.white)
-            #endif
+        AppToolbar.item(placement: .primaryAction) { #if os(iOS)
+        EditButton().foregroundColor(.white)
+        #endif
+                 }
+        AppToolbar.item(placement: .primaryAction) { Button { showingImport = true } label: {
+            Image(systemName: "video.badge.plus")
         }
-        ToolbarItem(placement: .primaryAction) {
-            Button { showingImport = true } label: {
-                Image(systemName: "video.badge.plus")
+                 }
+        AppToolbar.item(placement: .primaryAction) { Button { showingDatabaseImport = true } label: {
+            Image(systemName: "square.and.arrow.down")
+        }
+                 }
+        AppToolbar.item(placement: .primaryAction) { Menu {
+            Button { showingNewFolderSheet = true } label: {
+                Label("New Folder", systemImage: "folder.badge.plus")
             }
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button { showingDatabaseImport = true } label: {
-                Image(systemName: "square.and.arrow.down")
+            Button { showingAddRootNote = true } label: {
+                Label("New Note", systemImage: "note.text.badge.plus")
             }
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Menu {
-                Button { showingNewFolderSheet = true } label: {
-                    Label("New Folder", systemImage: "folder.badge.plus")
-                }
-                Button { showingAddRootNote = true } label: {
-                    Label("New Note", systemImage: "note.text.badge.plus")
-                }
-                Button { showingAddRootExercise = true } label: {
-                    Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
-                }
-            } label: {
-                Image(systemName: "plus.circle.fill").font(.title3)
+            Button { showingAddRootExercise = true } label: {
+                Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
             }
+        } label: {
+            Image(systemName: "plus.circle.fill").font(.title3)
         }
+                 }
     }
 
     // createRootFolder handled inline by NewFolderSheet callback
@@ -770,30 +760,26 @@ struct DatabaseView: View {
 
     private var toolbarContent: some ToolbarContent {
         Group {
-            ToolbarItem(placement: .primaryAction) {
-                #if os(iOS)
-                EditButton().foregroundColor(.white)
-                #endif
+            AppToolbar.item(placement: .primaryAction) { #if os(iOS)
+            EditButton().foregroundColor(.white)
+            #endif
+                         }
+            AppToolbar.item(placement: .primaryAction) { Button { showingImport = true } label: {
+                Image(systemName: "video.badge.plus")
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button { showingImport = true } label: {
-                    Image(systemName: "video.badge.plus")
+                         }
+            AppToolbar.item(placement: .primaryAction) { Button { showingDatabaseImport = true } label: {
+                Image(systemName: "square.and.arrow.down")
+            }
+                         }
+            AppToolbar.item(placement: .primaryAction) { Menu {
+                Button { showingCreatePage = true } label: {
+                    Label("New Page", systemImage: "doc.badge.plus")
                 }
+            } label: {
+                Image(systemName: "plus.circle.fill").font(.title3)
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button { showingDatabaseImport = true } label: {
-                    Image(systemName: "square.and.arrow.down")
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button { showingCreatePage = true } label: {
-                        Label("New Page", systemImage: "doc.badge.plus")
-                    }
-                } label: {
-                    Image(systemName: "plus.circle.fill").font(.title3)
-                }
-            }
+                         }
         }
     }
 
@@ -1293,39 +1279,36 @@ struct FolderDetailView: View {
 
     @ToolbarContentBuilder
     private var folderToolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            #if os(iOS)
-            EditButton().foregroundColor(.white)
-            #endif
+        AppToolbar.item(placement: .primaryAction) { #if os(iOS)
+        EditButton().foregroundColor(.white)
+        #endif
+                 }
+        AppToolbar.item(placement: .primaryAction) { Button {
+            withAnimation(.easeInOut(duration: 0.2)) { isGalleryMode.toggle() }
+        } label: {
+            Image(systemName: isGalleryMode ? "list.bullet" : "square.grid.2x2")
         }
-        ToolbarItem(placement: .primaryAction) {
+                 }
+        AppToolbar.item(placement: .primaryAction) { Menu {
+            Button { showingAddExercise = true } label: {
+                Label("Add Exercise", systemImage: "figure.strengthtraining.traditional")
+            }
+            Button { showingAddNote = true } label: {
+                Label("New Note", systemImage: "note.text.badge.plus")
+            }
+            Button { showingNewSubfolderSheet = true } label: {
+                Label("New Subfolder", systemImage: "folder.badge.plus")
+            }
+            Divider()
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) { isGalleryMode.toggle() }
+                if let f = folder { folderForExport = f }
             } label: {
-                Image(systemName: isGalleryMode ? "list.bullet" : "square.grid.2x2")
+                Label("Export Folder…", systemImage: "square.and.arrow.up")
             }
+        } label: {
+            Image(systemName: "plus.circle.fill").font(.title3)
         }
-        ToolbarItem(placement: .primaryAction) {
-            Menu {
-                Button { showingAddExercise = true } label: {
-                    Label("Add Exercise", systemImage: "figure.strengthtraining.traditional")
-                }
-                Button { showingAddNote = true } label: {
-                    Label("New Note", systemImage: "note.text.badge.plus")
-                }
-                Button { showingNewSubfolderSheet = true } label: {
-                    Label("New Subfolder", systemImage: "folder.badge.plus")
-                }
-                Divider()
-                Button {
-                    if let f = folder { folderForExport = f }
-                } label: {
-                    Label("Export Folder…", systemImage: "square.and.arrow.up")
-                }
-            } label: {
-                Image(systemName: "plus.circle.fill").font(.title3)
-            }
-        }
+                 }
     }
 
     // createSubfolder handled inline by NewFolderSheet callback
@@ -1567,11 +1550,10 @@ struct AddExerciseView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { saveExercise() }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") { saveExercise() }
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                                 }
             }
         }
         #if os(iOS)
@@ -1836,11 +1818,10 @@ struct EditExerciseView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { updateExercise() }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") { updateExercise() }
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                                 }
             }
         }
         #if os(iOS)
@@ -2233,10 +2214,9 @@ struct NewFolderSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }
+                    .foregroundColor(.white)
+                                 }
             }
         }
     }
@@ -2319,9 +2299,8 @@ struct FolderPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
             }
         }
     }
@@ -2397,18 +2376,16 @@ struct FolderExportSheet: View {
 
     @ToolbarContentBuilder
     private var exportToolbar: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button("Cancel") { dismiss() }.foregroundColor(.white)
+        AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                 }
+        AppToolbar.item(placement: .confirmationAction) { Button { startExport() } label: {
+            if isExporting { ProgressView().tint(.white) }
+            else { Text("Export").fontWeight(.semibold) }
         }
-        ToolbarItem(placement: .confirmationAction) {
-            Button { startExport() } label: {
-                if isExporting { ProgressView().tint(.white) }
-                else { Text("Export").fontWeight(.semibold) }
-            }
-            .foregroundColor(.white)
-            .disabled(isExporting || selectedCount == 0
-                      || zipName.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
+        .foregroundColor(.white)
+        .disabled(isExporting || selectedCount == 0
+                  || zipName.trimmingCharacters(in: .whitespaces).isEmpty)
+                 }
     }
 
     private var exportList: some View {

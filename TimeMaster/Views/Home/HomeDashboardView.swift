@@ -3,12 +3,15 @@ import SwiftUI
 struct HomeDashboardView: View {
     @EnvironmentObject private var store: WorkoutStore
     @EnvironmentObject private var databaseStore: DatabaseStore
-
+    @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
+    var onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void = { _, _ in }
 
     @State private var playerWorkout: Workout?
+    @State private var showingRoutePickerForKind: OutdoorActivityKind?
+    @State private var showingRoutePicker = false
     @State private var showingWorkoutPicker = false
     @State private var showingSettings = false
     @State private var appeared = false
@@ -48,6 +51,22 @@ struct HomeDashboardView: View {
                 Theme.background.ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
+                        #if os(iOS)
+                        outdoorActionCards
+            .sheet(isPresented: $showingRoutePicker) {
+                if let kind = showingRoutePickerForKind {
+                    RoutePickerSheet(store: outdoorStore) { route in
+                        onStartOutdoor(kind, route)
+                        showingRoutePickerForKind = nil
+                    }
+                }
+            }
+                        #endif
+                        #if os(iOS)
+                        if let recovery = outdoorStore.recoverableActivities.first {
+                            recoveryCard(recovery)
+                        }
+                        #endif
                         hero
                         if let workout = suggestedWorkout {
                             quickStartCard(workout)
@@ -65,20 +84,18 @@ struct HomeDashboardView: View {
             }
             .navigationTitle("Today")
             .toolbar {
-                 ToolbarItem(placement: .primaryAction) {
-                     Button(action: onBrowseWorkouts) {
-                        Image(systemName: "rectangle.stack")
-                            .foregroundColor(.white)
-                    }
-                     .accessibilityLabel("Browse workouts")
+                 AppToolbar.item(placement: .primaryAction) { Button(action: onBrowseWorkouts) {
+                    Image(systemName: "rectangle.stack")
+                        .foregroundColor(.white)
+                                     }
+                 .accessibilityLabel("Browse workouts")
+                                   }
+                 AppToolbar.item(placement: .primaryAction) { Button { showingSettings = true } label: {
+                     Image(systemName: "gearshape")
+                         .foregroundColor(.white)
                  }
-                 ToolbarItem(placement: .primaryAction) {
-                     Button { showingSettings = true } label: {
-                         Image(systemName: "gearshape")
-                             .foregroundColor(.white)
-                     }
-                     .accessibilityLabel("Open Settings")
-                 }
+                 .accessibilityLabel("Open Settings")
+                                   }
              }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.35)) { appeared = true }
@@ -94,9 +111,77 @@ struct HomeDashboardView: View {
              .sheet(isPresented: $showingSettings) {
                  SettingsView()
                      .environmentObject(store)
+                     .environmentObject(outdoorStore)
              }
         }
     }
+
+    #if os(iOS)
+    private var outdoorActionCards: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                actionCard(title: "Run & Walk", icon: "figure.run", tint: .green) {
+                    onStartOutdoor(.runWalk, nil)
+                }
+                actionCard(title: "Workout", icon: "figure.strengthtraining.traditional", tint: .orange) {
+                    showingWorkoutPicker = true
+                }
+                actionCard(title: "Bike", icon: "bicycle", tint: .cyan) {
+                    onStartOutdoor(.bike, nil)
+                }
+            }
+            Menu {
+                Button("Run & Walk") {
+                    showingRoutePickerForKind = .runWalk
+                    showingRoutePicker = true
+                }
+                Button("Bike") {
+                    showingRoutePickerForKind = .bike
+                    showingRoutePicker = true
+                }
+            } label: {
+                Label("Choose a saved route", systemImage: "map")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private func actionCard(title: String, icon: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon).font(.title2.weight(.semibold))
+                Text(title).font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, minHeight: 78)
+            .background(tint.opacity(0.22), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(tint.opacity(0.5)))
+        }
+        .buttonStyle(.plain)
+    }
+    private func recoveryCard(_ activity: OutdoorActivity) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Unfinished \(activity.kind.displayName)", systemImage: "exclamationmark.triangle")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.orange)
+            Text("Resume, finish, or discard the saved route.")
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
+            HStack {
+                Button("Resume") {
+                    try? outdoorStore.resume(activity)
+                    onStartOutdoor(activity.kind, nil)
+                }
+                Button("Finish") { _ = try? outdoorStore.finishRecovered(activity) }
+                Button("Discard", role: .destructive) { try? outdoorStore.delete(activity) }
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(14)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
+    }
+    #endif
 
     private var hero: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -301,7 +386,7 @@ struct HomeDashboardView: View {
             .background(Theme.background)
             .navigationTitle("Choose workout")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { showingWorkoutPicker = false } }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { showingWorkoutPicker = false } }
             }
         }
     }
@@ -324,5 +409,6 @@ struct HomeDashboardView: View {
     HomeDashboardView(onBrowseWorkouts: {}, onBrowseDatabase: {}, onCreateWorkout: {})
         .environmentObject(WorkoutStore())
         .environmentObject(DatabaseStore.shared)
+        .environmentObject(OutdoorActivityStore())
         .preferredColorScheme(.dark)
 }

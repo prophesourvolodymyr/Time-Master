@@ -11,6 +11,7 @@ struct WorkoutPickerSheet: View {
     @State private var reps: Int
     @State private var restAfter: Int
     @State private var restBetweenSets: Int
+    @State private var prepareTime: Int
     @State private var showToast = false
     @State private var toastWorkoutName = ""
 
@@ -21,6 +22,7 @@ struct WorkoutPickerSheet: View {
         _reps = State(initialValue: page.manifest.sets != nil ? 12 : 0)
         _restAfter = State(initialValue: page.manifest.restAfter ?? 10)
         _restBetweenSets = State(initialValue: page.manifest.restBetweenSets ?? 10)
+        _prepareTime = State(initialValue: page.manifest.prepareTime ?? 4)
     }
 
     var body: some View {
@@ -43,9 +45,8 @@ struct WorkoutPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
             }
             .overlay(alignment: .bottom) {
                 if showToast {
@@ -69,12 +70,13 @@ struct WorkoutPickerSheet: View {
                     .lineLimit(1)
             }
 
-            HStack(spacing: 8) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
                 compactStepper(label: "Dur.", value: $duration, range: 5...600, step: 5, unit: "s")
                 compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
                 compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
                 compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
                 compactStepper(label: "Btwn", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                compactStepper(label: "Prep", value: $prepareTime, range: 0...30, step: 1, unit: "s")
             }
         }
         .padding(.horizontal, 16)
@@ -159,16 +161,19 @@ struct WorkoutPickerSheet: View {
     }
 
     private func addSection(to workout: Workout) {
-        let newSection = Section(
-            name: page.title,
+        let configuration = WorkoutSectionImportConfiguration(
             duration: duration,
             sets: sets,
             repCount: reps > 0 ? reps : nil,
+            restAfter: restAfter,
             restBetweenSets: restBetweenSets,
-            customRestAfter: restAfter,
-            prepareTime: 4,
-            pageID: page.id
+            prepareTime: prepareTime
         )
+        guard let newSection = WorkoutSectionBuilder.makeSection(
+            page: page,
+            configuration: configuration
+        ) else { return }
+
         workoutStore.addSection(to: workout, section: newSection)
         dismiss()
     }

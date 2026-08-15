@@ -14,6 +14,9 @@ struct WorkoutDetailView: View {
     @State private var expandedRestRowIDs: Set<UUID> = []
     @State private var noteEditTarget: RestNoteTarget?
     @State private var showBrowserSheet = false
+    @State private var showingAddOptions = false
+    @State private var showingSavedWorkoutPicker = false
+    @State private var browserStartsInBundleMode = false
 
     let workoutID: UUID
     @State private var sectionIDs: [UUID] = []
@@ -110,45 +113,56 @@ struct WorkoutDetailView: View {
         .sheet(isPresented: $showBrowserSheet) {
             DatabasePageBrowserSheet(
                 workout: workout,
-                onAdd: { page, dur, sets, reps, restAfter, restBetween in
+
+                onAdd: { page, dur, sets, reps, restAfter, restBetween, prepareTime in
                     handlePageSelection(
                         page,
                         duration: dur,
                         sets: sets,
                         reps: reps,
                         restAfter: restAfter,
-                        restBetween: restBetween
+                        restBetween: restBetween,
+                        prepareTime: prepareTime
                     )
                 },
-                onAddBundle: { pages, dur, sets, reps, restAfter, restBetween in
-                    guard case .newSection = browserTarget else { return }
-                    let bundleName = pages.first?.title ?? "Bundle"
-                    let subNames = pages.map { $0.title }
-                    let totalSets = pages.reduce(sets) { acc, page in
-                        acc + (page.manifest.sets ?? 1)
-                    }
+                onAddBundle: { sources, dur, sets, reps, restAfter, restBetween, prepareTime in
+                    guard case .newSection = browserTarget, !sources.isEmpty else { return }
+                    showBrowserSheet = false
                     pendingSection = PendingSectionConfig(
-                        name: "Bundle: \(bundleName) (\(subNames.joined(separator: ", ")))",
-                        pageID: pages.first?.id,
+                        name: "Bundle: \(sources.map(\.title).joined(separator: ", "))",
+                        pageID: sources.first?.pageID,
+                        sourcePages: sources.compactMap { source in
+                            if case .page(let page) = source { return page }
+                            return nil
+                        },
+                        bundleSources: sources,
                         duration: dur,
-                        sets: totalSets,
+                        sets: sources.count,
                         repCount: reps > 0 ? reps : nil,
                         restAfter: restAfter,
                         restBetweenSets: restBetween,
-                        mode: .bundle,
-                        slots: pages.map {
-                            SetSlot(
-                                exercisePageID: $0.id,
-                                name: $0.title,
-                                duration: $0.manifest.duration ?? dur,
-                                repCount: $0.manifest.sets != nil ? max(1, reps) : nil,
-                                restAfter: restAfter
-                            )
-                        }
+                        prepareTime: prepareTime,
+                        mode: .bundle
                     )
-                }
+                },
+                onNewExercise: nil,
+                initialBundleMode: browserStartsInBundleMode
             )
             .environmentObject(databaseStore)
+            .environmentObject(store)
+            .onDisappear {
+                browserStartsInBundleMode = false
+            }
+        }
+        .sheet(isPresented: $showingAddOptions) {
+            WorkoutAddContentSheet { type in
+                handleAddContentType(type)
+            }
+        }
+        .sheet(isPresented: $showingSavedWorkoutPicker) {
+            SavedWorkoutPickerSheet(excludingWorkoutID: workoutID) { savedWorkout in
+                addSavedWorkoutSection(savedWorkout)
+            }
             .environmentObject(store)
         }
     }
@@ -170,9 +184,7 @@ struct WorkoutDetailView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Button {
-                browserTarget = .newSection
-                databaseStore.reloadImmediately()
-                showBrowserSheet = true
+                showingAddOptions = true
             } label: {
                 HStack {
                     Image(systemName: "plus.circle.fill")
@@ -187,9 +199,7 @@ struct WorkoutDetailView: View {
             }
             .padding(.top, 8)
             Button {
-                browserTarget = .newSection
-                databaseStore.reloadImmediately()
-                showBrowserSheet = true
+                openBrowser(.newSection)
             } label: {
                 HStack {
                     Image(systemName: "folder.fill.badge.plus")
@@ -264,8 +274,11 @@ struct WorkoutDetailView: View {
                 .foregroundColor(.white)
                 .lineLimit(2)
 
-            HStack(spacing: 6) {
-                inlineStepper(label: "Dur", value: Binding(
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 88), spacing: 6)],
+                spacing: 6
+            ) {
+                inlineStepper(label: "Duration", value: Binding(
                     get: { pending.duration },
                     set: { pendingSection?.duration = $0 }
                 ), range: 5...600, step: 5, unit: "s")
@@ -277,14 +290,18 @@ struct WorkoutDetailView: View {
                     get: { pending.repCount ?? 0 },
                     set: { pendingSection?.repCount = ($0 > 0 ? $0 : nil) }
                 ), range: 0...100, step: 1, unit: "")
-                inlineStepper(label: "Rest", value: Binding(
+                inlineStepper(label: "After Rest", value: Binding(
                     get: { pending.restAfter },
                     set: { pendingSection?.restAfter = $0 }
                 ), range: 0...120, step: 5, unit: "s")
-                inlineStepper(label: "Btwn", value: Binding(
+                inlineStepper(label: "Between", value: Binding(
                     get: { pending.restBetweenSets },
                     set: { pendingSection?.restBetweenSets = $0 }
                 ), range: 0...120, step: 5, unit: "s")
+                inlineStepper(label: "Prepare", value: Binding(
+                    get: { pending.prepareTime },
+                    set: { pendingSection?.prepareTime = $0 }
+                ), range: 0...30, step: 1, unit: "s")
             }
 
             HStack(spacing: 10) {
@@ -367,28 +384,32 @@ struct WorkoutDetailView: View {
     }
 
     private func confirmPendingSection(_ pending: PendingSectionConfig) {
-        let section = Section(
-            name: pending.name,
+        let configuration = WorkoutSectionImportConfiguration(
             duration: pending.duration,
             sets: pending.sets,
             repCount: pending.repCount,
+            restAfter: pending.restAfter,
             restBetweenSets: pending.restBetweenSets,
-            customRestAfter: pending.restAfter,
-            prepareTime: 4,
-            pageID: pending.pageID,
-            mode: pending.mode,
-            slots: pending.slots.isEmpty ? [
-                SetSlot(
-                    exercisePageID: pending.pageID,
-                    name: pending.name,
-                    duration: pending.duration,
-                    repCount: pending.repCount,
-                    restAfter: pending.restBetweenSets
-                )
-            ] : pending.slots
+            prepareTime: pending.prepareTime
         )
+
+        let section: Section?
+        switch pending.mode {
+        case .timed:
+            section = pending.sourcePages.first.flatMap {
+                WorkoutSectionBuilder.makeSection(page: $0, configuration: configuration)
+            }
+        case .bundle:
+            section = WorkoutSectionBuilder.makeBundle(
+                sources: pending.bundleSources,
+                configuration: configuration
+            )
+        }
+
+        guard let section else { return }
         store.addSection(to: workout, section: section)
-        sectionIDs = workout.sections.map(\.id)
+        sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+        expandedSectionIDs.insert(section.id)
         pendingSection = nil
     }
 
@@ -849,20 +870,16 @@ struct WorkoutDetailView: View {
         }
         ToolbarItem(placement: .primaryAction) {
             Button {
-                browserTarget = .newSection
-                databaseStore.reloadImmediately()
-                showBrowserSheet = true
+                showingAddOptions = true
             } label: {
                 Image(systemName: "plus")
                     .foregroundColor(.white)
             }
-            .accessibilityLabel("Add exercise")
+            .accessibilityLabel("Add to workout")
         }
         ToolbarItem(placement: .primaryAction) {
             Button {
-                browserTarget = .newSection
-                databaseStore.reloadImmediately()
-                showBrowserSheet = true
+                openBrowser(.newSection)
             } label: {
                 Image(systemName: "folder.fill.badge.plus")
                     .foregroundColor(.white)
@@ -872,6 +889,66 @@ struct WorkoutDetailView: View {
     }
 
     // MARK: - Helpers
+
+    private func handleAddContentType(_ type: WorkoutAddContentType) {
+        showingAddOptions = false
+
+        switch type {
+        case .bundle:
+            Task { @MainActor in
+                await Task.yield()
+                openBrowser(.newSection, bundleMode: true)
+            }
+        case .workout:
+            Task { @MainActor in
+                await Task.yield()
+                showingSavedWorkoutPicker = true
+            }
+        case .bike:
+            addOutdoorSection(kind: .bike)
+        case .runWalk:
+            addOutdoorSection(kind: .runWalk)
+        }
+    }
+
+    private func addSavedWorkoutSection(_ savedWorkout: Workout) {
+        showingSavedWorkoutPicker = false
+        pendingSection = PendingSectionConfig(
+            name: "Workout: \(savedWorkout.name)",
+            pageID: nil,
+            bundleSources: [.workout(savedWorkout)],
+            duration: max(5, savedWorkout.totalDuration),
+            sets: 1,
+            repCount: nil,
+            restAfter: 0,
+            restBetweenSets: 0,
+            prepareTime: 0,
+            mode: .bundle
+        )
+    }
+
+    private func addOutdoorSection(kind: OutdoorActivityKind) {
+        let duration = 30 * 60
+        let section = Section(
+            name: kind.displayName,
+            duration: duration,
+            sets: 1,
+            restBetweenSets: 0,
+            customRestAfter: 0,
+            prepareTime: 0,
+            mode: .timed,
+            slots: [
+                SetSlot(
+                    name: kind.displayName,
+                    duration: duration,
+                    restAfter: 0,
+                    prepareTime: 0
+                )
+            ]
+        )
+        store.addSection(to: workout, section: section)
+        sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+    }
 
     private func moveSections(from source: IndexSet, to destination: Int) {
         sectionIDs.move(fromOffsets: source, toOffset: destination)
@@ -886,18 +963,21 @@ struct WorkoutDetailView: View {
         sets: Int,
         reps: Int,
         restAfter: Int,
-        restBetween: Int
+        restBetween: Int,
+        prepareTime: Int
     ) {
         switch browserTarget {
         case .newSection:
             pendingSection = PendingSectionConfig(
                 name: page.title,
                 pageID: page.id,
+                sourcePages: [page],
                 duration: duration,
                 sets: sets,
                 repCount: reps > 0 ? reps : nil,
                 restAfter: restAfter,
-                restBetweenSets: restBetween
+                restBetweenSets: restBetween,
+                prepareTime: prepareTime
             )
         case .addDrop(let sectionID, let slotID):
             mutateSection(id: sectionID) { section in
@@ -982,9 +1062,13 @@ struct WorkoutDetailView: View {
     }
 
 
-    private func openBrowser(_ target: BuilderBrowserTarget) {
+    private func openBrowser(
+        _ target: BuilderBrowserTarget,
+        bundleMode: Bool = false
+    ) {
         browserTarget = target
-        databaseStore.reloadImmediately()
+        browserStartsInBundleMode = bundleMode
+        databaseStore.reload()
         showBrowserSheet = true
     }
 
@@ -1077,13 +1161,235 @@ struct WorkoutDetailView: View {
 struct PendingSectionConfig {
     var name: String
     var pageID: UUID?
+    var sourcePages: [ExercisePage] = []
+    var bundleSources: [WorkoutBundleSource] = []
     var duration: Int
     var sets: Int
     var repCount: Int?
     var restAfter: Int
     var restBetweenSets: Int
+    var prepareTime: Int = 4
     var mode: SectionMode = .timed
-    var slots: [SetSlot] = []
+}
+private enum WorkoutAddContentType {
+    case bundle
+    case workout
+    case bike
+    case runWalk
+}
+
+private struct WorkoutAddContentSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let onSelect: (WorkoutAddContentType) -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Choose what to add to this workout.")
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textSecondary)
+
+                    option(
+                        title: "Bundle",
+                        subtitle: "Select multiple exercises together",
+                        icon: "rectangle.stack.fill",
+                        type: .bundle
+                    )
+                    option(
+                        title: "Workout",
+                        subtitle: "Add a saved workout",
+                        icon: "figure.strengthtraining.traditional",
+                        type: .workout
+                    )
+                    option(
+                        title: "Bike",
+                        subtitle: "Add a timed bike section",
+                        icon: "bicycle",
+                        type: .bike
+                    )
+                    option(
+                        title: "Walk & Run",
+                        subtitle: "Add a timed outdoor section",
+                        icon: "figure.run",
+                        type: .runWalk
+                    )
+                }
+                .padding(20)
+            }
+            .background(Theme.background.ignoresSafeArea())
+            .navigationTitle("Add to Workout")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(.white)
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 430)
+        #endif
+    }
+
+    private func option(
+        title: String,
+        subtitle: String,
+        icon: String,
+        type: WorkoutAddContentType
+    ) -> some View {
+        Button {
+            onSelect(type)
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(.white)
+                    .frame(width: 42, height: 42)
+                    .background(Theme.surface2)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                }
+
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(Theme.textSecondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SavedWorkoutPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: WorkoutStore
+
+    let excludingWorkoutID: UUID
+    let onSelect: (Workout) -> Void
+
+    private var savedWorkouts: [Workout] {
+        store.workouts
+            .filter {
+                $0.id != excludingWorkoutID &&
+                store.canNestWorkout($0.id, in: excludingWorkoutID)
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if savedWorkouts.isEmpty {
+                    emptyState
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            ForEach(savedWorkouts) { savedWorkout in
+                                Button {
+                                    onSelect(savedWorkout)
+                                    dismiss()
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: savedWorkout.type.iconName)
+                                            .font(.title3)
+                                            .foregroundColor(Color(hex: savedWorkout.colorHex))
+                                            .frame(width: 42, height: 42)
+                                            .background(Theme.surface2)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(savedWorkout.name)
+                                                .font(.headline)
+                                                .foregroundColor(Theme.textPrimary)
+                                            Text("\(savedWorkout.sections.count) sections · \(formatDuration(savedWorkout.totalDuration))")
+                                                .font(.caption)
+                                                .foregroundColor(Theme.textSecondary)
+                                        }
+
+                                        Spacer(minLength: 8)
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(Theme.textSecondary)
+                                    }
+                                    .padding(14)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Theme.surface)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(16)
+                    }
+                }
+            }
+            .background(Theme.background.ignoresSafeArea())
+            .navigationTitle("Add Saved Workout")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundColor(.white)
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(minWidth: 460, minHeight: 420)
+        #endif
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(.system(size: 58))
+                .foregroundColor(Theme.textSecondary)
+            Text("No saved workouts yet")
+                .font(.title2.weight(.semibold))
+                .foregroundColor(Theme.textPrimary)
+                .multilineTextAlignment(.center)
+            Text("Create a workout first, then add it here as a nested section.")
+                .font(.subheadline)
+                .foregroundColor(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 320)
+            Button {
+                dismiss()
+                NotificationCenter.default.post(name: .newWorkoutCommand, object: nil)
+            } label: {
+                Text("Create New Workout")
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color.white)
+                    .clipShape(Capsule())
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(28)
+    }
+
+    private func formatDuration(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        return minutes > 0 ? "\(minutes) min" : "\(max(0, seconds)) sec"
+    }
 }
 
 private enum BuilderBrowserTarget {

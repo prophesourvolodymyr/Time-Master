@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
+    @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @ObservedObject var serverSettings: ServerSettings = .shared
     @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
 
@@ -17,6 +18,7 @@ struct SettingsView: View {
                         NavigationLink {
                             BackupView()
                                 .environmentObject(workoutStore)
+                                .environmentObject(outdoorStore)
                         } label: {
                             settingsRow(
                                 icon: "arrow.triangle.2.circlepath.icloud",
@@ -225,5 +227,6 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(WorkoutStore())
+        .environmentObject(OutdoorActivityStore())
         .preferredColorScheme(.dark)
 }

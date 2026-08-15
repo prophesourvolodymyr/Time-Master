@@ -2,6 +2,7 @@ import Foundation
 
 enum WorkoutPhase: String, Codable {
     case warmUp
+    case prepare
     case active
     case setRest
     case sectionRest

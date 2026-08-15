@@ -34,6 +34,7 @@ struct WorkoutPlayerView: View {
     @State private var isSetRest            = false  // rest between sets of the same section
     @State private var isSectionRest        = false  // rest between sections
     @State private var isWarmUp             = false
+    @State private var isPreparation        = false
     @State private var showingWarmUpPicker  = true
     @State private var workoutCompleted     = false
 
@@ -114,7 +115,7 @@ struct WorkoutPlayerView: View {
     }
 
     private var isBundleActive: Bool {
-        currentSection?.mode == .bundle && !isWarmUp && !isSetRest && !isSectionRest
+        currentSection?.mode == .bundle && !isWarmUp && !isPreparation && !isSetRest && !isSectionRest
     }
 
     private var nextExerciseName: String? {
@@ -203,16 +204,15 @@ struct WorkoutPlayerView: View {
                         timeRemaining: timeRemaining,
                         elapsedSeconds: elapsedSeconds,
                         isPaused: isPaused,
-                        isTimerEnabled: section.mode == .timed && section.isTimerEnabled,
-                         isRest: isSetRest || isSectionRest,
+                        isTimerEnabled: isPreparation || (section.mode == .timed && section.isTimerEnabled),
+                         isRest: isPreparation || isSetRest || isSectionRest,
                          isMusicPlaying: musicManager.isPlaying,
                          nextExerciseName: nextExerciseName,
                          onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
                         onMusicToggle: toggleOverlayMusic,
                         onStop: { stopWorkout() },
                         onSkip: {
-                            timer?.invalidate()
-                            endWorkPeriod()
+                            skipCurrentPhase()
                         },
                         onDismiss: {
                             withAnimation(.easeOut(duration: 0.3)) {
@@ -255,6 +255,8 @@ struct WorkoutPlayerView: View {
             warmUpPickerView
         } else if isWarmUp {
             warmUpView
+        } else if isPreparation {
+            preparationView
         } else if isSetRest || isSectionRest {
             restView
         } else {
@@ -394,6 +396,54 @@ struct WorkoutPlayerView: View {
 
                 Button { skipWarmUp() } label: {
                     Text("Skip Warm Up")
+                        .font(.headline)
+                        .foregroundColor(.black)
+                        .frame(width: 180, height: 48)
+                        .background(Color.white)
+                        .cornerRadius(14)
+                }
+                .padding(.top, 8)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var preparationView: some View {
+        VStack(spacing: 0) {
+            HStack {
+                closeButton(confirmed: true)
+                Spacer()
+                musicButton
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 18) {
+                Text("PREPARATION")
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(5)
+                    .foregroundColor(.white.opacity(0.5))
+
+                Text(currentSlot?.name ?? currentSection?.name ?? "")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.white.opacity(0.65))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                Text(formatTime(timeRemaining))
+                    .font(.system(size: 84, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                pausePlayButton.padding(.top, 6)
+
+                Button { skipPreparation() } label: {
+                    Text("Skip Preparation")
                         .font(.headline)
                         .foregroundColor(.black)
                         .frame(width: 180, height: 48)
@@ -1030,8 +1080,7 @@ struct WorkoutPlayerView: View {
 
     private var skipSectionButton: some View {
         Button {
-            timer?.invalidate()
-            endWorkPeriod()
+            skipCurrentPhase()
         } label: {
             Image(systemName: "forward.end.fill")
                 .font(.system(size: 13, weight: .bold))
@@ -1081,23 +1130,21 @@ struct WorkoutPlayerView: View {
     private func startWorkout() {
         startTime = Date()
         currentSectionIndex = 0
-        currentSetIndex     = 0
-        isSetRest           = false
-        isSectionRest       = false
-        isWarmUp            = false
+        currentSetIndex = 0
+        isSetRest = false
+        isSectionRest = false
+        isWarmUp = false
+        isPreparation = false
         resetMotivationTimer()
         if !selectedMusicTracks.isEmpty {
             MusicManager.shared.startPlayback(tracks: selectedMusicTracks)
         }
-        if let section = currentSection {
-            timeRemaining = currentSlot?.duration ?? section.duration
-            AudioManager.shared.speak(currentSlot?.name ?? section.name)
-            startTimer()
-        }
+        beginCurrentSet()
     }
 
     private func startWarmUp() {
         isWarmUp = true
+        isPreparation = false
         timeRemaining = warmUpDuration
         AudioManager.shared.speak("Warm up")
         startTimer()
@@ -1107,6 +1154,55 @@ struct WorkoutPlayerView: View {
         timer?.invalidate()
         isWarmUp = false
         startWorkout()
+    }
+
+    private func beginCurrentSet() {
+        guard let section = currentSection, let slot = currentSlot else {
+            completeWorkout()
+            return
+        }
+
+        isSetRest = false
+        isSectionRest = false
+        if section.preparationTime(for: slot) > 0 {
+            startPreparation()
+        } else {
+            finishPreparation()
+        }
+    }
+
+    private func startPreparation() {
+        guard let section = currentSection, let slot = currentSlot else {
+            completeWorkout()
+            return
+        }
+
+        isWarmUp = false
+        isSetRest = false
+        isSectionRest = false
+        isPreparation = true
+        timeRemaining = section.preparationTime(for: slot)
+        AudioManager.shared.speak("Preparation")
+        startTimer()
+    }
+
+    private func finishPreparation() {
+        guard let section = currentSection else {
+            completeWorkout()
+            return
+        }
+
+        isPreparation = false
+        timeRemaining = section.mode == .bundle
+            ? 0
+            : (currentSlot?.duration ?? section.duration)
+        AudioManager.shared.speak(currentSlot?.name ?? section.name)
+        startTimer()
+    }
+
+    private func skipPreparation() {
+        timer?.invalidate()
+        finishPreparation()
     }
 
     private func startTimer() {
@@ -1126,38 +1222,50 @@ struct WorkoutPlayerView: View {
             }
             return
         }
-        if timeRemaining > 0 {
-            timeRemaining -= 1
-            elapsedSeconds += 1
-            if timeRemaining <= 3 && timeRemaining >= 1 {
-                AudioManager.shared.playCountdownBeep()
-            }
-            if !isSetRest && !isSectionRest && !isWarmUp {
-                tickMotivation()
-                checkTimeAnnouncement()
-            }
-            autoSaveCounter += 1
-            if autoSaveCounter >= 5 {
-                autoSaveCounter = 0
-                saveResumeState()
-            }
+
+        guard timeRemaining > 0 else {
+            finishCurrentTimerPhase()
+            return
+        }
+
+        timeRemaining -= 1
+        elapsedSeconds += 1
+        if timeRemaining <= 3 && timeRemaining >= 1 {
+            AudioManager.shared.playCountdownBeep()
+        }
+        if !isSetRest && !isSectionRest && !isWarmUp && !isPreparation {
+            tickMotivation()
+            checkTimeAnnouncement()
+        }
+        autoSaveCounter += 1
+        if autoSaveCounter >= 5 {
+            autoSaveCounter = 0
+            saveResumeState()
+        }
+        if timeRemaining == 0 {
+            finishCurrentTimerPhase()
+        }
+    }
+
+    private func finishCurrentTimerPhase() {
+        timer?.invalidate()
+        if isWarmUp {
+            isWarmUp = false
+            startWorkout()
+        } else if isPreparation {
+            finishPreparation()
+        } else if isSetRest {
+            endSetRest()
+        } else if isSectionRest {
+            advanceToNextSection()
         } else {
-            timer?.invalidate()
-            if isWarmUp {
-                isWarmUp = false
-                startWorkout()
-            } else if isSetRest {
-                endSetRest()
-            } else if isSectionRest {
-                advanceToNextSection()
-            } else {
-                endWorkPeriod()
-            }
+            endWorkPeriod()
         }
     }
 
     private func saveResumeState() {
         let phase: WorkoutPhase = isWarmUp ? .warmUp
+            : isPreparation ? .prepare
             : isSetRest ? .setRest
             : isSectionRest ? .sectionRest
             : .active
@@ -1202,23 +1310,21 @@ struct WorkoutPlayerView: View {
         elapsedSeconds = state.elapsedSeconds
         isPaused = state.isPaused
         startTime = Date().addingTimeInterval(-TimeInterval(state.elapsedSeconds))
+        isWarmUp = false
+        isPreparation = false
+        isSetRest = false
+        isSectionRest = false
         switch state.phase {
         case .warmUp:
             isWarmUp = true
-            isSetRest = false
-            isSectionRest = false
+        case .prepare:
+            isPreparation = true
         case .setRest:
-            isWarmUp = false
             isSetRest = true
-            isSectionRest = false
         case .sectionRest:
-            isWarmUp = false
-            isSetRest = false
             isSectionRest = true
         case .active:
-            isWarmUp = false
-            isSetRest = false
-            isSectionRest = false
+            break
         }
         guard !workoutCompleted else {
             completeWorkout()
@@ -1235,9 +1341,7 @@ struct WorkoutPlayerView: View {
     private func reconciledState(from checkpoint: ResumeState) -> ResumeState {
         var state = checkpoint
         guard !checkpoint.isPaused else { return state }
-        if workout.sections.indices.contains(state.currentSectionIndex),
-           workout.sections[state.currentSectionIndex].mode == .bundle,
-           state.phase == .active {
+        if isSelfPacedBundle(state) {
             state.savedAt = Date()
             return state
         }
@@ -1245,6 +1349,9 @@ struct WorkoutPlayerView: View {
         guard elapsedToConsume > 0 else { return state }
 
         while elapsedToConsume > 0 {
+            if isSelfPacedBundle(state) {
+                break
+            }
             if state.timeRemaining > elapsedToConsume {
                 state.timeRemaining -= elapsedToConsume
                 state.elapsedSeconds += elapsedToConsume
@@ -1264,22 +1371,45 @@ struct WorkoutPlayerView: View {
         return state
     }
 
+    private func isSelfPacedBundle(_ state: ResumeState) -> Bool {
+        workout.sections.indices.contains(state.currentSectionIndex)
+            && workout.sections[state.currentSectionIndex].mode == .bundle
+            && state.phase == .active
+    }
+
+    private func configureReconciledCurrentSet(_ state: inout ResumeState) -> Bool {
+        guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
+        let section = workout.sections[state.currentSectionIndex]
+        guard let slot = section.effectiveSlots[safe: state.currentSetIndex] else { return false }
+
+        let preparationTime = section.preparationTime(for: slot)
+        if preparationTime > 0 {
+            state.phase = .prepare
+            state.timeRemaining = preparationTime
+        } else {
+            state.phase = .active
+            state.timeRemaining = section.mode == .bundle ? 0 : slot.duration
+        }
+        return true
+    }
+
     /// Advances a checkpoint without scheduling a Timer or speaking audio. It is
     /// deliberately the same state machine used by the visible timer.
     private func advanceReconciledPhase(_ state: inout ResumeState) -> Bool {
         switch state.phase {
         case .warmUp:
-            state.phase = .active
             state.currentSectionIndex = 0
             state.currentSetIndex = 0
-            guard let first = workout.sections.first else { return false }
-            state.timeRemaining = first.effectiveSlots.first?.duration ?? first.duration
+            return configureReconciledCurrentSet(&state)
+        case .prepare:
+            guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
+            let section = workout.sections[state.currentSectionIndex]
+            guard let slot = section.effectiveSlots[safe: state.currentSetIndex] else { return false }
+            state.phase = .active
+            state.timeRemaining = section.mode == .bundle ? 0 : slot.duration
             return true
         case .setRest:
-            state.phase = .active
-            guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
-            state.timeRemaining = workout.sections[state.currentSectionIndex].effectiveSlots[safe: state.currentSetIndex]?.duration ?? workout.sections[state.currentSectionIndex].duration
-            return true
+            return configureReconciledCurrentSet(&state)
         case .active:
             guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
             let section = workout.sections[state.currentSectionIndex]
@@ -1296,19 +1426,14 @@ struct WorkoutPlayerView: View {
             if rest > 0 {
                 state.phase = .sectionRest
                 state.timeRemaining = rest
-            } else {
-                state.currentSectionIndex += 1
-                state.phase = .active
-                state.timeRemaining = workout.sections[state.currentSectionIndex].effectiveSlots.first?.duration ?? workout.sections[state.currentSectionIndex].duration
+                return true
             }
-            return true
+            state.currentSectionIndex += 1
+            return configureReconciledCurrentSet(&state)
         case .sectionRest:
             state.currentSectionIndex += 1
             state.currentSetIndex = 0
-            guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
-            state.phase = .active
-            state.timeRemaining = workout.sections[state.currentSectionIndex].effectiveSlots.first?.duration ?? workout.sections[state.currentSectionIndex].duration
-            return true
+            return configureReconciledCurrentSet(&state)
         }
     }
 
@@ -1331,7 +1456,7 @@ struct WorkoutPlayerView: View {
         if section.mode == .bundle {
             if currentSetIndex + 1 < section.slotCount {
                 currentSetIndex += 1
-                AudioManager.shared.speak(currentSlot?.name ?? "Next technique")
+                beginCurrentSet()
             } else {
                 currentSetIndex = 0
                 advanceToNextSection()
@@ -1339,7 +1464,8 @@ struct WorkoutPlayerView: View {
         } else if currentSetIndex + 1 < section.slotCount {
             // More sets remaining — rest between sets
             currentSetIndex += 1
-            isSetRest     = true
+            isPreparation = false
+            isSetRest = true
             timeRemaining = section.effectiveSlots[safe: currentSetIndex - 1]?.restAfter ?? section.restBetweenSets
             AudioManager.shared.speak("Rest")
             startTimer()
@@ -1362,11 +1488,7 @@ struct WorkoutPlayerView: View {
 
     private func endSetRest() {
         isSetRest = false
-        if let section = currentSection {
-            timeRemaining = currentSlot?.duration ?? section.duration
-            AudioManager.shared.speak(currentSlot?.name ?? section.name)
-            startTimer()
-        }
+        beginCurrentSet()
     }
 
     private func skipRest() {
@@ -1378,17 +1500,29 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    private func skipCurrentPhase() {
+        timer?.invalidate()
+        if isWarmUp {
+            skipWarmUp()
+        } else if isPreparation {
+            skipPreparation()
+        } else if isSetRest || isSectionRest {
+            skipRest()
+        } else {
+            endWorkPeriod()
+        }
+    }
+
     private func advanceToNextSection() {
         currentSetIndex = 0
-        isSectionRest   = false
-        isSetRest       = false
+        isSectionRest = false
+        isSetRest = false
+        isPreparation = false
         currentSectionIndex += 1
         if currentSectionIndex >= workout.sections.count {
             completeWorkout()
-        } else if let section = currentSection {
-            timeRemaining = currentSlot?.duration ?? section.duration
-            AudioManager.shared.speak(currentSlot?.name ?? section.name)
-            startTimer()
+        } else {
+            beginCurrentSet()
         }
     }
 
@@ -1786,11 +1920,11 @@ private struct BundleReorderSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
                 }
                 #if os(iOS)
-                ToolbarItem(placement: .primaryAction) {
+                AppToolbar.item(placement: .primaryAction) {
                     EditButton()
                 }
                 #endif

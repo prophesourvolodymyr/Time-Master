@@ -47,10 +47,9 @@ struct ServerSettingsView: View {
             #endif
             #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { applyPort(); dismiss() }
-                        .foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .confirmationAction) { Button("Done") { applyPort(); dismiss() }
+                    .foregroundColor(.white)
+                                 }
             }
             .onAppear {
                 portString = "\(settings.port)"

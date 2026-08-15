@@ -43,6 +43,7 @@ public struct ExercisePageManifest: Codable {
     public var workoutType: WorkoutType?
     public var duration: Int?
     public var restAfter: Int?
+    public var prepareTime: Int?
     public var sets: Int?
     public var restBetweenSets: Int?
     public var dropSetTemplates: [PageDropSetTemplate]
@@ -57,7 +58,7 @@ public struct ExercisePageManifest: Codable {
     enum CodingKeys: String, CodingKey {
         case id, title, pageKind, coverImageFilename, iconName, markdownBody
         case mediaFilenames, linkURLs, linkMetadata
-        case workoutType, duration, restAfter, sets, restBetweenSets, dropSetTemplates
+        case workoutType, duration, restAfter, prepareTime, sets, restBetweenSets, dropSetTemplates
         case childIDs, parentID, order, createdAt, updatedAt
     }
 
@@ -74,6 +75,7 @@ public struct ExercisePageManifest: Codable {
         workoutType: WorkoutType? = nil,
         duration: Int? = nil,
         restAfter: Int? = nil,
+        prepareTime: Int? = nil,
         sets: Int? = nil,
         restBetweenSets: Int? = nil,
         dropSetTemplates: [PageDropSetTemplate] = [],
@@ -95,6 +97,7 @@ public struct ExercisePageManifest: Codable {
         self.workoutType = workoutType
         self.duration = duration.map { max(5, $0) }
         self.restAfter = restAfter.map { max(0, $0) }
+        self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
         self.sets = sets.map { max(1, $0) }
         self.restBetweenSets = restBetweenSets.map { max(0, $0) }
         self.dropSetTemplates = dropSetTemplates
@@ -128,6 +131,7 @@ public struct ExercisePageManifest: Codable {
             workoutType: try values.decodeIfPresent(WorkoutType.self, forKey: .workoutType),
             duration: duration,
             restAfter: try values.decodeIfPresent(Int.self, forKey: .restAfter),
+            prepareTime: try values.decodeIfPresent(Int.self, forKey: .prepareTime),
             sets: try values.decodeIfPresent(Int.self, forKey: .sets),
             restBetweenSets: try values.decodeIfPresent(Int.self, forKey: .restBetweenSets),
             dropSetTemplates: try values.decodeIfPresent([PageDropSetTemplate].self, forKey: .dropSetTemplates) ?? [],

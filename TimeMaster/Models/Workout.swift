@@ -141,6 +141,7 @@ struct DropSet: Identifiable, Codable, Equatable {
 struct SetSlot: Identifiable, Codable, Equatable {
     var id: UUID
     var exercisePageID: UUID?
+    var nestedWorkoutID: UUID?
     var name: String
     var alias: String?
     var duration: Int
@@ -148,48 +149,59 @@ struct SetSlot: Identifiable, Codable, Equatable {
     var restAfter: Int
     var restExercisePageID: UUID?
     var drops: [DropSet]
+    var children: [SetSlot]
     var restRow: RestRow?
+    var prepareTime: Int?
 
     init(
         id: UUID = UUID(),
         exercisePageID: UUID? = nil,
+        nestedWorkoutID: UUID? = nil,
         name: String,
         alias: String? = nil,
         duration: Int = 30,
         repCount: Int? = nil,
         restAfter: Int = 10,
+        prepareTime: Int? = nil,
         restExercisePageID: UUID? = nil,
         drops: [DropSet] = [],
+        children: [SetSlot] = [],
         restRow: RestRow? = nil
     ) {
         self.id = id
         self.exercisePageID = exercisePageID
+        self.nestedWorkoutID = nestedWorkoutID
         self.name = name
         self.alias = alias
         self.duration = max(5, duration)
         self.repCount = repCount.map { max(1, $0) }
         self.restAfter = max(0, restAfter)
+        self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
         self.restExercisePageID = restExercisePageID
         self.drops = drops
+        self.children = children
         self.restRow = restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, exercisePageID, name, alias, duration, repCount, restAfter
-        case restExercisePageID, drops, restRow
+        case id, exercisePageID, nestedWorkoutID, name, alias, duration, repCount, restAfter, prepareTime
+        case restExercisePageID, drops, children, restRow
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         exercisePageID = try c.decodeIfPresent(UUID.self, forKey: .exercisePageID)
+        nestedWorkoutID = try c.decodeIfPresent(UUID.self, forKey: .nestedWorkoutID)
         name = try c.decode(String.self, forKey: .name)
         alias = try c.decodeIfPresent(String.self, forKey: .alias)
         duration = max(5, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
         repCount = try c.decodeIfPresent(Int.self, forKey: .repCount).map { max(1, $0) }
         restAfter = max(0, try c.decodeIfPresent(Int.self, forKey: .restAfter) ?? 10)
+        prepareTime = try c.decodeIfPresent(Int.self, forKey: .prepareTime).map { min(30, max(0, $0)) }
         restExercisePageID = try c.decodeIfPresent(UUID.self, forKey: .restExercisePageID)
         drops = try c.decodeIfPresent([DropSet].self, forKey: .drops) ?? []
+        children = try c.decodeIfPresent([SetSlot].self, forKey: .children) ?? []
         restRow = try c.decodeIfPresent(RestRow.self, forKey: .restRow)
         if restRow == nil, restAfter > 0 {
             restRow = RestRow(duration: restAfter)
@@ -200,19 +212,24 @@ struct SetSlot: Identifiable, Codable, Equatable {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
         try c.encodeIfPresent(exercisePageID, forKey: .exercisePageID)
+        try c.encodeIfPresent(nestedWorkoutID, forKey: .nestedWorkoutID)
         try c.encode(name, forKey: .name)
         try c.encodeIfPresent(alias, forKey: .alias)
         try c.encode(duration, forKey: .duration)
         try c.encodeIfPresent(repCount, forKey: .repCount)
         try c.encode(restAfter, forKey: .restAfter)
+        try c.encodeIfPresent(prepareTime, forKey: .prepareTime)
         try c.encodeIfPresent(restExercisePageID, forKey: .restExercisePageID)
         try c.encode(drops, forKey: .drops)
+        try c.encode(children, forKey: .children)
         try c.encodeIfPresent(restRow, forKey: .restRow)
     }
 
     var displayName: String {
         alias?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? alias! : name
     }
+
+    var isNestedWorkout: Bool { nestedWorkoutID != nil }
 
     var effectiveRestRow: RestRow? {
         restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
@@ -268,17 +285,20 @@ struct Section: Identifiable, Codable, Equatable {
         self.prepareTime = max(0, prepareTime)
         self.pageID = pageID
         self.mode = mode
-        self.bigRestRow = bigRestRow ?? RestRow(kind: .big, duration: customRestAfter ?? restAfter)
+        self.bigRestRow = bigRestRow ?? (customRestAfter == 0
+            ? nil
+            : RestRow(kind: .big, duration: customRestAfter ?? restAfter))
         if !slots.isEmpty {
             self.slots = slots
         } else {
-            self.slots = (0..<max(1, sets)).map { _ in
+            let slotCount = max(1, sets)
+            self.slots = (0..<slotCount).map { index in
                 SetSlot(
                     exercisePageID: pageID,
                     name: name,
                     duration: duration,
                     repCount: repCount,
-                    restAfter: restBetweenSets
+                    restAfter: index < slotCount - 1 ? max(0, restBetweenSets) : 0
                 )
             }
         }
@@ -313,14 +333,15 @@ struct Section: Identifiable, Codable, Equatable {
         prepareTime = max(0, try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4)
         pageID = try c.decodeIfPresent(UUID.self, forKey: .pageID)
         mode = try c.decodeIfPresent(SectionMode.self, forKey: .mode) ?? .timed
-        var decodedSlots = try c.decodeIfPresent([SetSlot].self, forKey: .slots) ?? []
+        let decodedSlots = try c.decodeIfPresent([SetSlot].self, forKey: .slots) ?? []
         if let value = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
             customRestAfter = value
         } else {
             customRestAfter = try c.decodeIfPresent(Int.self, forKey: .restAfter)
         }
+        let hasStoredBigRestRow = c.contains(.bigRestRow)
         bigRestRow = try c.decodeIfPresent(RestRow.self, forKey: .bigRestRow)
-        if bigRestRow == nil {
+        if !hasStoredBigRestRow, customRestAfter != 0 {
             bigRestRow = RestRow(kind: .big, duration: customRestAfter ?? 30)
         }
         if decodedSlots.isEmpty {
@@ -359,26 +380,38 @@ struct Section: Identifiable, Codable, Equatable {
     }
 
     var effectiveSlots: [SetSlot] {
-        slots.isEmpty
-            ? (0..<max(1, sets)).map { _ in
-                SetSlot(
-                    exercisePageID: pageID,
-                    name: name,
-                    duration: duration,
-                    repCount: repCount,
-                    restAfter: restBetweenSets
-                )
-            }
-            : slots
+        if !slots.isEmpty {
+            return slots
+        }
+
+        let slotCount = max(1, sets)
+        return (0..<slotCount).map { index in
+            SetSlot(
+                exercisePageID: pageID,
+                name: name,
+                duration: duration,
+                repCount: repCount,
+                restAfter: index < slotCount - 1 ? restBetweenSets : 0
+            )
+        }
     }
 
     var slotCount: Int { max(1, effectiveSlots.count) }
 
+
+
+    func preparationTime(for slot: SetSlot) -> Int {
+        max(0, slot.prepareTime ?? prepareTime)
+    }
+
     var calculatedDuration: Int {
-        effectiveSlots.reduce(0) { total, slot in
+        let slots = effectiveSlots
+        return slots.enumerated().reduce(0) { total, entry in
+            let (index, slot) = entry
+            let preparation = preparationTime(for: slot)
             let drops = slot.drops.reduce(0) { $0 + $1.duration + $1.restAfter }
-            let rest = slot.effectiveRestRow?.duration ?? 0
-            return total + slot.duration + drops + rest
+            let rest = index < slots.count - 1 ? (slot.effectiveRestRow?.duration ?? 0) : 0
+            return total + preparation + slot.duration + drops + rest
         }
     }
 }
@@ -453,7 +486,17 @@ struct Workout: Identifiable, Codable, Equatable {
     }
 
     var totalDuration: Int {
-        sections.reduce(0) { $0 + $1.calculatedDuration + ($1.bigRestRow?.duration ?? restBetweenSections) }
+        sections.reduce(0) { total, section in
+            let sectionRest: Int
+            if let bigRestRow = section.bigRestRow {
+                sectionRest = bigRestRow.duration
+            } else if section.customRestAfter == 0 {
+                sectionRest = 0
+            } else {
+                sectionRest = restBetweenSections
+            }
+            return total + section.calculatedDuration + sectionRest
+        }
     }
 
     var sectionCount: Int { sections.count }

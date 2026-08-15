@@ -29,11 +29,11 @@ public final class FileSystemHelper {
     private static let knownDirectories: Set<String> = [
         "Exercises Database", "Workouts", "Media", "Workspace",
         "Knowledge", "skills", "Config", "History", "Music",
-        "Backups", ".trash"
+        "Backups", ".trash", "Activities"
     ]
 
     private static let schemaFileNames: Set<String> = [
-        "manifest.json", "guide.md", "schema.json", "AGENTS.md"
+        "manifest.json", "guide.md", "schema.json", "AGENTS.md", "track.jsonl"
     ]
 
     public init(dataRoot: URL) {
@@ -95,6 +95,10 @@ public final class FileSystemHelper {
         dataRoot.appendingPathComponent("Backups", isDirectory: true)
     }
 
+
+    public var outdoorActivitiesDirectory: URL {
+        dataRoot.appendingPathComponent("Activities", isDirectory: true)
+    }
     public var schemaURL: URL {
         dataRoot.appendingPathComponent("schema.json")
     }
@@ -122,6 +126,24 @@ public final class FileSystemHelper {
         try writeAtomically(to: url, data: data)
     }
 
+
+    public func appendLineAtomically(to url: URL, data: Data) throws {
+        try ensureDirectory(url.deletingLastPathComponent())
+        if !fileManager.fileExists(atPath: url.path) {
+            guard fileManager.createFile(atPath: url.path, contents: nil) else {
+                throw Error.writeFailed(url.path)
+            }
+        }
+        do {
+            let handle = try FileHandle(forWritingTo: url)
+            defer { try? handle.close() }
+            try handle.seekToEnd()
+            handle.write(data)
+            try handle.synchronize()
+        } catch {
+            throw Error.writeFailed(url.path)
+        }
+    }
     public func readManifest<T: Decodable>(from url: URL, decoder: JSONDecoder = JSONDecoder()) throws -> T {
         guard fileManager.fileExists(atPath: url.path) else {
             throw Error.notFound(url.path)

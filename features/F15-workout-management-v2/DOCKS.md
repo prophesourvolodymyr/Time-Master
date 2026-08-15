@@ -5,9 +5,11 @@ The user reports that "workout management was never built — right now it is an
 ## What We Build
 
 - A clean V2 `WorkoutListView` with card layout, today-only filter, scheduled-time badges, and empty state pointing to the database.
-- A V2 `WorkoutDetailView` that always shows page-backed sections in a single scrollable list — section header (page cover thumbnail, title, rep count, duration), slot list inline, add-set / add-item / set-rest-exercise actions all reachable without leaving the screen.
-- Inline slot editing (steppers for Dur/Sets/Reps/Rest/Btwn) without a separate sheet for the common case.
-- Mac three-pane awareness: selection in the workouts list pushes into the detail pane; nothing in the editor requires a sheet pop-up that breaks the macOS sidebar flow.
+- A V2 `WorkoutDetailView` that always shows page-backed sections in a single scrollable threaded list — section header (page cover thumbnail, title, rep count, duration), slot list inline, add-set / add-item / set-rest-exercise actions all reachable without leaving the screen. Each structural row is removable by a trailing destructive swipe; deletion never needs an inline trash control.
+- Inline slot editing (steppers for Dur/Sets/Reps/Rest/Btwn/Prep) without a separate sheet for the common case. `Prep` defaults per section, while each slot can inherit it, override it, or persist an explicit zero after removal. Set and drop cards are pure white with black content; rest cards and rest children are complete orange cards with black content; neutral headers and preparation cards retain the structural hierarchy. No card uses a colored badge or isolated colored label to identify its type.
+- A Reddit-style tree rail connects each child row to its parent: one quiet vertical rail per nesting depth, with a short branch into the child card. Names sit in the visual center column. Time and cover thumbnails occupy the leading column, and only row actions occupy the trailing column. Rows with an actual cover photo use its averaged color only across the thumbnail-side 22% and a subtle matching outline. Symbol fallback rows stay neutral.
+- Duration controls preserve the configured range and step. On iOS, the inline configuration form uses a compact decrement / `M:SS` / increment capsule instead of clipped wheels; the full row editor retains separate readable minute and second wheels. On macOS, the control is an editable `M:SS` clock field beside the system stepper. Typing an invalid value, or leaving the allowed range, restores the normalized displayed duration.
+- Workout cards use the platform zoom navigation transition on iOS 18 and later; earlier systems retain the accessibility-aware opening fade. The global dark header fade is iOS-only. Header actions retain the shared system glass background on iOS/macOS 26 and later rather than adding opaque custom chrome.
 - Workouts can be created from the empty state, from the database (Add to Workout on a leaf page), and from a quick action on the Home dashboard.
 - Remove all "old database" picker paths from the editor — see F23.
 - Validate that the workout manifest file is written through `WorkoutStore.updateWorkout` → `DatabaseManager` only; no UserDefaults-only writes.
@@ -21,7 +23,7 @@ WorkoutListView (V2)
         ├─ Header (name, type icon, color, total duration, "Start" button)
         ├─ Section list (single scroll)
         │   └─ SectionRow (page thumbnail + name + sets badge + duration)
-        │       └─ SlotEditor (inline expandable: each slot's Dur/Reps/Rest; add-set; add-item; set-rest-exercise)
+        │       ├─ SlotEditor (inline expandable: each slot's Dur/Reps/Rest/Prep; add-set; add-item; set-rest-exercise)
         │       └─ RestSeparator row (stepper for restAfter)
         └─ WorkoutSettings sheet (rest between sections, color, music)
 ```
@@ -38,7 +40,7 @@ Database leaf page → "Add to Workout" button
 |---|---|---|
 | empty workouts | empty state with "Create from Database" + "Start from blank" | navigates user to database tab |
 | workout with no sections | "Add first exercise" prompt → opens DatabasePageBrowserSheet | section added inline |
-| workout with sections | one scrolling list, expandable slot editors | no double sheet |
+| workout with sections | one scrolling list, expandable slot editors with independently removable preparation, work, drop, rest, and rest-content rows | structural changes autosave; a slot with no remaining sibling requests parent-section deletion |
 | drag reorder | section list supports drag handles on macOS and onMove on iOS | order persists |
 | macOS selection | sidebar pushes detail | no popover-modal ping-pong |
 | Add to Workout from database | picker sheet appears, picks workout, returns to details with pending section | one navigation hop |

@@ -39,11 +39,10 @@ struct AISettingsView: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { applyAndDismiss() }
-                        .foregroundColor(.white)
-                        .fontWeight(.semibold)
-                }
+                AppToolbar.item(placement: .confirmationAction) { Button("Done") { applyAndDismiss() }
+                    .foregroundColor(.white)
+                    .fontWeight(.semibold)
+                                 }
             }
             .onAppear { reloadAPIKeyDraft() }
             .onChange(of: store.activeProviderID) { _ in reloadAPIKeyDraft() }
@@ -470,10 +469,9 @@ struct ProviderPickerSheet: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }
+                    .foregroundColor(.white)
+                                 }
             }
         }
     }
@@ -625,10 +623,9 @@ struct ModelPickerSheet: View {
 #endif
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }
+                    .foregroundColor(.white)
+                                 }
             }
         }
     }
