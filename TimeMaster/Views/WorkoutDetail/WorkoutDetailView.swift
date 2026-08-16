@@ -217,44 +217,775 @@ struct WorkoutDetailView: View {
     private var sectionList: some View {
         List {
             if let pending = pendingSection {
-                pendingConfigCard(pending)
-                    .listRowBackground(Theme.surface)
-                    .listRowSeparatorTint(Theme.separator)
+                builderListRow(
+                    pendingConfigCard(pending),
+                    insets: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
+                )
             }
 
             ForEach(sectionIDs, id: \.self) { id in
                 if let section = workout.sections.first(where: { $0.id == id }) {
-                    sectionCell(section, id: id)
-                        .listRowBackground(Theme.surface)
-                        .listRowSeparatorTint(Theme.separator)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                sectionToDelete = section
-                                showingDeleteAlert = true
-                            } label: { Label("Delete", systemImage: "trash") }
-                            .tint(.red)
+                    let bigRest = section.bigRestRow ?? RestRow(
+                        id: section.id,
+                        kind: .big,
+                        duration: section.customRestAfter ?? workout.restBetweenSections
+                    )
+
+                    builderListRow(
+                        sectionHeader(section, isExpanded: expandedSectionIDs.contains(section.id)),
+                        insets: EdgeInsets(top: 6, leading: 12, bottom: 2, trailing: 12)
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            sectionToDelete = section
+                            showingDeleteAlert = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                if expandedSectionIDs.contains(section.id) {
-                                    expandedSectionIDs.remove(section.id)
-                                } else {
-                                    expandedSectionIDs.insert(section.id)
-                                }
-                            } label: {
-                                Label(
-                                    expandedSectionIDs.contains(section.id) ? "Collapse" : "Edit",
-                                    systemImage: expandedSectionIDs.contains(section.id) ? "chevron.up" : "pencil"
-                                )
-                            }
-                            .tint(Color.white.opacity(0.3))
+                        .tint(.red)
+                    }
+
+                    if expandedSectionIDs.contains(section.id) {
+                        expandedSectionRows(section)
+                    }
+
+                    builderListRow(
+                        restRowView(
+                            bigRest,
+                            target: RestTarget(sectionID: section.id, slotID: nil, isBig: true)
+                        ),
+                        insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                        depth: 1
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            removeRestRow(RestTarget(sectionID: section.id, slotID: nil, isBig: true))
+                        } label: {
+                            Label("Clear", systemImage: "trash")
                         }
+                        .tint(.red)
+                    }
+
+                    restDetailRows(
+                        row: bigRest,
+                        target: RestTarget(sectionID: section.id, slotID: nil, isBig: true),
+                        depth: 2
+                    )
                 }
             }
             .onMove(perform: moveSections)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .animation(.smooth(duration: 0.28), value: workout.sections.map(\.id))
+    }
+
+    private func builderListRow<Content: View>(
+        _ content: Content,
+        insets: EdgeInsets,
+        depth: Int = 0
+    ) -> some View {
+        BuilderThreadedRow(depth: depth) {
+            content
+        }
+        .listRowInsets(insets)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+
+    @ViewBuilder
+    private func expandedSectionRows(_ section: Section) -> some View {
+        ForEach(Array(section.effectiveSlots.enumerated()), id: \.element.id) { slotIndex, slot in
+            if section.preparationTime(for: slot) > 0 {
+                builderListRow(
+                    preparationRow(section: section, slot: slot),
+                    insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                    depth: 1
+                )
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        disablePreparation(in: section.id, slotID: slot.id)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(.red)
+                }
+            }
+
+            builderListRow(
+                setRow(section: section, slot: slot, index: slotIndex),
+                insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                depth: 1
+            )
+            .onDrag {
+                draggedSlotID = slot.id
+                return NSItemProvider(object: slot.id.uuidString as NSString)
+            }
+            .onDrop(
+                of: [.text],
+                delegate: SlotDropDelegate(
+                    sourceID: draggedSlotID,
+                    targetID: slot.id,
+                    move: { sourceID, targetID in
+                        moveSlot(in: section.id, sourceID: sourceID, before: targetID)
+                    }
+                )
+            )
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    requestSlotRemoval(slot, from: section)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .tint(.red)
+            }
+
+            ForEach(slot.drops) { drop in
+                builderListRow(
+                    dropRow(section: section, slot: slot, drop: drop),
+                    insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                    depth: 2
+                )
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        removeDrop(sectionID: section.id, slotID: slot.id, dropID: drop.id)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(.red)
+                }
+
+                if drop.restAfter > 0 {
+                    let target = RestTarget(
+                        sectionID: section.id,
+                        slotID: slot.id,
+                        dropID: drop.id,
+                        isBig: false
+                    )
+                    let rest = RestRow(id: drop.id, kind: .normal, duration: drop.restAfter)
+
+                    builderListRow(
+                        restRowView(rest, target: target),
+                        insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                        depth: 3
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            removeRestRow(target)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .tint(.red)
+                    }
+
+                    restDetailRows(row: rest, target: target, depth: 4)
+                }
+            }
+
+            if (slot.restRow?.duration ?? slot.restAfter) > 0 {
+                let rest = slot.restRow ?? RestRow(
+                    id: slot.id,
+                    kind: .normal,
+                    duration: slot.restAfter
+                )
+                let target = RestTarget(sectionID: section.id, slotID: slot.id, isBig: false)
+
+                builderListRow(
+                    restRowView(rest, target: target),
+                    insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                    depth: 2
+                )
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        removeRestRow(target)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(.red)
+                }
+
+                restDetailRows(row: rest, target: target, depth: 3)
+            }
+        }
+    }
+
+    private func sectionHeader(_ section: Section, isExpanded: Bool) -> some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(Theme.textSecondary.opacity(0.6))
+                    .frame(width: 12)
+
+                Text(formatCompactDuration(section.calculatedDuration))
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundColor(Theme.textSecondary)
+
+                pageThumbnailButton(
+                    pageID: section.pageID,
+                    size: 42,
+                    fallbackIcon: section.mode == .bundle ? "rectangle.stack.fill" : "figure.run"
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                toggleSection(section.id)
+            } label: {
+                VStack(spacing: 3) {
+                    Text(section.name)
+                        .font(.headline.weight(.medium))
+                        .foregroundColor(Theme.textPrimary)
+                        .lineLimit(1)
+
+                    Text(sectionSummary(section))
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(Theme.textSecondary)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 10) {
+                Button {
+                    addSlot(in: section.id)
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(Theme.textPrimary)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add set to \(section.name)")
+
+                Menu {
+                    Button {
+                        addSlot(in: section.id)
+                    } label: {
+                        Label("Add Set", systemImage: "plus")
+                    }
+                    if let firstSlot = section.effectiveSlots.first {
+                        Button {
+                            openBrowser(.addDrop(section.id, firstSlot.id))
+                        } label: {
+                            Label("Add Drop Set", systemImage: "arrow.down.right")
+                        }
+                    }
+                    Button {
+                        var copy = section
+                        copy.id = UUID()
+                        copy.name = "\(section.name) Copy"
+                        copy.slots = section.effectiveSlots.map { slot in
+                            var copied = slot
+                            copied.id = UUID()
+                            copied.restRow?.id = UUID()
+                            copied.drops = slot.drops.map { drop in
+                                var copiedDrop = drop
+                                copiedDrop.id = UUID()
+                                return copiedDrop
+                            }
+                            return copied
+                        }
+                        if var bigRest = copy.bigRestRow {
+                            bigRest.id = copy.id
+                            copy.bigRestRow = bigRest
+                        }
+                        store.addSection(to: workout, section: copy)
+                        sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+                        expandedSectionIDs.insert(copy.id)
+                    } label: {
+                        Label("Duplicate Section", systemImage: "plus.square.on.square")
+                    }
+                    Button(role: .destructive) {
+                        sectionToDelete = section
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("Delete Section", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(width: 26, height: 28)
+                }
+                .menuStyle(.borderlessButton)
+                .accessibilityLabel("Actions for \(section.name)")
+
+                Button {
+                    toggleSection(section.id)
+                } label: {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isExpanded ? "Collapse \(section.name)" : "Expand \(section.name)")
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(14)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func sectionSummary(_ section: Section) -> String {
+        var parts = [section.mode == .bundle ? "Bundle" : "\(section.slotCount) sets"]
+        if let reps = section.repCount {
+            parts.append("\(reps) reps")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func preparationRow(section: Section, slot: SetSlot) -> some View {
+        let seconds = section.preparationTime(for: slot)
+
+        return HStack(spacing: 12) {
+            HStack(spacing: 7) {
+                Image(systemName: "timer")
+                    .font(.caption.weight(.semibold))
+                Text(formatCompactDuration(seconds))
+                    .font(.caption.weight(.semibold).monospacedDigit())
+            }
+            .foregroundColor(Theme.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("Preparation for that set")
+                .font(.caption.weight(.medium))
+                .foregroundColor(Theme.textPrimary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+
+            Button(role: .destructive) {
+                disablePreparation(in: section.id, slotID: slot.id)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(.red)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Delete preparation for set \(slot.displayName)")
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Theme.surface2)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func setRow(section: Section, slot: SetSlot, index: Int) -> some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                durationButton(
+                    text: formatCompactDuration(slot.duration),
+                    title: "Set \(index + 1) duration",
+                    seconds: slot.duration,
+                    foreground: .black
+                ) {
+                    durationEdit = DurationEditTarget(
+                        title: "Set \(index + 1) duration",
+                        seconds: slot.duration,
+                        kind: .slot(section.id, slot.id)
+                    )
+                }
+
+                pageThumbnailButton(
+                    pageID: slot.exercisePageID,
+                    size: 34,
+                    fallbackIcon: "figure.run"
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                inspectedPageID = slot.exercisePageID
+            } label: {
+                VStack(spacing: 2) {
+                    Text(slot.displayName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                    Text("Set \(index + 1)")
+                        .font(.caption2.weight(.medium))
+                        .foregroundColor(.black.opacity(0.56))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 4) {
+                Menu {
+                    if slot.prepareTime == 0 {
+                        Button {
+                            enablePreparation(in: section.id, slotID: slot.id)
+                        } label: {
+                            Label("Add Preparation", systemImage: "timer")
+                        }
+                    }
+                    Button {
+                        openBrowser(.addDrop(section.id, slot.id))
+                    } label: {
+                        Label("Add Drop Set", systemImage: "arrow.down.right")
+                    }
+                    Button {
+                        openBrowser(.setRestExercise(section.id, slot.id))
+                    } label: {
+                        Label("Set Rest Exercise", systemImage: "figure.cooldown")
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.black)
+                        .frame(width: 28, height: 28)
+                }
+                .menuStyle(.borderlessButton)
+                .accessibilityLabel("Add to set \(index + 1)")
+
+                Button(role: .destructive) {
+                    requestSlotRemoval(slot, from: section)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(.red)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Delete set \(index + 1)")
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(12)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func dropRow(section: Section, slot: SetSlot, drop: DropSet) -> some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                durationButton(
+                    text: formatCompactDuration(drop.duration),
+                    title: "\(drop.displayName) duration",
+                    seconds: drop.duration,
+                    foreground: .black
+                ) {
+                    durationEdit = DurationEditTarget(
+                        title: "\(drop.displayName) duration",
+                        seconds: drop.duration,
+                        kind: .drop(section.id, slot.id, drop.id)
+                    )
+                }
+
+                pageThumbnailButton(
+                    pageID: drop.exercisePageID,
+                    size: 28,
+                    fallbackIcon: "arrow.down.right"
+                )
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                inspectedPageID = drop.exercisePageID
+            } label: {
+                VStack(spacing: 2) {
+                    Text(drop.displayName)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                    Text("Drop")
+                        .font(.caption2.weight(.medium))
+                        .foregroundColor(.black.opacity(0.56))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+
+            Button(role: .destructive) {
+                removeDrop(sectionID: section.id, slotID: slot.id, dropID: drop.id)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(.red)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Delete \(drop.displayName)")
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func durationButton(
+        text: String,
+        title: String,
+        seconds: Int,
+        foreground: Color = Theme.textPrimary,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundColor(foreground)
+                .lineLimit(1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(formatCompactDuration(seconds))
+    }
+
+    private func pageThumbnailButton(pageID: UUID?, size: CGFloat, fallbackIcon: String) -> some View {
+        Button {
+            inspectedPageID = pageID
+        } label: {
+            pageThumbnail(pageID: pageID, size: size, fallbackIcon: fallbackIcon)
+        }
+        .buttonStyle(.plain)
+        .disabled(pageID == nil)
+        .accessibilityLabel(pageID == nil ? "No page preview" : "Open page preview")
+    }
+
+    private func pageThumbnail(pageID: UUID?, size: CGFloat, fallbackIcon: String) -> some View {
+        let page = pageID.flatMap { databaseStore.page(id: $0) }
+        return AsyncCoverImage(
+            url: page?.coverImageURL,
+            fallbackIcon: page?.manifest.iconName ?? fallbackIcon,
+            fallbackColor: page?.effectiveWorkoutType.map { Color(hex: $0.colorHex) },
+            height: size,
+            contentMode: .fill,
+            overlayGradient: false
+        )
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: min(9, size / 4)))
+    }
+
+    private func restRowView(_ row: RestRow, target: RestTarget) -> some View {
+        let isExpanded = expandedRestRowIDs.contains(row.id)
+
+        return HStack(spacing: 12) {
+            HStack(spacing: 7) {
+                durationButton(
+                    text: formatCompactDuration(row.duration),
+                    title: row.kind == .big ? "Big rest duration" : "Rest duration",
+                    seconds: row.duration,
+                    foreground: .black
+                ) {
+                    durationEdit = DurationEditTarget(
+                        title: row.kind == .big ? "Big rest duration" : "Rest duration",
+                        seconds: row.duration,
+                        kind: .rest(target)
+                    )
+                }
+
+                Image(systemName: row.kind == .big ? "square.stack.3d.up.fill" : "pause.fill")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundColor(.black)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(row.kind == .big ? "Big Rest" : "Rest")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+
+            HStack(spacing: 4) {
+                restActionMenu(target: target)
+
+                Button {
+                    if isExpanded {
+                        expandedRestRowIDs.remove(row.id)
+                    } else {
+                        expandedRestRowIDs.insert(row.id)
+                    }
+                } label: {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.black)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isExpanded ? "Collapse rest contents" : "Expand rest contents")
+
+                Button(role: .destructive) {
+                    removeRestRow(target)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(.red)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(row.kind == .big ? "Clear big rest" : "Delete rest")
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Theme.restAccent)
+        .clipShape(RoundedRectangle(cornerRadius: row.kind == .big ? 11 : 8))
+    }
+
+    private func restExerciseRow(pageID: UUID) -> some View {
+        HStack(spacing: 12) {
+            pageThumbnailButton(
+                pageID: pageID,
+                size: 24,
+                fallbackIcon: "figure.cooldown"
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(databaseStore.page(id: pageID)?.title ?? "Rest exercise")
+                .font(.caption.weight(.medium))
+                .foregroundColor(.black)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+
+            Color.clear
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Theme.restAccent)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var restEmptyHint: some View {
+        Text("Add a note, stretch, or rest exercise")
+            .font(.caption)
+            .foregroundColor(.black.opacity(0.7))
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Theme.restAccent.opacity(0.82))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func restActionMenu(target: RestTarget) -> some View {
+        Menu {
+            Button("Add Note", systemImage: "note.text") {
+                noteEditTarget = RestNoteTarget(target: target, contentID: nil, text: "")
+            }
+            Button("Add Stretch", systemImage: "figure.cooldown") {
+                openBrowser(.restStretch(target))
+            }
+            if !target.isBig, target.dropID == nil, let slotID = target.slotID {
+                Button("Add Rest Exercise", systemImage: "figure.cooldown") {
+                    openBrowser(.setRestExercise(target.sectionID, slotID))
+                }
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.caption.weight(.bold))
+                .foregroundColor(.black)
+                .frame(width: 26, height: 26)
+        }
+        .menuStyle(.borderlessButton)
+        .accessibilityLabel("Add rest content")
+    }
+
+    @ViewBuilder
+    private func restDetailRows(row: RestRow, target: RestTarget, depth: Int) -> some View {
+        if expandedRestRowIDs.contains(row.id) {
+            let restPageID = restExercisePageID(for: target)
+
+            if let restPageID {
+                builderListRow(
+                    restExerciseRow(pageID: restPageID),
+                    insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                    depth: depth
+                )
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        clearRestExercise(sectionID: target.sectionID, slotID: target.slotID)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(.red)
+                }
+            }
+
+            if row.contents.isEmpty && restPageID == nil {
+                builderListRow(
+                    restEmptyHint,
+                    insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                    depth: depth
+                )
+            } else {
+                ForEach(row.contents) { content in
+                    builderListRow(
+                        restContentRow(content, target: target),
+                        insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                        depth: depth
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            removeRestContent(target, contentID: content.id)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .tint(.red)
+                    }
+                }
+            }
+        }
+    }
+
+    private func restContentRow(_ content: RestContent, target: RestTarget) -> some View {
+        HStack(spacing: 12) {
+            pageThumbnailButton(
+                pageID: content.pageID,
+                size: 24,
+                fallbackIcon: content.kind == .stretch ? "figure.cooldown" : "note.text"
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(content.text.isEmpty ? (content.kind == .stretch ? "Stretch" : "Note") : content.text)
+                .font(.caption.weight(.medium))
+                .foregroundColor(.black)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+
+            HStack(spacing: 4) {
+                if content.kind == .note {
+                    Button {
+                        noteEditTarget = RestNoteTarget(target: target, contentID: content.id, text: content.text)
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.caption2)
+                            .foregroundColor(.black)
+                            .frame(width: 24, height: 24)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button(role: .destructive) {
+                    removeRestContent(target, contentID: content.id)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(.red)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Delete rest content")
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Theme.restAccent)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func toggleSection(_ id: UUID) {
+        if expandedSectionIDs.contains(id) {
+            expandedSectionIDs.remove(id)
+        } else {
+            expandedSectionIDs.insert(id)
+        }
     }
 
     @ViewBuilder
@@ -413,420 +1144,6 @@ struct WorkoutDetailView: View {
         pendingSection = nil
     }
 
-    private func sectionCell(_ section: Section, id: UUID) -> some View {
-        let isExpanded = expandedSectionIDs.contains(section.id)
-        let bigRest = section.bigRestRow ?? RestRow(
-            id: section.id,
-            kind: .big,
-            duration: section.customRestAfter ?? workout.restBetweenSections
-        )
-
-        return VStack(spacing: 6) {
-            sectionHeader(section, isExpanded: isExpanded)
-
-            if isExpanded {
-                VStack(spacing: 6) {
-                    ForEach(Array(section.effectiveSlots.enumerated()), id: \.element.id) { slotIndex, slot in
-                        slotRows(section: section, slot: slot, index: slotIndex)
-                    }
-                }
-                .padding(.leading, 12)
-                .padding(.trailing, 4)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-
-            restRowView(
-                bigRest,
-                target: RestTarget(sectionID: section.id, slotID: nil, isBig: true)
-            )
-        }
-        .padding(.vertical, 4)
-        .animation(.spring(response: 0.28, dampingFraction: 0.86), value: isExpanded)
-    }
-
-    private func sectionHeader(_ section: Section, isExpanded: Bool) -> some View {
-        HStack(spacing: 10) {
-            pageThumbnailButton(
-                pageID: section.pageID,
-                size: 42,
-                fallbackIcon: section.mode == .bundle ? "rectangle.stack.fill" : "figure.run"
-            )
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text("\(section.slotCount)×")
-                        .font(.subheadline.weight(.semibold).monospacedDigit())
-                        .foregroundColor(Theme.textPrimary)
-                    Text(formatCompactDuration(section.effectiveSlots.first?.duration ?? section.duration))
-                        .font(.subheadline.weight(.semibold).monospacedDigit())
-                        .foregroundColor(Theme.textPrimary)
-                    Text(section.name)
-                        .font(.headline.weight(.medium))
-                        .foregroundColor(Theme.textPrimary)
-                        .lineLimit(1)
-                }
-
-                HStack(spacing: 8) {
-                    if let reps = section.repCount {
-                        Text("\(reps) reps")
-                    }
-                    Text(section.mode == .bundle ? "Bundle" : "Timed")
-                    Text(formatCompactDuration(section.calculatedDuration))
-                }
-                .font(.caption)
-                .foregroundColor(Theme.textSecondary)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture { toggleSection(section.id) }
-
-            Spacer(minLength: 4)
-
-            Button {
-                toggleSection(section.id)
-            } label: {
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(Theme.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(Theme.surface2)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isExpanded ? "Collapse \(section.name)" : "Expand \(section.name)")
-        }
-        .padding(10)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func toggleSection(_ id: UUID) {
-        if expandedSectionIDs.contains(id) {
-            expandedSectionIDs.remove(id)
-        } else {
-            expandedSectionIDs.insert(id)
-        }
-    }
-
-    private func slotRows(section: Section, slot: SetSlot, index: Int) -> some View {
-        VStack(spacing: 4) {
-            setRow(section: section, slot: slot, index: index)
-                .onDrag {
-                    draggedSlotID = slot.id
-                    return NSItemProvider(object: slot.id.uuidString as NSString)
-                }
-                .onDrop(
-                    of: [.text],
-                    delegate: SlotDropDelegate(
-                        sourceID: draggedSlotID,
-                        targetID: slot.id,
-                        move: { source, target in
-                            moveSlot(in: section.id, sourceID: source, before: target)
-                        }
-                    )
-                )
-
-            ForEach(slot.drops) { drop in
-                dropRow(section: section, slot: slot, drop: drop)
-                restRowView(
-                    RestRow(id: drop.id, kind: .normal, duration: drop.restAfter),
-                    target: RestTarget(
-                        sectionID: section.id,
-                        slotID: slot.id,
-                        dropID: drop.id,
-                        isBig: false
-                    )
-                )
-            }
-
-            let rest = slot.restRow ?? RestRow(
-                id: slot.id,
-                kind: .normal,
-                duration: slot.restAfter
-            )
-            restRowView(
-                rest,
-                target: RestTarget(sectionID: section.id, slotID: slot.id, isBig: false)
-            )
-        }
-    }
-
-    private func setRow(section: Section, slot: SetSlot, index: Int) -> some View {
-        HStack(spacing: 8) {
-            pageThumbnailButton(
-                pageID: slot.exercisePageID,
-                size: 34,
-                fallbackIcon: "figure.run"
-            )
-
-            VStack(alignment: .leading, spacing: 1) {
-                Button {
-                    inspectedPageID = slot.exercisePageID
-                } label: {
-                    Text(slot.displayName)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(Theme.textPrimary)
-                        .lineLimit(1)
-                }
-                .buttonStyle(.plain)
-
-                Text("Set \(index + 1)")
-                    .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
-            }
-
-            Spacer(minLength: 4)
-
-            durationButton(
-                text: formatCompactDuration(slot.duration),
-                title: "Set \(index + 1) duration",
-                seconds: slot.duration
-            ) {
-                durationEdit = DurationEditTarget(
-                    title: "Set \(index + 1) duration",
-                    seconds: slot.duration,
-                    kind: .slot(section.id, slot.id)
-                )
-            }
-
-            Button {
-                openBrowser(.addDrop(section.id, slot.id))
-            } label: {
-                Image(systemName: "plus")
-                    .font(.caption.weight(.bold))
-                    .foregroundColor(Theme.textPrimary)
-                    .frame(width: 28, height: 28)
-                    .background(Theme.surface2)
-                    .clipShape(RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Add drop set to \(slot.displayName)")
-        }
-        .padding(8)
-        .background(Theme.surface2.opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-
-    private func dropRow(section: Section, slot: SetSlot, drop: DropSet) -> some View {
-        HStack(spacing: 8) {
-            pageThumbnailButton(
-                pageID: drop.exercisePageID,
-                size: 28,
-                fallbackIcon: "arrow.down.right"
-            )
-
-            Text(drop.displayName)
-                .font(.subheadline)
-                .foregroundColor(Theme.textPrimary)
-                .lineLimit(1)
-
-            Spacer(minLength: 4)
-
-            durationButton(
-                text: formatCompactDuration(drop.duration),
-                title: "\(drop.displayName) duration",
-                seconds: drop.duration
-            ) {
-                durationEdit = DurationEditTarget(
-                    title: "\(drop.displayName) duration",
-                    seconds: drop.duration,
-                    kind: .drop(section.id, slot.id, drop.id)
-                )
-            }
-
-            Button(role: .destructive) {
-                mutateSection(id: section.id) { updated in
-                    var slots = updated.effectiveSlots
-                    guard let slotIndex = slots.firstIndex(where: { $0.id == slot.id }) else { return }
-                    slots[slotIndex].drops.removeAll { $0.id == drop.id }
-                    updated.slots = slots
-                }
-            } label: {
-                Image(systemName: "minus.circle")
-                    .font(.caption)
-                    .foregroundColor(.red.opacity(0.8))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Remove \(drop.displayName)")
-        }
-        .padding(.leading, 18)
-        .padding(.vertical, 5)
-        .padding(.trailing, 8)
-        .background(Theme.surface.opacity(0.85))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func durationButton(
-        text: String,
-        title: String,
-        seconds: Int,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Text(text)
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-                .foregroundColor(Theme.textPrimary)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 5)
-                .background(Theme.surface)
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityValue(formatCompactDuration(seconds))
-    }
-
-    private func pageThumbnailButton(pageID: UUID?, size: CGFloat, fallbackIcon: String) -> some View {
-        Button {
-            inspectedPageID = pageID
-        } label: {
-            pageThumbnail(pageID: pageID, size: size, fallbackIcon: fallbackIcon)
-        }
-        .buttonStyle(.plain)
-        .disabled(pageID == nil)
-        .accessibilityLabel(pageID == nil ? "No page preview" : "Open page preview")
-    }
-
-    private func pageThumbnail(pageID: UUID?, size: CGFloat, fallbackIcon: String) -> some View {
-        let page = pageID.flatMap { databaseStore.page(id: $0) }
-        return AsyncCoverImage(
-            url: page?.coverImageURL,
-            fallbackIcon: page?.manifest.iconName ?? fallbackIcon,
-            fallbackColor: page?.effectiveWorkoutType.map { Color(hex: $0.colorHex) },
-            height: size,
-            contentMode: .fill,
-            overlayGradient: false
-        )
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: min(9, size / 4)))
-    }
-
-    private func restRowView(_ row: RestRow, target: RestTarget) -> some View {
-        let isExpanded = expandedRestRowIDs.contains(row.id)
-        return VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: row.kind == .big ? "square.stack.3d.up.fill" : "pause.fill")
-                    .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
-
-                Text(row.kind == .big ? "BIG REST" : "REST")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(Theme.textPrimary)
-
-                durationButton(
-                    text: formatCompactDuration(row.duration),
-                    title: row.kind == .big ? "Big rest duration" : "Rest duration",
-                    seconds: row.duration
-                ) {
-                    durationEdit = DurationEditTarget(
-                        title: row.kind == .big ? "Big rest duration" : "Rest duration",
-                        seconds: row.duration,
-                        kind: .rest(target)
-                    )
-                }
-
-                Spacer(minLength: 4)
-
-                restActionMenu(target: target)
-
-                Button {
-                    if expandedRestRowIDs.contains(row.id) {
-                        expandedRestRowIDs.remove(row.id)
-                    } else {
-                        expandedRestRowIDs.insert(row.id)
-                    }
-                } label: {
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(Theme.textSecondary)
-                        .frame(width: 24, height: 24)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isExpanded ? "Collapse rest contents" : "Expand rest contents")
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-
-            if isExpanded {
-                VStack(spacing: 3) {
-                    if row.contents.isEmpty {
-                        Text("Add a note or stretch")
-                            .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, 34)
-                            .padding(.bottom, 5)
-                    } else {
-                        ForEach(row.contents) { content in
-                            restContentRow(content, target: target)
-                        }
-                    }
-                }
-                .padding(.bottom, 6)
-            }
-        }
-        .background(row.kind == .big ? Theme.surface2.opacity(0.9) : Theme.surface2.opacity(0.58))
-        .clipShape(RoundedRectangle(cornerRadius: row.kind == .big ? 11 : 8))
-    }
-
-    private func restActionMenu(target: RestTarget) -> some View {
-        Menu {
-            Button("Add Note", systemImage: "note.text") {
-                noteEditTarget = RestNoteTarget(target: target, contentID: nil, text: "")
-            }
-            Button("Add Stretch", systemImage: "figure.cooldown") {
-                openBrowser(.restStretch(target))
-            }
-        } label: {
-            Image(systemName: "plus")
-                .font(.caption.weight(.bold))
-                .foregroundColor(Theme.textPrimary)
-                .frame(width: 26, height: 26)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 7))
-        }
-        .menuStyle(.borderlessButton)
-        .accessibilityLabel("Add rest content")
-    }
-
-    private func restContentRow(_ content: RestContent, target: RestTarget) -> some View {
-        HStack(spacing: 7) {
-            pageThumbnailButton(
-                pageID: content.pageID,
-                size: 24,
-                fallbackIcon: content.kind == .stretch ? "figure.cooldown" : "note.text"
-            )
-
-            Text(content.text.isEmpty ? (content.kind == .stretch ? "Stretch" : "Note") : content.text)
-                .font(.caption)
-                .foregroundColor(Theme.textPrimary)
-                .lineLimit(1)
-
-            Spacer()
-
-            if content.kind == .note {
-                Button {
-                    noteEditTarget = RestNoteTarget(target: target, contentID: content.id, text: content.text)
-                } label: {
-                    Image(systemName: "pencil")
-                        .font(.caption2)
-                        .foregroundColor(Theme.textSecondary)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Button(role: .destructive) {
-                removeRestContent(target, contentID: content.id)
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption2.weight(.bold))
-                    .foregroundColor(.red.opacity(0.8))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.leading, 30)
-        .padding(.trailing, 10)
-        .padding(.vertical, 3)
-    }
 
 
     @ViewBuilder
@@ -1154,6 +1471,123 @@ struct WorkoutDetailView: View {
         mutateRestRow(target) { row in
             row.contents.removeAll { $0.id == contentID }
         }
+    }
+
+    private func addSlot(in sectionID: UUID) {
+        mutateSection(id: sectionID) { section in
+            var slots = section.effectiveSlots
+            guard let source = slots.last else { return }
+
+            if let previousIndex = slots.indices.last {
+                let previousID = slots[previousIndex].id
+                slots[previousIndex].restAfter = max(0, section.restBetweenSets)
+                slots[previousIndex].restRow = RestRow(
+                    id: previousID,
+                    kind: .normal,
+                    duration: max(0, section.restBetweenSets)
+                )
+            }
+
+            var newSlot = source
+            newSlot.id = UUID()
+            newSlot.prepareTime = nil
+            newSlot.drops = []
+            newSlot.children = []
+            newSlot.restExercisePageID = nil
+            newSlot.restAfter = 0
+            newSlot.restRow = nil
+            slots.append(newSlot)
+            section.slots = slots
+            section.sets = slots.count
+        }
+    }
+
+    private func requestSlotRemoval(_ slot: SetSlot, from section: Section) {
+        let slots = section.effectiveSlots
+        guard let index = slots.firstIndex(where: { $0.id == slot.id }) else { return }
+        guard slots.count > 1 else {
+            sectionToDelete = section
+            showingDeleteAlert = true
+            return
+        }
+        removeSlot(in: section.id, at: index)
+    }
+
+    private func removeDrop(sectionID: UUID, slotID: UUID, dropID: UUID) {
+        mutateSection(id: sectionID) { section in
+            var slots = section.effectiveSlots
+            guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }) else { return }
+            slots[slotIndex].drops.removeAll { $0.id == dropID }
+            section.slots = slots
+        }
+    }
+
+    private func removeRestRow(_ target: RestTarget) {
+        mutateSection(id: target.sectionID) { section in
+            if target.isBig {
+                var row = section.bigRestRow ?? RestRow(
+                    id: section.id,
+                    kind: .big,
+                    duration: section.customRestAfter ?? workout.restBetweenSections
+                )
+                row.duration = 0
+                row.contents.removeAll()
+                section.bigRestRow = row
+                section.customRestAfter = 0
+                return
+            }
+
+            var slots = section.effectiveSlots
+            guard let slotID = target.slotID,
+                  let slotIndex = slots.firstIndex(where: { $0.id == slotID }) else { return }
+
+            if let dropID = target.dropID,
+               let dropIndex = slots[slotIndex].drops.firstIndex(where: { $0.id == dropID }) {
+                slots[slotIndex].drops[dropIndex].restAfter = 0
+            } else {
+                slots[slotIndex].restAfter = 0
+                slots[slotIndex].restRow = nil
+                slots[slotIndex].restExercisePageID = nil
+            }
+            section.slots = slots
+        }
+    }
+
+    private func disablePreparation(in sectionID: UUID, slotID: UUID) {
+        mutateSection(id: sectionID) { section in
+            var slots = section.effectiveSlots
+            guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
+            slots[index].prepareTime = 0
+            section.slots = slots
+        }
+    }
+
+    private func enablePreparation(in sectionID: UUID, slotID: UUID) {
+        mutateSection(id: sectionID) { section in
+            var slots = section.effectiveSlots
+            guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
+            slots[index].prepareTime = nil
+            section.slots = slots
+        }
+    }
+
+    private func clearRestExercise(sectionID: UUID, slotID: UUID?) {
+        guard let slotID else { return }
+        mutateSection(id: sectionID) { section in
+            var slots = section.effectiveSlots
+            guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
+            slots[index].restExercisePageID = nil
+            section.slots = slots
+        }
+    }
+
+    private func restExercisePageID(for target: RestTarget) -> UUID? {
+        guard !target.isBig, target.dropID == nil, let slotID = target.slotID else { return nil }
+        return workout.sections
+            .first(where: { $0.id == target.sectionID })?
+            .effectiveSlots
+            .first(where: { $0.id == slotID })?
+            .restExercisePageID
     }
 
 }
@@ -1772,6 +2206,49 @@ private struct WorkoutSettingsView: View {
         }
         store.updateWorkout(w)
         dismiss()
+    }
+}
+
+private struct BuilderThreadedRow<Content: View>: View {
+    let depth: Int
+    let content: Content
+
+    init(depth: Int, @ViewBuilder content: () -> Content) {
+        self.depth = max(0, depth)
+        self.content = content()
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if depth > 0 {
+                BuilderThread(depth: depth)
+            }
+            content
+        }
+        .padding(.vertical, depth > 0 ? 2 : 0)
+    }
+}
+
+private struct BuilderThread: View {
+    let depth: Int
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(0..<depth, id: \.self) { level in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Color.white.opacity(level == depth - 1 ? 0.38 : 0.16))
+                    .frame(width: 1)
+                    .frame(maxHeight: .infinity)
+                    .frame(width: 16)
+            }
+        }
+        .overlay(alignment: .trailing) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Color.white.opacity(0.38))
+                .frame(width: 16, height: 1)
+                .offset(x: 8)
+        }
+        .accessibilityHidden(true)
     }
 }
 

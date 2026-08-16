@@ -448,11 +448,12 @@ F06 (AI Coach) ─────────┘
 ### Phase 2 — V2 Workout Management + V2 Player (paired)
 - [ ] F15 — V2 Workout Management Rework
   - [ ] F15-A — V2 `WorkoutListView` card grid with page-backed cover thumbnails, today-only filter (consumes F20), scheduled-time badges, empty state
-  - [ ] F15-B — V2 `WorkoutDetailView` single-pane editor: section list with inline expandable slot editor (Dur/Sets/Reps/Rest/Btwn/Prep), Add Set / Add Drop / Set Rest Exercise actions inline, rest separators
+- [x] F15-B — V2 `WorkoutDetailView` single-pane editor: section list with inline expandable slot editor (Dur/Sets/Reps/Rest/Btwn/Prep), Add Set / Add Drop / Set Rest Exercise actions inline, rest separators
     - [x] Detail: Centralized leaf-page and bundle import builds local slots with indexed drop templates and an inheritable per-set preparation default
     - [x] Detail: Builder preparation, work, drop, rest, and rest-content rows each support a visible destructive delete action and trailing swipe deletion with immediate manifest persistence; deleting preparation sets that slot's override to zero
     - [x] Detail: Add-to-workout now opens a shared type chooser on iOS and macOS; Bundle uses multi-select browser mode, saved Workout uses a picker with a centered empty-state create prompt, and Bike and Run & Walk create outdoor sections
     - [x] Detail: New page and bundle imports expose duration, sets, reps, rest, between-set rest, and preparation controls, and newly created workouts route straight to their detail builder
+  - [x] Detail: Builder rows retain visible threaded hierarchy rails and category-specific set/drop/rest colors on iOS and macOS
   - [ ] F15-C — `WorkoutStore.updateWorkout` writes ONLY via `DatabaseManager` manifest; remove any UserDefaults-only write path
   - [ ] F15-D — Add-to-Workout from database leaf page → new section lands at end of picked workout and persists
   - [x] F15-E — Drag-to-reorder sections persists across launches
@@ -557,8 +558,9 @@ F06 (AI Coach) ─────────┘
   - [x] Builder row deletion (visible destructive icon + swipe for every set, drop, rest, content, big-rest, section; preparation row delete sets slot.prepareTime=0; Add Preparation restores nil inheritance; section default preserved)
   - [x] Preparation in player/resume (WorkoutPhase.prepare; beginCurrentSet chooses prep vs work; preparationView with skip; tick/reconcile; checkpoints encode phase; legacy safe)
   - [x] All call sites migrated to factory; no legacy direct construction in picker/editor/detail
-  - [x] Core tests (81 tests pass including all WorkoutPreparationTests for roundtrips, duration math, inheritance, drops)
+  - [x] Core tests (82 tests pass including all WorkoutPreparationTests for roundtrips, duration math, inheritance, drops)
   - [x] macOS + iOS simulator builds succeed
+  - [x] Detail: Restored the builder's threaded row hierarchy and category-specific row colors after source recovery
   - Verified per plan smoke paths (builds/tests only; human verification separate)
 - Cycle 10: real-world polish from ISSUES.md — stability, database hierarchy, V2 workout + player reworks, mac UI polish, minimalist cleanup, scheduled-today Home, music behavior (planned 2026-07-13).
 - server.py and start_server.command are F05 companion files.
