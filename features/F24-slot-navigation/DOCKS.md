@@ -13,7 +13,7 @@ A native SwiftUI replacement for the iOS bottom tab bar. It ports the supplied s
 - Use the same mathematical arc for the visible nav background and every emoji position. The background arc stays fixed in the viewport while the reel moves across it, so icons never drift away from the curve during scrolling.
 - Remove the prototype's red accent, red glow, red active tint, and red navigation-only progress treatment. The slot bar uses neutral dark surfaces, white text, and neutral opacity/scale changes. Page-owned colors remain controlled by their existing views.
 - Respect Dynamic Type, VoiceOver, Reduce Motion, minimum hit targets, and light/dark system contrast where applicable. The app remains dark by default through the existing app theme.
-- Extend the neutral slot surface through the iOS bottom safe area so the home-indicator region matches the bar; the page viewport still reserves the bar's height.
+- Keep the arc interior as an opaque-enough neutral glass layer (`.glassEffect(.regular)` on iOS 26 and `.regularMaterial` fallback) with a soft shadow; the region below the arc remains the underlying page/theme instead of a separate solid rectangle.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ MainTabView (iOS)
       ├─ Page viewport
       │   └─ Existing TimeMaster page for the selected index
       └─ SlotNavigationBar
-          ├─ fixed SlotArcShape background
+          ├─ opaque-enough glass SlotArcShape surface + soft depth shadow
           ├─ shared SlotArcGeometry (path + item y positions)
           └─ draggable SlotNavigationItem reel
 
@@ -54,7 +54,7 @@ No HTML page body, Realistic copy, motivational strip, demo statistics, or exter
 |---|---|---|
 | Resting, selected | Center slot follows the shared arc, enlarged emoji, full white label, neighboring slots smaller and dimmer | Tap any visible slot to spring it to center and select its page |
 | Resting, neighboring | Same arc anchor, reduced emoji scale and opacity, no red tint | Tap selects the destination |
-| Dragging | Reel follows the finger one-to-one; each slot's y position is recalculated from its current x on the fixed arc; labels interpolate by distance from center; page content remains stable until release | Continue dragging, reverse direction, or release; gesture is never locked out |
+- Dragging | Reel follows the finger one-to-one; each slot's y position is recalculated from its current x on the fixed arc; labels interpolate by distance from center; the glass arc remains above the moving page and never exposes a clipped black band | Continue dragging, reverse direction, or release; gesture is never locked out |
 | Dragging at first/last page | Translation is rubber-banded instead of hard-stopped | Releasing returns to the boundary page |
 | Settling | Reel springs from the current presentation offset to the projected nearest slot; selected page transitions from the swipe direction | A new drag interrupts the spring from its visible position |
 | Page swipe | Horizontal page swipe selects the adjacent page and uses the same slot spring; vertical movement remains owned by the page's scroll view | Swipe left/right beyond the threshold; edge swipes do nothing beyond the first/last page |

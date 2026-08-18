@@ -21,22 +21,20 @@ struct SlotNavigationContainer<Content: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack {
-                content()
-                    .id(selection)
-                    .transition(pageTransition)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .simultaneousGesture(pageSwipeGesture)
-
+            content()
+                .id(selection)
+                .transition(pageTransition)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .simultaneousGesture(pageSwipeGesture)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             SlotNavigationBar(
                 selection: $selection,
                 items: items,
                 onSelectionChanged: updateTransitionDirection(for:)
             )
         }
-        .ignoresSafeArea(edges: .bottom)
         .background(Theme.background.ignoresSafeArea())
         .onAppear {
             lastSelection = selection

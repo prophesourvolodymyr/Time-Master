@@ -34,8 +34,7 @@ struct SlotNavigationBar: View {
 
             ZStack {
                 ZStack {
-                    SlotNavigationArcShape()
-                        .fill(Theme.surface)
+                    arcSurface
                     SlotNavigationArcLineShape()
                         .stroke(Color.white.opacity(0.07), lineWidth: 1)
                 }
@@ -83,6 +82,28 @@ struct SlotNavigationBar: View {
         }
         .frame(height: 126)
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var arcSurface: some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            SlotNavigationArcShape()
+                .fill(.clear)
+                .glassEffect(.regular, in: SlotNavigationArcShape())
+                .overlay {
+                    SlotNavigationArcShape()
+                        .fill(Color.black.opacity(0.16))
+                }
+                .shadow(color: .black.opacity(0.34), radius: 18, y: -4)
+        } else {
+            SlotNavigationArcShape()
+                .fill(.regularMaterial)
+                .overlay {
+                    SlotNavigationArcShape()
+                        .fill(Color.black.opacity(0.22))
+                }
+                .shadow(color: .black.opacity(0.34), radius: 18, y: -4)
+        }
     }
 
     @ViewBuilder
