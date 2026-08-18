@@ -585,11 +585,11 @@ F06 (AI Coach) ─────────┘
 
 ## Cycle 15 — Home Dashboard Redesign
 
-- [ ] F27 — Home Dashboard Redesign
-  - [ ] F27-A — Adaptive infinite widget canvas
-  - [ ] F27-B — Today scheduled workout instances and Quick Start
-  - [ ] F27-C — Existing-feature widget catalog and picker
-  - [ ] F27-D — macOS/iOS edit mode, local persistence, accessibility
+- [x] F27 — Home Dashboard Redesign
+  - [x] F27-A — Adaptive infinite widget canvas
+  - [x] F27-B — Today scheduled workout instances and Quick Start
+  - [x] F27-C — Existing-feature widget catalog and picker
+  - [x] F27-D — macOS/iOS edit mode, local persistence, accessibility
 
 ## Notes
 - Codebase converted to this system: 2026-07-04.

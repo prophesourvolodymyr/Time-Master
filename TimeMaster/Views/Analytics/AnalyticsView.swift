@@ -492,7 +492,7 @@ private struct TrainingScheduleCard: View {
 
 // MARK: - ActivityHeatmap
 
-private struct ActivityHeatmap: View {
+struct ActivityHeatmap: View {
     @EnvironmentObject var store: WorkoutStore
     let entries: [WorkoutHistoryEntry]
     let outdoorActivities: [OutdoorActivity]

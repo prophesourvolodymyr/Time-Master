@@ -4,8 +4,10 @@ import Combine
 @MainActor
 final class HomeWidgetStore: ObservableObject {
     @Published private(set) var widgets: [HomeWidgetInstance]
+    @Published private(set) var skippedScheduledInstanceIDs: Set<String>
 
     private let layoutKey = "home_widget_layout_v1"
+    private let skippedScheduleKey = "home_skipped_schedule_instances_v1"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -15,6 +17,12 @@ final class HomeWidgetStore: ObservableObject {
             widgets = decoded
         } else {
             widgets = HomeWidgetCatalog.initialLayout
+        }
+        if let data = defaults.data(forKey: skippedScheduleKey),
+           let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
+            skippedScheduledInstanceIDs = decoded
+        } else {
+            skippedScheduledInstanceIDs = []
         }
     }
 
@@ -74,6 +82,18 @@ final class HomeWidgetStore: ObservableObject {
         guard let index = widgets.firstIndex(where: { $0.id == id }) else { return }
         widgets[index].configuration = configuration
         save()
+    }
+
+    func skipScheduledInstance(id: String) {
+        skippedScheduledInstanceIDs.insert(id)
+        guard let data = try? JSONEncoder().encode(skippedScheduledInstanceIDs) else { return }
+        defaults.set(data, forKey: skippedScheduleKey)
+    }
+
+    func restoreScheduledInstance(id: String) {
+        skippedScheduledInstanceIDs.remove(id)
+        guard let data = try? JSONEncoder().encode(skippedScheduledInstanceIDs) else { return }
+        defaults.set(data, forKey: skippedScheduleKey)
     }
 
     func resetLayout() {

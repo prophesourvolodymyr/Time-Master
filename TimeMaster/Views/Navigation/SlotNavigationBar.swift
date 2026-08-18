@@ -230,8 +230,8 @@ struct SlotNavigationBar: View {
         let proximity = max(0, 1 - min(distance / (slotWidth * 2.3), 1))
         let norm = distance / slotWidth
         let bubbleFactor = max(0, 1 - distance / 34)
-        let baseIconSize = 42 + 20 * focus
-        let expandedIconSize = 50 + bubbleFactor * 34
+        let baseIconSize = 24 + 7 * focus
+        let expandedIconSize = 28 + bubbleFactor * 12
         let iconSize = baseIconSize + dragIntensity * (expandedIconSize - baseIconSize)
         let baseScale = 0.88 + 0.18 * focus
         let expandedScale = max(0.4, 1.2 - norm * 0.35)
@@ -250,15 +250,17 @@ struct SlotNavigationBar: View {
         let arcY = transformedArcY(at: itemX, in: arcRect)
         let itemHeight = 90 + dragIntensity * 24
         let itemLift: CGFloat = 56
-        let iconFrameHeight = 60 + dragIntensity * max(0, expandedIconSize - 60)
+        let iconFrameHeight = 42 + dragIntensity * max(0, expandedIconSize - 42)
         let zIndex = max(
             0,
             focus + dragIntensity * (1 - min(norm, 10) - focus)
         )
 
         VStack(spacing: 4) {
-            Text(item.emoji)
-                .font(.system(size: iconSize))
+            Image(systemName: item.symbolName)
+                .font(.system(size: iconSize, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.white)
                 .frame(height: iconFrameHeight)
                 .accessibilityHidden(true)
 

@@ -547,7 +547,7 @@ class WorkoutStore: ObservableObject {
             }
 
             return ScheduledWorkout(
-                id: \"\(schedule.id.uuidString)-\(dateKey(from: date))\",
+                id: "\(schedule.id.uuidString)-\(dateKey(from: date))",
                 workout: workout,
                 scheduledStart: scheduledStart,
                 scheduledFinish: scheduledFinish,
