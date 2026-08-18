@@ -31,15 +31,8 @@ struct SlotNavigationBar: View {
             let displayOffset = hasMeasured ? reelOffset : centeredOffset
             let arcScaleX = 1 + dragIntensity * 0.15
             let arcScaleY = 1 + dragIntensity * 0.35
-            let baseHeight = 58 + dragIntensity * 36
-            let arcTranslation = displayOffset * 0.5
 
             ZStack {
-                Rectangle()
-                    .fill(Theme.surface)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: baseHeight)
-                    .ignoresSafeArea(edges: .bottom)
                 ZStack {
                     SlotNavigationArcShape()
                         .fill(Theme.surface)
@@ -47,7 +40,6 @@ struct SlotNavigationBar: View {
                         .stroke(Color.white.opacity(0.07), lineWidth: 1)
                 }
                 .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: .bottom)
-                .offset(x: arcTranslation)
                 .allowsHitTesting(false)
 
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -90,6 +82,7 @@ struct SlotNavigationBar: View {
             }
         }
         .frame(height: 126)
+        .background(Theme.surface.ignoresSafeArea(edges: .bottom))
         .accessibilityElement(children: .contain)
     }
 
@@ -120,7 +113,7 @@ struct SlotNavigationBar: View {
             htmlBaseTy,
             htmlBaseTy + norm * (20 + dragIntensity * 14)
         ) - restingBaseTy
-        let arcY = transformedArcY(at: itemX, in: arcRect, translation: offset * 0.5)
+        let arcY = transformedArcY(at: itemX, in: arcRect)
         let itemHeight: CGFloat = 110
         let itemLift: CGFloat = 56
 
@@ -283,15 +276,11 @@ struct SlotNavigationBar: View {
         }
     }
 
-    private func transformedArcY(
-        at x: CGFloat,
-        in rect: CGRect,
-        translation: CGFloat
-    ) -> CGFloat {
+    private func transformedArcY(at x: CGFloat, in rect: CGRect) -> CGFloat {
         let scaleX = 1 + dragIntensity * 0.15
         let scaleY = 1 + dragIntensity * 0.35
         let centerX = rect.midX
-        let arcSampleX = centerX + (x - translation - centerX) / scaleX
+        let arcSampleX = centerX + (x - centerX) / scaleX
         let unscaledY = SlotNavigationArcGeometry.curveY(at: arcSampleX, in: rect)
         return rect.maxY - (rect.maxY - unscaledY) * scaleY
     }
