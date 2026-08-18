@@ -1,11 +1,19 @@
 import SwiftUI
 
+enum SlotNavigationBarLayout: Equatable {
+    case full
+    case inline
+}
+
 struct SlotNavigationBar: View {
+    static let inlineHeight: CGFloat = 52
+
     @Binding private var selection: Int
     let items: [SlotNavigationItem]
     let onSelectionChanged: (Int) -> Void
     private let bottomSafeArea: CGFloat
     private let barHeight: CGFloat
+    private let layout: SlotNavigationBarLayout
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reelOffset: CGFloat = 0
@@ -19,12 +27,14 @@ struct SlotNavigationBar: View {
         items: [SlotNavigationItem] = SlotNavigationItem.timeMaster,
         bottomSafeArea: CGFloat = 0,
         barHeight: CGFloat = 126,
+        layout: SlotNavigationBarLayout = .full,
         onSelectionChanged: @escaping (Int) -> Void = { _ in }
     ) {
         _selection = selection
         self.items = items
         self.bottomSafeArea = max(0, bottomSafeArea)
-        self.barHeight = max(126, barHeight)
+        self.barHeight = max(Self.inlineHeight, barHeight)
+        self.layout = layout
         self.onSelectionChanged = onSelectionChanged
     }
 
@@ -37,6 +47,8 @@ struct SlotNavigationBar: View {
     }
 
     var body: some View {
+        Group {
+            if layout == .full {
         GeometryReader { proxy in
             let size = proxy.size
             let slotWidth = slotWidth(for: size.width)
@@ -91,8 +103,78 @@ struct SlotNavigationBar: View {
                 }
             }
         }
-        .frame(height: barHeight)
+            } else {
+                inlineNavigation
+            }
+        }
+        .frame(height: layout == .full ? barHeight : Self.inlineHeight)
+        .animation(presentationAnimation, value: layout)
         .accessibilityElement(children: .contain)
+    }
+
+    private var inlineNavigation: some View {
+        HStack(spacing: 2) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                inlineSlotView(item: item, index: index)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.surface.opacity(0.98))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 0.5)
+        }
+    }
+
+    private func inlineSlotView(item: SlotNavigationItem, index: Int) -> some View {
+        let selected = selection == index
+
+        return Button {
+            selectInline(index)
+        } label: {
+            Image(systemName: item.symbolName)
+                .font(.system(size: 18, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(selected ? .white : Color.white.opacity(0.46))
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background {
+                    if selected {
+                        Capsule()
+                            .fill(Color.white.opacity(0.12))
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .accessibilityLabel(item.title)
+        .accessibilityValue(selected ? "Selected" : "Not selected")
+        .accessibilityHint(item.accessibilityHint)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                selectInline(min(index + 1, items.count - 1))
+            case .decrement:
+                selectInline(max(index - 1, 0))
+            @unknown default:
+                break
+            }
+        }
+    }
+
+    private var presentationAnimation: Animation {
+        reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.42, dampingFraction: 0.9)
+    }
+
+    private func selectInline(_ index: Int) {
+        guard items.indices.contains(index), index != selection else { return }
+        onSelectionChanged(index)
+        withAnimation(selectionAnimation) {
+            selection = index
+        }
     }
 
     @ViewBuilder

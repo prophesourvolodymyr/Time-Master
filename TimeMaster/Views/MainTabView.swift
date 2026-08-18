@@ -88,6 +88,7 @@ struct MainTabView: View {
         case 4:
             AICoachView()
                 .environmentObject(aiStore)
+                .slotNavigationPresentation(.inline)
         case 5:
             ProfileView()
                 .environmentObject(outdoorStore)

@@ -1,5 +1,28 @@
 import SwiftUI
 
+enum SlotNavigationPresentation: Equatable {
+    case full
+    case inline
+    case hidden
+}
+
+struct SlotNavigationPresentationPreferenceKey: PreferenceKey {
+    static var defaultValue: SlotNavigationPresentation = .full
+
+    static func reduce(
+        value: inout SlotNavigationPresentation,
+        nextValue: () -> SlotNavigationPresentation
+    ) {
+        value = nextValue()
+    }
+}
+
+extension View {
+    func slotNavigationPresentation(_ presentation: SlotNavigationPresentation) -> some View {
+        preference(key: SlotNavigationPresentationPreferenceKey.self, value: presentation)
+    }
+}
+
 struct SlotNavigationItem: Identifiable, Hashable {
     let id: Int
     let symbolName: String
