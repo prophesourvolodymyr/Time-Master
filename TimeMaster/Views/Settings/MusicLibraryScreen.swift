@@ -12,7 +12,6 @@ struct MusicLibraryScreen: View {
     @State private var family: MusicDestinationFamily = .type
     @State private var expandedItems = Set<UUID>()
     @State private var playingItem: MusicLibraryItem?
-    @State private var playerProgress = 0.15
     @State private var playingDestination: MusicDestination?
     @State private var selectingItem: MusicLibraryItem?
     @State private var pendingDeletion: MusicLibraryItem?
@@ -38,18 +37,20 @@ struct MusicLibraryScreen: View {
                 generalPane(height: generalHeight)
                 workoutPane(height: workoutHeight)
                     if let playingItem {
-                        MusicPlayerPane(
-                            title: playingItem.title,
-                            artworkSystemName: playingItem.artwork?.placeholderSystemImage ?? "music.note",
-                            isPlaying: $player.isPlaying,
-                            progress: $playerProgress,
-                            destinationName: playerDestinationName,
-                            destinationIcon: playerDestinationIcon,
-                            onPrevious: previousTrack,
-                            onNext: nextTrack,
-                            onDestinationTapped: { selectingItem = playingItem }
-                        )
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    MusicPlayerPane(
+                        title: playingItem.title,
+                        artworkSystemName: playingItem.artwork?.placeholderSystemImage ?? "music.note",
+                        isPlaying: $player.isPlaying,
+                        progress: Binding(get: { player.playbackProgress }, set: { player.seek(to: $0) }),
+                        destinationName: playerDestinationName,
+                        destinationIcon: playerDestinationIcon,
+                        showsAddToWorkout: playingDestination == .general,
+                        onTogglePlayback: player.togglePlayback,
+                        onPrevious: previousTrack,
+                        onNext: nextTrack,
+                        onDestinationTapped: { selectingItem = playingItem }
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .padding(.horizontal, 10)
@@ -84,6 +85,7 @@ struct MusicLibraryScreen: View {
             )
         }
         .onAppear { _ = MusicGuidePersistence.scheduleFirstRunIfNeeded { guidePresented = true } }
+        .onChange(of: player.currentFilename) { _ in synchronizePlayingItem() }
         .task(id: reduceMotion) { await runSearchIconCycle() }
     }
 
@@ -473,9 +475,34 @@ struct MusicLibraryScreen: View {
     private func empty(_ text: String) -> some View { Text(text).font(.caption).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 68).padding(.horizontal, 16).multilineTextAlignment(.center) }
     private func folderIcon(_ destination: MusicDestination) -> String { switch destination { case .general: return "music.note.list"; case .workoutType(let id): return library.workoutType(for: id)?.iconName ?? "figure.run"; case .workout: return "figure.strengthtraining.traditional" } }
     private func toggleExpanded(_ id: UUID) { withAnimation(reduceMotion ? .none : .spring(response: 0.38, dampingFraction: 0.86)) { if expandedItems.contains(id) { expandedItems.remove(id) } else { expandedItems.insert(id) } } }
-    private func itemTapped(_ item: MusicLibraryItem, destination: MusicDestination) { if playingItem?.id == item.id { playingItem = nil; playingDestination = nil; player.stopPlayback(); return }; playingItem = item; playingDestination = destination; library.select(destination: destination); if let filename = item.localReference?.filename { player.startPlayback(tracks: [filename]) } }
-    private func previousTrack() { playerProgress = max(0, playerProgress - 0.15) }
-    private func nextTrack() { playerProgress = min(1, playerProgress + 0.15) }
+    private func itemTapped(_ item: MusicLibraryItem, destination: MusicDestination) {
+        if playingItem?.id == item.id {
+            playingItem = nil
+            playingDestination = nil
+            player.stopPlayback()
+            return
+        }
+        guard let filename = item.localReference?.filename else {
+            providerMessage = "\(item.source.provider?.displayName ?? "This provider") playback needs its official integration."
+            return
+        }
+        let localItems = library.items(for: destination).filter { $0.localReference?.filename != nil }
+        let filenames = localItems.compactMap(\.localReference?.filename)
+        guard let startIndex = filenames.firstIndex(of: filename) else { return }
+        playingItem = item
+        playingDestination = destination
+        library.select(destination: destination)
+        player.startPlayback(tracks: filenames, startingAt: startIndex)
+    }
+
+    private func synchronizePlayingItem() {
+        guard let filename = player.currentFilename,
+              let item = library.libraryItems.first(where: { $0.localReference?.filename == filename }) else { return }
+        playingItem = item
+    }
+
+    private func previousTrack() { player.skipBackward() }
+    private func nextTrack() { player.skipForward() }
     private var playerDestinationName: String { library.destinationName(playingDestination ?? .general) }
     private var playerDestinationIcon: String { folderIcon(playingDestination ?? .general) }
     private func providerTapped(_ provider: MusicProvider) { providerMessage = "\(provider.displayName) requires its official sign-in and app configuration before it can be connected." }

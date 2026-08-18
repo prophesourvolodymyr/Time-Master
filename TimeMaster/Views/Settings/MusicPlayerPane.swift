@@ -12,53 +12,47 @@ struct MusicPlayerPane: View {
     @Binding var progress: Double
     let destinationName: String
     let destinationIcon: String
+    let showsAddToWorkout: Bool
+    let onTogglePlayback: () -> Void
     let onPrevious: () -> Void
     let onNext: () -> Void
     let onDestinationTapped: () -> Void
 
-    private let accent = Color(red: 1.0, green: 0.48, blue: 0.0)
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             artwork
 
-            VStack(spacing: 7) {
+            VStack(spacing: 8) {
                 Slider(value: $progress, in: 0...1)
-                    .tint(accent)
+                    .tint(.white.opacity(0.9))
                     .controlSize(.mini)
                     .accessibilityLabel("Playback progress")
                     .accessibilityValue(Text(progressAccessibilityValue))
 
-                HStack(spacing: 13) {
+                HStack(spacing: 24) {
                     transportButton(
-                        systemName: "backward.fill",
+                        systemName: "backward.end.fill",
                         accessibilityLabel: "Previous track",
                         action: onPrevious
                     )
 
-                    Button {
-                        isPlaying.toggle()
-                    } label: {
+                    Button(action: onTogglePlayback) {
                         Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(accent)
-                            .frame(width: 36, height: 36)
-                            .background(accent.opacity(0.14), in: Circle())
-                            .overlay {
-                                Circle()
-                                    .stroke(accent.opacity(0.30), lineWidth: 1)
-                            }
+                            .font(.system(size: 23, weight: .bold))
+                            .frame(width: 42, height: 36)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(MusicPlayerTransportStyle())
                     .accessibilityLabel(isPlaying ? "Pause" : "Play")
-                    .accessibilityHint("Toggles playback")
+                    .accessibilityHint("Pauses or resumes the current track")
 
                     transportButton(
-                        systemName: "forward.fill",
+                        systemName: "forward.end.fill",
                         accessibilityLabel: "Next track",
                         action: onNext
                     )
                 }
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
@@ -71,7 +65,7 @@ struct MusicPlayerPane: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.09), lineWidth: 1)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
     }
@@ -112,34 +106,28 @@ struct MusicPlayerPane: View {
     private var destinationCard: some View {
         Button(action: onDestinationTapped) {
             VStack(spacing: 3) {
-                Image(systemName: destinationIcon.isEmpty ? "folder" : destinationIcon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(accent)
-                    .frame(height: 19)
+                Image(systemName: showsAddToWorkout ? "folder.badge.plus" : (destinationIcon.isEmpty ? "folder" : destinationIcon))
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(height: 20)
 
-                Text(destinationName.isEmpty ? "General" : destinationName)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.92))
+                Text(showsAddToWorkout ? "Add" : destinationName)
+                    .font(.system(size: 10, weight: .semibold))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.70)
+                    .minimumScaleFactor(0.7)
 
-                Text("Destination")
-                    .font(.system(size: 8, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.50))
+                Text(showsAddToWorkout ? "To workout" : "Destination")
+                    .font(.system(size: 8, weight: .regular))
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 4)
-            .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Color.white.opacity(0.09), lineWidth: 1)
-            }
         }
-        .buttonStyle(.plain)
-        .frame(width: 67, height: 62)
-        .accessibilityLabel(Text("Destination: \(destinationName.isEmpty ? "General" : destinationName)"))
-        .accessibilityHint("Choose a music destination")
+        .buttonStyle(MusicPlayerTransportStyle())
+        .frame(width: 64, height: 62)
+        .accessibilityLabel(Text(showsAddToWorkout ? "Add current music to a workout" : "Destination: \(destinationName)"))
+        .accessibilityHint(showsAddToWorkout ? "Choose a workout destination" : "View the music destination")
     }
 
     private func transportButton(
@@ -149,16 +137,10 @@ struct MusicPlayerPane: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.white.opacity(0.90))
-                .frame(width: 38, height: 38)
-                .background(Color.white.opacity(0.075), in: Circle())
-                .overlay {
-                    Circle()
-                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                }
+                .font(.system(size: 17, weight: .bold))
+                .frame(width: 32, height: 36)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MusicPlayerTransportStyle())
         .accessibilityLabel(Text(accessibilityLabel))
     }
 
@@ -268,6 +250,17 @@ private struct MusicPlayerTextWidthKey: PreferenceKey {
     }
 }
 
+private struct MusicPlayerTransportStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.58 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
+            .animation(reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 1), value: configuration.isPressed)
+    }
+}
+
 #Preview {
     MusicPlayerPane(
         title: "A very long track name that needs to move",
@@ -276,6 +269,8 @@ private struct MusicPlayerTextWidthKey: PreferenceKey {
         progress: .constant(0.42),
         destinationName: "Run",
         destinationIcon: "figure.run",
+        showsAddToWorkout: false,
+        onTogglePlayback: {},
         onPrevious: {},
         onNext: {},
         onDestinationTapped: {}

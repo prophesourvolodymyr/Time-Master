@@ -21,6 +21,7 @@ final class MusicManager: ObservableObject {
     private init() {
         createMusicDirIfNeeded()
         loadFilenames()
+        installTimeObserver()
     }
 
     // MARK: - Paths
@@ -40,6 +41,8 @@ final class MusicManager: ObservableObject {
     @Published var trackFilenames: [String] = []
     @Published var isPlaying: Bool = false
     @Published private(set) var activePlaylist: [String] = []
+    @Published private(set) var currentFilename: String?
+    @Published private(set) var playbackProgress: Double = 0
     @Published var repeatOne = false
     /// 0.0 – 1.0 volume stored in UserDefaults, applied whenever playback starts.
     @Published var volume: Float = 0.7 {
@@ -59,6 +62,7 @@ final class MusicManager: ObservableObject {
     private var player = AVQueuePlayer()
     private var looper: AVPlayerLooper?
     private var endObserver: Any?
+    private var timeObserver: Any?
 
     // MARK: - Init helpers
 
@@ -181,15 +185,7 @@ final class MusicManager: ObservableObject {
     // MARK: - Playback control
 
     func startPlayback() {
-        guard !trackFilenames.isEmpty else { return }
-        #if os(iOS)
-        #if os(iOS)
-        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
-        try? AVAudioSession.sharedInstance().setActive(true)
-        #endif
-        #endif
-        rebuildAndPlay()
-        isPlaying = true
+        startPlayback(tracks: trackFilenames)
     }
 
     func stopPlayback() {
@@ -197,37 +193,65 @@ final class MusicManager: ObservableObject {
         player.removeAllItems()
         looper = nil
         removeEndObserver()
+        removeTimeObserver()
         isPlaying = false
         activePlaylist = []
+        currentFilename = nil
+        playbackProgress = 0
     }
 
     func togglePlayback() {
-        if isPlaying { stopPlayback() } else { startPlayback() }
+        if isPlaying {
+            player.pause()
+            isPlaying = false
+        } else if player.currentItem != nil {
+            player.play()
+            isPlaying = true
+        } else {
+            startPlayback()
+        }
     }
 
-    func startPlayback(tracks: [String]? = nil) {
+    func startPlayback(tracks: [String]? = nil, startingAt startIndex: Int = 0) {
         let requested = tracks?.isEmpty == false ? tracks! : trackFilenames
         guard !requested.isEmpty else { return }
-        #if os(iOS)
         #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
         #endif
-        #endif
-        rebuildAndPlay(filenames: requested)
-        isPlaying = true
+        rebuildAndPlay(filenames: requested, startIndex: startIndex)
     }
 
     func jumpToTrack(index: Int) {
         guard activePlaylist.indices.contains(index) else { return }
         rebuildAndPlay(filenames: activePlaylist, startIndex: index)
-        isPlaying = true
+    }
+
+    func skipForward() {
+        guard !activePlaylist.isEmpty else { return }
+        jumpToTrack(index: (currentPlaylistIndex + 1) % activePlaylist.count)
+    }
+
+    func skipBackward() {
+        if playbackProgress > 0.04 {
+            seek(to: 0)
+            return
+        }
+        guard !activePlaylist.isEmpty else { return }
+        jumpToTrack(index: (currentPlaylistIndex - 1 + activePlaylist.count) % activePlaylist.count)
+    }
+
+    func seek(to progress: Double) {
+        guard let duration = player.currentItem?.duration.seconds, duration.isFinite, duration > 0 else { return }
+        let clamped = min(max(progress, 0), 1)
+        player.seek(to: CMTime(seconds: duration * clamped, preferredTimescale: 600))
+        playbackProgress = clamped
     }
 
     func toggleRepeatOne() {
         repeatOne.toggle()
         guard isPlaying, !activePlaylist.isEmpty else { return }
-        rebuildAndPlay(filenames: activePlaylist)
+        rebuildAndPlay(filenames: activePlaylist, startIndex: currentPlaylistIndex)
     }
 
     func setPlaylist(_ filenames: [String]) {
@@ -240,6 +264,7 @@ final class MusicManager: ObservableObject {
         if isPlaying { rebuildAndPlay(filenames: valid) }
     }
 
+
     // MARK: - Queue management
 
     private func rebuildAndPlay(filenames: [String]? = nil) {
@@ -248,32 +273,34 @@ final class MusicManager: ObservableObject {
 
     private func rebuildAndPlay(filenames: [String]? = nil, startIndex: Int) {
         removeEndObserver()
+        removeTimeObserver()
         looper = nil
         player.pause()
         player.removeAllItems()
 
         let source = filenames ?? (activePlaylist.isEmpty ? trackFilenames : activePlaylist)
-        let urls = source.compactMap { fn -> URL? in
-            let u = musicDir.appendingPathComponent(fn)
-            return FileManager.default.fileExists(atPath: u.path) ? u : nil
+        let playable = source.filter {
+            FileManager.default.fileExists(atPath: musicDir.appendingPathComponent($0).path)
         }
-        guard !urls.isEmpty else { return }
-        activePlaylist = source
-        let orderedURLs = startIndex > 0
-            ? Array(urls.dropFirst(startIndex)) + Array(urls.prefix(startIndex))
-            : urls
+        guard !playable.isEmpty else {
+            isPlaying = false
+            currentFilename = nil
+            playbackProgress = 0
+            return
+        }
+        activePlaylist = playable
+        let boundedStartIndex = min(max(startIndex, 0), playable.count - 1)
+        let orderedFilenames = Array(playable.dropFirst(boundedStartIndex)) + Array(playable.prefix(boundedStartIndex))
 
         if repeatOne {
-            // Single track — loop via AVPlayerLooper.
-            // IMPORTANT: the template item must NOT be pre-loaded into the player's
-            // queue; AVPlayerLooper manages the queue internally.
-            let item = AVPlayerItem(url: orderedURLs[0])
-            player = AVQueuePlayer()          // empty queue — looper fills it
-            looper = AVPlayerLooper(player: player, templateItem: item)
+            player = AVQueuePlayer()
+            looper = AVPlayerLooper(
+                player: player,
+                templateItem: AVPlayerItem(url: musicDir.appendingPathComponent(orderedFilenames[0]))
+            )
         } else {
-            // Queue all selected tracks, then rebuild from track zero when exhausted.
-            for url in orderedURLs {
-                player.insert(AVPlayerItem(url: url), after: nil)
+            for filename in orderedFilenames {
+                player.insert(AVPlayerItem(url: musicDir.appendingPathComponent(filename)), after: nil)
             }
             endObserver = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
@@ -281,7 +308,6 @@ final class MusicManager: ObservableObject {
                 queue: .main
             ) { [weak self] _ in
                 guard let self else { return }
-                // One item left means the final selected track just finished.
                 if self.player.items().count <= 1 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         guard self.isPlaying else { return }
@@ -292,7 +318,44 @@ final class MusicManager: ObservableObject {
         }
 
         player.volume = volume
+        currentFilename = orderedFilenames[0]
+        playbackProgress = 0
+        installTimeObserver()
         player.play()
+        isPlaying = true
+    }
+
+    private var currentPlaylistIndex: Int {
+        guard let currentFilename, let index = activePlaylist.firstIndex(of: currentFilename) else { return 0 }
+        return index
+    }
+
+    private func installTimeObserver() {
+        removeTimeObserver()
+        timeObserver = player.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600),
+            queue: .main
+        ) { [weak self] time in
+            self?.refreshPlaybackState(at: time)
+        }
+    }
+
+    private func removeTimeObserver() {
+        if let timeObserver {
+            player.removeTimeObserver(timeObserver)
+            self.timeObserver = nil
+        }
+    }
+
+    private func refreshPlaybackState(at time: CMTime) {
+        if let asset = player.currentItem?.asset as? AVURLAsset {
+            currentFilename = asset.url.lastPathComponent
+        }
+        guard let duration = player.currentItem?.duration.seconds, duration.isFinite, duration > 0 else {
+            playbackProgress = 0
+            return
+        }
+        playbackProgress = min(max(time.seconds / duration, 0), 1)
     }
 
     private func removeEndObserver() {
