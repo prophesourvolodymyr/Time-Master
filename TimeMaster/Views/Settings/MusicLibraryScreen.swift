@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import CoreTransferable
 
 struct MusicLibraryScreen: View {
     @ObservedObject var library: MusicLibraryStore
@@ -20,7 +21,6 @@ struct MusicLibraryScreen: View {
     @State private var enabledProviders = Set<MusicProvider>()
     @State private var providerMessage: String?
     @State private var guidePresented = false
-    @State private var dragged: DraggedMusic?
     @State private var pendingTransfer: MusicTransfer?
     @State private var scrollStartedAt: Date?
     @State private var searchCycleIndex = 0
@@ -30,31 +30,29 @@ struct MusicLibraryScreen: View {
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
-            ScrollView {
-                VStack(spacing: 8) {
-                    title
-                    uploadsPane
-                    generalPane
-                    workoutPane
-                    if let playingItem {
-                        MusicPlayerPane(
-                            title: playingItem.title,
-                            artworkSystemName: playingItem.artwork?.placeholderSystemImage ?? "music.note",
-                            isPlaying: $player.isPlaying,
-                            progress: $playerProgress,
-                            destinationName: playerDestinationName,
-                            destinationIcon: playerDestinationIcon,
-                            onPrevious: previousTrack,
-                            onNext: nextTrack,
-                            onDestinationTapped: { selectingItem = playingItem }
-                        )
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
+            VStack(spacing: 8) {
+                title
+                uploadsPane
+                generalPane
+                workoutPane
+                if let playingItem {
+                    MusicPlayerPane(
+                        title: playingItem.title,
+                        artworkSystemName: playingItem.artwork?.placeholderSystemImage ?? "music.note",
+                        isPlaying: $player.isPlaying,
+                        progress: $playerProgress,
+                        destinationName: playerDestinationName,
+                        destinationIcon: playerDestinationIcon,
+                        onPrevious: previousTrack,
+                        onNext: nextTrack,
+                        onDestinationTapped: { selectingItem = playingItem }
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 12)
             }
-            .scrollDisabled(selectingItem != nil || guidePresented)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             if let item = selectingItem { selectMode(for: item) }
             if let transfer = pendingTransfer { transferConfirmation(transfer) }
             if searchPresented { searchOverlay }
@@ -171,7 +169,7 @@ struct MusicLibraryScreen: View {
                 .scrollEdgeFade(.horizontal)
             }
         }
-        .frame(height: isWorkoutFocused ? 104 : 148)
+        .frame(height: isWorkoutFocused ? 150 : 156)
     }
 
     private var generalPane: some View {
@@ -201,7 +199,10 @@ struct MusicLibraryScreen: View {
             }
         }
         .frame(height: isWorkoutFocused ? 146 : (playingItem == nil ? 310 : 220))
-        .onDrop(of: [UTType.text.identifier], isTargeted: nil) { _ in drop(dragged, into: .general, at: nil) }
+        .dropDestination(for: MusicDragPayload.self) { payloads, _ in
+            guard let payload = payloads.first else { return false }
+            return drop(payload, into: .general, at: nil)
+        }
     }
 
     private var workoutPane: some View {
@@ -238,13 +239,19 @@ struct MusicLibraryScreen: View {
                         .padding(.horizontal, 8).padding(.vertical, 10)
                     }
                     .scrollEdgeFade(.vertical)
-                    .onDrop(of: [UTType.text.identifier], isTargeted: nil) { _ in drop(dragged, into: destination, at: nil) }
+                    .dropDestination(for: MusicDragPayload.self) { payloads, _ in
+                        guard let payload = payloads.first else { return false }
+                        return drop(payload, into: destination, at: nil)
+                    }
                 } else {
                     empty(family == .mine ? "Create a workout to organize its music" : "Choose a workout type")
                 }
             }
         }
-        .frame(height: isWorkoutFocused || selectingItem != nil ? (playingItem == nil ? 350 : 245) : 126)
+        .frame(
+            minHeight: isWorkoutFocused || selectingItem != nil ? 0 : 126,
+            maxHeight: isWorkoutFocused || selectingItem != nil ? .infinity : 126
+        )
     }
 
     private var familySwitch: some View {
@@ -289,10 +296,11 @@ struct MusicLibraryScreen: View {
             .overlay(RoundedRectangle(cornerRadius: 17).stroke(selected ? orange.opacity(0.65) : Theme.separator, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .onDrop(of: [UTType.text.identifier], isTargeted: nil) { _ in
+        .dropDestination(for: MusicDragPayload.self) { payloads, _ in
+            guard let payload = payloads.first else { return false }
             library.select(destination: destination)
             isWorkoutFocused = true
-            return drop(dragged, into: destination, at: nil)
+            return drop(payload, into: destination, at: nil)
         }
     }
 
@@ -334,9 +342,12 @@ struct MusicLibraryScreen: View {
         }
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 17))
         .overlay(RoundedRectangle(cornerRadius: 17).stroke(Theme.separator, lineWidth: 1))
-        .opacity(dragged?.item.id == item.id ? 0.25 : 1)
-        .onDrag { dragged = DraggedMusic(item: item, source: destination); return NSItemProvider(object: item.id.uuidString as NSString) }
-        .onDrop(of: [UTType.text.identifier], isTargeted: nil) { _ in drop(dragged, into: destination, at: library.itemIDs(for: destination).firstIndex(of: item.id)) }
+        .contentShape(RoundedRectangle(cornerRadius: 17))
+        .draggable(MusicDragPayload(itemID: item.id, source: destination))
+        .dropDestination(for: MusicDragPayload.self) { payloads, _ in
+            guard let payload = payloads.first else { return false }
+            return drop(payload, into: destination, at: library.itemIDs(for: destination).firstIndex(of: item.id))
+        }
     }
 
     private func cover(for item: MusicLibraryItem) -> some View {
@@ -443,12 +454,20 @@ struct MusicLibraryScreen: View {
     private var playerDestinationIcon: String { folderIcon(selectedWorkoutDestination ?? .general) }
     private func providerTapped(_ provider: MusicProvider) { providerMessage = "\(provider.displayName) requires its official sign-in and app configuration before it can be connected." }
     private func toggle(_ provider: MusicProvider) { if enabledProviders.contains(provider) { enabledProviders.remove(provider) } else { enabledProviders.insert(provider) } }
-    private func drop(_ dragged: DraggedMusic?, into destination: MusicDestination, at position: Int?) -> Bool { guard let dragged else { return false }; defer { self.dragged = nil }; if let transfer = library.prepareWorkoutTransfer(itemID: dragged.item.id, from: dragged.source, to: destination, at: position) { pendingTransfer = transfer; return true }; return library.moveItem(dragged.item.id, from: dragged.source, to: destination, at: position) }
-    private var generalFocusGesture: some Gesture { DragGesture(minimumDistance: 4).onChanged { value in guard isWorkoutFocused, dragged == nil, selectingItem == nil, !guidePresented, abs(value.translation.height) > 2 else { scrollStartedAt = nil; return }; let now = Date(); if let started = scrollStartedAt, now.timeIntervalSince(started) >= 3 { isWorkoutFocused = false; scrollStartedAt = nil } else if scrollStartedAt == nil { scrollStartedAt = now } }.onEnded { _ in scrollStartedAt = nil } }
+    private func drop(_ payload: MusicDragPayload, into destination: MusicDestination, at position: Int?) -> Bool { if let transfer = library.prepareWorkoutTransfer(itemID: payload.itemID, from: payload.source, to: destination, at: position) { pendingTransfer = transfer; return true }; return library.moveItem(payload.itemID, from: payload.source, to: destination, at: position) }
+    private var generalFocusGesture: some Gesture { DragGesture(minimumDistance: 4).onChanged { value in guard isWorkoutFocused, selectingItem == nil, !guidePresented, abs(value.translation.height) > 2 else { scrollStartedAt = nil; return }; let now = Date(); if let started = scrollStartedAt, now.timeIntervalSince(started) >= 3 { isWorkoutFocused = false; scrollStartedAt = nil } else if scrollStartedAt == nil { scrollStartedAt = now } }.onEnded { _ in scrollStartedAt = nil } }
     private func demonstrateOrganization() { guard let destination = library.destinations(for: .type).first else { return }; let temporary = MusicLibraryItem(name: "Guide music", source: .none, artwork: MusicArtworkReference(placeholderSystemImage: "music.note"), duration: 0); _ = library.add(temporary, to: .general); isWorkoutFocused = false; Task { @MainActor in try? await Task.sleep(nanoseconds: 350_000_000); _ = library.moveItem(temporary.id, from: .general, to: destination); library.select(destination: destination); isWorkoutFocused = true; try? await Task.sleep(nanoseconds: 700_000_000); _ = library.deleteItem(temporary.id) } }
 }
 
-private struct DraggedMusic: Equatable {
-    let item: MusicLibraryItem
+private struct MusicDragPayload: Codable, Transferable {
+    let itemID: UUID
     let source: MusicDestination
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .timeMasterMusicItem)
+    }
+}
+
+private extension UTType {
+    static let timeMasterMusicItem = UTType(exportedAs: "com.timemaster.music-library-item")
 }

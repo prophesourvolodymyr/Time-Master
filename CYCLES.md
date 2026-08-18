@@ -562,6 +562,7 @@ F06 (AI Coach) ─────────┘
   - [x] Provider-neutral music library model, persisted ordered destinations, local-file adoption, and provider adapter boundaries
   - [x] Compact black Music screen with Uploads, General, Type/Mine workout panes, native iOS 18 glass fallback, provider brand assets, local import, local search, select/add, move/duplicate transfer, player, guide, and accessibility motion/transparency handling
   - [x] Music opens as a full-screen destination with an explicit close control; top controls no longer overlap Uploads; Search runs its fixed-frame provider-logo sweep
+  - [x] Reflowed the full-screen Music panes so focused Workout fills the remaining screen height, Uploads keeps every source card visible, and typed transferable drag/drop supports ordered intra-list and cross-destination drops
   - [x] iPhone 16 iOS 18.6 Simulator build installed and launched; external Spotify, YouTube Music, SoundCloud, Dropbox, and Google Drive credentials remain required for their official integrations
 
 ## Notes

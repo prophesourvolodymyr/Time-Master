@@ -16,6 +16,8 @@ Music opens as a full-screen destination from Settings, never as a drawer. A com
 
 Search and guide are stationary circular screen controls. They never move with the Uploads source strip. Search rests on its magnifying-glass icon for about three seconds, then swaps only its fixed-size inner icon through Spotify, YouTube Music, and SoundCloud for about half a second each before returning to Search; the outer circle remains stationary. On iOS 26 or later the controls use the native Liquid Glass surface. On iOS 18 they keep the same geometry and behavior with a native material fallback, deliberate border/highlight, and Reduced Transparency handling.
 
+The screen is a non-scrolling vertical frame: Uploads always has enough height for its header and full source cards, General owns its own list scrolling, and an opened Workout pine expands to the remaining safe screen height above the home indicator. Music rows carry a typed native drag payload. Users can long-press and drag a row to an exact row position, an empty destination list, or a folder square; all targets use the same transfer rules.
+
 ## Architecture
 
 - `MusicLibraryModels` owns music source, local and provider references, artwork, collection tracks, music items, destination families, destinations, transfers, and search results.
