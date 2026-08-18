@@ -146,7 +146,10 @@ struct SlotNavigationBar: View {
         let itemHeight = 86 + dragIntensity * 24
         let itemLift: CGFloat = 56
         let iconFrameHeight = 58 + dragIntensity * max(0, expandedIconSize - 58)
-        let zIndex = focus + dragIntensity * (1 - min(norm, 10) - focus)
+        let zIndex = max(
+            0,
+            focus + dragIntensity * (1 - min(norm, 10) - focus)
+        )
 
         VStack(spacing: 3) {
             Text(item.emoji)
@@ -172,7 +175,7 @@ struct SlotNavigationBar: View {
             x: itemX,
             y: arcY + itemLift - itemHeight / 2 + verticalOffset
         )
-        .zIndex(zIndex)
+        .zIndex(1 + zIndex)
         .onTapGesture {
             select(
                 index: index,

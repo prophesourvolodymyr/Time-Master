@@ -54,7 +54,7 @@ No HTML page body, Realistic copy, motivational strip, demo statistics, or exter
 |---|---|---|
 | Resting, selected | Center slot follows the shared arc, enlarged emoji, full white label, neighboring slots smaller and dimmer | Tap any visible slot to spring it to center and select its page |
 | Resting, neighboring | Same arc anchor, reduced emoji scale and opacity, no red tint | Tap selects the destination |
-- Dragging | Reel follows the finger one-to-one; each slot's y position is recalculated from its current x on the fixed arc; labels interpolate by distance from center; the glass arc remains above the moving page and never exposes a clipped black band | Continue dragging, reverse direction, or release; gesture is never locked out |
+| Dragging | Reel follows the finger one-to-one; each slot's y position is recalculated from its current x on the fixed arc; labels interpolate by distance from center; every slot remains above the glass arc while it expands, and the arc remains above the moving page without exposing a clipped black band | Continue dragging, reverse direction, or release; gesture is never locked out |
 | Dragging at first/last page | Translation is rubber-banded instead of hard-stopped | Releasing returns to the boundary page |
 | Settling | Reel springs from the current presentation offset to the projected nearest slot; selected page transitions from the swipe direction | A new drag interrupts the spring from its visible position |
 | Page swipe | Horizontal page swipe selects the adjacent page and uses the same slot spring; vertical movement remains owned by the page's scroll view | Swipe left/right beyond the threshold; edge swipes do nothing beyond the first/last page |
