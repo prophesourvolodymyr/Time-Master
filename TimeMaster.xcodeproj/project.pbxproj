@@ -7,6 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A25000000000000000000001 /* MusicLibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000001 /* MusicLibraryModels.swift */; };
+		A25000000000000000000002 /* MusicLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000002 /* MusicLibraryStore.swift */; };
+		A25000000000000000000003 /* MusicProviderAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000003 /* MusicProviderAdapters.swift */; };
+		A25000000000000000000004 /* MusicGlassControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000004 /* MusicGlassControls.swift */; };
+		A25000000000000000000005 /* MusicGuideOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000005 /* MusicGuideOverlay.swift */; };
+		A25000000000000000000006 /* MusicPlayerPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000006 /* MusicPlayerPane.swift */; };
+		A25000000000000000000007 /* MusicLibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000007 /* MusicLibraryScreen.swift */; };
+		B25000000000000000000001 /* MusicLibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000001 /* MusicLibraryModels.swift */; };
+		B25000000000000000000002 /* MusicLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000002 /* MusicLibraryStore.swift */; };
+		B25000000000000000000003 /* MusicProviderAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000003 /* MusicProviderAdapters.swift */; };
+		B25000000000000000000004 /* MusicGlassControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000004 /* MusicGlassControls.swift */; };
+		B25000000000000000000005 /* MusicGuideOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000005 /* MusicGuideOverlay.swift */; };
+		B25000000000000000000006 /* MusicPlayerPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000006 /* MusicPlayerPane.swift */; };
+		B25000000000000000000007 /* MusicLibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25000000000000000000007 /* MusicLibraryScreen.swift */; };
 		02CF516ECBF0AD6AF038DEF8 /* TimeMasterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 252C84030B2F7B9008ABFAF3 /* TimeMasterCore */; };
 		035704F3EF5E2746903894C4 /* PageMediaGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D163AA4744C0E86692930FB6 /* PageMediaGallery.swift */; };
 		03F7A4C3ACB31CC61B8F4B38 /* DatabasePageBrowserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC65261AB128B4346DD0F22 /* DatabasePageBrowserSheet.swift */; };
@@ -18,6 +32,7 @@
 		0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */; };
 		11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
 		131D0631E4E8284C9D89FE5F /* VideoEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */; };
+		15A2746BE489C2E629107344 /* OutdoorMapOfflineSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B1310C047ABD9B4B2694B1 /* OutdoorMapOfflineSettingsView.swift */; };
 		1721B0FEDD18A9A1C6044358 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08AAEB576B7DB134E5212C54 /* AIStore.swift */; };
 		178D5EA64B0BB4B4288F96E5 /* WorkoutResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */; };
 		1A09605C35CFF03E5621A168 /* ToolRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E89B236DA27477DE058ABD6 /* ToolRouter.swift */; };
@@ -92,6 +107,7 @@
 		5F31DFA7984D308D0EFF33B0 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
 		5F9122497A6B1D0BA5D17E14 /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDC6F1BB5C2EAC1AC1DC0421 /* DatabaseView.swift */; };
 		635364FD2E822E1DD4AD6895 /* ServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */; };
+		63D7A3D45E7ED573975C7AB6 /* OutdoorMapOfflineSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B1310C047ABD9B4B2694B1 /* OutdoorMapOfflineSettingsView.swift */; };
 		64343BE5E9F5DA35397089FD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7C3D82BCDAF71304D5E180 /* SettingsView.swift */; };
 		665A7A181116B00B4845C8E1 /* VideoTrimService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D84B5A5EA777C4BE497FC8C1 /* VideoTrimService.swift */; };
 		68A5CE3F374D4FDB07671FEA /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F596DD500BCC620B6E3318 /* MusicManager.swift */; };
@@ -225,6 +241,13 @@
 		15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseStore.swift; sourceTree = "<group>"; };
 		178795E8B020694776EBD065 /* MacVideoSavePopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoSavePopover.swift; sourceTree = "<group>"; };
 		17CA3D35330EB704FCDFB8B2 /* WorkoutTypesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTypesSettingsView.swift; sourceTree = "<group>"; };
+		C25000000000000000000001 /* MusicLibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryModels.swift; sourceTree = "<group>"; };
+		C25000000000000000000002 /* MusicLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryStore.swift; sourceTree = "<group>"; };
+		C25000000000000000000003 /* MusicProviderAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicProviderAdapters.swift; sourceTree = "<group>"; };
+		C25000000000000000000004 /* MusicGlassControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGlassControls.swift; sourceTree = "<group>"; };
+		C25000000000000000000005 /* MusicGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGuideOverlay.swift; sourceTree = "<group>"; };
+		C25000000000000000000006 /* MusicPlayerPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayerPane.swift; sourceTree = "<group>"; };
+		C25000000000000000000007 /* MusicLibraryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryScreen.swift; sourceTree = "<group>"; };
 		1A30541E8A14548A023A7CCF /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
 		1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorActivity.swift; sourceTree = "<group>"; };
 		21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSectionPickerView.swift; sourceTree = "<group>"; };
@@ -245,6 +268,7 @@
 		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDownloadService.swift; sourceTree = "<group>"; };
 		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
+		51B1310C047ABD9B4B2694B1 /* OutdoorMapOfflineSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorMapOfflineSettingsView.swift; sourceTree = "<group>"; };
 		52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchConfirmView.swift; sourceTree = "<group>"; };
 		544CDDB388219EA439FC403E /* MusicSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicSettingsView.swift; sourceTree = "<group>"; };
 		552876E98DFAA9DD232A21D3 /* TimeMasterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterApp.swift; sourceTree = "<group>"; };
@@ -382,6 +406,7 @@
 		1FF12E5694591672653BC22B /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				C25000000000000000000001 /* MusicLibraryModels.swift */,
 				0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */,
 				1521D9DCA4A8F38702E195D6 /* ExercisePage.swift */,
 				1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */,
@@ -496,10 +521,15 @@
 		5FE4E674646659C60F0E0432 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				C25000000000000000000004 /* MusicGlassControls.swift */,
+				C25000000000000000000005 /* MusicGuideOverlay.swift */,
+				C25000000000000000000006 /* MusicPlayerPane.swift */,
+				C25000000000000000000007 /* MusicLibraryScreen.swift */,
 				5560E604DE15405F64FB3B6B /* BackupView.swift */,
 				C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */,
 				262C63F71236516065104666 /* MotivationSettingsView.swift */,
 				544CDDB388219EA439FC403E /* MusicSettingsView.swift */,
+				51B1310C047ABD9B4B2694B1 /* OutdoorMapOfflineSettingsView.swift */,
 				FF7C3D82BCDAF71304D5E180 /* SettingsView.swift */,
 				C2A7A902D00787142161E1D0 /* WorkoutRemindersView.swift */,
 				17CA3D35330EB704FCDFB8B2 /* WorkoutTypesSettingsView.swift */,
@@ -541,6 +571,7 @@
 		9116F4E669727A33B853D872 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				C25000000000000000000002 /* MusicLibraryStore.swift */,
 				1A30541E8A14548A023A7CCF /* AIProvider.swift */,
 				08AAEB576B7DB134E5212C54 /* AIStore.swift */,
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
@@ -609,6 +640,7 @@
 		E77C50DF73EE34BD211B8CF4 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C25000000000000000000003 /* MusicProviderAdapters.swift */,
 				A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */,
 				50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */,
 				974234249F4F5FE01C287372 /* ServerDiscovery.swift */,
@@ -803,6 +835,13 @@
 				95A50701B3F318C1C99F6983 /* MotivationSettingsView.swift in Sources */,
 				68A5CE3F374D4FDB07671FEA /* MusicManager.swift in Sources */,
 				3157B85C810E38C457FC1C7E /* MusicSettingsView.swift in Sources */,
+				A25000000000000000000001 /* MusicLibraryModels.swift in Sources */,
+				A25000000000000000000002 /* MusicLibraryStore.swift in Sources */,
+				A25000000000000000000003 /* MusicProviderAdapters.swift in Sources */,
+				A25000000000000000000004 /* MusicGlassControls.swift in Sources */,
+				A25000000000000000000005 /* MusicGuideOverlay.swift in Sources */,
+				A25000000000000000000006 /* MusicPlayerPane.swift in Sources */,
+				A25000000000000000000007 /* MusicLibraryScreen.swift in Sources */,
 				4C5EC5E1E873C67D607478DA /* NotificationManager.swift in Sources */,
 				20A75B2A698DC7E5010B4CC5 /* OutdoorActivity.swift in Sources */,
 				3A0F9D922F125196542FFBF1 /* OutdoorActivityStore.swift in Sources */,
@@ -811,6 +850,7 @@
 				7E3E7C0A82E3BD9DABD69583 /* OutdoorLocationRecorder.swift in Sources */,
 				559875969C22D170D7FA2287 /* OutdoorMapLibreView.swift in Sources */,
 				0E3D6F53D5FD08241E20CD03 /* OutdoorMapOfflineManager.swift in Sources */,
+				63D7A3D45E7ED573975C7AB6 /* OutdoorMapOfflineSettingsView.swift in Sources */,
 				32A7DE735947C3A995C1ABED /* OutdoorMetricsCalculator.swift in Sources */,
 				A10F054C17CDB14E070E3401 /* OutdoorRecorderView.swift in Sources */,
 				5B75D83FC26CD308E19AF683 /* OutdoorRouteSnapper.swift in Sources */,
@@ -905,6 +945,13 @@
 				51521585263E680D0796CD7D /* MotivationSettingsView.swift in Sources */,
 				1F38F1E5BDA6E33ABCFF446E /* MusicManager.swift in Sources */,
 				4D34183ADD9043FD3D2457EE /* MusicSettingsView.swift in Sources */,
+				B25000000000000000000001 /* MusicLibraryModels.swift in Sources */,
+				B25000000000000000000002 /* MusicLibraryStore.swift in Sources */,
+				B25000000000000000000003 /* MusicProviderAdapters.swift in Sources */,
+				B25000000000000000000004 /* MusicGlassControls.swift in Sources */,
+				B25000000000000000000005 /* MusicGuideOverlay.swift in Sources */,
+				B25000000000000000000006 /* MusicPlayerPane.swift in Sources */,
+				B25000000000000000000007 /* MusicLibraryScreen.swift in Sources */,
 				8738B5C840599628FD8BD930 /* NotificationManager.swift in Sources */,
 				1C569EE71A05017FC049612C /* OutdoorActivity.swift in Sources */,
 				DDF988DA3D5FC60ED0A4E250 /* OutdoorActivityStore.swift in Sources */,
@@ -913,6 +960,7 @@
 				A250AB5CC10EA0272D2ED9ED /* OutdoorLocationRecorder.swift in Sources */,
 				BA6359DAA3E968E620523566 /* OutdoorMapLibreView.swift in Sources */,
 				812293D59B8D2DC72C9767B0 /* OutdoorMapOfflineManager.swift in Sources */,
+				15A2746BE489C2E629107344 /* OutdoorMapOfflineSettingsView.swift in Sources */,
 				3B4226EB7ADBAD2EB945B88E /* OutdoorMetricsCalculator.swift in Sources */,
 				A1002CEC02F404EAC8516516 /* OutdoorRecorderView.swift in Sources */,
 				3BBC9310F475328AC32F36DC /* OutdoorRouteSnapper.swift in Sources */,

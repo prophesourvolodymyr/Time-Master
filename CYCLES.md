@@ -540,6 +540,13 @@ F06 (AI Coach) ─────────┘
   - [x] Full backup/import of outdoor manifests and route JSONL with duplicate skipping
   - [x] macOS viewer-only Profile and no recorder controls
   - [x] Verified: core tests, macOS build, iOS Simulator build
+- [x] MapLibre route planning extension
+  - [x] MapLibre renderer replaces MapKit for live, summary, and Profile route maps
+  - [x] Flat 2D Liberty street style with extrusion layers removed, deep zoom enabled, and one-time location centering without camera lock
+  - [x] Offline tile packs, metadata, settings entry point, and storage fallback
+  - [x] PlannedRoute JSON persistence, schema compatibility, route picker, dual-layer rendering
+  - [x] Basic closest-point route snap with progress and off-route status
+  - [x] Planned-route recovery, summaries, exports, backup/import, and iOS build verification
 
 ## Cycle 12 — Slot Navigation
 - [x] F24 — Native iOS slot navigation
@@ -548,6 +555,12 @@ F06 (AI Coach) ─────────┘
   - [x] F24-C — Remove red tint from the slot navigation surface and keep page-owned colors intact
   - [x] F24-D — Add page swipes, projected snap, edge rubber-band, accessibility actions, and Reduce Motion behavior
   - [x] Verified: iOS and macOS Debug builds succeed; 82 TimeMasterCore tests pass; app installed/launched on iPhone 16 Pro Simulator and Home renders the real page with the neutral slot surface; manual gesture and accessibility verification remains for human review
+
+## Cycle 13 — Music Library Update
+- [x] F25 — Native Music Library / Settings screen
+  - [x] Provider-neutral music library model, persisted ordered destinations, local-file adoption, and provider adapter boundaries
+  - [x] Compact black Music screen with Uploads, General, Type/Mine workout panes, native iOS 18 glass fallback, provider brand assets, local import, local search, select/add, move/duplicate transfer, player, guide, and accessibility motion/transparency handling
+  - [x] iPhone 16 iOS 18.6 Simulator build installed and launched; external Spotify, YouTube Music, SoundCloud, Dropbox, and Google Drive credentials remain required for their official integrations
 
 ## Notes
 - Codebase converted to this system: 2026-07-04.

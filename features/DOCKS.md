@@ -26,6 +26,7 @@
 | F22 | Per-Type Time-of-Day Schedule | pending (Cycle 10) | Cycle 5 TypeSchedule |
 | F23 | Editor Database Picker Fix (old empty DB issue) | pending (Cycle 10) | F14, F15, F09-A |
 | **F24** | **Slot Navigation** | **ready for human verification** | Existing MainTabView destinations |
+| **F25** | **Music Player Update** | **ready for human verification** | **F07, F19, existing WorkoutStore and MusicManager** |
 
 ## Cycle 4 — Bug Fixes & Enhancements (complete)
 
