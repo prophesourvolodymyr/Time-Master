@@ -36,6 +36,7 @@ struct SlotNavigationContainer<Content: View>: View {
                 onSelectionChanged: updateTransitionDirection(for:)
             )
         }
+        .ignoresSafeArea(edges: .bottom)
         .background(Theme.background.ignoresSafeArea())
         .onAppear {
             lastSelection = selection

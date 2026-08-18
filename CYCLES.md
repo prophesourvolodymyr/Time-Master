@@ -554,6 +554,7 @@ F06 (AI Coach) ─────────┘
   - [x] F24-B — Align emoji positions to the same fixed arc geometry used by the visible nav surface
   - [x] F24-C — Remove red tint from the slot navigation surface and keep page-owned colors intact
   - [x] F24-D — Add page swipes, projected snap, edge rubber-band, accessibility actions, and Reduce Motion behavior
+  - [x] Bottom-safe-area surface continuity keeps the neutral slot bar filled through the iOS home-indicator region
   - [x] Verified: iOS and macOS Debug builds succeed; 82 TimeMasterCore tests pass; app installed/launched on iPhone 16 Pro Simulator and Home renders the real page with the neutral slot surface; manual gesture and accessibility verification remains for human review
 
 ## Cycle 13 — Music Library Update

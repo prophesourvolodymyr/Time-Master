@@ -13,6 +13,7 @@ A native SwiftUI replacement for the iOS bottom tab bar. It ports the supplied s
 - Use the same mathematical arc for the visible nav background and every emoji position. The background arc stays fixed in the viewport while the reel moves across it, so icons never drift away from the curve during scrolling.
 - Remove the prototype's red accent, red glow, red active tint, and red navigation-only progress treatment. The slot bar uses neutral dark surfaces, white text, and neutral opacity/scale changes. Page-owned colors remain controlled by their existing views.
 - Respect Dynamic Type, VoiceOver, Reduce Motion, minimum hit targets, and light/dark system contrast where applicable. The app remains dark by default through the existing app theme.
+- Extend the neutral slot surface through the iOS bottom safe area so the home-indicator region matches the bar; the page viewport still reserves the bar's height.
 
 ## Architecture
 
