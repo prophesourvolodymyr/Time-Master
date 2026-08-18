@@ -22,6 +22,7 @@
 		11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
 		131D0631E4E8284C9D89FE5F /* VideoEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */; };
 		15A2746BE489C2E629107344 /* OutdoorMapOfflineSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B1310C047ABD9B4B2694B1 /* OutdoorMapOfflineSettingsView.swift */; };
+		163AA4E32C4E8BD3F77A991F /* PrivateLiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */; };
 		1721B0FEDD18A9A1C6044358 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08AAEB576B7DB134E5212C54 /* AIStore.swift */; };
 		178D5EA64B0BB4B4288F96E5 /* WorkoutResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */; };
 		1A09605C35CFF03E5621A168 /* ToolRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E89B236DA27477DE058ABD6 /* ToolRouter.swift */; };
@@ -145,6 +146,7 @@
 		9BFD7F587F2BB8FF389A036E /* RoutePickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B37FDFA364543441E9C7F03 /* RoutePickerSheet.swift */; };
 		9CC9684997DA3660B5666198 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */; };
 		9CCD24B9A2CE8065FDD8507D /* ExercisePageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */; };
+		9CE5F2326BA858138E1E243C /* PrivateLiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */; };
 		A1002CEC02F404EAC8516516 /* OutdoorRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07B310C529307C7D12F2CD2 /* OutdoorRecorderView.swift */; };
 		A10F054C17CDB14E070E3401 /* OutdoorRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07B310C529307C7D12F2CD2 /* OutdoorRecorderView.swift */; };
 		A248D30E44101EBE3E5878D8 /* SlotNavigationItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF3BA19ED70686C66D9D7AD6 /* SlotNavigationItem.swift */; };
@@ -252,6 +254,7 @@
 		23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoEditorModel.swift; sourceTree = "<group>"; };
 		262C63F71236516065104666 /* MotivationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationSettingsView.swift; sourceTree = "<group>"; };
 		282193241415BB7A32B3786C /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
+		2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateLiquidGlass.swift; sourceTree = "<group>"; };
 		2E89B236DA27477DE058ABD6 /* ToolRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRouter.swift; sourceTree = "<group>"; };
 		2F435C38E0A49A5A662AEB9F /* MediaPreviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewSheet.swift; sourceTree = "<group>"; };
 		31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncCoverImage.swift; sourceTree = "<group>"; };
@@ -476,6 +479,7 @@
 				A9F596DD500BCC620B6E3318 /* MusicManager.swift */,
 				AADDE983BD98A183CACB5A0A /* NotificationManager.swift */,
 				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
+				2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */,
 				F807BCDB518D68ED40746740 /* Theme.swift */,
 			);
 			path = Utilities;
@@ -865,6 +869,7 @@
 				8ACEDC7512FEB9A0F8708243 /* PageTreeBuilder.swift in Sources */,
 				915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */,
 				C86E9068EFDC9ACF3D897A0E /* PlannedRoute.swift in Sources */,
+				9CE5F2326BA858138E1E243C /* PrivateLiquidGlass.swift in Sources */,
 				D876BBF5D66A951F5E3066F4 /* ProfileView.swift in Sources */,
 				AEEB3AFDB1611498617662F6 /* RoutePickerSheet.swift in Sources */,
 				A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */,
@@ -975,6 +980,7 @@
 				EBE639AA663B35B414DACED6 /* PageTreeBuilder.swift in Sources */,
 				231E7E1E2C99753E61EBEE54 /* PhotoManager.swift in Sources */,
 				A914ED0F4CEBF37A0F126AB9 /* PlannedRoute.swift in Sources */,
+				163AA4E32C4E8BD3F77A991F /* PrivateLiquidGlass.swift in Sources */,
 				478C04B1C47C61C1017A2323 /* ProfileView.swift in Sources */,
 				9BFD7F587F2BB8FF389A036E /* RoutePickerSheet.swift in Sources */,
 				CD3549ECE4347BD8DDF0A91C /* SectionEditorView.swift in Sources */,
@@ -1288,7 +1294,7 @@
 			repositoryURL = "https://github.com/ThijsMussig/LiquidGlassKit";
 			requirement = {
 				kind = revision;
-				revision = 6bfabb5f5cccd239c242e38611fa9dd521ee3986;
+				revision = 51ef8d187a466345882b90d281865ceec7bad3b0;
 			};
 		};
 		ADCDE9D1DDDAC1397586B4EA /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */ = {

@@ -20,7 +20,7 @@ struct TimeMasterLiquidGlassBackground: UIViewRepresentable {
     }
 }
 
-private final class TimeMasterLiquidGlassHost: UIView {
+final class TimeMasterLiquidGlassHost: UIView {
     private let effectView: UIView
     var cornerRadius: CGFloat {
         didSet {

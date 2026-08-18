@@ -1168,7 +1168,7 @@ struct WorkoutDetailView: View {
 
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
+        AppToolbar.iconItem(placement: .primaryAction) {
             Menu {
                 Button { showingWorkoutSettings = true } label: {
                     Label("Workout Settings", systemImage: "slider.horizontal.3")
@@ -1185,7 +1185,7 @@ struct WorkoutDetailView: View {
             }
             .accessibilityLabel("Workout actions")
         }
-        ToolbarItem(placement: .primaryAction) {
+        AppToolbar.iconItem(placement: .primaryAction) {
             Button {
                 showingAddOptions = true
             } label: {
@@ -1194,7 +1194,7 @@ struct WorkoutDetailView: View {
             }
             .accessibilityLabel("Add to workout")
         }
-        ToolbarItem(placement: .primaryAction) {
+        AppToolbar.iconItem(placement: .primaryAction) {
             Button {
                 openBrowser(.newSection)
             } label: {
