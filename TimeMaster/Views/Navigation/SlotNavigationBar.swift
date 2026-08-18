@@ -47,69 +47,79 @@ struct SlotNavigationBar: View {
     }
 
     var body: some View {
-        Group {
+        ZStack(alignment: .bottom) {
             if layout == .full {
-        GeometryReader { proxy in
-            let size = proxy.size
-            let slotWidth = slotWidth(for: size.width)
-            let arcRect = CGRect(origin: .zero, size: size)
-            let centeredOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
-            let displayOffset = hasMeasured ? reelOffset : centeredOffset
-            let arcScaleX = 1 + dragIntensity * 0.15
-            let arcScaleY = 1 + dragIntensity * 0.35
+                GeometryReader { proxy in
+                    let size = proxy.size
+                    let slotWidth = slotWidth(for: size.width)
+                    let arcRect = CGRect(origin: .zero, size: size)
+                    let centeredOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
+                    let displayOffset = hasMeasured ? reelOffset : centeredOffset
+                    let arcScaleX = 1 + dragIntensity * 0.15
+                    let arcScaleY = 1 + dragIntensity * 0.35
 
-            ZStack {
-                ZStack {
-                    arcSurface
-                }
-                .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: .bottom)
-                .allowsHitTesting(false)
+                    ZStack {
+                        ZStack {
+                            arcSurface
+                        }
+                        .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: .bottom)
+                        .allowsHitTesting(false)
 
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    slotView(
-                        item: item,
-                        index: index,
-                        offset: displayOffset,
-                        size: size,
-                        arcRect: arcRect,
-                        slotWidth: slotWidth
-                    )
-                }
-            }
-            .contentShape(Rectangle())
-            .gesture(dragGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset))
-            .onAppear {
-                if !hasMeasured {
-                    reelOffset = centeredOffset
-                    hasMeasured = true
-                }
-            }
-            .onChange(of: size.width) { _ in
-                let nextOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
-                if isDragging {
-                    reelOffset = nextOffset
-                } else if abs(reelOffset - nextOffset) > 0.5 {
-                    withAnimation(selectionAnimation) {
-                        reelOffset = nextOffset
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            slotView(
+                                item: item,
+                                index: index,
+                                offset: displayOffset,
+                                size: size,
+                                arcRect: arcRect,
+                                slotWidth: slotWidth
+                            )
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .gesture(dragGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset))
+                    .onAppear {
+                        if !hasMeasured {
+                            reelOffset = centeredOffset
+                            hasMeasured = true
+                        }
+                    }
+                    .onChange(of: size.width) { _ in
+                        let nextOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
+                        if isDragging {
+                            reelOffset = nextOffset
+                        } else if abs(reelOffset - nextOffset) > 0.5 {
+                            withAnimation(selectionAnimation) {
+                                reelOffset = nextOffset
+                            }
+                        }
+                    }
+                    .onChange(of: selection) { newSelection in
+                        guard !isDragging else { return }
+                        let nextOffset = offset(for: newSelection, viewportWidth: size.width, slotWidth: slotWidth)
+                        guard abs(reelOffset - nextOffset) > 0.5 else { return }
+                        withAnimation(selectionAnimation) {
+                            reelOffset = nextOffset
+                        }
                     }
                 }
-            }
-            .onChange(of: selection) { newSelection in
-                guard !isDragging else { return }
-                let nextOffset = offset(for: newSelection, viewportWidth: size.width, slotWidth: slotWidth)
-                guard abs(reelOffset - nextOffset) > 0.5 else { return }
-                withAnimation(selectionAnimation) {
-                    reelOffset = nextOffset
-                }
-            }
-        }
+                .transition(presentationTransition)
+                .zIndex(0)
             } else {
                 inlineNavigation
+                    .transition(presentationTransition)
+                    .zIndex(1)
             }
         }
         .frame(height: layout == .full ? barHeight : Self.inlineHeight)
         .animation(presentationAnimation, value: layout)
         .accessibilityElement(children: .contain)
+    }
+
+    private var presentationTransition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .move(edge: .bottom).combined(with: .opacity)
     }
 
     private var inlineNavigation: some View {

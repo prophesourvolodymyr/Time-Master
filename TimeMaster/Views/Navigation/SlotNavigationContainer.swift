@@ -94,7 +94,7 @@ struct SlotNavigationContainer<Content: View>: View {
                 }
             }
             .onPreferenceChange(SlotNavigationPresentationPreferenceKey.self) { requestedPresentation in
-                applyNavigationPresentation(requestedPresentation)
+                applyNavigationPresentation(requestedPresentation ?? .full)
             }
             .animation(pageAnimation, value: selection)
             .animation(navigationPresentationAnimation, value: effectiveNavigationPresentation)

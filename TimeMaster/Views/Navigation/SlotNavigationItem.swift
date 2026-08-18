@@ -7,13 +7,15 @@ enum SlotNavigationPresentation: Equatable {
 }
 
 struct SlotNavigationPresentationPreferenceKey: PreferenceKey {
-    static var defaultValue: SlotNavigationPresentation = .full
+    static let defaultValue: SlotNavigationPresentation? = nil
 
     static func reduce(
-        value: inout SlotNavigationPresentation,
-        nextValue: () -> SlotNavigationPresentation
+        value: inout SlotNavigationPresentation?,
+        nextValue: () -> SlotNavigationPresentation?
     ) {
-        value = nextValue()
+        if let next = nextValue() {
+            value = next
+        }
     }
 }
 

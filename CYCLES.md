@@ -565,7 +565,8 @@ F06 (AI Coach) ─────────┘
 - [x] F24-K - Put AI Coach and Profile left of centered Home, keep semantic destination IDs stable for macOS number keys, lower the macOS arc crest into the taller bar, and keep the macOS shadow on the same curve
 - [x] F24-L - Use public iOS 26 `.glassEffect` on the arc over the existing dark `Theme.surface` base with a restrained dark tint; keep `.regularMaterial` on earlier iOS versions
 - [x] F24-M — Add explicit full, inline, and hidden navigation presentations; keep AI Chat’s composer above a compact inline rail and add a lower-corner hidden-rail reveal gesture
-- [x] Verified: iOS 26.5 and iOS 18.6 Simulator builds succeed; both refreshed iOS app bundles installed and launched; Home remains centered and the arc stays dark with restrained native glass; manual drag and directional page-transition review remains for human verification
+- [x] F24-N — Stabilize AI Coach’s root inline presentation preference and animate full/inline rail insertion and exit from the shared bottom edge
+- [x] Verified: iOS 26.5 and iOS 18.6 Simulator builds succeed; both refreshed iOS app bundles installed and launched; the adaptive AI Coach inline-transition fix builds for iOS and macOS; Home remains centered and the arc stays dark with restrained native glass; manual AI Coach transition, drag, and directional page-transition review remains for human verification
 
 ## Cycle 13 — Music Library Update
 - [x] F25 — Native Music Library / Settings screen

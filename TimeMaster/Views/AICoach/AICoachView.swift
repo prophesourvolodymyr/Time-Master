@@ -69,6 +69,7 @@ struct AICoachView: View {
             }
             .animation(.spring(response: 0.38, dampingFraction: 0.82), value: store.pendingApproval != nil)
         }
+        .slotNavigationPresentation(.inline)
     }
 
     @ToolbarContentBuilder
