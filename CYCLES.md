@@ -591,10 +591,17 @@ F06 (AI Coach) ─────────┘
   - [x] F27-B — Today scheduled workout instances and Quick Start
   - [x] F27-C — Existing-feature widget catalog and picker
   - [x] F27-D — macOS/iOS edit mode, local persistence, accessibility
-  - [x] Support content-aware compact 0.5:1, square 1:1, and wide 1:2 widget footprints with saved shape changes
+  - [x] Support content-aware compact 0.5:2 half-width two-row, square 1:1, and wide 1:2 widget footprints with saved shape changes
   - [x] Show true-content picker previews with explicit Add actions
-  - [x] Add dashed widget boundaries, visible insertion slots, and whole-base drag reordering
+  - [x] Add dashed widget boundaries, drag-only insertion slots, and whole-base drag reordering
   - [x] Preserve legacy footprint values while exposing shape selection in the widget menu
+
+## Cycle 16 — Home Widget Edit Corrections
+
+- [x] F27 — Correct compact Greeting to 0.5:2 half-width two-row geometry
+- [x] F27-A — Hide insertion slots until active drag begins
+- [x] F27-D — Add direct per-widget options and shape controls in edit mode
+- [x] F27-D — Preserve full-base drag behavior without blocking edit controls
 
 ## Notes
 - Codebase converted to this system: 2026-07-04.

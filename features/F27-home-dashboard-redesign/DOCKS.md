@@ -5,16 +5,16 @@ The Home dashboard becomes a user-owned, adaptive canvas of workout, schedule, p
 ## What We Build
 
 - A responsive Home canvas that grows vertically as modules are added.
-- A snapped visual grid with compact 0.5:1, square 1:1, and wide 1:2 (height-to-width) module footprints.
+- A snapped visual grid with compact 0.5:2 half-width two-row, square 1:1, and wide 1:2 full-width module footprints.
 - A removable Greeting module; Greeting is not permanent page chrome.
 - A schedule-first Today module built from scheduled workout instances.
 - A Quick Start module that uses the first pending Today instance and falls back to the first matching ready workout.
 - One configurable Activity Shortcuts module containing supported Workout, Run & Walk, and Bike actions.
 - Extracted progress and analytics modules backed by existing stores rather than copied data.
 - A Home edit mode entered by Pencil or a background long press.
-- Edit mode controls for adding, removing, moving, and changing module shape.
+- Edit mode controls for adding, removing, moving, changing module shape, and opening each module's direct options menu.
 - A native module picker grouped into Today, Workouts, Analytics, Outdoor, and Database.
-- Lightweight per-module content options exposed through a context menu only when useful.
+- Lightweight per-module content options exposed by a direct edit-mode menu and a secondary context menu only when useful.
 - Local per-device layout persistence with immediate saves after every layout change.
 - Full macOS accessibility, keyboard support, Dynamic Type, Reduce Motion, and reduced-transparency behavior.
 
@@ -46,9 +46,9 @@ The module catalog declares each module's category, supported visual footprints,
 | empty Today | A calm empty Today module with a path to schedule or browse workouts | No invented workout instance is shown |
 | no workouts | Empty modules explain how to create a workout or open the database | Quick Start and workout-dependent modules show useful empty actions |
 | no history | Progress modules show zero-state copy without fabricated progress | Analytics modules remain addable |
-| edit mode | Done and Add controls are visible; each module exposes a red remove control, and the entire widget base is draggable for reordering | Taps on module content are replaced by editing interactions where necessary |
+| edit mode | Done and Add controls are visible; each module exposes a red remove control, a direct options/shape menu when applicable, and a full-base drag affordance for reordering | Taps on module content are replaced by editing interactions where necessary |
 | module picker | A native popover or sheet with grouped visual previews | Adding a module inserts it immediately with its content-aware default shape and saves the layout |
-| module options | A context menu or compact options presentation for supported modules | Changes update the module instance and save immediately |
+| module options | A direct options/shape menu is visible on the module while editing; a context menu remains available as a secondary path | Changes update the module instance and save immediately |
 | unavailable platform action | The module is not offered on that platform | The canvas never presents a dead disabled outdoor action |
 | reduced motion | Changes use short fades and restrained layout updates | No large slide, bounce, or continuous motion is required |
 | reduced transparency | Surfaces become more opaque while retaining hierarchy | Text contrast remains stable |
@@ -61,8 +61,8 @@ The module catalog declares each module's category, supported visual footprints,
 | enter edit mode | The canvas changes to an editing presentation with controls materializing near their targets | Pencil or background long press |
 | add module | The new module appears at the insertion point with a restrained spring and opacity transition | Add from picker |
 | remove module | The module leaves immediately and the remaining modules settle into their new grid positions | Red remove control |
-| move module | The module follows the edit drag and neighboring modules make room continuously | Drag in edit mode |
-| change shape | The module switches between its supported compact, square, and wide footprints and settles into the canvas | Shape selected from the module menu |
+| move module | The module follows the edit drag; insertion slots appear only while a module is actively dragged and neighboring modules make room continuously | Drag in edit mode |
+| change shape | The module switches between its supported compact, square, and wide footprints and settles into the canvas | Shape selected from the direct module menu |
 | exit edit mode | Editing affordances fade while the resting canvas remains in place | Done |
 | data refresh | Numeric and status changes use scoped content transitions | Store or schedule change |
 

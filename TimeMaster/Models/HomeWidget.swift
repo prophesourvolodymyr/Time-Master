@@ -28,7 +28,7 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
     init(from decoder: Decoder) throws {
         let value = try decoder.singleValueContainer().decode(String.self).lowercased()
         switch value {
-        case "compact", "0.5:1", "0.5x1":
+        case "compact", "0.5:1", "0.5x1", "0.5:2", "0.5x2":
             self = .compact
         case "square", "1:1", "1x1", "standard":
             self = .square
@@ -46,12 +46,13 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// `compact` is the half-width, one-row footprint. `square` is full-width
-    /// 1:1, and `wide` is the user's 1:2 height-to-width footprint.
+    /// `compact` is the half-width, two-row footprint rendered as a square
+    /// tile. `square` is full-width 1:1, and `wide` is the full-width 1:2
+    /// footprint.
     var aspectRatio: CGFloat {
         switch self {
-        case .compact, .wide: 2
-        case .square: 1
+        case .compact, .square: 1
+        case .wide: 2
         }
     }
 
@@ -64,17 +65,17 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
 
     var accessibilityName: String {
         switch self {
-        case .compact: "compact"
-        case .square: "square"
-        case .wide: "wide"
+        case .compact: "compact, half-width, two-row"
+        case .square: "square, full-width, one-row"
+        case .wide: "wide, full-width, half-height"
         }
     }
 
     var menuTitle: String {
         switch self {
-        case .compact: "Compact"
-        case .square: "Square"
-        case .wide: "Wide"
+        case .compact: "Compact · 0.5:2"
+        case .square: "Square · 1:1"
+        case .wide: "Wide · 1:2"
         }
     }
 }

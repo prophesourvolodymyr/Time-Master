@@ -83,10 +83,10 @@ struct HomeWidgetCanvas: View {
 
     @ViewBuilder
     private func insertionSlot(index: Int) -> some View {
-        if isEditing {
+        if isEditing && draggedWidgetID != nil {
             HomeWidgetInsertionSlot(
                 index: index,
-                isDragging: draggedWidgetID != nil,
+                isDragging: true,
                 isActive: activeInsertionIndex == index,
                 draggedWidgetID: $draggedWidgetID,
                 activeInsertionIndex: $activeInsertionIndex,
@@ -168,8 +168,11 @@ private struct HomeWidgetTile: View {
         }
         .overlay(alignment: .topTrailing) {
             if isEditing {
-                removeButton
-                    .padding(8)
+                HStack(spacing: 8) {
+                    widgetOptionsButton
+                    removeButton
+                }
+                .padding(8)
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius))
@@ -216,6 +219,28 @@ private struct HomeWidgetTile: View {
             .background(.black.opacity(0.62), in: Circle())
             .contentShape(Circle())
             .accessibilityLabel("Drag \(widget.kind.title) widget from anywhere on its base")
+    }
+
+    private var widgetOptionsButton: some View {
+        Menu {
+            if widget.kind.supportsOptions {
+                optionsMenu
+            }
+            if widget.kind.supportedFootprints.count > 1 {
+                if widget.kind.supportsOptions {
+                    Divider()
+                }
+                footprintMenu
+            }
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(.black.opacity(0.62), in: Circle())
+        }
+        .menuStyle(.borderlessButton)
+        .accessibilityLabel("Edit \(widget.kind.title) options")
     }
 
     private var removeButton: some View {

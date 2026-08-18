@@ -6,28 +6,28 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 
 - A responsive macOS grid that uses the available detail-pane width.
 - A platform-appropriate iOS arrangement using the same module identities and saved options.
-- Compact 0.5:1 half-width one-row, square 1:1 full-width, and wide 1:2 (height-to-width) widget footprints selected per module.
+- Compact 0.5:2 half-width two-row, square 1:1 full-width, and wide 1:2 full-width widget footprints selected per module.
 - A first-run layout containing Greeting, Today, Quick Start, Activity Shortcuts, and Metrics.
 - Continuous local persistence of module order, footprint, and options.
 - Edit mode entered by Pencil or a background long press.
 - Done and Add controls in edit mode.
+- Direct per-module options and shape controls in edit mode when a module supports them.
 - Red remove controls and dashed boundaries on every module while editing.
-- Visible dashed insertion slots show where a dragged module can be placed.
+- Insertion slots remain hidden at rest and appear only while a module is actively dragged.
 - Drag-to-reorder starts from any point on the widget base and snaps into insertion slots without changing widget size.
 - Keyboard equivalents for focus, move, remove, add, and finish editing on macOS.
 
 ## Architecture
 
-- The canvas renders persisted module instances through the catalog. Modules are not hard-coded as permanent vertical sections. Every module uses a supported compact, square, or wide visual footprint so content previews and the canvas share the same spatial contract.
-- The normal header has Pencil and Settings. To keep the header to two active controls while editing, edit mode uses Add and Done; Settings remains available through the platform menu during editing.
+- The normal header has Pencil and Settings. To keep the header to two active controls while editing, edit mode uses Add and Done; each module exposes its own options and shape control while editing.
 
 ## States
 
 | State | Behavior |
 |---|---|
-| editing | Modules show red removal controls, dashed boundaries, insertion slots, and a full-base drag affordance. |
+| editing | Modules show direct options/shape controls, removal controls, dashed boundaries, and a full-base drag affordance. Insertion slots are not visible until a drag begins. |
 | adding | The picker remains modal to the edit flow; adding inserts immediately when selected. |
-| moving | The dragged module follows the pointer from any point on its base and neighboring insertion slots make room. |
+| moving | The dragged module follows the pointer from any point on its base and neighboring insertion slots appear to make room. |
 | removed | The module disappears immediately and can be restored from Add. |
 | restored | The module returns using its saved shape and options. |
 | empty canvas | Add remains available and a calm empty-state prompt points to the picker. |
