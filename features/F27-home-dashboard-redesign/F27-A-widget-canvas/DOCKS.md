@@ -6,41 +6,39 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 
 - A responsive macOS grid that uses the available detail-pane width.
 - A platform-appropriate iOS arrangement using the same module identities and saved options.
-- Visual footprint presets including compact half-width, standard full-width, tall, and large modules.
+- A single exact wide widget footprint: two grid columns by one row, rendered at a 2:1 width-to-height ratio on every platform.
 - A first-run layout containing Greeting, Today, Quick Start, Activity Shortcuts, and Metrics.
 - Continuous local persistence of module order, footprint, and options.
 - Edit mode entered by Pencil or a background long press.
 - Done and Add controls in edit mode.
-- Red remove controls on every module while editing.
-- Drag-to-reorder and snapped resize gestures that do not run during normal browsing.
-- Keyboard equivalents for focus, move, resize, remove, add, and finish editing on macOS.
+- Red remove controls and dashed boundaries on every module while editing.
+- Visible dashed insertion slots show where a dragged module can be placed.
+- Drag-to-reorder uses a direct drag handle and snaps into insertion slots without changing widget size.
+- Keyboard equivalents for focus, move, remove, add, and finish editing on macOS.
 
 ## Architecture
 
-The canvas renders persisted module instances through the catalog. Modules are not hard-coded as permanent vertical sections. A module may render a compact or larger visual variant depending on its saved footprint, while keeping the same identity and destination action.
-
-The normal header has Pencil and Settings. To keep the header to two active controls while editing, edit mode uses Add and Done; Settings remains available through the platform menu during editing.
+- The canvas renders persisted module instances through the catalog. Modules are not hard-coded as permanent vertical sections. Every module uses the same wide visual footprint so content previews and the canvas have one spatial contract.
+- The normal header has Pencil and Settings. To keep the header to two active controls while editing, edit mode uses Add and Done; Settings remains available through the platform menu during editing.
 
 ## States
 
 | State | Behavior |
 |---|---|
-| normal | Modules are tappable and scrollable; no drag or remove affordances are visible |
-| editing | Modules show red removal controls, selection/drag affordances, and supported resize handles |
-| adding | The picker remains modal to the edit flow; adding inserts immediately when selected |
-| moving | The dragged module follows the pointer and neighboring modules make room |
-| resizing | The module snaps between supported visual footprints |
-| removed | The module disappears immediately and can be restored from Add |
-| restored | The module returns using its default or last saved options |
-| empty canvas | Add remains available and a calm empty-state prompt points to the picker |
-| narrow width | The grid reduces columns and modules retain readable content |
-| wide width | Standard and large modules use additional available space without fixed coordinates |
+| editing | Modules show red removal controls, dashed boundaries, insertion slots, and a direct drag handle. |
+| adding | The picker remains modal to the edit flow; adding inserts immediately when selected. |
+| moving | The dragged module follows the pointer from the handle and neighboring insertion slots make room. |
+| removed | The module disappears immediately and can be restored from Add. |
+| restored | The module returns using the standard wide footprint and saved options. |
+| empty canvas | Add remains available and a calm empty-state prompt points to the picker. |
+| narrow width | The wide footprint follows the available width while retaining its 2:1 ratio. |
+| wide width | The wide footprint follows the available width while retaining its 2:1 ratio. |
 
 ## Animation Rules
 
 - Editing controls appear with a short opacity and scale transition anchored to the module.
 - Reordering uses a critically damped spring and follows the pointer continuously.
-- Resizing previews the resting footprint during the gesture and settles with a short spring.
+- Insertion slots expand and highlight while a module is dragged over them.
 - Removing a module fades it while the remaining layout closes the gap.
 - Reduced Motion replaces movement with opacity and restrained layout changes.
 

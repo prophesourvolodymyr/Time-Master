@@ -16,19 +16,20 @@ struct HomeWidgetCanvas: View {
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void
 
     @State private var draggedWidgetID: UUID?
+    @State private var activeInsertionIndex: Int?
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            LazyVGrid(
-                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
-                spacing: 12
-            ) {
-                ForEach(widgetStore.widgets) { widget in
-                    tile(for: widget)
-                        .gridCellColumns(widget.footprint.columnSpan)
+            VStack(spacing: 0) {
+                insertionSlot(index: 0)
+
+                ForEach(Array(widgetStore.widgets.enumerated()), id: \.element.id) { item in
+                    tile(for: item.element)
+                    insertionSlot(index: item.offset + 1)
                 }
             }
-            .padding(16)
+            .padding(.horizontal, HomeWidgetSizing.canvasPadding)
+            .padding(.vertical, 20)
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity, alignment: .center)
             .animation(.spring(response: 0.34, dampingFraction: 0.88), value: widgetStore.widgets)
@@ -38,12 +39,19 @@ struct HomeWidgetCanvas: View {
                 emptyCanvas
             }
         }
+        .onDrop(
+            of: [UTType.text],
+            delegate: HomeWidgetCanvasDropResetDelegate(
+                draggedWidgetID: $draggedWidgetID,
+                activeInsertionIndex: $activeInsertionIndex
+            )
+        )
         .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
     private func tile(for widget: HomeWidgetInstance) -> some View {
-        let content = HomeWidgetTile(
+        HomeWidgetTile(
             widget: widget,
             isEditing: isEditing,
             widgetStore: widgetStore,
@@ -52,29 +60,26 @@ struct HomeWidgetCanvas: View {
             outdoorStore: outdoorStore,
             now: now,
             skippedScheduledInstanceIDs: skippedScheduledInstanceIDs,
+            draggedWidgetID: $draggedWidgetID,
             onStartWorkout: onStartWorkout,
             onBrowseWorkouts: onBrowseWorkouts,
             onBrowseDatabase: onBrowseDatabase,
             onCreateWorkout: onCreateWorkout,
-            onStartOutdoor: onStartOutdoor,
+            onStartOutdoor: onStartOutdoor
         )
+    }
 
+    @ViewBuilder
+    private func insertionSlot(index: Int) -> some View {
         if isEditing {
-            content
-                .onDrag {
-                    draggedWidgetID = widget.id
-                    return NSItemProvider(object: NSString(string: widget.id.uuidString))
-                }
-                .onDrop(
-                    of: [UTType.text],
-                    delegate: HomeWidgetDropDelegate(
-                        targetID: widget.id,
-                        draggedID: $draggedWidgetID,
-                        widgetStore: widgetStore
-                    )
-                )
-        } else {
-            content
+            HomeWidgetInsertionSlot(
+                index: index,
+                isDragging: draggedWidgetID != nil,
+                isActive: activeInsertionIndex == index,
+                draggedWidgetID: $draggedWidgetID,
+                activeInsertionIndex: $activeInsertionIndex,
+                widgetStore: widgetStore
+            )
         }
     }
 
@@ -106,6 +111,7 @@ private struct HomeWidgetTile: View {
     @ObservedObject var outdoorStore: OutdoorActivityStore
     let now: Date
     let skippedScheduledInstanceIDs: Set<String>
+    @Binding var draggedWidgetID: UUID?
     let onStartWorkout: (Workout) -> Void
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
@@ -129,20 +135,37 @@ private struct HomeWidgetTile: View {
                 widgetStore.skipScheduledInstance(id: scheduled.id)
             }
         )
-        .frame(maxWidth: .infinity, minHeight: height, alignment: .topLeading)
-        .overlay(alignment: .topTrailing) {
+        .frame(maxWidth: .infinity)
+        .aspectRatio(widget.footprint.aspectRatio, contentMode: .fit)
+        .overlay {
             if isEditing {
-                editingControls
+                RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius + 2)
+                    .stroke(
+                        style: StrokeStyle(lineWidth: 1.5, dash: [7, 5], dashPhase: 0)
+                    )
+                    .foregroundStyle(.white.opacity(draggedWidgetID == widget.id ? 0.85 : 0.42))
+                    .padding(2)
+                    .allowsHitTesting(false)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if isEditing {
+                dragHandle
                     .padding(8)
             }
         }
-        .contentShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(alignment: .topTrailing) {
+            if isEditing {
+                removeButton
+                    .padding(8)
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius))
         .contextMenu {
             if widget.kind.supportsOptions {
                 optionsMenu
             }
             if isEditing {
-                resizeMenu
                 Divider()
                 Button(role: .destructive) {
                     widgetStore.remove(id: widget.id)
@@ -153,63 +176,40 @@ private struct HomeWidgetTile: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(widget.kind.title)
-        .accessibilityHint(isEditing ? "Drag to reorder or use the edit controls" : "Open widget action")
+        .accessibilityHint(isEditing ? "Drag from the handle to reorder this widget" : "Open widget action")
         .accessibilityAction(named: "Remove") {
-            if isEditing { widgetStore.remove(id: widget.id) }
-        }
-    }
-
-    private var height: CGFloat {
-        switch widget.footprint {
-        case .compact: 104
-        case .standard: 132
-        case .tall: 220
-        case .large: 292
-        }
-    }
-
-    private var editingControls: some View {
-        HStack(spacing: 6) {
-            Button(role: .destructive) {
+            if isEditing {
                 widgetStore.remove(id: widget.id)
-            } label: {
-                Image(systemName: "minus")
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 25)
-                    .background(.red, in: Circle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Remove \(widget.kind.title) widget")
-
-            Menu {
-                resizeMenu
-            } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 25)
-                    .background(.black.opacity(0.58), in: Circle())
-            }
-            .menuStyle(.borderlessButton)
-            .accessibilityLabel("Resize \(widget.kind.title) widget")
         }
     }
 
-    @ViewBuilder
-    private var resizeMenu: some View {
-        Menu("Resize") {
-            ForEach(widget.kind.supportedFootprints) { footprint in
-                Button {
-                    widgetStore.resize(id: widget.id, to: footprint)
-                } label: {
-                    Label(
-                        footprint.accessibilityName.capitalized,
-                        systemImage: footprint == widget.footprint ? "checkmark" : "rectangle"
-                    )
-                }
+    private var dragHandle: some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(width: 32, height: 32)
+            .background(.black.opacity(0.62), in: Circle())
+            .contentShape(Circle())
+            .onDrag {
+                draggedWidgetID = widget.id
+                return NSItemProvider(object: NSString(string: widget.id.uuidString))
             }
+            .accessibilityLabel("Drag \(widget.kind.title) widget")
+    }
+
+    private var removeButton: some View {
+        Button(role: .destructive) {
+            widgetStore.remove(id: widget.id)
+        } label: {
+            Image(systemName: "minus")
+                .font(.caption.weight(.black))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(.red, in: Circle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Remove \(widget.kind.title) widget")
     }
 
     @ViewBuilder
@@ -230,7 +230,7 @@ private struct HomeWidgetTile: View {
                     } label: {
                         Label(
                             action.title,
-                            systemImage: configurationContains(action) ? "checkmark" : action.systemImage
+                            systemImage: widget.configuration.activityShortcuts.contains(action) ? "checkmark" : action.systemImage
                         )
                     }
                 }
@@ -259,31 +259,51 @@ private struct HomeWidgetTile: View {
             visibleCountMenu
             if widget.kind == .today {
                 Button {
-                    toggleShowStatus()
+                    var configuration = widget.configuration
+                    configuration.showStatus.toggle()
+                    widgetStore.updateConfiguration(configuration, for: widget.id)
                 } label: {
-                    Label(widget.configuration.showStatus ? "Hide status" : "Show status", systemImage: widget.configuration.showStatus ? "checkmark" : "circle")
+                    Label(
+                        widget.configuration.showStatus ? "Hide status" : "Show status",
+                        systemImage: widget.configuration.showStatus ? "checkmark" : "circle"
+                    )
                 }
             }
         case .quickStart, .selectedWorkout:
             Button {
-                toggleShowDetails()
+                var configuration = widget.configuration
+                configuration.showDetails.toggle()
+                widgetStore.updateConfiguration(configuration, for: widget.id)
             } label: {
-                Label(widget.configuration.showDetails ? "Hide details" : "Show details", systemImage: widget.configuration.showDetails ? "checkmark" : "circle")
+                Label(
+                    widget.configuration.showDetails ? "Hide details" : "Show details",
+                    systemImage: widget.configuration.showDetails ? "checkmark" : "circle"
+                )
             }
             selectedWorkoutMenu
         case .weeklyRhythm, .typeBreakdown:
             selectedTypeMenu
         case .activityHeatmap:
             Button {
-                toggleShowDetails()
+                var configuration = widget.configuration
+                configuration.showDetails.toggle()
+                widgetStore.updateConfiguration(configuration, for: widget.id)
             } label: {
-                Label(widget.configuration.showDetails ? "Show labels" : "Hide labels", systemImage: widget.configuration.showDetails ? "checkmark" : "circle")
+                Label(
+                    widget.configuration.showDetails ? "Show labels" : "Hide labels",
+                    systemImage: widget.configuration.showDetails ? "checkmark" : "circle"
+                )
             }
         default:
             Button {
-                toggleShowDetails()
+                var configuration = widget.configuration
+                configuration.showDetails.toggle()
+                widgetStore.updateConfiguration(configuration, for: widget.id)
             } label: {
-                Label(widget.configuration.showDetails ? "Hide details" : "Show details", systemImage: widget.configuration.showDetails ? "checkmark" : "circle")
+                Label(
+                    widget.configuration.showDetails ? "Hide details" : "Show details",
+                    systemImage: widget.configuration.showDetails ? "checkmark" : "circle"
+                )
             }
         }
     }
@@ -296,7 +316,10 @@ private struct HomeWidgetTile: View {
                     configuration.visibleCount = count
                     widgetStore.updateConfiguration(configuration, for: widget.id)
                 } label: {
-                    Label("\(count)", systemImage: widget.configuration.visibleCount == count ? "checkmark" : "circle")
+                    Label(
+                        "\(count)",
+                        systemImage: widget.configuration.visibleCount == count ? "checkmark" : "circle"
+                    )
                 }
             }
         }
@@ -317,7 +340,10 @@ private struct HomeWidgetTile: View {
                     configuration.selectedTypeID = type.id
                     widgetStore.updateConfiguration(configuration, for: widget.id)
                 } label: {
-                    Label(type.name, systemImage: widget.configuration.selectedTypeID == type.id ? "checkmark" : type.iconName)
+                    Label(
+                        type.name,
+                        systemImage: widget.configuration.selectedTypeID == type.id ? "checkmark" : type.iconName
+                    )
                 }
             }
         }
@@ -331,41 +357,93 @@ private struct HomeWidgetTile: View {
                     configuration.selectedWorkoutID = workout.id
                     widgetStore.updateConfiguration(configuration, for: widget.id)
                 } label: {
-                    Label(workout.name, systemImage: widget.configuration.selectedWorkoutID == workout.id ? "checkmark" : workout.type.iconName)
+                    Label(
+                        workout.name,
+                        systemImage: widget.configuration.selectedWorkoutID == workout.id ? "checkmark" : workout.type.iconName
+                    )
                 }
             }
         }
     }
+}
 
-    private func configurationContains(_ action: HomeActivityShortcut) -> Bool {
-        widget.configuration.activityShortcuts.contains(action)
-    }
+private struct HomeWidgetInsertionSlot: View {
+    let index: Int
+    let isDragging: Bool
+    let isActive: Bool
+    @Binding var draggedWidgetID: UUID?
+    @Binding var activeInsertionIndex: Int?
+    let widgetStore: HomeWidgetStore
 
-    private func toggleShowDetails() {
-        var configuration = widget.configuration
-        configuration.showDetails.toggle()
-        widgetStore.updateConfiguration(configuration, for: widget.id)
-    }
-
-    private func toggleShowStatus() {
-        var configuration = widget.configuration
-        configuration.showStatus.toggle()
-        widgetStore.updateConfiguration(configuration, for: widget.id)
+    var body: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .stroke(
+                style: StrokeStyle(lineWidth: isActive ? 2 : 1, dash: [6, 4])
+            )
+            .foregroundStyle(isActive ? .cyan : .white.opacity(isDragging ? 0.34 : 0.18))
+            .frame(height: isDragging ? 34 : 14)
+            .overlay {
+                if isActive {
+                    Label("Drop widget here", systemImage: "arrow.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.cyan)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+            .onDrop(
+                of: [UTType.text],
+                delegate: HomeWidgetInsertionDropDelegate(
+                    index: index,
+                    draggedWidgetID: $draggedWidgetID,
+                    activeInsertionIndex: $activeInsertionIndex,
+                    widgetStore: widgetStore
+                )
+            )
+            .accessibilityElement()
+            .accessibilityLabel(isActive ? "Drop widget here" : "Widget drop position")
     }
 }
 
-private struct HomeWidgetDropDelegate: DropDelegate {
-    let targetID: UUID
-    @Binding var draggedID: UUID?
+private struct HomeWidgetInsertionDropDelegate: DropDelegate {
+    let index: Int
+    @Binding var draggedWidgetID: UUID?
+    @Binding var activeInsertionIndex: Int?
     let widgetStore: HomeWidgetStore
 
     func dropEntered(info: DropInfo) {
-        guard let draggedID, draggedID != targetID else { return }
-        widgetStore.move(id: draggedID, before: targetID)
+        activeInsertionIndex = index
+        guard let draggedWidgetID else { return }
+        widgetStore.move(id: draggedWidgetID, toInsertionIndex: index)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func dropExited(info: DropInfo) {
+        if activeInsertionIndex == index {
+            activeInsertionIndex = nil
+        }
     }
 
     func performDrop(info: DropInfo) -> Bool {
-        draggedID = nil
+        draggedWidgetID = nil
+        activeInsertionIndex = nil
+        return true
+    }
+}
+
+private struct HomeWidgetCanvasDropResetDelegate: DropDelegate {
+    @Binding var draggedWidgetID: UUID?
+    @Binding var activeInsertionIndex: Int?
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedWidgetID = nil
+        activeInsertionIndex = nil
         return true
     }
 }

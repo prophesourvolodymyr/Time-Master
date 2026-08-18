@@ -71,8 +71,8 @@ A module without meaningful options has no edit command. Duplicate instances are
 
 - Content changes use scoped numeric or opacity transitions.
 - Heatmap and list modules do not animate every cell independently during routine refresh.
-- Option changes update the module in place.
-- Picker previews use restrained materialization and fade transitions.
+- Picker previews render the real module content inside the same wide 2:1 footprint used by the canvas, followed by an explicit Add action.
+- Preview content is non-interactive; the Add action is the only control in the preview row.
 - Reduce Motion keeps content transitions but removes large movement.
 
 ## Files

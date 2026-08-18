@@ -2,6 +2,9 @@ import SwiftUI
 
 struct HomeWidgetPicker: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var workoutStore: WorkoutStore
+    @EnvironmentObject private var databaseStore: DatabaseStore
+    @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @ObservedObject var widgetStore: HomeWidgetStore
 
     var body: some View {
@@ -9,20 +12,18 @@ struct HomeWidgetPicker: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 20) {
+                    LazyVStack(alignment: .leading, spacing: 24) {
                         ForEach(HomeWidgetCategory.allCases) { category in
                             let widgets = widgetStore.availableKinds.filter { $0.category == category }
                             if !widgets.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
+                                VStack(alignment: .leading, spacing: 12) {
                                     Text(category.title)
                                         .font(.headline)
                                         .foregroundStyle(Theme.textPrimary)
-                                    LazyVGrid(
-                                        columns: [GridItem(.flexible()), GridItem(.flexible())],
-                                        spacing: 10
-                                    ) {
+
+                                    LazyVStack(spacing: 14) {
                                         ForEach(widgets) { kind in
-                                            widgetButton(kind)
+                                            widgetOption(kind)
                                         }
                                     }
                                 }
@@ -42,55 +43,80 @@ struct HomeWidgetPicker: View {
         .preferredColorScheme(.dark)
     }
 
-    private func widgetButton(_ kind: HomeWidgetKind) -> some View {
+    private func widgetOption(_ kind: HomeWidgetKind) -> some View {
         let canAdd = widgetStore.canAdd(kind)
-        return Button {
-            widgetStore.add(kind)
-            dismiss()
-        } label: {
-            VStack(alignment: .leading, spacing: 9) {
-                HStack(spacing: 8) {
-                    Image(systemName: kind.systemImage)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Text(kind.title)
+        return VStack(alignment: .leading, spacing: 12) {
+            HomeWidgetPreview(
+                kind: kind,
+                widgetStore: widgetStore,
+                workoutStore: workoutStore,
+                databaseStore: databaseStore,
+                outdoorStore: outdoorStore
+            )
+
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(kind.title, systemImage: kind.systemImage)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    if !canAdd {
-                        Image(systemName: "checkmark")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.green)
-                    }
+                    Text("Exact wide canvas footprint")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                footprintPreview(kind.defaultFootprint)
-            }
-            .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(.white.opacity(canAdd ? 0.08 : 0.16), lineWidth: 1)
-            )
-            .opacity(canAdd ? 1 : 0.56)
-        }
-        .buttonStyle(.plain)
-        .disabled(!canAdd)
-        .accessibilityLabel(canAdd ? "Add \(kind.title) widget" : "\(kind.title) already added")
-    }
 
-    private func footprintPreview(_ footprint: HomeWidgetFootprint) -> some View {
-        HStack(spacing: 5) {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color.white.opacity(0.16))
-                .frame(width: footprint == .compact ? 42 : 78, height: footprint.rowSpan == 1 ? 22 : 36)
-            if footprint == .large {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 78, height: 36)
+                Spacer(minLength: 8)
+                Button(canAdd ? "Add" : "Added") {
+                    widgetStore.add(kind)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(canAdd ? .cyan : .gray)
+                .disabled(!canAdd)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius)
+                .stroke(.white.opacity(canAdd ? 0.1 : 0.2), lineWidth: 1)
+        }
+        .opacity(canAdd ? 1 : 0.64)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(canAdd ? "Preview and add \(kind.title) widget" : "\(kind.title) widget already added")
+    }
+}
+
+private struct HomeWidgetPreview: View {
+    let kind: HomeWidgetKind
+    @ObservedObject var widgetStore: HomeWidgetStore
+    @ObservedObject var workoutStore: WorkoutStore
+    @ObservedObject var databaseStore: DatabaseStore
+    @ObservedObject var outdoorStore: OutdoorActivityStore
+    @State private var previewDate = Date()
+
+    var body: some View {
+        HomeWidgetContent(
+            widget: HomeWidgetInstance(kind: kind, footprint: .wide),
+            workoutStore: workoutStore,
+            databaseStore: databaseStore,
+            outdoorStore: outdoorStore,
+            now: previewDate,
+            skippedScheduledInstanceIDs: widgetStore.skippedScheduledInstanceIDs,
+            onStartWorkout: { _ in },
+            onBrowseWorkouts: {},
+            onBrowseDatabase: {},
+            onCreateWorkout: {},
+            onStartOutdoor: { _, _ in },
+            onSkipScheduledWorkout: { scheduled in
+                widgetStore.skipScheduledInstance(id: scheduled.id)
+            }
+        )
+        .allowsHitTesting(false)
+        .frame(maxWidth: .infinity)
+        .aspectRatio(HomeWidgetSizing.aspectRatio, contentMode: .fit)
+        .clipped()
+        .onAppear {
+            previewDate = Date()
+        }
     }
 }

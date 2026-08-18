@@ -21,35 +21,27 @@ enum HomeWidgetCategory: String, Codable, CaseIterable, Identifiable {
 }
 
 enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
-    case compact
-    case standard
-    case tall
-    case large
+    case wide
+
+    init(from decoder: Decoder) throws {
+        _ = try decoder.singleValueContainer().decode(String.self)
+        self = .wide
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 
     var id: String { rawValue }
+    var aspectRatio: CGFloat { HomeWidgetSizing.aspectRatio }
+    var accessibilityName: String { "wide" }
+}
 
-    var columnSpan: Int {
-        switch self {
-        case .compact: 1
-        case .standard, .tall, .large: 2
-        }
-    }
-
-    var rowSpan: Int {
-        switch self {
-        case .compact, .standard: 1
-        case .tall, .large: 2
-        }
-    }
-
-    var accessibilityName: String {
-        switch self {
-        case .compact: "compact"
-        case .standard: "standard"
-        case .tall: "tall"
-        case .large: "large"
-        }
-    }
+enum HomeWidgetSizing {
+    static let aspectRatio: CGFloat = 2
+    static let canvasPadding: CGFloat = 16
+    static let cornerRadius: CGFloat = 18
 }
 
 enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
@@ -133,14 +125,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var defaultFootprint: HomeWidgetFootprint {
-        switch self {
-        case .greeting: .compact
-        case .today, .quickStart, .weeklyRhythm, .activityHeatmap, .typeBreakdown, .savedRoutes: .tall
-        case .metrics, .activityShortcuts, .recentWorkouts, .outdoorSummary: .standard
-        case .resumeWorkout, .selectedWorkout, .streak, .lifetimeStats, .exerciseDatabase, .databaseOverview, .buildFromDatabase, .recoverActivity: .compact
-        }
-    }
+    var defaultFootprint: HomeWidgetFootprint { .wide }
 
     var supportsOptions: Bool {
         switch self {
@@ -149,20 +134,10 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var supportedFootprints: [HomeWidgetFootprint] {
-        switch self {
-        case .greeting, .streak, .lifetimeStats, .resumeWorkout, .selectedWorkout, .exerciseDatabase, .databaseOverview, .buildFromDatabase, .recoverActivity:
-            [.compact, .standard]
-        case .today, .quickStart, .weeklyRhythm, .activityHeatmap, .typeBreakdown, .savedRoutes:
-            [.standard, .tall, .large]
-        case .activityShortcuts, .recentWorkouts, .metrics, .outdoorSummary:
-            [.standard, .tall]
-        }
-    }
+    var supportedFootprints: [HomeWidgetFootprint] { [.wide] }
 
     static var catalog: [HomeWidgetKind] { allCases }
 }
-
 enum HomeActivityShortcut: String, Codable, CaseIterable, Identifiable {
     case workout
     case runWalk

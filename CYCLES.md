@@ -591,6 +591,9 @@ F06 (AI Coach) ─────────┘
   - [x] F27-B — Today scheduled workout instances and Quick Start
   - [x] F27-C — Existing-feature widget catalog and picker
   - [x] F27-D — macOS/iOS edit mode, local persistence, accessibility
+  - [x] Standardize every Home module to the exact wide 2:1 footprint and migrate saved layouts
+  - [x] Show true-content picker previews with explicit Add actions
+  - [x] Add dashed widget boundaries, visible insertion slots, and drag-handle snapping
 
 ## Notes
 - Codebase converted to this system: 2026-07-04.

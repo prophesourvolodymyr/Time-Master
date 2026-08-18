@@ -53,30 +53,21 @@ final class HomeWidgetStore: ObservableObject {
         save()
     }
 
-    func move(id: UUID, to destination: Int) {
+    func move(id: UUID, toInsertionIndex destination: Int) {
         guard let source = widgets.firstIndex(where: { $0.id == id }) else { return }
-        let clampedDestination = min(max(destination, 0), widgets.count - 1)
-        guard source != clampedDestination else { return }
+
         let item = widgets.remove(at: source)
-        widgets.insert(item, at: clampedDestination)
+        let adjustedDestination = destination > source ? destination - 1 : destination
+        let insertionIndex = min(max(adjustedDestination, 0), widgets.count)
+        guard insertionIndex != source else {
+            widgets.insert(item, at: source)
+            return
+        }
+
+        widgets.insert(item, at: insertionIndex)
         save()
     }
 
-    func move(id: UUID, before targetID: UUID) {
-        guard let source = widgets.firstIndex(where: { $0.id == id }),
-              let target = widgets.firstIndex(where: { $0.id == targetID }) else { return }
-        let item = widgets.remove(at: source)
-        let adjustedTarget = source < target ? target - 1 : target
-        widgets.insert(item, at: min(max(adjustedTarget, 0), widgets.count))
-        save()
-    }
-
-    func resize(id: UUID, to footprint: HomeWidgetFootprint) {
-        guard let index = widgets.firstIndex(where: { $0.id == id }) else { return }
-        guard widgets[index].kind.supportedFootprints.contains(footprint) else { return }
-        widgets[index].footprint = footprint
-        save()
-    }
 
     func updateConfiguration(_ configuration: HomeWidgetConfiguration, for id: UUID) {
         guard let index = widgets.firstIndex(where: { $0.id == id }) else { return }
