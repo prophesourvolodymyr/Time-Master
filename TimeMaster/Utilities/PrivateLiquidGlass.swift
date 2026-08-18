@@ -2,6 +2,7 @@ import SwiftUI
 
 #if os(iOS)
 import UIKit
+import Metal
 import LiquidGlassKit
 
 struct TimeMasterLiquidGlassBackground: UIViewRepresentable {
@@ -36,6 +37,10 @@ final class TimeMasterLiquidGlassHost: UIView {
             let effect = UIGlassEffect(style: .regular)
             effect.isInteractive = isInteractive
             effectView = UIVisualEffectView(effect: effect)
+        } else if MTLCreateSystemDefaultDevice() == nil {
+            let fallbackView = UIView()
+            fallbackView.backgroundColor = UIColor(white: 0.12, alpha: 0.95)
+            effectView = fallbackView
         } else {
             let effect = LiquidGlassEffect(style: .regular, isNative: false)
             effect.isInteractive = isInteractive

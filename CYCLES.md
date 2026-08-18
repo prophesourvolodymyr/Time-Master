@@ -574,6 +574,15 @@ F06 (AI Coach) ─────────┘
   - [x] Reflowed the full-screen Music panes so focused Workout fills the remaining screen height, Uploads keeps every source card visible, and typed transferable drag/drop supports ordered intra-list and cross-destination drops
   - [x] iPhone 16 iOS 18.6 Simulator build installed and launched; external Spotify, YouTube Music, SoundCloud, Dropbox, and Google Drive credentials remain required for their official integrations
 
+## Cycle 14 — Private Liquid Glass Controls
+- [x] F26 — Private Liquid Glass Controls
+  - [x] Pin the known-good LiquidGlassKit renderer to the iOS application target
+  - [x] Use the private renderer for iOS versions before 26 and native public Liquid Glass on iOS 26+
+  - [x] Apply circular private glass to icon-only primary toolbar actions across the app
+  - [x] Apply the same circular surface to Music settings controls
+  - [x] Build iOS and macOS targets; launch the iOS 18.6 Simulator app and review the Home toolbar
+  - [x] Ready for human verification; private renderer remains unsuitable for App Store submission
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
