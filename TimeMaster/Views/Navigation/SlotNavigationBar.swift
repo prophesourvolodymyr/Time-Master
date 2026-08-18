@@ -104,8 +104,11 @@ struct SlotNavigationBar: View {
         )
         if #available(iOS 26.0, *) {
             shape
-                .fill(.clear)
-                .glassEffect(.regular, in: shape)
+                .fill(Theme.surface.opacity(0.84))
+                .glassEffect(
+                    .regular.tint(Theme.background.opacity(0.18)),
+                    in: shape
+                )
                 .overlay {
                     iOSArcStyling(shape: shape)
                 }
