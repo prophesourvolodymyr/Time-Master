@@ -32,7 +32,7 @@ struct SlotNavigationBar: View {
 #if os(iOS)
         8
 #else
-        0
+        12
 #endif
     }
 
@@ -49,10 +49,6 @@ struct SlotNavigationBar: View {
             ZStack {
                 ZStack {
                     arcSurface
-#if os(macOS)
-                    SlotNavigationArcLineShape(curveOffset: arcCurveOffset)
-                        .stroke(Color.black.opacity(0.16), lineWidth: 1)
-#endif
                 }
                 .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: .bottom)
                 .allowsHitTesting(false)
@@ -132,7 +128,7 @@ struct SlotNavigationBar: View {
                 .fill(.clear)
                 .glassEffect(.regular, in: shape)
                 .overlay {
-                    shape.fill(Color.black.opacity(0.16))
+                    macArcStyling(shape: shape)
                 }
         } else {
             let shape = SlotNavigationArcShape(
@@ -142,7 +138,7 @@ struct SlotNavigationBar: View {
             shape
                 .fill(.regularMaterial)
                 .overlay {
-                    shape.fill(Color.black.opacity(0.22))
+                    macArcStyling(shape: shape)
                 }
         }
 #endif
@@ -191,6 +187,30 @@ struct SlotNavigationBar: View {
                 .stroke(Color.white.opacity(0.055), lineWidth: 0.8)
         }
     }
+
+#if os(macOS)
+    @ViewBuilder
+    private func macArcStyling(shape: SlotNavigationArcShape) -> some View {
+        ZStack {
+            shape.fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.05),
+                        Color.white.opacity(0.015),
+                        Color.black.opacity(0.20)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            shape.fill(Color.black.opacity(0.10))
+            SlotNavigationArcLineShape(curveOffset: arcCurveOffset)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1.15)
+            SlotNavigationArcInnerLineShape(curveOffset: arcCurveOffset)
+                .stroke(Color.white.opacity(0.045), lineWidth: 0.8)
+        }
+    }
+#endif
 
 
     @ViewBuilder
