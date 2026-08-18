@@ -1,5 +1,9 @@
 import SwiftUI
 
+#if os(iOS)
+import CoreMotion
+#endif
+
 struct HomeWidgetContent: View {
     let widget: HomeWidgetInstance
     @ObservedObject var workoutStore: WorkoutStore
@@ -13,6 +17,7 @@ struct HomeWidgetContent: View {
     let onCreateWorkout: () -> Void
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
+    @StateObject private var activityMotion = HomeActivityMotion()
     let onSkipScheduledWorkout: (ScheduledWorkout) -> Void
 
     var body: some View {
@@ -64,18 +69,19 @@ struct HomeWidgetContent: View {
     }
 
     private var greeting: some View {
-        HomeWidgetChrome(title: nil) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(greetingText)
-                    .font(.system(size: widget.footprint == .compact ? 22 : 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Text(now, style: .date)
-                    .font(.caption)
-                    .foregroundStyle(Theme.textSecondary)
-            }
+        VStack(alignment: .leading, spacing: 3) {
+            Text(greetingText)
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(now, style: .date)
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
+
     }
 
     private var today: some View {
@@ -100,7 +106,7 @@ struct HomeWidgetContent: View {
 
     private var quickStart: some View {
         let workout = quickStartWorkout
-        return HomeWidgetChrome(title: "Quick Start") {
+        return HomeWidgetChrome(title: "Quick Start", surface: true) {
             if let workout {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 10) {
@@ -142,37 +148,41 @@ struct HomeWidgetContent: View {
 
     private var activityShortcuts: some View {
         let shortcuts = supportedShortcuts
-        return HomeWidgetChrome(title: "Start something") {
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Start something")
+                .font(.headline)
+                .foregroundStyle(.white)
+
             if shortcuts.isEmpty {
                 Text("Choose an activity in the widget menu.")
                     .font(.subheadline)
                     .foregroundStyle(Theme.textSecondary)
             } else {
-                HStack(spacing: 10) {
-                    ForEach(shortcuts) { shortcut in
-                        Button {
-                            start(shortcut)
-                        } label: {
-                            VStack(spacing: 7) {
-                                Image(systemName: shortcut.systemImage)
-                                    .font(.title3.weight(.semibold))
-                                Text(shortcut.title)
-                                    .font(.caption.weight(.semibold))
-                                    .multilineTextAlignment(.center)
-                            }
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, minHeight: 74)
-                            .background(shortcutColor(shortcut).opacity(0.22), in: RoundedRectangle(cornerRadius: 14))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(shortcutColor(shortcut).opacity(0.5), lineWidth: 1)
+                GeometryReader { proxy in
+                    let diameter = max(0, (proxy.size.width - 24) / 3)
+                    HStack(spacing: 12) {
+                        ForEach(shortcuts) { shortcut in
+                            HomeActivityShortcutCircle(
+                                shortcut: shortcut,
+                                diameter: diameter,
+                                roll: activityMotion.roll,
+                                pitch: activityMotion.pitch,
+                                action: { start(shortcut) }
                             )
                         }
-                        .buttonStyle(.plain)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .aspectRatio(3, contentMode: .fit)
             }
         }
+        .onAppear {
+            activityMotion.start()
+        }
+        .onDisappear {
+            activityMotion.stop()
+        }
+
     }
 
     private var recentWorkouts: some View {
@@ -648,13 +658,6 @@ struct HomeWidgetContent: View {
         }
     }
 
-    private func shortcutColor(_ shortcut: HomeActivityShortcut) -> Color {
-        switch shortcut {
-        case .workout: .orange
-        case .runWalk: .green
-        case .bike: .cyan
-        }
-    }
 
     private func statusColor(_ status: ScheduledWorkoutStatus) -> Color {
         switch status {
@@ -688,9 +691,104 @@ struct HomeWidgetContent: View {
     }
 }
 
+private struct HomeActivityShortcutCircle: View {
+    let shortcut: HomeActivityShortcut
+    let diameter: CGFloat
+    let roll: Double
+    let pitch: Double
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: shortcut.systemImage)
+                    .font(.title2.weight(.semibold))
+                Text(shortcut.title)
+                    .font(.caption.weight(.semibold))
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(.white)
+            .frame(width: diameter, height: diameter)
+            .background(
+                Circle()
+                    .fill(shortcutColor.opacity(0.22))
+            )
+            .overlay(
+                Circle()
+                    .stroke(shortcutColor.opacity(0.72), lineWidth: 1.5)
+            )
+            .shadow(color: shortcutColor.opacity(0.24), radius: 12, y: 7)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Circle())
+        .rotation3DEffect(
+            .degrees(pitch * 5),
+            axis: (x: 1, y: 0, z: 0),
+            perspective: 0.7
+        )
+        .rotation3DEffect(
+            .degrees(-roll * 5),
+            axis: (x: 0, y: 1, z: 0),
+            perspective: 0.7
+        )
+        .offset(x: CGFloat(roll) * 2, y: CGFloat(pitch) * 2)
+        .accessibilityLabel(shortcut.title)
+        .accessibilityHint("Start \(shortcut.title)")
+    }
+
+    private var shortcutColor: Color {
+        switch shortcut {
+        case .workout: .orange
+        case .runWalk: .green
+        case .bike: .cyan
+        }
+    }
+}
+
+private final class HomeActivityMotion: ObservableObject {
+    @Published private(set) var roll = 0.0
+    @Published private(set) var pitch = 0.0
+
+    #if os(iOS)
+    private let manager = CMMotionManager()
+    #endif
+
+    func start() {
+        #if os(iOS)
+        guard manager.isDeviceMotionAvailable, !manager.isDeviceMotionActive else { return }
+        manager.deviceMotionUpdateInterval = 1.0 / 30.0
+        manager.startDeviceMotionUpdates(
+            using: .xArbitraryZVertical,
+            to: .main
+        ) { [weak self] motion, _ in
+            guard let gravity = motion?.gravity else { return }
+            self?.roll = min(max(gravity.x, -1), 1)
+            self?.pitch = min(max(gravity.y, -1), 1)
+        }
+        #endif
+    }
+
+    func stop() {
+        #if os(iOS)
+        manager.stopDeviceMotionUpdates()
+        #endif
+    }
+}
+
 struct HomeWidgetChrome<Content: View>: View {
     let title: String?
-    @ViewBuilder let content: () -> Content
+    let surface: Bool
+    let content: () -> Content
+
+    init(
+        title: String?,
+        surface: Bool = false,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.title = title
+        self.surface = surface
+        self.content = content
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -701,12 +799,19 @@ struct HomeWidgetChrome<Content: View>: View {
             }
             content()
         }
-        .padding(16)
+        .padding(surface ? 16 : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(.white.opacity(0.08), lineWidth: 1)
-        )
+        .background {
+            if surface {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Theme.surface)
+            }
+        }
+        .overlay {
+            if surface {
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(.white.opacity(0.08), lineWidth: 1)
+            }
+        }
     }
 }

@@ -8,7 +8,7 @@ final class HomeWidgetStore: ObservableObject {
 
     private let layoutKey = "home_widget_layout_v1"
     private let skippedScheduleKey = "home_skipped_schedule_instances_v1"
-    private let compactGreetingMigrationKey = "home_compact_greeting_migration_v1"
+    private let greetingStripMigrationKey = "home_greeting_strip_migration_v1"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -21,12 +21,12 @@ final class HomeWidgetStore: ObservableObject {
             loadedWidgets = HomeWidgetCatalog.initialLayout
         }
 
-        let needsCompactGreetingMigration = defaults.bool(forKey: compactGreetingMigrationKey) == false
-        widgets = needsCompactGreetingMigration
+        let needsGreetingStripMigration = defaults.bool(forKey: greetingStripMigrationKey) == false
+        widgets = needsGreetingStripMigration
             ? loadedWidgets.map { widget in
                 var widget = widget
                 if widget.kind == .greeting {
-                    widget.footprint = .compact
+                    widget.footprint = .wide
                 }
                 return widget
             }
@@ -39,8 +39,8 @@ final class HomeWidgetStore: ObservableObject {
             skippedScheduledInstanceIDs = []
         }
 
-        if needsCompactGreetingMigration {
-            defaults.set(true, forKey: compactGreetingMigrationKey)
+        if needsGreetingStripMigration {
+            defaults.set(true, forKey: greetingStripMigrationKey)
             save()
         }
     }

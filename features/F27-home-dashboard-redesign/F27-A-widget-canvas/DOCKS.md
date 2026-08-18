@@ -7,6 +7,7 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 - A responsive macOS grid that uses the available detail-pane width.
 - A platform-appropriate iOS arrangement using the same module identities and saved options.
 - Compact 0.5:2 half-width two-row, square 1:1 full-width, and wide 1:2 full-width widget footprints selected per module.
+- Greeting is a full-width text strip rather than a shaped card and has no selectable footprint.
 - A first-run layout containing Greeting, Today, Quick Start, Activity Shortcuts, and Metrics.
 - Continuous local persistence of module order, footprint, and options.
 - Edit mode entered by Pencil or a background long press.
@@ -15,6 +16,7 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 - Red remove controls and dashed boundaries on every module while editing.
 - Insertion slots remain hidden at rest and appear only while a module is actively dragged.
 - Drag-to-reorder starts from any point on the widget base and snaps into insertion slots without changing widget size.
+- Action-heavy modules such as Quick Start may use a card surface; ordinary modules rest directly on the canvas.
 - Keyboard equivalents for focus, move, remove, add, and finish editing on macOS.
 
 ## Architecture

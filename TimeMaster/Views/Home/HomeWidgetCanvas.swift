@@ -130,7 +130,7 @@ private struct HomeWidgetTile: View {
     let onCreateWorkout: () -> Void
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void
 
-    var body: some View {
+    private var renderedContent: some View {
         HomeWidgetContent(
             widget: widget,
             workoutStore: workoutStore,
@@ -147,8 +147,20 @@ private struct HomeWidgetTile: View {
                 widgetStore.skipScheduledInstance(id: scheduled.id)
             }
         )
-        .frame(maxWidth: .infinity)
-        .aspectRatio(widget.footprint.aspectRatio, contentMode: .fit)
+    }
+
+    var body: some View {
+        Group {
+            if widget.kind == .greeting {
+                renderedContent
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: 58, alignment: .center)
+            } else {
+                renderedContent
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(widget.footprint.aspectRatio, contentMode: .fit)
+            }
+        }
         .overlay {
             if isEditing {
                 RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius + 2)

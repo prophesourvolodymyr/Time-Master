@@ -169,7 +169,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
     var defaultFootprint: HomeWidgetFootprint {
         switch self {
         case .greeting:
-            .compact
+            .wide
         case .streak, .lifetimeStats, .databaseOverview:
             .square
         default:
@@ -185,7 +185,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
     }
 
     var supportedFootprints: [HomeWidgetFootprint] {
-        HomeWidgetFootprint.allCases
+        self == .greeting ? [.wide] : HomeWidgetFootprint.allCases
     }
 
     static var catalog: [HomeWidgetKind] { allCases }

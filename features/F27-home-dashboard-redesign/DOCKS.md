@@ -6,15 +6,16 @@ The Home dashboard becomes a user-owned, adaptive canvas of workout, schedule, p
 
 - A responsive Home canvas that grows vertically as modules are added.
 - A snapped visual grid with compact 0.5:2 half-width two-row, square 1:1, and wide 1:2 full-width module footprints.
-- A removable Greeting module; Greeting is not permanent page chrome.
+- A removable Greeting text strip with no card background or shape selector.
 - A schedule-first Today module built from scheduled workout instances.
 - A Quick Start module that uses the first pending Today instance and falls back to the first matching ready workout.
-- One configurable Activity Shortcuts module containing supported Workout, Run & Walk, and Bike actions.
+- One configurable Activity Shortcuts module containing three circular Workout, Run & Walk, and Bike actions with subtle device-motion tilt on iOS.
 - Extracted progress and analytics modules backed by existing stores rather than copied data.
 - A Home edit mode entered by Pencil or a background long press.
 - Edit mode controls for adding, removing, moving, changing module shape, and opening each module's direct options menu.
 - A native module picker grouped into Today, Workouts, Analytics, Outdoor, and Database.
 - Lightweight per-module content options exposed by a direct edit-mode menu and a secondary context menu only when useful.
+- Only action-heavy surfaces such as Quick Start use a card background; other modules rest directly on the Home canvas.
 - Local per-device layout persistence with immediate saves after every layout change.
 - Full macOS accessibility, keyboard support, Dynamic Type, Reduce Motion, and reduced-transparency behavior.
 
@@ -63,6 +64,7 @@ The module catalog declares each module's category, supported visual footprints,
 | remove module | The module leaves immediately and the remaining modules settle into their new grid positions | Red remove control |
 | move module | The module follows the edit drag; insertion slots appear only while a module is actively dragged and neighboring modules make room continuously | Drag in edit mode |
 | change shape | The module switches between its supported compact, square, and wide footprints and settles into the canvas | Shape selected from the direct module menu |
+| shortcut tilt | Circular activity controls tilt a small amount toward the device's current gravity vector; unavailable sensors leave them level | Device motion on iOS |
 | exit edit mode | Editing affordances fade while the resting canvas remains in place | Done |
 | data refresh | Numeric and status changes use scoped content transitions | Store or schedule change |
 

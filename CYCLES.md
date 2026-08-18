@@ -604,6 +604,14 @@ F06 (AI Coach) ─────────┘
 - [x] F27-D — Add direct per-widget options and shape controls in edit mode
 - [x] F27-D — Preserve full-base drag behavior without blocking edit controls
 
+## Cycle 17 — Home Surface and Motion Corrections
+
+- [x] F27 — Render Greeting as a background-free full-width text strip
+- [x] F27-C — Render Activity Shortcuts as circular Workout, Run & Walk, and Bike controls
+- [x] F27-C — Add iOS device-motion tilt with a level fallback when motion data is unavailable
+- [x] F27 — Keep card surfaces for action-heavy modules only; preserve Quick Start surface
+- [x] F27 — Update Home redesign documentation and run iOS/macOS builds plus iPhone Home smoke check
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

@@ -6,13 +6,13 @@ The widget catalog turns existing Home, Analytics, Outdoor, Database, and workou
 
 ### Today
 
-- Greeting: compact greeting text only; removable and option-free.
+- Greeting: full-width greeting text and date strip; no card surface, no shape selector, and no content options.
 - Today schedule: scheduled instances, status, checkbox, and Start action.
-- Quick Start: first pending Today instance with a safe fallback.
+- Quick Start: first pending Today instance with a safe fallback and the only default card surface.
 
 ### Workouts
 
-- Activity Shortcuts: one configurable module containing supported Workout, Run & Walk, and Bike actions.
+- Activity Shortcuts: one configurable module containing three circular Workout, Run & Walk, and Bike actions; iOS adds subtle gravity-based tilt while other platforms remain level.
 - Recent Workouts: recent history entries with a configurable visible count.
 - Resume Workout: current resumable player state when available.
 - Selected Workout: a manually chosen workout shortcut where a stable selection is useful.
