@@ -82,7 +82,6 @@ struct SlotNavigationBar: View {
             }
         }
         .frame(height: 126)
-        .background(Theme.surface.ignoresSafeArea(edges: .bottom))
         .accessibilityElement(children: .contain)
     }
 
@@ -98,29 +97,37 @@ struct SlotNavigationBar: View {
         let centerX = size.width / 2
         let itemX = offset + CGFloat(index) * slotWidth + slotWidth / 2
         let distance = abs(itemX - centerX)
+        let focus = max(0, 1 - min(distance / (slotWidth * 0.9), 1))
+        let proximity = max(0, 1 - min(distance / (slotWidth * 2.3), 1))
         let norm = distance / slotWidth
         let bubbleFactor = max(0, 1 - distance / 34)
-        let labelAlpha = max(0, bubbleFactor * 2 - 0.6)
-        let baseScale = 1 + dragIntensity * 0.2
-        let itemScale = max(0.4, baseScale - norm * (0.25 + dragIntensity * 0.1))
-        let itemOpacity = max(0.1, 1 - norm * (0.4 + dragIntensity * 0.15))
-        let activeFontSize = 56 + dragIntensity * 24
-        let baseFontSize = 48 + dragIntensity * 10
-        let iconSize = baseFontSize + bubbleFactor * (activeFontSize - baseFontSize)
-        let htmlBaseTy = -38 - dragIntensity * 40
-        let restingBaseTy: CGFloat = -38
-        let verticalOffset = max(
-            htmlBaseTy,
-            htmlBaseTy + norm * (20 + dragIntensity * 14)
-        ) - restingBaseTy
+        let baseIconSize = 40 + 18 * focus
+        let expandedIconSize = 48 + bubbleFactor * 32
+        let iconSize = baseIconSize + dragIntensity * (expandedIconSize - baseIconSize)
+        let baseScale = 0.88 + 0.18 * focus
+        let expandedScale = max(0.4, 1.2 - norm * 0.35)
+        let itemScale = baseScale + dragIntensity * (expandedScale - baseScale)
+        let baseOpacity = 0.28 + 0.72 * proximity
+        let expandedOpacity = max(0.1, 1 - norm * 0.55)
+        let itemOpacity = baseOpacity + dragIntensity * (expandedOpacity - baseOpacity)
+        let baseLabelOpacity = focus * focus
+        let expandedLabelOpacity = max(0, bubbleFactor * 2 - 0.6)
+        let labelOpacity = baseLabelOpacity + dragIntensity * (expandedLabelOpacity - baseLabelOpacity)
+        let htmlExpansionOffset = max(
+            -78,
+            -78 + norm * 34
+        ) + 38
+        let verticalOffset = dragIntensity * htmlExpansionOffset
         let arcY = transformedArcY(at: itemX, in: arcRect)
-        let itemHeight: CGFloat = 110
+        let itemHeight = 86 + dragIntensity * 24
         let itemLift: CGFloat = 56
+        let iconFrameHeight = 58 + dragIntensity * max(0, expandedIconSize - 58)
+        let zIndex = focus + dragIntensity * (1 - min(norm, 10) - focus)
 
-        VStack(spacing: 3 * labelAlpha) {
+        VStack(spacing: 3) {
             Text(item.emoji)
                 .font(.system(size: iconSize))
-                .frame(height: iconSize)
+                .frame(height: iconFrameHeight)
                 .accessibilityHidden(true)
 
             Text(item.title.uppercased())
@@ -129,8 +136,8 @@ struct SlotNavigationBar: View {
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-                .frame(height: 13 * labelAlpha)
-                .opacity(labelAlpha)
+                .frame(height: 14)
+                .opacity(labelOpacity)
                 .accessibilityHidden(true)
         }
         .frame(width: slotWidth, height: itemHeight, alignment: .bottom)
@@ -141,7 +148,7 @@ struct SlotNavigationBar: View {
             x: itemX,
             y: arcY + itemLift - itemHeight / 2 + verticalOffset
         )
-        .zIndex(1 - min(norm, 10))
+        .zIndex(zIndex)
         .onTapGesture {
             select(
                 index: index,
@@ -176,7 +183,7 @@ struct SlotNavigationBar: View {
         if reduceMotion {
             return .easeOut(duration: 0.16)
         }
-        return .interpolatingSpring(stiffness: 420, damping: 25)
+        return .interpolatingSpring(stiffness: 260, damping: 28)
     }
 
     private var dragExpansionAnimation: Animation {
@@ -262,8 +269,8 @@ struct SlotNavigationBar: View {
             animation = .easeOut(duration: 0.16)
         } else {
             animation = .interpolatingSpring(
-                stiffness: 420,
-                damping: 25,
+                stiffness: 260,
+                damping: 28,
                 initialVelocity: Double(normalizedVelocity)
             )
         }
