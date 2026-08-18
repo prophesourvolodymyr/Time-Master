@@ -28,6 +28,7 @@
 | **F24** | **Slot Navigation** | **ready for human verification** | Existing MainTabView destinations |
 | **F25** | **Music Player Update** | **ready for human verification** | **F07, F19, existing WorkoutStore and MusicManager** |
 | **F26** | **Private Liquid Glass Controls** | **ready for human verification** | **F24, F25, existing SwiftUI toolbar and settings controls** |
+| **F27** | **Home Dashboard Redesign** | **in_progress** | **F01, F03, F04, F07, F12, F22** |
 
 ## Cycle 4 — Bug Fixes & Enhancements (complete)
 

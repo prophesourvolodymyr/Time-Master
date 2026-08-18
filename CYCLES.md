@@ -583,6 +583,14 @@ F06 (AI Coach) ─────────┘
   - [x] Build iOS and macOS targets; launch the iOS 18.6 Simulator app and review the Home toolbar
   - [x] Ready for human verification; private renderer remains unsuitable for App Store submission
 
+## Cycle 15 — Home Dashboard Redesign
+
+- [ ] F27 — Home Dashboard Redesign
+  - [ ] F27-A — Adaptive infinite widget canvas
+  - [ ] F27-B — Today scheduled workout instances and Quick Start
+  - [ ] F27-C — Existing-feature widget catalog and picker
+  - [ ] F27-D — macOS/iOS edit mode, local persistence, accessibility
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
