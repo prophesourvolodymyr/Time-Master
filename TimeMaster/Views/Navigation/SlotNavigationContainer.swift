@@ -57,8 +57,7 @@ struct SlotNavigationContainer<Content: View>: View {
                 SlotNavigationArcLineShape(curveOffset: arcCurveOffset)
                     .stroke(Color.black.opacity(0.72), lineWidth: 8)
                     .frame(height: barHeight)
-                    .blur(radius: 10)
-                    .offset(y: -4)
+                    .blur(radius: 9)
                     .allowsHitTesting(false)
             }
 #endif
