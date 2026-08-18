@@ -1,6 +1,5 @@
 import SwiftUI
 import UniformTypeIdentifiers
-import CoreTransferable
 
 struct MusicLibraryScreen: View {
     @ObservedObject var library: MusicLibraryStore
@@ -14,6 +13,7 @@ struct MusicLibraryScreen: View {
     @State private var expandedItems = Set<UUID>()
     @State private var playingItem: MusicLibraryItem?
     @State private var playerProgress = 0.15
+    @State private var playingDestination: MusicDestination?
     @State private var selectingItem: MusicLibraryItem?
     @State private var pendingDeletion: MusicLibraryItem?
     @State private var searchPresented = false
@@ -22,20 +22,21 @@ struct MusicLibraryScreen: View {
     @State private var providerMessage: String?
     @State private var guidePresented = false
     @State private var pendingTransfer: MusicTransfer?
+    @State private var dragged: DraggedMusic?
+    @State private var dropTarget: MusicDestination?
     @State private var scrollStartedAt: Date?
     @State private var searchCycleIndex = 0
 
     private let orange = Color(red: 1, green: 0.48, blue: 0)
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                VStack(spacing: 8) {
-                    title
-                    uploadsPane(height: uploadsHeight(in: geometry.size.height))
-                    generalPane(height: generalHeight(in: geometry.size.height))
-                    workoutPane
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            VStack(spacing: 8) {
+                title
+                uploadsPane(height: uploadsHeight)
+                generalPane(height: generalHeight)
+                workoutPane(height: workoutHeight)
                     if let playingItem {
                         MusicPlayerPane(
                             title: playingItem.title,
@@ -57,7 +58,6 @@ struct MusicLibraryScreen: View {
                 if let item = selectingItem { selectMode(for: item) }
                 if let transfer = pendingTransfer { transferConfirmation(transfer) }
                 if searchPresented { searchOverlay }
-            }
         }
         .animation(reduceMotion ? .none : .spring(response: 0.58, dampingFraction: 0.86), value: isWorkoutFocused)
         .animation(reduceMotion ? .none : .spring(response: 0.42, dampingFraction: 0.88), value: playingItem?.id)
@@ -174,8 +174,8 @@ struct MusicLibraryScreen: View {
         .frame(height: height)
     }
 
-    private func generalPane(height: CGFloat) -> some View {
-        pane(border: !isWorkoutFocused) {
+    private func generalPane(height: CGFloat?) -> some View {
+        pane(border: !isWorkoutFocused || dropTarget == .general) {
             VStack(spacing: 0) {
                 Button {
                     isWorkoutFocused = false
@@ -200,16 +200,15 @@ struct MusicLibraryScreen: View {
                 .simultaneousGesture(generalFocusGesture)
             }
         }
-        .frame(height: height)
-        .dropDestination(for: MusicDragPayload.self) { payloads, _ in
-            guard let payload = payloads.first else { return false }
-            return drop(payload, into: .general, at: nil)
+        .frame(minHeight: height ?? 0, maxHeight: height ?? .infinity)
+        .onDrop(of: [UTType.text.identifier], isTargeted: dropTargetBinding(for: .general)) { _ in
+            drop(dragged, into: .general, at: nil)
         }
     }
 
-    private var workoutPane: some View {
+    private func workoutPane(height: CGFloat?) -> some View {
         let destination = selectedWorkoutDestination
-        return pane(border: isWorkoutFocused || selectingItem != nil) {
+        return pane(border: isWorkoutFocused || selectingItem != nil || (dropTarget != nil && dropTarget != .general)) {
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     Text(family == .type ? "Workout Type" : "My Workouts")
@@ -241,16 +240,15 @@ struct MusicLibraryScreen: View {
                         .padding(.horizontal, 8).padding(.vertical, 10)
                     }
                     .scrollEdgeFade(.vertical)
-                    .dropDestination(for: MusicDragPayload.self) { payloads, _ in
-                        guard let payload = payloads.first else { return false }
-                        return drop(payload, into: destination, at: nil)
+                    .onDrop(of: [UTType.text.identifier], isTargeted: dropTargetBinding(for: destination)) { _ in
+                        drop(dragged, into: destination, at: nil)
                     }
                 } else {
                     empty(family == .mine ? "Create a workout to organize its music" : "Choose a workout type")
                 }
             }
         }
-        .frame(minHeight: 126, maxHeight: .infinity)
+        .frame(minHeight: height ?? 0, maxHeight: height ?? .infinity)
     }
 
     private var familySwitch: some View {
@@ -295,11 +293,11 @@ struct MusicLibraryScreen: View {
             .overlay(RoundedRectangle(cornerRadius: 17).stroke(selected ? orange.opacity(0.65) : Theme.separator, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .dropDestination(for: MusicDragPayload.self) { payloads, _ in
-            guard let payload = payloads.first else { return false }
+        .shadow(color: selected ? orange.opacity(0.14) : Color.black.opacity(0.18), radius: selected ? 12 : 6, y: 4)
+        .onDrop(of: [UTType.text.identifier], isTargeted: dropTargetBinding(for: destination)) { _ in
             library.select(destination: destination)
             isWorkoutFocused = true
-            return drop(payload, into: destination, at: nil)
+            return drop(dragged, into: destination, at: nil)
         }
     }
 
@@ -340,12 +338,14 @@ struct MusicLibraryScreen: View {
             }
         }
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 17))
-        .overlay(RoundedRectangle(cornerRadius: 17).stroke(Theme.separator, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 17).stroke(dropTarget == destination ? orange.opacity(0.72) : Theme.separator, lineWidth: 1))
         .contentShape(RoundedRectangle(cornerRadius: 17))
-        .draggable(MusicDragPayload(itemID: item.id, source: destination))
-        .dropDestination(for: MusicDragPayload.self) { payloads, _ in
-            guard let payload = payloads.first else { return false }
-            return drop(payload, into: destination, at: library.itemIDs(for: destination).firstIndex(of: item.id))
+        .onDrag {
+            dragged = DraggedMusic(item: item, source: destination)
+            return NSItemProvider(object: item.id.uuidString as NSString)
+        }
+        .onDrop(of: [UTType.text.identifier], isTargeted: dropTargetBinding(for: destination)) { _ in
+            drop(dragged, into: destination, at: library.itemIDs(for: destination).firstIndex(of: item.id))
         }
     }
 
@@ -437,20 +437,35 @@ struct MusicLibraryScreen: View {
         }
     }
 
-    private func uploadsHeight(in availableHeight: CGFloat) -> CGFloat {
-        max(146, min(164, availableHeight * 0.20))
+    private var uploadsHeight: CGFloat {
+        isWorkoutFocused ? (playingItem == nil ? 86 : 72) : (playingItem == nil ? 138 : 112)
     }
 
-    private func generalHeight(in availableHeight: CGFloat) -> CGFloat {
-        if isWorkoutFocused {
-            return max(122, min(164, availableHeight * 0.18))
-        }
-        let fraction = playingItem == nil ? 0.39 : 0.28
-        return max(180, min(310, availableHeight * fraction))
+    private var generalHeight: CGFloat? {
+        isWorkoutFocused ? (playingItem == nil ? 190 : 142) : nil
+    }
+
+    private var workoutHeight: CGFloat? {
+        isWorkoutFocused || selectingItem != nil ? nil : (playingItem == nil ? 116 : 104)
     }
 
     private func pane<Content: View>(border: Bool = false, @ViewBuilder content: () -> Content) -> some View {
-        content().background(Theme.surface, in: RoundedRectangle(cornerRadius: 25)).overlay(RoundedRectangle(cornerRadius: 25).stroke(border ? orange.opacity(0.55) : Theme.separator, lineWidth: 1)).clipShape(RoundedRectangle(cornerRadius: 25))
+        content()
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 25))
+            .overlay {
+                RoundedRectangle(cornerRadius: 25)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.025), .clear, Color.black.opacity(0.06)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .allowsHitTesting(false)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 25).stroke(border ? orange.opacity(0.55) : Theme.separator, lineWidth: 1))
+            .shadow(color: border ? orange.opacity(0.10) : Color.black.opacity(0.22), radius: border ? 14 : 8, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: 25))
     }
     private func paneHeader(_ title: String, detail: String?) -> some View { HStack { Text(title).font(.system(size: 13, weight: .bold)); Spacer(); if let detail { Text(detail).font(.system(size: 10, weight: .bold)).foregroundStyle(orange).padding(.horizontal, 7).padding(.vertical, 4).background(orange.opacity(0.12), in: Capsule()) } }.padding(.horizontal, 13).padding(.top, 8).padding(.bottom, 5).foregroundStyle(.white) }
     private func sourceCard(title: String, systemImage: String? = nil, asset: String? = nil, action: @escaping () -> Void) -> some View { Button(action: action) { VStack(spacing: 6) { if let asset { Image(asset).resizable().scaledToFit().frame(width: 46, height: 46) } else { Image(systemName: systemImage ?? "music.note").font(.system(size: 30, weight: .medium)) }; Text(title).font(.system(size: 10, weight: .bold)).lineLimit(1) }.foregroundStyle(.white).frame(width: 104, height: 95).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 19)).overlay(RoundedRectangle(cornerRadius: 19).stroke(Theme.separator, lineWidth: 1)) }.buttonStyle(.plain).accessibilityLabel(title) }
@@ -458,25 +473,22 @@ struct MusicLibraryScreen: View {
     private func empty(_ text: String) -> some View { Text(text).font(.caption).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 68).padding(.horizontal, 16).multilineTextAlignment(.center) }
     private func folderIcon(_ destination: MusicDestination) -> String { switch destination { case .general: return "music.note.list"; case .workoutType(let id): return library.workoutType(for: id)?.iconName ?? "figure.run"; case .workout: return "figure.strengthtraining.traditional" } }
     private func toggleExpanded(_ id: UUID) { withAnimation(reduceMotion ? .none : .spring(response: 0.38, dampingFraction: 0.86)) { if expandedItems.contains(id) { expandedItems.remove(id) } else { expandedItems.insert(id) } } }
-    private func itemTapped(_ item: MusicLibraryItem, destination: MusicDestination) { if playingItem?.id == item.id { playingItem = nil; player.stopPlayback(); return }; playingItem = item; library.select(destination: destination); if let filename = item.localReference?.filename { player.startPlayback(tracks: [filename]) } }
+    private func itemTapped(_ item: MusicLibraryItem, destination: MusicDestination) { if playingItem?.id == item.id { playingItem = nil; playingDestination = nil; player.stopPlayback(); return }; playingItem = item; playingDestination = destination; library.select(destination: destination); if let filename = item.localReference?.filename { player.startPlayback(tracks: [filename]) } }
     private func previousTrack() { playerProgress = max(0, playerProgress - 0.15) }
     private func nextTrack() { playerProgress = min(1, playerProgress + 0.15) }
-    private var playerDestinationName: String { library.destinationName(selectedWorkoutDestination ?? .general) }
-    private var playerDestinationIcon: String { folderIcon(selectedWorkoutDestination ?? .general) }
+    private var playerDestinationName: String { library.destinationName(playingDestination ?? .general) }
+    private var playerDestinationIcon: String { folderIcon(playingDestination ?? .general) }
     private func providerTapped(_ provider: MusicProvider) { providerMessage = "\(provider.displayName) requires its official sign-in and app configuration before it can be connected." }
     private func toggle(_ provider: MusicProvider) { if enabledProviders.contains(provider) { enabledProviders.remove(provider) } else { enabledProviders.insert(provider) } }
-    private func drop(_ payload: MusicDragPayload, into destination: MusicDestination, at position: Int?) -> Bool { if let transfer = library.prepareWorkoutTransfer(itemID: payload.itemID, from: payload.source, to: destination, at: position) { pendingTransfer = transfer; return true }; return library.moveItem(payload.itemID, from: payload.source, to: destination, at: position) }
+    private func drop(_ dragged: DraggedMusic?, into destination: MusicDestination, at position: Int?) -> Bool { guard let dragged else { return false }; defer { self.dragged = nil; dropTarget = nil }; if let transfer = library.prepareWorkoutTransfer(itemID: dragged.item.id, from: dragged.source, to: destination, at: position) { pendingTransfer = transfer; return true }; return library.moveItem(dragged.item.id, from: dragged.source, to: destination, at: position) }
+    private func dropTargetBinding(for destination: MusicDestination) -> Binding<Bool> { Binding(get: { dropTarget == destination }, set: { targeted in if targeted { dropTarget = destination } else if dropTarget == destination { dropTarget = nil } }) }
     private var generalFocusGesture: some Gesture { DragGesture(minimumDistance: 4).onChanged { value in guard isWorkoutFocused, selectingItem == nil, !guidePresented, abs(value.translation.height) > 2 else { scrollStartedAt = nil; return }; let now = Date(); if let started = scrollStartedAt, now.timeIntervalSince(started) >= 3 { isWorkoutFocused = false; scrollStartedAt = nil } else if scrollStartedAt == nil { scrollStartedAt = now } }.onEnded { _ in scrollStartedAt = nil } }
     private func demonstrateOrganization() { guard let destination = library.destinations(for: .type).first else { return }; let temporary = MusicLibraryItem(name: "Guide music", source: .none, artwork: MusicArtworkReference(placeholderSystemImage: "music.note"), duration: 0); _ = library.add(temporary, to: .general); isWorkoutFocused = false; Task { @MainActor in try? await Task.sleep(nanoseconds: 350_000_000); _ = library.moveItem(temporary.id, from: .general, to: destination); library.select(destination: destination); isWorkoutFocused = true; try? await Task.sleep(nanoseconds: 700_000_000); _ = library.deleteItem(temporary.id) } }
 }
 
-private struct MusicDragPayload: Codable, Transferable {
-    let itemID: UUID
+private struct DraggedMusic: Equatable {
+    let item: MusicLibraryItem
     let source: MusicDestination
-
-    static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .timeMasterMusicItem)
-    }
 }
 
 private extension UTType {
