@@ -1,8 +1,14 @@
 import SwiftUI
 
 struct SlotNavigationArcShape: Shape {
+    let bottomExtension: CGFloat
+
+    init(bottomExtension: CGFloat = 0) {
+        self.bottomExtension = max(0, bottomExtension)
+    }
+
     func path(in rect: CGRect) -> Path {
-        SlotNavigationArcGeometry.surfacePath(in: rect)
+        SlotNavigationArcGeometry.surfacePath(in: rect, bottomExtension: bottomExtension)
     }
 }
 
@@ -47,13 +53,14 @@ enum SlotNavigationArcGeometry {
         return path
     }
 
-    static func surfacePath(in rect: CGRect) -> Path {
+    static func surfacePath(in rect: CGRect, bottomExtension: CGFloat = 0) -> Path {
         let line = linePath(in: rect)
         let startY = curveY(at: rect.minX, in: rect)
+        let bottomY = rect.maxY + max(0, bottomExtension)
 
         var path = line
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: bottomY))
+        path.addLine(to: CGPoint(x: rect.minX, y: bottomY))
         path.addLine(to: CGPoint(x: rect.minX, y: startY))
         path.closeSubpath()
         return path

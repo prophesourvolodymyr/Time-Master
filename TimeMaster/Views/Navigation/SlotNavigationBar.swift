@@ -4,6 +4,7 @@ struct SlotNavigationBar: View {
     @Binding private var selection: Int
     let items: [SlotNavigationItem]
     let onSelectionChanged: (Int) -> Void
+    private let bottomSafeArea: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reelOffset: CGFloat = 0
@@ -15,10 +16,12 @@ struct SlotNavigationBar: View {
     init(
         selection: Binding<Int>,
         items: [SlotNavigationItem] = SlotNavigationItem.timeMaster,
+        bottomSafeArea: CGFloat = 0,
         onSelectionChanged: @escaping (Int) -> Void = { _ in }
     ) {
         _selection = selection
         self.items = items
+        self.bottomSafeArea = max(0, bottomSafeArea)
         self.onSelectionChanged = onSelectionChanged
     }
 
@@ -87,19 +90,19 @@ struct SlotNavigationBar: View {
     @ViewBuilder
     private var arcSurface: some View {
         if #available(iOS 26.0, macOS 26.0, *) {
-            SlotNavigationArcShape()
+            SlotNavigationArcShape(bottomExtension: bottomSafeArea)
                 .fill(.clear)
-                .glassEffect(.regular, in: SlotNavigationArcShape())
+                .glassEffect(.regular, in: SlotNavigationArcShape(bottomExtension: bottomSafeArea))
                 .overlay {
-                    SlotNavigationArcShape()
+                    SlotNavigationArcShape(bottomExtension: bottomSafeArea)
                         .fill(Color.black.opacity(0.16))
                 }
                 .shadow(color: .black.opacity(0.34), radius: 18, y: -4)
         } else {
-            SlotNavigationArcShape()
+            SlotNavigationArcShape(bottomExtension: bottomSafeArea)
                 .fill(.regularMaterial)
                 .overlay {
-                    SlotNavigationArcShape()
+                    SlotNavigationArcShape(bottomExtension: bottomSafeArea)
                         .fill(Color.black.opacity(0.22))
                 }
                 .shadow(color: .black.opacity(0.34), radius: 18, y: -4)

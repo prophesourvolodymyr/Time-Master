@@ -20,31 +20,34 @@ struct SlotNavigationContainer<Content: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            content()
-                .id(selection)
-                .transition(pageTransition)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .simultaneousGesture(pageSwipeGesture)
+        GeometryReader { proxy in
+            VStack(spacing: 0) {
+                content()
+                    .id(selection)
+                    .transition(pageTransition)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(pageSwipeGesture)
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                SlotNavigationBar(
+                    selection: $selection,
+                    items: items,
+                    bottomSafeArea: proxy.safeAreaInsets.bottom,
+                    onSelectionChanged: updateTransitionDirection(for:)
+                )
+            }
+            .background(Theme.background.ignoresSafeArea())
+            .onAppear {
+                lastSelection = selection
+            }
+            .onChange(of: selection) { newSelection in
+                updateTransitionDirection(for: newSelection)
+                lastSelection = newSelection
+            }
+            .animation(pageAnimation, value: selection)
+            .accessibilityElement(children: .contain)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            SlotNavigationBar(
-                selection: $selection,
-                items: items,
-                onSelectionChanged: updateTransitionDirection(for:)
-            )
-        }
-        .background(Theme.background.ignoresSafeArea())
-        .onAppear {
-            lastSelection = selection
-        }
-        .onChange(of: selection) { newSelection in
-            updateTransitionDirection(for: newSelection)
-            lastSelection = newSelection
-        }
-        .animation(pageAnimation, value: selection)
-        .accessibilityElement(children: .contain)
     }
 
     private var pageAnimation: Animation {

@@ -555,7 +555,8 @@ F06 (AI Coach) ─────────┘
   - [x] F24-C — Remove red tint from the slot navigation surface and keep page-owned colors intact
   - [x] F24-D — Add page swipes, projected snap, edge rubber-band, accessibility actions, and Reduce Motion behavior
   - [x] F24-E - Restore first-version emoji anchors while retaining drag expansion; replace the full-band surface with an opaque-enough neutral glass arc and soft depth shadow
-  - [x] Verified: iOS simulator build succeeds; the first-version resting anchor and expanded drag-state layout were exercised with the real Home page; manual gesture and accessibility verification remains for human review
+  - [x] F24-F - Extend the filled arc path through the measured iOS bottom safe-area inset without a fade or extra padding; preserve resting anchors and neutral glass behavior
+  - [x] Verified: iOS 18.6 and iOS 26.5 Simulator builds succeed; resting Home renders with the arc surface continuing through the home-indicator region; manual drag and accessibility verification remains for human review
 
 ## Cycle 13 — Music Library Update
 - [x] F25 — Native Music Library / Settings screen

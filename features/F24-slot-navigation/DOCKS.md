@@ -13,7 +13,7 @@ A native SwiftUI replacement for the iOS bottom tab bar. It ports the supplied s
 - Use the same mathematical arc for the visible nav background and every emoji position. The background arc stays fixed in the viewport while the reel moves across it, so icons never drift away from the curve during scrolling.
 - Remove the prototype's red accent, red glow, red active tint, and red navigation-only progress treatment. The slot bar uses neutral dark surfaces, white text, and neutral opacity/scale changes. Page-owned colors remain controlled by their existing views.
 - Respect Dynamic Type, VoiceOver, Reduce Motion, minimum hit targets, and light/dark system contrast where applicable. The app remains dark by default through the existing app theme.
-- Keep the arc interior as an opaque-enough neutral glass layer (`.glassEffect(.regular)` on iOS 26 and `.regularMaterial` fallback) with a soft shadow; the region below the arc remains the underlying page/theme instead of a separate solid rectangle.
+- Keep the arc interior as an opaque-enough neutral glass layer (`.glassEffect(.regular)` on iOS 26 and `.regularMaterial` fallback) with a soft shadow. The filled surface path extends through the measured bottom safe-area inset so its closing edge is offscreen; no fade overlay, extra padding, or separate solid safe-area rectangle is used.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ MainTabView (macOS)
   └─ existing NavigationSplitView sidebar + detail
 ```
 
-`SlotNavigationContainer` owns page-swipe direction and page transition state. `SlotNavigationBar` owns the reel offset, drag gesture, rubber-band bounds, projected snap target, and slot appearance. `SlotArcGeometry` is the single source for both the stroked/filled arc and item anchor positions; no second parabolic approximation is allowed.
+`SlotNavigationContainer` owns page-swipe direction, page transition state, and the measured bottom safe-area inset passed to the bar. `SlotNavigationBar` owns the reel offset, drag gesture, rubber-band bounds, projected snap target, and slot appearance. `SlotArcGeometry` is the single source for both the stroked/filled arc and item anchor positions; the surface path alone extends below the bar frame by the measured safe-area amount so anchors do not move.
 
 The reel uses a fixed slot width derived from available width. Its logical offset centers the selected item. During a drag, the visual offset is the logical offset plus the live translation, with a soft edge resistance. On release, `predictedEndTranslation` chooses the landing index; a spring animates from the current presentation offset to that index. A new drag cancels the previous settle without waiting for it to finish.
 
