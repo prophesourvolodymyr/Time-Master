@@ -8,6 +8,7 @@ struct SlotNavigationBar: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reelOffset: CGFloat = 0
     @State private var dragStartOffset: CGFloat = 0
+    @State private var dragIntensity: CGFloat = 0
     @State private var isDragging = false
     @State private var hasMeasured = false
 
@@ -28,15 +29,26 @@ struct SlotNavigationBar: View {
             let arcRect = CGRect(origin: .zero, size: size)
             let centeredOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
             let displayOffset = hasMeasured ? reelOffset : centeredOffset
+            let arcScaleX = 1 + dragIntensity * 0.15
+            let arcScaleY = 1 + dragIntensity * 0.35
+            let baseHeight = 58 + dragIntensity * 36
+            let arcTranslation = displayOffset * 0.5
 
             ZStack {
-                SlotNavigationArcShape()
+                Rectangle()
                     .fill(Theme.surface)
-                    .overlay {
-                        SlotNavigationArcLineShape()
-                            .stroke(Color.white.opacity(0.07), lineWidth: 1)
-                    }
-                    .allowsHitTesting(false)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: baseHeight)
+                    .ignoresSafeArea(edges: .bottom)
+                ZStack {
+                    SlotNavigationArcShape()
+                        .fill(Theme.surface)
+                    SlotNavigationArcLineShape()
+                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+                }
+                .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: .bottom)
+                .offset(x: arcTranslation)
+                .allowsHitTesting(false)
 
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     slotView(
@@ -62,7 +74,7 @@ struct SlotNavigationBar: View {
                 let nextOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
                 if isDragging {
                     reelOffset = nextOffset
-                } else {
+                } else if abs(reelOffset - nextOffset) > 0.5 {
                     withAnimation(selectionAnimation) {
                         reelOffset = nextOffset
                     }
@@ -71,6 +83,7 @@ struct SlotNavigationBar: View {
             .onChange(of: selection) { newSelection in
                 guard !isDragging else { return }
                 let nextOffset = offset(for: newSelection, viewportWidth: size.width, slotWidth: slotWidth)
+                guard abs(reelOffset - nextOffset) > 0.5 else { return }
                 withAnimation(selectionAnimation) {
                     reelOffset = nextOffset
                 }
@@ -92,30 +105,39 @@ struct SlotNavigationBar: View {
         let centerX = size.width / 2
         let itemX = offset + CGFloat(index) * slotWidth + slotWidth / 2
         let distance = abs(itemX - centerX)
-        let focus = max(0, 1 - min(distance / (slotWidth * 0.9), 1))
-        let proximity = max(0, 1 - min(distance / (slotWidth * 2.3), 1))
-        let iconSize = 40 + 18 * focus
-        let itemScale = 0.88 + 0.18 * focus
-        let itemOpacity = 0.28 + 0.72 * proximity
-        let labelOpacity = focus * focus
-        let arcY = SlotNavigationArcGeometry.curveY(at: itemX, in: arcRect)
-        let itemHeight: CGFloat = 86
+        let norm = distance / slotWidth
+        let bubbleFactor = max(0, 1 - distance / 34)
+        let labelAlpha = max(0, bubbleFactor * 2 - 0.6)
+        let baseScale = 1 + dragIntensity * 0.2
+        let itemScale = max(0.4, baseScale - norm * (0.25 + dragIntensity * 0.1))
+        let itemOpacity = max(0.1, 1 - norm * (0.4 + dragIntensity * 0.15))
+        let activeFontSize = 56 + dragIntensity * 24
+        let baseFontSize = 48 + dragIntensity * 10
+        let iconSize = baseFontSize + bubbleFactor * (activeFontSize - baseFontSize)
+        let htmlBaseTy = -38 - dragIntensity * 40
+        let restingBaseTy: CGFloat = -38
+        let verticalOffset = max(
+            htmlBaseTy,
+            htmlBaseTy + norm * (20 + dragIntensity * 14)
+        ) - restingBaseTy
+        let arcY = transformedArcY(at: itemX, in: arcRect, translation: offset * 0.5)
+        let itemHeight: CGFloat = 110
         let itemLift: CGFloat = 56
 
-        VStack(spacing: 3) {
+        VStack(spacing: 3 * labelAlpha) {
             Text(item.emoji)
                 .font(.system(size: iconSize))
-                .frame(height: 58)
+                .frame(height: iconSize)
                 .accessibilityHidden(true)
 
-            Text(item.title)
+            Text(item.title.uppercased())
                 .font(.system(size: 10, weight: .bold, design: .rounded))
-                .tracking(1.1)
+                .tracking(1.5)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-                .frame(height: 14)
-                .opacity(labelOpacity)
+                .frame(height: 13 * labelAlpha)
+                .opacity(labelAlpha)
                 .accessibilityHidden(true)
         }
         .frame(width: slotWidth, height: itemHeight, alignment: .bottom)
@@ -124,9 +146,9 @@ struct SlotNavigationBar: View {
         .contentShape(Rectangle())
         .position(
             x: itemX,
-            y: arcY + itemLift - itemHeight / 2
+            y: arcY + itemLift - itemHeight / 2 + verticalOffset
         )
-        .zIndex(focus)
+        .zIndex(1 - min(norm, 10))
         .onTapGesture {
             select(
                 index: index,
@@ -161,7 +183,15 @@ struct SlotNavigationBar: View {
         if reduceMotion {
             return .easeOut(duration: 0.16)
         }
-        return .interpolatingSpring(stiffness: 260, damping: 28)
+        return .interpolatingSpring(stiffness: 420, damping: 25)
+    }
+
+    private var dragExpansionAnimation: Animation {
+        reduceMotion ? .easeOut(duration: 0.1) : .easeOut(duration: 0.18)
+    }
+
+    private var dragWindDownAnimation: Animation {
+        reduceMotion ? .easeOut(duration: 0.1) : .easeOut(duration: 0.24)
     }
 
     private func dragGesture(
@@ -174,6 +204,9 @@ struct SlotNavigationBar: View {
                 if !isDragging {
                     isDragging = true
                     dragStartOffset = hasMeasured ? reelOffset : fallbackOffset
+                    withAnimation(dragExpansionAnimation) {
+                        dragIntensity = reduceMotion ? 0 : 1
+                    }
                 }
 
                 let rawOffset = dragStartOffset + value.translation.width
@@ -197,6 +230,9 @@ struct SlotNavigationBar: View {
                     slotWidth: slotWidth
                 )
                 isDragging = false
+                withAnimation(dragWindDownAnimation) {
+                    dragIntensity = 0
+                }
                 settle(
                     on: targetIndex,
                     viewportWidth: size.width,
@@ -233,8 +269,8 @@ struct SlotNavigationBar: View {
             animation = .easeOut(duration: 0.16)
         } else {
             animation = .interpolatingSpring(
-                stiffness: 260,
-                damping: 28,
+                stiffness: 420,
+                damping: 25,
                 initialVelocity: Double(normalizedVelocity)
             )
         }
@@ -245,6 +281,19 @@ struct SlotNavigationBar: View {
             selection = index
             hasMeasured = true
         }
+    }
+
+    private func transformedArcY(
+        at x: CGFloat,
+        in rect: CGRect,
+        translation: CGFloat
+    ) -> CGFloat {
+        let scaleX = 1 + dragIntensity * 0.15
+        let scaleY = 1 + dragIntensity * 0.35
+        let centerX = rect.midX
+        let arcSampleX = centerX + (x - translation - centerX) / scaleX
+        let unscaledY = SlotNavigationArcGeometry.curveY(at: arcSampleX, in: rect)
+        return rect.maxY - (rect.maxY - unscaledY) * scaleY
     }
 
     private func slotWidth(for viewportWidth: CGFloat) -> CGFloat {
