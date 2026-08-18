@@ -250,10 +250,7 @@ struct MusicLibraryScreen: View {
                 }
             }
         }
-        .frame(
-            minHeight: isWorkoutFocused || selectingItem != nil ? 0 : 126,
-            maxHeight: isWorkoutFocused || selectingItem != nil ? .infinity : 126
-        )
+        .frame(minHeight: 126, maxHeight: .infinity)
     }
 
     private var familySwitch: some View {
