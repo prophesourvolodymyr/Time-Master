@@ -1,12 +1,12 @@
 # F27-A — Adaptive Widget Canvas
 
-The Home canvas is an infinite vertical workspace made from a responsive snapped grid. Users can add any supported module, place modules in the order they want, remove modules without confirmation, and resize modules to visual preset footprints.
+The Home canvas is an infinite vertical workspace made from a responsive snapped grid. Users can add any supported module, place modules in the order they want, remove modules without confirmation, and switch each module between its supported visual shapes.
 
 ## What We Build
 
 - A responsive macOS grid that uses the available detail-pane width.
 - A platform-appropriate iOS arrangement using the same module identities and saved options.
-- A single exact wide widget footprint: two grid columns by one row, rendered at a 2:1 width-to-height ratio on every platform.
+- Square 1:1 and wide 1:2 (height-to-width) widget footprints, selected per module.
 - A first-run layout containing Greeting, Today, Quick Start, Activity Shortcuts, and Metrics.
 - Continuous local persistence of module order, footprint, and options.
 - Edit mode entered by Pencil or a background long press.
@@ -18,7 +18,7 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 
 ## Architecture
 
-- The canvas renders persisted module instances through the catalog. Modules are not hard-coded as permanent vertical sections. Every module uses the same wide visual footprint so content previews and the canvas have one spatial contract.
+- The canvas renders persisted module instances through the catalog. Modules are not hard-coded as permanent vertical sections. Every module uses a supported square or wide visual footprint so content previews and the canvas share the same spatial contract.
 - The normal header has Pencil and Settings. To keep the header to two active controls while editing, edit mode uses Add and Done; Settings remains available through the platform menu during editing.
 
 ## States
@@ -29,14 +29,15 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 | adding | The picker remains modal to the edit flow; adding inserts immediately when selected. |
 | moving | The dragged module follows the pointer from the handle and neighboring insertion slots make room. |
 | removed | The module disappears immediately and can be restored from Add. |
-| restored | The module returns using the standard wide footprint and saved options. |
+| restored | The module returns using its saved shape and options. |
 | empty canvas | Add remains available and a calm empty-state prompt points to the picker. |
-| narrow width | The wide footprint follows the available width while retaining its 2:1 ratio. |
-| wide width | The wide footprint follows the available width while retaining its 2:1 ratio. |
+| narrow width | Square and wide footprints follow the available width while retaining their own ratios. |
+| wide width | Square and wide footprints follow the available width while retaining their own ratios. |
 
 ## Animation Rules
 
 - Editing controls appear with a short opacity and scale transition anchored to the module.
+- Shape changes settle into the selected footprint without changing module order.
 - Reordering uses a critically damped spring and follows the pointer continuously.
 - Insertion slots expand and highlight while a module is dragged over them.
 - Removing a module fades it while the remaining layout closes the gap.

@@ -75,6 +75,13 @@ final class HomeWidgetStore: ObservableObject {
         save()
     }
 
+    func updateFootprint(_ footprint: HomeWidgetFootprint, for id: UUID) {
+        guard let index = widgets.firstIndex(where: { $0.id == id }),
+              widgets[index].kind.supportedFootprints.contains(footprint) else { return }
+        widgets[index].footprint = footprint
+        save()
+    }
+
     func skipScheduledInstance(id: String) {
         skippedScheduledInstanceIDs.insert(id)
         guard let data = try? JSONEncoder().encode(skippedScheduledInstanceIDs) else { return }

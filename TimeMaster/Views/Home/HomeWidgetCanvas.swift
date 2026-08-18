@@ -165,6 +165,12 @@ private struct HomeWidgetTile: View {
             if widget.kind.supportsOptions {
                 optionsMenu
             }
+            if widget.kind.supportedFootprints.count > 1 {
+                if widget.kind.supportsOptions {
+                    Divider()
+                }
+                footprintMenu
+            }
             if isEditing {
                 Divider()
                 Button(role: .destructive) {
@@ -176,6 +182,7 @@ private struct HomeWidgetTile: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(widget.kind.title)
+        .accessibilityValue("\(widget.footprint.accessibilityName) shape")
         .accessibilityHint(isEditing ? "Drag from the handle to reorder this widget" : "Open widget action")
         .accessibilityAction(named: "Remove") {
             if isEditing {
@@ -304,6 +311,21 @@ private struct HomeWidgetTile: View {
                     widget.configuration.showDetails ? "Hide details" : "Show details",
                     systemImage: widget.configuration.showDetails ? "checkmark" : "circle"
                 )
+            }
+        }
+    }
+
+    private var footprintMenu: some View {
+        Menu("Shape") {
+            ForEach(widget.kind.supportedFootprints) { footprint in
+                Button {
+                    widgetStore.updateFootprint(footprint, for: widget.id)
+                } label: {
+                    Label(
+                        footprint.menuTitle,
+                        systemImage: widget.footprint == footprint ? "checkmark" : "circle"
+                    )
+                }
             }
         }
     }

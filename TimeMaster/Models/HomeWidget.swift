@@ -21,11 +21,19 @@ enum HomeWidgetCategory: String, Codable, CaseIterable, Identifiable {
 }
 
 enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
+    case square
     case wide
 
     init(from decoder: Decoder) throws {
-        _ = try decoder.singleValueContainer().decode(String.self)
-        self = .wide
+        let value = try decoder.singleValueContainer().decode(String.self).lowercased()
+        switch value {
+        case "square", "1:1", "1x1", "compact", "standard":
+            self = .square
+        case "wide", "1:2", "1x2", "tall", "large":
+            self = .wide
+        default:
+            self = .wide
+        }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -34,12 +42,32 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
     }
 
     var id: String { rawValue }
-    var aspectRatio: CGFloat { HomeWidgetSizing.aspectRatio }
-    var accessibilityName: String { "wide" }
+
+    /// The canvas uses width-to-height ratios. `wide` is the user's 1:2
+    /// height-to-width footprint, while `square` remains 1:1.
+    var aspectRatio: CGFloat {
+        switch self {
+        case .square: 1
+        case .wide: 2
+        }
+    }
+
+    var accessibilityName: String {
+        switch self {
+        case .square: "square"
+        case .wide: "wide"
+        }
+    }
+
+    var menuTitle: String {
+        switch self {
+        case .square: "Square"
+        case .wide: "Wide"
+        }
+    }
 }
 
 enum HomeWidgetSizing {
-    static let aspectRatio: CGFloat = 2
     static let canvasPadding: CGFloat = 16
     static let cornerRadius: CGFloat = 18
 }
@@ -125,7 +153,14 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var defaultFootprint: HomeWidgetFootprint { .wide }
+    var defaultFootprint: HomeWidgetFootprint {
+        switch self {
+        case .greeting, .streak, .lifetimeStats, .databaseOverview:
+            .square
+        default:
+            .wide
+        }
+    }
 
     var supportsOptions: Bool {
         switch self {
@@ -134,7 +169,9 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var supportedFootprints: [HomeWidgetFootprint] { [.wide] }
+    var supportedFootprints: [HomeWidgetFootprint] {
+        HomeWidgetFootprint.allCases
+    }
 
     static var catalog: [HomeWidgetKind] { allCases }
 }

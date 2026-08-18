@@ -59,7 +59,7 @@ struct HomeWidgetPicker: View {
                     Label(kind.title, systemImage: kind.systemImage)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
-                    Text("Exact wide canvas footprint")
+                    Text("Content-aware shape")
                         .font(.caption)
                         .foregroundStyle(Theme.textSecondary)
                 }
@@ -96,7 +96,7 @@ private struct HomeWidgetPreview: View {
 
     var body: some View {
         HomeWidgetContent(
-            widget: HomeWidgetInstance(kind: kind, footprint: .wide),
+            widget: HomeWidgetInstance(kind: kind, footprint: kind.defaultFootprint),
             workoutStore: workoutStore,
             databaseStore: databaseStore,
             outdoorStore: outdoorStore,
@@ -113,7 +113,7 @@ private struct HomeWidgetPreview: View {
         )
         .allowsHitTesting(false)
         .frame(maxWidth: .infinity)
-        .aspectRatio(HomeWidgetSizing.aspectRatio, contentMode: .fit)
+        .aspectRatio(kind.defaultFootprint.aspectRatio, contentMode: .fit)
         .clipped()
         .onAppear {
             previewDate = Date()
