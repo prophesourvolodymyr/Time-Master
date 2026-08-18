@@ -74,14 +74,14 @@ struct HistoryView: View {
             .navigationTitle("History")
             .toolbar {
                 if !store.historyEntries.isEmpty {
-                    AppToolbar.item(placement: .primaryAction) {
+                    AppToolbar.iconItem(placement: .primaryAction) {
                         Button { showingClearAlert = true } label: {
                             Image(systemName: "trash").foregroundColor(.white)
                         }
                     }
                 }
                 if !outdoorStore.activities.filter(\.finished).isEmpty {
-                    AppToolbar.item(placement: .primaryAction) {
+                    AppToolbar.iconItem(placement: .primaryAction) {
                         Button { showingOutdoorClearAlert = true } label: {
                             Image(systemName: "figure.run.circle").foregroundColor(.cyan)
                         }

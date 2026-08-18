@@ -41,7 +41,7 @@ struct ImportSheetView: View {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                AppToolbar.item(placement: .primaryAction) {
+                AppToolbar.iconItem(placement: .primaryAction) {
                     Button { showingSettings = true } label: {
                         Image(systemName: "gear")
                     }

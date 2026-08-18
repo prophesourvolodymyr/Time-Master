@@ -46,7 +46,12 @@ public struct MusicGlassCircleButton<Label: View>: View {
                 .contentShape(Circle())
         }
         .buttonStyle(MusicGlassCircleButtonStyle(reduceMotion: reduceMotion))
-        .modifier(MusicGlassCircleSurface())
+        .modifier(
+            TimeMasterPrivateGlassSurface(
+                cornerRadius: MusicGlassMetrics.controlSize / 2,
+                isInteractive: true
+            )
+        )
         .accessibilityLabel(Text(accessibilityLabel))
     }
 }
@@ -70,59 +75,6 @@ private struct MusicGlassCircleButtonStyle: ButtonStyle {
     }
 }
 
-private struct MusicGlassCircleSurface: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-#if os(iOS)
-        if #available(iOS 26.0, *), !reduceTransparency {
-            content.glassEffect(.regular.interactive(), in: .circle)
-        } else {
-            fallbackSurface(content)
-        }
-#elseif os(macOS)
-        if #available(macOS 26.0, *), !reduceTransparency {
-            content.glassEffect(.regular.interactive(), in: .circle)
-        } else {
-            fallbackSurface(content)
-        }
-#else
-        fallbackSurface(content)
-#endif
-    }
-
-    @ViewBuilder
-    private func fallbackSurface(_ content: Content) -> some View {
-        content
-            .background {
-                Circle()
-                    .fill(reduceTransparency ? Color(red: 0.12, green: 0.12, blue: 0.13) : Color.clear)
-                if !reduceTransparency {
-                    Circle().fill(.ultraThinMaterial)
-                }
-            }
-            .overlay {
-                Circle()
-                    .strokeBorder(
-                        Color.white.opacity(reduceTransparency ? 0.24 : 0.20),
-                        lineWidth: 1
-                    )
-            }
-            .overlay(alignment: .top) {
-                Capsule()
-                    .fill(Color.white.opacity(reduceTransparency ? 0.28 : 0.14))
-                    .frame(width: 19, height: 1)
-                    .offset(y: 1)
-            }
-            .clipShape(Circle())
-            .shadow(
-                color: reduceTransparency ? .clear : Color.black.opacity(0.34),
-                radius: 10,
-                y: 4
-            )
-    }
-}
 
 /// Adds a stationary fade at the visible edges of scrollable content.
 ///

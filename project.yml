@@ -23,6 +23,9 @@ packages:
   MapLibre:
     url: https://github.com/maplibre/maplibre-gl-native-distribution
     from: "6.0.0"
+  LiquidGlassKit:
+    url: https://github.com/ThijsMussig/LiquidGlassKit
+    revision: 6bfabb5f5cccd239c242e38611fa9dd521ee3986
   TimeMasterCore:
     path: TimeMasterCore
 targets:
@@ -37,6 +40,7 @@ targets:
       - package: ZIPFoundation
       - package: SwiftMP3
       - package: MapLibre
+      - package: LiquidGlassKit
       - package: TimeMasterCore
     settings:
       base:

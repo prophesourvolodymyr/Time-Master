@@ -56,13 +56,13 @@ struct WorkoutListView: View {
             }
             .navigationTitle("Workouts")
             .toolbar {
-                AppToolbar.item(placement: .primaryAction) { Button { showingSettings = true } label: {
+                AppToolbar.iconItem(placement: .primaryAction) { Button { showingSettings = true } label: {
                     Image(systemName: "gearshape")
                         .font(.title3)
                         .foregroundColor(.white)
                 }
                                  }
-                AppToolbar.item(placement: .primaryAction) { Button { showingAddWorkout = true } label: {
+                AppToolbar.iconItem(placement: .primaryAction) { Button { showingAddWorkout = true } label: {
                     Image(systemName: "plus")
                         .font(.title3)
                         .foregroundColor(.white)

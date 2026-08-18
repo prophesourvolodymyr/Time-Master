@@ -560,9 +560,10 @@ F06 (AI Coach) ─────────┘
 - [x] F24-H - Use the same bottom slot reel on macOS with a taller arc and keyboard arrows / `1`–`9` destination shortcuts
   - [x] macOS-only bar height and keyboard focus path leave the iOS 126-point layout unchanged
   - [x] macOS settings presentation and native-glass availability fall back to supported sheet/material APIs
-- [x] F24-I - Lower the iOS arc crest, enlarge slot emojis/labels slightly, and add an iOS-only neutral gradient, inner glow, top outline, and inset contour
+- [x] F24-I - Lower the iOS arc crest, enlarge slot emojis and labels slightly, and add the neutral gradient, inner glow, and shared-curve top outline
 - [x] F24-J - Use page-specific slot emojis, keep Home centered on initial mobile/iOS state, and preserve right/left directional page transitions
-- [x] Verified: iOS 18.6 Simulator build succeeds; refreshed app installed and launched; Home renders centered with larger semantic emojis and the lowered layered arc; manual drag and directional page-transition review remains for human verification
+- [x] F24-K - Put AI Coach and Profile left of centered Home, keep semantic destination IDs stable for macOS number keys, lower the macOS arc crest into the taller bar, and keep the macOS shadow on the same curve
+- [x] Verified: iOS 18.6 Simulator and native macOS target builds succeed; both refreshed app bundles launched; iOS Home renders centered with the final arc outline; manual drag, keyboard, and directional page-transition review remains for human verification
 
 ## Cycle 13 — Music Library Update
 - [x] F25 — Native Music Library / Settings screen

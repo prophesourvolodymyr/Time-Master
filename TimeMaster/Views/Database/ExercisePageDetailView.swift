@@ -48,7 +48,7 @@ struct ExercisePageDetailView: View {
         #endif
         .toolbar {
             if page?.isLeaf == true {
-                AppToolbar.item(placement: .primaryAction) {
+                AppToolbar.iconItem(placement: .primaryAction) {
                     Button {
                         showWorkoutPicker = true
                     } label: {
@@ -65,7 +65,7 @@ struct ExercisePageDetailView: View {
                 .foregroundColor(.white)
             }
             if page?.isContainer == true {
-                AppToolbar.item(placement: .primaryAction) {
+                AppToolbar.iconItem(placement: .primaryAction) {
                     Button {
                         showingAddChildPage = true
                     } label: {
@@ -76,7 +76,7 @@ struct ExercisePageDetailView: View {
                 }
             }
             #if os(iOS)
-            AppToolbar.item(placement: .primaryAction) {
+            AppToolbar.iconItem(placement: .primaryAction) {
                 Button {
                     showMediaPicker = true
                 } label: {

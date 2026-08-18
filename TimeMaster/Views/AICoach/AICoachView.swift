@@ -73,12 +73,12 @@ struct AICoachView: View {
 
     @ToolbarContentBuilder
     private var chatToolbar: some ToolbarContent {
-        AppToolbar.item(placement: .primaryAction) { Button { showingSessions = true } label: {
+        AppToolbar.iconItem(placement: .primaryAction) { Button { showingSessions = true } label: {
             Image(systemName: "bubble.left.and.bubble.right.fill")
                 .foregroundColor(.white)
         }
                  }
-        AppToolbar.group(placement: .primaryAction) { Button { store.newSession() } label: {
+        AppToolbar.iconGroup(placement: .primaryAction) { Button { store.newSession() } label: {
             Image(systemName: "square.and.pencil")
                 .foregroundColor(.white)
         }
@@ -686,7 +686,7 @@ struct SessionsListSheet: View {
                 AppToolbar.item(placement: .primaryAction) { Button("Done") { isPresented = false }
                     .foregroundColor(.white)
                                  }
-                AppToolbar.item(placement: .primaryAction) { Button {
+                AppToolbar.iconItem(placement: .primaryAction) { Button {
                     store.newSession()
                     isPresented = false
                 } label: {

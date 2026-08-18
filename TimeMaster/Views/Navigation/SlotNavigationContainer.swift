@@ -17,7 +17,7 @@ struct SlotNavigationContainer<Content: View>: View {
 #if os(iOS)
         8
 #else
-        12
+        54
 #endif
     }
 

@@ -138,7 +138,7 @@ struct DatabasePageBrowserSheet: View {
                 AppToolbar.item(placement: .cancellationAction) { Button("Close") { dismiss() }.foregroundColor(.white)
                                  }
                 if onNewExercise != nil {
-                    AppToolbar.item(placement: .primaryAction) {
+                    AppToolbar.iconItem(placement: .primaryAction) {
                         Button {
                             dismiss()
                             onNewExercise?()
@@ -149,7 +149,7 @@ struct DatabasePageBrowserSheet: View {
                         .accessibilityLabel("New Exercise")
                     }
                 }
-                AppToolbar.item(placement: .primaryAction) { Button {
+                AppToolbar.iconItem(placement: .primaryAction) { Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isGridMode.toggle()
                     }
@@ -158,7 +158,7 @@ struct DatabasePageBrowserSheet: View {
                 }
                 .foregroundColor(.white)
                                  }
-                AppToolbar.item(placement: .primaryAction) { Menu {
+                AppToolbar.iconItem(placement: .primaryAction) { Menu {
                     ForEach(PageSortOption.allCases, id: \.self) { option in
                         Button {
                             sortOption = option
@@ -171,7 +171,7 @@ struct DatabasePageBrowserSheet: View {
                 }
                 .foregroundColor(.white)
                                  }
-                AppToolbar.item(placement: .primaryAction) { Button {
+                AppToolbar.iconItem(placement: .primaryAction) { Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isBundleMode.toggle()
                         if !isBundleMode {

@@ -69,7 +69,7 @@ struct AnalyticsView: View {
 #endif
             .toolbar {
                 if !store.historyEntries.isEmpty {
-                    AppToolbar.item(placement: .primaryAction) { Button { showingClearAlert = true } label: {
+                    AppToolbar.iconItem(placement: .primaryAction) { Button { showingClearAlert = true } label: {
                         Image(systemName: "trash")
                             .foregroundColor(Color.white.opacity(0.45))
                     }
@@ -681,7 +681,7 @@ private struct CalendarPage: View {
 #endif
 #endif
             .toolbar {
-                AppToolbar.item(placement: .primaryAction) { Button {
+                AppToolbar.iconItem(placement: .primaryAction) { Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         showYearView.toggle()
                     }
@@ -690,16 +690,15 @@ private struct CalendarPage: View {
                         .foregroundColor(.white)
                 }
                                  }
-                AppToolbar.item(placement: .primaryAction) { HStack(spacing: 12) {
-                    Button {
-                        showVacationSheet = true
-                    } label: {
-                        Image(systemName: "moon.zzz.fill")
-                            .foregroundColor(.white)
-                    }
-                    Button("Done") { dismiss() }.foregroundColor(.white)
+                AppToolbar.iconItem(placement: .primaryAction) { Button {
+                    showVacationSheet = true
+                } label: {
+                    Image(systemName: "moon.zzz.fill")
+                        .foregroundColor(.white)
                 }
-                                 }
+                }
+                AppToolbar.item(placement: .primaryAction) { Button("Done") { dismiss() }.foregroundColor(.white)
+                }
             }
             .sheet(isPresented: $showVacationSheet) {
                 VacationSheet()

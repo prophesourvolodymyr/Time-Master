@@ -421,7 +421,7 @@ struct DatabaseView: View {
             .navigationTitle(databaseTitle(isV2: isV2))
             .toolbar {
                 if isV2 {
-                    AppToolbar.group(placement: .primaryAction) { Button {
+                    AppToolbar.iconGroup(placement: .primaryAction) { Button {
                         withAnimation(.easeInOut(duration: 0.2)) { isGridMode.toggle() }
                     } label: {
                         Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
@@ -446,7 +446,7 @@ struct DatabaseView: View {
                 AppToolbar.item(placement: .primaryAction) { EditButton().foregroundColor(.white)
                                  }
                 #endif
-                AppToolbar.group(placement: .primaryAction) { Button { showingImport = true } label: {
+                AppToolbar.iconGroup(placement: .primaryAction) { Button { showingImport = true } label: {
                     Image(systemName: "video.badge.plus")
                 }
                 Button { showingDatabaseImport = true } label: {
@@ -730,15 +730,15 @@ struct DatabaseView: View {
         EditButton().foregroundColor(.white)
         #endif
                  }
-        AppToolbar.item(placement: .primaryAction) { Button { showingImport = true } label: {
+        AppToolbar.iconItem(placement: .primaryAction) { Button { showingImport = true } label: {
             Image(systemName: "video.badge.plus")
         }
                  }
-        AppToolbar.item(placement: .primaryAction) { Button { showingDatabaseImport = true } label: {
+        AppToolbar.iconItem(placement: .primaryAction) { Button { showingDatabaseImport = true } label: {
             Image(systemName: "square.and.arrow.down")
         }
                  }
-        AppToolbar.item(placement: .primaryAction) { Menu {
+        AppToolbar.iconItem(placement: .primaryAction) { Menu {
             Button { showingNewFolderSheet = true } label: {
                 Label("New Folder", systemImage: "folder.badge.plus")
             }
@@ -764,15 +764,15 @@ struct DatabaseView: View {
             EditButton().foregroundColor(.white)
             #endif
                          }
-            AppToolbar.item(placement: .primaryAction) { Button { showingImport = true } label: {
+            AppToolbar.iconItem(placement: .primaryAction) { Button { showingImport = true } label: {
                 Image(systemName: "video.badge.plus")
             }
                          }
-            AppToolbar.item(placement: .primaryAction) { Button { showingDatabaseImport = true } label: {
+            AppToolbar.iconItem(placement: .primaryAction) { Button { showingDatabaseImport = true } label: {
                 Image(systemName: "square.and.arrow.down")
             }
                          }
-            AppToolbar.item(placement: .primaryAction) { Menu {
+            AppToolbar.iconItem(placement: .primaryAction) { Menu {
                 Button { showingCreatePage = true } label: {
                     Label("New Page", systemImage: "doc.badge.plus")
                 }
@@ -1283,13 +1283,13 @@ struct FolderDetailView: View {
         EditButton().foregroundColor(.white)
         #endif
                  }
-        AppToolbar.item(placement: .primaryAction) { Button {
+        AppToolbar.iconItem(placement: .primaryAction) { Button {
             withAnimation(.easeInOut(duration: 0.2)) { isGalleryMode.toggle() }
         } label: {
             Image(systemName: isGalleryMode ? "list.bullet" : "square.grid.2x2")
         }
                  }
-        AppToolbar.item(placement: .primaryAction) { Menu {
+        AppToolbar.iconItem(placement: .primaryAction) { Menu {
             Button { showingAddExercise = true } label: {
                 Label("Add Exercise", systemImage: "figure.strengthtraining.traditional")
             }

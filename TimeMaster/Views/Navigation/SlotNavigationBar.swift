@@ -32,7 +32,7 @@ struct SlotNavigationBar: View {
 #if os(iOS)
         8
 #else
-        12
+        54
 #endif
     }
 
@@ -183,8 +183,6 @@ struct SlotNavigationBar: View {
                     ),
                     lineWidth: 1.25
                 )
-            SlotNavigationArcInnerLineShape(curveOffset: arcCurveOffset)
-                .stroke(Color.white.opacity(0.055), lineWidth: 0.8)
         }
     }
 

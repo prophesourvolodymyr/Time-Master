@@ -84,13 +84,13 @@ struct HomeDashboardView: View {
             }
             .navigationTitle("Today")
             .toolbar {
-                 AppToolbar.item(placement: .primaryAction) { Button(action: onBrowseWorkouts) {
+                 AppToolbar.iconItem(placement: .primaryAction) { Button(action: onBrowseWorkouts) {
                     Image(systemName: "rectangle.stack")
                         .foregroundColor(.white)
                                      }
                  .accessibilityLabel("Browse workouts")
                                    }
-                 AppToolbar.item(placement: .primaryAction) { Button { showingSettings = true } label: {
+                 AppToolbar.iconItem(placement: .primaryAction) { Button { showingSettings = true } label: {
                      Image(systemName: "gearshape")
                          .foregroundColor(.white)
                  }

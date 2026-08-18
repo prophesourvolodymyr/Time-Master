@@ -11,11 +11,11 @@ A native SwiftUI replacement for the iOS bottom tab bar. It ports the supplied s
 - Allow horizontal swipes across the page viewport to move one destination while preserving vertical scrolling inside each real page.
 - Start mobile and iOS on the Home page with Home centered in the page viewport and reel. Forward destinations enter from the right and move the previous page left; backward navigation enters from the left and moves the previous page right.
 - Keep non-touch navigation available through the standard accessibility actions and visible page labels; the native bar remains touch-first on iOS.
-- On macOS, make the navigation container keyboard-focusable. Left/right arrows move one destination with the same page transition, and number keys `1` through `9` select the corresponding destination when it exists. Invalid number keys and boundary arrows are ignored without changing selection.
-- Use the same mathematical arc for the visible nav background and every emoji position. The background arc stays fixed in the viewport while the reel moves across it, so icons never drift away from the curve during scrolling. Home is the initial centered destination; the item order remains linear so forward and backward page navigation have stable spatial direction.
+- On macOS, make the navigation container keyboard-focusable. Left/right arrows move one destination with the same page transition, and number keys `1` through `6` select the matching semantic destination ID (`1` = Home through `6` = Profile) regardless of the visual reel order. Invalid number keys and boundary arrows are ignored without changing selection.
+- Use the same mathematical arc for the visible nav background and every emoji position. The background arc stays fixed in the viewport while the reel moves across it, so icons never drift away from the curve during scrolling. Home is the initial centered destination, with AI Coach and Profile to its left and Workouts, Database, and Analytics to its right; forward and backward page navigation follow that visual order.
 - Remove the prototype's red accent, red glow, red active tint, and red navigation-only progress treatment. The slot bar uses neutral dark surfaces, white text, and neutral opacity/scale changes. Page-owned colors remain controlled by their existing views.
 - Respect Dynamic Type, VoiceOver, Reduce Motion, minimum hit targets, and light/dark system contrast where applicable. The app remains dark by default through the existing app theme.
-- On iOS, style the arc as a layered neutral material: a dark vertical base gradient, a soft white radial inner glow near the crest, a bright-but-subtle top outline, and a second inset contour line. The outline and glow belong to the arc surface and do not change slot z-order or page content layering. Use `.glassEffect(.regular)` on iOS 26 and `.regularMaterial` fallback. The curve crest is lowered slightly while the filled path still extends through the measured bottom safe-area inset; no fade overlay, extra padding, or separate solid safe-area rectangle is used. macOS keeps the neutral surface and taller bar frame without adopting the iOS-only decorative layers.
+- On iOS, style the arc as a layered neutral material: a dark vertical base gradient, a soft white radial inner glow near the crest, and a bright-but-subtle top outline drawn from the same curve geometry as the filled surface. The outline and glow belong to the arc surface and do not change slot z-order or page content layering. Use `.glassEffect(.regular)` on iOS 26 and `.regularMaterial` fallback. The curve crest is lowered slightly while the filled path still extends through the measured bottom safe-area inset; no fade overlay, extra padding, or separate solid safe-area rectangle is used. macOS uses the same neutral surface and exact outline/shadow curve with a taller bar frame and a lower crest; it does not adopt the iOS-only material API.
 
 ## Architecture
 
@@ -40,14 +40,14 @@ The reel uses a fixed slot width derived from available width. Its logical offse
 
 ## Real Page Mapping
 
-| Index | Page | Slot emoji | Label | Existing view |
-|---:|---|---|---|---|
-| 0 | Home | `🏠` | Home | `HomeDashboardView` |
-| 1 | Workouts | `🏋️` | Workouts | `WorkoutListView` |
-| 2 | Database | `🗄️` | Database | `DatabaseView` |
-| 3 | Analytics | `📊` | Analytics | `AnalyticsView` |
-| 4 | AI Coach | `🧠` | AI Coach | `AICoachView` |
-| 5 | Profile | `👤` | Profile | `ProfileView` |
+| Destination ID | Visual reel position from left | Page | Slot emoji | Label | Existing view |
+|---:|---:|---|---|---|---|
+| 4 | 0 | AI Coach | `🧠` | AI Coach | `AICoachView` |
+| 5 | 1 | Profile | `👤` | Profile | `ProfileView` |
+| 0 | 2 | Home | `🏠` | Home | `HomeDashboardView` |
+| 1 | 3 | Workouts | `🏋️` | Workouts | `WorkoutListView` |
+| 2 | 4 | Database | `🗄️` | Database | `DatabaseView` |
+| 3 | 5 | Analytics | `📊` | Analytics | `AnalyticsView` |
 
 No HTML page body, Realistic copy, motivational strip, demo statistics, or external assets are used.
 
@@ -76,7 +76,7 @@ No HTML page body, Realistic copy, motivational strip, demo statistics, or exter
 | Page change | `move` from the swipe direction combined with opacity; `easeOut` fallback for Reduce Motion | Selected page changes |
 | Snap feedback | Small neutral scale settle on the centered emoji; no color flash | Reel reaches its target |
 | Edge rubber band | Continuous nonlinear resistance, no discrete animation during finger tracking | Drag passes the first/last logical offset |
-| iOS arc material | The arc keeps its lowered crest, neutral vertical depth gradient, soft inner white glow, top outline, and inset contour while slots remain in front | Resting, dragging, and settling; drag scale affects the complete arc layer |
+| iOS arc material | The arc keeps its lowered crest, neutral vertical depth gradient, soft inner white glow, and top outline while slots remain in front | Resting, dragging, and settling; drag scale affects the complete arc layer |
 
 ## Files
 

@@ -53,6 +53,94 @@ enum AppToolbar {
             ToolbarItemGroup(placement: placement, content: content)
         }
     }
+    @ToolbarContentBuilder
+    static func iconItem<Content: View>(
+        placement: ToolbarItemPlacement,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some ToolbarContent {
+        item(placement: placement) {
+            content()
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        }
+    }
+
+    @ToolbarContentBuilder
+    static func iconGroup<Content: View>(
+        placement: ToolbarItemPlacement,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some ToolbarContent {
+        group(placement: placement) {
+            content()
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        }
+    }
+
+}
+
+struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    @ViewBuilder
+    func makeBody(configuration: Configuration) -> some View {
+        #if os(iOS)
+        configuration.label
+            .frame(width: 36, height: 36)
+            .modifier(
+                TimeMasterPrivateGlassSurface(
+                    cornerRadius: 18,
+                    isInteractive: true
+                )
+            )
+            .clipShape(Circle())
+            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.92)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .animation(
+                reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
+                value: configuration.isPressed
+            )
+        #else
+        fallback(configuration)
+        #endif
+    }
+
+    @ViewBuilder
+    private func fallback(_ configuration: Configuration) -> some View {
+        configuration.label
+            .frame(width: 36, height: 36)
+            .background {
+                Circle()
+                    .fill(reduceTransparency ? Theme.surface2 : Color.clear)
+                if !reduceTransparency {
+                    Circle().fill(.ultraThinMaterial)
+                }
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        Color.white.opacity(reduceTransparency ? 0.24 : 0.18),
+                        lineWidth: 1
+                    )
+            }
+            .overlay(alignment: .top) {
+                Capsule()
+                    .fill(Color.white.opacity(reduceTransparency ? 0.28 : 0.12))
+                    .frame(width: 16, height: 1)
+                    .offset(y: 1)
+            }
+            .clipShape(Circle())
+            .shadow(
+                color: reduceTransparency ? .clear : Color.black.opacity(0.28),
+                radius: 8,
+                y: 3
+            )
+            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.92)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .animation(
+                reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
+                value: configuration.isPressed
+            )
+    }
 }
 
 // MARK: - IconColorPicker
