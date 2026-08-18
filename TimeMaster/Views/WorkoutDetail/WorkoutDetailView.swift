@@ -42,6 +42,9 @@ struct WorkoutDetailView: View {
                 emptySectionsView
             } else {
                 VStack(spacing: 0) {
+                    if !workout.sections.isEmpty {
+                        workoutSummary
+                    }
                     sectionList
                     startButton
                 }
@@ -212,6 +215,63 @@ struct WorkoutDetailView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.3), lineWidth: 1))
             }
         }
+    }
+
+    private var workoutSummary: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(hex: workout.type.colorHex))
+                    .frame(width: 48, height: 48)
+                    .overlay {
+                        Image(systemName: workout.type.icon)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(workout.type.name)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                    Text(workout.name)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 0) {
+                detailMetric(value: "\(workout.sectionCount)", label: "sections")
+                detailMetric(value: "\(workout.sections.reduce(0) { $0 + $1.slotCount })", label: "sets")
+                detailMetric(value: formatCompactDuration(workout.totalDuration), label: "duration")
+                detailMetric(
+                    value: "\(store.historyEntries.filter { $0.workoutId == workout.id }.count)",
+                    label: "completed"
+                )
+            }
+        }
+        .padding(16)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+    }
+
+    private func detailMetric(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(value)
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(Theme.textPrimary)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var sectionList: some View {

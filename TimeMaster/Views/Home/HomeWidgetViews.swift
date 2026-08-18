@@ -289,7 +289,7 @@ struct HomeWidgetContent: View {
     }
 
     private var metrics: some View {
-        HomeWidgetChrome(title: "Progress") {
+        return HomeWidgetChrome(title: "Progress", surface: true) {
             HStack(spacing: 8) {
                 ForEach(widget.configuration.metricFields) { field in
                     metricCell(field)
@@ -300,7 +300,7 @@ struct HomeWidgetContent: View {
 
     private var streak: some View {
         let streak = workoutStore.streakInfo()
-        return HomeWidgetChrome(title: "Streak") {
+        return HomeWidgetChrome(title: "Streak", surface: true) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Image(systemName: streak.current == 0 ? "flame" : "flame.fill")
                     .font(.title2.weight(.bold))
@@ -321,7 +321,7 @@ struct HomeWidgetContent: View {
 
     private var weeklyRhythm: some View {
         let types = visibleTypes
-        return HomeWidgetChrome(title: "Weekly rhythm") {
+        return HomeWidgetChrome(title: "Weekly rhythm", surface: true) {
             if types.isEmpty {
                 Text("Complete a workout or set a schedule to see progress.")
                     .font(.subheadline)
@@ -362,7 +362,7 @@ struct HomeWidgetContent: View {
 
     private var lifetimeStats: some View {
         let minutes = workoutStore.historyEntries.reduce(0) { $0 + $1.durationCompleted } / 60
-        return HomeWidgetChrome(title: "Lifetime") {
+        return HomeWidgetChrome(title: "Lifetime", surface: true) {
             HStack(spacing: 8) {
                 metricValue("\(workoutStore.historyEntries.count)", label: "sessions", icon: "checkmark.circle")
                 metricValue("\(minutes)m", label: "minutes", icon: "clock")
@@ -372,7 +372,7 @@ struct HomeWidgetContent: View {
 
     private var typeBreakdown: some View {
         let types = visibleTypes
-        return HomeWidgetChrome(title: "By type") {
+        return HomeWidgetChrome(title: "By type", surface: true) {
             if types.isEmpty {
                 Text("No type data yet.")
                     .font(.subheadline)
@@ -400,7 +400,7 @@ struct HomeWidgetContent: View {
 
     private var outdoorSummary: some View {
         let finished = outdoorStore.activities.filter(\.finished)
-        return HomeWidgetChrome(title: "Outdoor") {
+        return HomeWidgetChrome(title: "Outdoor", surface: true) {
             HStack(spacing: 8) {
                 metricValue("\(finished.filter { $0.kind == .runWalk }.count)", label: "runs", icon: "figure.run")
                 metricValue("\(finished.filter { $0.kind == .bike }.count)", label: "rides", icon: "bicycle")
@@ -478,7 +478,7 @@ struct HomeWidgetContent: View {
     }
 
     private var databaseOverview: some View {
-        HomeWidgetChrome(title: "Database") {
+        return HomeWidgetChrome(title: "Database", surface: true) {
             HStack(spacing: 8) {
                 metricValue("\(databaseStore.rootPages.count)", label: "root pages", icon: "square.stack")
                 metricValue("\(databaseCount)", label: "pages", icon: "doc.text")

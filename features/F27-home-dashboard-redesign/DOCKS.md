@@ -15,7 +15,7 @@ The Home dashboard becomes a user-owned, adaptive canvas of workout, schedule, p
 - Edit mode controls for adding, removing, moving, changing module shape, and opening each module's direct options menu.
 - A native module picker grouped into Today, Workouts, Analytics, Outdoor, and Database.
 - Lightweight per-module content options exposed by a direct edit-mode menu and a secondary context menu only when useful.
-- Only action-heavy surfaces such as Quick Start use a card background; other modules rest directly on the Home canvas.
+- At rest, action modules and progress/analytics modules use quiet rounded bases so counters and charts do not float as disconnected text. Greeting remains the intentional background-free exception; in edit mode, each draggable non-Greeting module gains a smooth dark gradient base, subtle edge, shadow, and dashed editing boundary so the entire base reads as the drag target.
 - Local per-device layout persistence with immediate saves after every layout change.
 - Full macOS accessibility, keyboard support, Dynamic Type, Reduce Motion, and reduced-transparency behavior.
 
@@ -47,8 +47,8 @@ The module catalog declares each module's category, supported visual footprints,
 | empty Today | A calm empty Today module with a path to schedule or browse workouts | No invented workout instance is shown |
 | no workouts | Empty modules explain how to create a workout or open the database | Quick Start and workout-dependent modules show useful empty actions |
 | no history | Progress modules show zero-state copy without fabricated progress | Analytics modules remain addable |
-| edit mode | Done and Add controls are visible; each module exposes a red remove control, a direct options/shape menu when applicable, and a full-base drag affordance for reordering | Taps on module content are replaced by editing interactions where necessary |
-| module picker | A native popover or sheet with grouped visual previews | Adding a module inserts it immediately with its content-aware default shape and saves the layout |
+| edit mode | Done and Add controls are visible; each module exposes a red remove control, a direct options/shape menu when applicable, a smooth editable base, and a full-base drag affordance for reordering | A normal scroll gesture remains available; a long press followed by movement is required to start reordering, and no drag-handle icon is shown |
+| module picker | A dark grouped sheet shows real widget previews in smooth rounded bases with a green circular plus button overlapping each preview's upper-right edge | Adding inserts immediately using the preview footprint, and the picker stays open for additional choices |
 | module options | A direct options/shape menu is visible on the module while editing; a context menu remains available as a secondary path | Changes update the module instance and save immediately |
 | unavailable platform action | The module is not offered on that platform | The canvas never presents a dead disabled outdoor action |
 | reduced motion | Changes use short fades and restrained layout updates | No large slide, bounce, or continuous motion is required |
@@ -62,7 +62,7 @@ The module catalog declares each module's category, supported visual footprints,
 | enter edit mode | The canvas changes to an editing presentation with controls materializing near their targets | Pencil or background long press |
 | add module | The new module appears at the insertion point with a restrained spring and opacity transition | Add from picker |
 | remove module | The module leaves immediately and the remaining modules settle into their new grid positions | Red remove control |
-| move module | The module follows the edit drag; insertion slots appear only while a module is actively dragged and neighboring modules make room continuously | Drag in edit mode |
+| move module | A long press followed by a direct drag from any point on the module base follows the pointer continuously; normal drags continue to scroll the canvas, the canvas temporarily stops scrolling only after a module drag begins, insertion slots appear, and neighboring modules make room | Long press then drag in edit mode |
 | change shape | The module switches between its supported compact, square, and wide footprints and settles into the canvas | Shape selected from the direct module menu |
 | shortcut tilt | Circular activity controls tilt a small amount toward the device's current gravity vector; unavailable sensors leave them level | Device motion on iOS |
 | exit edit mode | Editing affordances fade while the resting canvas remains in place | Done |

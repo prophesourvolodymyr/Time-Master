@@ -2,57 +2,139 @@ import SwiftUI
 
 struct WorkoutCard: View {
     let workout: Workout
+    let schedule: ScheduledWorkout?
+    let sessionsThisWeek: Int
+    let lastCompletedAt: Date?
+    let isResumable: Bool
+
+    init(
+        workout: Workout,
+        schedule: ScheduledWorkout? = nil,
+        sessionsThisWeek: Int = 0,
+        lastCompletedAt: Date? = nil,
+        isResumable: Bool = false
+    ) {
+        self.workout = workout
+        self.schedule = schedule
+        self.sessionsThisWeek = sessionsThisWeek
+        self.lastCompletedAt = lastCompletedAt
+        self.isResumable = isResumable
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
                 iconBadge
 
-                Text(workout.name)
-                    .font(.headline)
-                    .foregroundColor(Theme.textPrimary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(workout.name)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(2)
 
-                Spacer()
+                    Text(workout.type.name)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+
+                Spacer(minLength: 8)
 
                 Image(systemName: "chevron.right")
-                    .font(.subheadline)
-                    .foregroundColor(Theme.textSecondary)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.textSecondary)
+                    .padding(.top, 4)
             }
 
-            HStack(spacing: 16) {
-                Label("\(workout.sectionCount) sections", systemImage: "list.number")
-                    .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
+            if let schedule {
+                scheduleBadge(schedule)
+            } else if isResumable {
+                HStack(spacing: 6) {
+                    Image(systemName: "pause.circle.fill")
+                    Text("Ready to resume")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+            }
 
-                Spacer()
+            HStack(spacing: 0) {
+                metric(value: "\(workout.sectionCount)", label: "sections")
+                metric(value: durationText(workout.totalDuration), label: "total")
+                metric(value: "\(sessionsThisWeek)", label: "this week")
 
-                Label(formatDuration(workout.totalDuration), systemImage: "timer")
-                    .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
+                Spacer(minLength: 12)
+
+                if let lastCompletedAt {
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text("Last done")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.textSecondary)
+                        Text(lastCompletedAt.formatted(date: .abbreviated, time: .omitted))
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                } else {
+                    Text(workout.sections.isEmpty ? "Add exercises" : "Not started")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.textSecondary)
+                }
             }
         }
-        .padding(16)
-        .background(Theme.surface)
-        .cornerRadius(16)
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Theme.surface)
+                .overlay(alignment: .top) {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color(hex: workout.colorHex).opacity(0.12))
+                        .frame(height: 3)
+                }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private var iconBadge: some View {
-        RoundedRectangle(cornerRadius: 8)
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
             .fill(Color(hex: workout.colorHex))
-            .frame(width: 36, height: 36)
-            .overlay(
+            .frame(width: 44, height: 44)
+            .overlay {
                 Image(systemName: workout.type.icon)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(workout.colorHex == "FFFFFF" ? .black : .white)
-            )
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(workout.colorHex == "FFFFFF" ? .black : .white)
+            }
     }
 
-    private func formatDuration(_ seconds: Int) -> String {
+    private func metric(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(value)
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .foregroundStyle(Theme.textPrimary)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .frame(minWidth: 64, alignment: .leading)
+    }
+
+    private func scheduleBadge(_ schedule: ScheduledWorkout) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: schedule.status == .completed ? "checkmark.circle.fill" : "calendar")
+            Text(schedule.status == .completed ? "Completed · \(schedule.timeRangeText)" : schedule.timeRangeText)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(schedule.status == .missed ? Color.red : Color.white)
+    }
+
+    private func durationText(_ seconds: Int) -> String {
         let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-        if minutes > 0 { return "\(minutes)m \(remainingSeconds)s" }
-        return "\(seconds)s"
+        let remainder = seconds % 60
+        if minutes == 0 { return "\(remainder)s" }
+        if remainder == 0 { return "\(minutes)m" }
+        return "\(minutes)m \(remainder)s"
     }
 }
 

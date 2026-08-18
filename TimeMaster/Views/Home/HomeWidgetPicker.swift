@@ -7,32 +7,26 @@ struct HomeWidgetPicker: View {
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @ObservedObject var widgetStore: HomeWidgetStore
 
+    private let columns = [
+        GridItem(.flexible(), spacing: 14),
+        GridItem(.flexible(), spacing: 14)
+    ]
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 24) {
-                        ForEach(HomeWidgetCategory.allCases) { category in
-                            let widgets = widgetStore.availableKinds.filter { $0.category == category }
-                            if !widgets.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text(category.title)
-                                        .font(.headline)
-                                        .foregroundStyle(Theme.textPrimary)
-
-                                    LazyVStack(spacing: 14) {
-                                        ForEach(widgets) { kind in
-                                            widgetOption(kind)
-                                        }
-                                    }
-                                }
-                            }
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 30) {
+                    ForEach(HomeWidgetCategory.allCases) { category in
+                        let widgets = widgetStore.availableKinds.filter { $0.category == category }
+                        if !widgets.isEmpty {
+                            categorySection(category, widgets: widgets)
                         }
                     }
-                    .padding(16)
                 }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 20)
             }
+            .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Add Widget")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
@@ -43,51 +37,98 @@ struct HomeWidgetPicker: View {
         .preferredColorScheme(.dark)
     }
 
-    private func widgetOption(_ kind: HomeWidgetKind) -> some View {
+    @ViewBuilder
+    private func categorySection(
+        _ category: HomeWidgetCategory,
+        widgets: [HomeWidgetKind]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(category.title)
+                .font(.system(size: 23, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.textPrimary)
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
+                ForEach(widgets) { kind in
+                    widgetCard(kind)
+                        .gridCellColumns(pickerFootprint(for: kind).columnSpan)
+                }
+            }
+        }
+    }
+
+    private func pickerFootprint(for kind: HomeWidgetKind) -> HomeWidgetFootprint {
+        switch kind.category {
+        case .workouts:
+            .compact
+        case .analytics:
+            .wide
+        default:
+            kind.defaultFootprint
+        }
+    }
+
+    private func widgetCard(_ kind: HomeWidgetKind) -> some View {
         let canAdd = widgetStore.canAdd(kind)
-        return VStack(alignment: .leading, spacing: 12) {
+        let footprint = pickerFootprint(for: kind)
+
+        return ZStack(alignment: .topTrailing) {
             HomeWidgetPreview(
                 kind: kind,
+                footprint: footprint,
                 widgetStore: widgetStore,
                 workoutStore: workoutStore,
                 databaseStore: databaseStore,
                 outdoorStore: outdoorStore
             )
+            .padding(14)
 
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Label(kind.title, systemImage: kind.systemImage)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                    Text("Content-aware shape")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textSecondary)
-                }
-
-                Spacer(minLength: 8)
-                Button(canAdd ? "Add" : "Added") {
-                    widgetStore.add(kind)
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(canAdd ? .cyan : .gray)
-                .disabled(!canAdd)
+            Button {
+                widgetStore.add(kind, footprint: footprint)
+            } label: {
+                Image(systemName: canAdd ? "plus" : "checkmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(canAdd ? .black : .white)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        canAdd ? Color.green : Theme.surface2,
+                        in: Circle()
+                    )
+                    .overlay {
+                        Circle()
+                            .stroke(.black.opacity(0.8), lineWidth: 2)
+                    }
+                    .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
             }
+            .buttonStyle(.plain)
+            .disabled(!canAdd)
+            .padding(7)
+            .offset(x: 6, y: -6)
         }
-        .padding(12)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius))
-        .overlay {
-            RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius)
-                .stroke(.white.opacity(canAdd ? 0.1 : 0.2), lineWidth: 1)
+        .background {
+            RoundedRectangle(cornerRadius: 22)
+                .fill(
+                    LinearGradient(
+                        colors: [Theme.surface2, Theme.surface],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(.white.opacity(canAdd ? 0.12 : 0.2), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
         }
-        .opacity(canAdd ? 1 : 0.64)
+        .opacity(canAdd ? 1 : 0.62)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(canAdd ? "Preview and add \(kind.title) widget" : "\(kind.title) widget already added")
+        .accessibilityLabel(canAdd ? "Add \(kind.title) widget" : "\(kind.title) widget already added")
+        .accessibilityHint(canAdd ? "Adds this widget to Home" : "This widget is already on Home")
     }
 }
 
 private struct HomeWidgetPreview: View {
     let kind: HomeWidgetKind
+    let footprint: HomeWidgetFootprint
     @ObservedObject var widgetStore: HomeWidgetStore
     @ObservedObject var workoutStore: WorkoutStore
     @ObservedObject var databaseStore: DatabaseStore
@@ -96,18 +137,18 @@ private struct HomeWidgetPreview: View {
 
     var body: some View {
         Group {
-            if kind.defaultFootprint.columnSpan == 1 {
+            if footprint.columnSpan == 1 {
                 HStack(spacing: 12) {
                     previewContent
                         .frame(maxWidth: .infinity)
-                        .aspectRatio(kind.defaultFootprint.aspectRatio, contentMode: .fit)
+                        .aspectRatio(footprint.aspectRatio, contentMode: .fit)
                     Color.clear
                         .frame(maxWidth: .infinity)
                 }
             } else {
                 previewContent
                     .frame(maxWidth: .infinity)
-                    .aspectRatio(kind.defaultFootprint.aspectRatio, contentMode: .fit)
+                    .aspectRatio(footprint.aspectRatio, contentMode: .fit)
             }
         }
         .allowsHitTesting(false)
@@ -116,10 +157,11 @@ private struct HomeWidgetPreview: View {
             previewDate = Date()
         }
     }
+
     @ViewBuilder
     private var previewContent: some View {
         HomeWidgetContent(
-            widget: HomeWidgetInstance(kind: kind, footprint: kind.defaultFootprint),
+            widget: HomeWidgetInstance(kind: kind, footprint: footprint),
             workoutStore: workoutStore,
             databaseStore: databaseStore,
             outdoorStore: outdoorStore,

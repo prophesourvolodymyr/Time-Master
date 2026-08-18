@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum SlotNavigationPresentation: Equatable {
+enum SlotNavigationPresentation: Equatable, Hashable {
     case full
     case inline
     case hidden
@@ -30,9 +30,23 @@ struct SlotNavigationItem: Identifiable, Hashable {
     let symbolName: String
     let title: String
     let accessibilityHint: String
+    let presentation: SlotNavigationPresentation
+    init(
+        id: Int,
+        symbolName: String,
+        title: String,
+        accessibilityHint: String,
+        presentation: SlotNavigationPresentation = .full
+    ) {
+        self.id = id
+        self.symbolName = symbolName
+        self.title = title
+        self.accessibilityHint = accessibilityHint
+        self.presentation = presentation
+    }
 
     static let timeMaster: [SlotNavigationItem] = [
-        SlotNavigationItem(id: 4, symbolName: "brain.head.profile", title: "AI Coach", accessibilityHint: "Opens your AI coach."),
+        SlotNavigationItem(id: 4, symbolName: "brain.head.profile", title: "AI Coach", accessibilityHint: "Opens your AI coach.", presentation: .inline),
         SlotNavigationItem(id: 5, symbolName: "person.crop.circle", title: "Profile", accessibilityHint: "Shows your profile and history."),
         SlotNavigationItem(id: 0, symbolName: "house.fill", title: "Home", accessibilityHint: "Shows your daily dashboard."),
         SlotNavigationItem(id: 1, symbolName: "dumbbell.fill", title: "Workouts", accessibilityHint: "Shows your workouts."),

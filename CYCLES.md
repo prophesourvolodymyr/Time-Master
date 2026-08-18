@@ -566,6 +566,9 @@ F06 (AI Coach) ─────────┘
 - [x] F24-L - Use public iOS 26 `.glassEffect` on the arc over the existing dark `Theme.surface` base with a restrained dark tint; keep `.regularMaterial` on earlier iOS versions
 - [x] F24-M — Add explicit full, inline, and hidden navigation presentations; keep AI Chat’s composer above a compact inline rail and add a lower-corner hidden-rail reveal gesture
 - [x] F24-N — Stabilize AI Coach’s root inline presentation preference and animate full/inline rail insertion and exit from the shared bottom edge
+- [x] F24-O — Make the compact AI Coach rail draggable with projected release selection, one-to-one tracking, soft translation limits, and shared slot spring settling
+- [x] F24-P — Reserve bottom space above the compact rail so the AI Coach composer and approval card never render behind navigation
+- [x] F24-Q — Synchronize destination presentation with selection so leaving AI Coach always restores the full arc during page transitions
 - [x] Verified: iOS 26.5 and iOS 18.6 Simulator builds succeed; both refreshed iOS app bundles installed and launched; the adaptive AI Coach inline-transition fix builds for iOS and macOS; Home remains centered and the arc stays dark with restrained native glass; manual AI Coach transition, drag, and directional page-transition review remains for human verification
 
 ## Cycle 13 — Music Library Update
@@ -611,6 +614,39 @@ F06 (AI Coach) ─────────┘
 - [x] F27-C — Add iOS device-motion tilt with a level fallback when motion data is unavailable
 - [x] F27 — Keep card surfaces for action-heavy modules only; preserve Quick Start surface
 - [x] F27 — Update Home redesign documentation and run iOS/macOS builds plus iPhone Home smoke check
+
+## Cycle 18 — Home Drag and Add Picker Correction
+
+- [x] F27-A — Replace system drag-only behavior with direct full-base drag reordering
+- [x] F27-A — Pause canvas scrolling during an active widget drag and show live insertion feedback
+- [x] F27-A — Restore smooth edit-mode widget bases inspired by the previous Home surfaces
+- [x] F27-C — Redesign the Add Widget sheet as grouped preview bases with overlapping circular plus actions
+- [x] F27-C — Keep the picker open after each add so multiple widgets can be selected before Done
+- [x] F27 — Update product documentation and validate iOS/macOS builds
+
+## Cycle 19 — Workout Library Surface
+
+- [x] F15 — Responsive workout library cards and connected summary
+  - [x] Add live weekly sessions, training seconds, streak, and weekly-goal counters
+  - [x] Add search, All/Today scope, workout-type filtering, scheduled status, and resume state
+  - [x] Connect create, start, duplicate, pin, delete, and resume actions to existing stores
+  - [x] Add live workout-detail counters for sections, sets, duration, and completed sessions
+
+## Cycle 20 — Home Gesture and Surface Corrections
+
+- [x] F27-A — Keep Home canvas scrolling available throughout edit mode
+- [x] F27-A — Require long press before a widget drag begins and keep the full widget base as the drag target
+- [x] F27-A — Remove the edit-mode drag-handle icon
+- [x] F27 — Restore normal module spacing and quiet bases for progress and analytics modules
+- [x] F27 — Update Home product documentation
+
+## Cycle 21 — AI Coach Inline Rail Correction
+
+- [x] Restore AI Coach chat content and composer above the compact inline rail
+- [x] Make inline rail dragging track one-to-one and select the projected destination reliably
+- [x] Synchronize rail selection with page presentation so AI Coach exits restore the full navigation arc
+- [x] Resolve the WorkoutList history-entry shadow that blocked the application build
+- [x] Build iOS and macOS targets and launch the corrected iOS AI Coach flow; manual drag review remains for human verification
 
 ## Notes
 - Codebase converted to this system: 2026-07-04.

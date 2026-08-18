@@ -71,8 +71,8 @@ A module without meaningful options has no edit command. Duplicate instances are
 
 - Content changes use scoped numeric or opacity transitions.
 - Heatmap and list modules do not animate every cell independently during routine refresh.
-- Picker previews render the real module content using each module's content-aware default footprint, including the half-width two-row compact footprint, followed by an explicit Add action. Shape can be changed after adding.
-- Preview content is non-interactive; the Add action is the only control in the preview row.
+- Picker previews render the real module content inside smooth rounded dark bases beneath category headings. Workout previews use compact half-width tiles, Analytics previews use wide full-width tiles, and other categories use each module's default footprint. A green circular plus button overlaps the upper-right edge of every preview.
+- Preview content is non-interactive; the plus action is the only control in the preview row, and the picker remains open after adding so multiple modules can be selected before Done. Added unique modules remain visible with a muted checkmark state.
 - Reduce Motion keeps content transitions but removes large movement.
 
 ## Files

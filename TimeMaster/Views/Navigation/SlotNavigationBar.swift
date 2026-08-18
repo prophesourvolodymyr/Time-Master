@@ -21,6 +21,7 @@ struct SlotNavigationBar: View {
     @State private var dragIntensity: CGFloat = 0
     @State private var isDragging = false
     @State private var hasMeasured = false
+    @State private var inlineDragTranslation: CGFloat = 0
 
     init(
         selection: Binding<Int>,
@@ -103,11 +104,9 @@ struct SlotNavigationBar: View {
                         }
                     }
                 }
-                .transition(presentationTransition)
                 .zIndex(0)
             } else {
                 inlineNavigation
-                    .transition(presentationTransition)
                     .zIndex(1)
             }
         }
@@ -116,21 +115,23 @@ struct SlotNavigationBar: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var presentationTransition: AnyTransition {
-        reduceMotion
-            ? .opacity
-            : .move(edge: .bottom).combined(with: .opacity)
-    }
 
     private var inlineNavigation: some View {
-        HStack(spacing: 2) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                inlineSlotView(item: item, index: index)
+        GeometryReader { proxy in
+            let step = max(proxy.size.width / CGFloat(max(items.count, 1)), 1)
+
+            HStack(spacing: 2) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    inlineSlotView(item: item, index: index)
+                }
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .offset(x: inlineDragTranslation)
+            .contentShape(Rectangle())
+            .simultaneousGesture(inlineDragGesture(step: step))
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.surface.opacity(0.98))
         .overlay(alignment: .top) {
             Rectangle()
@@ -185,6 +186,40 @@ struct SlotNavigationBar: View {
         withAnimation(selectionAnimation) {
             selection = index
         }
+    }
+    private func inlineDragGesture(step: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .local)
+            .onChanged { value in
+                let translationLimit = max(step * 0.8, 24)
+                let boundedTranslation = rubberBand(
+                    value.translation.width,
+                    minimum: -translationLimit,
+                    maximum: translationLimit
+                )
+                var transaction = Transaction()
+                transaction.animation = nil
+                withTransaction(transaction) {
+                    inlineDragTranslation = boundedTranslation
+                }
+            }
+            .onEnded { value in
+                let projectedPages = -value.predictedEndTranslation.width / max(step, 1)
+                let pageDelta = Int(projectedPages.rounded())
+                let targetIndex = min(max(selection + pageDelta, 0), items.count - 1)
+
+                guard targetIndex != selection else {
+                    withAnimation(selectionAnimation) {
+                        inlineDragTranslation = 0
+                    }
+                    return
+                }
+
+                onSelectionChanged(targetIndex)
+                withAnimation(selectionAnimation) {
+                    inlineDragTranslation = 0
+                    selection = targetIndex
+                }
+            }
     }
 
     @ViewBuilder

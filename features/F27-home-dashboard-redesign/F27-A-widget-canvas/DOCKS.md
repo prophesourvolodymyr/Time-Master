@@ -15,8 +15,9 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 - Direct per-module options and shape controls in edit mode when a module supports them.
 - Red remove controls and dashed boundaries on every module while editing.
 - Insertion slots remain hidden at rest and appear only while a module is actively dragged.
-- Drag-to-reorder starts from any point on the widget base and snaps into insertion slots without changing widget size.
-- Action-heavy modules such as Quick Start may use a card surface; ordinary modules rest directly on the canvas.
+- Drag-to-reorder starts only after a long press followed by movement from any point on the widget base and snaps into insertion slots without changing widget size. A normal drag remains available for scrolling while editing.
+- Non-Greeting modules gain a smooth dark gradient base, subtle edge, and shadow while editing; progress and analytics modules also retain quiet rounded bases during normal viewing so their counters and charts have a clear visual home.
+- Action-heavy modules such as Quick Start may use a stronger card surface; the Greeting strip remains background-free.
 - Keyboard equivalents for focus, move, remove, add, and finish editing on macOS.
 
 ## Architecture
@@ -27,7 +28,7 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 
 | State | Behavior |
 |---|---|
-| editing | Modules show direct options/shape controls, removal controls, dashed boundaries, and a full-base drag affordance. Insertion slots are not visible until a drag begins. |
+| editing | Modules show direct options/shape controls, removal controls, smooth editable bases, dashed boundaries, and a full-base drag affordance. Insertion slots are not visible until a drag begins. |
 | adding | The picker remains modal to the edit flow; adding inserts immediately when selected. |
 | moving | The dragged module follows the pointer from any point on its base and neighboring insertion slots appear to make room. |
 | removed | The module disappears immediately and can be restored from Add. |
@@ -40,7 +41,7 @@ The Home canvas is an infinite vertical workspace made from a responsive snapped
 
 - Editing controls appear with a short opacity and scale transition anchored to the module.
 - Shape changes settle into the selected footprint without changing module order.
-- Reordering uses a critically damped spring and follows the pointer continuously.
+- Reordering uses a critically damped spring and follows the pointer continuously from the initial grab point.
 - Insertion slots expand and highlight while a module is dragged over them.
 - Removing a module fades it while the remaining layout closes the gap.
 - Reduced Motion replaces movement with opacity and restrained layout changes.

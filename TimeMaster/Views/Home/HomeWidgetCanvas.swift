@@ -1,7 +1,7 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct HomeWidgetCanvas: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var widgetStore: HomeWidgetStore
     @ObservedObject var workoutStore: WorkoutStore
     @ObservedObject var databaseStore: DatabaseStore
@@ -17,10 +17,10 @@ struct HomeWidgetCanvas: View {
 
     @State private var draggedWidgetID: UUID?
     @State private var activeInsertionIndex: Int?
-
+    @State private var widgetFrames: [UUID: CGRect] = [:]
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
+            VStack(spacing: 16) {
                 insertionSlot(index: 0)
 
                 ForEach(Array(widgetStore.widgets.enumerated()), id: \.element.id) { item in
@@ -32,20 +32,18 @@ struct HomeWidgetCanvas: View {
             .padding(.vertical, 20)
             .frame(maxWidth: 760)
             .frame(maxWidth: .infinity, alignment: .center)
-            .animation(.spring(response: 0.34, dampingFraction: 0.88), value: widgetStore.widgets)
+            .animation(layoutAnimation, value: widgetStore.widgets)
         }
+        .coordinateSpace(name: "home-widget-canvas")
+        .scrollDisabled(draggedWidgetID != nil)
         .overlay {
             if widgetStore.widgets.isEmpty {
                 emptyCanvas
             }
         }
-        .onDrop(
-            of: [UTType.text],
-            delegate: HomeWidgetCanvasDropResetDelegate(
-                draggedWidgetID: $draggedWidgetID,
-                activeInsertionIndex: $activeInsertionIndex
-            )
-        )
+        .onPreferenceChange(HomeWidgetFramePreferenceKey.self) { frames in
+            widgetFrames = frames
+        }
         .accessibilityElement(children: .contain)
     }
 
@@ -61,6 +59,8 @@ struct HomeWidgetCanvas: View {
             now: now,
             skippedScheduledInstanceIDs: skippedScheduledInstanceIDs,
             draggedWidgetID: $draggedWidgetID,
+            onDragChanged: updateDrag,
+            onDragEnded: finishDrag,
             onStartWorkout: onStartWorkout,
             onBrowseWorkouts: onBrowseWorkouts,
             onBrowseDatabase: onBrowseDatabase,
@@ -80,17 +80,49 @@ struct HomeWidgetCanvas: View {
             tile
         }
     }
+    private var layoutAnimation: Animation {
+        reduceMotion
+            ? .easeOut(duration: 0.12)
+            : .spring(response: 0.34, dampingFraction: 0.88)
+    }
+
+    private func updateDrag(widgetID: UUID, location: CGPoint) {
+        guard isEditing,
+              let currentIndex = widgetStore.widgets.firstIndex(where: { $0.id == widgetID }) else {
+            return
+        }
+
+        draggedWidgetID = widgetID
+
+        let remainingFrames = widgetFrames
+            .filter { $0.key != widgetID }
+            .sorted { $0.value.minY < $1.value.minY }
+        let insertionAfterRemoval = remainingFrames.firstIndex { location.y < $0.value.midY } ?? remainingFrames.count
+        let destination = insertionAfterRemoval >= currentIndex
+            ? insertionAfterRemoval + 1
+            : insertionAfterRemoval
+
+        activeInsertionIndex = destination
+        guard destination != currentIndex else { return }
+
+        withAnimation(layoutAnimation) {
+            widgetStore.move(id: widgetID, toInsertionIndex: destination)
+        }
+    }
+
+    private func finishDrag() {
+        withAnimation(layoutAnimation) {
+            draggedWidgetID = nil
+            activeInsertionIndex = nil
+        }
+    }
+
 
     @ViewBuilder
     private func insertionSlot(index: Int) -> some View {
         if isEditing && draggedWidgetID != nil {
             HomeWidgetInsertionSlot(
-                index: index,
-                isDragging: true,
-                isActive: activeInsertionIndex == index,
-                draggedWidgetID: $draggedWidgetID,
-                activeInsertionIndex: $activeInsertionIndex,
-                widgetStore: widgetStore
+                isActive: activeInsertionIndex == index
             )
         }
     }
@@ -124,6 +156,8 @@ private struct HomeWidgetTile: View {
     let now: Date
     let skippedScheduledInstanceIDs: Set<String>
     @Binding var draggedWidgetID: UUID?
+    let onDragChanged: (UUID, CGPoint) -> Void
+    let onDragEnded: () -> Void
     let onStartWorkout: (Workout) -> Void
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
@@ -161,6 +195,23 @@ private struct HomeWidgetTile: View {
                     .aspectRatio(widget.footprint.aspectRatio, contentMode: .fit)
             }
         }
+        .background {
+            if isEditing && widget.kind != .greeting {
+                RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius)
+                    .fill(
+                        LinearGradient(
+                            colors: [Theme.surface2, Theme.surface],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius)
+                            .stroke(.white.opacity(0.1), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
+            }
+        }
         .overlay {
             if isEditing {
                 RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius + 2)
@@ -170,12 +221,6 @@ private struct HomeWidgetTile: View {
                     .foregroundStyle(.white.opacity(draggedWidgetID == widget.id ? 0.85 : 0.42))
                     .padding(2)
                     .allowsHitTesting(false)
-            }
-        }
-        .overlay(alignment: .topLeading) {
-            if isEditing {
-                dragHandle
-                    .padding(8)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -188,11 +233,16 @@ private struct HomeWidgetTile: View {
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius))
-        .onDrag {
-            guard isEditing else { return NSItemProvider() }
-            draggedWidgetID = widget.id
-            return NSItemProvider(object: NSString(string: widget.id.uuidString))
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(
+                        key: HomeWidgetFramePreferenceKey.self,
+                        value: [widget.id: proxy.frame(in: .named("home-widget-canvas"))]
+                    )
+            }
         }
+        .simultaneousGesture(baseDragGesture)
         .contextMenu {
             if widget.kind.supportsOptions {
                 optionsMenu
@@ -223,15 +273,28 @@ private struct HomeWidgetTile: View {
         }
     }
 
-    private var dragHandle: some View {
-        Image(systemName: "line.3.horizontal")
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.white)
-            .frame(width: 32, height: 32)
-            .background(.black.opacity(0.62), in: Circle())
-            .contentShape(Circle())
-            .accessibilityLabel("Drag \(widget.kind.title) widget from anywhere on its base")
+    private var baseDragGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.35, maximumDistance: 18)
+            .sequenced(
+                before: DragGesture(
+                    minimumDistance: 0,
+                    coordinateSpace: .named("home-widget-canvas")
+                )
+            )
+            .onChanged { value in
+                guard isEditing else { return }
+                guard case .second(true, let drag) = value, let drag else { return }
+                if draggedWidgetID == nil {
+                    draggedWidgetID = widget.id
+                }
+                onDragChanged(widget.id, drag.location)
+            }
+            .onEnded { value in
+                guard isEditing, case .second(true, _) = value else { return }
+                onDragEnded()
+            }
     }
+
 
     private var widgetOptionsButton: some View {
         Menu {
@@ -439,21 +502,24 @@ private struct HomeWidgetTile: View {
     }
 }
 
+private struct HomeWidgetFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
+
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, newest in newest })
+    }
+}
+
 private struct HomeWidgetInsertionSlot: View {
-    let index: Int
-    let isDragging: Bool
     let isActive: Bool
-    @Binding var draggedWidgetID: UUID?
-    @Binding var activeInsertionIndex: Int?
-    let widgetStore: HomeWidgetStore
 
     var body: some View {
         RoundedRectangle(cornerRadius: 8)
             .stroke(
                 style: StrokeStyle(lineWidth: isActive ? 2 : 1, dash: [6, 4])
             )
-            .foregroundStyle(isActive ? .cyan : .white.opacity(isDragging ? 0.34 : 0.18))
-            .frame(height: isDragging ? 34 : 14)
+            .foregroundStyle(isActive ? .cyan : .white.opacity(0.24))
+            .frame(height: 34)
             .overlay {
                 if isActive {
                     Label("Drop widget here", systemImage: "arrow.down")
@@ -461,61 +527,7 @@ private struct HomeWidgetInsertionSlot: View {
                         .foregroundStyle(.cyan)
                 }
             }
-            .contentShape(RoundedRectangle(cornerRadius: 8))
-            .onDrop(
-                of: [UTType.text],
-                delegate: HomeWidgetInsertionDropDelegate(
-                    index: index,
-                    draggedWidgetID: $draggedWidgetID,
-                    activeInsertionIndex: $activeInsertionIndex,
-                    widgetStore: widgetStore
-                )
-            )
             .accessibilityElement()
             .accessibilityLabel(isActive ? "Drop widget here" : "Widget drop position")
-    }
-}
-
-private struct HomeWidgetInsertionDropDelegate: DropDelegate {
-    let index: Int
-    @Binding var draggedWidgetID: UUID?
-    @Binding var activeInsertionIndex: Int?
-    let widgetStore: HomeWidgetStore
-
-    func dropEntered(info: DropInfo) {
-        activeInsertionIndex = index
-        guard let draggedWidgetID else { return }
-        widgetStore.move(id: draggedWidgetID, toInsertionIndex: index)
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func dropExited(info: DropInfo) {
-        if activeInsertionIndex == index {
-            activeInsertionIndex = nil
-        }
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggedWidgetID = nil
-        activeInsertionIndex = nil
-        return true
-    }
-}
-
-private struct HomeWidgetCanvasDropResetDelegate: DropDelegate {
-    @Binding var draggedWidgetID: UUID?
-    @Binding var activeInsertionIndex: Int?
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggedWidgetID = nil
-        activeInsertionIndex = nil
-        return true
     }
 }

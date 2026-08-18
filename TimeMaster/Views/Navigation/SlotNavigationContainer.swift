@@ -78,6 +78,7 @@ struct SlotNavigationContainer<Content: View>: View {
 #endif
             .background(Theme.background.ignoresSafeArea())
             .onAppear {
+                navigationPresentation = defaultNavigationPresentation(for: selection)
                 lastSelection = selection
 #if os(macOS)
                 keyboardFocused = true
@@ -88,13 +89,14 @@ struct SlotNavigationContainer<Content: View>: View {
             }
             .onChange(of: selection) { newSelection in
                 updateTransitionDirection(for: newSelection)
+                applyNavigationPresentation(defaultNavigationPresentation(for: newSelection))
                 lastSelection = newSelection
                 if effectiveNavigationPresentation == .hidden, hiddenNavigationIsRevealed {
                     scheduleHiddenNavigationDismissal()
                 }
             }
             .onPreferenceChange(SlotNavigationPresentationPreferenceKey.self) { requestedPresentation in
-                applyNavigationPresentation(requestedPresentation ?? .full)
+                applyNavigationPresentation(resolvedNavigationPresentation(requestedPresentation))
             }
             .animation(pageAnimation, value: selection)
             .animation(navigationPresentationAnimation, value: effectiveNavigationPresentation)
@@ -130,6 +132,27 @@ struct SlotNavigationContainer<Content: View>: View {
     private func barLayout(for presentation: SlotNavigationPresentation) -> SlotNavigationBarLayout {
         presentation == .full ? .full : .inline
     }
+    private func defaultNavigationPresentation(for index: Int) -> SlotNavigationPresentation {
+        guard items.indices.contains(index) else { return .full }
+        return items[index].presentation
+    }
+    private func resolvedNavigationPresentation(
+        _ requestedPresentation: SlotNavigationPresentation?
+    ) -> SlotNavigationPresentation {
+        let destinationPresentation = defaultNavigationPresentation(for: selection)
+        guard let requestedPresentation else { return destinationPresentation }
+
+        if destinationPresentation == .full, requestedPresentation != .full {
+            return .full
+        }
+        if destinationPresentation == .inline, requestedPresentation == .full {
+            return .inline
+        }
+        if destinationPresentation == .hidden {
+            return .hidden
+        }
+        return requestedPresentation
+    }
 
     private func navigationBar(
         bottomSafeArea: CGFloat,
@@ -159,6 +182,7 @@ struct SlotNavigationContainer<Content: View>: View {
 
     private func handleNavigationSelection(_ index: Int) {
         updateTransitionDirection(for: index)
+        applyNavigationPresentation(defaultNavigationPresentation(for: index))
         if effectiveNavigationPresentation == .hidden, hiddenNavigationIsRevealed {
             scheduleHiddenNavigationDismissal()
         }
@@ -234,7 +258,7 @@ struct SlotNavigationContainer<Content: View>: View {
                 )
                 guard nextSelection != selection else { return }
 
-                updateTransitionDirection(for: nextSelection)
+                handleNavigationSelection(nextSelection)
                 withAnimation(pageAnimation) {
                     selection = nextSelection
                 }
@@ -274,7 +298,7 @@ struct SlotNavigationContainer<Content: View>: View {
 
     private func selectFromKeyboard(_ index: Int) {
         guard items.indices.contains(index), index != selection else { return }
-        updateTransitionDirection(for: index)
+        handleNavigationSelection(index)
         withAnimation(pageAnimation) {
             selection = index
         }

@@ -35,12 +35,14 @@ struct AICoachView: View {
                         onAttach:          { showingFilePicker = true }
                     )
                 }
+                    .padding(.bottom, 8)
                 if let approval = store.pendingApproval {
                     ApprovalCardView(approval: approval, store: store)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .zIndex(10)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
             #if os(iOS)
 #if os(iOS)
