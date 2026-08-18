@@ -541,6 +541,14 @@ F06 (AI Coach) ─────────┘
   - [x] macOS viewer-only Profile and no recorder controls
   - [x] Verified: core tests, macOS build, iOS Simulator build
 
+## Cycle 12 — Slot Navigation
+- [x] F24 — Native iOS slot navigation
+  - [x] F24-A — Replace iOS TabView bar with draggable slot reel over real TimeMaster pages
+  - [x] F24-B — Align emoji positions to the same fixed arc geometry used by the visible nav surface
+  - [x] F24-C — Remove red tint from the slot navigation surface and keep page-owned colors intact
+  - [x] F24-D — Add page swipes, projected snap, edge rubber-band, accessibility actions, and Reduce Motion behavior
+  - [x] Verified: iOS and macOS Debug builds succeed; 82 TimeMasterCore tests pass; app installed/launched on iPhone 16 Pro Simulator and Home renders the real page with the neutral slot surface; manual gesture and accessibility verification remains for human review
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

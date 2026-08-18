@@ -46,56 +46,9 @@ struct MainTabView: View {
         }
         .buttonStyle(.plain)
         #else
-        TabView(selection: $selectedTab) {
-            HomeDashboardView(
-                onBrowseWorkouts: { selectedTab = 1 },
-                onBrowseDatabase: { selectedTab = 2 },
-                onCreateWorkout: openWorkoutCreator,
-                onStartOutdoor: { kind, route in
-                    activeOutdoorPlannedRoute = route
-                    activeOutdoorKind = kind
-                }
-            )
-            .environmentObject(workoutStore)
-            .environmentObject(databaseStore)
-            .environmentObject(outdoorStore)
-            .tabItem { Label("Home", systemImage: "house.fill") }
-            .tag(0)
-
-            WorkoutListView(requestedWorkoutID: $requestedWorkoutID)
-                .environmentObject(workoutStore)
-                .environmentObject(outdoorStore)
-                .tabItem { Label("Workouts", systemImage: "figure.run") }
-                .tag(1)
-
-            DatabaseView()
-                .environmentObject(databaseStore)
-                .environmentObject(workoutStore)
-                .environmentObject(outdoorStore)
-                .tabItem { Label("Database", systemImage: "cylinder.split.1x2") }
-                .tag(2)
-
-            AnalyticsView()
-                .environmentObject(workoutStore)
-                .environmentObject(outdoorStore)
-                .tabItem { Label("Analytics", systemImage: "chart.bar.xaxis") }
-                .tag(3)
-
-            AICoachView()
-                .environmentObject(aiStore)
-                .tabItem { Label("AI Coach", systemImage: "brain.head.profile") }
-                .tag(4)
-
-            ProfileView()
-                .environmentObject(outdoorStore)
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
-                .tag(5)
+        SlotNavigationContainer(selection: $selectedTab) {
+            detailView
         }
-        .tint(.white)
-        #if os(iOS)
-        .toolbarBackground(Theme.background, for: .tabBar)
-        .toolbarBackground(.visible, for: .tabBar)
-        #endif
         .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
             routeToWorkoutDetail(notification)
         }
@@ -129,14 +82,7 @@ struct MainTabView: View {
     private var detailView: some View {
         switch selectedTab {
         case 0:
-            HomeDashboardView(
-                onBrowseWorkouts: { selectedTab = 1 },
-                onBrowseDatabase: { selectedTab = 2 },
-                onCreateWorkout: openWorkoutCreator
-            )
-            .environmentObject(outdoorStore)
-            .environmentObject(workoutStore)
-            .environmentObject(databaseStore)
+            homeDestination
         case 1:
             WorkoutListView(requestedWorkoutID: $requestedWorkoutID)
                 .environmentObject(outdoorStore)
@@ -161,6 +107,35 @@ struct MainTabView: View {
                 .environmentObject(workoutStore)
         }
     }
+#if os(iOS)
+    @ViewBuilder
+    private var homeDestination: some View {
+        HomeDashboardView(
+            onBrowseWorkouts: { selectedTab = 1 },
+            onBrowseDatabase: { selectedTab = 2 },
+            onCreateWorkout: openWorkoutCreator,
+            onStartOutdoor: { kind, route in
+                activeOutdoorPlannedRoute = route
+                activeOutdoorKind = kind
+            }
+        )
+        .environmentObject(outdoorStore)
+        .environmentObject(workoutStore)
+        .environmentObject(databaseStore)
+    }
+#else
+    @ViewBuilder
+    private var homeDestination: some View {
+        HomeDashboardView(
+            onBrowseWorkouts: { selectedTab = 1 },
+            onBrowseDatabase: { selectedTab = 2 },
+            onCreateWorkout: openWorkoutCreator
+        )
+        .environmentObject(outdoorStore)
+        .environmentObject(workoutStore)
+        .environmentObject(databaseStore)
+    }
+#endif
 
     private func openWorkoutCreator() {
         selectedTab = 1
