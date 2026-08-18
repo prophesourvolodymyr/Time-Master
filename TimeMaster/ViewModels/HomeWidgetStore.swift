@@ -8,21 +8,40 @@ final class HomeWidgetStore: ObservableObject {
 
     private let layoutKey = "home_widget_layout_v1"
     private let skippedScheduleKey = "home_skipped_schedule_instances_v1"
+    private let compactGreetingMigrationKey = "home_compact_greeting_migration_v1"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let loadedWidgets: [HomeWidgetInstance]
         if let data = defaults.data(forKey: layoutKey),
            let decoded = try? JSONDecoder().decode([HomeWidgetInstance].self, from: data) {
-            widgets = decoded
+            loadedWidgets = decoded
         } else {
-            widgets = HomeWidgetCatalog.initialLayout
+            loadedWidgets = HomeWidgetCatalog.initialLayout
         }
+
+        let needsCompactGreetingMigration = defaults.bool(forKey: compactGreetingMigrationKey) == false
+        widgets = needsCompactGreetingMigration
+            ? loadedWidgets.map { widget in
+                var widget = widget
+                if widget.kind == .greeting {
+                    widget.footprint = .compact
+                }
+                return widget
+            }
+            : loadedWidgets
+
         if let data = defaults.data(forKey: skippedScheduleKey),
            let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
             skippedScheduledInstanceIDs = decoded
         } else {
             skippedScheduledInstanceIDs = []
+        }
+
+        if needsCompactGreetingMigration {
+            defaults.set(true, forKey: compactGreetingMigrationKey)
+            save()
         }
     }
 

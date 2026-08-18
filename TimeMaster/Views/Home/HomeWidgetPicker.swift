@@ -95,6 +95,29 @@ private struct HomeWidgetPreview: View {
     @State private var previewDate = Date()
 
     var body: some View {
+        Group {
+            if kind.defaultFootprint.columnSpan == 1 {
+                HStack(spacing: 12) {
+                    previewContent
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(kind.defaultFootprint.aspectRatio, contentMode: .fit)
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                }
+            } else {
+                previewContent
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(kind.defaultFootprint.aspectRatio, contentMode: .fit)
+            }
+        }
+        .allowsHitTesting(false)
+        .clipped()
+        .onAppear {
+            previewDate = Date()
+        }
+    }
+    @ViewBuilder
+    private var previewContent: some View {
         HomeWidgetContent(
             widget: HomeWidgetInstance(kind: kind, footprint: kind.defaultFootprint),
             workoutStore: workoutStore,
@@ -111,12 +134,5 @@ private struct HomeWidgetPreview: View {
                 widgetStore.skipScheduledInstance(id: scheduled.id)
             }
         )
-        .allowsHitTesting(false)
-        .frame(maxWidth: .infinity)
-        .aspectRatio(kind.defaultFootprint.aspectRatio, contentMode: .fit)
-        .clipped()
-        .onAppear {
-            previewDate = Date()
-        }
     }
 }

@@ -67,8 +67,10 @@ struct HomeWidgetContent: View {
         HomeWidgetChrome(title: nil) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(greetingText)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: widget.footprint == .compact ? 22 : 28, weight: .bold, design: .rounded))
                     .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text(now, style: .date)
                     .font(.caption)
                     .foregroundStyle(Theme.textSecondary)

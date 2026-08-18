@@ -21,13 +21,16 @@ enum HomeWidgetCategory: String, Codable, CaseIterable, Identifiable {
 }
 
 enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
+    case compact
     case square
     case wide
 
     init(from decoder: Decoder) throws {
         let value = try decoder.singleValueContainer().decode(String.self).lowercased()
         switch value {
-        case "square", "1:1", "1x1", "compact", "standard":
+        case "compact", "0.5:1", "0.5x1":
+            self = .compact
+        case "square", "1:1", "1x1", "standard":
             self = .square
         case "wide", "1:2", "1x2", "tall", "large":
             self = .wide
@@ -43,17 +46,25 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// The canvas uses width-to-height ratios. `wide` is the user's 1:2
-    /// height-to-width footprint, while `square` remains 1:1.
+    /// `compact` is the half-width, one-row footprint. `square` is full-width
+    /// 1:1, and `wide` is the user's 1:2 height-to-width footprint.
     var aspectRatio: CGFloat {
         switch self {
+        case .compact, .wide: 2
         case .square: 1
-        case .wide: 2
+        }
+    }
+
+    var columnSpan: Int {
+        switch self {
+        case .compact: 1
+        case .square, .wide: 2
         }
     }
 
     var accessibilityName: String {
         switch self {
+        case .compact: "compact"
         case .square: "square"
         case .wide: "wide"
         }
@@ -61,6 +72,7 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
 
     var menuTitle: String {
         switch self {
+        case .compact: "Compact"
         case .square: "Square"
         case .wide: "Wide"
         }
@@ -155,7 +167,9 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
 
     var defaultFootprint: HomeWidgetFootprint {
         switch self {
-        case .greeting, .streak, .lifetimeStats, .databaseOverview:
+        case .greeting:
+            .compact
+        case .streak, .lifetimeStats, .databaseOverview:
             .square
         default:
             .wide

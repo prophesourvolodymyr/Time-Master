@@ -51,7 +51,7 @@ struct HomeWidgetCanvas: View {
 
     @ViewBuilder
     private func tile(for widget: HomeWidgetInstance) -> some View {
-        HomeWidgetTile(
+        let tile = HomeWidgetTile(
             widget: widget,
             isEditing: isEditing,
             widgetStore: widgetStore,
@@ -67,6 +67,18 @@ struct HomeWidgetCanvas: View {
             onCreateWorkout: onCreateWorkout,
             onStartOutdoor: onStartOutdoor
         )
+
+        if widget.footprint == .compact {
+            HStack(spacing: 12) {
+                tile
+                    .frame(maxWidth: .infinity)
+                Color.clear
+                    .frame(maxWidth: .infinity)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            tile
+        }
     }
 
     @ViewBuilder
@@ -161,6 +173,11 @@ private struct HomeWidgetTile: View {
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius))
+        .onDrag {
+            guard isEditing else { return NSItemProvider() }
+            draggedWidgetID = widget.id
+            return NSItemProvider(object: NSString(string: widget.id.uuidString))
+        }
         .contextMenu {
             if widget.kind.supportsOptions {
                 optionsMenu
@@ -183,7 +200,7 @@ private struct HomeWidgetTile: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(widget.kind.title)
         .accessibilityValue("\(widget.footprint.accessibilityName) shape")
-        .accessibilityHint(isEditing ? "Drag from the handle to reorder this widget" : "Open widget action")
+        .accessibilityHint(isEditing ? "Drag this widget from anywhere on its base to reorder it" : "Open widget action")
         .accessibilityAction(named: "Remove") {
             if isEditing {
                 widgetStore.remove(id: widget.id)
@@ -198,11 +215,7 @@ private struct HomeWidgetTile: View {
             .frame(width: 32, height: 32)
             .background(.black.opacity(0.62), in: Circle())
             .contentShape(Circle())
-            .onDrag {
-                draggedWidgetID = widget.id
-                return NSItemProvider(object: NSString(string: widget.id.uuidString))
-            }
-            .accessibilityLabel("Drag \(widget.kind.title) widget")
+            .accessibilityLabel("Drag \(widget.kind.title) widget from anywhere on its base")
     }
 
     private var removeButton: some View {

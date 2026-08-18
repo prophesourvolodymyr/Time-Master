@@ -5,7 +5,7 @@ The Home dashboard becomes a user-owned, adaptive canvas of workout, schedule, p
 ## What We Build
 
 - A responsive Home canvas that grows vertically as modules are added.
-- A snapped visual grid with square 1:1 and wide 1:2 (height-to-width) module footprints.
+- A snapped visual grid with compact 0.5:1, square 1:1, and wide 1:2 (height-to-width) module footprints.
 - A removable Greeting module; Greeting is not permanent page chrome.
 - A schedule-first Today module built from scheduled workout instances.
 - A Quick Start module that uses the first pending Today instance and falls back to the first matching ready workout.
@@ -46,7 +46,7 @@ The module catalog declares each module's category, supported visual footprints,
 | empty Today | A calm empty Today module with a path to schedule or browse workouts | No invented workout instance is shown |
 | no workouts | Empty modules explain how to create a workout or open the database | Quick Start and workout-dependent modules show useful empty actions |
 | no history | Progress modules show zero-state copy without fabricated progress | Analytics modules remain addable |
-| edit mode | Done and Add controls are visible; each module exposes a red remove control, drag handle, and shape action | Taps on module content are replaced by editing interactions where necessary |
+| edit mode | Done and Add controls are visible; each module exposes a red remove control, and the entire widget base is draggable for reordering | Taps on module content are replaced by editing interactions where necessary |
 | module picker | A native popover or sheet with grouped visual previews | Adding a module inserts it immediately with its content-aware default shape and saves the layout |
 | module options | A context menu or compact options presentation for supported modules | Changes update the module instance and save immediately |
 | unavailable platform action | The module is not offered on that platform | The canvas never presents a dead disabled outdoor action |
@@ -62,7 +62,7 @@ The module catalog declares each module's category, supported visual footprints,
 | add module | The new module appears at the insertion point with a restrained spring and opacity transition | Add from picker |
 | remove module | The module leaves immediately and the remaining modules settle into their new grid positions | Red remove control |
 | move module | The module follows the edit drag and neighboring modules make room continuously | Drag in edit mode |
-| change shape | The module switches between its supported square and wide footprints and settles into the canvas | Shape selected from the module menu |
+| change shape | The module switches between its supported compact, square, and wide footprints and settles into the canvas | Shape selected from the module menu |
 | exit edit mode | Editing affordances fade while the resting canvas remains in place | Done |
 | data refresh | Numeric and status changes use scoped content transitions | Store or schedule change |
 
