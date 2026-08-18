@@ -1,5 +1,15 @@
 import Foundation
 
+public struct TimeOfDayManifest: Codable, Equatable {
+    public var hour: Int
+    public var minute: Int
+
+    public init(hour: Int, minute: Int) {
+        self.hour = min(max(hour, 0), 23)
+        self.minute = min(max(minute, 0), 59)
+    }
+}
+
 public struct TypeScheduleManifest: Codable, Equatable {
     public var id: String
     public var folderID: String
@@ -8,6 +18,8 @@ public struct TypeScheduleManifest: Codable, Equatable {
     public var startDate: Date
     public var durationMonths: Int
     public var weeklyGoal: Int
+    public var startTime: TimeOfDayManifest?
+    public var durationMinutes: Int?
     public var endedAt: Date?
 
     public init(
@@ -18,6 +30,8 @@ public struct TypeScheduleManifest: Codable, Equatable {
         startDate: Date = Date(),
         durationMonths: Int = 3,
         weeklyGoal: Int = 4,
+        startTime: TimeOfDayManifest? = nil,
+        durationMinutes: Int? = nil,
         endedAt: Date? = nil
     ) {
         self.id = id
@@ -27,6 +41,8 @@ public struct TypeScheduleManifest: Codable, Equatable {
         self.startDate = startDate
         self.durationMonths = durationMonths
         self.weeklyGoal = weeklyGoal
+        self.startTime = startTime
+        self.durationMinutes = durationMinutes
         self.endedAt = endedAt
     }
 }

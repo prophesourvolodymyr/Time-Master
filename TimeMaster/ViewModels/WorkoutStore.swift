@@ -79,9 +79,12 @@ class WorkoutStore: ObservableObject {
                 startDate: ts.startDate,
                 durationMonths: ts.durationMonths,
                 weeklyGoal: ts.weeklyGoal,
+                startTime: ts.startTime.map { TimeOfDay(hour: $0.hour, minute: $0.minute) },
+                durationMinutes: ts.durationMinutes,
                 endedAt: ts.endedAt
             )
         }
+
 
         if workouts.isEmpty {
             seedDefaultWorkouts()
@@ -507,6 +510,67 @@ class WorkoutStore: ObservableObject {
             .filter { $0.isActive(on: date) && $0.daysOfWeek.contains(monBased) && dayStart >= cal.startOfDay(for: $0.startDate) }
             .map { $0.type }
     }
+    func scheduledWorkouts(for date: Date, now: Date = Date()) -> [ScheduledWorkout] {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: date)
+        let mondayBasedWeekday = (weekday + 5) % 7 + 1
+
+        let instances = typeSchedules.compactMap { schedule -> ScheduledWorkout? in
+            guard schedule.isActive(on: date),
+                  schedule.daysOfWeek.contains(mondayBasedWeekday),
+                  dayStart >= calendar.startOfDay(for: schedule.startDate),
+                  let workout = workouts.first(where: {
+                      $0.type.id == schedule.type.id && !$0.sections.isEmpty
+                  }) else {
+                return nil
+            }
+
+            let scheduledStart = schedule.startTime?.date(on: dayStart) ?? dayStart
+            let fallbackDuration = max(1, Int(ceil(Double(workout.totalDuration) / 60.0)))
+            let durationMinutes = max(1, schedule.durationMinutes ?? fallbackDuration)
+            let scheduledFinish = scheduledStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
+            let completed = historyEntries.contains {
+                guard $0.workoutId == workout.id,
+                      calendar.isDate($0.completedAt, inSameDayAs: dayStart) else {
+                    return false
+                }
+                return schedule.startTime == nil || $0.completedAt <= scheduledFinish
+            }
+            let status: ScheduledWorkoutStatus
+            if completed {
+                status = .completed
+            } else if schedule.startTime != nil && now > scheduledStart {
+                status = .missed
+            } else {
+                status = .pending
+            }
+
+            return ScheduledWorkout(
+                id: \"\(schedule.id.uuidString)-\(dateKey(from: date))\",
+                workout: workout,
+                scheduledStart: scheduledStart,
+                scheduledFinish: scheduledFinish,
+                status: status
+            )
+        }
+
+        return instances.sorted { lhs, rhs in
+            let leftRank = statusRank(lhs.status)
+            let rightRank = statusRank(rhs.status)
+            if leftRank != rightRank { return leftRank < rightRank }
+            return lhs.scheduledStart < rhs.scheduledStart
+        }
+    }
+
+    private func statusRank(_ status: ScheduledWorkoutStatus) -> Int {
+        switch status {
+        case .pending: 0
+        case .completed: 1
+        case .missed: 2
+        }
+    }
+
 
     func hasWorkout(on date: Date) -> Bool {
         let cal = Calendar.current
@@ -578,6 +642,8 @@ class WorkoutStore: ObservableObject {
                 startDate: $0.startDate,
                 durationMonths: $0.durationMonths,
                 weeklyGoal: $0.weeklyGoal,
+                startTime: $0.startTime.map { TimeOfDayManifest(hour: $0.hour, minute: $0.minute) },
+                durationMinutes: $0.durationMinutes,
                 endedAt: $0.endedAt
             )
         }

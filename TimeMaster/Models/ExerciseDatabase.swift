@@ -176,6 +176,31 @@ struct ExerciseFolder: Identifiable, Codable {
     }
 }
 
+struct TimeOfDay: Codable, Equatable, Hashable, Comparable {
+    var hour: Int
+    var minute: Int
+
+    init(hour: Int, minute: Int) {
+        self.hour = min(max(hour, 0), 23)
+        self.minute = min(max(minute, 0), 59)
+    }
+
+    static func < (lhs: TimeOfDay, rhs: TimeOfDay) -> Bool {
+        (lhs.hour, lhs.minute) < (rhs.hour, rhs.minute)
+    }
+
+    func date(on day: Date, calendar: Calendar = .current) -> Date {
+        let start = calendar.startOfDay(for: day)
+        return calendar.date(byAdding: .minute, value: hour * 60 + minute, to: start) ?? start
+    }
+
+    var displayText: String {
+        var calendar = Calendar.current
+        calendar.locale = .current
+        return date(on: Date(), calendar: calendar).formatted(date: .omitted, time: .shortened)
+    }
+}
+
 // MARK: - TypeSchedule
 
 struct TypeSchedule: Identifiable, Codable, Equatable {
@@ -186,6 +211,8 @@ struct TypeSchedule: Identifiable, Codable, Equatable {
     var startDate: Date
     var durationMonths: Int
     var weeklyGoal: Int
+    var startTime: TimeOfDay?
+    var durationMinutes: Int?
     var endedAt: Date?
 
     var endDate: Date {

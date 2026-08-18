@@ -173,6 +173,9 @@ private struct TypeScheduleSheet: View {
     @State private var startDate: Date
     @State private var durationMonths: Int
     @State private var weeklyGoal: Int
+    @State private var hasStartTime = false
+    @State private var scheduleStartTime = Date()
+    @State private var durationMinutes = 30
     @State private var didLoadSchedule = false
 
     private let dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -194,6 +197,7 @@ private struct TypeScheduleSheet: View {
                         header
                         dayPicker
                         dateSection
+                        scheduleTimeSection
                         templateSection
                         goalSection
                         historySection
@@ -264,6 +268,43 @@ private struct TypeScheduleSheet: View {
         }
         .padding(14).background(Theme.surface).cornerRadius(12)
     }
+    private var scheduleTimeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Daily Window")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+            Toggle("Set a start time", isOn: $hasStartTime)
+                .foregroundColor(Theme.textPrimary)
+            if hasStartTime {
+                DatePicker(
+                    "Starts",
+                    selection: $scheduleStartTime,
+                    displayedComponents: .hourAndMinute
+                )
+                .colorScheme(.dark)
+                .foregroundColor(Theme.textPrimary)
+                Stepper(value: $durationMinutes, in: 5...240, step: 5) {
+                    Text("Duration \(durationMinutes) min")
+                        .foregroundColor(Theme.textPrimary)
+                }
+                Text(scheduleWindowText)
+                    .font(.caption)
+                    .foregroundColor(Theme.textSecondary)
+            }
+        }
+        .padding(14)
+        .background(Theme.surface)
+        .cornerRadius(12)
+    }
+
+    private var scheduleWindowText: String {
+        let calendar = Calendar.current
+        let start = scheduleStartTime.formatted(date: .omitted, time: .shortened)
+        let endDate = calendar.date(byAdding: .minute, value: durationMinutes, to: scheduleStartTime) ?? scheduleStartTime
+        let end = endDate.formatted(date: .omitted, time: .shortened)
+        return "\(start) – \(end)"
+    }
+
 
     private var templateSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -354,7 +395,14 @@ private struct TypeScheduleSheet: View {
             daysOfWeek: selectedDays,
             startDate: startDate,
             durationMonths: durationMonths,
-            weeklyGoal: weeklyGoal
+            weeklyGoal: weeklyGoal,
+            startTime: hasStartTime
+                ? TimeOfDay(
+                    hour: Calendar.current.component(.hour, from: scheduleStartTime),
+                    minute: Calendar.current.component(.minute, from: scheduleStartTime)
+                )
+                : nil,
+            durationMinutes: hasStartTime ? durationMinutes : nil
         )
         GoalsManager.shared.setGoal(weeklyGoal, for: type)
         store.addSchedule(schedule)
@@ -369,7 +417,16 @@ private struct TypeScheduleSheet: View {
         startDate = schedule.startDate
         durationMonths = schedule.durationMonths
         weeklyGoal = schedule.weeklyGoal
+        if let startTime = schedule.startTime {
+            hasStartTime = true
+            var components = DateComponents()
+            components.hour = startTime.hour
+            components.minute = startTime.minute
+            scheduleStartTime = Calendar.current.date(from: components) ?? Date()
+        }
+        durationMinutes = max(5, min(schedule.durationMinutes ?? 30, 240))
     }
+
 }
 
 // MARK: - Type Editor Sheet

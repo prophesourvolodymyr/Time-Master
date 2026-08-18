@@ -1,0 +1,271 @@
+import Foundation
+
+enum HomeWidgetCategory: String, Codable, CaseIterable, Identifiable {
+    case today
+    case workouts
+    case analytics
+    case outdoor
+    case database
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .today: "Today"
+        case .workouts: "Workouts"
+        case .analytics: "Analytics"
+        case .outdoor: "Outdoor"
+        case .database: "Database"
+        }
+    }
+}
+
+enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
+    case compact
+    case standard
+    case tall
+    case large
+
+    var id: String { rawValue }
+
+    var columnSpan: Int {
+        switch self {
+        case .compact: 1
+        case .standard, .tall, .large: 2
+        }
+    }
+
+    var rowSpan: Int {
+        switch self {
+        case .compact, .standard: 1
+        case .tall, .large: 2
+        }
+    }
+
+    var accessibilityName: String {
+        switch self {
+        case .compact: "compact"
+        case .standard: "standard"
+        case .tall: "tall"
+        case .large: "large"
+        }
+    }
+}
+
+enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
+    case greeting
+    case today
+    case quickStart
+    case activityShortcuts
+    case recentWorkouts
+    case resumeWorkout
+    case selectedWorkout
+    case metrics
+    case streak
+    case weeklyRhythm
+    case activityHeatmap
+    case lifetimeStats
+    case typeBreakdown
+    case outdoorSummary
+    case recoverActivity
+    case savedRoutes
+    case exerciseDatabase
+    case databaseOverview
+    case buildFromDatabase
+
+    var id: String { rawValue }
+
+    var category: HomeWidgetCategory {
+        switch self {
+        case .greeting, .today, .quickStart: .today
+        case .activityShortcuts, .recentWorkouts, .resumeWorkout, .selectedWorkout: .workouts
+        case .metrics, .streak, .weeklyRhythm, .activityHeatmap, .lifetimeStats, .typeBreakdown: .analytics
+        case .outdoorSummary, .recoverActivity, .savedRoutes: .outdoor
+        case .exerciseDatabase, .databaseOverview, .buildFromDatabase: .database
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .greeting: "Greeting"
+        case .today: "Today"
+        case .quickStart: "Quick Start"
+        case .activityShortcuts: "Activity Shortcuts"
+        case .recentWorkouts: "Recent Workouts"
+        case .resumeWorkout: "Resume Workout"
+        case .selectedWorkout: "Selected Workout"
+        case .metrics: "Metrics"
+        case .streak: "Streak"
+        case .weeklyRhythm: "Weekly Rhythm"
+        case .activityHeatmap: "Activity"
+        case .lifetimeStats: "Lifetime Stats"
+        case .typeBreakdown: "Type Breakdown"
+        case .outdoorSummary: "Outdoor Summary"
+        case .recoverActivity: "Recover Activity"
+        case .savedRoutes: "Saved Routes"
+        case .exerciseDatabase: "Exercise Database"
+        case .databaseOverview: "Database Overview"
+        case .buildFromDatabase: "Build from Database"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .greeting: "sun.max.fill"
+        case .today: "calendar"
+        case .quickStart: "play.circle.fill"
+        case .activityShortcuts: "figure.run"
+        case .recentWorkouts: "clock.arrow.circlepath"
+        case .resumeWorkout: "arrow.uturn.forward.circle.fill"
+        case .selectedWorkout: "pin.fill"
+        case .metrics: "chart.bar.fill"
+        case .streak: "flame.fill"
+        case .weeklyRhythm: "chart.line.uptrend.xyaxis"
+        case .activityHeatmap: "square.grid.3x3.fill"
+        case .lifetimeStats: "sum"
+        case .typeBreakdown: "chart.pie.fill"
+        case .outdoorSummary: "figure.outdoor.cycle"
+        case .recoverActivity: "arrow.clockwise.circle.fill"
+        case .savedRoutes: "map.fill"
+        case .exerciseDatabase: "cylinder.split.1x2.fill"
+        case .databaseOverview: "square.stack.3d.up.fill"
+        case .buildFromDatabase: "plus.rectangle.on.rectangle"
+        }
+    }
+
+    var defaultFootprint: HomeWidgetFootprint {
+        switch self {
+        case .greeting: .compact
+        case .today, .quickStart, .weeklyRhythm, .activityHeatmap, .typeBreakdown, .savedRoutes: .tall
+        case .metrics, .activityShortcuts, .recentWorkouts, .outdoorSummary: .standard
+        case .resumeWorkout, .selectedWorkout, .streak, .lifetimeStats, .exerciseDatabase, .databaseOverview, .buildFromDatabase, .recoverActivity: .compact
+        }
+    }
+
+    var supportsOptions: Bool {
+        switch self {
+        case .greeting, .streak, .lifetimeStats, .databaseOverview, .buildFromDatabase, .recoverActivity: false
+        default: true
+        }
+    }
+
+    var supportedFootprints: [HomeWidgetFootprint] {
+        switch self {
+        case .greeting, .streak, .lifetimeStats, .resumeWorkout, .selectedWorkout, .exerciseDatabase, .databaseOverview, .buildFromDatabase, .recoverActivity:
+            [.compact, .standard]
+        case .today, .quickStart, .weeklyRhythm, .activityHeatmap, .typeBreakdown, .savedRoutes:
+            [.standard, .tall, .large]
+        case .activityShortcuts, .recentWorkouts, .metrics, .outdoorSummary:
+            [.standard, .tall]
+        }
+    }
+
+    static var catalog: [HomeWidgetKind] { allCases }
+}
+
+enum HomeActivityShortcut: String, Codable, CaseIterable, Identifiable {
+    case workout
+    case runWalk
+    case bike
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .workout: "Workout"
+        case .runWalk: "Run & Walk"
+        case .bike: "Bike"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .workout: "figure.strengthtraining.traditional"
+        case .runWalk: "figure.run"
+        case .bike: "bicycle"
+        }
+    }
+}
+
+enum HomeMetricField: String, Codable, CaseIterable, Identifiable {
+    case sessions
+    case streak
+    case activeMinutes
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .sessions: "Sessions"
+        case .streak: "Streak"
+        case .activeMinutes: "Active time"
+        }
+    }
+}
+
+struct HomeWidgetConfiguration: Codable, Equatable {
+    var showTypeIcon = true
+    var showDetails = true
+    var showStatus = true
+    var showScheduledTime = true
+    var visibleCount = 3
+    var selectedTypeID: String?
+    var selectedWorkoutID: UUID?
+    var activityShortcuts: [HomeActivityShortcut] = [.workout, .runWalk, .bike]
+    var metricFields: [HomeMetricField] = [.sessions, .streak, .activeMinutes]
+
+    static func defaults(for kind: HomeWidgetKind) -> HomeWidgetConfiguration {
+        var configuration = HomeWidgetConfiguration()
+        switch kind {
+        case .greeting:
+            configuration.showTypeIcon = false
+            configuration.showDetails = false
+        case .today:
+            configuration.visibleCount = 4
+        case .recentWorkouts:
+            configuration.visibleCount = 3
+        case .activityShortcuts:
+            configuration.activityShortcuts = [.workout, .runWalk, .bike]
+        case .metrics:
+            configuration.metricFields = [.sessions, .streak, .activeMinutes]
+        case .weeklyRhythm, .typeBreakdown:
+            configuration.selectedTypeID = nil
+        default:
+            break
+        }
+        return configuration
+    }
+}
+
+struct HomeWidgetInstance: Identifiable, Codable, Equatable {
+    var id: UUID
+    var kind: HomeWidgetKind
+    var footprint: HomeWidgetFootprint
+    var configuration: HomeWidgetConfiguration
+
+    init(
+        id: UUID = UUID(),
+        kind: HomeWidgetKind,
+        footprint: HomeWidgetFootprint? = nil,
+        configuration: HomeWidgetConfiguration? = nil
+    ) {
+        self.id = id
+        self.kind = kind
+        self.footprint = footprint ?? kind.defaultFootprint
+        self.configuration = configuration ?? .defaults(for: kind)
+    }
+}
+
+enum HomeWidgetCatalog {
+    static let initialLayout: [HomeWidgetInstance] = [
+        HomeWidgetInstance(kind: .greeting),
+        HomeWidgetInstance(kind: .today),
+        HomeWidgetInstance(kind: .quickStart),
+        HomeWidgetInstance(kind: .activityShortcuts),
+        HomeWidgetInstance(kind: .metrics)
+    ]
+
+    static func options(for kind: HomeWidgetKind) -> [HomeWidgetKind] {
+        HomeWidgetKind.catalog.filter { $0.category == kind.category }
+    }
+}
