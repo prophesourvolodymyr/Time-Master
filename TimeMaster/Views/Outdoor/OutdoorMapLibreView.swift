@@ -6,8 +6,8 @@ import CoreLocation
 /// A user-controlled outdoor map.
 ///
 /// Recording changes the overlays, not the camera. The map is always
-/// pannable, zoomable, rotatable, and pitchable; the first GPS point only
-/// provides an initial camera position.
+/// pannable, zoomable, and rotatable in a flat 2D view; the first GPS point
+/// only provides an initial camera position.
 struct OutdoorMapLibreView: UIViewRepresentable {
     var points: [OutdoorTrackPoint]
     var followsUser: Bool
@@ -21,7 +21,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     func makeUIView(context: Context) -> MLNMapView {
         let map = MLNMapView(
             frame: .zero,
-            styleURL: URL(string: "https://demotiles.maplibre.org/style.json")!
+            styleURL: OutdoorMapOfflineManager.defaultStyleURL
         )
         map.delegate = context.coordinator
         map.showsUserLocation = true
@@ -29,7 +29,12 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         map.isScrollEnabled = true
         map.isZoomEnabled = true
         map.isRotateEnabled = true
-        map.isPitchEnabled = true
+        map.isPitchEnabled = false
+        map.minimumPitch = 0
+        map.maximumPitch = 0
+        map.isPitchEnabled = false
+        map.minimumZoomLevel = 2
+        map.maximumZoomLevel = 19
         context.coordinator.map = map
         return map
     }
@@ -52,6 +57,9 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
         func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
             guard let map else { return }
+            for layer in style.layers.compactMap({ $0 as? MLNFillExtrusionStyleLayer }) {
+                style.removeLayer(layer)
+            }
             render(
                 map: map,
                 points: latestPoints,
@@ -61,9 +69,16 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             )
         }
 
+        func mapView(_ mapView: MLNMapView, didUpdate userLocation: MLNUserLocation?) {
+            guard let coordinate = userLocation?.location?.coordinate else { return }
+            latestUserCoordinate = coordinate
+            centerOnUserIfNeeded(map: mapView)
+        }
+
         weak var map: MLNMapView?
         private var hasCenteredOnFirstPoint = false
-
+        private var latestUserCoordinate: CLLocationCoordinate2D?
+        private var hasCenteredOnUserLocation = false
 
         func render(
             map: MLNMapView,
@@ -72,10 +87,16 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             state: OutdoorLocationRecorder.State,
             centerOnFirstPoint: Bool
         ) {
+            let hadData = !latestPoints.isEmpty || !latestPlannedPoints.isEmpty
             latestPoints = points
             latestPlannedPoints = plannedPoints
             latestState = state
             latestCenterOnFirstPoint = centerOnFirstPoint
+
+            if hadData && points.isEmpty && plannedPoints.isEmpty {
+                hasCenteredOnFirstPoint = false
+                hasCenteredOnUserLocation = false
+            }
 
             guard let style = map.style else { return }
 
@@ -83,14 +104,25 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             updatePlannedRoute(style: style, points: plannedPoints)
             updateAnnotations(map: map, points: points, state: state)
 
-            if centerOnFirstPoint, !hasCenteredOnFirstPoint, let first = points.first {
-                map.setCenter(
-                    CLLocationCoordinate2D(latitude: first.latitude, longitude: first.longitude),
-                    zoomLevel: 15,
-                    animated: false
-                )
-                hasCenteredOnFirstPoint = true
-            } else if !centerOnFirstPoint {
+            if centerOnFirstPoint {
+                if !hasCenteredOnFirstPoint, let first = points.first {
+                    map.setCenter(
+                        CLLocationCoordinate2D(latitude: first.latitude, longitude: first.longitude),
+                        zoomLevel: 15,
+                        animated: false
+                    )
+                    hasCenteredOnFirstPoint = true
+                } else if !hasCenteredOnFirstPoint, points.isEmpty, !plannedPoints.isEmpty {
+                    map.setVisibleCoordinateBounds(
+                        bounds(for: plannedPoints),
+                        edgePadding: UIEdgeInsets(top: 80, left: 40, bottom: 180, right: 40),
+                        animated: false
+                    )
+                    hasCenteredOnFirstPoint = true
+                } else if points.isEmpty && plannedPoints.isEmpty {
+                    centerOnUserIfNeeded(map: map)
+                }
+            } else {
                 hasCenteredOnFirstPoint = false
                 let framingPoints = plannedPoints.isEmpty ? points : plannedPoints + points
                 if !framingPoints.isEmpty {
@@ -99,8 +131,25 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                         edgePadding: UIEdgeInsets(top: 80, left: 40, bottom: 180, right: 40),
                         animated: false
                     )
+                } else {
+                    centerOnUserIfNeeded(map: map)
                 }
             }
+        }
+
+        private func centerOnUserIfNeeded(map: MLNMapView) {
+            guard
+                let coordinate = latestUserCoordinate,
+                map.style != nil,
+                latestPoints.isEmpty,
+                latestPlannedPoints.isEmpty,
+                !hasCenteredOnUserLocation
+            else {
+                return
+            }
+
+            map.setCenter(coordinate, zoomLevel: 17, animated: false)
+            hasCenteredOnUserLocation = true
         }
 
         private func updateLiveRoute(style: MLNStyle, points: [OutdoorTrackPoint]) {

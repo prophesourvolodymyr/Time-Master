@@ -115,6 +115,19 @@ public final class SchemaManager {
                     "plannedRouteID": PropertySchema(type: "string", description: "Optional ID of chosen planned route for this activity", optional: true),
                 ]
             ),
+            "plannedRoute": ObjectSchema(
+                description: "A reusable route selected before an outdoor activity.",
+                folderPath: "Routes/{id}",
+                manifestName: "manifest.json",
+                required: ["id", "title", "points", "source", "createdAt"],
+                properties: [
+                    "id": PropertySchema(type: "string", description: "UUID string"),
+                    "title": PropertySchema(type: "string", description: "Display name"),
+                    "points": PropertySchema(type: "array<object>", description: "Ordered route coordinates"),
+                    "source": PropertySchema(type: "string", description: "gpxImport, manual, or databasePage"),
+                    "createdAt": PropertySchema(type: "string", description: "ISO 8601 creation timestamp", format: "date-time"),
+                ]
+            ),
             "config": ObjectSchema(
                 description: "App configuration — custom types, schedule, goals.",
                 folderPath: "Config/",

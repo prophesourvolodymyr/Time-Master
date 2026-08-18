@@ -200,10 +200,17 @@ struct SettingsView: View {
             .sheet(isPresented: $showServerSettings) {
                 ServerSettingsView(settings: serverSettings)
             }
+#if os(iOS)
             .fullScreenCover(isPresented: $showMusicSettings) {
                 MusicSettingsView()
                     .environmentObject(workoutStore)
             }
+#else
+            .sheet(isPresented: $showMusicSettings) {
+                MusicSettingsView()
+                    .environmentObject(workoutStore)
+            }
+#endif
         }
     }
 

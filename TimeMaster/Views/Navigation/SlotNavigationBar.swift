@@ -5,6 +5,7 @@ struct SlotNavigationBar: View {
     let items: [SlotNavigationItem]
     let onSelectionChanged: (Int) -> Void
     private let bottomSafeArea: CGFloat
+    private let barHeight: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reelOffset: CGFloat = 0
@@ -17,12 +18,22 @@ struct SlotNavigationBar: View {
         selection: Binding<Int>,
         items: [SlotNavigationItem] = SlotNavigationItem.timeMaster,
         bottomSafeArea: CGFloat = 0,
+        barHeight: CGFloat = 126,
         onSelectionChanged: @escaping (Int) -> Void = { _ in }
     ) {
         _selection = selection
         self.items = items
         self.bottomSafeArea = max(0, bottomSafeArea)
+        self.barHeight = max(126, barHeight)
         self.onSelectionChanged = onSelectionChanged
+    }
+
+    private var arcCurveOffset: CGFloat {
+#if os(iOS)
+        8
+#else
+        0
+#endif
     }
 
     var body: some View {
@@ -38,8 +49,10 @@ struct SlotNavigationBar: View {
             ZStack {
                 ZStack {
                     arcSurface
-                    SlotNavigationArcLineShape()
-                        .stroke(Color.white.opacity(0.07), lineWidth: 1)
+#if os(macOS)
+                    SlotNavigationArcLineShape(curveOffset: arcCurveOffset)
+                        .stroke(Color.black.opacity(0.16), lineWidth: 1)
+#endif
                 }
                 .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: .bottom)
                 .allowsHitTesting(false)
@@ -55,7 +68,6 @@ struct SlotNavigationBar: View {
                     )
                 }
             }
-            .frame(width: size.width, height: size.height)
             .contentShape(Rectangle())
             .gesture(dragGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset))
             .onAppear {
@@ -83,31 +95,103 @@ struct SlotNavigationBar: View {
                 }
             }
         }
-        .frame(height: 126)
+        .frame(height: barHeight)
         .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
     private var arcSurface: some View {
-        if #available(iOS 26.0, macOS 26.0, *) {
-            SlotNavigationArcShape(bottomExtension: bottomSafeArea)
+#if os(iOS)
+        let shape = SlotNavigationArcShape(
+            bottomExtension: bottomSafeArea,
+            curveOffset: arcCurveOffset
+        )
+        if #available(iOS 26.0, *) {
+            shape
                 .fill(.clear)
-                .glassEffect(.regular, in: SlotNavigationArcShape(bottomExtension: bottomSafeArea))
+                .glassEffect(.regular, in: shape)
                 .overlay {
-                    SlotNavigationArcShape(bottomExtension: bottomSafeArea)
-                        .fill(Color.black.opacity(0.16))
+                    iOSArcStyling(shape: shape)
                 }
-                .shadow(color: .black.opacity(0.34), radius: 18, y: -4)
+                .shadow(color: Color.black.opacity(0.38), radius: 14, y: -2)
         } else {
-            SlotNavigationArcShape(bottomExtension: bottomSafeArea)
+            shape
                 .fill(.regularMaterial)
                 .overlay {
-                    SlotNavigationArcShape(bottomExtension: bottomSafeArea)
-                        .fill(Color.black.opacity(0.22))
+                    iOSArcStyling(shape: shape)
                 }
-                .shadow(color: .black.opacity(0.34), radius: 18, y: -4)
+                .shadow(color: Color.black.opacity(0.38), radius: 14, y: -2)
+        }
+#else
+        if #available(macOS 26.0, *) {
+            let shape = SlotNavigationArcShape(
+                bottomExtension: bottomSafeArea,
+                curveOffset: arcCurveOffset
+            )
+            shape
+                .fill(.clear)
+                .glassEffect(.regular, in: shape)
+                .overlay {
+                    shape.fill(Color.black.opacity(0.16))
+                }
+        } else {
+            let shape = SlotNavigationArcShape(
+                bottomExtension: bottomSafeArea,
+                curveOffset: arcCurveOffset
+            )
+            shape
+                .fill(.regularMaterial)
+                .overlay {
+                    shape.fill(Color.black.opacity(0.22))
+                }
+        }
+#endif
+    }
+
+    @ViewBuilder
+    private func iOSArcStyling(shape: SlotNavigationArcShape) -> some View {
+        ZStack {
+            shape.fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.08),
+                        Color.white.opacity(0.025),
+                        Color.black.opacity(0.24)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            shape.fill(
+                RadialGradient(
+                    colors: [
+                        Color.white.opacity(0.10),
+                        Color.white.opacity(0.025),
+                        Color.clear
+                    ],
+                    center: .top,
+                    startRadius: 0,
+                    endRadius: 240
+                )
+            )
+            SlotNavigationArcLineShape(curveOffset: arcCurveOffset)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.18),
+                            Color.white.opacity(0.07),
+                            Color.white.opacity(0.02)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1.25
+                )
+            SlotNavigationArcInnerLineShape(curveOffset: arcCurveOffset)
+                .stroke(Color.white.opacity(0.055), lineWidth: 0.8)
         }
     }
+
 
     @ViewBuilder
     private func slotView(
@@ -125,8 +209,8 @@ struct SlotNavigationBar: View {
         let proximity = max(0, 1 - min(distance / (slotWidth * 2.3), 1))
         let norm = distance / slotWidth
         let bubbleFactor = max(0, 1 - distance / 34)
-        let baseIconSize = 40 + 18 * focus
-        let expandedIconSize = 48 + bubbleFactor * 32
+        let baseIconSize = 42 + 20 * focus
+        let expandedIconSize = 50 + bubbleFactor * 34
         let iconSize = baseIconSize + dragIntensity * (expandedIconSize - baseIconSize)
         let baseScale = 0.88 + 0.18 * focus
         let expandedScale = max(0.4, 1.2 - norm * 0.35)
@@ -143,27 +227,27 @@ struct SlotNavigationBar: View {
         ) + 38
         let verticalOffset = dragIntensity * htmlExpansionOffset
         let arcY = transformedArcY(at: itemX, in: arcRect)
-        let itemHeight = 86 + dragIntensity * 24
+        let itemHeight = 90 + dragIntensity * 24
         let itemLift: CGFloat = 56
-        let iconFrameHeight = 58 + dragIntensity * max(0, expandedIconSize - 58)
+        let iconFrameHeight = 60 + dragIntensity * max(0, expandedIconSize - 60)
         let zIndex = max(
             0,
             focus + dragIntensity * (1 - min(norm, 10) - focus)
         )
 
-        VStack(spacing: 3) {
+        VStack(spacing: 4) {
             Text(item.emoji)
                 .font(.system(size: iconSize))
                 .frame(height: iconFrameHeight)
                 .accessibilityHidden(true)
 
             Text(item.title.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .tracking(1.5)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .tracking(1.6)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-                .frame(height: 14)
+                .frame(height: 15)
                 .opacity(labelOpacity)
                 .accessibilityHidden(true)
         }
@@ -315,7 +399,11 @@ struct SlotNavigationBar: View {
         let scaleY = 1 + dragIntensity * 0.35
         let centerX = rect.midX
         let arcSampleX = centerX + (x - centerX) / scaleX
-        let unscaledY = SlotNavigationArcGeometry.curveY(at: arcSampleX, in: rect)
+        let unscaledY = SlotNavigationArcGeometry.curveY(
+            at: arcSampleX,
+            in: rect,
+            curveOffset: arcCurveOffset
+        )
         return rect.maxY - (rect.maxY - unscaledY) * scaleY
     }
 

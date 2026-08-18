@@ -108,7 +108,12 @@ struct OutdoorActivityDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     #if os(iOS)
-                    OutdoorMapLibreView(points: store.trackPoints(for: activity), followsUser: false, state: .finished, plannedPoints: nil)
+                    OutdoorMapLibreView(
+                        points: store.trackPoints(for: activity),
+                        followsUser: false,
+                        state: .finished,
+                        plannedPoints: activity.plannedRouteID.flatMap { store.plannedRoute(withID: $0)?.points }
+                    )
                         .frame(height: 260)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     #endif

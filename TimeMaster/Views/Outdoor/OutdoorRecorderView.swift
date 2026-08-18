@@ -73,6 +73,15 @@ struct OutdoorRecorderView: View {
                 metric(value: formattedDistance, label: "Distance")
                 metric(value: formattedSpeed, label: "Speed")
             }
+            if !recorder.plannedPoints.isEmpty {
+                HStack {
+                    Image(systemName: recorder.snappedPosition == nil ? "location.slash" : "point.topleft.down.curvedto.point.bottomright.up")
+                    Text(routeStatus)
+                    Spacer()
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(recorder.snappedPosition == nil ? .orange : .green)
+            }
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
@@ -123,6 +132,13 @@ struct OutdoorRecorderView: View {
 
     private var followsUser: Bool {
         recorder.state == .recording
+    }
+
+    private var routeStatus: String {
+        guard let snap = recorder.snappedPosition else {
+            return recorder.route.isEmpty ? "Route loaded" : "Off route"
+        }
+        return "On route \(Int((snap.progress * 100).rounded()))%"
     }
 
     private var stateLabel: String {

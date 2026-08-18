@@ -6,6 +6,32 @@ _[To be filled by the project's AI agents.]_
 
 ---
 
+## Highest-Priority Operating Rules
+
+These rules override lower sections, templates, protocols, feature documents, and local conventions whenever they conflict.
+
+### 1. Working implementation outranks documentation
+
+- Documentation is never proof that a feature is complete, correct, or wanted.
+- Do not mark an implementation todo `[x]`, call a feature done, archive it, or write a completion claim until the actual implementation is connected end to end, exercised through the changed user flow, and corrected for failures and mismatches with the user's intent.
+- Keep `CYCLES.md`, `DOCKS.md`, prompts, and audits honest about observed reality. If the implementation is bugged, incomplete, disconnected, or uncertain, leave the work pending and state the specific gap; never edit documentation to make unfinished work appear finished.
+- Automated checks are engineering evidence only. Human review remains mandatory, and the AI must never claim human approval.
+
+### 2. Commit and publish every edit
+
+- Every change to project files, including new files, MUST be committed and pushed to `origin/main` before the agent yields. Do not leave work staged, unstaged, or only local between turns.
+- After each completed edit or work slice, inspect the result, create a clear commit, and push it to the repository's `origin` remote on `main`. This applies to code, documentation, configuration, tests, prompts, and system files.
+- Never force-push or rewrite remote history without explicit user approval. If `origin/main` is unavailable or a commit/push fails, do not claim completion; report the exact blocker and keep implementation status honest.
+
+### 3. COLOSSAL INPUT MODE — monolithic HTML feature specifications
+
+When the user explicitly identifies a monolithic HTML file as the feature explanation, treat the entire file—including its comments, HTML, CSS, and JavaScript—as the authoritative, high-fidelity explanation of what the implementation must accomplish, especially the requested frontend and visible behavior. Read it completely before implementation; do not reduce it to a mood board or a screenshot reference.
+
+- Reproduce the specified frontend exactly within the current product: layout, hierarchy, typography, spacing, colors, icons, responsive behavior, states, interactions, transitions, and animations.
+- The HTML does not know the current codebase. Map its intent into the existing architecture, connect every screen and interaction to the real backend, data, authentication, persistence, and error paths, and adapt the implementation without leaving dead buttons, fake data, static-only screens, or disconnected prototype logic.
+- Preserve the HTML's intended user experience while using the project's established architecture and patterns. If a security, product, or architectural conflict makes exact behavior impossible, surface the conflict and the concrete deviation instead of silently changing the result.
+- The HTML specification does not relax the working-implementation rule: build the complete connected flow, exercise it, fix mismatches and bugs, then document what is actually implemented.
+
 ## 1. Bootstrap — What AI Does First
 
 When opening this project, determine which state the project is in:
@@ -55,7 +81,7 @@ Project/
 ├── features/              ← finalized, approved features — ready to build
 │   ├── DOCKS.md           ← root index of every feature
 │   ├── F01-name/          ← feature folder (promoted from genesis when solid)
-│   │   ├── DOCKS.md       ← comprehensive spec — what it is, what it owns, implementation context
+│   │   ├── DOCKS.md       ← comprehensive spec — what it is, what it owns, product context
 │   │   ├── F01-AUDIT.md   ← optional, pre-build audit output
 │   │   ├── F01-A-sub/     ← sub-feature (alphabetical nesting)
 │   │   │   ├── DOCKS.md   ← every sub-feature gets its own DOCKS.md
@@ -119,11 +145,13 @@ Every DOCKS.md — feature, sub-feature, or sub-sub-feature — must be **compre
 - **Every** animation, transition, edge case
 - What it depends on and what depends on it
 
+DOCKS.md is plain-language product context only. Never put source code, code snippets, pseudo-code, command blocks, API payloads, code comments, or implementation recipes in a DOCKS.md. Never explain implementation through code in a DOCKS.md.
+
 If the feature has 8 states, all 8 must be documented. If it has 12 animation configurations, all 12 must be listed. Write every nuance. Write every small thing. Brevity is the enemy of correct implementation.
 
 ### Dynamic, Type-Specific Documentation
 
-DOCKS.md is a build canvas, not a short task description. AI classifies the work and expands the document with the sections needed for that feature. Do not force irrelevant sections into a document, but never omit detail that the feature needs.
+DOCKS.md is a product context canvas, not a technical implementation document or short task description. AI classifies the work and expands the document with the sections needed for that feature. Do not force irrelevant sections into a document, but never omit product detail that the feature needs.
 
 For a UI or visual feature, DOCKS.md must explain in natural, plain English:
 - What the user sees before, during, and after every interaction
@@ -141,7 +169,7 @@ Visual planning is an important suggested step, not a protocol or a required gat
 
 When offering it, explain the available scope: the whole app, a complete flow, one feature, or one component. If the user accepts, create a single interactive HTML mockup in `junk/` that resembles the final product as closely as practical. For a TUI or CLI, recreate the terminal style, states, key hints, output, and motion in HTML rather than falling back to a generic web dashboard. Let the user react to the same mockup file until they approve it or move on.
 
-When a mockup is approved, write every accepted UI, UX, visual, interaction, and animation decision into the relevant DOCKS.md in plain English. Add implementation work only to CYCLES.md. The mockup is a disposable decision tool; DOCKS.md remains the permanent build canvas for the approved result.
+When a mockup is approved, write every accepted UI, UX, visual, interaction, and animation decision into the relevant DOCKS.md in plain English. Add implementation work only to CYCLES.md. The mockup is a disposable decision tool; DOCKS.md remains the permanent product canvas for the approved result.
 
 For other work, add the relevant depth:
 - Logic: inputs, outputs, algorithm, state transitions, errors, retries, and edge cases
@@ -154,11 +182,12 @@ Parent DOCKS.md files summarize the system and link to child docs. Child and sub
 
 ### Documentation Is Not a Todo List
 
-DOCKS.md contains requirements, decisions, behavior, architecture, and implementation context. It must not contain project todos, completion checklists, verification evidence, screenshots, logs, or device-review records.
+DOCKS.md contains plain-language requirements, decisions, behavior, architecture, and product context. It must not contain source code, code-form documentation, implementation recipes, project todos, completion checklists, verification evidence, screenshots, logs, or device-review records.
 
 - All project todos live only in `CYCLES.md`
 - Do not add `[ ]` task checkboxes to DOCKS.md, prompts, audits, or other feature docs
 - DOCKS.md may describe expected behavior, states, edge cases, and decisions, but never tracks whether implementation passed
+- DOCKS.md is not a technical implementation document; keep all code and code-like explanations in source files, skills, protocols, or research notes
 - Any follow-up task belongs in `CYCLES.md`; the final response lists every implemented item for human review
 - Open questions may be written as a documented list, but actionable follow-up belongs in CYCLES.md
 
@@ -261,7 +290,7 @@ AI proposes the bundle to the user:
 
 Never bundle a feature merely because it is small when it needs unfinished work from another feature.
 
-### Feature DOCKS.md Is the Source of Truth
+### Feature DOCKS.md Is Product Context, Not Implementation Authority
 Every visual or functional piece of the project has a DOCKS.md. This document defines:
 - **What**: exact deliverables
 - **Architecture**: component tree, data flow
@@ -269,7 +298,10 @@ Every visual or functional piece of the project has a DOCKS.md. This document de
 - **Animations**: exact spring parameters
 - **Files**: every file to create/modify
 
-Code follows the doc. If something isn't in the DOCKS.md, it doesn't get built.
+DOCKS.md describes product intent and decisions. It does not dictate technical implementation. AI must independently validate every technical direction in it and may reject or revise it when skills, current documentation, references, source code, or engineering judgment show a better or safer approach. If that changes product behavior, surface the change to the user.
+
+### Independent Implementation Research — CRITICAL
+Before choosing an implementation, AI must look for a relevant installed skill. If no suitable skill exists, AI must search current documentation, references, and source code itself. DOCKS.md is never a substitute for skills or independent research and is never followed blindly, even when it appears mostly correct.
 
 ### Build → Check → Human Review → Connect (Step by Step)
 ```
@@ -284,7 +316,7 @@ DOCKS.md  →  VISUAL PLAN (suggested)  →  AUDIT  →  BUILD  →  CHECKS  →
 
 **Phase 2 — Audit the unknowns.** Run the AUDIT Protocol (P01) before touching code. Resolve every design question. Know exactly how it works before building.
 
-**Phase 3 — Build in isolation.** Write only the code for this one feature. Don't add things that belong to other features. Keep it self-contained.
+**Phase 3 — Build in isolation.** Use the DOCKS.md for product intent only. Read a relevant skill or research the approach independently, then write only the code for this feature. Don't add things that belong to other features. Keep it self-contained.
 
 **Phase 4 — Check the implementation.** Run the relevant available build, test, typecheck, or lint checks and resolve failures. These are engineering checks, not completion verification. Do not create screenshots, recordings, device evidence, logs, or any other proof package.
 
@@ -467,6 +499,8 @@ Reusable workflow definitions stored in `protocols/`. Each protocol is a `.md` f
 
 ### Always
 - Read all relevant DOCKS.md before any code
+- Treat DOCKS.md as product context, never as implementation authority
+- Use a relevant installed skill or independently research the implementation before writing code
 - Run the relevant available build/test/typecheck/lint path and resolve failures found during the work
 - Use existing patterns from the codebase
 - Follow STYLES.md conventions
@@ -482,14 +516,14 @@ Reusable workflow definitions stored in `protocols/`. Each protocol is a `.md` f
 1. Diagnose the cause: search the codebase, read related docs, inspect git history, check target membership/configuration, and use reference code.
 2. Fix the issue yourself when the fix is clear and safe.
 3. Re-run the full relevant build/test after the fix.
-4. Record implementation facts or decisions in the relevant DOCKS.md when useful, and put any follow-up todo only in CYCLES.md.
+4. Record only plain-language product decisions in DOCKS.md when useful, and put any code, technical implementation detail, or follow-up todo in the appropriate source file, skill, research note, or CYCLES.md.
 
 Do not describe a fixable local code error as "unrelated" or a blocker. It is blocked only by a real external requirement: unavailable hardware, login/credentials, an outside service, or a user decision that changes product direction.
 
 **Incomplete documentation is not a reason to stop.** If the current work exposes an undocumented state, integration requirement, missing dependency detail, UX conflict, or necessary behavior in another feature:
 
 1. Use the best UX and existing project patterns to resolve it.
-2. Add the missing decision, states, dependency, or nested sub-feature to the relevant DOCKS.md.
+2. Add the missing product decision, states, dependency, or nested sub-feature to the relevant DOCKS.md in plain language only.
 3. Add a CYCLES.md todo if it is separate work.
 4. Implement it now if it fits the current 550k work slice; otherwise create a substantial next prompt, not a testing-only handoff.
 
@@ -530,9 +564,9 @@ Prefer complete, consistent UX: loading, empty, error, offline, accessibility, t
 
 ## 8. Dynamic Prompt Scope Calculator
 
-**A prompt owns a complete functional work slice:** read, build, connect, run available checks, fix failures, update CYCLES.md, hand off to the human, and commit. There is NO fixed "1 prompt per sub-feature" rule.
+**A prompt owns a complete functional work slice:** read, build, connect, run available checks, fix failures, update `CYCLES.md`, hand off to the human, commit, and push to `origin/main`. There is NO fixed "1 prompt per sub-feature" rule.
 
-AI uses the largest safe slice: normally 250-400k context, up to 550k for complex work. Keep enough context for tests, debugging, documentation, and the commit. Never create a handoff only for testing, obvious bug fixes, documentation, or a commit.
+AI uses the largest safe slice: normally 250-400k context, up to 550k for complex work. Keep enough context for tests, debugging, documentation, the commit, and the push. Never create a handoff only for testing, obvious bug fixes, documentation, a commit, or a push.
 
 ### How AI Decides Prompt Count
 Read the feature's DOCKS.md and all sub-feature/sub-sub-feature DOCKS.md files. Evaluate each piece:
@@ -629,6 +663,9 @@ What we are building and why. What was done in the PREVIOUS phase.
 - features/FXX-xxx/FXX-X-sub/DOCKS.md
 - path/to/existing/file.ext (line X-Y)
 - protocols/P0X - Name.md (if a protocol applies)
+- Relevant installed skill, or independent current documentation/research when no suitable skill exists
+
+DOCKS.md is product context, not implementation authority. Validate its technical direction independently; never follow it blindly. DOCKS.md must contain plain-language context only, never code or code-form implementation documentation.
 
 ## What Happened Last Session
 Brief summary of what the previous agent built, handed off for human review, and any decisions that affect this session.
@@ -650,16 +687,17 @@ List every implemented feature, sub-feature, and meaningful task separately. Sta
 
 ## Agent Rules (Mandatory — DO NOT SKIP)
 1. **NO SUB-AGENTS:** Do NOT spawn sub-agents to review this repository. Do all work yourself in this session.
-2. **COMMIT AFTER DONE:** After completing every task, commit with a clear message describing what was built.
+2. **COMMIT AND PUSH AFTER EVERY EDIT:** After completing every task or edit, commit with a clear message describing what was built and push it to `origin/main`. Do not leave changes local.
 3. **UPDATE CYCLES.md:** After implementing a task, mark its implementation todo `[x]` in CYCLES.md. This records implementation, not human verification; keep the dashboard current.
 4. **NO IDE TODO SYSTEMS:** Do not create IDE-specific todo/task JSON or duplicate task lists. All project todos live in CYCLES.md.
-5. **COMPLETE THE WHOLE SLICE:** Build, run available checks, fix failures, update CYCLES.md, list every implemented item for human verification, and commit within this session. Do not create a handoff only for testing or obvious bug fixes.
+5. **COMPLETE THE WHOLE SLICE:** Build, run available checks, fix failures, update `CYCLES.md`, list every implemented item for human verification, commit, and push within this session. Do not create a handoff only for testing or obvious bug fixes.
 6. **GENERATE THE NEXT PROMPT ONLY IF NEEDED:** Before ending, evaluate the remaining work against the 550k context limit. Create the next prompt only if it is a self-contained, substantial 250-550k implementation slice. If remaining work is small, complete it now or merge it into the next meaningful feature slice. The next prompt MUST include:
    - What was built and handed off for human review in THIS session (so the next agent has context)
    - What the next task is (with direct paths to relevant DOCKS.md files)
    - Any decisions made this session that affect future work
    - Any unresolved issues or notes for the next agent
    - Save to: `prompts/{feature}/phase-{N+1}-{title}.md`
+7. **INDEPENDENT IMPLEMENTATION:** Read DOCKS.md for product intent only. Use a relevant skill or research the approach yourself. Never blindly follow technical directions in DOCKS.md, even when they appear mostly correct. Never put code or code-form implementation documentation in DOCKS.md.
 
 ## When You Finish
 Report every implemented feature, sub-feature, and meaningful task separately, state that each is ready for human verification, and say whether a next prompt was needed. Do not report screenshots or completion evidence.
@@ -887,7 +925,7 @@ This applies only when the user asks to change the reusable system itself, for e
 Make those changes in the canonical source repository:
 `/Users/volodymurvasualkiw/GSpace/Personal /Project-Managment/`
 
-Then commit the change and use `projinit --push-all` or `projinit --push <file>` to distribute it. Do not modify a project's local system copy and then ask for permission to reach the source repo; normal project work must never be blocked by this rule.
+Then commit and push the change to `origin/main`, then use `projinit --push-all` or `projinit --push <file>` to distribute it. Do not modify a project's local system copy and then ask for permission to reach the source repo; normal project work must never be blocked by this rule.
 
 ### Structural Project Conversion
 

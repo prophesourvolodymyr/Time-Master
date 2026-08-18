@@ -8,13 +8,16 @@ import CoreLocation
 final class OutdoorMapOfflineManager {
     static let shared = OutdoorMapOfflineManager()
 
+    static let defaultStyleURL = URL(string: "https://tiles.openfreemap.org/styles/liberty")!
+
     private let metadataKey = "OutdoorOfflineRegions"
+    private var pendingCompletions: [ObjectIdentifier: (Error?) -> Void] = [:]
 
     private init() {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(packProgressChanged(_:)),
-            name: Notification.Name("MLNOfflinePackProgressChangedNotification"),
+            name: NSNotification.Name.MLNOfflinePackProgressChanged,
             object: nil
         )
     }
@@ -61,13 +64,23 @@ final class OutdoorMapOfflineManager {
         )
         let context = (try? JSONEncoder().encode(metadata)) ?? Data()
 
-        MLNOfflineStorage.shared.addPack(for: region, withContext: context) { pack, error in
+        MLNOfflineStorage.shared.addPack(for: region, withContext: context) { [weak self] pack, error in
+            guard let self else {
+                completion?(error)
+                return
+            }
             guard let pack else {
                 completion?(error)
                 return
             }
+            if let completion {
+                if pack.state == .complete {
+                    completion(nil)
+                } else {
+                    self.pendingCompletions[ObjectIdentifier(pack)] = completion
+                }
+            }
             pack.resume()
-            completion?(nil)
         }
     }
 
@@ -96,7 +109,8 @@ final class OutdoorMapOfflineManager {
     /// Convenience entry point for a future Settings screen.
     func downloadCurrentArea(
         center: CLLocationCoordinate2D,
-        styleURL: URL = URL(string: "https://demotiles.maplibre.org/style.json")!
+        styleURL: URL = OutdoorMapOfflineManager.defaultStyleURL,
+        completion: ((Error?) -> Void)? = nil
     ) {
         let delta = 0.05
         let bounds = MLNCoordinateBounds(
@@ -113,27 +127,38 @@ final class OutdoorMapOfflineManager {
             bounds: bounds,
             styleURL: styleURL,
             minZoom: 10,
-            maxZoom: 16
+            maxZoom: 16,
+            completion: completion
         )
     }
 
     @objc private func packProgressChanged(_ note: Notification) {
-        guard
-            let pack = note.object as? MLNOfflinePack,
-            pack.state == .complete
-        else {
+        guard let pack = note.object as? MLNOfflinePack else {
+            return
+        }
+        if pack.state == .invalid {
+            let completion = pendingCompletions.removeValue(forKey: ObjectIdentifier(pack))
+            completion?(NSError(
+                domain: "OutdoorMapOffline",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "MapLibre marked the offline pack invalid."]
+            ))
+            return
+        }
+        guard pack.state == .complete else {
             return
         }
         let data = pack.context
-        guard let metadata = try? JSONDecoder().decode(RegionMetadata.self, from: data) else {
-            return
+        if let metadata = try? JSONDecoder().decode(RegionMetadata.self, from: data) {
+            var saved = loadMetadata()
+            saved.removeAll { $0 == metadata }
+            saved.append(metadata)
+            if let encoded = try? JSONEncoder().encode(saved) {
+                UserDefaults.standard.set(encoded, forKey: metadataKey)
+            }
         }
-        var saved = loadMetadata()
-        saved.removeAll { $0 == metadata }
-        saved.append(metadata)
-        if let encoded = try? JSONEncoder().encode(saved) {
-            UserDefaults.standard.set(encoded, forKey: metadataKey)
-        }
+        let completion = pendingCompletions.removeValue(forKey: ObjectIdentifier(pack))
+        completion?(nil)
     }
 
     private func loadMetadata() -> [RegionMetadata] {

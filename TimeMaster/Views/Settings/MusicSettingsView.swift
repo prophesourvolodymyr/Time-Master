@@ -11,7 +11,9 @@ struct MusicSettingsView: View {
     var body: some View {
         MusicLibraryScreen(library: library, importLocalMusic: { showFilePicker = true })
             .navigationBarBackButtonHidden(false)
+#if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
+#endif
             .onAppear { library.setWorkouts(workoutStore.workouts) }
             .onChange(of: workoutStore.workouts) { library.setWorkouts($0) }
             .fileImporter(

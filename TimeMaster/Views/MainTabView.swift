@@ -6,45 +6,30 @@ struct MainTabView: View {
     @StateObject private var databaseStore = DatabaseStore.shared
     @StateObject private var aiStore = AIStore.shared
     @StateObject private var outdoorStore = OutdoorActivityStore()
-    @State private var selectedTab = 0
+    @State private var selectedTab = SlotNavigationItem.index(for: 0)
     @State private var showingSettings = false
     @State private var requestedWorkoutID: UUID?
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     @State private var activeOutdoorPlannedRoute: PlannedRoute?
 #endif
+#if os(macOS)
+    private let macSlotBarHeight: CGFloat = 196
+#endif
 
 
     var body: some View {
         Group {
         #if os(macOS)
-        NavigationSplitView {
-            List(selection: $selectedTab) {
-                Label("Home", systemImage: "house.fill")
-                    .tag(0)
-                Label("Workouts", systemImage: "figure.run")
-                    .tag(1)
-                Label("Database", systemImage: "cylinder.split.1x2")
-                    .tag(2)
-                Label("Analytics", systemImage: "chart.bar.xaxis")
-                    .tag(3)
-                Label("AI Coach", systemImage: "brain.head.profile")
-                    .tag(4)
-                Label("Profile", systemImage: "person.crop.circle")
-                    .tag(5)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
-            .background(Theme.background.ignoresSafeArea())
-            .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
-                routeToWorkoutDetail(notification)
-            }
-        } detail: {
+        SlotNavigationContainer(
+            selection: $selectedTab,
+            barHeight: macSlotBarHeight
+        ) {
             detailView
-                .appOpeningFade(id: selectedTab)
         }
-        .buttonStyle(.plain)
+        .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
+            routeToWorkoutDetail(notification)
+        }
         #else
         SlotNavigationContainer(selection: $selectedTab) {
             detailView
@@ -61,7 +46,6 @@ struct MainTabView: View {
         #endif
         #endif
         }
-        .appHeaderFade()
 #if os(macOS)
         .buttonStyle(.plain)
 #endif
@@ -78,9 +62,14 @@ struct MainTabView: View {
         }
     }
 
+    private var selectedDestinationID: Int {
+        guard SlotNavigationItem.timeMaster.indices.contains(selectedTab) else { return 0 }
+        return SlotNavigationItem.timeMaster[selectedTab].id
+    }
+
     @ViewBuilder
     private var detailView: some View {
-        switch selectedTab {
+        switch selectedDestinationID {
         case 0:
             homeDestination
         case 1:
@@ -103,16 +92,15 @@ struct MainTabView: View {
             ProfileView()
                 .environmentObject(outdoorStore)
         default:
-            WorkoutListView(requestedWorkoutID: $requestedWorkoutID)
-                .environmentObject(workoutStore)
+            homeDestination
         }
     }
 #if os(iOS)
     @ViewBuilder
     private var homeDestination: some View {
         HomeDashboardView(
-            onBrowseWorkouts: { selectedTab = 1 },
-            onBrowseDatabase: { selectedTab = 2 },
+            onBrowseWorkouts: { selectedTab = SlotNavigationItem.index(for: 1) },
+            onBrowseDatabase: { selectedTab = SlotNavigationItem.index(for: 2) },
             onCreateWorkout: openWorkoutCreator,
             onStartOutdoor: { kind, route in
                 activeOutdoorPlannedRoute = route
@@ -127,8 +115,8 @@ struct MainTabView: View {
     @ViewBuilder
     private var homeDestination: some View {
         HomeDashboardView(
-            onBrowseWorkouts: { selectedTab = 1 },
-            onBrowseDatabase: { selectedTab = 2 },
+            onBrowseWorkouts: { selectedTab = SlotNavigationItem.index(for: 1) },
+            onBrowseDatabase: { selectedTab = SlotNavigationItem.index(for: 2) },
             onCreateWorkout: openWorkoutCreator
         )
         .environmentObject(outdoorStore)
@@ -138,7 +126,7 @@ struct MainTabView: View {
 #endif
 
     private func openWorkoutCreator() {
-        selectedTab = 1
+        selectedTab = SlotNavigationItem.index(for: 1)
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .newWorkoutCommand, object: nil)
         }
@@ -146,7 +134,7 @@ struct MainTabView: View {
 
     private func routeToWorkoutDetail(_ notification: Notification) {
         guard let workoutID = notification.userInfo?["workoutID"] as? UUID else { return }
-        selectedTab = 1
+        selectedTab = SlotNavigationItem.index(for: 1)
         requestedWorkoutID = workoutID
     }
 }

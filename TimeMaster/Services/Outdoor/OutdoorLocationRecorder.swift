@@ -22,6 +22,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
     @Published private(set) var errorMessage: String?
     var audioCuesEnabled = true
     @Published private(set) var plannedPoints: [OutdoorTrackPoint] = []
+    @Published private(set) var snappedPosition: SnappedPosition?
 
     private let store: OutdoorActivityStore
     private let kind: OutdoorActivityKind
@@ -44,7 +45,9 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         if let existing = store.active, existing.kind == kind {
             activeActivity = existing
             route = store.activeRoute
-            if let pid = existing.plannedRouteID { /* load would be in store resume */ }
+            let recoveredRoute = plannedRoute ?? existing.plannedRouteID.flatMap(store.plannedRoute(withID:))
+            self.plannedRoute = recoveredRoute
+            plannedPoints = recoveredRoute?.points ?? []
         }
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
@@ -124,6 +127,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         try? store.discardActive()
         activeActivity = nil
         route = []
+        snappedPosition = nil
         state = .idle
     }
 
@@ -156,7 +160,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             return
         }
         do {
-            let activity = try store.begin(kind: kind, timeTargetSeconds: timeTargetSeconds, plannedRouteID: plannedRoute?.id.uuidString)
+            let activity = try store.begin(kind: kind, timeTargetSeconds: timeTargetSeconds, plannedRoute: plannedRoute)
             activeActivity = activity
             route = []
             previousLocation = nil
@@ -187,9 +191,8 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             activeActivity = store.active
             updatePauseState(date: location.timestamp, speed: speed, movement: incrementalDistance)
             previousLocation = location
-            if let pr = plannedRoute, let snap = OutdoorRouteSnapper.snap(location: location, to: pr.points) {
-                // future: use snap.coordinate for follow camera via delegate or state
-                // publish for UI stats
+            snappedPosition = plannedRoute.flatMap {
+                OutdoorRouteSnapper.snap(location: location, to: $0.points)
             }
         } catch { fail(error.localizedDescription) }
     }

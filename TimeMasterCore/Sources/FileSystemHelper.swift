@@ -99,6 +99,10 @@ public final class FileSystemHelper {
     public var outdoorActivitiesDirectory: URL {
         dataRoot.appendingPathComponent("Activities", isDirectory: true)
     }
+
+    public var routesDirectory: URL {
+        dataRoot.appendingPathComponent("Routes", isDirectory: true)
+    }
     public var schemaURL: URL {
         dataRoot.appendingPathComponent("schema.json")
     }

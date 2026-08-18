@@ -557,7 +557,12 @@ F06 (AI Coach) ─────────┘
   - [x] F24-E - Restore first-version emoji anchors while retaining drag expansion; replace the full-band surface with an opaque-enough neutral glass arc and soft depth shadow
   - [x] F24-F - Extend the filled arc path through the measured iOS bottom safe-area inset without a fade or extra padding; preserve resting anchors and neutral glass behavior
   - [x] F24-G - Keep every expanded drag-state slot above the glass arc with a minimum positive z-index
-  - [x] Verified: iOS 18.6 final build succeeds; resting and expanded-state renders show all visible slots above the arc; iOS 26.5 glass build remains successful; manual physical drag and accessibility verification remains for human review
+- [x] F24-H - Use the same bottom slot reel on macOS with a taller arc and keyboard arrows / `1`–`9` destination shortcuts
+  - [x] macOS-only bar height and keyboard focus path leave the iOS 126-point layout unchanged
+  - [x] macOS settings presentation and native-glass availability fall back to supported sheet/material APIs
+- [x] F24-I - Lower the iOS arc crest, enlarge slot emojis/labels slightly, and add an iOS-only neutral gradient, inner glow, top outline, and inset contour
+- [x] F24-J - Use page-specific slot emojis, keep Home centered on initial mobile/iOS state, and preserve right/left directional page transitions
+- [x] Verified: iOS 18.6 Simulator build succeeds; refreshed app installed and launched; Home renders centered with larger semantic emojis and the lowered layered arc; manual drag and directional page-transition review remains for human verification
 
 ## Cycle 13 — Music Library Update
 - [x] F25 — Native Music Library / Settings screen

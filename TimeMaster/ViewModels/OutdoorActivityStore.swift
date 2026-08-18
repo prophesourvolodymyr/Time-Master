@@ -9,6 +9,11 @@ final class OutdoorActivityStore: ObservableObject {
     @Published private(set) var plannedRoutes: [PlannedRoute] = []
 
     private let database: DatabaseManager
+
+    private var routesDirectory: URL {
+        database.routesDirectory
+    }
+
     private var activeActivity: OutdoorActivity?
     private var activePoints: [OutdoorTrackPoint] = []
     private var lastPersistedAt = Date.distantPast
@@ -21,6 +26,7 @@ final class OutdoorActivityStore: ObservableObject {
 
     func reload() {
         try? database.bootstrapIfNeeded()
+        plannedRoutes = loadPlannedRoutes()
         var loaded: [OutdoorActivity] = []
         for manifest in (try? database.listOutdoorActivities()) ?? [] {
             guard var activity = try? OutdoorActivity(core: manifest) else { continue }
@@ -41,9 +47,9 @@ final class OutdoorActivityStore: ObservableObject {
         recoverableActivities = activities.filter { !$0.finished }
     }
 
-    func begin(kind: OutdoorActivityKind, timeTargetSeconds: Int? = nil, plannedRouteID: String? = nil) throws -> OutdoorActivity {
+    func begin(kind: OutdoorActivityKind, timeTargetSeconds: Int? = nil, plannedRoute: PlannedRoute? = nil) throws -> OutdoorActivity {
         var activity = OutdoorActivity(kind: kind, timeTargetSeconds: timeTargetSeconds)
-        activity.plannedRouteID = plannedRouteID
+        activity.plannedRouteID = plannedRoute?.id.uuidString
         try database.createOutdoorActivity(id: activity.id.uuidString, manifest: activity.coreValue)
         activeActivity = activity
         activePoints = []
@@ -157,6 +163,43 @@ final class OutdoorActivityStore: ObservableObject {
         ((try? database.readOutdoorTrackPoints(id: activity.id.uuidString)) ?? []).map(OutdoorTrackPoint.init)
     }
 
+    func plannedRoute(withID id: String) -> PlannedRoute? {
+        plannedRoutes.first { $0.id.uuidString.caseInsensitiveCompare(id) == .orderedSame }
+    }
+
+    func savePlannedRoute(_ route: PlannedRoute) throws {
+        try database.bootstrapIfNeeded()
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(route)
+        let url = routesDirectory.appendingPathComponent("\(route.id.uuidString).json")
+        try data.write(to: url, options: .atomic)
+        plannedRoutes = loadPlannedRoutes()
+    }
+
+    func deletePlannedRoute(_ route: PlannedRoute) throws {
+        let url = routesDirectory.appendingPathComponent("\(route.id.uuidString).json")
+        try FileManager.default.removeItem(at: url)
+        plannedRoutes.removeAll { $0.id == route.id }
+    }
+
+
+
+    private func loadPlannedRoutes() -> [PlannedRoute] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: routesDirectory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+        return urls
+            .filter { $0.pathExtension == "json" }
+            .compactMap { try? decoder.decode(PlannedRoute.self, from: Data(contentsOf: $0)) }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
 
     func updateTitle(_ title: String, for activity: OutdoorActivity) throws {
         var updated = activity

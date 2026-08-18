@@ -46,6 +46,7 @@ For each feature doc, determine whether it is adequate for its type:
 - Every relevant state, failure, edge case, and transition
 - Relevant type-specific detail: UI, storage, API, AI, migration, or infrastructure
 - Files, dependencies, references, decisions, and human-review handoff context
+- Plain-language content only; no source code, pseudo-code, command blocks, or implementation recipes
 - Locked decisions and open questions where needed
 
 Flag vague documentation such as:

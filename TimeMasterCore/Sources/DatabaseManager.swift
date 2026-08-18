@@ -54,6 +54,8 @@ public final class DatabaseManager {
 
     public var exercisesDatabaseURL: URL { fs.exercisesDatabaseDirectory }
 
+    public var routesDirectory: URL { fs.routesDirectory }
+
     // MARK: - Bootstrap
 
     @discardableResult
@@ -71,6 +73,7 @@ public final class DatabaseManager {
             fs.musicDirectory,
             fs.backupsDirectory,
             fs.outdoorActivitiesDirectory,
+            fs.routesDirectory,
             fs.trashDirectory,
         ]
         for dir in dirs {
