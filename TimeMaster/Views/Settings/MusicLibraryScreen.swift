@@ -6,6 +6,7 @@ struct MusicLibraryScreen: View {
     let importLocalMusic: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var player = MusicManager.shared
     @State private var isWorkoutFocused = false
     @State private var family: MusicDestinationFamily = .type
@@ -22,6 +23,7 @@ struct MusicLibraryScreen: View {
     @State private var dragged: DraggedMusic?
     @State private var pendingTransfer: MusicTransfer?
     @State private var scrollStartedAt: Date?
+    @State private var searchCycleIndex = 0
 
     private let orange = Color(red: 1, green: 0.48, blue: 0)
 
@@ -53,7 +55,6 @@ struct MusicLibraryScreen: View {
                 .padding(.bottom, 12)
             }
             .scrollDisabled(selectingItem != nil || guidePresented)
-            .overlay(alignment: .topTrailing) { floatingControls }
             if let item = selectingItem { selectMode(for: item) }
             if let transfer = pendingTransfer { transferConfirmation(transfer) }
             if searchPresented { searchOverlay }
@@ -83,12 +84,24 @@ struct MusicLibraryScreen: View {
             )
         }
         .onAppear { _ = MusicGuidePersistence.scheduleFirstRunIfNeeded { guidePresented = true } }
+        .task(id: reduceMotion) { await runSearchIconCycle() }
     }
 
     private var title: some View {
-        HStack {
-            Text("Music").font(.system(size: 28, weight: .bold, design: .rounded)).foregroundStyle(.white)
-            Spacer()
+        HStack(spacing: 10) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: 36, height: 36)
+                    .background(Theme.surface2, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close Music")
+            Text("Music")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+            Spacer(minLength: 0)
+            floatingControls
         }
         .padding(.horizontal, 8)
         .padding(.top, 6)
@@ -97,14 +110,49 @@ struct MusicLibraryScreen: View {
     private var floatingControls: some View {
         HStack(spacing: 8) {
             MusicGlassCircleButton(systemImage: "info", accessibilityLabel: "Replay Music guide") { guidePresented = true }
-            MusicGlassCircleButton(systemImage: "magnifyingglass", accessibilityLabel: "Search music") {
+            MusicGlassCircleButton(accessibilityLabel: "Search music", action: {
                 enabledProviders.removeAll()
                 searchText = ""
                 searchPresented = true
+            }) {
+                animatedSearchIcon
+                    .frame(width: 18, height: 18)
+                    .id(searchCycleIndex)
+                    .transition(.opacity.combined(with: .scale(scale: 0.78)))
             }
         }
-        .padding(.top, 48)
-        .padding(.trailing, 18)
+    }
+
+    @ViewBuilder
+    private var animatedSearchIcon: some View {
+        switch searchCycleIndex {
+        case 1:
+            Image("SpotifyLogo").resizable().scaledToFit()
+        case 2:
+            Image("YouTubeMusicLogo").resizable().scaledToFit()
+        case 3:
+            Image("SoundCloudLogo").resizable().scaledToFit()
+        default:
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 18, weight: .semibold))
+        }
+    }
+
+    private func runSearchIconCycle() async {
+        guard !reduceMotion else {
+            searchCycleIndex = 0
+            return
+        }
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            for index in 1...3 {
+                withAnimation(.snappy(duration: 0.18)) { searchCycleIndex = index }
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard !Task.isCancelled else { return }
+            }
+            withAnimation(.snappy(duration: 0.18)) { searchCycleIndex = 0 }
+        }
     }
 
     private var uploadsPane: some View {

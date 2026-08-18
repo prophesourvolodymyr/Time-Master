@@ -12,9 +12,9 @@ The Music setting is a compact, iPhone-first music library. It replaces the old 
 
 ## Visual Composition
 
-The full screen is near-black. Pines use slightly lighter black surfaces, subtle borders, restrained inner depth, 25-point rounded corners, off-white primary text, gray secondary text, and orange only for selection, confirmation, progress, and primary emphasis. Upload source cards, folder cards, and music cards are smaller rounded surfaces inside their pine. Spotify, YouTube Music, and SoundCloud use real bundled brand image assets. Generic actions use SF Symbols.
+Music opens as a full-screen destination from Settings, never as a drawer. A compact circular close control, title, guide button, and search button share one top row above Uploads, so neither floating control can overlap the source cards. The full screen is near-black. Pines use slightly lighter black surfaces, subtle borders, restrained inner depth, 25-point rounded corners, off-white primary text, gray secondary text, and orange only for selection, confirmation, progress, and primary emphasis. Upload source cards, folder cards, and music cards are smaller rounded surfaces inside their pine. Spotify, YouTube Music, and SoundCloud use real bundled brand image assets. Generic actions use SF Symbols.
 
-Search and guide are stationary circular screen overlays. They never move with the Uploads source strip. On iOS 26 or later they use the native Liquid Glass surface. On iOS 18 they keep the same geometry and behavior with a native material fallback, deliberate border/highlight, and Reduced Transparency handling.
+Search and guide are stationary circular screen controls. They never move with the Uploads source strip. Search rests on its magnifying-glass icon for about three seconds, then swaps only its fixed-size inner icon through Spotify, YouTube Music, and SoundCloud for about half a second each before returning to Search; the outer circle remains stationary. On iOS 26 or later the controls use the native Liquid Glass surface. On iOS 18 they keep the same geometry and behavior with a native material fallback, deliberate border/highlight, and Reduced Transparency handling.
 
 ## Architecture
 
@@ -56,7 +56,7 @@ Search and guide are stationary circular screen overlays. They never move with t
 
 ## Animation and Accessibility
 
-Pane focus and Player insertion use scoped springs. Collection expansion uses a shorter scoped spring plus opacity transition. The guide uses contained fade/scale entry and exit, an orange spotlight that morphs between target geometry, and stable chat placement within a step. Reduce Motion removes large motion; Reduced Transparency uses opaque fallback glass. Icon-only controls carry labels. Orange is paired with labels, borders, and checkmarks rather than acting as the only selection signal.
+Pane focus and Player insertion use scoped springs. Collection expansion uses a shorter scoped spring plus opacity transition. Search icon swaps use a short scoped opacity/scale transition inside a fixed circular frame. The guide uses contained fade/scale entry and exit, an orange spotlight that morphs between target geometry, and stable chat placement within a step. Reduce Motion removes large motion and retains the resting Search icon; Reduced Transparency uses opaque fallback glass. Icon-only controls carry labels. Orange is paired with labels, borders, and checkmarks rather than acting as the only selection signal.
 
 ## Dependencies
 

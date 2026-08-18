@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
 
     @State private var showServerSettings = false
+    @State private var showMusicSettings = false
 
     var body: some View {
         NavigationStack {
@@ -34,6 +35,27 @@ struct SettingsView: View {
                     .listRowBackground(Theme.surface)
                     .listRowSeparatorTint(Theme.separator)
 
+                    #if os(iOS)
+                    // MARK: Outdoor Maps
+                    SwiftUI.Section {
+                        NavigationLink {
+                            OutdoorMapOfflineSettingsView()
+                        } label: {
+                            settingsRow(
+                                icon: "map",
+                                title: "Offline Maps",
+                                subtitle: "Download map areas for outdoor recording"
+                            )
+                        }
+                    } header: {
+                        Text("Outdoor")
+                            .foregroundColor(Theme.textSecondary)
+                            .font(.caption)
+                    }
+                    .listRowBackground(Theme.surface)
+                    .listRowSeparatorTint(Theme.separator)
+                    #endif
+
                     // MARK: Motivation + Music
                     SwiftUI.Section {
                         NavigationLink {
@@ -54,8 +76,8 @@ struct SettingsView: View {
                                 subtitle: "Spoken during workouts"
                             )
                         }
-                        NavigationLink {
-                            MusicSettingsView()
+                        Button {
+                            showMusicSettings = true
                         } label: {
                             settingsRow(
                                 icon: "music.note",
@@ -63,6 +85,7 @@ struct SettingsView: View {
                                 subtitle: "Plays during workouts"
                             )
                         }
+                        .buttonStyle(.plain)
                         NavigationLink {
                             WorkoutRemindersView()
                         } label: {
@@ -176,6 +199,10 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .sheet(isPresented: $showServerSettings) {
                 ServerSettingsView(settings: serverSettings)
+            }
+            .fullScreenCover(isPresented: $showMusicSettings) {
+                MusicSettingsView()
+                    .environmentObject(workoutStore)
             }
         }
     }
