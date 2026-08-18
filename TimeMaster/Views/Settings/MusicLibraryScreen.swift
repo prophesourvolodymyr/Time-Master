@@ -28,34 +28,36 @@ struct MusicLibraryScreen: View {
     private let orange = Color(red: 1, green: 0.48, blue: 0)
 
     var body: some View {
-        ZStack {
-            Theme.background.ignoresSafeArea()
-            VStack(spacing: 8) {
-                title
-                uploadsPane
-                generalPane
-                workoutPane
-                if let playingItem {
-                    MusicPlayerPane(
-                        title: playingItem.title,
-                        artworkSystemName: playingItem.artwork?.placeholderSystemImage ?? "music.note",
-                        isPlaying: $player.isPlaying,
-                        progress: $playerProgress,
-                        destinationName: playerDestinationName,
-                        destinationIcon: playerDestinationIcon,
-                        onPrevious: previousTrack,
-                        onNext: nextTrack,
-                        onDestinationTapped: { selectingItem = playingItem }
-                    )
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+        GeometryReader { geometry in
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                VStack(spacing: 8) {
+                    title
+                    uploadsPane(height: uploadsHeight(in: geometry.size.height))
+                    generalPane(height: generalHeight(in: geometry.size.height))
+                    workoutPane
+                    if let playingItem {
+                        MusicPlayerPane(
+                            title: playingItem.title,
+                            artworkSystemName: playingItem.artwork?.placeholderSystemImage ?? "music.note",
+                            isPlaying: $player.isPlaying,
+                            progress: $playerProgress,
+                            destinationName: playerDestinationName,
+                            destinationIcon: playerDestinationIcon,
+                            onPrevious: previousTrack,
+                            onNext: nextTrack,
+                            onDestinationTapped: { selectingItem = playingItem }
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                if let item = selectingItem { selectMode(for: item) }
+                if let transfer = pendingTransfer { transferConfirmation(transfer) }
+                if searchPresented { searchOverlay }
             }
-            .padding(.horizontal, 10)
-            .padding(.bottom, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            if let item = selectingItem { selectMode(for: item) }
-            if let transfer = pendingTransfer { transferConfirmation(transfer) }
-            if searchPresented { searchOverlay }
         }
         .animation(reduceMotion ? .none : .spring(response: 0.58, dampingFraction: 0.86), value: isWorkoutFocused)
         .animation(reduceMotion ? .none : .spring(response: 0.42, dampingFraction: 0.88), value: playingItem?.id)
@@ -153,7 +155,7 @@ struct MusicLibraryScreen: View {
         }
     }
 
-    private var uploadsPane: some View {
+    private func uploadsPane(height: CGFloat) -> some View {
         pane {
             VStack(alignment: .leading, spacing: 6) {
                 paneHeader("Uploads", detail: nil)
@@ -169,10 +171,10 @@ struct MusicLibraryScreen: View {
                 .scrollEdgeFade(.horizontal)
             }
         }
-        .frame(height: isWorkoutFocused ? 150 : 156)
+        .frame(height: height)
     }
 
-    private var generalPane: some View {
+    private func generalPane(height: CGFloat) -> some View {
         pane(border: !isWorkoutFocused) {
             VStack(spacing: 0) {
                 Button {
@@ -198,7 +200,7 @@ struct MusicLibraryScreen: View {
                 .simultaneousGesture(generalFocusGesture)
             }
         }
-        .frame(height: isWorkoutFocused ? 146 : (playingItem == nil ? 310 : 220))
+        .frame(height: height)
         .dropDestination(for: MusicDragPayload.self) { payloads, _ in
             guard let payload = payloads.first else { return false }
             return drop(payload, into: .general, at: nil)
@@ -436,6 +438,18 @@ struct MusicLibraryScreen: View {
                 HStack { Button("Cancel") { pendingTransfer = nil }; Button("Move") { library.commitWorkoutTransfer(transfer, choice: .move); pendingTransfer = nil }.buttonStyle(.bordered); Button("Duplicate") { library.commitWorkoutTransfer(transfer, choice: .duplicate); pendingTransfer = nil }.buttonStyle(.borderedProminent).tint(orange) }
             }.padding(18).background(Theme.surface, in: RoundedRectangle(cornerRadius: 22)).padding(30)
         }
+    }
+
+    private func uploadsHeight(in availableHeight: CGFloat) -> CGFloat {
+        max(146, min(164, availableHeight * 0.20))
+    }
+
+    private func generalHeight(in availableHeight: CGFloat) -> CGFloat {
+        if isWorkoutFocused {
+            return max(122, min(164, availableHeight * 0.18))
+        }
+        let fraction = playingItem == nil ? 0.39 : 0.28
+        return max(180, min(310, availableHeight * fraction))
     }
 
     private func pane<Content: View>(border: Bool = false, @ViewBuilder content: () -> Content) -> some View {
