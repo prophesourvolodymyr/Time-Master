@@ -72,6 +72,7 @@ public final class SchemaManager {
                     "createdAt": PropertySchema(type: "string", description: "ISO 8601 creation timestamp", format: "date-time"),
                     "restBetweenSections": PropertySchema(type: "integer", description: "Rest between sections in seconds"),
                     "imageFilename": PropertySchema(type: "string", description: "Cover image in Media/", optional: true),
+                    "coverStyle": PropertySchema(type: "string", description: "Cover mode: exerciseThumbnails, customImage, or icon", optional: true),
                 ]
             ),
             "historyEntry": ObjectSchema(

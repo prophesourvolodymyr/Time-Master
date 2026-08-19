@@ -648,6 +648,21 @@ F06 (AI Coach) ─────────┘
 - [x] Resolve the WorkoutList history-entry shadow that blocked the application build
 - [x] Build iOS and macOS targets and launch the corrected iOS AI Coach flow; manual drag review remains for human verification
 
+## Cycle 22 — Blueprint Alignment and Adaptive Widgets
+
+- [x] Home and workout visual alignment
+  - [x] Use category-aware workout cards with compact cover mosaics, duration, exercise/set counts, schedule status, and resume state
+  - [x] Persist workout cover style and custom cover image choices through app and TimeMasterCore manifests
+  - [x] Keep stretch cards focused on stretch count while rep-based categories expose set and exercise counts
+- [x] Rich system widgets
+  - [x] Add a WidgetKit extension target with shared App Group data
+  - [x] Add configurable Quick Start, Today, and Progress widget content modes
+  - [x] Support small, medium, and large widget families with real workout, schedule, streak, and goal data
+  - [x] Preserve old widget payloads with backward-compatible decoding
+- [x] Verification
+  - [x] Run core tests and build iOS app, widget extension, and macOS app targets
+  - [x] Launch the iOS simulator Home flow; final gesture and visual review remain ready for human verification
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

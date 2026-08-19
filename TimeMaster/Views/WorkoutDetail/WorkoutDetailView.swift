@@ -1,5 +1,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct WorkoutDetailView: View {
     @EnvironmentObject var store: WorkoutStore
@@ -2095,6 +2100,9 @@ private struct WorkoutSettingsView: View {
     @State private var selectedTrackIndices: Set<Int>
     @State private var useGlobalLibrary: Bool
 
+    @State private var coverStyle: WorkoutCoverStyle
+    @State private var coverFilename: String?
+    @State private var showingCoverImporter = false
     init(workoutID: UUID, store: WorkoutStore) {
         self.workoutID = workoutID
         let w = store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
@@ -2110,6 +2118,8 @@ private struct WorkoutSettingsView: View {
             return set
         }())
         _useGlobalLibrary = State(initialValue: w.musicTrackFilenames.isEmpty)
+        _coverStyle = State(initialValue: w.coverStyle)
+        _coverFilename = State(initialValue: w.imageFilename)
     }
 
     private var workout: Workout {
@@ -2124,6 +2134,7 @@ private struct WorkoutSettingsView: View {
                     VStack(spacing: 20) {
                         restSection
                         colorSection
+                        coverSection
                         musicSection
                         infoSection
                     }
@@ -2174,6 +2185,52 @@ private struct WorkoutSettingsView: View {
                 .font(.headline)
                 .foregroundColor(Theme.textPrimary)
             IconColorPicker(selectedHex: $colorHex)
+        }
+    }
+
+    private var coverSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Workout Cover")
+                .font(.headline)
+                .foregroundColor(Theme.textPrimary)
+
+            Picker("Cover style", selection: $coverStyle) {
+                ForEach(WorkoutCoverStyle.allCases) { style in
+                    Text(style.title).tag(style)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            if coverStyle == .customImage {
+                HStack(spacing: 12) {
+                    AsyncCoverImage(
+                        url: coverFilename.map { PhotoManager.shared.photoURL(for: $0) },
+                        fallbackIcon: workout.type.iconName,
+                        fallbackColor: Color(hex: workout.type.colorHex),
+                        height: 64,
+                        contentMode: .fill,
+                        overlayGradient: false
+                    )
+                    .frame(width: 82, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    Button("Choose image") {
+                        showingCoverImporter = true
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundStyle(Theme.textPrimary)
+
+                    Spacer()
+                }
+                .fileImporter(
+                    isPresented: $showingCoverImporter,
+                    allowedContentTypes: [.image],
+                    allowsMultipleSelection: false
+                ) { result in
+                    importCover(result)
+                }
+            }
         }
     }
 
@@ -2257,10 +2314,34 @@ private struct WorkoutSettingsView: View {
         return m > 0 ? "\(m)m \(s)s" : "\(s)s"
     }
 
+    private func importCover(_ result: Result<[URL], Error>) {
+        guard case .success(let urls) = result, let url = urls.first else { return }
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+        guard let data = try? Data(contentsOf: url) else { return }
+
+        #if os(iOS)
+        guard let image = UIImage(data: data) else { return }
+        #elseif os(macOS)
+        guard let image = NSImage(data: data) else { return }
+        #endif
+
+        if let filename = PhotoManager.shared.savePhoto(image) {
+            coverFilename = filename
+            coverStyle = .customImage
+        }
+    }
+
     private func saveSettings() {
         var w = workout
         w.restBetweenSections = restBetweenSections
         w.colorHex = colorHex
+        w.coverStyle = coverStyle
+        w.imageFilename = coverFilename
         w.musicTrackFilenames = useGlobalLibrary ? [] : selectedTrackIndices.sorted().map {
             musicManager.trackFilenames[$0]
         }

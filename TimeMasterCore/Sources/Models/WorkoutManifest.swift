@@ -262,6 +262,12 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
     }
 }
 
+public enum WorkoutCoverStyle: String, Codable, CaseIterable {
+    case exerciseThumbnails
+    case customImage
+    case icon
+}
+
 public struct WorkoutManifest: Codable {
     public var id: String
     public var name: String
@@ -273,12 +279,13 @@ public struct WorkoutManifest: Codable {
     public var prepareTime: Int
     public var restBetweenSections: Int
     public var imageFilename: String?
+    public var coverStyle: WorkoutCoverStyle
 
     public var kind: String { "workout" }
 
     enum CodingKeys: String, CodingKey {
         case id, name, type, sections, musicTrackFilenames, colorHex
-        case createdAt, prepareTime, restBetweenSections, imageFilename
+        case createdAt, prepareTime, restBetweenSections, imageFilename, coverStyle
     }
 
     public init(
@@ -291,7 +298,8 @@ public struct WorkoutManifest: Codable {
         createdAt: Date = Date(),
         prepareTime: Int = 4,
         restBetweenSections: Int = 30,
-        imageFilename: String? = nil
+        imageFilename: String? = nil,
+        coverStyle: WorkoutCoverStyle = .exerciseThumbnails
     ) {
         self.id = id
         self.name = name
@@ -303,6 +311,7 @@ public struct WorkoutManifest: Codable {
         self.prepareTime = max(0, prepareTime)
         self.restBetweenSections = max(0, restBetweenSections)
         self.imageFilename = imageFilename
+        self.coverStyle = coverStyle
     }
 
     public init(from decoder: Decoder) throws {
@@ -317,6 +326,7 @@ public struct WorkoutManifest: Codable {
         prepareTime = max(0, try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4)
         restBetweenSections = max(0, try c.decodeIfPresent(Int.self, forKey: .restBetweenSections) ?? 30)
         imageFilename = try c.decodeIfPresent(String.self, forKey: .imageFilename)
+        coverStyle = try c.decodeIfPresent(WorkoutCoverStyle.self, forKey: .coverStyle) ?? .exerciseThumbnails
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -331,6 +341,7 @@ public struct WorkoutManifest: Codable {
         try c.encode(prepareTime, forKey: .prepareTime)
         try c.encode(restBetweenSections, forKey: .restBetweenSections)
         try c.encodeIfPresent(imageFilename, forKey: .imageFilename)
+        try c.encode(coverStyle, forKey: .coverStyle)
     }
 
     public var totalDuration: Int {

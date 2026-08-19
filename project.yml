@@ -42,6 +42,7 @@ targets:
       - package: MapLibre
       - package: LiquidGlassKit
       - package: TimeMasterCore
+      - target: TimeMasterWidget
     settings:
       base:
         INFOPLIST_FILE: TimeMaster/Info.plist
@@ -59,6 +60,25 @@ targets:
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
 
+  TimeMasterWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: TimeMasterWidget
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        INFOPLIST_FILE: TimeMasterWidget/Info.plist
+        CODE_SIGN_ENTITLEMENTS: TimeMasterWidget/TimeMasterWidget.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.timemaster.TimeMaster.TimeMasterWidget
+        PRODUCT_NAME: "$(TARGET_NAME)"
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        SKIP_INSTALL: YES
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
   TimeMaster-macOS:
     type: application
     platform: macOS

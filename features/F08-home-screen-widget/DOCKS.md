@@ -6,6 +6,8 @@ iOS Home Screen widget showing quick workout access and progress summary.
 - TimeMasterWidget: WidgetKit widget with workout shortcuts
 - TimeMasterWidgetBundle: widget entry point + configuration
 - Small/medium widget sizes showing recent workouts or quick-start options
+- The widget is configurable per instance: Quick Start opens a selected workout, Today summarizes scheduled workout instances, and Progress shows sessions, streak, and weekly goal progress.
+- Small, medium, and large families use the same data with content-aware layouts. Existing saved payloads without newer metrics remain valid and render safe defaults.
 
 ## Architecture
 ```

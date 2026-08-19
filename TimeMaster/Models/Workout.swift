@@ -416,6 +416,23 @@ struct Section: Identifiable, Codable, Equatable {
     }
 }
 
+enum WorkoutCoverStyle: String, Codable, CaseIterable, Identifiable {
+    case exerciseThumbnails
+    case customImage
+    case icon
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .exerciseThumbnails: "First exercises"
+        case .customImage: "Custom image"
+        case .icon: "Icon"
+        }
+    }
+}
+
+
 struct Workout: Identifiable, Codable, Equatable {
     var id: UUID
     var name: String
@@ -426,6 +443,7 @@ struct Workout: Identifiable, Codable, Equatable {
     var restBetweenSections: Int
     var colorHex: String
     var imageFilename: String?
+    var coverStyle: WorkoutCoverStyle
     var musicTrackFilenames: [String]
 
     init(
@@ -438,6 +456,7 @@ struct Workout: Identifiable, Codable, Equatable {
         restBetweenSections: Int = 30,
         colorHex: String = "FFFFFF",
         imageFilename: String? = nil,
+        coverStyle: WorkoutCoverStyle = .exerciseThumbnails,
         musicTrackFilenames: [String] = []
     ) {
         self.id = id
@@ -449,12 +468,13 @@ struct Workout: Identifiable, Codable, Equatable {
         self.restBetweenSections = max(0, restBetweenSections)
         self.colorHex = colorHex
         self.imageFilename = imageFilename
+        self.coverStyle = coverStyle
         self.musicTrackFilenames = musicTrackFilenames
     }
 
     enum CodingKeys: String, CodingKey {
         case id, name, type, sections, createdAt, prepareTime, restBetweenSections
-        case colorHex, imageFilename, musicTrackFilenames
+        case colorHex, imageFilename, coverStyle, musicTrackFilenames
     }
 
     init(from decoder: Decoder) throws {
@@ -468,6 +488,7 @@ struct Workout: Identifiable, Codable, Equatable {
         restBetweenSections = max(0, try c.decodeIfPresent(Int.self, forKey: .restBetweenSections) ?? 30)
         colorHex = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "FFFFFF"
         imageFilename = try c.decodeIfPresent(String.self, forKey: .imageFilename)
+        coverStyle = try c.decodeIfPresent(WorkoutCoverStyle.self, forKey: .coverStyle) ?? .exerciseThumbnails
         musicTrackFilenames = try c.decodeIfPresent([String].self, forKey: .musicTrackFilenames) ?? []
     }
 
@@ -482,6 +503,7 @@ struct Workout: Identifiable, Codable, Equatable {
         try c.encode(restBetweenSections, forKey: .restBetweenSections)
         try c.encode(colorHex, forKey: .colorHex)
         try c.encodeIfPresent(imageFilename, forKey: .imageFilename)
+        try c.encode(coverStyle, forKey: .coverStyle)
         try c.encode(musicTrackFilenames, forKey: .musicTrackFilenames)
     }
 

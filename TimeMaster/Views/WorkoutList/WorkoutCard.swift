@@ -22,121 +22,205 @@ struct WorkoutCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                iconBadge
+        HStack(spacing: 12) {
+            WorkoutCoverMosaic(workout: workout)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(workout.name)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(2)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(workout.name)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
 
-                    Text(workout.type.name)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Theme.textSecondary)
-                    .padding(.top, 4)
-            }
-
-            if let schedule {
-                scheduleBadge(schedule)
-            } else if isResumable {
                 HStack(spacing: 6) {
-                    Image(systemName: "pause.circle.fill")
-                    Text("Ready to resume")
+                    categoryBadge
+                    durationBadge
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-            }
 
-            HStack(spacing: 0) {
-                metric(value: "\(workout.sectionCount)", label: "sections")
-                metric(value: durationText(workout.totalDuration), label: "total")
-                metric(value: "\(sessionsThisWeek)", label: "this week")
-
-                Spacer(minLength: 12)
-
-                if let lastCompletedAt {
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text("Last done")
-                            .font(.caption2)
-                            .foregroundStyle(Theme.textSecondary)
-                        Text(lastCompletedAt.formatted(date: .abbreviated, time: .omitted))
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(Theme.textPrimary)
-                    }
-                } else {
-                    Text(workout.sections.isEmpty ? "Add exercises" : "Not started")
-                        .font(.caption.weight(.medium))
+                if let schedule {
+                    scheduleBadge(schedule)
+                } else if isResumable {
+                    Text("Ready to resume")
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 7) {
+                if isStretchWorkout {
+                    metricBox(value: "\(exerciseCount)", label: "Stretches")
+                } else {
+                    metricBox(value: "\(setCount)", label: "Sets")
+                    metricBox(value: "\(exerciseCount)", label: "Exercises")
+                }
+            }
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 94, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.surface)
-                .overlay(alignment: .top) {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color(hex: workout.colorHex).opacity(0.12))
-                        .frame(height: 3)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(hex: workout.type.colorHex).opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color(hex: workout.type.colorHex).opacity(0.55), lineWidth: 1)
                 }
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(workout.name), \(durationText(workout.totalDuration)), \(exerciseCount) \(isStretchWorkout ? "stretches" : "exercises")")
+    }
+
+    private var categoryBadge: some View {
+        HStack(spacing: 4) {
+            Image(systemName: workout.type.iconName)
+                .font(.system(size: 9, weight: .bold))
+            Text(workout.type.name)
         }
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(Theme.textPrimary)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(Color(hex: workout.type.colorHex).opacity(0.28), in: Capsule())
     }
 
-    private var iconBadge: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(Color(hex: workout.colorHex))
-            .frame(width: 44, height: 44)
-            .overlay {
-                Image(systemName: workout.type.icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(workout.colorHex == "FFFFFF" ? .black : .white)
-            }
+    private var durationBadge: some View {
+        Text(durationText(workout.totalDuration))
+            .font(.caption2.weight(.semibold).monospacedDigit())
+            .foregroundStyle(Theme.textPrimary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Theme.surface2, in: Capsule())
     }
 
-    private func metric(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    private func metricBox(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
             Text(value)
-                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .font(.headline.weight(.semibold).monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
             Text(label)
-                .font(.caption2)
+                .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .frame(minWidth: 64, alignment: .leading)
+        .frame(width: 52, height: 52)
+        .background(Theme.surface2.opacity(0.8), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private func scheduleBadge(_ schedule: ScheduledWorkout) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: schedule.status == .completed ? "checkmark.circle.fill" : "calendar")
-            Text(schedule.status == .completed ? "Completed · \(schedule.timeRangeText)" : schedule.timeRangeText)
+        Text(schedule.status == .completed ? "Completed · \(schedule.timeRangeText)" : schedule.timeRangeText)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(schedule.status == .missed ? .red : Theme.textSecondary)
+            .lineLimit(1)
+    }
+
+    private var exerciseCount: Int {
+        workout.sections.count
+    }
+
+    private var setCount: Int {
+        workout.sections.reduce(0) { $0 + max(1, $1.effectiveSlots.count) }
+    }
+
+    private var isStretchWorkout: Bool {
+        let category = "\(workout.type.id) \(workout.type.name)".lowercased()
+        let hasRepBasedExercise = workout.sections.contains { section in
+            section.repCount != nil || section.effectiveSlots.contains { $0.repCount != nil }
         }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(schedule.status == .missed ? Color.red : Color.white)
+        return category.contains("stretch") && !hasRepBasedExercise
     }
 
     private func durationText(_ seconds: Int) -> String {
-        let minutes = seconds / 60
-        let remainder = seconds % 60
-        if minutes == 0 { return "\(remainder)s" }
-        if remainder == 0 { return "\(minutes)m" }
-        return "\(minutes)m \(remainder)s"
+        let minutes = max(0, seconds / 60)
+        let remaining = max(0, seconds % 60)
+        if minutes == 0 { return "\(remaining)s" }
+        if remaining == 0 { return "\(minutes)min" }
+        if minutes >= 60 {
+            return "\(minutes / 60)h \(minutes % 60)min"
+        }
+        return "\(minutes)min"
     }
 }
+
+private struct WorkoutCoverMosaic: View {
+    let workout: Workout
+
+    var body: some View {
+        Group {
+            switch workout.coverStyle {
+            case .customImage:
+                if let imageFilename = workout.imageFilename {
+                    AsyncCoverImage(
+                        url: PhotoManager.shared.photoURL(for: imageFilename),
+                        fallbackIcon: workout.type.iconName,
+                        fallbackColor: Color(hex: workout.type.colorHex),
+                        height: 82,
+                        contentMode: .fill,
+                        overlayGradient: false
+                    )
+                } else {
+                    iconCover
+                }
+            case .icon:
+                iconCover
+            case .exerciseThumbnails:
+                exerciseMosaic
+            }
+        }
+        .frame(width: 82, height: 82)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var exerciseMosaic: some View {
+        LazyVGrid(
+            columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)],
+            spacing: 2
+        ) {
+            ForEach(0..<4, id: \.self) { index in
+                if let section = workout.sections[safe: index] {
+                    sectionCover(section)
+                } else {
+                    Color(hex: workout.type.colorHex).opacity(0.18)
+                }
+            }
+        }
+        .background(Color(hex: workout.type.colorHex).opacity(0.22))
+    }
+
+    @ViewBuilder
+    private func sectionCover(_ section: Section) -> some View {
+        if let media = section.mediaItems.first {
+            MediaThumbnailView(item: media, size: 40, cornerRadius: 2)
+        } else if let page = section.pageID.flatMap({ DatabaseStore.shared.page(id: $0) }),
+                  let url = page.coverImageURL {
+            AsyncCoverImage(
+                url: url,
+                fallbackIcon: page.manifest.iconName ?? workout.type.iconName,
+                fallbackColor: Color(hex: workout.type.colorHex),
+                height: 40,
+                contentMode: .fill,
+                overlayGradient: false
+            )
+        } else {
+            Color(hex: workout.type.colorHex).opacity(0.18)
+                .overlay {
+                    Image(systemName: workout.type.iconName)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+        }
+    }
+
+    private var iconCover: some View {
+        Color(hex: workout.type.colorHex).opacity(0.32)
+            .overlay {
+                Image(systemName: workout.type.iconName)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
+    }
+}
+
 
 #Preview {
     WorkoutCard(workout: Workout(name: "Morning HIIT", sections: [

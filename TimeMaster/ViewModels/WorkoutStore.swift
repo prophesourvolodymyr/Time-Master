@@ -372,24 +372,64 @@ class WorkoutStore: ObservableObject {
         if let data = try? JSONEncoder().encode(workouts) {
             userDefaults.set(data, forKey: workoutsKey)
         }
-        // Sync compact list to App Group for widget
         let sharedDefaults = UserDefaults(suiteName: "group.com.timemaster.shared")
-        let compact = workouts.map { WidgetWorkoutRef(id: $0.id.uuidString, name: $0.name, colorHex: $0.colorHex, type: $0.type.name) }
+        let calendar = Calendar.current
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        let todayHistory = historyEntries.filter { $0.completedAt >= weekStart }
+        let compact = workouts.map { workout in
+            WidgetWorkoutRef(
+                id: workout.id.uuidString,
+                name: workout.name,
+                colorHex: workout.colorHex,
+                type: workout.type.name,
+                durationMinutes: max(1, Int(ceil(Double(workout.totalDuration) / 60.0))),
+                sectionCount: workout.sections.count,
+                setCount: workout.sections.reduce(0) { $0 + max(1, $1.effectiveSlots.count) },
+                sessionsThisWeek: todayHistory.filter { $0.workoutId == workout.id }.count
+            )
+        }
         if let data = try? JSONEncoder().encode(compact) {
             sharedDefaults?.set(data, forKey: "widget_workouts")
-            // synchronize() is required in cross-process scenarios (app ↔ widget extension)
-            // to guarantee the write is flushed to disk before WidgetKit reads it.
-            sharedDefaults?.synchronize()
         }
+        let today = scheduledWorkouts(for: Date()).map {
+            WidgetTodayRef(
+                id: $0.id,
+                workoutID: $0.workout.id.uuidString,
+                workoutName: $0.workout.name,
+                durationMinutes: max(1, Int(ceil(Double($0.workout.totalDuration) / 60.0))),
+                timeRange: $0.timeRangeText,
+                status: $0.status.rawValue,
+                colorHex: $0.workout.colorHex
+            )
+        }
+        if let data = try? JSONEncoder().encode(today) {
+            sharedDefaults?.set(data, forKey: "widget_today")
+        }
+        sharedDefaults?.set(streakInfo().current, forKey: "widget_streak")
+        sharedDefaults?.set(weeklyGoal, forKey: "widget_weekly_goal")
+        sharedDefaults?.synchronize()
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    // Compact model mirrored by the widget extension
     private struct WidgetWorkoutRef: Codable {
         var id: String
         var name: String
         var colorHex: String
         var type: String
+        var durationMinutes: Int
+        var sectionCount: Int
+        var setCount: Int
+        var sessionsThisWeek: Int
+    }
+
+    private struct WidgetTodayRef: Codable {
+        var id: String
+        var workoutID: String
+        var workoutName: String
+        var durationMinutes: Int
+        var timeRange: String
+        var status: String
+        var colorHex: String
     }
 
     private func loadWorkouts() {
@@ -834,6 +874,7 @@ extension WorkoutManifest {
             restBetweenSections: restBetweenSections,
             colorHex: colorHex,
             imageFilename: imageFilename,
+            coverStyle: WorkoutCoverStyle(rawValue: coverStyle.rawValue) ?? .exerciseThumbnails,
             musicTrackFilenames: musicTrackFilenames
         )
     }
@@ -928,7 +969,8 @@ extension Workout {
             createdAt: createdAt,
             prepareTime: prepareTime,
             restBetweenSections: restBetweenSections,
-            imageFilename: imageFilename
+            imageFilename: imageFilename,
+            coverStyle: TimeMasterCore.WorkoutCoverStyle(rawValue: coverStyle.rawValue) ?? .exerciseThumbnails
         )
     }
 }
