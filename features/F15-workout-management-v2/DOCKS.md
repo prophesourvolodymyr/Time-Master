@@ -77,13 +77,3 @@ Database leaf page → "Add to Workout" button
 - `genesis/ISSUES.md` — "Workout management was never built, right now it is an old feature"
 - `genesis/REFERENCE/` — none
 
-## Verification
-
-- [ ] Create new workout from empty workouts tab → opens detail with prompt
-- [ ] Add first section from database browser → section shows page-backed cover
-- [ ] Edit a section's duration inline → persisted to file manifest
-- [ ] Reorder sections via drag → order persists across launches
-- [ ] Add-to-Workout from database page → new section lands at end and persists
-- [ ] macOS sidebar → detail flow opens without modal sheet for normal edits
-- [ ] Delete workout → manifest file removed from disk
-- [ ] macOS + iOS builds succeed; all core tests pass
