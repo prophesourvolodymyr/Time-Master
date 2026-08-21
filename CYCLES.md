@@ -1,5 +1,5 @@
 # CYCLES.md — Time-Master
-**Planned with user:** 2026-07-04, revised 2026-07-06 and 2026-07-13
+**Planned with user:** 2026-07-04, revised 2026-07-06, 2026-07-13, and 2026-08-20
 
 <!-- V0.1: Cycle 0 | V0.2: Cycle 1-3 | V1.0: Cycle 4-5 | V2.0: Cycle 6-7 | V2.0+: Cycle 8-9 | V0.3: Cycle 10 -->
 
@@ -24,6 +24,13 @@ F06 (AI Coach) ─────────┘
                      │
          ┌───────────┼───────────┐
     F01-A (migrate)  F05-A-v2   F06-B (AI in chat)
+
+Cycle 11 Outdoor Data ──┐
+F09 File Storage ───────┼── F28 (Better Maps and Route Recording)
+F24 Navigation ─────────┤
+F25 Music ──────────────┤
+F26 Liquid Glass ───────┤
+F27 Home ───────────────┘
 ```
 
 ---
@@ -662,6 +669,87 @@ F06 (AI Coach) ─────────┘
 - [x] Verification
   - [x] Run core tests and build iOS app, widget extension, and macOS app targets
   - [x] Launch the iOS simulator Home flow; final gesture and visual review remain ready for human verification
+
+## Cycle 23 — F28 Better Maps and Route Recording
+
+- [ ] F28 — Complete iPhone outdoor recording remake
+  - [x] Preserve pre-F28 implementation on remote archive branch
+  - [x] Approve COLOSSAL impact, migration, and product decisions
+  - [ ] RF28-A — Document old-to-new outdoor migration
+  - [x] Open authoritative route-recording HTML prototype
+  - [x] Read every HTML implementation comment completely
+  - [x] Run prototype and exercise every implemented state
+  - [ ] Map pine states into reusable native Swift components
+  - [ ] F28-B — Route Pine System
+    - [ ] Keep interactive map as permanent independent background
+    - [ ] Implement route pine compact medium expanded MAX geometry
+    - [ ] Implement continuous drag resizing with native springs
+    - [ ] Implement compact-to-zero dismissal for closable feature pines
+    - [ ] Use native iOS 26 Liquid Glass bases
+    - [ ] Match iOS 16–25 private glass geometry exactly
+    - [ ] Reproduce the complete Start state exactly
+    - [ ] Implement Type with official native wheel picker
+    - [ ] Separate previewed Type from committed workout Type
+  - [ ] F28-C — Recording Engine
+    - [ ] Morph Start pine into live workout in-place
+    - [ ] Connect time speed distance to recording service
+    - [ ] Keep speed and distance fully offline
+    - [ ] Build hybrid Core Location altimeter elevation pipeline
+    - [ ] Pause and resume without resetting workout state
+    - [ ] Repair interrupted activity recovery across process relaunch
+    - [ ] Preserve legacy Run & Walk while adding Run and Walk
+  - [ ] F28-D — Map Platform
+    - [ ] Connect map-side controls through real service boundaries
+    - [ ] Keep weather display-only and noninteractive
+    - [ ] Preserve deferred offline-area-selection service contract
+    - [ ] Implement Map options pine placeholder selections
+    - [ ] Connect approved production map providers and attribution
+    - [ ] Implement Explore Terrain Satellite 3D Transit Traffic Cycling Dark Direction
+  - [ ] F28-E — Music Workout Editor
+    - [ ] Connect Music Editor to existing Settings music system
+    - [ ] Implement content-driven Music pine sizing
+    - [ ] Use native wheels for music section selection
+    - [ ] Implement predictable track reorder and folder intent
+    - [ ] Keep cross-section imports session-only per workout
+    - [ ] Implement persistent fixed-height compact player pine
+    - [ ] Return every Music Edit action to same editor
+  - [ ] F28-F — Finish Establish and Library
+    - [ ] Morph live pine into Finish state in-place
+    - [ ] Bind Finish statistics to finalized real activity
+    - [ ] Record played music history with finalized workout
+    - [ ] Reject activities below three metres accepted movement
+    - [ ] Implement Establish then return pine to Start
+    - [ ] Resume from Finish without losing workout state
+    - [ ] Render Library inside the same route pine
+    - [ ] Keep Starred independent from Library filters
+    - [ ] Implement Library workout type filters and sorting
+    - [ ] Show persisted workout-type badges on route cards
+    - [ ] Render real route geometry in cards and details
+    - [ ] Implement editable established-workout detail state
+    - [ ] Preserve public metadata when changing to Private
+    - [ ] Require confirmation before workout deletion
+    - [ ] Require hold confirmation for significant workout deletion
+    - [ ] Post Public activities to the local Profile only
+    - [ ] Add reusable user-created activity tags
+    - [ ] Add GPX and FIT Share/Export
+  - [ ] F28-G — Settings Privacy and Recovery
+    - [ ] Bind quick Settings to persisted preferences
+    - [ ] Keep all unfinished feature interiors intentionally empty
+    - [ ] Add configurable endpoint privacy with 200-metre default
+    - [ ] Connect Apple WeatherKit and cached unavailable states
+    - [ ] Migrate existing finished activities as Private Library entries
+    - [ ] Extend backup and import for complete route data
+  - [ ] F28 verification
+    - [ ] Test every pine with live sibling panes
+    - [ ] Test state preservation across all focus changes
+    - [ ] Test compact medium expanded and MAX presentations
+    - [ ] Verify no workflow state becomes page navigation
+    - [ ] Compare native workflow against HTML effectively one-to-one
+    - [ ] Verify iOS 16 iOS 18 and iOS 26 builds
+    - [ ] Exercise Start live pause Music Finish Establish Library Profile
+    - [ ] Hand every F28 child to human for verification
+
+---
 
 ## Notes
 - Codebase converted to this system: 2026-07-04.
