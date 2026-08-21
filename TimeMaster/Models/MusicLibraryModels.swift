@@ -102,7 +102,7 @@ struct MusicArtworkReference: Codable, Hashable {
 typealias ArtworkReference = MusicArtworkReference
 
 enum MusicCollectionKind: String, Codable, CaseIterable, Hashable, Identifiable {
-    case track, playlist, album, library
+    case track, playlist, album, library, folder
     var id: String { rawValue }
     var isCollection: Bool { self != .track }
     static let music: MusicCollectionKind = .track
@@ -138,6 +138,7 @@ struct MusicLibraryItem: Codable, Hashable, Identifiable {
     var title: String { get { name } set { name = newValue } }
     var artworkReference: MusicArtworkReference? { get { artwork } set { artwork = newValue } }
     var localTrackReference: MusicLocalTrackReference? { get { localReference } set { localReference = newValue } }
+    var stableID: UUID { id }
     var isCollection: Bool { kind.isCollection }
     var durationSeconds: Int { max(0, Int(totalDuration.rounded())) }
     var totalDuration: TimeInterval { duration > 0 ? duration : tracks.reduce(0) { $0 + $1.duration } }
@@ -154,33 +155,126 @@ struct MusicLibraryItem: Codable, Hashable, Identifiable {
 }
 
 enum MusicDestinationFamily: String, Codable, CaseIterable, Hashable, Identifiable {
-    case general, type, mine
+    case general, type, mine, route
     var id: String { rawValue }
     static let workoutType: MusicDestinationFamily = .type
     static let workout: MusicDestinationFamily = .mine
+}
+
+enum MusicRouteDestination: String, Codable, CaseIterable, Hashable, Identifiable {
+    case run, bike, walk, more
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .run: return "Run"
+        case .bike: return "Bike"
+        case .walk: return "Walk"
+        case .more: return "More"
+        }
+    }
 }
 
 enum MusicDestination: Codable, Hashable, Identifiable {
     case general
     case workoutType(id: String)
     case workout(id: UUID)
+    private static let routePrefix = "route."
     var id: String {
-        switch self { case .general: return "general"; case .workoutType(let value): return "type:\(value)"; case .workout(let value): return "workout:\(value.uuidString.lowercased())" }
+        switch self {
+        case .general: return "general"
+        case .workoutType(let value): return "type:\(value)"
+        case .workout(let value): return "workout:\(value.uuidString.lowercased())"
+        }
     }
     var stableID: String { id }
     var family: MusicDestinationFamily {
-        switch self { case .general: return .general; case .workoutType: return .type; case .workout: return .mine }
+        switch self {
+        case .general: return .general
+        case .workoutType(let id): return id.hasPrefix(Self.routePrefix) ? .route : .type
+        case .workout: return .mine
+        }
     }
     static func type(_ id: String) -> MusicDestination { .workoutType(id: id) }
     static func mine(_ id: UUID) -> MusicDestination { .workout(id: id) }
+    static func route(_ destination: MusicRouteDestination) -> MusicDestination {
+        .workoutType(id: "\(routePrefix)\(destination.rawValue)")
+    }
+    static func route(id destination: MusicRouteDestination) -> MusicDestination { route(destination) }
+    static func route(id: String) -> MusicDestination { route(id) }
+    static func route(_ id: String) -> MusicDestination {
+        .workoutType(id: "\(routePrefix)\(id.lowercased())")
+    }
+    static let run = route(.run)
+    static let bike = route(.bike)
+    static let walk = route(.walk)
+    static let more = route(.more)
+    var routeDestination: MusicRouteDestination? {
+        guard case .workoutType(let id) = self,
+              let value = id.split(separator: ".", maxSplits: 1).last,
+              id.hasPrefix(Self.routePrefix) else { return nil }
+        return MusicRouteDestination(rawValue: String(value))
+    }
     private enum CodingKeys: String, CodingKey { case kind, value }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        switch try c.decode(String.self, forKey: .kind) { case "type": self = .workoutType(id: try c.decode(String.self, forKey: .value)); case "workout": self = .workout(id: try c.decode(UUID.self, forKey: .value)); default: self = .general }
+        switch try c.decode(String.self, forKey: .kind) {
+        case "type":
+            self = .workoutType(id: try c.decode(String.self, forKey: .value))
+        case "route":
+            self = .route(try c.decode(String.self, forKey: .value))
+        case "workout":
+            self = .workout(id: try c.decode(UUID.self, forKey: .value))
+        default:
+            self = .general
+        }
     }
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-        switch self { case .general: try c.encode("general", forKey: .kind); case .workoutType(let id): try c.encode("type", forKey: .kind); try c.encode(id, forKey: .value); case .workout(let id): try c.encode("workout", forKey: .kind); try c.encode(id, forKey: .value) }
+        switch self {
+        case .general:
+            try c.encode("general", forKey: .kind)
+        case .workoutType(let id):
+            if let routeDestination {
+                try c.encode("route", forKey: .kind)
+                try c.encode(routeDestination.rawValue, forKey: .value)
+            } else {
+                try c.encode("type", forKey: .kind)
+                try c.encode(id, forKey: .value)
+            }
+        case .workout(let id):
+            try c.encode("workout", forKey: .kind)
+            try c.encode(id, forKey: .value)
+        }
+    }
+}
+
+struct MusicSessionImportReference: Hashable, Identifiable {
+    var id: UUID
+    var itemID: UUID
+    var source: MusicDestination
+    var destination: MusicDestination
+    var insertionIndex: Int?
+    init(id: UUID = UUID(), itemID: UUID, source: MusicDestination, destination: MusicDestination, insertionIndex: Int? = nil) {
+        self.id = id
+        self.itemID = itemID
+        self.source = source
+        self.destination = destination
+        self.insertionIndex = insertionIndex
+    }
+}
+
+struct MusicPlaybackTrack: Hashable, Identifiable {
+    var id: String
+    var title: String
+    var artist: String?
+    var artworkReference: String?
+    var localFilename: String?
+    init(id: String, title: String, artist: String? = nil, artworkReference: String? = nil, localFilename: String? = nil) {
+        self.id = id
+        self.title = title
+        self.artist = artist
+        self.artworkReference = artworkReference
+        self.localFilename = localFilename
     }
 }
 

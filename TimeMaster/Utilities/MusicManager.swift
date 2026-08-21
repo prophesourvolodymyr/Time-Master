@@ -2,6 +2,24 @@ import AVFoundation
 import Combine
 import SwiftMP3
 
+enum MusicPlaybackUnavailableReason: Equatable {
+    case noPlayableSource
+    case missingLocalFile
+    case providerUnavailable(MusicProvider)
+    case unsupportedSource
+}
+
+enum MusicPlaybackAvailability: Equatable {
+    case idle
+    case playable
+    case unavailable(MusicPlaybackUnavailableReason)
+}
+
+enum MusicPlaybackResult: Equatable {
+    case started
+    case unavailable(MusicPlaybackUnavailableReason)
+}
+
 /// Manages background workout music playback from Documents/Music/.
 final class MusicManager: ObservableObject {
 
@@ -30,6 +48,7 @@ final class MusicManager: ObservableObject {
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return docs.appendingPathComponent("Music", isDirectory: true)
     }()
+    var localMusicDirectoryURL: URL { musicDir }
 
     private func createMusicDirIfNeeded() {
         try? FileManager.default.createDirectory(at: musicDir,
@@ -42,15 +61,17 @@ final class MusicManager: ObservableObject {
     @Published var isPlaying: Bool = false
     @Published private(set) var activePlaylist: [String] = []
     @Published private(set) var currentFilename: String?
+    @Published private(set) var currentTrack: MusicPlaybackTrack?
+    @Published private(set) var playbackAvailability: MusicPlaybackAvailability = .idle
     @Published private(set) var playbackProgress: Double = 0
     @Published var repeatOne = false
-    /// 0.0 – 1.0 volume stored in UserDefaults, applied whenever playback starts.
     @Published var volume: Float = 0.7 {
         didSet {
             UserDefaults.standard.set(volume, forKey: volumeKey)
             player.volume = volume
         }
     }
+    var currentTrackID: String? { currentTrack?.id }
 
     // MARK: - Persistence keys
 
@@ -63,6 +84,7 @@ final class MusicManager: ObservableObject {
     private var looper: AVPlayerLooper?
     private var endObserver: Any?
     private var timeObserver: Any?
+    private var trackDescriptorsByFilename: [String: MusicPlaybackTrack] = [:]
 
     // MARK: - Init helpers
 
@@ -197,6 +219,9 @@ final class MusicManager: ObservableObject {
         isPlaying = false
         activePlaylist = []
         currentFilename = nil
+        currentTrack = nil
+        trackDescriptorsByFilename = [:]
+        playbackAvailability = .idle
         playbackProgress = 0
     }
 
@@ -214,12 +239,92 @@ final class MusicManager: ObservableObject {
 
     func startPlayback(tracks: [String]? = nil, startingAt startIndex: Int = 0) {
         let requested = tracks?.isEmpty == false ? tracks! : trackFilenames
-        guard !requested.isEmpty else { return }
+        guard !requested.isEmpty else {
+            playbackAvailability = .unavailable(.noPlayableSource)
+            return
+        }
         #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
         #endif
-        rebuildAndPlay(filenames: requested, startIndex: startIndex)
+        let descriptors = requested.map {
+            MusicPlaybackTrack(id: $0, title: displayName(for: $0), localFilename: $0)
+        }
+        rebuildAndPlay(filenames: requested, startIndex: startIndex, descriptors: descriptors)
+    }
+
+    @discardableResult
+    func play(_ item: MusicLibraryItem, startingAt startIndex: Int = 0) -> MusicPlaybackResult {
+        var filenames: [String] = []
+        var descriptors: [MusicPlaybackTrack] = []
+        if item.isCollection {
+            for track in item.tracks {
+                guard let local = track.localReference?.filename else { continue }
+                filenames.append(local)
+                descriptors.append(MusicPlaybackTrack(id: track.id.uuidString.lowercased(), title: track.name, artworkReference: artworkString(track.artwork ?? item.artwork), localFilename: local))
+            }
+        } else if let local = item.localReference?.filename {
+            filenames = [local]
+            descriptors = [MusicPlaybackTrack(id: item.id.uuidString.lowercased(), title: item.name, artist: item.metadata["artist"], artworkReference: artworkString(item.artwork), localFilename: local)]
+        }
+        guard !filenames.isEmpty else {
+            let reason: MusicPlaybackUnavailableReason
+            if case .provider(let reference) = item.source {
+                reason = .providerUnavailable(reference.provider)
+            } else if item.source == .none {
+                reason = .noPlayableSource
+            } else {
+                reason = .unsupportedSource
+            }
+            playbackAvailability = .unavailable(reason)
+            return .unavailable(reason)
+        }
+        let playable = filenames.filter { FileManager.default.fileExists(atPath: musicDir.appendingPathComponent($0).path) }
+        guard !playable.isEmpty else {
+            playbackAvailability = .unavailable(.missingLocalFile)
+            return .unavailable(.missingLocalFile)
+        }
+        let paired = zip(filenames, descriptors).filter { playable.contains($0.0) }
+        #if os(iOS)
+        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
+        rebuildAndPlay(filenames: paired.map { $0.0 }, startIndex: startIndex, descriptors: paired.map { $0.1 })
+        return .started
+    }
+
+    @discardableResult
+    func play(item: MusicLibraryItem, startingAt startIndex: Int = 0) -> MusicPlaybackResult {
+        play(item, startingAt: startIndex)
+    }
+    @discardableResult
+    func play(collection: MusicLibraryItem, startingAt startIndex: Int = 0) -> MusicPlaybackResult {
+        play(collection, startingAt: startIndex)
+    }
+
+    @discardableResult
+    func startPlayback(item: MusicLibraryItem, startingAt startIndex: Int = 0) -> MusicPlaybackResult {
+        play(item, startingAt: startIndex)
+    }
+
+
+    func availability(for item: MusicLibraryItem) -> MusicPlaybackAvailability {
+        if item.isCollection {
+            if item.tracks.contains(where: { $0.localReference != nil }) {
+                let anyExisting = item.tracks.contains { track in
+                    guard let filename = track.localReference?.filename else { return false }
+                    return FileManager.default.fileExists(atPath: musicDir.appendingPathComponent(filename).path)
+                }
+                return anyExisting ? .playable : .unavailable(.missingLocalFile)
+            }
+        } else if let filename = item.localReference?.filename {
+            return FileManager.default.fileExists(atPath: musicDir.appendingPathComponent(filename).path) ? .playable : .unavailable(.missingLocalFile)
+        }
+        if case .provider(let reference) = item.source { return .unavailable(.providerUnavailable(reference.provider)) }
+        return .unavailable(.noPlayableSource)
+    }
+    func isPlayable(_ item: MusicLibraryItem) -> Bool {
+        availability(for: item) == .playable
     }
 
     func jumpToTrack(index: Int) {
@@ -268,10 +373,10 @@ final class MusicManager: ObservableObject {
     // MARK: - Queue management
 
     private func rebuildAndPlay(filenames: [String]? = nil) {
-        rebuildAndPlay(filenames: filenames, startIndex: 0)
+        rebuildAndPlay(filenames: filenames, startIndex: 0, descriptors: nil)
     }
 
-    private func rebuildAndPlay(filenames: [String]? = nil, startIndex: Int) {
+    private func rebuildAndPlay(filenames: [String]? = nil, startIndex: Int, descriptors: [MusicPlaybackTrack]? = nil) {
         removeEndObserver()
         removeTimeObserver()
         looper = nil
@@ -279,12 +384,21 @@ final class MusicManager: ObservableObject {
         player.removeAllItems()
 
         let source = filenames ?? (activePlaylist.isEmpty ? trackFilenames : activePlaylist)
+        if let descriptors {
+            trackDescriptorsByFilename = Dictionary(zip(source, descriptors), uniquingKeysWith: { first, _ in first })
+        } else {
+            for filename in source where trackDescriptorsByFilename[filename] == nil {
+                trackDescriptorsByFilename[filename] = MusicPlaybackTrack(id: filename, title: displayName(for: filename), localFilename: filename)
+            }
+        }
         let playable = source.filter {
             FileManager.default.fileExists(atPath: musicDir.appendingPathComponent($0).path)
         }
         guard !playable.isEmpty else {
             isPlaying = false
             currentFilename = nil
+            currentTrack = nil
+            playbackAvailability = .unavailable(.missingLocalFile)
             playbackProgress = 0
             return
         }
@@ -319,6 +433,8 @@ final class MusicManager: ObservableObject {
 
         player.volume = volume
         currentFilename = orderedFilenames[0]
+        updateCurrentTrack(for: orderedFilenames[0])
+        playbackAvailability = .playable
         playbackProgress = 0
         installTimeObserver()
         player.play()
@@ -349,13 +465,27 @@ final class MusicManager: ObservableObject {
 
     private func refreshPlaybackState(at time: CMTime) {
         if let asset = player.currentItem?.asset as? AVURLAsset {
-            currentFilename = asset.url.lastPathComponent
+            let filename = asset.url.lastPathComponent
+            if currentFilename != filename {
+                currentFilename = filename
+                updateCurrentTrack(for: filename)
+            }
         }
         guard let duration = player.currentItem?.duration.seconds, duration.isFinite, duration > 0 else {
             playbackProgress = 0
             return
         }
         playbackProgress = min(max(time.seconds / duration, 0), 1)
+    }
+
+    private func updateCurrentTrack(for filename: String) {
+        currentTrack = trackDescriptorsByFilename[filename] ?? MusicPlaybackTrack(id: filename, title: displayName(for: filename), localFilename: filename)
+    }
+
+    private func artworkString(_ artwork: MusicArtworkReference?) -> String? {
+        if let localFilename = artwork?.localFilename { return localFilename }
+        if let remoteURL = artwork?.remoteURL { return remoteURL.absoluteString }
+        return artwork?.placeholderSystemImage
     }
 
     private func removeEndObserver() {

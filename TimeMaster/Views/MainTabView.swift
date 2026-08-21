@@ -1,17 +1,23 @@
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(iOS)
+import UIKit
+#endif
 
 struct MainTabView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     @StateObject private var databaseStore = DatabaseStore.shared
     @StateObject private var aiStore = AIStore.shared
     @StateObject private var outdoorStore = OutdoorActivityStore()
+    @StateObject private var musicLibraryStore = MusicLibraryStore()
+    @StateObject private var outdoorPreferencesStore = OutdoorRecordingPreferencesStore()
     @State private var selectedTab = SlotNavigationItem.index(for: 0)
     @State private var showingSettings = false
     @State private var requestedWorkoutID: UUID?
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     @State private var activeOutdoorPlannedRoute: PlannedRoute?
+    @State private var activeOutdoorActivityID: UUID?
 #endif
 #if os(macOS)
     private let macSlotBarHeight: CGFloat = 196
@@ -38,14 +44,30 @@ struct MainTabView: View {
             routeToWorkoutDetail(notification)
         }
         #if os(iOS)
-        .sheet(item: $activeOutdoorKind, onDismiss: {
+        .fullScreenCover(
+            item: Binding(
+                get: { UIDevice.current.userInterfaceIdiom == .phone ? activeOutdoorKind : nil },
+                set: { activeOutdoorKind = $0 }
+            ),
+            onDismiss: {
             activeOutdoorPlannedRoute = nil
-        }) { kind in
-            OutdoorRecorderView(kind: kind, store: outdoorStore, plannedRoute: activeOutdoorPlannedRoute)
+            activeOutdoorActivityID = nil
+            }
+        ) { kind in
+            OutdoorRouteRecordingView(
+                kind: kind,
+                store: outdoorStore,
+                plannedRoute: activeOutdoorPlannedRoute,
+                preferences: outdoorPreferencesStore,
+                musicLibrary: musicLibraryStore,
+                initialActivityID: activeOutdoorActivityID
+            )
         }
         #endif
         #endif
         }
+        .environmentObject(musicLibraryStore)
+        .environmentObject(outdoorPreferencesStore)
 #if os(macOS)
         .buttonStyle(.plain)
 #endif
@@ -102,8 +124,10 @@ struct MainTabView: View {
             onBrowseWorkouts: { selectedTab = SlotNavigationItem.index(for: 1) },
             onBrowseDatabase: { selectedTab = SlotNavigationItem.index(for: 2) },
             onCreateWorkout: openWorkoutCreator,
-            onStartOutdoor: { kind, route in
+            onStartOutdoor: { kind, route, activityID in
+                guard UIDevice.current.userInterfaceIdiom == .phone else { return }
                 activeOutdoorPlannedRoute = route
+                activeOutdoorActivityID = activityID
                 activeOutdoorKind = kind
             }
         )

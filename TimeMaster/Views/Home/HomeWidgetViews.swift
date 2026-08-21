@@ -2,6 +2,7 @@ import SwiftUI
 
 #if os(iOS)
 import CoreMotion
+import UIKit
 #endif
 
 struct HomeWidgetContent: View {
@@ -15,7 +16,7 @@ struct HomeWidgetContent: View {
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
-    let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void
+    let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
     @StateObject private var activityMotion = HomeActivityMotion()
     let onSkipScheduledWorkout: (ScheduledWorkout) -> Void
@@ -159,7 +160,8 @@ struct HomeWidgetContent: View {
                     .foregroundStyle(Theme.textSecondary)
             } else {
                 GeometryReader { proxy in
-                    let diameter = max(0, (proxy.size.width - 24) / 3)
+                    let columns = max(3, shortcuts.count)
+                    let diameter = max(0, (proxy.size.width - CGFloat(columns - 1) * 12) / CGFloat(columns))
                     HStack(spacing: 12) {
                         ForEach(shortcuts) { shortcut in
                             HomeActivityShortcutCircle(
@@ -173,7 +175,7 @@ struct HomeWidgetContent: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .aspectRatio(3, contentMode: .fit)
+                .aspectRatio(CGFloat(max(3, shortcuts.count)), contentMode: .fit)
             }
         }
         .onAppear {
@@ -355,7 +357,7 @@ struct HomeWidgetContent: View {
     private var activityHeatmap: some View {
         ActivityHeatmap(
             entries: workoutStore.historyEntries,
-            outdoorActivities: outdoorStore.activities
+            outdoorActivities: outdoorStore.establishedActivities
         )
         .environmentObject(workoutStore)
     }
@@ -399,10 +401,10 @@ struct HomeWidgetContent: View {
     }
 
     private var outdoorSummary: some View {
-        let finished = outdoorStore.activities.filter(\.finished)
+        let finished = outdoorStore.establishedActivities
         return HomeWidgetChrome(title: "Outdoor", surface: true) {
             HStack(spacing: 8) {
-                metricValue("\(finished.filter { $0.kind == .runWalk }.count)", label: "runs", icon: "figure.run")
+                metricValue("\(finished.filter { $0.kind != .bike }.count)", label: "on foot", icon: "figure.walk")
                 metricValue("\(finished.filter { $0.kind == .bike }.count)", label: "rides", icon: "bicycle")
                 metricValue(String(format: "%.1f km", finished.reduce(0) { $0 + $1.distanceMeters } / 1000), label: "distance", icon: "point.topleft.down.curvedto.point.bottomright.up")
             }
@@ -420,12 +422,18 @@ struct HomeWidgetContent: View {
                         .font(.caption)
                         .foregroundStyle(Theme.textSecondary)
                     #if os(iOS)
-                    Button {
-                        onStartOutdoor(activity.kind, outdoorStore.plannedRoute(withID: activity.plannedRouteID ?? ""))
-                    } label: {
-                        Label("Resume", systemImage: "play.fill")
+                    if UIDevice.current.userInterfaceIdiom == .phone {
+                        Button {
+                            onStartOutdoor(activity.kind, outdoorStore.plannedRoute(withID: activity.plannedRouteID ?? ""), activity.id)
+                        } label: {
+                            Label("Resume", systemImage: "play.fill")
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Text("Resume on iPhone")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.textSecondary)
                     }
-                    .buttonStyle(.bordered)
                     #else
                     Text("Resume on iPhone")
                         .font(.caption.weight(.semibold))
@@ -450,12 +458,16 @@ struct HomeWidgetContent: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(outdoorStore.plannedRoutes.prefix(max(1, widget.configuration.visibleCount)))) { route in
                         #if os(iOS)
-                        Button {
-                            onStartOutdoor(.runWalk, route)
-                        } label: {
+                        if UIDevice.current.userInterfaceIdiom == .phone {
+                            Button {
+                                onStartOutdoor(.run, route, nil)
+                            } label: {
+                                routeRow(route)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
                             routeRow(route)
                         }
-                        .buttonStyle(.plain)
                         #else
                         routeRow(route)
                         #endif
@@ -536,10 +548,16 @@ struct HomeWidgetContent: View {
             workoutStore.typeSchedules.contains { $0.type.id == type.id && $0.isActive }
         }
     }
-
     private var supportedShortcuts: [HomeActivityShortcut] {
         #if os(iOS)
-        return widget.configuration.activityShortcuts
+        guard UIDevice.current.userInterfaceIdiom == .phone else {
+            return widget.configuration.activityShortcuts.filter { $0 == .workout }
+        }
+        var shortcuts = widget.configuration.activityShortcuts
+        if shortcuts.contains(.runWalk), !shortcuts.contains(.walk) {
+            shortcuts.append(.walk)
+        }
+        return shortcuts
         #else
         return widget.configuration.activityShortcuts.filter { $0 == .workout }
         #endif
@@ -652,9 +670,11 @@ struct HomeWidgetContent: View {
         case .workout:
             if let workout = readyWorkouts.first { onStartWorkout(workout) } else { onCreateWorkout() }
         case .runWalk:
-            onStartOutdoor(.runWalk, nil)
+            onStartOutdoor(.run, nil, nil)
+        case .walk:
+            onStartOutdoor(.walk, nil, nil)
         case .bike:
-            onStartOutdoor(.bike, nil)
+            onStartOutdoor(.bike, nil, nil)
         }
     }
 
@@ -740,6 +760,7 @@ private struct HomeActivityShortcutCircle: View {
         switch shortcut {
         case .workout: .orange
         case .runWalk: .green
+        case .walk: .mint
         case .bike: .cyan
         }
     }

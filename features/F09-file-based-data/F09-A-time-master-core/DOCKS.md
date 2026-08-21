@@ -5,7 +5,7 @@ Shared Swift package that is the single writer and validator for the entire file
 ## What We Build
 
 1. **`TimeMasterCore` Swift Package** — no UI, no platform dependencies, pure Swift
-2. **Models** — `ExerciseManifest`, `WorkoutManifest`, `ConfigManifest`, `HistoryEntry` (all Codable, validated)
+2. **Models** — exercise/page, workout, config, history, outdoor-activity, route-point, and recording-preference manifests, all Codable and validated
 3. **DatabaseManager** — singleton that owns all read/write operations
 4. **SchemaManager** — generates and validates `schema.json` from Swift type metadata
 5. **Atomic writes** — write to temp file, validate, then `rename()` — never corrupt
@@ -23,6 +23,7 @@ TimeMasterCore/
 │   │   ├── WorkoutManifest.swift
 │   │   ├── ConfigManifest.swift
 │   │   ├── HistoryEntry.swift
+│   │   ├── OutdoorActivityManifest.swift
 │   │   └── SchemaDefinition.swift     ← schema.json structure
 │   ├── DatabaseManager.swift          ← read/write/search/validate
 │   ├── SchemaManager.swift            ← schema.json generation

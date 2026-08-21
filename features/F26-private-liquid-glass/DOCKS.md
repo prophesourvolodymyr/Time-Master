@@ -51,6 +51,7 @@ The SwiftUI toolbar and settings controls keep ownership of actions, labels, acc
 - F24 — existing slot navigation and page hierarchy must remain intact; this feature does not replace the bottom navigation surface.
 - F25 — Music settings owns the circular controls that receive the shared surface.
 - LiquidGlassKit at revision `51ef8d187a466345882b90d281865ceec7bad3b0` — private renderer for older iOS systems.
+- F28 — applies the same iOS 26 native and iOS 16–25 private-renderer split to morphing route pines while keeping their geometry and state relationships identical.
 - Metal-capable iOS hardware or simulator — required for the older-system renderer.
 
 ## Reference

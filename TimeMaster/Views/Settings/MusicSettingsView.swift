@@ -4,9 +4,12 @@ import UniformTypeIdentifiers
 struct MusicSettingsView: View {
     @EnvironmentObject private var workoutStore: WorkoutStore
     @ObservedObject private var manager = MusicManager.shared
-    @StateObject private var library = MusicLibraryStore()
+    @ObservedObject private var library: MusicLibraryStore
     @State private var showFilePicker = false
     @State private var importError: String?
+    init(library: MusicLibraryStore) {
+        self.library = library
+    }
 
     var body: some View {
         MusicLibraryScreen(library: library, importLocalMusic: { showFilePicker = true })
@@ -52,7 +55,7 @@ struct MusicSettingsView: View {
 
 #Preview {
     NavigationStack {
-        MusicSettingsView()
+        MusicSettingsView(library: MusicLibraryStore())
             .environmentObject(WorkoutStore())
     }
     .preferredColorScheme(.dark)

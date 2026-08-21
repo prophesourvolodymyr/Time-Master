@@ -65,6 +65,7 @@ Pane focus and Player insertion use scoped springs. Collection expansion uses a 
 - Existing `MusicManager` for user-owned local file import and AVFoundation playback.
 - Existing `WorkoutStore` and dynamic `WorkoutType` model for Mine and Type destinations.
 - Future provider credentials and official SDK/API work are separate external prerequisites. No feature depends on unofficial extraction or downloading.
+- F28 — consumes the same canonical Music library, route destinations, local playback queue, and stable item identity inside the outdoor Music pine; it does not create a second catalog.
 
 ## Files
 

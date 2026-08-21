@@ -179,7 +179,7 @@ The right download action represents the future same-map offline-area selection 
 
 Location focuses the current position and enters follow mode through the real location and camera services. A user pan exits follow mode without stopping recording.
 
-Weather is display-only. It updates from Apple WeatherKit, shows temperature plus current condition, uses cached last-known data when appropriate, and disappears or shows an unavailable state without becoming tappable.
+Weather is display-only. It updates from Apple WeatherKit, shows temperature plus current condition, uses only a temporary response-expiration-bounded cache permitted for WeatherKit performance, and disappears or shows unavailable without becoming tappable. WeatherKit values are never stored in the durable activity manifest or Library history.
 
 ## Left Quick Controls
 

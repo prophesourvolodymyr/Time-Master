@@ -193,6 +193,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
 enum HomeActivityShortcut: String, Codable, CaseIterable, Identifiable {
     case workout
     case runWalk
+    case walk
     case bike
 
     var id: String { rawValue }
@@ -200,7 +201,8 @@ enum HomeActivityShortcut: String, Codable, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .workout: "Workout"
-        case .runWalk: "Run & Walk"
+        case .runWalk: "Run"
+        case .walk: "Walk"
         case .bike: "Bike"
         }
     }
@@ -209,6 +211,7 @@ enum HomeActivityShortcut: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .workout: "figure.strengthtraining.traditional"
         case .runWalk: "figure.run"
+        case .walk: "figure.walk"
         case .bike: "bicycle"
         }
     }
@@ -238,7 +241,7 @@ struct HomeWidgetConfiguration: Codable, Equatable {
     var visibleCount = 3
     var selectedTypeID: String?
     var selectedWorkoutID: UUID?
-    var activityShortcuts: [HomeActivityShortcut] = [.workout, .runWalk, .bike]
+    var activityShortcuts: [HomeActivityShortcut] = [.workout, .runWalk, .walk, .bike]
     var metricFields: [HomeMetricField] = [.sessions, .streak, .activeMinutes]
 
     static func defaults(for kind: HomeWidgetKind) -> HomeWidgetConfiguration {
@@ -252,7 +255,7 @@ struct HomeWidgetConfiguration: Codable, Equatable {
         case .recentWorkouts:
             configuration.visibleCount = 3
         case .activityShortcuts:
-            configuration.activityShortcuts = [.workout, .runWalk, .bike]
+            configuration.activityShortcuts = [.workout, .runWalk, .walk, .bike]
         case .metrics:
             configuration.metricFields = [.sessions, .streak, .activeMinutes]
         case .weeklyRhythm, .typeBreakdown:

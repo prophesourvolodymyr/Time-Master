@@ -57,7 +57,7 @@ final class AudioManager {
         #endif
     }
 
-    func speak(_ text: String) {
+    func speak(_ text: String, volume: Float = 1) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         if synthesizer.isSpeaking {
@@ -66,7 +66,7 @@ final class AudioManager {
         let utterance = AVSpeechUtterance(string: trimmed)
         utterance.rate   = AVSpeechUtteranceDefaultSpeechRate
         utterance.voice  = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.volume = 1.0
+        utterance.volume = min(max(volume, 0), 1)
         synthesizer.speak(utterance)
     }
 

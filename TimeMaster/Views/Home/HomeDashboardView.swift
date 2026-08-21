@@ -10,7 +10,7 @@ struct HomeDashboardView: View {
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
-    var onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void = { _, _ in }
+    var onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void = { _, _, _ in }
 
     @StateObject private var widgetStore = HomeWidgetStore()
     @State private var playerWorkout: Workout?

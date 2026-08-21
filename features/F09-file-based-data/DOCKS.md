@@ -1,6 +1,6 @@
 # F09 — File-Based Data Architecture
 
-Converts the entire app data layer from UserDefaults JSON blobs to a transparent, AI-readable file-system database. Every exercise, workout, config, and history entry becomes a folder with manifest files. AI agents and the app itself read/write through a single validated core library.
+Converts the entire app data layer from UserDefaults JSON blobs to a transparent, AI-readable file-system database. Exercises, workouts, config, history, outdoor activities, and planned routes use transparent manifests and route files through one validated core library.
 
 ## What We Build
 
@@ -12,7 +12,7 @@ Converts the entire app data layer from UserDefaults JSON blobs to a transparent
 6. **Workspace/** — AI sandbox (temp/, exports/) — external folders ignored by the app
 7. **Knowledge/** — AI loads `*.md` files as system prompt prefix on session start
 8. **`skills/`** — reusable AI agent skill files inside the data directory
-9. **Config/**, **History/** (JSONL), **Music/**, **Backups/** — all file-based
+9. **Config/**, **History/** (JSONL), **Music/**, **Activities/**, **Routes/**, **Backups/** — all file-based
 10. All writes go through **F09-A TimeMasterCore** — no direct filesystem mutation by app or AI
 
 ## Architecture
@@ -30,6 +30,8 @@ Converts the entire app data layer from UserDefaults JSON blobs to a transparent
 ├── Config/
 ├── History/
 ├── Music/
+├── Activities/
+├── Routes/
 ├── Backups/
 └── .trash/                    ← soft-deleted items, recoverable
 

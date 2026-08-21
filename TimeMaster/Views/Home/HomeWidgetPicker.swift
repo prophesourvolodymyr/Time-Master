@@ -171,7 +171,7 @@ private struct HomeWidgetPreview: View {
             onBrowseWorkouts: {},
             onBrowseDatabase: {},
             onCreateWorkout: {},
-            onStartOutdoor: { _, _ in },
+            onStartOutdoor: { _, _, _ in },
             onSkipScheduledWorkout: { scheduled in
                 widgetStore.skipScheduledInstance(id: scheduled.id)
             }

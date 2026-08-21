@@ -42,7 +42,45 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Time-Master needs local network access to discover the companion server automatically</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Time-Master records your active Run &amp; Walk or Bike route while you exercise.</string>
+	<string>Time-Master records your active Run, Walk, or Bike route while you exercise.</string>
+	<key>TMExploreStyleURL</key>
+	<string>$(TM_EXPLORE_STYLE_URL)</string>
+	<key>TMExploreOfflineAllowed</key>
+	<string>$(TM_EXPLORE_OFFLINE_ALLOWED)</string>
+	<key>TMMapTilerKey</key>
+	<string>$(TM_MAPTILER_KEY)</string>
+	<key>TMMapTilerTerrainStyleURL</key>
+	<string>$(TM_MAPTILER_TERRAIN_STYLE_URL)</string>
+	<key>TMMapTilerSatelliteStyleURL</key>
+	<string>$(TM_MAPTILER_SATELLITE_STYLE_URL)</string>
+	<key>TMMapTilerThreeDStyleURL</key>
+	<string>$(TM_MAPTILER_3D_STYLE_URL)</string>
+	<key>TMMapTilerCyclingStyleURL</key>
+	<string>$(TM_MAPTILER_CYCLING_STYLE_URL)</string>
+	<key>TMMapTilerDarkStyleURL</key>
+	<string>$(TM_MAPTILER_DARK_STYLE_URL)</string>
+	<key>TMMapTilerOfflineStyleURL</key>
+	<string>$(TM_MAPTILER_OFFLINE_STYLE_URL)</string>
+	<key>TMMapTilerOfflineLicensed</key>
+	<string>$(TM_MAPTILER_OFFLINE_LICENSED)</string>
+	<key>TMTerrainRasterTileURL</key>
+	<string>$(TM_TERRAIN_RASTER_TILE_URL)</string>
+	<key>TMSatelliteRasterTileURL</key>
+	<string>$(TM_SATELLITE_RASTER_TILE_URL)</string>
+	<key>TMTomTomTrafficTileURL</key>
+	<string>$(TM_TOMTOM_TRAFFIC_TILE_URL)</string>
+	<key>TMTomTomTrafficKey</key>
+	<string>$(TM_TOMTOM_TRAFFIC_KEY)</string>
+	<key>TMTomTomTrafficSourceLayer</key>
+	<string>$(TM_TOMTOM_TRAFFIC_SOURCE_LAYER)</string>
+	<key>TMLicensedTransitFeedURL</key>
+	<string>$(TM_LICENSED_TRANSIT_FEED_URL)</string>
+	<key>TMLicensedTransitTileURL</key>
+	<string>$(TM_LICENSED_TRANSIT_TILE_URL)</string>
+	<key>TMLicensedTransitSourceLayer</key>
+	<string>$(TM_LICENSED_TRANSIT_SOURCE_LAYER)</string>
+	<key>TMLicensedTransitAttribution</key>
+	<string>$(TM_LICENSED_TRANSIT_ATTRIBUTION)</string>
 
 	<!-- UI settings -->
 	<key>UIStatusBarStyle</key>

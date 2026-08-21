@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     @EnvironmentObject var outdoorStore: OutdoorActivityStore
+    @EnvironmentObject var musicLibraryStore: MusicLibraryStore
     @ObservedObject var serverSettings: ServerSettings = .shared
     @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
 
@@ -35,26 +36,6 @@ struct SettingsView: View {
                     .listRowBackground(Theme.surface)
                     .listRowSeparatorTint(Theme.separator)
 
-                    #if os(iOS)
-                    // MARK: Outdoor Maps
-                    SwiftUI.Section {
-                        NavigationLink {
-                            OutdoorMapOfflineSettingsView()
-                        } label: {
-                            settingsRow(
-                                icon: "map",
-                                title: "Offline Maps",
-                                subtitle: "Download map areas for outdoor recording"
-                            )
-                        }
-                    } header: {
-                        Text("Outdoor")
-                            .foregroundColor(Theme.textSecondary)
-                            .font(.caption)
-                    }
-                    .listRowBackground(Theme.surface)
-                    .listRowSeparatorTint(Theme.separator)
-                    #endif
 
                     // MARK: Motivation + Music
                     SwiftUI.Section {
@@ -202,12 +183,12 @@ struct SettingsView: View {
             }
 #if os(iOS)
             .fullScreenCover(isPresented: $showMusicSettings) {
-                MusicSettingsView()
+                MusicSettingsView(library: musicLibraryStore)
                     .environmentObject(workoutStore)
             }
 #else
             .sheet(isPresented: $showMusicSettings) {
-                MusicSettingsView()
+                MusicSettingsView(library: musicLibraryStore)
                     .environmentObject(workoutStore)
             }
 #endif
@@ -262,5 +243,6 @@ struct SettingsView: View {
     SettingsView()
         .environmentObject(WorkoutStore())
         .environmentObject(OutdoorActivityStore())
+        .environmentObject(MusicLibraryStore())
         .preferredColorScheme(.dark)
 }

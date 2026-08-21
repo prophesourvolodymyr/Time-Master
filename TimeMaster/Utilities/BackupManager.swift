@@ -2,11 +2,29 @@ import Foundation
 import ZIPFoundation
 import TimeMasterCore
 
-// MARK: - Manifest
+struct BackupOfflineRegionMetadata: Codable, Equatable {
+    static let storageKey = "OutdoorOfflineRegions"
 
-/// Everything serialised into the backup ZIP as "manifest.json".
+    struct Bounds: Codable, Equatable {
+        var swLat: Double
+        var swLon: Double
+        var neLat: Double
+        var neLon: Double
+    }
+
+    var bounds: Bounds
+    var minZoom: Int
+    var maxZoom: Int
+    var styleURL: String
+    var downloadedAt: Date
+    var provider: OutdoorMapProvider? = nil
+    var capabilities: [OutdoorMapMode]? = nil
+    var cacheRights: OutdoorMapCacheRights? = nil
+    var attribution: OutdoorMapAttribution? = nil
+}
+
 struct BackupManifest: Codable {
-    var version: Int = 1
+    var version: Int = 2
     var exportedAt: Date = Date()
     var workouts: [Workout]
     var workoutHistory: [WorkoutHistoryEntry]
@@ -14,6 +32,51 @@ struct BackupManifest: Codable {
     var rootNotes: [DatabaseNote]
     var rootExercises: [Exercise]
     var outdoorActivities: [OutdoorActivity]? = nil
+    var plannedRoutes: [PlannedRoute]? = nil
+    var config: ConfigManifest? = nil
+    var offlineRegions: [BackupOfflineRegionMetadata]? = nil
+
+    init(
+        workouts: [Workout],
+        workoutHistory: [WorkoutHistoryEntry],
+        folders: [ExerciseFolder],
+        rootNotes: [DatabaseNote],
+        rootExercises: [Exercise],
+        outdoorActivities: [OutdoorActivity]? = nil,
+        plannedRoutes: [PlannedRoute]? = nil,
+        config: ConfigManifest? = nil,
+        offlineRegions: [BackupOfflineRegionMetadata]? = nil
+    ) {
+        self.workouts = workouts
+        self.workoutHistory = workoutHistory
+        self.folders = folders
+        self.rootNotes = rootNotes
+        self.rootExercises = rootExercises
+        self.outdoorActivities = outdoorActivities
+        self.plannedRoutes = plannedRoutes
+        self.config = config
+        self.offlineRegions = offlineRegions
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, exportedAt, workouts, workoutHistory, folders, rootNotes, rootExercises
+        case outdoorActivities, plannedRoutes, config, offlineRegions
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        exportedAt = try container.decodeIfPresent(Date.self, forKey: .exportedAt) ?? Date()
+        workouts = try container.decodeIfPresent([Workout].self, forKey: .workouts) ?? []
+        workoutHistory = try container.decodeIfPresent([WorkoutHistoryEntry].self, forKey: .workoutHistory) ?? []
+        folders = try container.decodeIfPresent([ExerciseFolder].self, forKey: .folders) ?? []
+        rootNotes = try container.decodeIfPresent([DatabaseNote].self, forKey: .rootNotes) ?? []
+        rootExercises = try container.decodeIfPresent([Exercise].self, forKey: .rootExercises) ?? []
+        outdoorActivities = try container.decodeIfPresent([OutdoorActivity].self, forKey: .outdoorActivities)
+        plannedRoutes = try container.decodeIfPresent([PlannedRoute].self, forKey: .plannedRoutes)
+        config = try container.decodeIfPresent(ConfigManifest.self, forKey: .config)
+        offlineRegions = try container.decodeIfPresent([BackupOfflineRegionMetadata].self, forKey: .offlineRegions)
+    }
 }
 
 // MARK: - Import Summary
@@ -24,6 +87,9 @@ struct ImportSummary {
     var workoutsImported: Int = 0
     var historyImported: Int = 0
     var outdoorActivitiesImported: Int = 0
+    var routesImported: Int = 0
+    var preferencesImported: Int = 0
+    var offlineRegionsImported: Int = 0
     var mediaImported: Int = 0
     var duplicatesSkipped: Int = 0
 }
@@ -50,6 +116,9 @@ final class BackupManager {
         let rootNotes: [DatabaseNote]
         let outdoorActivities: [OutdoorActivity]
         let outdoorRoutes: [String: [OutdoorTrackPoint]]
+        let plannedRoutes: [PlannedRoute]
+        let config: ConfigManifest
+        let offlineRegions: [BackupOfflineRegionMetadata]
         let rootExercises: [Exercise]
     }
 
@@ -61,13 +130,16 @@ final class BackupManager {
             outdoorRoutes[activity.id.uuidString] = outdoorStore.trackPoints(for: activity)
         }
         return ExportSnapshot(
-            workouts:       workoutStore.workouts,
+            workouts: workoutStore.workouts,
             workoutHistory: workoutStore.historyEntries,
-            folders:        databaseStore.rootFolders,
-            rootNotes:      databaseStore.rootNotes,
+            folders: databaseStore.rootFolders,
+            rootNotes: databaseStore.rootNotes,
             outdoorActivities: outdoorActivities,
             outdoorRoutes: outdoorRoutes,
-            rootExercises:  databaseStore.rootExercises
+            plannedRoutes: outdoorStore.plannedRoutes,
+            config: (try? db.loadConfig()) ?? ConfigManifest(),
+            offlineRegions: loadOfflineRegionMetadata(),
+            rootExercises: databaseStore.rootExercises
         )
     }
 
@@ -76,12 +148,15 @@ final class BackupManager {
 
         // 1. Build manifest
         let manifest = BackupManifest(
-            workouts:       snapshot.workouts,
+            workouts: snapshot.workouts,
             workoutHistory: snapshot.workoutHistory,
-            folders:        snapshot.folders,
-            rootNotes:      snapshot.rootNotes,
-            rootExercises:  snapshot.rootExercises,
-            outdoorActivities: snapshot.outdoorActivities
+            folders: snapshot.folders,
+            rootNotes: snapshot.rootNotes,
+            rootExercises: snapshot.rootExercises,
+            outdoorActivities: snapshot.outdoorActivities,
+            plannedRoutes: snapshot.plannedRoutes,
+            config: snapshot.config,
+            offlineRegions: snapshot.offlineRegions
         )
         let manifestData = try JSONEncoder().encode(manifest)
 
@@ -189,6 +264,84 @@ final class BackupManager {
 
         // 3. Bootstrap directories
         try db.bootstrapIfNeeded()
+        struct PendingOutdoorImport {
+            let activity: OutdoorActivity
+            let points: [OutdoorTrackPoint]
+        }
+        let routeDecoder = JSONDecoder()
+        routeDecoder.dateDecodingStrategy = .iso8601
+        var pendingOutdoorImports: [PendingOutdoorImport] = []
+        for activity in manifest.outdoorActivities ?? [] {
+            let id = activity.id.uuidString
+            let folder = db.dataRoot.appendingPathComponent("Activities/\(id)", isDirectory: true)
+            if fm.fileExists(atPath: folder.path) {
+                continue
+            }
+            guard activity.finished == (activity.recordingState == .finished),
+                  activity.establishedAt == nil || activity.finished else {
+                throw BackupError.invalidBackup
+            }
+            let routeURL = tmpDir.appendingPathComponent("activities/\(id)/track.jsonl")
+            guard fm.fileExists(atPath: routeURL.path) else {
+                throw BackupError.invalidBackup
+            }
+            var points: [OutdoorTrackPoint] = []
+            let text = try String(contentsOf: routeURL)
+            for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+                let point = try routeDecoder.decode(TimeMasterCore.OutdoorTrackPoint.self, from: Data(line.utf8))
+                let decodedPoint = OutdoorTrackPoint(core: point)
+                guard OutdoorMetricsCalculator.isValidLocationPoint(decodedPoint) else {
+                    throw BackupError.invalidBackup
+                }
+                points.append(decodedPoint)
+            }
+            pendingOutdoorImports.append(PendingOutdoorImport(activity: activity, points: points))
+        }
+
+        let routeEncoder = JSONEncoder()
+        routeEncoder.dateEncodingStrategy = .iso8601
+        var pendingRoutes: [PlannedRoute] = []
+        var pendingRouteIDs = Set<UUID>()
+        for route in manifest.plannedRoutes ?? [] {
+            let routeURL = db.routesDirectory.appendingPathComponent("\(route.id.uuidString).json")
+            guard !fm.fileExists(atPath: routeURL.path), pendingRouteIDs.insert(route.id).inserted else {
+                continue
+            }
+            guard route.points.count > 1,
+                  route.points.allSatisfy({ OutdoorMetricsCalculator.isValidLocationPoint($0) }) else {
+                throw BackupError.invalidBackup
+            }
+            _ = try routeEncoder.encode(route)
+            pendingRoutes.append(route)
+        }
+        let originalConfig: ConfigManifest?
+        let mergedConfig: ConfigManifest?
+        if let importedConfig = manifest.config {
+            let currentConfig = try db.loadConfig()
+            originalConfig = currentConfig
+            var nextConfig = currentConfig
+            nextConfig.outdoorRecording = importedConfig.outdoorRecording
+            mergedConfig = nextConfig
+        } else {
+            originalConfig = nil
+            mergedConfig = nil
+        }
+        let originalOfflineRegionsData = UserDefaults.standard.data(forKey: BackupOfflineRegionMetadata.storageKey)
+        let preparedOfflineRegions: (data: Data, importedCount: Int)?
+        if let regions = manifest.offlineRegions, !regions.isEmpty {
+            let existing = originalOfflineRegionsData.flatMap {
+                try? JSONDecoder().decode([BackupOfflineRegionMetadata].self, from: $0)
+            } ?? []
+            var merged = existing
+            var importedCount = 0
+            for region in regions where !merged.contains(region) {
+                merged.append(region)
+                importedCount += 1
+            }
+            preparedOfflineRegions = (try JSONEncoder().encode(merged), importedCount)
+        } else {
+            preparedOfflineRegions = nil
+        }
 
         // 4. Import media files with UUID filenames → build mapping
         var mediaMap: [String: String] = [:]
@@ -329,32 +482,75 @@ final class BackupManager {
             }
         }
 
-        // 9. Import outdoor activities and their raw route files.
         var outdoorActivitiesImported = 0
-        let routeDecoder = JSONDecoder()
-        routeDecoder.dateDecodingStrategy = .iso8601
-        for activity in manifest.outdoorActivities ?? [] {
-            let id = activity.id.uuidString
-            let folder = db.dataRoot.appendingPathComponent("Activities/\(id)", isDirectory: true)
-            if fm.fileExists(atPath: folder.path) {
-                duplicatesSkipped += 1
-                continue
-            }
-            do {
+        var routesImported = 0
+        var preferencesImported = 0
+        var offlineRegionsImported = 0
+        var createdOutdoorIDs: [String] = []
+        var createdRouteURLs: [URL] = []
+        do {
+            for activity in manifest.outdoorActivities ?? [] {
+                let id = activity.id.uuidString
+                let folder = db.dataRoot.appendingPathComponent("Activities/\(id)", isDirectory: true)
+                if fm.fileExists(atPath: folder.path) {
+                    duplicatesSkipped += 1
+                    continue
+                }
+                guard let pending = pendingOutdoorImports.first(where: { $0.activity.id == activity.id }) else {
+                    throw BackupError.invalidBackup
+                }
                 try db.createOutdoorActivity(id: id, manifest: activity.coreValue)
-                let routeURL = tmpDir.appendingPathComponent("activities/\(id)/track.jsonl")
-                if fm.fileExists(atPath: routeURL.path) {
-                    let text = try String(contentsOf: routeURL)
-                    for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
-                        if let point = try? routeDecoder.decode(TimeMasterCore.OutdoorTrackPoint.self, from: Data(line.utf8)) {
-                            try db.appendOutdoorTrackPoint(id: id, point: point)
-                        }
-                    }
+                createdOutdoorIDs.append(id)
+                for point in pending.points {
+                    try db.appendOutdoorTrackPoint(id: id, point: point.coreValue)
                 }
                 outdoorActivitiesImported += 1
-            } catch {
-                print("[BackupManager] Failed to import outdoor activity \(id): \(error)")
             }
+
+            for route in pendingRoutes {
+                let routeURL = db.routesDirectory.appendingPathComponent("\(route.id.uuidString).json")
+                let routeData = try routeEncoder.encode(route)
+                try routeData.write(to: routeURL, options: .atomic)
+                createdRouteURLs.append(routeURL)
+                routesImported += 1
+            }
+            for route in (manifest.plannedRoutes ?? []) where !pendingRoutes.contains(where: { $0.id == route.id }) {
+                duplicatesSkipped += 1
+            }
+
+            if let importedConfig = manifest.config, let mergedConfig {
+                try db.saveConfig(mergedConfig)
+                if importedConfig.outdoorRecording != nil {
+                    preferencesImported = 1
+                }
+            }
+
+            if let preparedOfflineRegions {
+                UserDefaults.standard.set(
+                    preparedOfflineRegions.data,
+                    forKey: BackupOfflineRegionMetadata.storageKey
+                )
+                offlineRegionsImported = preparedOfflineRegions.importedCount
+            }
+        } catch {
+            for routeURL in createdRouteURLs {
+                try? fm.removeItem(at: routeURL)
+            }
+            for id in createdOutdoorIDs {
+                try? db.deleteOutdoorActivity(id: id)
+            }
+            if let originalConfig {
+                try? db.saveConfig(originalConfig)
+            }
+            if let originalOfflineRegionsData {
+                UserDefaults.standard.set(
+                    originalOfflineRegionsData,
+                    forKey: BackupOfflineRegionMetadata.storageKey
+                )
+            } else {
+                UserDefaults.standard.removeObject(forKey: BackupOfflineRegionMetadata.storageKey)
+            }
+            throw error
         }
 
         // 10. Reload stores on main thread (@Published properties)
@@ -362,6 +558,9 @@ final class BackupManager {
             workoutStore.reload()
             databaseStore.reload()
             outdoorStore.reload()
+            if preferencesImported > 0 {
+                NotificationCenter.default.post(name: .outdoorRecordingPreferencesDidChange, object: nil)
+            }
         }
 
         return ImportSummary(
@@ -370,6 +569,9 @@ final class BackupManager {
             workoutsImported: workoutsImported,
             historyImported: historyImported,
             outdoorActivitiesImported: outdoorActivitiesImported,
+            routesImported: routesImported,
+            preferencesImported: preferencesImported,
+            offlineRegionsImported: offlineRegionsImported,
             mediaImported: mediaMap.count,
             duplicatesSkipped: duplicatesSkipped
         )
@@ -462,6 +664,24 @@ final class BackupManager {
             names.append(contentsOf: collectMediaFilenames(from: folder))
         }
         return names
+
+    }
+    private func loadOfflineRegionMetadata() -> [BackupOfflineRegionMetadata] {
+        guard
+            let data = UserDefaults.standard.data(forKey: BackupOfflineRegionMetadata.storageKey),
+            let metadata = try? JSONDecoder().decode([BackupOfflineRegionMetadata].self, from: data)
+        else {
+            return []
+        }
+        return metadata.filter {
+            $0.bounds.swLat.isFinite
+                && $0.bounds.swLon.isFinite
+                && $0.bounds.neLat.isFinite
+                && $0.bounds.neLon.isFinite
+                && $0.minZoom >= 0
+                && $0.maxZoom >= $0.minZoom
+                && !$0.styleURL.isEmpty
+        }
     }
 
     private func collectWorkoutMediaFilenames(from workouts: [Workout]) -> [String] {

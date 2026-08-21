@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 private enum HistoryItem: Identifiable {
     case workout(WorkoutHistoryEntry)
@@ -22,12 +25,13 @@ private enum HistoryItem: Identifiable {
 struct HistoryView: View {
     @EnvironmentObject var store: WorkoutStore
     @EnvironmentObject var outdoorStore: OutdoorActivityStore
+    @EnvironmentObject var musicLibraryStore: MusicLibraryStore
+    @EnvironmentObject var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @State private var showingClearAlert = false
-    @State private var showingOutdoorClearAlert = false
     @State private var selectedOutdoorActivity: OutdoorActivity?
 
     private var items: [HistoryItem] {
-        (store.historyEntries.map(HistoryItem.workout) + outdoorStore.activities.filter(\.finished).map(HistoryItem.outdoor))
+        (store.historyEntries.map(HistoryItem.workout) + outdoorStore.establishedActivities.map(HistoryItem.outdoor))
             .sorted { $0.date > $1.date }
     }
 
@@ -56,14 +60,23 @@ struct HistoryView: View {
                                         } label: { Label("Delete", systemImage: "trash") }
                                     }
                             case .outdoor(let activity):
-                                Button { selectedOutdoorActivity = activity } label: {
+                                Group {
+#if os(iOS)
+                                    if UIDevice.current.userInterfaceIdiom == .phone {
+                                        Button {
+                                            selectedOutdoorActivity = activity
+                                        } label: {
+                                            OutdoorHistoryRow(activity: activity)
+                                        }
+                                        .buttonStyle(.plain)
+                                    } else {
+                                        OutdoorHistoryRow(activity: activity)
+                                    }
+#else
                                     OutdoorHistoryRow(activity: activity)
+#endif
                                 }
-                                .buttonStyle(.plain)
                                 .listRowBackground(Theme.surface)
-                                .swipeActions {
-                                    Button(role: .destructive) { try? outdoorStore.delete(activity) } label: { Label("Delete", systemImage: "trash") }
-                                }
                             }
                         }
                     }
@@ -80,25 +93,27 @@ struct HistoryView: View {
                         }
                     }
                 }
-                if !outdoorStore.activities.filter(\.finished).isEmpty {
-                    AppToolbar.iconItem(placement: .primaryAction) {
-                        Button { showingOutdoorClearAlert = true } label: {
-                            Image(systemName: "figure.run.circle").foregroundColor(.cyan)
-                        }
-                    }
-                }
             }
             .alert("Clear Workout History?", isPresented: $showingClearAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) { store.clearHistory() }
             } message: { Text("Outdoor activities will remain.") }
-            .alert("Clear Outdoor Activities?", isPresented: $showingOutdoorClearAlert) {
-                Button("Cancel", role: .cancel) {}
-                Button("Clear", role: .destructive) { try? outdoorStore.clearFinished() }
-            } message: { Text("This deletes saved routes and cannot be undone.") }
-            .sheet(item: $selectedOutdoorActivity) { activity in
-                OutdoorActivityDetailView(store: outdoorStore, activity: activity)
+#if os(iOS)
+            .fullScreenCover(
+                item: Binding(
+                    get: { UIDevice.current.userInterfaceIdiom == .phone ? selectedOutdoorActivity : nil },
+                    set: { selectedOutdoorActivity = $0 }
+                )
+            ) { activity in
+                OutdoorRouteRecordingView(
+                    kind: activity.kind,
+                    store: outdoorStore,
+                    preferences: outdoorPreferencesStore,
+                    musicLibrary: musicLibraryStore,
+                    initialActivityID: activity.id
+                )
             }
+            #endif
         }
     }
 }
@@ -200,5 +215,7 @@ struct HistoryRow: View {
     HistoryView()
         .environmentObject(WorkoutStore())
         .environmentObject(OutdoorActivityStore())
+        .environmentObject(MusicLibraryStore())
+        .environmentObject(OutdoorRecordingPreferencesStore())
         .preferredColorScheme(.dark)
 }

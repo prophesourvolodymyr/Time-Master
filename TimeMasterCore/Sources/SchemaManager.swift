@@ -92,7 +92,7 @@ public final class SchemaManager {
                 ]
             ),
             "outdoorActivity": ObjectSchema(
-                description: "A GPS-backed Run, Walk, legacy Run & Walk, or Bike activity. Schema version 2 adds publication metadata, elevation summaries, played-track history, and an optional weather snapshot while preserving the complete private JSONL route.",
+                description: "A GPS-backed Run, Walk, legacy Run & Walk, or Bike activity. Schema version 2 adds publication metadata, elevation summaries, optional vertical/barometric track accuracy fields, played-track history, and an optional weather snapshot while preserving the complete private JSONL route.",
                 folderPath: "Activities/{id}",
                 manifestName: "manifest.json",
                 required: ["id", "schemaVersion", "kind", "title", "startedAt", "elapsedSeconds", "movingSeconds", "distanceMeters", "trackPointCount", "recordingState", "finished", "visibility", "starred", "publicDescription", "tags", "allowComments", "hideStartFinish", "endpointPrivacyMeters", "showPlayerTracks", "hasPublicMetadata", "playedTracks"],

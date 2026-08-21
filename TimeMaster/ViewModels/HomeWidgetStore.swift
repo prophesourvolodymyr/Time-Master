@@ -20,17 +20,27 @@ final class HomeWidgetStore: ObservableObject {
         } else {
             loadedWidgets = HomeWidgetCatalog.initialLayout
         }
+        let outdoorShortcutWidgets = loadedWidgets.map { widget in
+            var widget = widget
+            if widget.kind == .activityShortcuts,
+               widget.configuration.activityShortcuts.contains(.runWalk),
+               !widget.configuration.activityShortcuts.contains(.walk) {
+                widget.configuration.activityShortcuts.append(.walk)
+            }
+            return widget
+        }
+        let addedWalkShortcut = outdoorShortcutWidgets != loadedWidgets
 
         let needsGreetingStripMigration = defaults.bool(forKey: greetingStripMigrationKey) == false
         widgets = needsGreetingStripMigration
-            ? loadedWidgets.map { widget in
+            ? outdoorShortcutWidgets.map { widget in
                 var widget = widget
                 if widget.kind == .greeting {
                     widget.footprint = .wide
                 }
                 return widget
             }
-            : loadedWidgets
+            : outdoorShortcutWidgets
 
         if let data = defaults.data(forKey: skippedScheduleKey),
            let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
@@ -39,7 +49,7 @@ final class HomeWidgetStore: ObservableObject {
             skippedScheduledInstanceIDs = []
         }
 
-        if needsGreetingStripMigration {
+        if needsGreetingStripMigration || addedWalkShortcut {
             defaults.set(true, forKey: greetingStripMigrationKey)
             save()
         }

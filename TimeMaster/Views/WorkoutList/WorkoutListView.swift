@@ -1,9 +1,14 @@
 import SwiftUI
 import WidgetKit
+#if os(iOS)
+import UIKit
+#endif
 
 struct WorkoutListView: View {
     @EnvironmentObject var store: WorkoutStore
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
+    @EnvironmentObject private var musicLibraryStore: MusicLibraryStore
+    @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
     @Binding var requestedWorkoutID: UUID?
     @State private var navigationPath: [Workout] = []
@@ -118,8 +123,18 @@ struct WorkoutListView: View {
                     .environmentObject(DatabaseStore.shared)
             }
             #if os(iOS)
-            .sheet(item: $activeOutdoorKind) { kind in
-                OutdoorRecorderView(kind: kind, store: outdoorStore, plannedRoute: nil)
+            .fullScreenCover(
+                item: Binding(
+                    get: { UIDevice.current.userInterfaceIdiom == .phone ? activeOutdoorKind : nil },
+                    set: { activeOutdoorKind = $0 }
+                )
+            ) { kind in
+                OutdoorRouteRecordingView(
+                    kind: kind,
+                    store: outdoorStore,
+                    preferences: outdoorPreferencesStore,
+                    musicLibrary: musicLibraryStore
+                )
             }
             #endif
             .sheet(isPresented: $showingSettings) {
@@ -484,13 +499,19 @@ struct WorkoutListView: View {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 24) {
                     #if os(iOS)
+                    if UIDevice.current.userInterfaceIdiom == .phone {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Outdoor activity").font(.headline).foregroundColor(Theme.textPrimary)
                         HStack(spacing: 10) {
                             Button {
                                 showingAddWorkout = false
-                                activeOutdoorKind = .runWalk
-                            } label: { Label("Run & Walk", systemImage: "figure.run") }
+                                activeOutdoorKind = .run
+                            } label: { Label("Run", systemImage: "figure.run") }
+                                .buttonStyle(.bordered)
+                            Button {
+                                showingAddWorkout = false
+                                activeOutdoorKind = .walk
+                            } label: { Label("Walk", systemImage: "figure.walk") }
                                 .buttonStyle(.bordered)
                             Button {
                                 showingAddWorkout = false
@@ -498,6 +519,7 @@ struct WorkoutListView: View {
                             } label: { Label("Bike", systemImage: "bicycle") }
                                 .buttonStyle(.bordered)
                         }
+                    }
                     }
                     #endif
                     VStack(alignment: .leading, spacing: 8) {

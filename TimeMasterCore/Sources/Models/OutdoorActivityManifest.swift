@@ -117,27 +117,9 @@ public struct OutdoorPlayedTrackEvent: Codable, Equatable, Identifiable {
     }
 }
 
-public struct OutdoorWeatherSnapshot: Codable, Equatable {
-    public var timestamp: Date
-    public var temperatureCelsius: Double
-    public var condition: String
-    public var symbolName: String?
-
-    public init(
-        timestamp: Date,
-        temperatureCelsius: Double,
-        condition: String,
-        symbolName: String? = nil
-    ) {
-        self.timestamp = timestamp
-        self.temperatureCelsius = temperatureCelsius
-        self.condition = condition
-        self.symbolName = symbolName
-    }
-}
 
 public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
-    public static let currentSchemaVersion = 2
+    public static let currentSchemaVersion = 3
 
     public var id: String
     public var schemaVersion: Int
@@ -171,7 +153,6 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
     public var showPlayerTracks: Bool
     public var hasPublicMetadata: Bool
     public var playedTracks: [OutdoorPlayedTrackEvent]
-    public var weather: OutdoorWeatherSnapshot?
 
     public init(
         id: String = UUID().uuidString,
@@ -205,8 +186,7 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         endpointPrivacyMeters: Int = 200,
         showPlayerTracks: Bool = true,
         hasPublicMetadata: Bool = false,
-        playedTracks: [OutdoorPlayedTrackEvent] = [],
-        weather: OutdoorWeatherSnapshot? = nil
+        playedTracks: [OutdoorPlayedTrackEvent] = []
     ) {
         self.id = id
         self.schemaVersion = schemaVersion
@@ -240,7 +220,6 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         self.showPlayerTracks = showPlayerTracks
         self.hasPublicMetadata = hasPublicMetadata
         self.playedTracks = playedTracks
-        self.weather = weather
     }
 
     public static func clampedEndpointPrivacyMeters(_ value: Int) -> Int {
@@ -261,7 +240,7 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         case trackPointCount, recordingState, finished, plannedRouteID, elevationGainMeters, highestElevationMeters
         case averagePaceSecondsPerKilometer, establishedAt, visibility, starred, publicDescription, tags
         case allowComments, hideStartFinish, endpointPrivacyMeters, showPlayerTracks, hasPublicMetadata
-        case playedTracks, weather
+        case playedTracks
     }
 
     public init(from decoder: Decoder) throws {
@@ -310,8 +289,7 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
             endpointPrivacyMeters: try c.decodeIfPresent(Int.self, forKey: .endpointPrivacyMeters) ?? 200,
             showPlayerTracks: try c.decodeIfPresent(Bool.self, forKey: .showPlayerTracks) ?? true,
             hasPublicMetadata: try c.decodeIfPresent(Bool.self, forKey: .hasPublicMetadata) ?? false,
-            playedTracks: try c.decodeIfPresent([OutdoorPlayedTrackEvent].self, forKey: .playedTracks) ?? [],
-            weather: try c.decodeIfPresent(OutdoorWeatherSnapshot.self, forKey: .weather)
+            playedTracks: try c.decodeIfPresent([OutdoorPlayedTrackEvent].self, forKey: .playedTracks) ?? []
         )
     }
 
@@ -349,6 +327,5 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         try c.encode(showPlayerTracks, forKey: .showPlayerTracks)
         try c.encode(hasPublicMetadata, forKey: .hasPublicMetadata)
         try c.encode(playedTracks, forKey: .playedTracks)
-        try c.encodeIfPresent(weather, forKey: .weather)
     }
 }

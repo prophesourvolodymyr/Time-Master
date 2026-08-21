@@ -55,6 +55,26 @@ targets:
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_ENTITLEMENTS: TimeMaster/TimeMaster.entitlements
+        TM_EXPLORE_STYLE_URL: "https://tiles.openfreemap.org/styles/liberty"
+        TM_EXPLORE_OFFLINE_ALLOWED: NO
+        TM_MAPTILER_KEY: ""
+        TM_MAPTILER_TERRAIN_STYLE_URL: ""
+        TM_MAPTILER_SATELLITE_STYLE_URL: ""
+        TM_MAPTILER_3D_STYLE_URL: ""
+        TM_MAPTILER_CYCLING_STYLE_URL: ""
+        TM_MAPTILER_DARK_STYLE_URL: ""
+        TM_MAPTILER_OFFLINE_STYLE_URL: ""
+        TM_MAPTILER_OFFLINE_LICENSED: NO
+        TM_TERRAIN_RASTER_TILE_URL: "https://tile.opentopomap.org/{z}/{x}/{y}.png"
+        TM_SATELLITE_RASTER_TILE_URL: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        TM_TOMTOM_TRAFFIC_TILE_URL: ""
+        TM_TOMTOM_TRAFFIC_KEY: ""
+        TM_TOMTOM_TRAFFIC_SOURCE_LAYER: "flow"
+        TM_LICENSED_TRANSIT_FEED_URL: ""
+        TM_LICENSED_TRANSIT_TILE_URL: ""
+        TM_LICENSED_TRANSIT_SOURCE_LAYER: "transit"
+        TM_LICENSED_TRANSIT_ATTRIBUTION: ""
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: NO
@@ -79,6 +99,21 @@ targets:
         CODE_SIGNING_ALLOWED: NO
         SKIP_INSTALL: YES
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+  TimeMasterUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: TimeMasterUITests
+    dependencies:
+      - target: TimeMaster
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.timemaster.TimeMasterUITests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
   TimeMaster-macOS:
     type: application
     platform: macOS
@@ -113,6 +148,10 @@ schemes:
         TimeMaster: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - TimeMasterUITests
     profile:
       config: Release
     analyze:

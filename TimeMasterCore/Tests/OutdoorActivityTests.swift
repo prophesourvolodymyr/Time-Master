@@ -70,21 +70,44 @@ final class OutdoorActivityTests: XCTestCase {
         XCTAssertEqual(try decoder.decode(OutdoorActivityManifest.self, from: encoder.encode(manifest)), manifest)
     }
 
-    func testExportersProduceValidEmptyAndPopulatedFiles() throws {
-        let manifest = OutdoorActivityManifest(id: "export", kind: .bike, title: "A & B", startedAt: baseDate)
-        let points = (0..<3).map { index in
-            OutdoorTrackPoint(timestamp: baseDate.addingTimeInterval(Double(index) * 10), latitude: 40 + Double(index) / 1000, longitude: -73, elevationMeters: Double(index), horizontalAccuracyMeters: 4, speedMetersPerSecond: 2, state: .recording)
+    func testExportersProduceValidEmptyPopulatedAndPrivacyFiles() throws {
+        let manifest = OutdoorActivityManifest(
+            id: "export",
+            kind: .bike,
+            title: "A & B",
+            startedAt: baseDate,
+            elapsedSeconds: 40,
+            movingSeconds: 40,
+            distanceMeters: 440,
+            averageSpeedMetersPerSecond: 11,
+            maxSpeedMetersPerSecond: 12,
+            recordingState: .finished,
+            finished: true
+        )
+        let points = (0..<5).map { index in
+            OutdoorTrackPoint(timestamp: baseDate.addingTimeInterval(Double(index) * 10), latitude: 40, longitude: -73 + Double(index) / 1000, elevationMeters: Double(index), horizontalAccuracyMeters: 4, speedMetersPerSecond: 11, state: .recording)
         }
         let gpx = try OutdoorActivityExportService.gpxURL(for: manifest, points: points)
         let csv = try OutdoorActivityExportService.csvURL(for: manifest, points: points)
+        let fit = try OutdoorActivityExportService.fitURL(for: manifest, points: points)
         let gpxText = try String(contentsOf: gpx)
         let csvText = try String(contentsOf: csv)
+        let fitData = try Data(contentsOf: fit)
         XCTAssertTrue(gpxText.contains("version=\"1.1\""))
-        XCTAssertEqual(gpxText.components(separatedBy: "<trkpt ").count - 1, 3)
+        XCTAssertEqual(gpxText.components(separatedBy: "<trkpt ").count - 1, 5)
         XCTAssertTrue(gpxText.contains("<ele>1.0</ele>"))
         XCTAssertTrue(gpxText.contains("A &amp; B"))
-        XCTAssertEqual(csvText.components(separatedBy: "\n").count, 5)
+        XCTAssertEqual(csvText.components(separatedBy: "\n").count, 7)
         XCTAssertTrue(csvText.hasPrefix("timestamp,latitude,longitude,elevationMeters,horizontalAccuracyMeters,speedMetersPerSecond,state,cumulativeDistanceMeters\n"))
+        XCTAssertEqual(fitData.first, 14)
+        XCTAssertEqual(String(data: fitData[8..<12], encoding: .ascii), ".FIT")
+        let bodySize = Int(fitData[4]) | Int(fitData[5]) << 8 | Int(fitData[6]) << 16 | Int(fitData[7]) << 24
+        XCTAssertEqual(fitData.count, 14 + bodySize + 2)
+        let projected = OutdoorActivityExportService.privacyProjectedPoints(points, hidingEndpointsMeters: 100)
+        XCTAssertFalse(projected.isEmpty)
+        XCTAssertNotEqual(projected.first, points.first)
+        XCTAssertNotEqual(projected.last, points.last)
+        XCTAssertEqual(points.count, 5)
         let emptyCSV = try OutdoorActivityExportService.csvURL(for: manifest, points: [])
         XCTAssertEqual(try String(contentsOf: emptyCSV).components(separatedBy: "\n").count, 2)
     }
@@ -129,7 +152,7 @@ final class OutdoorActivityTests: XCTestCase {
         XCTAssertTrue(manifest.playedTracks.isEmpty)
     }
 
-    func testVersionTwoFinishedManifestPreservesNilEstablishedAt() throws {
+    func testVersionTwoFinishedManifestMigratesToEstablished() throws {
         let manifest = OutdoorActivityManifest(
             id: "v2",
             kind: .run,
@@ -146,7 +169,28 @@ final class OutdoorActivityTests: XCTestCase {
         decoder.dateDecodingStrategy = .iso8601
 
         let decoded = try decoder.decode(OutdoorActivityManifest.self, from: encoder.encode(manifest))
+        XCTAssertEqual(decoded.schemaVersion, 2)
+        XCTAssertEqual(decoded.establishedAt, baseDate.addingTimeInterval(120))
+    }
+
+    func testCurrentFinishedManifestPreservesNilEstablishedAt() throws {
+        let manifest = OutdoorActivityManifest(
+            id: "current",
+            kind: .run,
+            startedAt: baseDate,
+            endedAt: baseDate.addingTimeInterval(120),
+            recordingState: .finished,
+            finished: true,
+            establishedAt: nil
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let decoded = try decoder.decode(OutdoorActivityManifest.self, from: encoder.encode(manifest))
         XCTAssertEqual(decoded, manifest)
+        XCTAssertEqual(decoded.schemaVersion, OutdoorActivityManifest.currentSchemaVersion)
         XCTAssertNil(decoded.establishedAt)
     }
 
@@ -172,12 +216,6 @@ final class OutdoorActivityTests: XCTestCase {
             artist: "Artist",
             artworkReference: "artwork"
         )
-        let weather = OutdoorWeatherSnapshot(
-            timestamp: baseDate,
-            temperatureCelsius: 21.5,
-            condition: "clear",
-            symbolName: "sun.max"
-        )
         let manifest = OutdoorActivityManifest(
             id: "metadata",
             kind: .walk,
@@ -190,8 +228,7 @@ final class OutdoorActivityTests: XCTestCase {
             endpointPrivacyMeters: 150,
             showPlayerTracks: false,
             hasPublicMetadata: true,
-            playedTracks: [playedTrack],
-            weather: weather
+            playedTracks: [playedTrack]
         )
         XCTAssertEqual(manifest.endpointPrivacyMeters, 200)
 
@@ -202,7 +239,6 @@ final class OutdoorActivityTests: XCTestCase {
         let decoded = try decoder.decode(OutdoorActivityManifest.self, from: encoder.encode(manifest))
         XCTAssertEqual(decoded, manifest)
         XCTAssertEqual(decoded.playedTracks, [playedTrack])
-        XCTAssertEqual(decoded.weather, weather)
         XCTAssertEqual(OutdoorActivityManifest.clampedEndpointPrivacyMeters(-1), 100)
         XCTAssertEqual(OutdoorActivityManifest.clampedEndpointPrivacyMeters(999), 500)
     }

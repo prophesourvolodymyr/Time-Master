@@ -143,14 +143,14 @@ struct AnalyticsView: View {
                     )
                 }
                 LifetimeStatsStrip(entries: filteredEntries)
-                if selectedType == nil, !outdoorStore.activities.filter(\.finished).isEmpty {
-                    OutdoorAnalyticsSummary(activities: outdoorStore.activities.filter(\.finished))
+                if selectedType == nil, !outdoorStore.establishedActivities.isEmpty {
+                    OutdoorAnalyticsSummary(activities: outdoorStore.establishedActivities)
                 }
                 StreakCard()
                 if selectedType == nil {
                     TypeAnalyticsBreakdown()
                 }
-                ActivityHeatmap(entries: filteredEntries, outdoorActivities: outdoorStore.activities)
+                ActivityHeatmap(entries: filteredEntries, outdoorActivities: outdoorStore.establishedActivities)
                 HistoryListSection(entries: filteredEntries, store: store)
             }
             .padding(16)
@@ -201,7 +201,9 @@ private struct OutdoorAnalyticsSummary: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            cell(icon: "figure.run", value: "\(activities.filter { $0.kind == .runWalk }.count)", label: "Run & Walk")
+            cell(icon: "figure.run", value: "\(activities.filter { $0.kind == .run }.count)", label: "Run")
+            Divider().frame(height: 42)
+            cell(icon: "figure.walk", value: "\(activities.filter { $0.kind == .walk }.count)", label: "Walk")
             Divider().frame(height: 42)
             cell(icon: "bicycle", value: "\(activities.filter { $0.kind == .bike }.count)", label: "Bike")
             Divider().frame(height: 42)

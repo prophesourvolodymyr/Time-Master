@@ -13,7 +13,7 @@ struct HomeWidgetCanvas: View {
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
-    let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void
+    let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
 
     @State private var draggedWidgetID: UUID?
     @State private var activeInsertionIndex: Int?
@@ -162,7 +162,7 @@ private struct HomeWidgetTile: View {
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
-    let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?) -> Void
+    let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
 
     private var renderedContent: some View {
         HomeWidgetContent(
