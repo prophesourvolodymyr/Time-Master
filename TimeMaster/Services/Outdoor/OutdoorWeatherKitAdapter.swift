@@ -104,19 +104,10 @@ final class OutdoorWeatherKitAdapter {
             }
         }
 
-        if requestTask != nil,
-           let lastRequestedAt,
-           let lastRequestedCoordinate,
-           now.timeIntervalSince(lastRequestedAt) < 60,
-           distance(from: location.coordinate, to: lastRequestedCoordinate) < 500 {
-            return
-        }
-
         if let lastRequestedAt,
            let lastRequestedCoordinate,
            now.timeIntervalSince(lastRequestedAt) < 60,
-           distance(from: location.coordinate, to: lastRequestedCoordinate) < 500,
-           cache?.expiresAt ?? .distantPast > now {
+           distance(from: location.coordinate, to: lastRequestedCoordinate) < 500 {
             return
         }
 

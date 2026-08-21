@@ -922,10 +922,11 @@ struct OutdoorMusicEditorView: View {
 }
 
 enum OutdoorMusicEditorScope: String, CaseIterable, Identifiable {
-    case route, type, mine
+    case general, route, type, mine
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .general: return "General"
         case .route: return "Route"
         case .type: return "Type"
         case .mine: return "Mine"
@@ -933,6 +934,7 @@ enum OutdoorMusicEditorScope: String, CaseIterable, Identifiable {
     }
     var family: MusicDestinationFamily {
         switch self {
+        case .general: return .general
         case .route: return .route
         case .type: return .type
         case .mine: return .mine

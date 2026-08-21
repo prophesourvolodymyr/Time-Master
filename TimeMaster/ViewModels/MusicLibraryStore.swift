@@ -10,6 +10,7 @@ final class MusicLibraryStore: ObservableObject {
     @Published private(set) var routeItemIDs: [String: [UUID]] = [:]
     @Published private(set) var workouts: [Workout] = []
     @Published private(set) var workoutTypes: [WorkoutType] = WorkoutType.builtIn
+    private var userCustomTypes: [WorkoutType] = []
     @Published var selectedDestinationByFamily: [MusicDestinationFamily: MusicDestination] = [.general: .general, .route: .run]
     private let defaults: UserDefaults
     private let itemsKey = "music_library_items_v2"
@@ -336,12 +337,9 @@ final class MusicLibraryStore: ObservableObject {
 
     func setWorkouts(_ newWorkouts: [Workout]) { setWorkouts(newWorkouts, persist: true) }
     func updateWorkouts(_ newWorkouts: [Workout]) { setWorkouts(newWorkouts) }
-    func accept(workouts: [Workout]) { setWorkouts(workouts) }
     private func setWorkouts(_ newWorkouts: [Workout], persist shouldPersist: Bool) {
         workouts = newWorkouts
-        var types = WorkoutType.builtIn
-        for workout in newWorkouts where !types.contains(where: { $0.id == workout.type.id }) { types.append(workout.type) }
-        workoutTypes = types
+        rebuildWorkoutTypes()
         for workout in newWorkouts {
             var mine = workoutItemIDs[workout.id] ?? []
             for filename in workout.musicTrackFilenames where !filename.isEmpty {
@@ -355,6 +353,18 @@ final class MusicLibraryStore: ObservableObject {
         }
         sanitizeMemberships()
         if shouldPersist { persist() }
+    }
+    func setCustomTypes(_ types: [WorkoutType]) {
+        userCustomTypes = types
+        rebuildWorkoutTypes()
+        sanitizeMemberships()
+        persist()
+    }
+    private func rebuildWorkoutTypes() {
+        var types = WorkoutType.builtIn
+        for type in userCustomTypes where !types.contains(where: { $0.id == type.id }) { types.append(type) }
+        for workout in workouts where !types.contains(where: { $0.id == workout.type.id }) { types.append(workout.type) }
+        workoutTypes = types
     }
     func adoptLocalMusicReferences(_ filenames: [String]) { adoptLocalMusicReferences(filenames, persist: true) }
     func adoptMusicManagerTracks() { adoptLocalMusicReferences(MusicManager.shared.trackFilenames) }
@@ -388,7 +398,6 @@ final class MusicLibraryStore: ObservableObject {
             if let mineID = decoded.mineID { selectedDestinationByFamily[.mine] = .workout(id: mineID) }
             if let routeID = decoded.routeID { selectedDestinationByFamily[.route] = .route(routeID) }
         }
-        sanitizeMemberships()
     }
     private func persist() {
         if let data = try? JSONEncoder().encode(items) { defaults.set(data, forKey: itemsKey) }

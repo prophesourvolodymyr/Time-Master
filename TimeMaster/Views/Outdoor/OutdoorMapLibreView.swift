@@ -7,6 +7,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var points: [OutdoorTrackPoint]
     var followsUser: Bool
     var state: OutdoorLocationRecorder.State
+    nonisolated(unsafe) static var updateProbeCount = 0
     var plannedPoints: [OutdoorTrackPoint]? = nil
     var mode: OutdoorMapMode = .explore
     var focusRequestID: Int = 0
@@ -40,8 +41,9 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         context.coordinator.attach(to: map)
         return map
     }
-
     func updateUIView(_ map: MLNMapView, context: Context) {
+        Self.updateProbeCount += 1
+        if Self.updateProbeCount % 50 == 1 { NSLog("F28MAP updateUIView pass \(Self.updateProbeCount)") }
         context.coordinator.render(
             map: map,
             points: points,

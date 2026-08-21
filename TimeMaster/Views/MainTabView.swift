@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import UniformTypeIdentifiers
 #if os(iOS)
 import UIKit
@@ -74,6 +75,12 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsCommand)) { _ in
             showingSettings = true
         }
+        .onAppear {
+            musicLibraryStore.setCustomTypes(workoutStore.customWorkoutTypes)
+            musicLibraryStore.setWorkouts(workoutStore.workouts)
+        }
+        .onReceive(workoutStore.$workouts.dropFirst()) { musicLibraryStore.setWorkouts($0) }
+        .onReceive(workoutStore.$customWorkoutTypes.dropFirst()) { musicLibraryStore.setCustomTypes($0) }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
                 .environmentObject(workoutStore)
