@@ -101,4 +101,154 @@ final class OutdoorActivityTests: XCTestCase {
             XCTAssertLessThan(s.distanceToRouteMeters, 1.0, "snapped point must be within 1m of line")
         }
     }
+ 
+    func testLegacyFinishedManifestDecodesAsEstablishedPrivateAndUnstarred() throws {
+        let payload: [String: Any] = [
+            "id": "legacy",
+            "kind": "bike",
+            "title": "Legacy Ride",
+            "startedAt": baseDate.timeIntervalSince1970,
+            "endedAt": baseDate.addingTimeInterval(60).timeIntervalSince1970,
+            "elapsedSeconds": 60,
+            "movingSeconds": 50,
+            "distanceMeters": 500,
+            "trackPointCount": 2,
+            "recordingState": "finished",
+            "finished": true
+        ]
+        let data = try JSONSerialization.data(withJSONObject: payload)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        let manifest = try decoder.decode(OutdoorActivityManifest.self, from: data)
+
+        XCTAssertEqual(manifest.schemaVersion, 1)
+        XCTAssertEqual(manifest.establishedAt, baseDate.addingTimeInterval(60))
+        XCTAssertEqual(manifest.visibility, .privateVisibility)
+        XCTAssertFalse(manifest.starred)
+        XCTAssertFalse(manifest.hasPublicMetadata)
+        XCTAssertTrue(manifest.playedTracks.isEmpty)
+    }
+
+    func testVersionTwoFinishedManifestPreservesNilEstablishedAt() throws {
+        let manifest = OutdoorActivityManifest(
+            id: "v2",
+            kind: .run,
+            startedAt: baseDate,
+            endedAt: baseDate.addingTimeInterval(120),
+            recordingState: .finished,
+            finished: true,
+            schemaVersion: 2,
+            establishedAt: nil
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        let decoded = try decoder.decode(OutdoorActivityManifest.self, from: encoder.encode(manifest))
+        XCTAssertEqual(decoded, manifest)
+        XCTAssertNil(decoded.establishedAt)
+    }
+
+    func testNewOutdoorActivityKindsRoundTripWithStableRawValues() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        for kind in [OutdoorActivityKind.run, .walk, .runWalk, .bike] {
+            let data = try encoder.encode(kind)
+            XCTAssertEqual(try decoder.decode(OutdoorActivityKind.self, from: data), kind)
+        }
+        XCTAssertEqual(OutdoorActivityKind.run.rawValue, "run")
+        XCTAssertEqual(OutdoorActivityKind.walk.rawValue, "walk")
+        XCTAssertEqual(OutdoorActivityKind.runWalk.rawValue, "runWalk")
+        XCTAssertEqual(OutdoorActivityKind.bike.rawValue, "bike")
+    }
+
+    func testManifestPrivacyClampingAndMetadataRetentionRoundTrip() throws {
+        let playedTrack = OutdoorPlayedTrackEvent(
+            id: "event-1",
+            timestamp: baseDate,
+            trackID: "track-1",
+            title: "Morning",
+            artist: "Artist",
+            artworkReference: "artwork"
+        )
+        let weather = OutdoorWeatherSnapshot(
+            timestamp: baseDate,
+            temperatureCelsius: 21.5,
+            condition: "clear",
+            symbolName: "sun.max"
+        )
+        let manifest = OutdoorActivityManifest(
+            id: "metadata",
+            kind: .walk,
+            startedAt: baseDate,
+            visibility: .publicVisibility,
+            publicDescription: "Riverside route",
+            tags: ["river", "easy"],
+            allowComments: false,
+            hideStartFinish: false,
+            endpointPrivacyMeters: 150,
+            showPlayerTracks: false,
+            hasPublicMetadata: true,
+            playedTracks: [playedTrack],
+            weather: weather
+        )
+        XCTAssertEqual(manifest.endpointPrivacyMeters, 200)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(OutdoorActivityManifest.self, from: encoder.encode(manifest))
+        XCTAssertEqual(decoded, manifest)
+        XCTAssertEqual(decoded.playedTracks, [playedTrack])
+        XCTAssertEqual(decoded.weather, weather)
+        XCTAssertEqual(OutdoorActivityManifest.clampedEndpointPrivacyMeters(-1), 100)
+        XCTAssertEqual(OutdoorActivityManifest.clampedEndpointPrivacyMeters(999), 500)
+    }
+
+    func testTrackPointElevationAccuracyFieldsRoundTrip() throws {
+        let point = OutdoorTrackPoint(
+            timestamp: baseDate,
+            latitude: 40,
+            longitude: -73,
+            elevationMeters: 42,
+            horizontalAccuracyMeters: 4,
+            speedMetersPerSecond: 2,
+            state: .recording,
+            verticalAccuracyMeters: 3.5,
+            barometricRelativeAltitudeMeters: 1.25
+        )
+        XCTAssertEqual(try JSONDecoder().decode(OutdoorTrackPoint.self, from: JSONEncoder().encode(point)), point)
+    }
+
+    func testConfigManifestOldAndNewOutdoorPreferenceDecoding() throws {
+        let oldConfig = try JSONDecoder().decode(ConfigManifest.self, from: Data("{\"weeklyGoal\":5}".utf8))
+        XCTAssertEqual(oldConfig.weeklyGoal, 5)
+        XCTAssertNil(oldConfig.outdoorRecording)
+
+        let preferences = OutdoorRecordingPreferences(
+            unitSystem: .imperial,
+            autoPause: false,
+            keepScreenAwake: true,
+            gpsAccuracy: .balanced,
+            elevationSource: .barometer,
+            speedSmoothing: false,
+            autoDownloadRouteArea: true,
+            weatherInfo: false,
+            audioCues: .normal,
+            defaultVisibility: .publicVisibility,
+            hideStartFinish: false,
+            endpointPrivacyMeters: 900,
+            allowComments: false,
+            showPlayerTracks: false,
+            haptics: false,
+            exportFormat: .fit
+        )
+        XCTAssertEqual(preferences.endpointPrivacyMeters, 500)
+        let config = ConfigManifest(outdoorRecording: preferences)
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        XCTAssertEqual(try decoder.decode(ConfigManifest.self, from: encoder.encode(config)), config)
+    }
 }

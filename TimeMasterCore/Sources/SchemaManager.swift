@@ -92,13 +92,14 @@ public final class SchemaManager {
                 ]
             ),
             "outdoorActivity": ObjectSchema(
-                description: "A GPS-backed Run & Walk or Bike activity with a route stored as JSONL.",
+                description: "A GPS-backed Run, Walk, legacy Run & Walk, or Bike activity. Schema version 2 adds publication metadata, elevation summaries, played-track history, and an optional weather snapshot while preserving the complete private JSONL route.",
                 folderPath: "Activities/{id}",
                 manifestName: "manifest.json",
-                required: ["id", "kind", "title", "startedAt", "elapsedSeconds", "movingSeconds", "distanceMeters", "trackPointCount", "recordingState", "finished"],
+                required: ["id", "schemaVersion", "kind", "title", "startedAt", "elapsedSeconds", "movingSeconds", "distanceMeters", "trackPointCount", "recordingState", "finished", "visibility", "starred", "publicDescription", "tags", "allowComments", "hideStartFinish", "endpointPrivacyMeters", "showPlayerTracks", "hasPublicMetadata", "playedTracks"],
                 properties: [
-                    "id": PropertySchema(type: "string", description: "UUID string — also used as folder name"),
-                    "kind": PropertySchema(type: "string", description: "runWalk or bike"),
+                    "id": PropertySchema(type: "string", description: "Stable UUID string — also used as folder name; migration never rewrites it"),
+                    "schemaVersion": PropertySchema(type: "integer", description: "Activity manifest schema version; current version is 2 and a missing value is interpreted as legacy version 1"),
+                    "kind": PropertySchema(type: "string", description: "run, walk, bike, or legacy runWalk; legacy runWalk is never silently reclassified"),
                     "title": PropertySchema(type: "string", description: "Display name"),
                     "startedAt": PropertySchema(type: "string", description: "ISO 8601 start timestamp", format: "date-time"),
                     "endedAt": PropertySchema(type: "string", description: "ISO 8601 finish timestamp", format: "date-time", optional: true),
@@ -114,6 +115,21 @@ public final class SchemaManager {
                     "recordingState": PropertySchema(type: "string", description: "Current recording state"),
                     "finished": PropertySchema(type: "boolean", description: "Whether the activity was explicitly finished"),
                     "plannedRouteID": PropertySchema(type: "string", description: "Optional ID of chosen planned route for this activity", optional: true),
+                    "elevationGainMeters": PropertySchema(type: "number", description: "Accepted positive elevation gain in meters", optional: true),
+                    "highestElevationMeters": PropertySchema(type: "number", description: "Highest accepted absolute elevation in meters", optional: true),
+                    "averagePaceSecondsPerKilometer": PropertySchema(type: "number", description: "Average moving pace in seconds per kilometre", optional: true),
+                    "establishedAt": PropertySchema(type: "string", description: "ISO 8601 time the activity became established; legacy finished records derive this from endedAt or startedAt, while version 2 preserves nil", format: "date-time", optional: true),
+                    "visibility": PropertySchema(type: "string", description: "Publication state: private or public; legacy activities decode as private"),
+                    "starred": PropertySchema(type: "boolean", description: "Whether the activity is starred; legacy activities decode unstarred"),
+                    "publicDescription": PropertySchema(type: "string", description: "Retained local public description; legacy activities decode empty"),
+                    "tags": PropertySchema(type: "array<string>", description: "Reusable local public tags; legacy activities decode empty"),
+                    "allowComments": PropertySchema(type: "boolean", description: "Future publication comments preference; legacy activities default true"),
+                    "hideStartFinish": PropertySchema(type: "boolean", description: "Whether public route copies hide both endpoints; legacy activities default true"),
+                    "endpointPrivacyMeters": PropertySchema(type: "integer", description: "Endpoint hiding distance, clamped to one of 100, 200, or 500 metres; default 200"),
+                    "showPlayerTracks": PropertySchema(type: "boolean", description: "Whether played-track history is shown with the activity; legacy activities default true"),
+                    "hasPublicMetadata": PropertySchema(type: "boolean", description: "Whether public metadata has ever been saved; retained when visibility returns to private"),
+                    "playedTracks": PropertySchema(type: "array<object>", description: "Ordered durable track-change events; legacy activities decode empty"),
+                    "weather": PropertySchema(type: "object", description: "Optional display-only weather snapshot captured with the activity", optional: true),
                 ]
             ),
             "plannedRoute": ObjectSchema(
@@ -130,7 +146,7 @@ public final class SchemaManager {
                 ]
             ),
             "config": ObjectSchema(
-                description: "App configuration — custom types, schedule, goals.",
+                description: "App configuration — custom types, schedule, goals, and optional persisted outdoor recording preferences.",
                 folderPath: "Config/",
                 manifestName: "manifest.json",
                 required: ["weeklyGoal"],
@@ -142,6 +158,7 @@ public final class SchemaManager {
                     "trainingStartDate": PropertySchema(type: "string", description: "Start date of training schedule", format: "date-time"),
                     "trainingDurationMonths": PropertySchema(type: "integer", description: "Training schedule duration"),
                     "typeSchedules": PropertySchema(type: "array<object>", description: "Per-type workout schedules"),
+                    "outdoorRecording": PropertySchema(type: "object", description: "Optional persisted route preferences: metric/imperial units, auto-pause, keep-awake, precise/balanced GPS, hybrid/GPS/barometer elevation, speed smoothing, route-area download, weather, off/quiet/normal cues (quiet default), private/public default visibility, endpoint hiding clamped to 100/200/500 metres (200 default), comments, played-track visibility, haptics, and GPX/FIT export (GPX default)", optional: true),
                 ]
             ),
         ]
