@@ -690,6 +690,8 @@ F27 Home ───────────────┘
     - [x] Use public frosted blur for iOS 16–18 map surfaces
     - [x] Add gooey map-mode expansion animation for iOS 16–18
     - [ ] Reproduce the complete Start state exactly
+    - [x] Keep Start and mode controls stable during pane resizing
+    - [x] Enlarge and center the Start action cluster responsively
     - [ ] Implement Type with official native wheel picker
     - [ ] Separate previewed Type from committed workout Type
   - [ ] F28-C — Recording Engine
@@ -698,6 +700,7 @@ F27 Home ───────────────┘
     - [ ] Keep speed and distance fully offline
     - [ ] Build hybrid Core Location altimeter elevation pipeline
     - [ ] Pause and resume without resetting workout state
+    - [x] Keep live workout indicators and actions aligned through detents
     - [ ] Repair interrupted activity recovery across process relaunch
     - [ ] Preserve legacy Run & Walk while adding Run and Walk
   - [ ] F28-D — Map Platform
@@ -710,6 +713,12 @@ F27 Home ───────────────┘
     - [x] Disable incompatible map layers for Terrain and Satellite
     - [ ] Implement Explore Terrain Satellite 3D Transit Traffic Cycling Dark Direction
     - [x] Reduce iOS 18 map-pan rendering and glass capture overhead
+    - [x] Fit map to city scale from the offline-map control
+    - [x] Compact map modes into a horizontal two-row picker
+    - [x] Separate rounded map quick controls and weather surfaces
+    - [x] Hide native map footer controls behind the route pane
+    - [x] Place route notifications at the safe-area top
+    - [x] Put the quick-pane close action in the top-right corner
   - [ ] F28-E — Music Workout Editor
     - [ ] Connect Music Editor to existing Settings music system
     - [ ] Implement content-driven Music pine sizing
@@ -753,6 +762,7 @@ F27 Home ───────────────┘
     - [ ] Verify iOS 16 iOS 18 and iOS 26 builds
     - [ ] Exercise Start live pause Music Finish Establish Library Profile
     - [ ] Hand every F28 child to human for verification
+    - [x] Size route buttons so labels stay inside their controls
 
 ---
 
