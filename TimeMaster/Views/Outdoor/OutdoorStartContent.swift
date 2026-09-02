@@ -54,20 +54,32 @@ struct OutdoorStartContent: View {
                         .font(dynamicTypeSize.isAccessibilitySize ? .headline.weight(.bold) : .system(size: 16 + 4 * clampedExpansion, weight: .bold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
+                        .frame(width: startSize, height: startSize)
+                        .background(Theme.restAccent, in: Circle())
+                        .overlay {
+                            Circle().strokeBorder(Color.white.opacity(0.42), lineWidth: 1)
+                        }
                 }
-                .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: true, minimumSize: startSize))
-                .frame(width: startSize, height: startSize)
+                .buttonStyle(.plain)
+                .contentShape(Circle())
                 .accessibilityLabel("Start \(committedKind.displayName) recording")
 
                 Button(action: onLibrary) {
                     Image(systemName: "photo")
                         .font(.system(size: 18, weight: .semibold))
+                        .frame(width: sideControlSize, height: sideControlSize)
+                        .background(Theme.surface.opacity(0.42), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                        }
                 }
-                .buttonStyle(OutdoorPineButtonStyle(circular: false, minimumSize: sideControlSize))
-                .frame(width: sideControlSize, height: sideControlSize)
+                .buttonStyle(.plain)
+                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .offset(x: -(startSize / 2 + 12 + sideControlSize / 2))
                 .accessibilityLabel("Library")
                 .accessibilityHint("Show established workouts in this route pane")
+
             }
             .frame(maxWidth: .infinity)
             .frame(height: startRowHeight)

@@ -128,6 +128,7 @@ struct OutdoorPineButtonStyle: ButtonStyle {
         material(
             configuration.label
                 .padding(.horizontal, circular ? 0 : 8)
+                .frame(width: circular ? minimumSize : nil, height: circular ? minimumSize : nil)
                 .frame(minWidth: minimumSize, minHeight: minimumSize)
                 .foregroundStyle(prominent ? Theme.background : Theme.textPrimary)
                 .background {
