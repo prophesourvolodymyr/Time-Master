@@ -19,6 +19,12 @@ final class OutdoorRouteRecordingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Offline map area"].exists)
         XCTAssertTrue(app.buttons["Focus current location"].exists)
         XCTAssertTrue(app.buttons["Close route"].exists)
+        app.buttons["Offline map area"].tap()
+        let cityScaleMessage = "Map view resized to city scale. Offline area selection is not available yet."
+        let cityScaleNotice = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", cityScaleMessage))
+            .firstMatch
+        XCTAssertTrue(cityScaleNotice.waitForExistence(timeout: 5))
 
         app.buttons["Open map quick pane"].tap()
         XCTAssertTrue(app.buttons["Close Map quick pane"].waitForExistence(timeout: 5))
