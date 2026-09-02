@@ -7,6 +7,8 @@ struct OutdoorPineGlassSurface<Content: View>: View {
     let cornerRadius: CGFloat
     let flat: Bool
     let interactive: Bool
+    let isMapInteracting: Bool
+    let liveGlassEnabled: Bool
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -17,6 +19,8 @@ struct OutdoorPineGlassSurface<Content: View>: View {
         cornerRadius: CGFloat,
         flat: Bool = false,
         interactive: Bool = true,
+        isMapInteracting: Bool = false,
+        liveGlassEnabled: Bool = true,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.identity = identity
@@ -24,6 +28,8 @@ struct OutdoorPineGlassSurface<Content: View>: View {
         self.cornerRadius = cornerRadius
         self.flat = flat
         self.interactive = interactive
+        self.isMapInteracting = isMapInteracting
+        self.liveGlassEnabled = liveGlassEnabled
         self.content = content
     }
 
@@ -80,19 +86,24 @@ struct OutdoorPineGlassSurface<Content: View>: View {
     private var fallbackSurface: some View {
         content()
             .background {
-                RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
-                    .fill(Theme.surface.opacity(0.42))
+                if liveGlassEnabled && !isMapInteracting {
+                    TimeMasterLiquidGlassBackground(
+                        cornerRadius: flat ? 0 : cornerRadius,
+                        isInteractive: interactive
+                    )
+                } else {
+                    RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
+                        .fill(Theme.surface.opacity(0.92))
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
             }
-    }
 }
 
+}
 struct OutdoorPineButtonStyle: ButtonStyle {
     let prominent: Bool
     let circular: Bool

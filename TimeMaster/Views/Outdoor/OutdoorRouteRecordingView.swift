@@ -43,6 +43,7 @@ struct OutdoorRouteRecordingView: View {
     @State private var weatherState: OutdoorWeatherState = .disabled
     @State private var mapFocusRequestID = 0
     @State private var mapFollowsUser = false
+    @State private var mapIsInteracting = false
     @State private var upperQuickFeature: OutdoorUpperQuickFeature?
     @State private var mapOfflineMessage: String?
     @State private var mapControlsHeight: CGFloat = 134
@@ -119,6 +120,11 @@ struct OutdoorRouteRecordingView: View {
                     onFocusFailure: { message in
                         mapFollowsUser = false
                         mapOfflineMessage = message
+                    },
+                    onMapInteractionChange: { isInteracting in
+                        withoutAnimation {
+                            mapIsInteracting = isInteracting
+                        }
                     }
                 )
                 .ignoresSafeArea()
@@ -454,7 +460,8 @@ struct OutdoorRouteRecordingView: View {
             namespace: glassNamespace,
             cornerRadius: cornerRadius,
             flat: isMax,
-            interactive: true
+            interactive: true,
+            isMapInteracting: mapIsInteracting
         ) {
             ZStack(alignment: .top) {
                 mainContentView(expansion: expansion, layout: layout)
@@ -516,7 +523,9 @@ struct OutdoorRouteRecordingView: View {
             namespace: glassNamespace,
             cornerRadius: cornerRadius,
             flat: false,
-            interactive: true
+            interactive: true,
+            isMapInteracting: mapIsInteracting,
+            liveGlassEnabled: feature != nil
         ) {
             ZStack(alignment: .bottom) {
                 featureContent(selectedFeature, layout: layout)
