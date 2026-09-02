@@ -46,14 +46,14 @@ struct OutdoorPineGeometry: Equatable {
     var safeAreaTop: CGFloat
     var safeAreaBottom: CGFloat
     var playerReserve: CGFloat
-    static let quickStackHeight: CGFloat = 140
+    static let quickStackHeight: CGFloat = 148
 
     var usableHeight: CGFloat {
         max(1, size.height - safeAreaTop - safeAreaBottom)
     }
 
     var lowerInset: CGFloat {
-        safeAreaBottom + 10 + playerReserve
+        (playerReserve > 0 ? safeAreaBottom : 0) + 10 + playerReserve
     }
 
     var mainCompactHeight: CGFloat {

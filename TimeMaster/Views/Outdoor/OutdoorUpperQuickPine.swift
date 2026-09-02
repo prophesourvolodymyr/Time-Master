@@ -32,26 +32,26 @@ struct OutdoorUpperQuickPine: View {
         .padding(.horizontal, 8)
     }
     private var header: some View {
-        Button(action: onDismiss) {
-            HStack(spacing: 8) {
-                Image(systemName: "chevron.left")
+        ZStack(alignment: .topTrailing) {
+            Text(feature == .map ? "Map details" : feature.title)
+                .font(.headline.weight(.semibold))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .foregroundStyle(Theme.textPrimary)
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
                     .font(.system(size: 17, weight: .semibold))
-
-                Text(feature.title)
-                    .font(.headline.weight(.semibold))
-                    .lineLimit(1)
-
-                Spacer(minLength: 0)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
-            .foregroundStyle(Theme.textPrimary)
-            .padding(.leading, 12)
-            .padding(.trailing, 12)
-            .frame(height: 54)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .foregroundStyle(Theme.textPrimary.opacity(0.86))
+            .accessibilityLabel("Close \(feature.title) quick pane")
+            .accessibilityHint("Returns focus to the map quick controls.")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Close \(feature.title) quick pane")
-        .accessibilityHint("Returns focus to the map quick controls.")
+        .padding(.horizontal, 8)
+        .frame(height: 54)
     }
 
 
@@ -66,8 +66,7 @@ struct OutdoorUpperQuickPine: View {
                 capabilities: mapCapabilities,
                 onSelect: onMapMode
             )
-            .padding(.horizontal, 10)
-            .padding(.bottom, 10)
+            .padding(.bottom, 8)
         case .trophy:
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

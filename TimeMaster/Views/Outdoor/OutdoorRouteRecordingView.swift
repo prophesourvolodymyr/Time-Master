@@ -188,7 +188,7 @@ struct OutdoorRouteRecordingView: View {
                         onMapMode: selectMapMode,
                         onManageMusic: { focusMusicFromUpperQuick(layout: layout) },
                         onDismiss: closeUpperQuick,
-                        height: layout.usableHeight * 0.30
+                        height: layout.usableHeight * 0.40
                     )
                     .padding(.top, layout.safeAreaTop + 12)
                     .transition(

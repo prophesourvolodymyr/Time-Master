@@ -154,6 +154,11 @@ struct OutdoorMapControls: View {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(Theme.surface.opacity(0.20))
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                }
         }
     }
 }

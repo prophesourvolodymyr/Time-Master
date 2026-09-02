@@ -144,8 +144,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             map.maximumPitch = 60
             map.minimumZoomLevel = 2
             map.maximumZoomLevel = 19
-            map.attributionButton.isHidden = false
-            map.logoView.isHidden = false
+            map.attributionButton.isHidden = true
+            map.logoView.isHidden = true
             configuredStyleID = nil
             configuredMode = nil
             configuredStyleURL = nil

@@ -9,17 +9,10 @@ struct OutdoorMapQuickStack: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
-        surface(
-            VStack(spacing: 1) {
-                quickButton(.map, systemImage: "map", label: "Open map quick pane")
-                quickButton(.trophy, systemImage: "trophy", label: "Open trophy quick pane")
-                quickButton(.settings, systemImage: "gearshape", label: "Open settings quick pane")
-            }
-            .padding(3)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.11), lineWidth: 1)
+        VStack(spacing: 8) {
+            quickButton(.map, systemImage: "map", label: "Open map quick pane")
+            quickButton(.trophy, systemImage: "trophy", label: "Open trophy quick pane")
+            quickButton(.settings, systemImage: "gearshape", label: "Open settings quick pane")
         }
         .opacity(opacity)
         .allowsHitTesting(opacity > 0.05)
@@ -33,28 +26,21 @@ struct OutdoorMapQuickStack: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
                 .frame(width: 44, height: 44)
-                .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(
+                    Theme.surface.opacity(reduceTransparency ? 0.98 : 0.74),
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                }
         }
         .buttonStyle(OutdoorMapQuickButtonStyle(reduceMotion: reduceMotion))
         .accessibilityLabel(label)
         .accessibilityHint("Opens the shared upper quick pane from this control.")
     }
 
-    @ViewBuilder
-    private func surface<Content: View>(_ content: Content) -> some View {
-        if reduceTransparency {
-            content.background(Theme.surface, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-        } else if #available(iOS 26.0, *) {
-            content.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 15))
-        } else {
-            content
-                .background {
-                    OutdoorFrostedGlassBackground()
-                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .fill(Theme.surface.opacity(0.20))
-                }
-        }
-    }
 }
 
 private struct OutdoorMapQuickButtonStyle: ButtonStyle {
