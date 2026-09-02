@@ -391,8 +391,10 @@ struct OutdoorRouteRecordingView: View {
 
     private func selectMapMode(_ mode: OutdoorMapMode) {
         selectionHaptic()
-        mapMode = mode
-        mapOfflineMessage = nil
+        animate {
+            mapMode = mode
+            mapOfflineMessage = nil
+        }
     }
 
     private func openUpperQuick(_ feature: OutdoorUpperQuickFeature) {
