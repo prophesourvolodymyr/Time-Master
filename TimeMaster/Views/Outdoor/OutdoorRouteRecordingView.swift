@@ -511,37 +511,35 @@ struct OutdoorRouteRecordingView: View {
         let top = layout.size.height - layout.lowerInset - height
         let cornerRadius: CGFloat = isMaxDrawer ? 28 : 25
 
-        return AnyView(
-            OutdoorPineGlassSurface(
-                identity: "route-feature-pine",
-                namespace: glassNamespace,
-                cornerRadius: cornerRadius,
-                flat: false,
-                interactive: true
-            ) {
-                ZStack(alignment: .bottom) {
-                    featureContent(selectedFeature, layout: layout)
-                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985, anchor: .bottom)))
-                        .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.88), value: feature)
-                        .frame(height: layout.usableHeight)
-                        .accessibilityFocused($focusedFeature, equals: selectedFeature)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: height, alignment: .bottom)
-                .overlay(alignment: .top) {
-                    featureHandle(layout, isMaxDrawer: isMaxDrawer)
-                }
-                .clipped()
-                .contentShape(Rectangle())
+        return OutdoorPineGlassSurface(
+            identity: "route-feature-pine",
+            namespace: glassNamespace,
+            cornerRadius: cornerRadius,
+            flat: false,
+            interactive: true
+        ) {
+            ZStack(alignment: .bottom) {
+                featureContent(selectedFeature, layout: layout)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985, anchor: .bottom)))
+                    .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.88), value: feature)
+                    .frame(height: layout.usableHeight)
+                    .accessibilityFocused($focusedFeature, equals: selectedFeature)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: height)
-            .offset(y: isMaxDrawer ? maxDrawerOffset : 0)
-            .opacity(min(1, max(0, (height - 1) / 44)))
-            .padding(.horizontal, isMaxDrawer ? 0 : 10)
-            .padding(.top, top)
-            .zIndex(30)
-        )
+            .frame(height: height, alignment: .bottom)
+            .overlay(alignment: .top) {
+                featureHandle(layout, isMaxDrawer: isMaxDrawer)
+            }
+            .clipped()
+            .contentShape(Rectangle())
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .offset(y: isMaxDrawer ? maxDrawerOffset : 0)
+        .opacity(min(1, max(0, (height - 1) / 44)))
+        .padding(.horizontal, isMaxDrawer ? 0 : 10)
+        .padding(.top, top)
+        .zIndex(30)
     }
 
     @ViewBuilder

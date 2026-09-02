@@ -7,7 +7,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var points: [OutdoorTrackPoint]
     var followsUser: Bool
     var state: OutdoorLocationRecorder.State
-    nonisolated(unsafe) static var updateProbeCount = 0
     var plannedPoints: [OutdoorTrackPoint]? = nil
     var mode: OutdoorMapMode = .explore
     var focusRequestID: Int = 0
@@ -42,8 +41,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         return map
     }
     func updateUIView(_ map: MLNMapView, context: Context) {
-        Self.updateProbeCount += 1
-        if Self.updateProbeCount % 50 == 1 { NSLog("F28MAP updateUIView pass \(Self.updateProbeCount)") }
         context.coordinator.render(
             map: map,
             points: points,
@@ -76,6 +73,21 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var hasCenteredOnUser = false
         private var loadedStyleURL: URL?
         private var activeTileSourceIDs: Set<String> = []
+        private var configuredStyleID: ObjectIdentifier?
+        private var configuredMode: OutdoorMapMode?
+        private var configuredStyleURL: URL?
+        private var lastRenderedPointsSignature: RouteRenderSignature?
+        private var lastRenderedPlannedPointsSignature: RouteRenderSignature?
+        private var lastRenderedState: OutdoorLocationRecorder.State?
+        private var lastRenderedFollowsUser: Bool?
+        private var lastRenderedMode: OutdoorMapMode?
+        private var lastRenderedFocusRequestID: Int?
+        private var lastRenderedWeatherInfoEnabled: Bool?
+        private var didRenderInputs = false
+        private var liveRouteSignature: RouteRenderSignature?
+        private var plannedRouteSignature: RouteRenderSignature?
+        private var didApplyThreeDCamera = false
+        private var lastAppliedDirectionHeading: CLLocationDirection?
         private var startAnnotation: MLNPointAnnotation?
         private var endAnnotation: MLNPointAnnotation?
         private var lastFocusRequestID = 0
@@ -83,6 +95,17 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var reportedFollowState: Bool?
         private var headingUpdatesActive = false
         private var headingMode: OutdoorMapMode?
+        private struct RouteRenderSignature: Equatable {
+            let count: Int
+            let first: OutdoorTrackPoint?
+            let last: OutdoorTrackPoint?
+
+            init(points: [OutdoorTrackPoint]) {
+                count = points.count
+                first = points.first
+                last = points.last
+            }
+        }
 
         init(
             configuration: OutdoorMapProviderConfiguration,
@@ -120,6 +143,21 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             map.maximumZoomLevel = 19
             map.attributionButton.isHidden = false
             map.logoView.isHidden = false
+            configuredStyleID = nil
+            configuredMode = nil
+            configuredStyleURL = nil
+            lastRenderedPointsSignature = nil
+            lastRenderedPlannedPointsSignature = nil
+            lastRenderedState = nil
+            lastRenderedFollowsUser = nil
+            lastRenderedMode = nil
+            lastRenderedFocusRequestID = nil
+            lastRenderedWeatherInfoEnabled = nil
+            didRenderInputs = false
+            liveRouteSignature = nil
+            plannedRouteSignature = nil
+            didApplyThreeDCamera = false
+            lastAppliedDirectionHeading = nil
             loadedStyleURL = map.styleURL
         }
 
@@ -149,14 +187,38 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             focusRequestID: Int,
             weatherInfoEnabled: Bool
         ) {
-            if self.map !== map {
+            let mapWasReattached = self.map !== map
+            if mapWasReattached {
                 attach(to: map)
             }
-            session.captureCamera(from: map)
+
+            let pointsSignature = RouteRenderSignature(points: points)
+            let plannedPointsSignature = RouteRenderSignature(points: plannedPoints)
+            let inputsChanged = mapWasReattached
+                || !didRenderInputs
+                || lastRenderedPointsSignature != pointsSignature
+                || lastRenderedPlannedPointsSignature != plannedPointsSignature
+                || lastRenderedState != state
+                || lastRenderedFollowsUser != followsUser
+                || lastRenderedMode != mode
+                || lastRenderedFocusRequestID != focusRequestID
+                || lastRenderedWeatherInfoEnabled != weatherInfoEnabled
+
             latestPoints = points
             latestPlannedPoints = plannedPoints
             latestState = state
             latestWeatherInfoEnabled = weatherInfoEnabled
+            lastRenderedPointsSignature = pointsSignature
+            lastRenderedPlannedPointsSignature = plannedPointsSignature
+            lastRenderedState = state
+            lastRenderedFollowsUser = followsUser
+            lastRenderedMode = mode
+            lastRenderedFocusRequestID = focusRequestID
+            lastRenderedWeatherInfoEnabled = weatherInfoEnabled
+            didRenderInputs = true
+            guard inputsChanged else { return }
+
+            session.captureCamera(from: map)
             let hasRoute = !points.isEmpty || !plannedPoints.isEmpty
             if hasRoute {
                 hasCenteredOnUser = false
@@ -288,6 +350,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             session.setFollowRequested(true)
             applyFollowState(to: map)
             reportFollowState(true)
+            lastAppliedDirectionHeading = nil
         }
 
         func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
@@ -321,19 +384,28 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
         private func applyFollowState(to map: MLNMapView) {
+            let desiredMode: MLNUserTrackingMode
             if session.followsUser {
-                if session.activeMode == .direction, session.heading != nil {
-                    map.userTrackingMode = .followWithHeading
-                } else {
-                    map.userTrackingMode = .follow
-                }
-            } else if map.userTrackingMode != .none {
-                map.userTrackingMode = .none
+                desiredMode = session.activeMode == .direction && session.heading != nil
+                    ? .followWithHeading
+                    : .follow
+            } else {
+                desiredMode = .none
+            }
+            if map.userTrackingMode != desiredMode {
+                map.userTrackingMode = desiredMode
             }
         }
 
         private func applyDirectionHeading(to map: MLNMapView) {
-            guard session.activeMode == .direction, let heading = session.heading else { return }
+            guard session.activeMode == .direction, let heading = session.heading else {
+                lastAppliedDirectionHeading = nil
+                return
+            }
+            if let lastAppliedDirectionHeading,
+               abs(lastAppliedDirectionHeading - heading) < 0.5 {
+                return
+            }
             let camera = MLNMapCamera(
                 lookingAtCenter: map.centerCoordinate,
                 fromDistance: max(map.camera.altitude, 1),
@@ -343,6 +415,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             isApplyingCamera = true
             map.setCamera(camera, animated: false)
             isApplyingCamera = false
+            lastAppliedDirectionHeading = heading
         }
 
         private func applyInitialFramingIfNeeded(map: MLNMapView) {
@@ -396,6 +469,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
         private func configureProviderLayers(style: MLNStyle) {
+            let styleID = ObjectIdentifier(style)
+            let styleURL = map?.styleURL
+            let mode = session.activeMode
+            guard configuredStyleID != styleID
+                || configuredMode != mode
+                || configuredStyleURL != styleURL
+            else { return }
+
             for identifier in activeTileSourceIDs {
                 if let layer = style.layer(withIdentifier: identifier) {
                     style.removeLayer(layer)
@@ -405,7 +486,12 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 }
             }
             activeTileSourceIDs.removeAll()
-            guard let definition = session.configuration.style(for: session.activeMode) else { return }
+            configuredStyleID = styleID
+            configuredMode = mode
+            configuredStyleURL = styleURL
+            liveRouteSignature = nil
+            plannedRouteSignature = nil
+            guard let definition = session.configuration.style(for: mode) else { return }
 
             if let template = definition.rasterTileURLTemplate, !template.isEmpty {
                 let sourceID = "outdoor-\(session.activeMode.rawValue)-raster-source"
@@ -501,18 +587,22 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
         private func applyThreeDIfSupported(map: MLNMapView, style: MLNStyle) {
+            guard session.activeMode == .threeD else {
+                didApplyThreeDCamera = false
+                return
+            }
             let hasRealBuildingExtrusion = style.layers.contains {
                 guard let layer = $0 as? MLNFillExtrusionStyleLayer else { return false }
                 return layer.sourceLayerIdentifier != nil
             }
-            if session.activeMode == .threeD {
-                guard hasRealBuildingExtrusion else {
-                    session.markThreeDUnsupported()
-                    reportCapability(session.capability(for: .threeD))
-                    return
-                }
-                session.markThreeDAvailable()
-                map.isPitchEnabled = true
+            guard hasRealBuildingExtrusion else {
+                session.markThreeDUnsupported()
+                reportCapability(session.capability(for: .threeD))
+                return
+            }
+            session.markThreeDAvailable()
+            map.isPitchEnabled = true
+            if !didApplyThreeDCamera {
                 let pitch = max(map.camera.pitch, 45)
                 let camera = MLNMapCamera(
                     lookingAtCenter: map.centerCoordinate,
@@ -523,8 +613,9 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 isApplyingCamera = true
                 map.setCamera(camera, animated: false)
                 isApplyingCamera = false
-                reportCapability(session.capability(for: .threeD))
+                didApplyThreeDCamera = true
             }
+            reportCapability(session.capability(for: .threeD))
         }
 
         private func renderRouteOverlays(map: MLNMapView, style: MLNStyle) {
@@ -536,6 +627,9 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private func updateLiveRoute(style: MLNStyle, points: [OutdoorTrackPoint]) {
             let sourceID = "live-route-source"
             let layerID = "live-route-line"
+            let signature = RouteRenderSignature(points: points)
+            guard signature != liveRouteSignature else { return }
+            liveRouteSignature = signature
             guard points.count >= 2 else {
                 remove(style: style, sourceID: sourceID, layerIDs: [layerID])
                 return
@@ -553,11 +647,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 layer.lineCap = NSExpression(forConstantValue: "round")
                 style.addLayer(layer)
             }
-        }
 
+        }
         private func updatePlannedRoute(style: MLNStyle, points: [OutdoorTrackPoint]) {
             let sourceID = "planned-route-source"
             let layerID = "planned-route-line"
+            let signature = RouteRenderSignature(points: points)
+            guard signature != plannedRouteSignature else { return }
+            plannedRouteSignature = signature
             guard points.count >= 2 else {
                 remove(style: style, sourceID: sourceID, layerIDs: [layerID])
                 return
