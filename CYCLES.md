@@ -705,6 +705,7 @@ F27 Home ───────────────┘
     - [ ] Implement Map options pine placeholder selections
     - [ ] Connect approved production map providers and attribution
     - [ ] Implement Explore Terrain Satellite 3D Transit Traffic Cycling Dark Direction
+    - [x] Reduce iOS 18 map-pan rendering and glass capture overhead
   - [ ] F28-E — Music Workout Editor
     - [ ] Connect Music Editor to existing Settings music system
     - [ ] Implement content-driven Music pine sizing
