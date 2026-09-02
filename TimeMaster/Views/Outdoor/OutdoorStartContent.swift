@@ -48,6 +48,7 @@ struct OutdoorStartContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Spacer(minLength: 8)
             ZStack {
                 Button(action: onStart) {
                     Text("Start")
