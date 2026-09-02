@@ -9,7 +9,7 @@ final class OutdoorRouteRecordingUITests: XCTestCase {
     func testRunShortcutOpensPermanentMapAndRoutePanes() throws {
         let app = XCUIApplication(bundleIdentifier: "com.timemaster.TimeMaster")
         app.launch()
-        XCTAssertTrue(app.buttons["Walk"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Run"].waitForExistence(timeout: 10))
 
         let runShortcut = app.buttons["Run"]
         XCTAssertTrue(runShortcut.waitForExistence(timeout: 10))
