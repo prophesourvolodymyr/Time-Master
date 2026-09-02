@@ -127,6 +127,7 @@ struct OutdoorPineButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         material(
             configuration.label
+                .padding(.horizontal, circular ? 0 : 8)
                 .frame(minWidth: minimumSize, minHeight: minimumSize)
                 .foregroundStyle(prominent ? Theme.background : Theme.textPrimary)
                 .background {

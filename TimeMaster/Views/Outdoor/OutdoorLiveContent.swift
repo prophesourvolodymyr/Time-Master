@@ -22,17 +22,28 @@ struct OutdoorLiveContent: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             GeometryReader { proxy in
-                ZStack {
-                    metrics(at: context.date, in: proxy.size)
-                    if let message = recorder.errorMessage, recorder.state == .failed {
-                        recoveryMessage(message)
+                let contentWidth = max(1, proxy.size.width - 24)
+                let actionHeight = min(58, max(46, proxy.size.height * 0.13))
+                let statusInset: CGFloat = statusText == nil ? 34 : 50
+                let metricsHeight = max(1, proxy.size.height - statusInset - actionHeight - 18)
+
+                ZStack(alignment: .top) {
+                    metrics(
+                        at: context.date,
+                        in: CGSize(width: contentWidth, height: metricsHeight)
+                    )
+                    .frame(width: contentWidth, height: metricsHeight)
+                    .padding(.top, statusInset)
+
+                    if let status = statusText {
+                        statusPill(status)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 4)
                     }
                 }
-                .padding(.top, 42)
-                .padding(.bottom, 66)
                 .padding(.horizontal, 12)
                 .overlay(alignment: .bottom) {
-                    actionBar
+                    actionBar(height: actionHeight)
                         .padding(.horizontal, 7)
                         .padding(.bottom, 7)
                 }
@@ -40,6 +51,11 @@ struct OutdoorLiveContent: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Live \(recorder.kind.displayName) workout")
+        .transaction { transaction in
+            if isDragging {
+                transaction.animation = nil
+            }
+        }
     }
 
     @ViewBuilder
@@ -48,14 +64,10 @@ struct OutdoorLiveContent: View {
         let time = formattedTime(at: date)
         let speed = formattedSpeed
         let distance = formattedDistance
-        let status = statusText
 
         if dynamicTypeSize.isAccessibilitySize {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 12) {
-                    if let status {
-                        statusPill(status)
-                    }
                     accessibleMetric(title: "Speed", value: speed.value, unit: speed.unit, prominent: true)
                     HStack(alignment: .top, spacing: 18) {
                         accessibleMetric(title: "Time", value: time, unit: nil, prominent: false)
@@ -108,11 +120,6 @@ struct OutdoorLiveContent: View {
                 )
                 .position(x: totalX, y: totalY)
                 .accessibilityLabel("Total \(distance.value) \(distance.unit)")
-
-                if let status {
-                    statusPill(status)
-                        .position(x: size.width * 0.5, y: 19)
-                }
             }
             .animation(isDragging || reduceMotion ? .none : .spring(response: 0.35, dampingFraction: 0.9), value: progress)
         }
@@ -198,50 +205,63 @@ struct OutdoorLiveContent: View {
         }
     }
     @ViewBuilder
-    private var actionBar: some View {
+    private func actionBar(height: CGFloat) -> some View {
         if dynamicTypeSize.isAccessibilitySize || dynamicTypeSize == .xxLarge || dynamicTypeSize == .xxxLarge {
             ScrollView(.horizontal, showsIndicators: false) {
-                actionButtons
+                actionButtons(height: height, fillsWidth: false)
                     .fixedSize(horizontal: true, vertical: false)
             }
         } else {
-            actionButtons
+            actionButtons(height: height, fillsWidth: true)
         }
     }
 
-    private var actionButtons: some View {
-        HStack(spacing: 3) {
+    private func actionButtons(height: CGFloat, fillsWidth: Bool) -> some View {
+        HStack(spacing: 6) {
             Button(action: onMusic) {
                 Image(systemName: "music.note")
-                    .font(.title3.weight(.semibold))
+                    .font(.system(size: interpolate(21, 26, expansion), weight: .semibold))
+                    .frame(maxWidth: .infinity)
             }
+            .frame(minWidth: 44, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
             .buttonStyle(OutdoorPineButtonStyle())
             .accessibilityLabel("Music")
             .accessibilityHint("Open the shared Music editor")
 
-            Button("Finish", action: onFinish)
-                .font(.caption.weight(.bold))
-                .buttonStyle(OutdoorPineButtonStyle(prominent: true))
-                .accessibilityLabel("Finish workout")
+            Button(action: onFinish) {
+                Text("Finish")
+                    .font(.system(size: interpolate(12, 14, expansion), weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .frame(maxWidth: .infinity)
+            }
+            .frame(minWidth: 58, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
+            .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+            .accessibilityLabel("Finish workout")
 
             Button(action: onTogglePause) {
                 Text(isPaused ? "Resume" : "Stop")
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: interpolate(12, 14, expansion), weight: .semibold))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity)
             }
+            .frame(minWidth: 62, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
             .buttonStyle(OutdoorPineButtonStyle())
             .accessibilityLabel(isPaused ? "Resume workout" : "Stop workout")
             .accessibilityValue(isPaused ? "Stopped" : "Recording")
 
             Button(action: onHeart) {
                 Image(systemName: "heart")
-                    .font(.title3.weight(.semibold))
+                    .font(.system(size: interpolate(21, 26, expansion), weight: .semibold))
+                    .frame(maxWidth: .infinity)
             }
+            .frame(minWidth: 44, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
             .buttonStyle(OutdoorPineButtonStyle())
             .accessibilityLabel("Heart rate")
             .accessibilityHint("Heart rate action is not available yet")
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
     }
 
     private func recoveryMessage(_ message: String) -> some View {

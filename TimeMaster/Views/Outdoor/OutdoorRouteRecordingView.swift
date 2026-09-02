@@ -42,6 +42,7 @@ struct OutdoorRouteRecordingView: View {
     @State private var mapCapabilities: [OutdoorMapMode: OutdoorMapCapability] = [:]
     @State private var weatherState: OutdoorWeatherState = .disabled
     @State private var mapFocusRequestID = 0
+    @State private var mapCityFitRequestID = 0
     @State private var mapFollowsUser = false
     @State private var upperQuickFeature: OutdoorUpperQuickFeature?
     @State private var mapOfflineMessage: String?
@@ -103,6 +104,7 @@ struct OutdoorRouteRecordingView: View {
                     plannedPoints: recorder.plannedPoints,
                     mode: mapMode,
                     focusRequestID: mapFocusRequestID,
+                    cityFitRequestID: mapCityFitRequestID,
                     weatherInfoEnabled: preferences.preferences.weatherInfo,
                     onCapabilityChange: { capability in
                         mapCapabilities[capability.mode] = capability
@@ -122,6 +124,27 @@ struct OutdoorRouteRecordingView: View {
                     }
                 )
                 .ignoresSafeArea()
+                if let mapOfflineMessage {
+                    OutdoorRouteNotification(
+                        message: mapOfflineMessage,
+                        systemImage: "arrow.down.circle",
+                        onDismiss: { self.mapOfflineMessage = nil }
+                    )
+                    .padding(.top, layout.safeAreaTop + 12)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .zIndex(60)
+                } else if let shortSessionReason {
+                    OutdoorRouteNotification(
+                        message: shortSessionReason,
+                        systemImage: "exclamationmark.triangle",
+                        onDismiss: { self.shortSessionReason = nil }
+                    )
+                    .padding(.top, layout.safeAreaTop + 12)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .zIndex(60)
+                }
 
 
                 if upperQuickFeature == nil,
@@ -200,6 +223,10 @@ struct OutdoorRouteRecordingView: View {
                 }
 
             }
+            .animation(
+                reduceMotion ? .none : .spring(response: 0.28, dampingFraction: 0.9),
+                value: mapOfflineMessage != nil || shortSessionReason != nil
+            )
             .background(Theme.background)
             .onAppear {
                 configureInitialContent()
@@ -351,16 +378,15 @@ struct OutdoorRouteRecordingView: View {
                 weatherState: weatherState,
                 weatherInfoEnabled: preferences.preferences.weatherInfo,
                 followsUser: mapFollowsUser,
-                offlineMessage: mapOfflineMessage,
                 mapAttribution: (
                     mapCapabilities[activeMapMode]
                         ?? OutdoorMapProviderConfiguration.main.capability(for: activeMapMode)
                 ).attribution,
                 onDownload: {
-                    mapOfflineMessage = "Offline area downloads are not available yet."
+                    mapCityFitRequestID &+= 1
+                    mapOfflineMessage = "Map view resized to city scale. Offline area selection is not available yet."
                 },
-                onFocusLocation: focusMapLocation,
-                onDismissOfflineMessage: { mapOfflineMessage = nil }
+                onFocusLocation: focusMapLocation
             )
             .background {
                 GeometryReader { proxy in
@@ -462,20 +488,6 @@ struct OutdoorRouteRecordingView: View {
                 mainContentView(expansion: expansion, layout: layout)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                if let shortSessionReason {
-                    Text(shortSessionReason)
-                        .font(.caption.weight(.semibold))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Theme.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: 300)
-                        .background(Color.orange.opacity(0.22), in: Capsule())
-                        .padding(.top, 40)
-                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
-                        .allowsHitTesting(false)
-                        .accessibilityLabel(shortSessionReason)
-                }
 
                 mainHandle(layout)
                     .allowsHitTesting(!finishModalPresented)
@@ -502,7 +514,7 @@ struct OutdoorRouteRecordingView: View {
         .frame(maxWidth: .infinity)
         .frame(height: height)
         .padding(.horizontal, isMax ? 0 : 10)
-        .padding(.top, top)
+        .offset(y: top)
         .zIndex(isMax ? 20 : 8)
     }
 
@@ -537,10 +549,9 @@ struct OutdoorRouteRecordingView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        .offset(y: isMaxDrawer ? maxDrawerOffset : 0)
+        .offset(y: top + (isMaxDrawer ? maxDrawerOffset : 0))
         .opacity(min(1, max(0, (height - 1) / 44)))
         .padding(.horizontal, isMaxDrawer ? 0 : 10)
-        .padding(.top, top)
         .zIndex(30)
     }
 

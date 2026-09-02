@@ -16,7 +16,6 @@ struct OutdoorMusicEditorView: View {
     @ScaledMetric(relativeTo: .caption2) private var compactTitleSize: CGFloat = 9
     @FocusState private var searchFocused: Bool
 
-    @State private var scope: OutdoorMusicEditorScope = .route
     @State private var destinationID = MusicDestination.run.id
     @State private var destinationPreviewID = MusicDestination.run.id
     @State private var searchSourceID = MusicDestination.run.id
@@ -62,7 +61,6 @@ struct OutdoorMusicEditorView: View {
     var body: some View {
         VStack(spacing: 8) {
             header
-            scopeChooser
             if showingMainPicker { mainDestinationPicker }
             if let collectionDetailID {
                 collectionDetail(for: collectionDetailID)
@@ -92,7 +90,6 @@ struct OutdoorMusicEditorView: View {
         .animation(reduceMotion ? .none : .easeOut(duration: 0.24), value: showingSearchPicker)
         .animation(reduceMotion ? .none : .easeOut(duration: 0.24), value: searchOpen)
         .onAppear(perform: configureInitialState)
-        .onChange(of: scope) { _ in selectFirstDestinationForScope() }
         .onChange(of: resetToken) { _ in
             searchFocused = false
             searchOpen = false
@@ -188,14 +185,6 @@ struct OutdoorMusicEditorView: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var scopeChooser: some View {
-        Picker("Music section", selection: $scope) {
-            ForEach(OutdoorMusicEditorScope.allCases) { value in Text(value.title).tag(value) }
-        }
-        .pickerStyle(.segmented)
-        .accessibilityLabel("Music library section")
-        .accessibilityValue(scope.title)
-    }
 
     private var mainDestinationPicker: some View {
         VStack(spacing: 5) {
@@ -605,9 +594,7 @@ struct OutdoorMusicEditorView: View {
     }
 
     private var activeDestination: MusicDestination {
-        library.destinations(for: scope.family).first(where: { $0.id == destinationID })
-            ?? library.destinations(for: scope.family).first
-            ?? .run
+        library.routeDestinations.first(where: { $0.id == destinationID }) ?? .run
     }
 
     private var searchSourceDestination: MusicDestination {
@@ -615,7 +602,7 @@ struct OutdoorMusicEditorView: View {
     }
 
     private var destinationChoices: [OutdoorMusicDestinationChoice] {
-        library.destinations(for: scope.family).map { OutdoorMusicDestinationChoice(id: $0.id, name: library.destinationName($0), icon: destinationIcon(for: $0)) }
+        library.routeDestinations.map { OutdoorMusicDestinationChoice(id: $0.id, name: library.destinationName($0), icon: destinationIcon(for: $0)) }
     }
 
     private func destinationChoiceName(_ id: String) -> String {
@@ -656,18 +643,9 @@ struct OutdoorMusicEditorView: View {
         }
     }
 
-    private func selectFirstDestinationForScope() {
-        let destinations = library.destinations(for: scope.family)
-        guard !destinations.isEmpty else { return }
-        let saved = library.selectedDestination(for: scope.family)
-        let next = saved.flatMap { candidate in destinations.first(where: { $0.id == candidate.id }) } ?? destinations[0]
-        destinationID = next.id
-        destinationPreviewID = next.id
-        library.select(destination: next)
-    }
 
     private func commitDestination(_ id: String) {
-        guard let destination = library.destinations(for: scope.family).first(where: { $0.id == id }) else { return }
+        guard let destination = library.routeDestinations.first(where: { $0.id == id }) else { return }
         destinationID = id
         destinationPreviewID = id
         library.select(destination: destination)
@@ -921,26 +899,6 @@ struct OutdoorMusicEditorView: View {
     }
 }
 
-enum OutdoorMusicEditorScope: String, CaseIterable, Identifiable {
-    case general, route, type, mine
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .general: return "General"
-        case .route: return "Route"
-        case .type: return "Type"
-        case .mine: return "Mine"
-        }
-    }
-    var family: MusicDestinationFamily {
-        switch self {
-        case .general: return .general
-        case .route: return .route
-        case .type: return .type
-        case .mine: return .mine
-        }
-    }
-}
 
 private struct OutdoorMusicDestinationChoice: Identifiable {
     let id: String

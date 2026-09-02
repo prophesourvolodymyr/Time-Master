@@ -5,50 +5,20 @@ struct OutdoorMapControls: View {
     let weatherState: OutdoorWeatherState
     let weatherInfoEnabled: Bool
     let followsUser: Bool
-    let offlineMessage: String?
     let mapAttribution: OutdoorMapAttribution
     let onDownload: () -> Void
     let onFocusLocation: () -> Void
-    let onDismissOfflineMessage: () -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 1) {
-            if let offlineMessage {
-                HStack(alignment: .top, spacing: 8) {
-                    Text(offlineMessage)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(Theme.textPrimary)
-                        .multilineTextAlignment(.trailing)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button(action: onDismissOfflineMessage) {
-                        Image(systemName: "xmark")
-                            .font(.caption2.weight(.bold))
-                            .frame(width: 44, height: 44)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Dismiss offline map message")
-                }
-                .padding(.leading, 10)
-                .padding(.vertical, 8)
-                .padding(.trailing, 6)
-                .background(reduceTransparency ? Theme.surface : Theme.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-                }
-                .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.94, anchor: .topTrailing)))
-            }
-
             Button(action: onDownload) {
                 Image(systemName: "arrow.down.circle")
                     .font(.system(size: 17, weight: .semibold))
             }
             .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
             .accessibilityLabel("Offline map area")
-            .accessibilityHint("Reports that offline area downloads are not available yet.")
+            .accessibilityHint("Shows a city-scale map view for offline area planning.")
 
             Button(action: onFocusLocation) {
                 Image(systemName: followsUser ? "location.fill" : "location")
@@ -67,7 +37,6 @@ struct OutdoorMapControls: View {
                 weatherAttributionView(presentation.attribution)
             }
         }
-        .animation(reduceMotion ? .none : .easeOut(duration: 0.18), value: offlineMessage)
     }
 
     private var mapAttributionView: some View {
@@ -189,6 +158,65 @@ struct OutdoorMapControls: View {
     }
 }
 
+
+struct OutdoorRouteNotification: View {
+    let message: String
+    let systemImage: String
+    let onDismiss: (() -> Void)?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.restAccent)
+                .frame(width: 24, height: 24)
+                .accessibilityHidden(true)
+
+            Text(message)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(3)
+                .minimumScaleFactor(0.86)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let onDismiss {
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.textSecondary)
+                .accessibilityLabel("Dismiss notification")
+            }
+        }
+        .padding(.leading, 12)
+        .padding(.trailing, onDismiss == nil ? 12 : 2)
+        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(reduceTransparency ? Theme.surface : Theme.surface.opacity(0.92))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(message)
+        .transition(
+            reduceMotion
+                ? .opacity
+                : .move(edge: .top).combined(with: .opacity)
+        )
+    }
+}
 
 struct OutdoorRouteIdleCloseControl: View {
     let onDismiss: () -> Void

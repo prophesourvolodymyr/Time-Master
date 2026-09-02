@@ -10,6 +10,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var plannedPoints: [OutdoorTrackPoint]? = nil
     var mode: OutdoorMapMode = .explore
     var focusRequestID: Int = 0
+    var cityFitRequestID: Int = 0
     var weatherInfoEnabled: Bool = false
     var configuration: OutdoorMapProviderConfiguration = .main
     var onCapabilityChange: ((OutdoorMapCapability) -> Void)? = nil
@@ -48,6 +49,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             followsUser: followsUser,
             mode: mode,
             focusRequestID: focusRequestID,
+            cityFitRequestID: cityFitRequestID,
             weatherInfoEnabled: weatherInfoEnabled
         )
     }
@@ -82,6 +84,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var lastRenderedMode: OutdoorMapMode?
         private var lastRenderedFocusRequestID: Int?
         private var lastRenderedWeatherInfoEnabled: Bool?
+        private var lastRenderedCityFitRequestID: Int?
+        private var pendingCityFit = false
         private var didRenderInputs = false
         private var liveRouteSignature: RouteRenderSignature?
         private var plannedRouteSignature: RouteRenderSignature?
@@ -151,6 +155,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             lastRenderedFollowsUser = nil
             lastRenderedMode = nil
             lastRenderedFocusRequestID = nil
+            lastRenderedCityFitRequestID = nil
+            pendingCityFit = false
             lastRenderedWeatherInfoEnabled = nil
             didRenderInputs = false
             liveRouteSignature = nil
@@ -184,6 +190,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             followsUser: Bool,
             mode: OutdoorMapMode,
             focusRequestID: Int,
+            cityFitRequestID: Int,
             weatherInfoEnabled: Bool
         ) {
             let mapWasReattached = self.map !== map
@@ -201,6 +208,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 || lastRenderedFollowsUser != followsUser
                 || lastRenderedMode != mode
                 || lastRenderedFocusRequestID != focusRequestID
+                || lastRenderedCityFitRequestID != cityFitRequestID
                 || lastRenderedWeatherInfoEnabled != weatherInfoEnabled
 
             latestPoints = points
@@ -213,6 +221,11 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             lastRenderedFollowsUser = followsUser
             lastRenderedMode = mode
             lastRenderedFocusRequestID = focusRequestID
+            if let lastRenderedCityFitRequestID,
+               lastRenderedCityFitRequestID != cityFitRequestID {
+                pendingCityFit = true
+            }
+            lastRenderedCityFitRequestID = cityFitRequestID
             lastRenderedWeatherInfoEnabled = weatherInfoEnabled
             didRenderInputs = true
             guard inputsChanged else { return }
@@ -236,6 +249,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                     renderRouteOverlays(map: map, style: style)
                 }
                 applyFollowState(to: map)
+                fitMapToCityIfNeeded(map: map)
                 updateWeather()
                 return
             }
@@ -274,6 +288,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             applyFollowState(to: map)
             applyInitialFramingIfNeeded(map: map)
             applyDirectionHeading(to: map)
+            fitMapToCityIfNeeded(map: map)
             updateWeather()
         }
 
@@ -288,6 +303,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             applyFollowState(to: mapView)
             applyDirectionHeading(to: mapView)
             applyInitialFramingIfNeeded(map: mapView)
+            fitMapToCityIfNeeded(map: mapView)
             updateWeather()
         }
 
@@ -442,6 +458,35 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 )
             }
             session.captureCamera(from: map)
+        }
+
+        private func fitMapToCityIfNeeded(map: MLNMapView) {
+            guard pendingCityFit else { return }
+            pendingCityFit = false
+
+            let framingPoints = latestPlannedPoints.isEmpty
+                ? latestPoints
+                : latestPlannedPoints + latestPoints
+            let center: CLLocationCoordinate2D
+            if framingPoints.isEmpty {
+                center = latestUserCoordinate ?? map.centerCoordinate
+            } else {
+                let routeBounds = bounds(for: framingPoints)
+                center = CLLocationCoordinate2D(
+                    latitude: (routeBounds.sw.latitude + routeBounds.ne.latitude) / 2,
+                    longitude: (routeBounds.sw.longitude + routeBounds.ne.longitude) / 2
+                )
+            }
+
+            if session.followsUser {
+                session.setFollowRequested(false)
+                reportFollowState(false)
+            }
+            map.userTrackingMode = .none
+            let cityZoomLevel = min(11.5, map.maximumZoomLevel)
+            isApplyingCamera = true
+            map.setCenter(center, zoomLevel: max(map.minimumZoomLevel, cityZoomLevel), animated: true)
+            isApplyingCamera = false
         }
 
         private func centerOnUserIfNeeded(map: MLNMapView) {

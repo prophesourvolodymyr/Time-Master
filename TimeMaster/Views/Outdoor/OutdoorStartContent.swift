@@ -19,42 +19,58 @@ struct OutdoorStartContent: View {
     }
 
     private var startSize: CGFloat {
-        76 + 42 * clampedExpansion
+        94 + 42 * clampedExpansion
     }
 
-    private var controlSize: CGFloat {
-        44 + 10 * clampedExpansion
+    private var sideControlSize: CGFloat {
+        48 + 10 * clampedExpansion
+    }
+
+    private var modeIconHeight: CGFloat {
+        26 + 10 * clampedExpansion
+    }
+
+    private var modeLabelHeight: CGFloat {
+        labelOpacity * (13 + 2 * clampedExpansion)
+    }
+
+    private var modeBarContentHeight: CGFloat {
+        max(44, modeIconHeight + 3 + 3 * clampedExpansion + modeLabelHeight)
+    }
+
+    private var modeBarHeight: CGFloat {
+        modeBarContentHeight + 6
+    }
+
+    private var startRowHeight: CGFloat {
+        startSize + 4
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            ZStack {
+                Button(action: onStart) {
+                    Text("Start")
+                        .font(dynamicTypeSize.isAccessibilitySize ? .headline.weight(.bold) : .system(size: 16 + 4 * clampedExpansion, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+                .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: true, minimumSize: startSize))
+                .frame(width: startSize, height: startSize)
+                .accessibilityLabel("Start \(committedKind.displayName) recording")
+
                 Button(action: onLibrary) {
                     Image(systemName: "photo")
                         .font(.system(size: 18, weight: .semibold))
                 }
-                .buttonStyle(OutdoorPineButtonStyle(circular: false))
+                .buttonStyle(OutdoorPineButtonStyle(circular: false, minimumSize: sideControlSize))
+                .frame(width: sideControlSize, height: sideControlSize)
+                .offset(x: -(startSize / 2 + 12 + sideControlSize / 2))
                 .accessibilityLabel("Library")
                 .accessibilityHint("Show established workouts in this route pane")
-
-                Spacer(minLength: 0)
-
-                Button(action: onStart) {
-                    Text("Start")
-                        .font(dynamicTypeSize.isAccessibilitySize ? .headline.weight(.bold) : .system(size: 14 + 4 * clampedExpansion, weight: .bold, design: .rounded))
-                }
-                .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: true))
-                .frame(width: startSize, height: startSize)
-                .accessibilityLabel("Start \(committedKind.displayName) recording")
-
-                Spacer(minLength: 0)
-
-                Color.clear
-                    .frame(width: controlSize, height: controlSize)
-                    .accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 4)
+            .frame(height: startRowHeight)
 
             Spacer(minLength: 8)
 
@@ -64,6 +80,11 @@ struct OutdoorStartContent: View {
         .padding(.horizontal, 10)
         .padding(.bottom, 10)
         .animation(isDragging || reduceMotion ? .none : .spring(response: 0.34, dampingFraction: 0.9), value: clampedExpansion)
+        .transaction { transaction in
+            if isDragging {
+                transaction.animation = nil
+            }
+        }
     }
 
     private var modeBar: some View {
@@ -75,16 +96,17 @@ struct OutdoorStartContent: View {
                     VStack(spacing: 3 + 3 * clampedExpansion) {
                         featureIcon(feature)
                             .font(dynamicTypeSize.isAccessibilitySize ? .body.weight(.semibold) : .system(size: 19 + 10 * clampedExpansion, weight: .semibold))
-                            .frame(height: 26 + 10 * clampedExpansion)
+                            .frame(height: modeIconHeight)
                         Text(feature.title)
                             .font(dynamicTypeSize.isAccessibilitySize ? .caption2.weight(.semibold) : .system(size: 10 + 2 * clampedExpansion, weight: .semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.72)
-                            .frame(height: dynamicTypeSize.isAccessibilitySize ? nil : 13 + 2 * clampedExpansion)
+                            .frame(height: modeLabelHeight)
                             .opacity(labelOpacity)
                             .offset(y: (1 - labelOpacity) * 3)
+                            .clipped()
                     }
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .foregroundStyle(activeFeature == feature ? Theme.restAccent : Theme.textPrimary.opacity(0.78))
                     .background {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -98,6 +120,7 @@ struct OutdoorStartContent: View {
                 .accessibilityHint("Open the \(feature.title) feature")
             }
         }
+        .frame(height: modeBarContentHeight)
         .padding(3)
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -107,6 +130,8 @@ struct OutdoorStartContent: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: modeBarHeight)
     }
 
     private var labelOpacity: CGFloat {
