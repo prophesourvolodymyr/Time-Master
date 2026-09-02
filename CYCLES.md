@@ -687,7 +687,8 @@ F27 Home ───────────────┘
     - [ ] Implement compact-to-zero dismissal for closable feature pines
     - [ ] Use native iOS 26 Liquid Glass bases
     - [ ] Match iOS 16–25 private glass geometry exactly
-    - [x] Keep full iOS 18 glass at rest and simplify only during map pan
+    - [x] Use public frosted blur for iOS 16–18 map surfaces
+    - [x] Add gooey map-mode expansion animation for iOS 16–18
     - [ ] Reproduce the complete Start state exactly
     - [ ] Implement Type with official native wheel picker
     - [ ] Separate previewed Type from committed workout Type
@@ -705,6 +706,8 @@ F27 Home ───────────────┘
     - [ ] Preserve deferred offline-area-selection service contract
     - [ ] Implement Map options pine placeholder selections
     - [ ] Connect approved production map providers and attribution
+    - [x] Rebuild map settings as contextual rows
+    - [x] Disable incompatible map layers for Terrain and Satellite
     - [ ] Implement Explore Terrain Satellite 3D Transit Traffic Cycling Dark Direction
     - [x] Reduce iOS 18 map-pan rendering and glass capture overhead
   - [ ] F28-E — Music Workout Editor
