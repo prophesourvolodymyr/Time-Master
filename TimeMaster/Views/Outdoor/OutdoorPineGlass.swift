@@ -79,12 +79,12 @@ struct OutdoorPineGlassSurface<Content: View>: View {
 
     private var fallbackSurface: some View {
         content()
-            .modifier(
-                TimeMasterPrivateGlassSurface(
-                    cornerRadius: flat ? 0 : cornerRadius,
-                    isInteractive: interactive
-                )
-            )
+            .background {
+                RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
+                    .fill(Theme.surface.opacity(0.42))
+            }
             .clipShape(RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
@@ -147,12 +147,11 @@ struct OutdoorPineButtonStyle: ButtonStyle {
                 content.glassEffect(.regular.interactive(), in: shape)
             }
         } else {
-            content.modifier(
-                TimeMasterPrivateGlassSurface(
-                    cornerRadius: circular ? minimumSize / 2 : 14,
-                    isInteractive: true
-                )
-            )
+            content
+                .background {
+                    shape.fill(.ultraThinMaterial)
+                    shape.fill(Theme.surface.opacity(0.42))
+                }
         }
     }
 

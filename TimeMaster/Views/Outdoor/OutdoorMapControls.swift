@@ -179,7 +179,13 @@ struct OutdoorMapControls: View {
         } else if #available(iOS 26.0, *) {
             content.glassEffect(.regular, in: .rect(cornerRadius: 20))
         } else {
-            content.modifier(TimeMasterPrivateGlassSurface(cornerRadius: 20, isInteractive: false))
+            content
+                .background {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(Theme.surface.opacity(0.42))
+                }
         }
     }
 }

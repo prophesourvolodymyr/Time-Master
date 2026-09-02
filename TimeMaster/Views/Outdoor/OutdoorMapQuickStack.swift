@@ -47,7 +47,13 @@ struct OutdoorMapQuickStack: View {
         } else if #available(iOS 26.0, *) {
             content.glassEffect(.regular.interactive(), in: .rect(cornerRadius: 15))
         } else {
-            content.modifier(TimeMasterPrivateGlassSurface(cornerRadius: 15, isInteractive: true))
+            content
+                .background {
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .fill(Theme.surface.opacity(0.42))
+                }
         }
     }
 }
