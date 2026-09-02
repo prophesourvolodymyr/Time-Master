@@ -687,6 +687,7 @@ F27 Home ───────────────┘
     - [ ] Implement compact-to-zero dismissal for closable feature pines
     - [ ] Use native iOS 26 Liquid Glass bases
     - [ ] Match iOS 16–25 private glass geometry exactly
+    - [x] Keep full iOS 18 glass at rest and simplify only during map pan
     - [ ] Reproduce the complete Start state exactly
     - [ ] Implement Type with official native wheel picker
     - [ ] Separate previewed Type from committed workout Type
