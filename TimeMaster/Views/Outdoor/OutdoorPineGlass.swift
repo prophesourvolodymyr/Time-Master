@@ -1,5 +1,23 @@
 #if os(iOS)
 import SwiftUI
+import UIKit
+
+struct OutdoorFrostedGlassBackground: UIViewRepresentable {
+    let style: UIBlurEffect.Style
+
+    init(style: UIBlurEffect.Style = .systemMaterialDark) {
+        self.style = style
+    }
+
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ view: UIVisualEffectView, context: Context) {}
+}
 
 struct OutdoorPineGlassSurface<Content: View>: View {
     let identity: String
@@ -7,8 +25,6 @@ struct OutdoorPineGlassSurface<Content: View>: View {
     let cornerRadius: CGFloat
     let flat: Bool
     let interactive: Bool
-    let isMapInteracting: Bool
-    let liveGlassEnabled: Bool
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -19,8 +35,6 @@ struct OutdoorPineGlassSurface<Content: View>: View {
         cornerRadius: CGFloat,
         flat: Bool = false,
         interactive: Bool = true,
-        isMapInteracting: Bool = false,
-        liveGlassEnabled: Bool = true,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.identity = identity
@@ -28,8 +42,6 @@ struct OutdoorPineGlassSurface<Content: View>: View {
         self.cornerRadius = cornerRadius
         self.flat = flat
         self.interactive = interactive
-        self.isMapInteracting = isMapInteracting
-        self.liveGlassEnabled = liveGlassEnabled
         self.content = content
     }
 
@@ -86,15 +98,9 @@ struct OutdoorPineGlassSurface<Content: View>: View {
     private var fallbackSurface: some View {
         content()
             .background {
-                if liveGlassEnabled && !isMapInteracting {
-                    TimeMasterLiquidGlassBackground(
-                        cornerRadius: flat ? 0 : cornerRadius,
-                        isInteractive: interactive
-                    )
-                } else {
-                    RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
-                        .fill(Theme.surface.opacity(0.92))
-                }
+                OutdoorFrostedGlassBackground()
+                RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
+                    .fill(Theme.surface.opacity(0.20))
             }
             .clipShape(RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous))
             .overlay {
@@ -160,8 +166,8 @@ struct OutdoorPineButtonStyle: ButtonStyle {
         } else {
             content
                 .background {
-                    shape.fill(.ultraThinMaterial)
-                    shape.fill(Theme.surface.opacity(0.42))
+                    OutdoorFrostedGlassBackground()
+                    shape.fill(Theme.surface.opacity(0.18))
                 }
         }
     }

@@ -16,7 +16,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var onWeatherStateChange: ((OutdoorWeatherState) -> Void)? = nil
     var onFollowStateChange: ((Bool) -> Void)? = nil
     var onFocusFailure: ((String) -> Void)? = nil
-    var onMapInteractionChange: ((Bool) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -24,11 +23,9 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             onCapabilityChange: onCapabilityChange,
             onWeatherStateChange: onWeatherStateChange,
             onFollowStateChange: onFollowStateChange,
-            onFocusFailure: onFocusFailure,
-            onMapInteractionChange: onMapInteractionChange
+            onFocusFailure: onFocusFailure
         )
     }
-
     func makeUIView(context: Context) -> MLNMapView {
         let map: MLNMapView
         if let styleURL = configuration.exploreStyleURL {
@@ -61,7 +58,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private let onCapabilityChange: ((OutdoorMapCapability) -> Void)?
         private let onFollowStateChange: ((Bool) -> Void)?
         private let onFocusFailure: ((String) -> Void)?
-        private let onMapInteractionChange: ((Bool) -> Void)?
         private let locationManager = CLLocationManager()
 
         private weak var map: MLNMapView?
@@ -96,7 +92,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var lastFocusRequestID = 0
         private var reportedCapabilities: [OutdoorMapMode: OutdoorMapCapability] = [:]
         private var reportedFollowState: Bool?
-        private var reportedMapInteraction = false
         private var headingUpdatesActive = false
         private var headingMode: OutdoorMapMode?
         private struct RouteRenderSignature: Equatable {
@@ -116,14 +111,12 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             onCapabilityChange: ((OutdoorMapCapability) -> Void)?,
             onWeatherStateChange: ((OutdoorWeatherState) -> Void)?,
             onFollowStateChange: ((Bool) -> Void)?,
-            onFocusFailure: ((String) -> Void)?,
-            onMapInteractionChange: ((Bool) -> Void)?
+            onFocusFailure: ((String) -> Void)?
         ) {
             session = OutdoorMapSession(configuration: configuration)
             self.onCapabilityChange = onCapabilityChange
             self.onFollowStateChange = onFollowStateChange
             self.onFocusFailure = onFocusFailure
-            self.onMapInteractionChange = onMapInteractionChange
             if #available(iOS 16.0, *) {
                 weatherAdapter = OutdoorWeatherKitAdapter(onStateChange: onWeatherStateChange)
             } else {
@@ -149,7 +142,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             map.maximumZoomLevel = 19
             map.attributionButton.isHidden = false
             map.logoView.isHidden = false
-            reportedMapInteraction = false
             configuredStyleID = nil
             configuredMode = nil
             configuredStyleURL = nil
@@ -180,13 +172,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             reportedFollowState = followsUser
             DispatchQueue.main.async { [weak self] in
                 self?.onFollowStateChange?(followsUser)
-            }
-        }
-        private func reportMapInteraction(_ isInteracting: Bool) {
-            guard reportedMapInteraction != isInteracting else { return }
-            reportedMapInteraction = isInteracting
-            DispatchQueue.main.async { [weak self] in
-                self?.onMapInteractionChange?(isInteracting)
             }
         }
 
@@ -338,13 +323,11 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             guard !isApplyingCamera, mapView.userTrackingMode == .none else { return }
             session.userDidPan()
             reportFollowState(false)
-            reportMapInteraction(true)
         }
 
         func mapView(_ mapView: MLNMapView, regionDidChangeAnimated animated: Bool) {
             guard !isApplyingCamera else { return }
             session.captureCamera(from: mapView)
-            reportMapInteraction(false)
         }
 
 

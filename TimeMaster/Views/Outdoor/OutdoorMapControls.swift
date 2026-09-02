@@ -181,10 +181,9 @@ struct OutdoorMapControls: View {
         } else {
             content
                 .background {
+                    OutdoorFrostedGlassBackground()
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Theme.surface.opacity(0.42))
+                        .fill(Theme.surface.opacity(0.20))
                 }
         }
     }
