@@ -11,7 +11,9 @@ struct OutdoorMapControls: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 1) {
+        VStack(alignment: .trailing, spacing: 8) {
+            mapAttributionView
+
             Button(action: onDownload) {
                 Image(systemName: "arrow.down.circle")
                     .font(.system(size: 17, weight: .semibold))
@@ -32,7 +34,6 @@ struct OutdoorMapControls: View {
             if weatherInfoEnabled {
                 weatherView
             }
-            mapAttributionView
             if let presentation = weatherState.presentation {
                 weatherAttributionView(presentation.attribution)
             }
@@ -53,6 +54,7 @@ struct OutdoorMapControls: View {
         .lineLimit(2)
         .multilineTextAlignment(.trailing)
         .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: 140, alignment: .trailing)
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .background(reduceTransparency ? Theme.surface : Theme.surface.opacity(0.78), in: Capsule())
