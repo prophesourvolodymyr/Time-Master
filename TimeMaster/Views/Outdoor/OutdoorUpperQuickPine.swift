@@ -5,11 +5,13 @@ struct OutdoorUpperQuickPine: View {
     let feature: OutdoorUpperQuickFeature
     let namespace: Namespace.ID
     let mapMode: OutdoorMapMode
+    let enabledOverlays: Set<OutdoorMapMode>
     let activeMapMode: OutdoorMapMode
     let mapCapabilities: [OutdoorMapMode: OutdoorMapCapability]
     @ObservedObject var preferences: OutdoorRecordingPreferencesStore
     let offlineCapabilities: [OutdoorMapCapability]
     let onMapMode: (OutdoorMapMode) -> Void
+    let onToggleOverlay: (OutdoorMapMode) -> Void
     let onManageMusic: () -> Void
     let onDismiss: () -> Void
     let height: CGFloat
@@ -61,10 +63,12 @@ struct OutdoorUpperQuickPine: View {
         switch feature {
         case .map:
             OutdoorMapModePicker(
-                selectedMode: mapMode,
+                baseMode: mapMode,
+                enabledOverlays: enabledOverlays,
                 activeMode: activeMapMode,
                 capabilities: mapCapabilities,
-                onSelect: onMapMode
+                onBaseSelect: onMapMode,
+                onToggleOverlay: onToggleOverlay
             )
             .padding(.bottom, 8)
         case .trophy:

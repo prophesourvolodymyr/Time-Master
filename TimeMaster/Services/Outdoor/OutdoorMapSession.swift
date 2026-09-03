@@ -12,7 +12,6 @@ final class OutdoorMapSession {
     private(set) var cameraState: OutdoorMapCameraState?
     private(set) var followsUser = false
     private(set) var userExitedFollow = false
-    private(set) var heading: CLLocationDirection?
     private(set) var lastUsableStyleURL: URL?
 
     private var dynamicCapabilities: [OutdoorMapMode: OutdoorMapCapability] = [:]
@@ -30,9 +29,7 @@ final class OutdoorMapSession {
 
     func requestMode(_ mode: OutdoorMapMode) -> OutdoorMapModeSelection {
         requestedMode = mode
-        requestedCapability = mode == .direction
-            ? configuration.capability(for: mode)
-            : capability(for: mode)
+        requestedCapability = capability(for: mode)
         guard requestedCapability.isUsable else {
             return OutdoorMapModeSelection(
                 requestedMode: mode,
@@ -43,19 +40,7 @@ final class OutdoorMapSession {
             )
         }
 
-        let style = configuration.style(for: mode)
-        if mode == .direction {
-            activeMode = mode
-            return OutdoorMapModeSelection(
-                requestedMode: mode,
-                activeMode: activeMode,
-                capability: requestedCapability,
-                style: nil,
-                shouldReloadStyle: false
-            )
-        }
-
-        guard let style else {
+        guard let style = configuration.style(for: mode) else {
             let unavailable = OutdoorMapCapability.unavailable(
                 mode: mode,
                 provider: requestedCapability.provider,
@@ -118,25 +103,6 @@ final class OutdoorMapSession {
         )
     }
 
-    func markDirectionUnavailable(_ reason: String) {
-        let base = configuration.capability(for: .direction)
-        dynamicCapabilities[.direction] = OutdoorMapCapability(
-            mode: .direction,
-            provider: .device,
-            status: .unsupported,
-            reason: reason,
-            attribution: base.attribution,
-            cacheRights: base.cacheRights,
-            freshness: base.freshness,
-            coverage: base.coverage
-        )
-        requestedCapability = dynamicCapabilities[.direction]!
-    }
-
-    func markDirectionAvailable() {
-        dynamicCapabilities[.direction] = configuration.capability(for: .direction)
-        requestedCapability = dynamicCapabilities[.direction]!
-    }
 
     func markThreeDAvailable() {
         dynamicCapabilities[.threeD] = configuration.capability(for: .threeD)
@@ -184,9 +150,6 @@ final class OutdoorMapSession {
         userExitedFollow = true
     }
 
-    func updateHeading(_ heading: CLLocationDirection?) {
-        self.heading = heading
-    }
 
     func resetFollowAfterExplicitFocus() {
         userExitedFollow = false

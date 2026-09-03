@@ -29,8 +29,17 @@ final class OutdoorRouteRecordingUITests: XCTestCase {
         app.buttons["Open map quick pane"].tap()
         XCTAssertTrue(app.buttons["Close Map quick pane"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Map mode, Explore"].exists)
-        app.buttons["Map mode, 3D"].tap()
-        XCTAssertTrue((app.buttons["Map mode, 3D"].value as? String)?.contains("Selected") == true)
+        XCTAssertFalse(app.buttons["Map mode, Direction"].exists)
+
+        let transit = app.buttons["Map mode, Transit"]
+        let cycling = app.buttons["Map mode, Cycling"]
+        XCTAssertTrue(transit.waitForExistence(timeout: 5))
+        XCTAssertTrue(cycling.waitForExistence(timeout: 5))
+        transit.tap()
+        cycling.tap()
+        XCTAssertTrue((transit.value as? String)?.contains("Selected, On") == true)
+        XCTAssertTrue((cycling.value as? String)?.contains("Selected, On") == true)
+        XCTAssertTrue((app.buttons["Map mode, Explore"].value as? String)?.contains("Selected base view") == true)
         app.buttons["Close Map quick pane"].tap()
 
         XCTAssertTrue(app.buttons["Open trophy quick pane"].waitForExistence(timeout: 5))

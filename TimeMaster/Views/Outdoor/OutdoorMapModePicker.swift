@@ -2,35 +2,38 @@
 import SwiftUI
 
 struct OutdoorMapModePicker: View {
-    let selectedMode: OutdoorMapMode
+    let baseMode: OutdoorMapMode
+    let enabledOverlays: Set<OutdoorMapMode>
     let activeMode: OutdoorMapMode
     let capabilities: [OutdoorMapMode: OutdoorMapCapability]
-    let onSelect: (OutdoorMapMode) -> Void
+    let onBaseSelect: (OutdoorMapMode) -> Void
+    let onToggleOverlay: (OutdoorMapMode) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let tileWidth: CGFloat = 78
-    private let tileHeight: CGFloat = 78
+    private let baseTileHeight: CGFloat = 76
+    private let overlayTileWidth: CGFloat = 58
+    private let overlayTileHeight: CGFloat = 66
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHGrid(
-                    rows: [
-                        GridItem(.fixed(tileHeight)),
-                        GridItem(.fixed(tileHeight))
-                    ],
-                    spacing: 8
-                ) {
-                    ForEach(OutdoorMapMode.allCases) { mode in
-                        modeButton(mode)
-                    }
+        VStack(alignment: .leading, spacing: 7) {
+            sectionTitle("Map view")
+            HStack(spacing: 7) {
+                ForEach(OutdoorMapMode.baseModes) { mode in
+                    modeButton(mode, isBase: true)
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 2)
-                .padding(.vertical, 2)
             }
-            .frame(height: tileHeight * 2 + 12)
-            .scrollIndicators(.hidden)
+            .frame(height: baseTileHeight)
+
+            sectionTitle("Map overlays")
+            HStack(spacing: 5) {
+                ForEach(OutdoorMapMode.overlayModes) { mode in
+                    modeButton(mode, isBase: false)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: overlayTileHeight)
 
             capabilitySummary
                 .padding(.horizontal, 2)
@@ -40,24 +43,37 @@ struct OutdoorMapModePicker: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func modeButton(_ mode: OutdoorMapMode) -> some View {
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Theme.textPrimary.opacity(0.78))
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func modeButton(_ mode: OutdoorMapMode, isBase: Bool) -> some View {
         let capability = capabilities[mode] ?? OutdoorMapProviderConfiguration.main.capability(for: mode)
-        let selected = mode == selectedMode
-        let enabled = isModeEnabled(mode, capability: capability)
+        let selected = isBase ? mode == baseMode : enabledOverlays.contains(mode)
+        let enabled = capability.isUsable
+        let tileWidth = isBase ? nil : overlayTileWidth
+        let tileHeight = isBase ? baseTileHeight : overlayTileHeight
 
         return Button {
             guard enabled else { return }
-            onSelect(mode)
+            if isBase {
+                onBaseSelect(mode)
+            } else {
+                onToggleOverlay(mode)
+            }
         } label: {
             ZStack(alignment: .topTrailing) {
-                VStack(spacing: 5) {
+                VStack(spacing: 4) {
                     Image(systemName: mode.systemImageName)
-                        .font(.system(size: 22, weight: .semibold))
-                        .frame(height: 28)
+                        .font(.system(size: isBase ? 21 : 19, weight: .semibold))
+                        .frame(height: isBase ? 28 : 24)
                     Text(mode.displayName)
                         .font(.caption2.weight(.semibold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.72)
+                        .minimumScaleFactor(0.68)
                         .frame(maxWidth: .infinity)
                 }
                 .foregroundStyle(selected ? Theme.textPrimary : Theme.textSecondary)
@@ -75,47 +91,41 @@ struct OutdoorMapModePicker: View {
                 }
 
                 Image(systemName: selected ? "checkmark.circle.fill" : enabled ? "circle" : "lock.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(
                         selected
                             ? Theme.restAccent
                             : enabled ? Theme.textSecondary : Theme.textSecondary.opacity(0.7)
                     )
-                    .padding(6)
+                    .padding(5)
             }
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.52)
         .accessibilityLabel("Map mode, \(mode.displayName)")
-        .accessibilityValue(accessibilityValue(for: mode, capability: capability, selected: selected, enabled: enabled))
-        .accessibilityHint(cardHint(for: mode, capability: capability, enabled: enabled))
+        .accessibilityValue(accessibilityValue(for: mode, capability: capability, selected: selected, enabled: enabled, isBase: isBase))
+        .accessibilityHint(cardHint(for: mode, capability: capability, enabled: enabled, isBase: isBase))
         .animation(reduceMotion ? .none : .easeOut(duration: 0.18), value: selected)
-    }
-
-    private func isModeEnabled(_ mode: OutdoorMapMode, capability: OutdoorMapCapability) -> Bool {
-        guard capability.isUsable else { return false }
-        guard selectedMode == .terrain || selectedMode == .satellite else { return true }
-        return mode == selectedMode || ![.threeD, .transit, .traffic, .cycling, .direction].contains(mode)
     }
 
     @ViewBuilder
     private var capabilitySummary: some View {
-        let capability = capabilities[selectedMode] ?? OutdoorMapProviderConfiguration.main.capability(for: selectedMode)
+        let capability = capabilities[baseMode] ?? OutdoorMapProviderConfiguration.main.capability(for: baseMode)
         if capability.isUsable {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Active map: \(activeMode.displayName)")
+                Text("Base map: \(activeMode.displayName)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.textPrimary)
-                Text(attributionText(for: capability))
+                Text(enabledOverlaySummary)
                     .font(.caption2)
                     .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
         } else {
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(selectedMode.displayName) unavailable")
+                Text("\(baseMode.displayName) unavailable")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.yellow)
                 Text(capability.reason ?? statusText(capability.status))
@@ -127,30 +137,42 @@ struct OutdoorMapModePicker: View {
         }
     }
 
+    private var enabledOverlaySummary: String {
+        let names = OutdoorMapMode.overlayModes
+            .filter(enabledOverlays.contains)
+            .map(\.displayName)
+        return names.isEmpty ? "Overlays: None" : "Overlays: \(names.joined(separator: ", "))"
+    }
+
     private func accessibilityValue(
         for mode: OutdoorMapMode,
         capability: OutdoorMapCapability,
         selected: Bool,
-        enabled: Bool
+        enabled: Bool,
+        isBase: Bool
     ) -> String {
-        let state = selected ? "Selected" : enabled ? "Not selected" : "Unavailable with the current base map"
-        let availability = capability.isUsable ? "Available" : statusText(capability.status)
+        let state: String
+        if isBase {
+            state = selected ? "Selected base view" : "Not selected base view"
+        } else {
+            state = selected ? "Selected, On" : "Not selected, Off"
+        }
+        let availability = enabled ? "Available" : statusText(capability.status)
         return "\(state), \(availability)"
     }
 
-    private func cardHint(for mode: OutdoorMapMode, capability: OutdoorMapCapability, enabled: Bool) -> String {
-        if !enabled, capability.isUsable {
-            return "This layer requires a vector base map. Select Explore or Dark first."
+    private func cardHint(
+        for mode: OutdoorMapMode,
+        capability: OutdoorMapCapability,
+        enabled: Bool,
+        isBase: Bool
+    ) -> String {
+        if !enabled {
+            return capability.reason ?? "This map option is unavailable."
         }
-        return capability.reason ?? (capability.isUsable ? "Selects this presentation on the current map." : "Unavailable mode; shows its real requirement.")
-    }
-
-    private func attributionText(for capability: OutdoorMapCapability) -> String {
-        let notices = capability.attribution.notices.joined(separator: " · ")
-        if notices.isEmpty {
-            return "Source: \(capability.attribution.providerName)"
-        }
-        return "Source: \(capability.attribution.providerName) · \(notices)"
+        return isBase
+            ? "Changes the base map view."
+            : "Toggles this overlay without changing the base map view."
     }
 
     private func statusText(_ status: OutdoorMapCapabilityStatus) -> String {

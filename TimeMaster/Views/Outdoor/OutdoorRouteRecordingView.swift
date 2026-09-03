@@ -38,6 +38,7 @@ struct OutdoorRouteRecordingView: View {
     @State private var finishModalPresented = false
     @State private var shortSessionReason: String?
     @State private var mapMode: OutdoorMapMode = .explore
+    @State private var mapOverlayModes: Set<OutdoorMapMode> = []
     @State private var activeMapMode: OutdoorMapMode = .explore
     @State private var mapCapabilities: [OutdoorMapMode: OutdoorMapCapability] = [:]
     @State private var weatherState: OutdoorWeatherState = .disabled
@@ -94,7 +95,9 @@ struct OutdoorRouteRecordingView: View {
                 safeAreaBottom: proxy.safeAreaInsets.bottom,
                 playerReserve: showsCompactPlayer ? 94 : 0
             )
-            let offlineCapabilities = OutdoorMapMode.allCases.map { OutdoorMapProviderConfiguration.main.capability(for: $0) }
+            let offlineCapabilities = (OutdoorMapMode.baseModes + OutdoorMapMode.overlayModes).map {
+                OutdoorMapProviderConfiguration.main.capability(for: $0)
+            }
             let quickGeometry = upperQuickGeometry(for: layout)
             ZStack(alignment: .topLeading) {
                 OutdoorMapLibreView(
@@ -103,6 +106,7 @@ struct OutdoorRouteRecordingView: View {
                     state: recorder.state,
                     plannedPoints: recorder.plannedPoints,
                     mode: mapMode,
+                    overlayModes: mapOverlayModes,
                     focusRequestID: mapFocusRequestID,
                     cityFitRequestID: mapCityFitRequestID,
                     weatherInfoEnabled: preferences.preferences.weatherInfo,
@@ -181,11 +185,13 @@ struct OutdoorRouteRecordingView: View {
                         feature: upperQuickFeature,
                         namespace: glassNamespace,
                         mapMode: mapMode,
+                        enabledOverlays: mapOverlayModes,
                         activeMapMode: activeMapMode,
                         mapCapabilities: mapCapabilities,
                         preferences: preferences,
                         offlineCapabilities: offlineCapabilities,
                         onMapMode: selectMapMode,
+                        onToggleOverlay: toggleMapOverlay,
                         onManageMusic: { focusMusicFromUpperQuick(layout: layout) },
                         onDismiss: closeUpperQuick,
                         height: layout.usableHeight * 0.40
@@ -416,6 +422,7 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func selectMapMode(_ mode: OutdoorMapMode) {
+        guard mode.isBaseMapView else { return }
         selectionHaptic()
         animate {
             mapMode = mode
@@ -423,6 +430,24 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
+    private func toggleMapOverlay(_ overlay: OutdoorMapMode) {
+        guard overlay.isMapOverlay else { return }
+        let capability = mapCapabilities[overlay]
+            ?? OutdoorMapProviderConfiguration.main.capability(for: overlay)
+        guard capability.isUsable else {
+            mapOfflineMessage = capability.reason ?? "\(overlay.displayName) is unavailable."
+            return
+        }
+        selectionHaptic()
+        animate {
+            if mapOverlayModes.contains(overlay) {
+                mapOverlayModes.remove(overlay)
+            } else {
+                mapOverlayModes.insert(overlay)
+            }
+            mapOfflineMessage = nil
+        }
+    }
     private func openUpperQuick(_ feature: OutdoorUpperQuickFeature) {
         selectionHaptic()
         withAnimation(reduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.34, dampingFraction: 0.88)) {

@@ -707,7 +707,7 @@ F27 Home ───────────────┘
     - [ ] Connect map-side controls through real service boundaries
     - [ ] Keep weather display-only and noninteractive
     - [ ] Preserve deferred offline-area-selection service contract
-    - [ ] Implement Map options pine placeholder selections
+    - [x] Implement categorized base-map and overlay controls
     - [ ] Connect approved production map providers and attribution
     - [x] Rebuild map settings as contextual rows
     - [x] Disable incompatible map layers for Terrain and Satellite

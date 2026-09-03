@@ -271,23 +271,7 @@ struct OutdoorMapProviderConfiguration {
                 coverage: .global
             )
 
-        case .direction:
-            return OutdoorMapCapability(
-                mode: mode,
-                provider: .device,
-                status: .available,
-                reason: nil,
-                attribution: OutdoorMapAttribution(providerName: "Device heading"),
-                cacheRights: OutdoorMapCacheRights(
-                    networkRequired: false,
-                    cachePermission: .allowed,
-                    offlineInstallationAllowed: true,
-                    explanation: "Direction uses the existing map and device heading."
-                ),
-                freshness: .init(maximumAge: 1, lastUpdated: nil),
-                coverage: .global
-            )
-        }
+    }
     }
 
     func style(for mode: OutdoorMapMode) -> OutdoorMapStyleDefinition? {
@@ -382,8 +366,6 @@ struct OutdoorMapProviderConfiguration {
                 vectorSourceLayer: nil,
                 attribution: openFreeMapAttribution
             )
-        case .direction:
-            return nil
         }
     }
 

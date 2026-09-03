@@ -9,6 +9,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var state: OutdoorLocationRecorder.State
     var plannedPoints: [OutdoorTrackPoint]? = nil
     var mode: OutdoorMapMode = .explore
+    var overlayModes: Set<OutdoorMapMode> = []
     var focusRequestID: Int = 0
     var cityFitRequestID: Int = 0
     var weatherInfoEnabled: Bool = false
@@ -48,6 +49,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             state: state,
             followsUser: followsUser,
             mode: mode,
+            overlayModes: overlayModes,
             focusRequestID: focusRequestID,
             cityFitRequestID: cityFitRequestID,
             weatherInfoEnabled: weatherInfoEnabled
@@ -66,6 +68,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var latestPoints: [OutdoorTrackPoint] = []
         private var latestPlannedPoints: [OutdoorTrackPoint] = []
         private var latestState: OutdoorLocationRecorder.State = .idle
+        private var latestOverlayModes: Set<OutdoorMapMode> = []
         private var latestUserCoordinate: CLLocationCoordinate2D?
         private var latestWeatherInfoEnabled = false
         private var isApplyingCamera = false
@@ -74,6 +77,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var hasCenteredOnUser = false
         private var loadedStyleURL: URL?
         private var activeTileSourceIDs: Set<String> = []
+        private var darkOverlayView: UIView?
         private var configuredStyleID: ObjectIdentifier?
         private var configuredMode: OutdoorMapMode?
         private var configuredStyleURL: URL?
@@ -82,6 +86,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var lastRenderedState: OutdoorLocationRecorder.State?
         private var lastRenderedFollowsUser: Bool?
         private var lastRenderedMode: OutdoorMapMode?
+        private var configuredOverlays: Set<OutdoorMapMode> = []
+        private var lastRenderedOverlayModes: Set<OutdoorMapMode>?
         private var lastRenderedFocusRequestID: Int?
         private var lastRenderedWeatherInfoEnabled: Bool?
         private var lastRenderedCityFitRequestID: Int?
@@ -90,14 +96,11 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var liveRouteSignature: RouteRenderSignature?
         private var plannedRouteSignature: RouteRenderSignature?
         private var didApplyThreeDCamera = false
-        private var lastAppliedDirectionHeading: CLLocationDirection?
         private var startAnnotation: MLNPointAnnotation?
         private var endAnnotation: MLNPointAnnotation?
         private var lastFocusRequestID = 0
         private var reportedCapabilities: [OutdoorMapMode: OutdoorMapCapability] = [:]
         private var reportedFollowState: Bool?
-        private var headingUpdatesActive = false
-        private var headingMode: OutdoorMapMode?
         private struct RouteRenderSignature: Equatable {
             let count: Int
             let first: OutdoorTrackPoint?
@@ -132,6 +135,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
         func attach(to map: MLNMapView) {
+            darkOverlayView?.removeFromSuperview()
+            darkOverlayView = nil
             self.map = map
             map.delegate = self
             map.showsUserLocation = true
@@ -149,12 +154,15 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             configuredStyleID = nil
             configuredMode = nil
             configuredStyleURL = nil
+            configuredOverlays = []
+            latestOverlayModes = []
             lastRenderedPointsSignature = nil
             lastRenderedPlannedPointsSignature = nil
             lastRenderedState = nil
             lastRenderedFollowsUser = nil
             lastRenderedMode = nil
             lastRenderedFocusRequestID = nil
+            lastRenderedOverlayModes = nil
             lastRenderedCityFitRequestID = nil
             pendingCityFit = false
             lastRenderedWeatherInfoEnabled = nil
@@ -162,7 +170,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             liveRouteSignature = nil
             plannedRouteSignature = nil
             didApplyThreeDCamera = false
-            lastAppliedDirectionHeading = nil
             loadedStyleURL = map.styleURL
         }
 
@@ -189,6 +196,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             state: OutdoorLocationRecorder.State,
             followsUser: Bool,
             mode: OutdoorMapMode,
+            overlayModes: Set<OutdoorMapMode>,
             focusRequestID: Int,
             cityFitRequestID: Int,
             weatherInfoEnabled: Bool
@@ -207,6 +215,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 || lastRenderedState != state
                 || lastRenderedFollowsUser != followsUser
                 || lastRenderedMode != mode
+                || lastRenderedOverlayModes != overlayModes
                 || lastRenderedFocusRequestID != focusRequestID
                 || lastRenderedCityFitRequestID != cityFitRequestID
                 || lastRenderedWeatherInfoEnabled != weatherInfoEnabled
@@ -214,12 +223,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             latestPoints = points
             latestPlannedPoints = plannedPoints
             latestState = state
+            latestOverlayModes = overlayModes
             latestWeatherInfoEnabled = weatherInfoEnabled
             lastRenderedPointsSignature = pointsSignature
             lastRenderedPlannedPointsSignature = plannedPointsSignature
             lastRenderedState = state
             lastRenderedFollowsUser = followsUser
             lastRenderedMode = mode
+            lastRenderedOverlayModes = overlayModes
             lastRenderedFocusRequestID = focusRequestID
             if let lastRenderedCityFitRequestID,
                lastRenderedCityFitRequestID != cityFitRequestID {
@@ -243,7 +254,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             }
 
             let selection = session.requestMode(mode)
-            reportCapability(selection.capability)
+            OutdoorMapMode.overlayModes.forEach { reportCapability(session.capability(for: $0)) }
             guard selection.capability.isUsable else {
                 if let style = map.style {
                     renderRouteOverlays(map: map, style: style)
@@ -263,31 +274,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 return
             }
 
-            if mode != .direction {
-                lastUsableMode = mode
-            }
-            if headingMode != mode {
-                headingMode = mode
-                if mode == .direction, !startHeadingUpdatesIfPossible() {
-                    session.markDirectionUnavailable("Device heading is unavailable or location authorization is not granted.")
-                    reportCapability(session.capability(for: .direction))
-                } else if mode == .direction {
-                    session.markDirectionAvailable()
-                    reportCapability(session.capability(for: .direction))
-                } else {
-                    stopHeadingUpdates()
-                }
-            }
 
-            loadedStyleURL = map.styleURL
             if let style = map.style {
-                configureProviderLayers(style: style)
+                configureProviderLayers(style: style, overlays: latestOverlayModes)
                 renderRouteOverlays(map: map, style: style)
-                applyThreeDIfSupported(map: map, style: style)
+                applyThreeDIfSupported(map: map, style: style, overlays: latestOverlayModes)
             }
             applyFollowState(to: map)
             applyInitialFramingIfNeeded(map: map)
-            applyDirectionHeading(to: map)
             fitMapToCityIfNeeded(map: map)
             updateWeather()
         }
@@ -297,16 +291,15 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             isApplyingCamera = true
             session.restoreCamera(on: mapView)
             isApplyingCamera = false
-            configureProviderLayers(style: style)
+            configureProviderLayers(style: style, overlays: latestOverlayModes)
             renderRouteOverlays(map: mapView, style: style)
-            applyThreeDIfSupported(map: mapView, style: style)
+            applyThreeDIfSupported(map: mapView, style: style, overlays: latestOverlayModes)
             applyFollowState(to: mapView)
-            applyDirectionHeading(to: mapView)
             applyInitialFramingIfNeeded(map: mapView)
             fitMapToCityIfNeeded(map: mapView)
             updateWeather()
-        }
 
+        }
         func mapViewDidFailLoadingMap(_ mapView: MLNMapView, withError error: Error) {
             let failedMode = session.requestedMode
             let message = "\(failedMode.displayName) provider failed to load: \(error.localizedDescription)"
@@ -332,7 +325,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             } else {
                 centerOnUserIfNeeded(map: mapView)
             }
-            applyDirectionHeading(to: mapView)
         }
 
         func mapView(_ mapView: MLNMapView, regionWillChangeAnimated animated: Bool) {
@@ -365,73 +357,17 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             session.setFollowRequested(true)
             applyFollowState(to: map)
             reportFollowState(true)
-            lastAppliedDirectionHeading = nil
         }
 
-        func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-            let value = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
-            guard value >= 0 else {
-                session.updateHeading(nil)
-                return
-            }
-            session.updateHeading(value)
-            if let map, session.activeMode == .direction {
-                applyDirectionHeading(to: map)
-            }
-        }
 
-        private func startHeadingUpdatesIfPossible() -> Bool {
-            guard CLLocationManager.headingAvailable() else { return false }
-            guard CLLocationManager.authorizationStatus() == .authorizedAlways
-                || CLLocationManager.authorizationStatus() == .authorizedWhenInUse
-            else { return false }
-            if !headingUpdatesActive {
-                locationManager.startUpdatingHeading()
-                headingUpdatesActive = true
-            }
-            return true
-        }
-
-        private func stopHeadingUpdates() {
-            guard headingUpdatesActive else { return }
-            locationManager.stopUpdatingHeading()
-            headingUpdatesActive = false
-        }
 
         private func applyFollowState(to map: MLNMapView) {
-            let desiredMode: MLNUserTrackingMode
-            if session.followsUser {
-                desiredMode = session.activeMode == .direction && session.heading != nil
-                    ? .followWithHeading
-                    : .follow
-            } else {
-                desiredMode = .none
-            }
+            let desiredMode: MLNUserTrackingMode = session.followsUser ? .follow : .none
             if map.userTrackingMode != desiredMode {
                 map.userTrackingMode = desiredMode
             }
         }
 
-        private func applyDirectionHeading(to map: MLNMapView) {
-            guard session.activeMode == .direction, let heading = session.heading else {
-                lastAppliedDirectionHeading = nil
-                return
-            }
-            if let lastAppliedDirectionHeading,
-               abs(lastAppliedDirectionHeading - heading) < 0.5 {
-                return
-            }
-            let camera = MLNMapCamera(
-                lookingAtCenter: map.centerCoordinate,
-                fromDistance: max(map.camera.altitude, 1),
-                pitch: map.camera.pitch,
-                heading: heading
-            )
-            isApplyingCamera = true
-            map.setCamera(camera, animated: false)
-            isApplyingCamera = false
-            lastAppliedDirectionHeading = heading
-        }
 
         private func applyInitialFramingIfNeeded(map: MLNMapView) {
             guard session.shouldFrameRoute(hasRoute: !latestPoints.isEmpty || !latestPlannedPoints.isEmpty) else {
@@ -512,13 +448,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             adapter.update(location: location, enabled: latestWeatherInfoEnabled)
         }
 
-        private func configureProviderLayers(style: MLNStyle) {
+        private func configureProviderLayers(style: MLNStyle, overlays: Set<OutdoorMapMode>) {
             let styleID = ObjectIdentifier(style)
             let styleURL = map?.styleURL
-            let mode = session.activeMode
+            let baseMode = session.activeMode
             guard configuredStyleID != styleID
-                || configuredMode != mode
+                || configuredMode != baseMode
                 || configuredStyleURL != styleURL
+                || configuredOverlays != overlays
             else { return }
 
             for identifier in activeTileSourceIDs {
@@ -531,45 +468,54 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             }
             activeTileSourceIDs.removeAll()
             configuredStyleID = styleID
-            configuredMode = mode
+            configuredMode = baseMode
             configuredStyleURL = styleURL
+            configuredOverlays = overlays
             liveRouteSignature = nil
             plannedRouteSignature = nil
-            guard let definition = session.configuration.style(for: mode) else { return }
 
-            if let template = definition.rasterTileURLTemplate, !template.isEmpty {
-                let sourceID = "outdoor-\(session.activeMode.rawValue)-raster-source"
-                let layerID = "outdoor-\(session.activeMode.rawValue)-raster-layer"
+            guard let baseDefinition = session.configuration.style(for: baseMode) else {
+                updateDarkOverlay(on: map, overlays: overlays)
+                return
+            }
+
+            if let template = baseDefinition.rasterTileURLTemplate, !template.isEmpty {
+                let sourceID = "outdoor-\(baseMode.rawValue)-raster-source"
+                let layerID = "outdoor-\(baseMode.rawValue)-raster-layer"
                 let source = MLNRasterTileSource(identifier: sourceID, tileURLTemplates: [template], options: nil)
                 style.addSource(source)
                 let layer = MLNRasterStyleLayer(identifier: layerID, source: source)
-                layer.rasterOpacity = NSExpression(
-                    forConstantValue: session.activeMode == .satellite ? 1.0 : 0.72
-                )
+                layer.rasterOpacity = NSExpression(forConstantValue: baseMode == .satellite ? 1.0 : 0.72)
                 style.addLayer(layer)
                 activeTileSourceIDs.insert(sourceID)
                 activeTileSourceIDs.insert(layerID)
             }
 
-            if let template = definition.vectorTileURLTemplate,
-               let sourceLayer = definition.vectorSourceLayer,
-               !template.isEmpty {
-                let sourceID = "outdoor-\(session.activeMode.rawValue)-vector-source"
-                let layerID = "outdoor-\(session.activeMode.rawValue)-vector-layer"
+            func addVectorOverlay(_ overlay: OutdoorMapMode, definition: OutdoorMapStyleDefinition) {
+                guard let template = definition.vectorTileURLTemplate,
+                      let sourceLayer = definition.vectorSourceLayer,
+                      !template.isEmpty else { return }
+                let sourceID = "outdoor-\(overlay.rawValue)-vector-source"
+                let layerID = "outdoor-\(overlay.rawValue)-vector-layer"
                 let source = MLNVectorTileSource(identifier: sourceID, tileURLTemplates: [template], options: nil)
                 style.addSource(source)
                 let layer = MLNLineStyleLayer(identifier: layerID, source: source)
                 layer.sourceLayerIdentifier = sourceLayer
-                layer.lineColor = NSExpression(forConstantValue: session.activeMode == .traffic ? UIColor.systemRed : UIColor.systemBlue)
-                layer.lineWidth = NSExpression(forConstantValue: session.activeMode == .traffic ? 3 : 2)
-                layer.lineOpacity = NSExpression(forConstantValue: 0.72)
+                layer.lineColor = NSExpression(forConstantValue: overlay == .traffic ? UIColor.systemRed : UIColor.systemPurple)
+                layer.lineWidth = NSExpression(forConstantValue: overlay == .traffic ? 3 : 2)
+                layer.lineOpacity = NSExpression(forConstantValue: overlay == .traffic ? 0.72 : 0.85)
                 style.addLayer(layer)
                 activeTileSourceIDs.insert(sourceID)
                 activeTileSourceIDs.insert(layerID)
             }
 
-            if session.activeMode == .cycling,
-               let source = style.source(withIdentifier: "openmaptiles") {
+            if overlays.contains(.traffic), let definition = session.configuration.style(for: .traffic) {
+                addVectorOverlay(.traffic, definition: definition)
+            }
+            if overlays.contains(.transit), let definition = session.configuration.style(for: .transit) {
+                addVectorOverlay(.transit, definition: definition)
+            }
+            if overlays.contains(.cycling), let source = style.source(withIdentifier: "openmaptiles") {
                 let layerID = "outdoor-cycling-network-layer"
                 let layer = MLNLineStyleLayer(identifier: layerID, source: source)
                 layer.sourceLayerIdentifier = "transportation"
@@ -585,9 +531,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 style.addLayer(layer)
                 activeTileSourceIDs.insert(layerID)
             }
-
-            if session.activeMode == .transit,
-               definition.vectorTileURLTemplate == nil,
+            if overlays.contains(.transit),
+               session.configuration.style(for: .transit)?.vectorTileURLTemplate == nil,
                let source = style.source(withIdentifier: "openmaptiles") {
                 let layerID = "outdoor-transit-network-layer"
                 let layer = MLNLineStyleLayer(identifier: layerID, source: source)
@@ -604,37 +549,54 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 style.addLayer(layer)
                 activeTileSourceIDs.insert(layerID)
             }
+            updateDarkOverlay(on: map, overlays: overlays)
+        }
 
-            if session.activeMode == .dark {
-                for layer in style.layers {
-                    switch layer {
-                    case let background as MLNBackgroundStyleLayer:
-                        background.backgroundColor = NSExpression(
-                            forConstantValue: UIColor(red: 0.035, green: 0.055, blue: 0.09, alpha: 1)
-                        )
-                    case let fill as MLNFillStyleLayer:
-                        fill.fillColor = NSExpression(
-                            forConstantValue: UIColor(red: 0.08, green: 0.11, blue: 0.17, alpha: 1)
-                        )
-                    case let line as MLNLineStyleLayer:
-                        line.lineColor = NSExpression(
-                            forConstantValue: UIColor(red: 0.24, green: 0.31, blue: 0.43, alpha: 1)
-                        )
-                    case let symbol as MLNSymbolStyleLayer:
-                        symbol.textColor = NSExpression(forConstantValue: UIColor(white: 0.9, alpha: 1))
-                        symbol.textHaloColor = NSExpression(forConstantValue: UIColor(white: 0.04, alpha: 0.9))
-                    default:
-                        break
-                    }
+        private func updateDarkOverlay(on map: MLNMapView?, overlays: Set<OutdoorMapMode>) {
+            guard let map else {
+                darkOverlayView?.removeFromSuperview()
+                darkOverlayView = nil
+                return
+            }
+
+            if overlays.contains(.dark) {
+                let overlay = darkOverlayView ?? UIView()
+                overlay.backgroundColor = UIColor.black.withAlphaComponent(0.30)
+                overlay.isUserInteractionEnabled = false
+                overlay.frame = map.bounds
+                overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                if overlay.superview == nil {
+                    map.addSubview(overlay)
                 }
+                darkOverlayView = overlay
+            } else {
+                darkOverlayView?.removeFromSuperview()
+                darkOverlayView = nil
             }
         }
 
-        private func applyThreeDIfSupported(map: MLNMapView, style: MLNStyle) {
-            guard session.activeMode == .threeD else {
+        private func applyThreeDIfSupported(
+            map: MLNMapView,
+            style: MLNStyle,
+            overlays: Set<OutdoorMapMode>
+        ) {
+            guard overlays.contains(.threeD) else {
+                map.isPitchEnabled = false
+                if didApplyThreeDCamera {
+                    let camera = MLNMapCamera(
+                        lookingAtCenter: map.centerCoordinate,
+                        fromDistance: max(map.camera.altitude, 1),
+                        pitch: 0,
+                        heading: map.camera.heading
+                    )
+                    isApplyingCamera = true
+                    map.setCamera(camera, animated: true)
+                    isApplyingCamera = false
+                }
                 didApplyThreeDCamera = false
                 return
             }
+
             let hasRealBuildingExtrusion = style.layers.contains {
                 guard let layer = $0 as? MLNFillExtrusionStyleLayer else { return false }
                 return layer.sourceLayerIdentifier != nil
@@ -644,6 +606,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 reportCapability(session.capability(for: .threeD))
                 return
             }
+
             session.markThreeDAvailable()
             map.isPitchEnabled = true
             if !didApplyThreeDCamera {

@@ -9,7 +9,6 @@ enum OutdoorMapMode: String, CaseIterable, Codable, Identifiable {
     case traffic
     case cycling
     case dark
-    case direction
 
     var id: String { rawValue }
 
@@ -23,7 +22,6 @@ enum OutdoorMapMode: String, CaseIterable, Codable, Identifiable {
         case .traffic: "Traffic"
         case .cycling: "Cycling"
         case .dark: "Dark"
-        case .direction: "Direction"
         }
     }
 
@@ -37,8 +35,28 @@ enum OutdoorMapMode: String, CaseIterable, Codable, Identifiable {
         case .traffic: "car"
         case .cycling: "bicycle"
         case .dark: "moon"
-        case .direction: "location.north.line"
         }
+    }
+
+    static let allCases: [OutdoorMapMode] = [
+        .explore,
+        .terrain,
+        .satellite,
+        .threeD,
+        .transit,
+        .traffic,
+        .cycling,
+        .dark
+    ]
+    static let baseModes: [OutdoorMapMode] = [.explore, .terrain, .satellite]
+    static let overlayModes: [OutdoorMapMode] = [.cycling, .transit, .traffic, .threeD, .dark]
+
+    var isBaseMapView: Bool {
+        Self.baseModes.contains(self)
+    }
+
+    var isMapOverlay: Bool {
+        Self.overlayModes.contains(self)
     }
 }
 
