@@ -454,7 +454,7 @@ F27 Home ───────────────┘
 
 ### Phase 2 — V2 Workout Management + V2 Player (paired)
 - [ ] F15 — V2 Workout Management Rework
-  - [ ] F15-A — V2 `WorkoutListView` card grid with page-backed cover thumbnails, today-only filter (consumes F20), scheduled-time badges, empty state
+- [x] F15-A — V2 `WorkoutListView` card grid with page-backed cover thumbnails, today-only filter (consumes F20), scheduled-time badges, empty state
 - [x] F15-B — V2 `WorkoutDetailView` single-pane editor: section list with inline expandable slot editor (Dur/Sets/Reps/Rest/Btwn/Prep), Add Set / Add Drop / Set Rest Exercise actions inline, rest separators
     - [x] Detail: Centralized leaf-page and bundle import builds local slots with indexed drop templates and an inheritable per-set preparation default
     - [x] Detail: Builder preparation, work, drop, rest, and rest-content rows each support a visible destructive delete action and trailing swipe deletion with immediate manifest persistence; deleting preparation sets that slot's override to zero
