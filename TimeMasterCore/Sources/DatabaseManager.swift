@@ -325,6 +325,7 @@ Query the TimeMaster exercise database.
     private func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?) -> ExercisePageManifest {
         var normalized = manifest
         normalized.parentID = parentID
+        normalized.iconName = nil
 
         if normalized.pageKind == .container, parentID == nil {
             normalized.workoutType = normalized.workoutType ?? .other

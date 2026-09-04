@@ -481,6 +481,34 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertNil(persisted.parentID)
     }
 
+    func testUpdatingLegacyCoverPromotesItToOrderedMedia() throws {
+        try db.bootstrapIfNeeded()
+
+        let container = ExercisePageManifest(id: "legacy-cover-container", title: "Container")
+        try db.createPage(manifest: container)
+
+        let coverSource = tempDir.appendingPathComponent("legacy-cover.jpg")
+        let mediaSource = tempDir.appendingPathComponent("legacy-media.jpg")
+        try Data("cover".utf8).write(to: coverSource)
+        try Data("media".utf8).write(to: mediaSource)
+
+        let coverFilename = try db.uploadCoverImage(pageID: container.id, sourceURL: coverSource)
+        let mediaFilename = try db.uploadMediaToPage(pageID: container.id, sourceURL: mediaSource)
+        var updated = try db.getPage(id: container.id)
+        updated.coverImageFilename = nil
+        updated.mediaFilenames = [coverFilename, mediaFilename]
+
+        try db.updatePage(id: container.id, manifest: updated)
+
+        let persisted = try db.getPage(id: container.id)
+        XCTAssertNil(persisted.coverImageFilename)
+        XCTAssertEqual(persisted.mediaFilenames, [coverFilename, mediaFilename])
+
+        let folder = fs.exercisesDatabaseDirectory.appendingPathComponent(container.id)
+        XCTAssertTrue(fs.fileExists(at: folder.appendingPathComponent("media").appendingPathComponent(coverFilename)))
+        XCTAssertFalse(fs.fileExists(at: folder.appendingPathComponent(coverFilename)))
+    }
+
     func testNestedContainersInheritRootWorkoutTypeAndRejectOverrides() throws {
         try db.bootstrapIfNeeded()
         let root = ExercisePageManifest(id: "typed-root", title: "Root", workoutType: .strength)

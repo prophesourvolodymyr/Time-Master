@@ -135,8 +135,10 @@ struct DatabasePageBrowserSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                AppToolbar.item(placement: .cancellationAction) { Button("Close") { dismiss() }.foregroundColor(.white)
-                                 }
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                        .foregroundStyle(Theme.primary)
+                }
                 if onNewExercise != nil {
                     AppToolbar.iconItem(placement: .primaryAction) {
                         Button {
@@ -145,45 +147,48 @@ struct DatabasePageBrowserSheet: View {
                         } label: {
                             Image(systemName: "figure.run.circle.fill")
                         }
-                        .foregroundColor(.white)
+                        .foregroundStyle(Theme.primary)
                         .accessibilityLabel("New Exercise")
                     }
                 }
-                AppToolbar.iconItem(placement: .primaryAction) { Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isGridMode.toggle()
-                    }
-                } label: {
-                    Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
-                }
-                .foregroundColor(.white)
-                                 }
-                AppToolbar.iconItem(placement: .primaryAction) { Menu {
-                    ForEach(PageSortOption.allCases, id: \.self) { option in
-                        Button {
-                            sortOption = option
-                        } label: {
-                            Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                AppToolbar.iconItem(placement: .primaryAction) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isGridMode.toggle()
                         }
+                    } label: {
+                        Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
                     }
-                } label: {
-                    Image(systemName: "arrow.up.arrow.down")
+                    .foregroundStyle(Theme.primary)
                 }
-                .foregroundColor(.white)
-                                 }
-                AppToolbar.iconItem(placement: .primaryAction) { Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isBundleMode.toggle()
-                        if !isBundleMode {
-                            selectedBundleIDs.removeAll()
-                            bundleOrder.removeAll()
+                AppToolbar.iconItem(placement: .primaryAction) {
+                    Menu {
+                        ForEach(PageSortOption.allCases, id: \.self) { option in
+                            Button {
+                                sortOption = option
+                            } label: {
+                                Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                            }
                         }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
                     }
-                } label: {
-                    Image(systemName: isBundleMode ? "rectangle.stack.fill" : "rectangle.stack")
+                    .foregroundStyle(Theme.primary)
                 }
-                .foregroundColor(isBundleMode ? .yellow : .white)
-                                 }
+                AppToolbar.iconItem(placement: .primaryAction) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isBundleMode.toggle()
+                            if !isBundleMode {
+                                selectedBundleIDs.removeAll()
+                                bundleOrder.removeAll()
+                            }
+                        }
+                    } label: {
+                        Image(systemName: isBundleMode ? "rectangle.stack.fill" : "rectangle.stack")
+                    }
+                    .foregroundStyle(isBundleMode ? Theme.primary : Theme.primary.opacity(0.9))
+                }
             }
             .overlay(alignment: .bottom) {
                 if showToast {
@@ -347,29 +352,17 @@ struct DatabasePageBrowserSheet: View {
     private func pageGridCard(_ page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .bottomLeading) {
-                if let iconName = page.manifest.iconName {
-                    Color(hex: page.effectiveWorkoutType?.colorHex ?? "FFFFFF").opacity(0.25)
-                        .overlay(
-                            Image(systemName: iconName)
-                                .font(.system(size: 32))
-                                .foregroundColor(Color(hex: page.effectiveWorkoutType?.colorHex ?? "FFFFFF").opacity(0.5))
-                        )
+                if let coverURL = page.coverImageURL {
+                    AsyncCoverImage(url: coverURL, height: 100, contentMode: .fill, overlayGradient: false)
                 } else {
                     Color.white.opacity(0.06)
-                        .overlay(
-                            Image(systemName: page.isContainer ? "folder.fill" : "doc.text.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(Theme.textSecondary.opacity(0.3))
-                        )
                 }
                 LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
                 if isBundleMode {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Image(systemName: selectedBundleIDs.contains("page:\(page.manifest.id)") ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 18))
-                            .foregroundColor(selectedBundleIDs.contains("page:\(page.manifest.id)") ? .yellow : .white.opacity(0.6))
-                    }
-                    .padding(8)
+                    Image(systemName: selectedBundleIDs.contains("page:\(page.manifest.id)") ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(selectedBundleIDs.contains("page:\(page.manifest.id)") ? .yellow : .white.opacity(0.6))
+                        .padding(8)
                 }
             }
             .frame(height: 100)
@@ -377,21 +370,21 @@ struct DatabasePageBrowserSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(page.title)
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(Theme.textPrimary)
+                    .foregroundStyle(Theme.textPrimary)
                     .lineLimit(2)
-                if let wt = page.effectiveWorkoutType {
-                    Text(wt.name)
+                if let type = page.effectiveWorkoutType {
+                    Text(type.name)
                         .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(Color(hex: wt.colorHex))
-                        .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(Color(hex: wt.colorHex).opacity(0.2))
-                        .cornerRadius(3)
+                        .foregroundStyle(Color(hex: type.colorHex))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color(hex: type.colorHex).opacity(0.2), in: RoundedRectangle(cornerRadius: 3))
                 }
             }
             .padding(8)
         }
         .background(Theme.surface)
-        .cornerRadius(12)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .clipped()
     }
 
@@ -432,29 +425,21 @@ struct DatabasePageBrowserSheet: View {
 
     private func coverThumb(_ page: ExercisePage) -> some View {
         Group {
-            if let iconName = page.manifest.iconName {
-                let color = page.effectiveWorkoutType?.colorHex ?? "FFFFFF"
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(hex: color).opacity(0.25))
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: iconName)
-                            .font(.system(size: 18))
-                            .foregroundColor(Color(hex: color))
-                    )
+            if let coverURL = page.coverImageURL {
+                AsyncCoverImage(url: coverURL, height: 48, overlayGradient: false)
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: page.isContainer ? "folder.fill" : "doc.text.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(Theme.textSecondary.opacity(0.4))
-                    )
+                    .fill(Theme.surface2)
+                    .frame(width: 48, height: 48)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    }
             }
         }
     }
-
     private func toggleBundleSelection(_ page: ExercisePage) {
         guard page.isLeaf else { return }
         let id = "page:\(page.manifest.id)"
@@ -779,16 +764,15 @@ private struct ExercisePageQuickPreview: View {
                         } label: {
                             Label("Add to Workout", systemImage: "plus.circle.fill")
                                 .font(.headline)
-                                .foregroundColor(.black)
+                                .foregroundStyle(.black)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(Color.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(Theme.primary, in: RoundedRectangle(cornerRadius: 12))
                         }
                     } else {
                         Text("Containers organize exercises and cannot be added as workout sections.")
                             .font(.subheadline)
-                            .foregroundColor(Theme.textSecondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
                 .padding(16)
@@ -799,8 +783,10 @@ private struct ExercisePageQuickPreview: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                AppToolbar.item(placement: .cancellationAction) { Button("Close") { dismiss() }
-                                 }
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                        .foregroundStyle(Theme.primary)
+                }
             }
         }
         .sheet(isPresented: $showingMedia) {

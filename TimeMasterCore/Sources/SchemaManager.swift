@@ -19,7 +19,6 @@ public final class SchemaManager {
                     "title": PropertySchema(type: "string", description: "Display name of the page"),
                     "pageKind": PropertySchema(type: "string", description: "container for organization pages; leaf for workout-ready exercises"),
                     "coverImageFilename": PropertySchema(type: "string", description: "Cover image filename in page folder root; containers only", optional: true),
-                    "iconName": PropertySchema(type: "string", description: "SF Symbol name for fallback icon when no cover", optional: true),
                     "markdownBody": PropertySchema(type: "string", description: "Rich content — stored as guide.md, cached for search"),
                     "mediaFilenames": PropertySchema(type: "array<string>", description: "Media files in page's media/ subdir", optional: true),
                     "linkURLs": PropertySchema(type: "array<string>", description: "External URLs (YouTube, Instagram, TikTok, web)", optional: true),
@@ -179,7 +178,7 @@ public final class SchemaManager {
             ToolSchema(name: "create_container_page", description: "Create an organization container. Containers can have child pages, media, and an optional root workout type.", write: true, parameters: [
                 "title": PropertySchema(type: "string", description: "Container title"),
                 "parentID": PropertySchema(type: "string", description: "Optional parent container UUID", optional: true),
-                "coverImageFilename": PropertySchema(type: "string", description: "Legacy optional cover filename; new pages use the first media item", optional: true),
+                "mediaFilenames": PropertySchema(type: "array<string>", description: "Ordered media files; first item is the cover", optional: true),
                 "workoutType": PropertySchema(type: "object", description: "Optional root workout type; nested containers inherit it", optional: true),
             ]),
             ToolSchema(name: "create_exercise_page", description: "Create a workout-ready leaf exercise at the database root or inside a container. Its first media item is its cover; explicit cover filenames and per-page workout types are forbidden.", write: true, parameters: [

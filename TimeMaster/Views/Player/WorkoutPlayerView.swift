@@ -684,7 +684,7 @@ struct WorkoutPlayerView: View {
            let url = page.coverImageURL {
             AsyncCoverImage(
                 url: url,
-                fallbackIcon: page.manifest.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"),
+                fallbackIcon: page.effectiveWorkoutType?.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"),
                 fallbackColor: Color(hex: page.effectiveWorkoutType?.colorHex ?? "FFFFFF"),
                 height: 150,
                 overlayGradient: false
@@ -706,7 +706,7 @@ struct WorkoutPlayerView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 150)
             .overlay {
-                Image(systemName: page.manifest.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"))
+                Image(systemName: page.effectiveWorkoutType?.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"))
                     .font(.system(size: 48))
                     .foregroundColor(.white.opacity(0.7))
             }

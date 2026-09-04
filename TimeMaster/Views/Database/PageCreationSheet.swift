@@ -7,48 +7,63 @@ import PhotosUI
 
 private struct PendingPageMedia {
     let temporaryURL: URL
+
+    var filename: String { temporaryURL.lastPathComponent }
+}
+
+private struct PageCreationLinkRow: Identifiable, Equatable {
+    let id: UUID
+    var url: String
+    var metadata: LinkMetadata?
+    var isLoading = false
+
+    init(id: UUID = UUID(), url: String, metadata: LinkMetadata? = nil) {
+        self.id = id
+        self.url = url
+        self.metadata = metadata
+    }
 }
 
 struct PageCreationSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject var workoutStore: WorkoutStore
     @EnvironmentObject var databaseStore: DatabaseStore
 
     let existingPage: ExercisePage?
-    let parentID: String?
-    let leafFirst: Bool
-
     let onSave: (ExercisePageManifest, String?) throws -> Void
     let onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)?
 
-    @State private var title: String
     @State private var pageKind: ExercisePageManifest.PageKind
-    @State private var iconName: String = ""
-    @State private var workoutType: WorkoutType? = nil
-    @State private var markdownBody: String = ""
-    @State private var duration: Int = 30
-    @State private var prepareTime: Int = 4
-    @State private var restAfter: Int = 0
-    @State private var sets: Int = 1
-    @State private var restBetweenSets: Int = 0
-    @State private var dropSetTemplates: [PageDropSetTemplate] = []
-    @State private var linkURLsText: String = ""
-    @State private var showIconPicker = false
-    @State private var showDeleteConfirm = false
-    @State private var showCoverPicker = false
-    @State private var showMediaPicker = false
-    @State private var showDropSetPicker = false
-    @State private var coverImageFilename: String?
-    @State private var mediaFilenames: [String] = []
-    @State private var pendingCoverData: Data?
+    @State private var draftParentID: String?
+    @State private var title: String
+    @State private var workoutType: WorkoutType?
+    @State private var markdownBody: String
+    @State private var duration: Int
+    @State private var prepareTime: Int
+    @State private var restAfter: Int
+    @State private var sets: Int
+    @State private var restBetweenSets: Int
+    @State private var dropSetTemplates: [PageDropSetTemplate]
+    @State private var linkRows: [PageCreationLinkRow]
+    @State private var mediaFilenames: [String]
     @State private var pendingMediaFiles: [PendingPageMedia] = []
+    @State private var mediaPreviewThumbnails: [(filename: String, image: Image?)] = []
+    @State private var draggedMediaFilename: String?
+    @FocusState private var focusedDropSetID: String?
+    @State private var showDropSetPicker = false
+    @State private var showMediaPicker = false
+    @State private var showDeleteConfirm = false
+    @State private var showDraftList = false
+    @State private var draftID: UUID
+    @State private var draftSavedMessage: String?
     @State private var saveErrorMessage: String?
+    @State private var markdownEditorHeight: CGFloat = 180
+    @State private var markdownResizeStartHeight: CGFloat?
+    @State private var autosaveTask: Task<Void, Never>?
     #if os(iOS)
-    @State private var pendingCoverItem: PhotosPickerItem?
     @State private var pendingMediaItems: [PhotosPickerItem] = []
     #endif
-    @State private var coverPreviewImage: Image?
-    @State private var mediaPreviewThumbnails: [(filename: String, image: Image?)] = []
 
     init(
         page: ExercisePage? = nil,
@@ -58,51 +73,61 @@ struct PageCreationSheet: View {
         onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)? = nil
     ) {
         self.existingPage = page
-        self.parentID = parentID ?? page?.manifest.parentID
-        self.leafFirst = leafFirst
         self.onSave = onSave
         self.onSaveWithMedia = onSaveWithMedia
+
+        let resolvedParentID = parentID ?? page?.manifest.parentID
+        let initialKind = page?.manifest.pageKind ?? (leafFirst || resolvedParentID != nil ? .leaf : .container)
+        let initialLinks = Self.makeLinkRows(
+            urls: page?.manifest.linkURLs ?? [],
+            metadata: page?.manifest.linkMetadata ?? []
+        )
+        let initialMedia = page.map(Self.orderedMediaFilenames) ?? []
+
+        _pageKind = State(initialValue: initialKind)
+        _draftParentID = State(initialValue: resolvedParentID)
         _title = State(initialValue: page?.manifest.title ?? "")
-        _pageKind = State(initialValue: page?.manifest.pageKind ?? (leafFirst || parentID != nil ? .leaf : .container))
-        _iconName = State(initialValue: page?.manifest.iconName ?? "")
-        if let wt = page?.manifest.workoutType {
-            _workoutType = State(initialValue: WorkoutType(id: wt.id, name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex))
+        if let type = page?.manifest.workoutType {
+            _workoutType = State(initialValue: WorkoutType(
+                id: type.id,
+                name: type.name,
+                iconName: type.iconName,
+                colorHex: type.colorHex
+            ))
+        } else {
+            _workoutType = State(initialValue: nil)
         }
         _markdownBody = State(initialValue: page?.manifest.markdownBody ?? "")
         _duration = State(initialValue: page?.manifest.duration ?? 30)
-        _restAfter = State(initialValue: page?.manifest.restAfter ?? 0)
         _prepareTime = State(initialValue: page?.manifest.prepareTime ?? 4)
+        _restAfter = State(initialValue: page?.manifest.restAfter ?? 0)
         _sets = State(initialValue: page?.manifest.sets ?? 1)
         _restBetweenSets = State(initialValue: page?.manifest.restBetweenSets ?? 0)
         _dropSetTemplates = State(initialValue: page?.manifest.dropSetTemplates ?? [])
-        _linkURLsText = State(initialValue: page?.manifest.linkURLs.joined(separator: "\n") ?? "")
-        _coverImageFilename = State(initialValue: page?.manifest.coverImageFilename)
-        _mediaFilenames = State(initialValue: page?.manifest.mediaFilenames ?? [])
+        _linkRows = State(initialValue: initialLinks)
+        _mediaFilenames = State(initialValue: initialMedia)
+        _draftID = State(initialValue: UUID())
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
+
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 18) {
                         titleCard
                         if let saveErrorMessage {
                             Text(saveErrorMessage)
                                 .font(.footnote)
-                                .foregroundColor(.red)
+                                .foregroundStyle(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         pageKindCard
-                        iconCard
-                        if pageKind == .container {
-                            coverImageCard
-                        } else {
-                            mediaUploadCard
-                        }
-                        if pageKind == .container && parentID == nil {
+                        mediaCard
+                        if pageKind == .container && draftParentID == nil {
                             workoutTypeCard
-                        } else {
+                        } else if draftParentID != nil {
                             inheritedWorkoutTypeCard
                         }
                         if pageKind == .leaf {
@@ -111,70 +136,70 @@ struct PageCreationSheet: View {
                         }
                         markdownCard
                         linksCard
-                        if existingPage != nil { deleteCard }
-                        saveButton
+                        if existingPage != nil {
+                            deleteCard
+                        }
                     }
-                    .padding(16)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
+                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                actionBar
+            }
+            .overlay(alignment: .bottom) {
+                if let draftSavedMessage {
+                    Text(draftSavedMessage)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(Theme.surface2, in: Capsule())
+                        .overlay(Capsule().stroke(Theme.primary.opacity(0.7), lineWidth: 1))
+                        .padding(.bottom, 84)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .navigationTitle(existingPage == nil ? "New Page" : "Edit Page")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            #if os(macOS)
-            .fileImporter(
-                isPresented: $showCoverPicker,
-                allowedContentTypes: [.image],
-                allowsMultipleSelection: false
-            ) { result in
-                guard case .success(let urls) = result, let url = urls.first else { return }
-                handleMacCoverPick(url)
-            }
-            .fileImporter(
-                isPresented: $showMediaPicker,
-                allowedContentTypes: [.image, .movie],
-                allowsMultipleSelection: true
-            ) { result in
-                guard case .success(let urls) = result else { return }
-                urls.forEach(stageMedia)
-            }
-            #endif
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(.white)
+                        .foregroundStyle(Theme.primary)
+                }
+                if existingPage == nil {
+                    AppToolbar.iconItem(placement: .primaryAction) {
+                        Button {
+                            PageCreationDraftStore.shared.reload()
+                            showDraftList = true
+                        } label: {
+                            Image(systemName: "doc.badge.clock")
+                        }
+                        .foregroundStyle(Theme.primary)
+                        .accessibilityLabel("Open page drafts")
+                    }
                 }
             }
-            .sheet(isPresented: $showIconPicker) {
-                IconPickerSheet(selectedIcon: $iconName)
+            .sheet(isPresented: $showDraftList) {
+                PageCreationDraftListSheet { draft in
+                    apply(draft: draft)
+                    showDraftList = false
+                }
             }
             .sheet(isPresented: $showDropSetPicker) {
                 DatabasePageBrowserSheet(
                     workout: Workout(name: "Drop Set Templates"),
                     onAdd: { page, _, _, _, _, _, _ in
-                        dropSetTemplates.append(
-                            PageDropSetTemplate(
-                                setIndex: max(0, sets - 1),
-                                exerciseID: page.manifest.id,
-                                name: page.manifest.title,
-                                duration: page.manifest.duration ?? 30,
-                                restAfter: page.manifest.restAfter ?? 0
-                            )
-                        )
+                        addDatabaseDropSet(from: page)
                         showDropSetPicker = false
                     },
                     onAddBundle: { sources, _, _, _, _, _, _ in
                         for source in sources {
                             guard case .page(let page) = source else { continue }
-                            dropSetTemplates.append(
-                                PageDropSetTemplate(
-                                    setIndex: max(0, sets - 1),
-                                    exerciseID: page.manifest.id,
-                                    name: page.manifest.title,
-                                    duration: page.manifest.duration ?? 30,
-                                    restAfter: page.manifest.restAfter ?? 0
-                                )
-                            )
+                            addDatabaseDropSet(from: page)
                         }
                         showDropSetPicker = false
                     }
@@ -184,23 +209,23 @@ struct PageCreationSheet: View {
             }
             #if os(iOS)
             .photosPicker(
-                isPresented: $showCoverPicker,
-                selection: $pendingCoverItem,
-                matching: .images
-            )
-            .photosPicker(
                 isPresented: $showMediaPicker,
                 selection: $pendingMediaItems,
-                maxSelectionCount: 10,
+                maxSelectionCount: max(1, 20 - mediaFilenames.count),
                 matching: .any(of: [.images, .videos])
             )
-            .onChange(of: pendingCoverItem) { item in
-                guard let item = item else { return }
-                handleCoverPick(item: item)
-            }
             .onChange(of: pendingMediaItems) { items in
                 guard !items.isEmpty else { return }
-                handleMediaPicks(items: items)
+                handleMediaPicks(items)
+            }
+            #else
+            .fileImporter(
+                isPresented: $showMediaPicker,
+                allowedContentTypes: [.image, .movie],
+                allowsMultipleSelection: true
+            ) { result in
+                guard case .success(let urls) = result else { return }
+                urls.forEach(stageMedia)
             }
             #endif
             .confirmationDialog(
@@ -209,604 +234,917 @@ struct PageCreationSheet: View {
                 titleVisibility: .visible
             ) {
                 Button("Delete", role: .destructive) {
-                    guard let p = existingPage else { return }
-                    try? DatabaseStore.shared.deletePage(id: p.manifest.id)
+                    guard let page = existingPage else { return }
+                    try? databaseStore.deletePage(id: page.manifest.id)
                     dismiss()
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("This moves the page and all its children to trash.")
             }
+            .task {
+                PageCreationDraftStore.shared.reload()
+                loadMediaPreviews()
+                refreshLinkMetadata()
+            }
+            .onChange(of: draftFingerprint) { _ in
+                scheduleAutosave()
+            }
+            .onChange(of: scenePhase) { phase in
+                if phase == .inactive || phase == .background {
+                    persistDraftIfNeeded()
+                }
+            }
+            .onDisappear {
+                autosaveTask?.cancel()
+                persistDraftIfNeeded()
+            }
         }
     }
 
     private var titleCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Title").font(.headline).foregroundColor(Theme.textPrimary)
+        formCard {
+            formHeading("Title", required: true)
             TextField("Page title", text: $title)
-                .padding(14)
-                .background(Theme.surface)
-                .cornerRadius(10)
-                .foregroundColor(Theme.textPrimary)
+                .textFieldStyle(.plain)
+                .padding(13)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+                .foregroundStyle(Theme.textPrimary)
         }
     }
 
     private var pageKindCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Page Type")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
-
-            if parentID != nil {
-                Label("Pages inside a container are exercises.", systemImage: "info.circle")
-                    .font(.caption)
-                    .foregroundColor(Theme.textSecondary)
-            } else {
-                HStack(spacing: 8) {
-                    kindButton(.container, title: "Container", icon: "folder.fill")
-                    kindButton(.leaf, title: "Exercise", icon: "figure.run")
-                }
+        formCard {
+            formHeading("Page Type", required: true)
+            HStack(spacing: 8) {
+                kindButton(.container, title: "Container", systemImage: "square.stack.3d.up")
+                kindButton(.leaf, title: "Exercise", systemImage: "figure.run")
             }
+            Text(draftParentID == nil
+                 ? "Root pages can be containers or exercises."
+                 : "This page is inside a container and can hold its own media and content.")
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
         }
     }
 
     private func kindButton(
         _ kind: ExercisePageManifest.PageKind,
         title: String,
-        icon: String
+        systemImage: String
     ) -> some View {
         Button {
-            pageKind = kind
+            withAnimation(.easeOut(duration: 0.2)) {
+                pageKind = kind
+            }
         } label: {
-            Label(title, systemImage: icon)
+            Label(title, systemImage: systemImage)
                 .font(.subheadline.weight(pageKind == kind ? .semibold : .regular))
-                .foregroundColor(pageKind == kind ? .black : .white)
+                .foregroundStyle(pageKind == kind ? .black : Theme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
-                .background(pageKind == kind ? Color.white : Theme.surface)
-                .cornerRadius(9)
+                .background(pageKind == kind ? Theme.primary : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
     }
 
-    private var iconCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Icon").font(.headline).foregroundColor(Theme.textPrimary)
-            Button { showIconPicker = true } label: {
-                HStack {
-                    if !iconName.isEmpty {
-                        Image(systemName: iconName)
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
-                        Text(iconName)
-                            .foregroundColor(Theme.textSecondary)
-                    } else {
-                        Image(systemName: "photo")
-                            .foregroundColor(Theme.textSecondary)
-                        Text("Choose SF Symbol")
-                            .foregroundColor(Theme.textSecondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundColor(Theme.textSecondary.opacity(0.4))
-                }
-                .padding(14)
-                .background(Theme.surface)
-                .cornerRadius(10)
+    private var mediaCard: some View {
+        formCard {
+            HStack(alignment: .firstTextBaseline) {
+                formHeading("Media", optional: true)
+                Spacer()
+                Text("First item = Cover")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.primary)
             }
-        }
-    }
 
-    private var coverImageCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Cover Image").font(.headline).foregroundColor(Theme.textPrimary)
-            if let fileName = coverImageFilename, let page = existingPage {
-                let coverURL = page.coverImageURL
-                if let url = coverURL {
-                    coverPreview(for: url)
-                        .overlay(alignment: .topTrailing) {
-                            Button {
-                                coverImageFilename = nil
-                                coverPreviewImage = nil
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.white)
-                                    .padding(6)
-                            }
-                        }
-                }
-            } else if let preview = coverPreviewImage {
-                preview
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 160)
-                    .clipped()
-                    .cornerRadius(10)
-                    .overlay(alignment: .topTrailing) {
-                        Button {
-                            coverImageFilename = nil
-                            coverPreviewImage = nil
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.white)
-                                .padding(6)
+            if mediaFilenames.isEmpty {
+                Text("Add photos or videos. The first item becomes the cover and stays visible in the gallery.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 10) {
+                        ForEach(mediaFilenames, id: \.self) { filename in
+                            mediaTile(filename: filename, isCover: filename == mediaFilenames.first)
+                                .onDrag {
+                                    draggedMediaFilename = filename
+                                    return NSItemProvider(object: filename as NSString)
+                                }
+                                .onDrop(
+                                    of: [UTType.text],
+                                    delegate: PageMediaDropDelegate(
+                                        targetFilename: filename,
+                                        items: $mediaFilenames,
+                                        draggedFilename: $draggedMediaFilename
+                                    )
+                                )
                         }
                     }
-            }
-            Button { showCoverPicker = true } label: {
-                HStack {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .foregroundColor(Theme.textSecondary)
-                    Text(coverImageFilename != nil || coverPreviewImage != nil ? "Change Cover Image" : "Upload Cover Image")
-                        .foregroundColor(Theme.textSecondary)
-                    Spacer()
-                }
-                .padding(14)
-                .background(Theme.surface)
-                .cornerRadius(10)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func coverPreview(for url: URL) -> some View {
-        #if os(iOS)
-        if let data = try? Data(contentsOf: url), let uiImage = UIImage(data: data) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(height: 160)
-                .clipped()
-                .cornerRadius(10)
-        }
-        #elseif os(macOS)
-        if let data = try? Data(contentsOf: url), let nsImage = NSImage(data: data) {
-            Image(nsImage: nsImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(height: 160)
-                .clipped()
-                .cornerRadius(10)
-        }
-        #endif
-    }
-
-    @ViewBuilder
-    private var mediaUploadCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Media").font(.headline).foregroundColor(Theme.textPrimary)
-
-            if !mediaFilenames.isEmpty {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-                    ForEach(mediaFilenames, id: \.self) { filename in
-                        ZStack(alignment: .topTrailing) {
-                            if let preview = mediaPreviewThumbnails.first(where: { $0.filename == filename })?.image {
-                                preview
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(height: 80)
-                                    .clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            } else {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Theme.surface)
-                                    .frame(height: 80)
-                                    .overlay(Image(systemName: "photo")
-                                        .foregroundColor(Theme.textSecondary.opacity(0.4)))
-                            }
-                            Button {
-                                removeMedia(filename: filename)
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.white.opacity(0.9))
-                                    .shadow(color: .black.opacity(0.5), radius: 2)
-                                    .padding(4)
-                            }
-                        }
-                    }
+                    .padding(.vertical, 2)
                 }
             }
 
             if mediaFilenames.count < 20 {
-                Button { showMediaPicker = true } label: {
-                    HStack {
-                        Image(systemName: "plus.rectangle.on.rectangle")
-                            .foregroundColor(Theme.textSecondary)
-                        Text("Add Media (\(mediaFilenames.count)/20)")
-                            .foregroundColor(Theme.textSecondary)
-                        Spacer()
-                    }
-                    .padding(14)
-                    .background(Theme.surface)
-                    .cornerRadius(10)
+                Button {
+                    showMediaPicker = true
+                } label: {
+                    Label("Add Media (\(mediaFilenames.count)/20)", systemImage: "plus.rectangle.on.rectangle")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .buttonStyle(OrangeFormButtonStyle())
             }
         }
     }
 
+    private func mediaTile(filename: String, isCover: Bool) -> some View {
+        let width: CGFloat = isCover ? 176 : 138
+        let aspectRatio: CGFloat = isCover ? 1 : 1080.0 / 1480.0
+
+        return ZStack(alignment: .topTrailing) {
+            Group {
+                if let preview = mediaPreviewThumbnails.first(where: { $0.filename == filename })?.image {
+                    preview
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Theme.surface)
+                        .overlay {
+                            Image(systemName: "photo")
+                                .foregroundStyle(Theme.textSecondary.opacity(0.45))
+                        }
+                }
+            }
+            .frame(width: width, height: width / aspectRatio)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isCover ? Theme.primary : Color.white.opacity(0.08), lineWidth: isCover ? 2 : 1)
+            }
+
+            if isCover {
+                Label("Cover", systemImage: "pin.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(Theme.primary, in: Capsule())
+                    .padding(7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button {
+                removeMedia(filename: filename)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, .black.opacity(0.45))
+                    .padding(7)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove media")
+        }
+        .contentShape(Rectangle())
+    }
+
     private var workoutTypeCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Workout Type").font(.headline).foregroundColor(Theme.textPrimary)
+        formCard {
+            formHeading("Workout Type", optional: true)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 Button {
                     workoutType = nil
                 } label: {
-                    Text(inheritedWorkoutType.map { "Inherit \($0.name)" } ?? "None")
-                        .font(.subheadline.weight(workoutType == nil ? .semibold : .regular))
-                        .foregroundColor(.white)
-                        .padding(.vertical, 10)
+                    Text("None")
                         .frame(maxWidth: .infinity)
-                        .background(workoutType == nil ? Color.white.opacity(0.2) : Theme.surface)
-                        .cornerRadius(8)
                 }
+                .buttonStyle(OrangeChoiceButtonStyle(isSelected: workoutType == nil))
+
                 ForEach(WorkoutType.all(custom: workoutStore.customWorkoutTypes), id: \.id) { type in
                     Button {
                         workoutType = type
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: type.iconName).font(.system(size: 11))
+                        HStack(spacing: 5) {
+                            Image(systemName: type.iconName)
                             Text(type.name)
                         }
-                        .font(.subheadline.weight(workoutType == type ? .semibold : .regular))
-                        .foregroundColor(.white)
-                        .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
-                        .background(workoutType == type ? Color.white.opacity(0.2) : Theme.surface)
-                        .cornerRadius(8)
                     }
+                    .buttonStyle(OrangeChoiceButtonStyle(isSelected: workoutType == type))
                 }
             }
         }
     }
 
-    @ViewBuilder
     private var inheritedWorkoutTypeCard: some View {
-        if let inheritedWorkoutType {
-            HStack(spacing: 8) {
-                Image(systemName: inheritedWorkoutType.iconName)
-                    .foregroundColor(Color(hex: inheritedWorkoutType.colorHex))
-                Text("Uses \(inheritedWorkoutType.name) from its container")
-                    .font(.subheadline)
-                    .foregroundColor(Theme.textSecondary)
-                Spacer()
+        Group {
+            if let inheritedWorkoutType {
+                HStack(spacing: 8) {
+                    Image(systemName: inheritedWorkoutType.iconName)
+                        .foregroundStyle(Color(hex: inheritedWorkoutType.colorHex))
+                    Text("Uses \(inheritedWorkoutType.name) from its container")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer()
+                }
+                .padding(12)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
             }
-            .padding(12)
-            .background(Theme.surface)
-            .cornerRadius(10)
         }
     }
 
-    private var inheritedWorkoutType: TimeMasterCore.WorkoutType? {
-        guard let parentID, let uuid = UUID(uuidString: parentID) else { return nil }
-        return databaseStore.page(id: uuid)?.effectiveWorkoutType
-    }
-
-    @ViewBuilder
     private var timingCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Workout Config").font(.headline).foregroundColor(Theme.textPrimary)
+        formCard {
+            formHeading("Workout Config", required: true)
             VStack(spacing: 8) {
-                stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s")
-                stepperRow(label: "Prepare Time", value: $prepareTime, range: 0...30, step: 1, unit: "s")
-                stepperRow(label: "Rest After", value: $restAfter, range: 0...120, step: 5, unit: "s")
-                stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
-                stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s", required: true)
+                stepperRow(label: "Prepare Time", value: $prepareTime, range: 0...30, step: 1, unit: "s", optional: true)
+                stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "", required: true)
+                if sets > 1 {
+                    stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s", optional: true)
+                    stepperRow(label: "Big Rest", value: $restAfter, range: 0...120, step: 5, unit: "s", optional: true)
+                } else {
+                    stepperRow(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s", optional: true)
+                }
             }
         }
     }
 
-    private func stepperRow(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
+    private func stepperRow(
+        label: String,
+        value: Binding<Int>,
+        range: ClosedRange<Int>,
+        step: Int,
+        unit: String,
+        required: Bool = false,
+        optional: Bool = false
+    ) -> some View {
         HStack {
-            Text(label).foregroundColor(Theme.textPrimary)
+            formHeading(label, required: required, optional: optional)
             Spacer()
-            Text("\(value.wrappedValue)\(unit)").foregroundColor(Theme.textSecondary).frame(minWidth: 40, alignment: .trailing)
-            Stepper("", value: value, in: range, step: step).labelsHidden()
+            Text("\(value.wrappedValue)\(unit)")
+                .foregroundStyle(Theme.primary)
+                .monospacedDigit()
+                .frame(minWidth: 42, alignment: .trailing)
+            Stepper("", value: value, in: range, step: step)
+                .labelsHidden()
+                .tint(Theme.primary)
         }
-        .padding(14)
-        .background(Theme.surface)
-        .cornerRadius(10)
+        .padding(12)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
     }
+
     private var dropSetTemplatesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Drop Sets")
-                    .font(.headline)
-                    .foregroundColor(Theme.textPrimary)
+        formCard {
+            HStack(alignment: .firstTextBaseline) {
+                formHeading("Drop Sets", optional: true)
                 Spacer()
+                Button {
+                    addManualDropSet()
+                } label: {
+                    Image(systemName: "plus.circle")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.primary)
+                .accessibilityLabel("Add manual drop set")
+
                 Button {
                     showDropSetPicker = true
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
+                    Image(systemName: "externaldrive.badge.plus")
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(Theme.textPrimary)
-                .accessibilityLabel("Add drop set exercise")
+                .foregroundStyle(Theme.primary)
+                .accessibilityLabel("Add drop set from database")
             }
 
             if dropSetTemplates.isEmpty {
-                Text("Add a drop-set exercise from the database, then choose the set it follows.")
+                Text("Use + for a typed drop set or the database button to choose an exercise page.")
                     .font(.subheadline)
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             } else {
                 ForEach($dropSetTemplates) { $template in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
-                            Image(systemName: "arrow.down.right")
-                                .foregroundColor(Theme.textSecondary)
-                            Text(template.name)
-                                .foregroundColor(Theme.textPrimary)
-                                .lineLimit(1)
+                            Image(systemName: template.exerciseID.isEmpty ? "pencil" : "externaldrive")
+                                .foregroundStyle(Theme.primary)
+                            TextField("Drop-set exercise name", text: $template.name)
+                                .textFieldStyle(.plain)
+                                .foregroundStyle(Theme.textPrimary)
+                                .focused($focusedDropSetID, equals: template.id)
                             Spacer()
                             Button(role: .destructive) {
                                 dropSetTemplates.removeAll { $0.id == template.id }
                             } label: {
                                 Image(systemName: "trash")
-                                    .font(.caption)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Remove \(template.name)")
+                            .accessibilityLabel("Remove drop set")
                         }
 
                         HStack {
                             Text("After set")
-                                .foregroundColor(Theme.textSecondary)
+                                .foregroundStyle(Theme.textSecondary)
                             Spacer()
                             Stepper(
-                                "\(template.setIndex + 1)",
+                                "",
                                 value: $template.setIndex,
                                 in: 0...max(0, sets - 1)
                             )
                             .labelsHidden()
+                            .tint(Theme.primary)
                             Text("\(template.setIndex + 1)")
-                                .foregroundColor(Theme.textPrimary)
+                                .foregroundStyle(Theme.primary)
                                 .monospacedDigit()
                                 .frame(minWidth: 24, alignment: .trailing)
                         }
 
-                        HStack {
-                            Text("Duration \(template.duration)s · Rest \(template.restAfter)s")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            Spacer()
+                        HStack(spacing: 12) {
+                            stepperValue("Duration", value: $template.duration, range: 5...600, step: 5, unit: "s")
+                            stepperValue("Rest", value: $template.restAfter, range: 0...120, step: 5, unit: "s")
                         }
                     }
                     .padding(12)
-                    .background(Theme.surface)
-                    .cornerRadius(10)
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
         }
     }
 
+    private func stepperValue(
+        _ label: String,
+        value: Binding<Int>,
+        range: ClosedRange<Int>,
+        step: Int,
+        unit: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
+            HStack(spacing: 4) {
+                Text("\(value.wrappedValue)\(unit)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.primary)
+                    .monospacedDigit()
+                Stepper("", value: value, in: range, step: step)
+                    .labelsHidden()
+                    .scaleEffect(0.85, anchor: .trailing)
+                    .tint(Theme.primary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 
     private var markdownCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Guide (Markdown)").font(.headline).foregroundColor(Theme.textPrimary)
+        formCard {
+            HStack(alignment: .firstTextBaseline) {
+                formHeading("Guide", optional: true)
                 Spacer()
-                Text("CommonMark")
-                    .font(.caption2).foregroundColor(Theme.textSecondary)
+                Text("Markdown")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.textSecondary)
             }
-            ZStack(alignment: .topLeading) {
-                if markdownBody.isEmpty {
-                    Text("Write your guide here…\n\nSupports **bold**, *italic*, `code`, # Headings, - lists")
-                        .foregroundColor(Theme.textSecondary.opacity(0.6))
-                        .padding(.top, 14).padding(.leading, 14)
-                        .allowsHitTesting(false)
-                        .font(.body)
+
+            VStack(spacing: 0) {
+                ZStack(alignment: .topLeading) {
+                    if markdownBody.isEmpty {
+                        Text("Write a guide here… supports **bold**, *italic*, headings, and lists")
+                            .font(.body)
+                            .foregroundStyle(Theme.textSecondary.opacity(0.65))
+                            .padding(.top, 14)
+                            .padding(.horizontal, 14)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $markdownBody)
+                        .frame(height: markdownEditorHeight)
+                        .padding(10)
+                        .scrollContentBackground(.hidden)
+                        .foregroundStyle(Theme.textPrimary)
                 }
-                TextEditor(text: $markdownBody)
-                    .frame(minHeight: 160).padding(10)
-                    .scrollContentBackground(.hidden).foregroundColor(Theme.textPrimary)
+
+                HStack {
+                    Text("Preview")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.primary)
+                    Spacer()
+                    Capsule()
+                        .fill(Theme.primary.opacity(0.75))
+                        .frame(width: 34, height: 4)
+                        .overlay {
+                            Image(systemName: "arrow.up.and.down")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(Theme.primary)
+                                .offset(y: -1)
+                        }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            if markdownResizeStartHeight == nil {
+                                markdownResizeStartHeight = markdownEditorHeight
+                            }
+                            let start = markdownResizeStartHeight ?? markdownEditorHeight
+                            markdownEditorHeight = min(600, max(150, start + value.translation.height))
+                        }
+                        .onEnded { _ in
+                            markdownResizeStartHeight = nil
+                        }
+                )
+
+                Group {
+                    if markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("Rendered markdown will appear here as you type.")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        MarkdownTextView(text: markdownBody)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.background.opacity(0.55))
             }
-            .background(Theme.surface).cornerRadius(10)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
         }
     }
 
     private var linksCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("External Links").font(.headline).foregroundColor(Theme.textPrimary)
-            ZStack(alignment: .topLeading) {
-                if linkURLsText.isEmpty {
-                    Text("One URL per line\nYouTube, Instagram, TikTok, web…")
-                        .foregroundColor(Theme.textSecondary.opacity(0.6))
-                        .padding(.top, 14).padding(.leading, 14)
-                        .allowsHitTesting(false)
-                        .font(.body)
+        formCard {
+            HStack(alignment: .firstTextBaseline) {
+                formHeading("External Links", optional: true)
+                Spacer()
+                Button {
+                    linkRows.append(PageCreationLinkRow(url: ""))
+                } label: {
+                    Image(systemName: "plus.circle")
                 }
-                TextEditor(text: $linkURLsText)
-                    .frame(minHeight: 80).padding(10)
-                    .scrollContentBackground(.hidden).foregroundColor(Theme.textPrimary)
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.primary)
+                .accessibilityLabel("Add external link")
             }
-            .background(Theme.surface).cornerRadius(10)
+
+            if linkRows.isEmpty {
+                Text("Paste one link per row. A live preview appears when the URL responds.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+            } else {
+                ForEach($linkRows) { $row in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            TextField("Paste URL", text: $row.url)
+                                .textFieldStyle(.plain)
+                                .foregroundStyle(Theme.textPrimary)
+                                #if os(iOS)
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.URL)
+                                #endif
+                                .onChange(of: row.url) { _ in
+                                    refreshLinkMetadata(for: row.id)
+                                }
+                            if row.isLoading {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(Theme.primary)
+                            }
+                            Button {
+                                linkRows.removeAll { $0.id == row.id }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Theme.textSecondary)
+                            .accessibilityLabel("Remove external link")
+                        }
+                        .padding(12)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+
+                        if let metadata = row.metadata {
+                            PageCreationLinkPreview(metadata: metadata)
+                        } else if !row.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !row.isLoading {
+                            Text("Enter a valid http(s) link to load its preview.")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                        Button {
+                            insertLink(after: row.id)
+                        } label: {
+                            Label("Add link below", systemImage: "plus")
+                                .font(.caption.weight(.semibold))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(OrangeFormButtonStyle())
+                    }
+                }
+            }
         }
     }
 
+    private var deleteCard: some View {
+        Button(role: .destructive) {
+            showDeleteConfirm = true
+        } label: {
+            Text("Delete Page")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+        }
+        .buttonStyle(.bordered)
+        .tint(.red)
+    }
+
+    private var actionBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                saveDraft()
+            } label: {
+                Label("Draft", systemImage: "doc.badge.clock")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(OrangeSecondaryButtonStyle())
+            .disabled(!canDraft)
+
+            Button {
+                savePage()
+            } label: {
+                Text(existingPage == nil ? "Create Page" : "Save Changes")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(OrangePrimaryButtonStyle())
+            .disabled(!canSave)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 11)
+        .padding(.bottom, 8)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Theme.primary.opacity(0.55))
+                .frame(height: 1)
+        }
+    }
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var draftFingerprint: String {
+        [
+            title,
+            pageKind.rawValue,
+            draftParentID ?? "",
+            markdownBody,
+            "\(duration)",
+            "\(prepareTime)",
+            "\(restAfter)",
+            "\(sets)",
+            "\(restBetweenSets)",
+            dropSetTemplates.map { "\($0.id):\($0.exerciseID):\($0.name):\($0.setIndex):\($0.duration):\($0.restAfter)" }.joined(separator: "|"),
+            linkRows.map { "\($0.id):\($0.url)" }.joined(separator: "|"),
+            mediaFilenames.joined(separator: "|")
+        ].joined(separator: "\u{1F}")
+    }
+
+    private func scheduleAutosave() {
+        guard existingPage == nil else { return }
+        autosaveTask?.cancel()
+        autosaveTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            guard !Task.isCancelled else { return }
+            persistDraftIfNeeded()
+        }
+    }
+
+    private var canDraft: Bool {
+        existingPage == nil && hasDraftContent
+    }
+
+    private var hasDraftContent: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !linkRows.allSatisfy { $0.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            || !mediaFilenames.isEmpty
+            || pageKind == .leaf
+            || !dropSetTemplates.isEmpty
+    }
+
+    private var inheritedWorkoutType: TimeMasterCore.WorkoutType? {
+        guard let parentID = draftParentID,
+              let parentUUID = UUID(uuidString: parentID) else { return nil }
+        return databaseStore.page(id: parentUUID)?.effectiveWorkoutType
+    }
+
+    private func formCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10, content: content)
+    }
 
     @ViewBuilder
-    private var deleteCard: some View {
-        if existingPage != nil {
-            Button(role: .destructive) {
-                showDeleteConfirm = true
-            } label: {
-                Text("Delete Page")
-                    .font(.headline).foregroundColor(.red)
-                    .frame(maxWidth: .infinity).padding(16)
-                    .background(Theme.surface).cornerRadius(12)
+    private func formHeading(_ title: String, required: Bool = false, optional: Bool = false) -> some View {
+        HStack(spacing: 5) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(Theme.textPrimary)
+            if required {
+                Text("Required")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.primary)
+            } else if optional {
+                Text("Optional")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
     }
 
-    private var saveButton: some View {
-        let trimmed = title.trimmingCharacters(in: .whitespaces)
-        return Button {
-            savePage()
-        } label: {
-            Text(existingPage == nil ? "Create Page" : "Save Changes")
-                .font(.headline)
-                .foregroundColor(trimmed.isEmpty ? Color.white.opacity(0.3) : .black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(trimmed.isEmpty ? Theme.surface : Color.white)
-                .cornerRadius(12)
-        }
-        .disabled(trimmed.isEmpty)
+    private func addManualDropSet() {
+        let template = PageDropSetTemplate(
+            setIndex: max(0, sets - 1),
+            exerciseID: "",
+            name: "",
+            duration: 30,
+            restAfter: 0
+        )
+        dropSetTemplates.append(template)
+        focusedDropSetID = template.id
     }
 
-    private func savePage() {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
-        guard !trimmedTitle.isEmpty else { return }
-
-        let parsedURLs = linkURLsText
-            .split(separator: "\n")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-
-        let coreWT: TimeMasterCore.WorkoutType? = {
-            guard pageKind == .container, parentID == nil, let wt = workoutType else { return nil }
-            return TimeMasterCore.WorkoutType(id: wt.id, name: wt.name, iconName: wt.iconName, colorHex: wt.colorHex)
-        }()
-        let normalizedDropSetTemplates = dropSetTemplates.map {
+    private func addDatabaseDropSet(from page: ExercisePage) {
+        dropSetTemplates.append(
             PageDropSetTemplate(
-                id: $0.id,
-                setIndex: min(max(0, $0.setIndex), max(0, sets - 1)),
-                exerciseID: $0.exerciseID,
-                name: $0.name,
-                duration: $0.duration,
-                restAfter: $0.restAfter
+                setIndex: max(0, sets - 1),
+                exerciseID: page.manifest.id,
+                name: page.manifest.title,
+                duration: page.manifest.duration ?? 30,
+                restAfter: page.manifest.restAfter ?? 0
             )
-        }
-        let normalizedPrepareTime = min(30, max(0, prepareTime))
+        )
+    }
 
-        var manifest: ExercisePageManifest
-        if let existing = existingPage {
-            manifest = existing.manifest
-            manifest.title = trimmedTitle
-            manifest.iconName = iconName.isEmpty ? nil : iconName
-            manifest.pageKind = pageKind
-            manifest.workoutType = coreWT
-            manifest.markdownBody = markdownBody
-            manifest.duration = pageKind == .leaf ? duration : nil
-            manifest.restAfter = pageKind == .leaf ? restAfter : nil
-            manifest.sets = pageKind == .leaf ? sets : nil
-            manifest.restBetweenSets = pageKind == .leaf ? restBetweenSets : nil
-            manifest.prepareTime = pageKind == .leaf ? normalizedPrepareTime : nil
-            manifest.linkURLs = parsedURLs
-            manifest.coverImageFilename = pageKind == .container ? coverImageFilename : nil
-            manifest.mediaFilenames = pageKind == .leaf ? mediaFilenames : []
-            manifest.dropSetTemplates = pageKind == .leaf
-                ? normalizedDropSetTemplates
-                : []
-            manifest.updatedAt = Date()
-        } else {
-            manifest = ExercisePageManifest(
-                title: trimmedTitle,
-                pageKind: pageKind,
-                coverImageFilename: pageKind == .container ? coverImageFilename : nil,
-                iconName: iconName.isEmpty ? nil : iconName,
-                markdownBody: markdownBody,
-                mediaFilenames: pageKind == .leaf ? mediaFilenames : [],
-                linkURLs: parsedURLs,
-                workoutType: coreWT,
-                duration: pageKind == .leaf ? duration : nil,
-                restAfter: pageKind == .leaf ? restAfter : nil,
-                prepareTime: pageKind == .leaf ? normalizedPrepareTime : nil,
-                sets: pageKind == .leaf ? sets : nil,
-                restBetweenSets: pageKind == .leaf ? restBetweenSets : nil,
-                dropSetTemplates: pageKind == .leaf ? normalizedDropSetTemplates : [],
-                parentID: parentID
-            )
+    private func removeMedia(filename: String) {
+        if let page = existingPage {
+            try? DatabaseManager.shared.removeMediaFromPage(pageID: page.manifest.id, filename: filename)
+            databaseStore.updatePageMedia(pageID: page.manifest.id, mediaFilenames: [])
         }
+        mediaFilenames.removeAll { $0 == filename }
+        mediaPreviewThumbnails.removeAll { $0.filename == filename }
+        pendingMediaFiles.removeAll { pending in
+            guard pending.filename == filename else { return false }
+            if pending.temporaryURL.path.hasPrefix(FileManager.default.temporaryDirectory.path) {
+                try? FileManager.default.removeItem(at: pending.temporaryURL)
+            }
+            return true
+        }
+    }
 
+    private func saveDraft() {
+        persistDraftIfNeeded(showConfirmation: true)
+    }
+
+    private func persistDraftIfNeeded(showConfirmation: Bool = false) {
+        guard existingPage == nil, hasDraftContent else { return }
+        let draft = makeDraft()
+        let sources = Dictionary(uniqueKeysWithValues: pendingMediaFiles.map { ($0.filename, $0.temporaryURL) })
         do {
-            if existingPage == nil, let onSaveWithMedia {
-                let mediaData: [(filename: String, data: Data)] = pendingMediaFiles.compactMap { media in
-                    guard let data = try? Data(contentsOf: media.temporaryURL) else { return nil }
-                    return (filename: media.temporaryURL.lastPathComponent, data: data)
+            try PageCreationDraftStore.shared.save(draft, mediaSources: sources)
+            if showConfirmation {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    draftSavedMessage = "Draft saved"
                 }
-                try onSaveWithMedia(manifest, parentID, pendingCoverData, mediaData)
-                pendingMediaFiles.forEach { try? FileManager.default.removeItem(at: $0.temporaryURL) }
-            } else {
-                try onSave(manifest, parentID)
-
-                if existingPage == nil {
-                    let pageID = manifest.id
-                    let coverData = pendingCoverData
-                    let mediaFiles = pendingMediaFiles
-                    DispatchQueue.global(qos: .userInitiated).async { [weak databaseStore] in
-                        if let coverData = coverData, manifest.pageKind == .container {
-                            let temporaryCoverURL = FileManager.default.temporaryDirectory
-                                .appendingPathComponent(UUID().uuidString + "-" + (manifest.coverImageFilename ?? "cover.jpg"))
-                            do {
-                                try coverData.write(to: temporaryCoverURL)
-                                let uploadedFilename = try DatabaseManager.shared.uploadCoverImage(
-                                    pageID: pageID,
-                                    sourceURL: temporaryCoverURL
-                                )
-                                databaseStore?.publishUploadedMedia(pageID: pageID, coverFilename: uploadedFilename)
-                            } catch {}
-                            try? FileManager.default.removeItem(at: temporaryCoverURL)
-                        }
-                        for media in mediaFiles {
-                            do {
-                                let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
-                                    pageID: pageID,
-                                    sourceURL: media.temporaryURL
-                                )
-                                databaseStore?.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename])
-                            } catch {}
-                            try? FileManager.default.removeItem(at: media.temporaryURL)
-                        }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        draftSavedMessage = nil
                     }
                 }
             }
         } catch {
-            saveErrorMessage = error.localizedDescription
-            return
+            saveErrorMessage = "Could not save draft: \(error.localizedDescription)"
+        }
+    }
+
+    private func makeDraft() -> PageCreationDraft {
+        let now = Date()
+        let createdAt = PageCreationDraftStore.shared.drafts.first(where: { $0.id == draftID })?.createdAt ?? now
+        let links = linkRows.compactMap { row -> (String, LinkMetadata?)? in
+            let url = normalizedLinkURL(row.url)
+            return url.isEmpty ? nil : (url, row.metadata)
+        }
+        let normalizedDropSets = normalizedDropSetTemplates()
+
+        return PageCreationDraft(
+            id: draftID,
+            title: title,
+            pageKind: pageKind,
+            parentID: draftParentID,
+            workoutType: workoutType.map {
+                TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
+            },
+            markdownBody: markdownBody,
+            duration: duration,
+            prepareTime: prepareTime,
+            restAfter: restAfter,
+            sets: sets,
+            restBetweenSets: restBetweenSets,
+            dropSetTemplates: normalizedDropSets,
+            linkURLs: links.map(\.0),
+            linkMetadata: links.map { $0.1 ?? LinkMetadata(url: $0.0) },
+            mediaFilenames: mediaFilenames,
+            createdAt: createdAt,
+            updatedAt: now
+        )
+    }
+
+    private func savePage() {
+        guard canSave else { return }
+        let mediaData = pendingMediaFiles.compactMap { pending -> (filename: String, data: Data)? in
+            guard let data = try? Data(contentsOf: pending.temporaryURL) else { return nil }
+            return (filename: pending.filename, data: data)
+        }
+        var manifest = makeManifest()
+        if existingPage == nil && !mediaData.isEmpty {
+            manifest.mediaFilenames = []
         }
 
-        dismiss()
+        do {
+            if existingPage == nil, let onSaveWithMedia {
+                try onSaveWithMedia(manifest, draftParentID, nil, mediaData)
+            } else {
+                try onSave(manifest, draftParentID)
+                if existingPage == nil && !mediaData.isEmpty {
+                    uploadMediaAfterFallbackSave(pageID: manifest.id, mediaData: mediaData)
+                }
+            }
+            if existingPage == nil {
+                PageCreationDraftStore.shared.delete(id: draftID)
+            }
+            cleanupTemporaryMedia()
+            dismiss()
+        } catch {
+            saveErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func makeManifest() -> ExercisePageManifest {
+        let links = linkRows.compactMap { row -> (String, LinkMetadata?)? in
+            let url = normalizedLinkURL(row.url)
+            return url.isEmpty ? nil : (url, row.metadata)
+        }
+        let normalizedDropSets = normalizedDropSetTemplates()
+        let coreWorkoutType: TimeMasterCore.WorkoutType? = pageKind == .container && draftParentID == nil
+            ? workoutType.map {
+                TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
+            }
+            : nil
+        let restBetweenSetsValue = pageKind == .leaf && sets > 1 ? restBetweenSets : nil
+
+        if let existingPage {
+            var manifest = existingPage.manifest
+            manifest.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            manifest.pageKind = pageKind
+            manifest.parentID = draftParentID
+            manifest.coverImageFilename = nil
+            manifest.iconName = nil
+            manifest.workoutType = coreWorkoutType
+            manifest.markdownBody = markdownBody
+            manifest.mediaFilenames = mediaFilenames
+            manifest.linkURLs = links.map(\.0)
+            manifest.linkMetadata = links.map { $0.1 ?? LinkMetadata(url: $0.0) }
+            manifest.duration = pageKind == .leaf ? duration : nil
+            manifest.prepareTime = pageKind == .leaf ? prepareTime : nil
+            manifest.restAfter = pageKind == .leaf ? restAfter : nil
+            manifest.sets = pageKind == .leaf ? sets : nil
+            manifest.restBetweenSets = restBetweenSetsValue
+            manifest.dropSetTemplates = pageKind == .leaf ? normalizedDropSets : []
+            manifest.childIDs = pageKind == .container ? existingPage.manifest.childIDs : []
+            manifest.updatedAt = Date()
+            return manifest
+        }
+
+        return ExercisePageManifest(
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            pageKind: pageKind,
+            iconName: nil,
+            markdownBody: markdownBody,
+            mediaFilenames: mediaFilenames,
+            linkURLs: links.map(\.0),
+            linkMetadata: links.map { $0.1 ?? LinkMetadata(url: $0.0) },
+            workoutType: coreWorkoutType,
+            duration: pageKind == .leaf ? duration : nil,
+            restAfter: pageKind == .leaf ? restAfter : nil,
+            prepareTime: pageKind == .leaf ? prepareTime : nil,
+            sets: pageKind == .leaf ? sets : nil,
+            restBetweenSets: restBetweenSetsValue,
+            dropSetTemplates: pageKind == .leaf ? normalizedDropSets : [],
+            parentID: draftParentID
+        )
+    }
+
+    private func normalizedDropSetTemplates() -> [PageDropSetTemplate] {
+        dropSetTemplates.map {
+            PageDropSetTemplate(
+                id: $0.id,
+                setIndex: min(max(0, $0.setIndex), max(0, sets - 1)),
+                exerciseID: $0.exerciseID,
+                name: $0.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                duration: $0.duration,
+                restAfter: $0.restAfter
+            )
+        }
+    }
+
+    private func uploadMediaAfterFallbackSave(
+        pageID: String,
+        mediaData: [(filename: String, data: Data)]
+    ) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            for (_, data) in mediaData {
+                let temporaryURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + ".jpg")
+                do {
+                    try data.write(to: temporaryURL)
+                    _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
+                } catch {}
+                try? FileManager.default.removeItem(at: temporaryURL)
+            }
+            databaseStore.reload()
+        }
+    }
+
+    private func cleanupTemporaryMedia() {
+        for pending in pendingMediaFiles where pending.temporaryURL.path.hasPrefix(FileManager.default.temporaryDirectory.path) {
+            try? FileManager.default.removeItem(at: pending.temporaryURL)
+        }
+    }
+
+    private func apply(draft: PageCreationDraft) {
+        draftID = draft.id
+        title = draft.title
+        pageKind = draft.pageKind
+        draftParentID = draft.parentID
+        workoutType = draft.workoutType.map {
+            WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
+        }
+        markdownBody = draft.markdownBody
+        duration = draft.duration
+        prepareTime = draft.prepareTime
+        restAfter = draft.restAfter
+        sets = max(1, draft.sets)
+        restBetweenSets = draft.restBetweenSets
+        dropSetTemplates = draft.dropSetTemplates
+        linkRows = Self.makeLinkRows(urls: draft.linkURLs, metadata: draft.linkMetadata)
+
+        let availableMedia = draft.mediaFilenames.filter { filename in
+            let url = PageCreationDraftStore.shared.mediaURL(for: draft, filename: filename)
+            return FileManager.default.fileExists(atPath: url.path)
+        }
+        mediaFilenames = availableMedia
+        pendingMediaFiles = availableMedia.map { filename in
+            PendingPageMedia(temporaryURL: PageCreationDraftStore.shared.mediaURL(for: draft, filename: filename))
+        }
+        mediaPreviewThumbnails = []
+        loadMediaPreviews()
+        refreshLinkMetadata()
+    }
+
+    private func loadMediaPreviews() {
+        for (index, filename) in mediaFilenames.enumerated() {
+            let url: URL?
+            if let pending = pendingMediaFiles.first(where: { $0.filename == filename }) {
+                url = pending.temporaryURL
+            } else if let page = existingPage {
+                url = page.mediaURLs[safe: index]
+            } else {
+                url = nil
+            }
+            loadMediaPreview(filename: filename, url: url)
+        }
+    }
+
+    private func loadMediaPreview(filename: String, url: URL?) {
+        guard let url else { return }
+        Task {
+            let image = await PhotoManager.shared.asyncLoadImage(from: url)
+            guard let image else { return }
+            #if os(iOS)
+            let preview = Image(uiImage: image)
+            #else
+            let preview = Image(nsImage: image)
+            #endif
+            await MainActor.run {
+                mediaPreviewThumbnails.removeAll { $0.filename == filename }
+                mediaPreviewThumbnails.append((filename: filename, image: preview))
+            }
+        }
     }
 
     #if os(iOS)
-    private func handleCoverPick(item: PhotosPickerItem) {
-        item.loadTransferable(type: Data.self) { result in
-            guard case .success(let data?) = result else { return }
-            if let uiImage = UIImage(data: data) {
-                DispatchQueue.main.async {
-                    coverPreviewImage = Image(uiImage: uiImage)
-                }
-            }
-            let pageID = existingPage?.manifest.id
-            if let id = pageID {
-                let tempDir = FileManager.default.temporaryDirectory
-                let tempURL = tempDir.appendingPathComponent("cover_tmp.jpg")
-                do {
-                    try data.write(to: tempURL)
-                    let filename = try DatabaseManager.shared.uploadCoverImage(pageID: id, sourceURL: tempURL)
-                    DispatchQueue.main.async {
-                        coverImageFilename = filename
-                        DatabaseStore.shared.reload()
-                    }
-                    try? FileManager.default.removeItem(at: tempURL)
-                } catch {}
-            } else {
-                DispatchQueue.main.async {
-                    coverImageFilename = "cover.jpg"
-                    pendingCoverData = data
-                }
-            }
-        }
-    }
-
-    private func handleMediaPicks(items: [PhotosPickerItem]) {
+    private func handleMediaPicks(_ items: [PhotosPickerItem]) {
         Task { @MainActor in
-            for item in items {
+            for item in items where mediaFilenames.count < 20 {
                 let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .audiovisualContent) }
                 if isVideo, let movie = try? await item.loadTransferable(type: MovieFile.self) {
                     stageMedia(movie.url)
@@ -826,169 +1164,378 @@ struct PageCreationSheet: View {
             try data.write(to: temporaryURL)
             stageMedia(temporaryURL)
             try? FileManager.default.removeItem(at: temporaryURL)
-        } catch {}
+        } catch {
+            saveErrorMessage = "Could not stage media: \(error.localizedDescription)"
+        }
     }
 
     private func stageMedia(_ sourceURL: URL) {
+        guard mediaFilenames.count < 20 else { return }
         let temporaryURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString + "-" + (sourceURL.lastPathComponent.isEmpty ? "media.jpg" : sourceURL.lastPathComponent))
         do {
             try FileManager.default.copyItem(at: sourceURL, to: temporaryURL)
-            if let pageID = existingPage?.manifest.id {
-                let uploaded = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
-                try? FileManager.default.removeItem(at: temporaryURL)
+            if let page = existingPage {
+                let uploaded = try DatabaseManager.shared.uploadMediaToPage(pageID: page.manifest.id, sourceURL: temporaryURL)
                 if !mediaFilenames.contains(uploaded) {
                     mediaFilenames.append(uploaded)
+                    databaseStore.updatePageMedia(pageID: page.manifest.id, mediaFilenames: [uploaded])
+                    let mediaURL = try? DatabaseManager.shared.pageMediaURL(pageID: page.manifest.id, filename: uploaded)
+                    loadMediaPreview(filename: uploaded, url: mediaURL)
                 }
-                databaseStore.updatePageMedia(pageID: pageID, mediaFilenames: [uploaded])
-                let mediaURL = try? DatabaseManager.shared.pageMediaURL(pageID: pageID, filename: uploaded)
-                loadMediaPreview(filename: uploaded, url: mediaURL)
-            } else {
-                let previewName = temporaryURL.lastPathComponent
-                if !mediaFilenames.contains(previewName) {
-                    mediaFilenames.append(previewName)
-                    pendingMediaFiles.append(PendingPageMedia(temporaryURL: temporaryURL))
-                    loadMediaPreview(filename: previewName, url: temporaryURL)
-                } else {
-                    try? FileManager.default.removeItem(at: temporaryURL)
-                }
-            }
-        } catch {}
-    }
-
-    private func loadMediaPreview(filename: String, url: URL?) {
-        guard let url else { return }
-        Task {
-            let image = await PhotoManager.shared.asyncLoadImage(from: url)
-            guard let image else { return }
-            #if os(iOS)
-            let preview = Image(uiImage: image)
-            #elseif os(macOS)
-            let preview = Image(nsImage: image)
-            #endif
-            await MainActor.run {
-                mediaPreviewThumbnails.removeAll { $0.filename == filename }
-                mediaPreviewThumbnails.append((filename: filename, image: preview))
-            }
-        }
-    }
-
-    #if os(macOS)
-    private func handleMacCoverPick(_ url: URL) {
-        guard let data = try? Data(contentsOf: url) else { return }
-        if let pageID = existingPage?.manifest.id {
-            let temporaryURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("cover." + (url.pathExtension.isEmpty ? "jpg" : url.pathExtension))
-            do {
-                try data.write(to: temporaryURL)
-                let filename = try DatabaseManager.shared.uploadCoverImage(pageID: pageID, sourceURL: temporaryURL)
-                coverImageFilename = filename
                 try? FileManager.default.removeItem(at: temporaryURL)
-                databaseStore.publishUploadedMedia(pageID: pageID, coverFilename: filename)
-            } catch {}
-        } else {
-            coverImageFilename = "cover." + (url.pathExtension.isEmpty ? "jpg" : url.pathExtension)
-            pendingCoverData = data
-            if let image = NSImage(data: data) {
-                coverPreviewImage = Image(nsImage: image)
+            } else {
+                let filename = temporaryURL.lastPathComponent
+                mediaFilenames.append(filename)
+                pendingMediaFiles.append(PendingPageMedia(temporaryURL: temporaryURL))
+                loadMediaPreview(filename: filename, url: temporaryURL)
             }
+        } catch {
+            try? FileManager.default.removeItem(at: temporaryURL)
+            saveErrorMessage = "Could not add media: \(error.localizedDescription)"
         }
     }
-    #endif
-    private func removeMedia(filename: String) {
-        guard let page = existingPage else {
-            mediaFilenames.removeAll { $0 == filename }
+
+    private func refreshLinkMetadata() {
+        for row in linkRows where row.metadata == nil && !row.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            refreshLinkMetadata(for: row.id)
+        }
+    }
+
+    private func refreshLinkMetadata(for rowID: UUID) {
+        guard let row = linkRows.first(where: { $0.id == rowID }) else { return }
+        let normalized = normalizedLinkURL(row.url)
+        guard !normalized.isEmpty else {
+            updateLinkRow(rowID) {
+                $0.metadata = nil
+                $0.isLoading = false
+            }
             return
         }
-        do {
-            try DatabaseManager.shared.removeMediaFromPage(pageID: page.manifest.id, filename: filename)
-            mediaFilenames.removeAll { $0 == filename }
-        } catch {
-            mediaFilenames.removeAll { $0 == filename }
+        guard isValidHTTPURL(normalized) else {
+            updateLinkRow(rowID) {
+                $0.metadata = nil
+                $0.isLoading = false
+            }
+            return
         }
+
+        updateLinkRow(rowID) {
+            $0.metadata = nil
+            $0.isLoading = true
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            let metadata = await LinkMetadataFetcher.fetchMetadata(for: [normalized], existing: [])
+                .first
+            await MainActor.run {
+                guard let current = linkRows.first(where: { $0.id == rowID }), normalizedLinkURL(current.url) == normalized else { return }
+                updateLinkRow(rowID) {
+                    $0.metadata = metadata
+                    $0.isLoading = false
+                }
+            }
+        }
+    }
+
+    private func updateLinkRow(_ rowID: UUID, mutate: (inout PageCreationLinkRow) -> Void) {
+        guard let index = linkRows.firstIndex(where: { $0.id == rowID }) else { return }
+        mutate(&linkRows[index])
+    }
+
+    private func insertLink(after rowID: UUID) {
+        guard let index = linkRows.firstIndex(where: { $0.id == rowID }) else { return }
+        linkRows.insert(PageCreationLinkRow(url: ""), at: index + 1)
+    }
+
+    private func normalizedLinkURL(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        if trimmed.range(of: "^[a-zA-Z][a-zA-Z0-9+.-]*://", options: .regularExpression) != nil {
+            return trimmed
+        }
+        return "https://\(trimmed)"
+    }
+
+    private func isValidHTTPURL(_ value: String) -> Bool {
+        guard let components = URLComponents(string: value),
+              (components.scheme?.lowercased() == "http" || components.scheme?.lowercased() == "https"),
+              let host = components.host,
+              !host.isEmpty else {
+            return false
+        }
+        return true
+    }
+
+    private static func makeLinkRows(urls: [String], metadata: [LinkMetadata]) -> [PageCreationLinkRow] {
+        urls.enumerated().map { index, url in
+            let candidate = metadata[safe: index]
+            let hasPreview = candidate?.title != nil
+                || candidate?.description != nil
+                || candidate?.thumbnailURL != nil
+            return PageCreationLinkRow(
+                url: url,
+                metadata: hasPreview ? candidate : nil
+            )
+        }
+    }
+
+    private static func orderedMediaFilenames(for page: ExercisePage) -> [String] {
+        var filenames = page.manifest.mediaFilenames
+        if let legacyCover = page.manifest.coverImageFilename, !filenames.contains(legacyCover) {
+            filenames.insert(legacyCover, at: 0)
+        }
+        return filenames
     }
 }
 
-private struct IconPickerSheet: View {
+private struct PageCreationLinkPreview: View {
+    let metadata: LinkMetadata
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let thumbnailURL = metadata.thumbnailURL, let url = URL(string: thumbnailURL) {
+                AsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        placeholder
+                    }
+                }
+                .frame(width: 74, height: 54)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                placeholder
+                    .frame(width: 74, height: 54)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(metadata.title ?? URL(string: metadata.url)?.host ?? metadata.url)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(2)
+                if let description = metadata.description, !description.isEmpty {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(2)
+                }
+                Text(metadata.url)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.primary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.primary.opacity(0.22), lineWidth: 1))
+    }
+
+    private var placeholder: some View {
+        RoundedRectangle(cornerRadius: 8)
+            .fill(Theme.primary.opacity(0.14))
+            .overlay {
+                Image(systemName: "link")
+                    .foregroundStyle(Theme.primary)
+            }
+    }
+}
+
+private struct PageCreationDraftListSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var selectedIcon: String
+    @ObservedObject private var store: PageCreationDraftStore
+    let onSelect: (PageCreationDraft) -> Void
 
-    private let icons: [(String, String)] = [
-        ("figure.strengthtraining.traditional", "Strength"),
-        ("figure.cooldown", "Stretch"),
-        ("heart.fill", "Cardio"),
-        ("flame.fill", "HIIT"),
-        ("figure.mind.and.body", "Yoga"),
-        ("figure.run", "Run"),
-        ("figure.walk", "Walk"),
-        ("figure.step.training", "Step"),
-        ("figure.core.training", "Core"),
-        ("figure.mixed.cardio", "Mixed"),
-        ("dumbbell.fill", "Dumbbell"),
-        ("figure.strengthtraining.functional", "Functional"),
-        ("figure.cross.training", "Cross"),
-        ("figure.pilates", "Pilates"),
-        ("figure.dance", "Dance"),
-        ("figure.taichi", "Tai Chi"),
-        ("figure.boxing", "Boxing"),
-        ("figure.wrestling", "Wrestling"),
-        ("figure.open.water.swim", "Swim"),
-        ("figure.outdoor.cycle", "Cycle"),
-        ("figure.hiking", "Hike"),
-        ("figure.jumprope", "Jump Rope"),
-        ("figure.rolling", "Rolling"),
-        ("star.fill", "Star"),
-        ("book.fill", "Book"),
-        ("doc.text.fill", "Doc"),
-        ("note.text", "Note"),
-        ("folder.fill", "Folder"),
-    ]
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
+    init(onSelect: @escaping (PageCreationDraft) -> Void) {
+        self.onSelect = onSelect
+        _store = ObservedObject(wrappedValue: PageCreationDraftStore.shared)
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(icons, id: \.0) { icon in
+                if store.drafts.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: "doc.badge.clock")
+                            .font(.system(size: 38))
+                            .foregroundStyle(Theme.primary)
+                        Text("No drafts")
+                            .font(.headline)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("Drafts are kept for 30 days.")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                } else {
+                    List {
+                        ForEach(store.drafts) { draft in
                             Button {
-                                selectedIcon = icon.0
-                                dismiss()
+                                onSelect(draft)
                             } label: {
-                                VStack(spacing: 6) {
-                                    Image(systemName: icon.0)
-                                        .font(.system(size: 24))
-                                        .foregroundColor(selectedIcon == icon.0 ? .white : Theme.textSecondary)
-                                        .frame(height: 32)
-                                    Text(icon.1)
-                                        .font(.system(size: 10))
-                                        .foregroundColor(selectedIcon == icon.0 ? .white : Theme.textSecondary)
-                                        .lineLimit(1)
+                                HStack(spacing: 12) {
+                                    RoundedRectangle(cornerRadius: 9)
+                                        .fill(Theme.primary.opacity(0.14))
+                                        .frame(width: 44, height: 44)
+                                        .overlay {
+                                            Text(draft.pageKind == .leaf ? "E" : "C")
+                                                .font(.headline.weight(.bold))
+                                                .foregroundStyle(Theme.primary)
+                                        }
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(draft.title.isEmpty ? "Untitled page" : draft.title)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(Theme.textPrimary)
+                                            .lineLimit(1)
+                                        Text("\(draft.pageKind == .leaf ? "Exercise" : "Container") · \(draft.mediaFilenames.count) media · \(draft.updatedAt, style: .relative)")
+                                            .font(.caption)
+                                            .foregroundStyle(Theme.textSecondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.primary)
                                 }
-                                .padding(8)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(selectedIcon == icon.0 ? Color.white.opacity(0.15) : Theme.surface)
-                                )
+                                .padding(.vertical, 5)
                             }
+                            .listRowBackground(Theme.surface)
                             .buttonStyle(.plain)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    store.delete(id: draft.id)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
-                    .padding(16)
+                    .scrollContentBackground(.hidden)
                 }
             }
-            .navigationTitle("Choose Icon")
+            .navigationTitle("Drafts")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
+                    Button("Close") { dismiss() }
+                        .foregroundStyle(Theme.primary)
                 }
             }
+            .task { store.reload() }
         }
+    }
+}
+
+private struct PageMediaDropDelegate: DropDelegate {
+    let targetFilename: String
+    @Binding var items: [String]
+    @Binding var draggedFilename: String?
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedFilename,
+              draggedFilename != targetFilename,
+              let from = items.firstIndex(of: draggedFilename),
+              let to = items.firstIndex(of: targetFilename) else { return }
+        withAnimation(.easeOut(duration: 0.15)) {
+            items.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedFilename = nil
+        return true
+    }
+}
+
+private struct OrangePrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(isEnabled ? .black : Theme.textSecondary)
+            .padding(.vertical, 14)
+            .background(
+                isEnabled
+                    ? Theme.primary.opacity(configuration.isPressed ? 0.72 : 1)
+                    : Theme.surface2,
+                in: RoundedRectangle(cornerRadius: 11)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+    }
+}
+
+private struct OrangeSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
+            .padding(.vertical, 13)
+            .background(
+                isEnabled
+                    ? Theme.primary.opacity(configuration.isPressed ? 0.25 : 0.12)
+                    : Theme.surface2,
+                in: RoundedRectangle(cornerRadius: 11)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 11)
+                    .stroke(isEnabled ? Theme.primary.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+    }
+}
+
+private struct OrangeFormButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 12)
+            .background(
+                isEnabled
+                    ? Theme.primary.opacity(configuration.isPressed ? 0.22 : 0.1)
+                    : Theme.surface2,
+                in: RoundedRectangle(cornerRadius: 10)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isEnabled ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08), lineWidth: 1)
+            )
+    }
+}
+
+private struct OrangeChoiceButtonStyle: ButtonStyle {
+    let isSelected: Bool
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(isSelected ? .semibold : .regular))
+            .foregroundStyle(isEnabled ? (isSelected ? .black : Theme.textPrimary) : Theme.textSecondary)
+            .padding(.vertical, 10)
+            .background(
+                isEnabled && isSelected ? Theme.primary : Theme.surface,
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isEnabled && isSelected ? Theme.primary : Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .opacity(configuration.isPressed ? 0.78 : 1)
     }
 }

@@ -28,7 +28,6 @@ struct MacVideoSavePopover: View {
     @State private var step: Step = .target
     @State private var selectedTargetID: String?
     @State private var title: String
-    @State private var iconName = ""
     @State private var markdownBody = ""
     @State private var duration = 30
     @State private var prepareTime = 4
@@ -38,7 +37,6 @@ struct MacVideoSavePopover: View {
     @State private var dropSetTemplates: [PageDropSetTemplate] = []
     @State private var linkURLsText = ""
     @State private var pendingAdditionalMedia: [PendingMedia] = []
-    @State private var showIconPicker = false
     @State private var showDropSetPicker = false
     @State private var showMediaPicker = false
     @State private var isSaving = false
@@ -93,9 +91,6 @@ struct MacVideoSavePopover: View {
             ) { result in
                 guard case .success(let urls) = result else { return }
                 urls.forEach(stageAdditionalMedia)
-            }
-            .sheet(isPresented: $showIconPicker) {
-                MacVideoIconPickerSheet(selectedIcon: $iconName)
             }
             .sheet(isPresented: $showDropSetPicker) {
                 DatabasePageBrowserSheet(
@@ -207,7 +202,7 @@ struct MacVideoSavePopover: View {
             saveErrorMessage = nil
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: page.isContainer ? "folder.fill" : (page.manifest.iconName ?? "figure.run"))
+                Image(systemName: page.isContainer ? "folder.fill" : "figure.run")
                     .font(.title3)
                     .foregroundStyle(isSelected ? .white : Theme.textSecondary)
                     .frame(width: 28)
@@ -248,7 +243,6 @@ struct MacVideoSavePopover: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 targetSummaryCard
-                iconCard
                 selectedMediaCard
                 additionalMediaCard
                 timingCard
@@ -300,31 +294,6 @@ struct MacVideoSavePopover: View {
         }
     }
 
-    private var iconCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Icon")
-                .font(.headline)
-                .foregroundStyle(Theme.textPrimary)
-            Button {
-                showIconPicker = true
-            } label: {
-                HStack {
-                    Image(systemName: iconName.isEmpty ? "photo" : iconName)
-                        .font(.system(size: 20))
-                        .foregroundStyle(iconName.isEmpty ? Theme.textSecondary : .white)
-                    Text(iconName.isEmpty ? "Choose SF Symbol" : iconName)
-                        .foregroundStyle(Theme.textSecondary)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.textSecondary.opacity(0.4))
-                }
-                .padding(14)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-        }
-    }
 
     private var selectedMediaCard: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -652,7 +621,6 @@ struct MacVideoSavePopover: View {
     private func loadForm(from page: ExercisePage) {
         if page.isLeaf {
             title = page.manifest.title
-            iconName = page.manifest.iconName ?? ""
             markdownBody = page.manifest.markdownBody
             duration = page.manifest.duration ?? 30
             prepareTime = page.manifest.prepareTime ?? 4
@@ -663,7 +631,6 @@ struct MacVideoSavePopover: View {
             linkURLsText = page.manifest.linkURLs.joined(separator: "\n")
         } else {
             title = draft.title
-            iconName = ""
             markdownBody = ""
             duration = 30
             prepareTime = 4
@@ -679,7 +646,6 @@ struct MacVideoSavePopover: View {
         let manifest = ExercisePageManifest(
             title: "Video Library",
             pageKind: .container,
-            iconName: "video.fill"
         )
 
         do {
@@ -758,7 +724,6 @@ struct MacVideoSavePopover: View {
             manifest.title = title
             manifest.pageKind = .leaf
             manifest.coverImageFilename = nil
-            manifest.iconName = iconName.isEmpty ? nil : iconName
             manifest.markdownBody = markdownBody
             manifest.linkURLs = parsedURLs
             manifest.duration = duration
@@ -774,7 +739,6 @@ struct MacVideoSavePopover: View {
         return ExercisePageManifest(
             title: title,
             pageKind: .leaf,
-            iconName: iconName.isEmpty ? nil : iconName,
             markdownBody: markdownBody,
             linkURLs: parsedURLs,
             duration: duration,
@@ -820,85 +784,4 @@ struct MacVideoSavePopover: View {
     }
 }
 
-private struct MacVideoIconPickerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedIcon: String
-
-    private let icons: [(String, String)] = [
-        ("figure.strengthtraining.traditional", "Strength"),
-        ("figure.cooldown", "Stretch"),
-        ("heart.fill", "Cardio"),
-        ("flame.fill", "HIIT"),
-        ("figure.mind.and.body", "Yoga"),
-        ("figure.run", "Run"),
-        ("figure.walk", "Walk"),
-        ("figure.step.training", "Step"),
-        ("figure.core.training", "Core"),
-        ("figure.mixed.cardio", "Mixed"),
-        ("dumbbell.fill", "Dumbbell"),
-        ("figure.strengthtraining.functional", "Functional"),
-        ("figure.cross.training", "Cross"),
-        ("figure.pilates", "Pilates"),
-        ("figure.dance", "Dance"),
-        ("figure.taichi", "Tai Chi"),
-        ("figure.boxing", "Boxing"),
-        ("figure.wrestling", "Wrestling"),
-        ("figure.open.water.swim", "Swim"),
-        ("figure.outdoor.cycle", "Cycle"),
-        ("figure.hiking", "Hike"),
-        ("figure.jumprope", "Jump Rope"),
-        ("figure.rolling", "Rolling"),
-        ("star.fill", "Star"),
-        ("book.fill", "Book"),
-        ("doc.text.fill", "Doc"),
-        ("note.text", "Note"),
-        ("folder.fill", "Folder")
-    ]
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(icons, id: \.0) { icon in
-                            Button {
-                                selectedIcon = icon.0
-                                dismiss()
-                            } label: {
-                                VStack(spacing: 6) {
-                                    Image(systemName: icon.0)
-                                        .font(.system(size: 24))
-                                        .foregroundStyle(selectedIcon == icon.0 ? .white : Theme.textSecondary)
-                                        .frame(height: 32)
-                                    Text(icon.1)
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(selectedIcon == icon.0 ? .white : Theme.textSecondary)
-                                        .lineLimit(1)
-                                }
-                                .padding(8)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(selectedIcon == icon.0 ? Color.white.opacity(0.15) : Theme.surface)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(16)
-                }
-            }
-            .navigationTitle("Choose Icon")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-        }
-        .frame(minWidth: 480, minHeight: 420)
-    }
-}
 #endif

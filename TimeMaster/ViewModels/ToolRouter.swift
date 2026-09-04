@@ -222,8 +222,7 @@ final class ToolRouter {
         let manifest = ExercisePageManifest(
             title: title,
             pageKind: .container,
-            coverImageFilename: args["coverImageFilename"] as? String,
-            iconName: args["iconName"] as? String,
+            mediaFilenames: args["mediaFilenames"] as? [String] ?? [],
             workoutType: workoutType,
             parentID: parentID
         )

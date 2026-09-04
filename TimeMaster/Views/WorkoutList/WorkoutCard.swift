@@ -212,7 +212,7 @@ struct WorkoutCoverMosaic: View {
                   let url = page.coverImageURL {
             AsyncCoverImage(
                 url: url,
-                fallbackIcon: page.manifest.iconName ?? workout.type.iconName,
+                fallbackIcon: page.effectiveWorkoutType?.iconName ?? workout.type.iconName,
                 fallbackColor: Color(hex: workout.type.colorHex),
                 height: size,
                 contentMode: .fill,

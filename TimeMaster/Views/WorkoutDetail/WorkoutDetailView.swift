@@ -911,7 +911,7 @@ struct WorkoutDetailView: View {
         let page = pageID.flatMap { databaseStore.page(id: $0) }
         return AsyncCoverImage(
             url: page?.coverImageURL,
-            fallbackIcon: page?.manifest.iconName ?? fallbackIcon,
+            fallbackIcon: page?.effectiveWorkoutType?.iconName ?? fallbackIcon,
             fallbackColor: page?.effectiveWorkoutType.map { Color(hex: $0.colorHex) },
             height: size,
             contentMode: .fill,

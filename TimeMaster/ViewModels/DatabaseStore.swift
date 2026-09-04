@@ -837,3 +837,138 @@ class DatabaseStore: ObservableObject {
         ]
     }
 }
+
+struct PageCreationDraft: Codable, Identifiable, Equatable {
+    let id: UUID
+    var title: String
+    var pageKind: ExercisePageManifest.PageKind
+    var parentID: String?
+    var workoutType: TimeMasterCore.WorkoutType?
+    var markdownBody: String
+    var duration: Int
+    var prepareTime: Int
+    var restAfter: Int
+    var sets: Int
+    var restBetweenSets: Int
+    var dropSetTemplates: [PageDropSetTemplate]
+    var linkURLs: [String]
+    var linkMetadata: [LinkMetadata]
+    var mediaFilenames: [String]
+    let createdAt: Date
+    var updatedAt: Date
+}
+
+final class PageCreationDraftStore: ObservableObject {
+    static let shared = PageCreationDraftStore()
+
+    @Published private(set) var drafts: [PageCreationDraft] = []
+
+    private let fileManager = FileManager.default
+    private let encoder: JSONEncoder
+    private let decoder: JSONDecoder
+
+    private var draftsDirectory: URL {
+        DatabaseManager.shared.dataRoot
+            .appendingPathComponent("Workspace", isDirectory: true)
+            .appendingPathComponent("Page Drafts", isDirectory: true)
+    }
+
+    private init() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        self.encoder = encoder
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        self.decoder = decoder
+        reload()
+    }
+
+    func reload() {
+        purgeExpiredDrafts()
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: draftsDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            drafts = []
+            return
+        }
+
+        drafts = entries.compactMap { entry in
+            let fileURL = entry.appendingPathComponent("draft.json")
+            guard let data = try? Data(contentsOf: fileURL),
+                  let draft = try? decoder.decode(PageCreationDraft.self, from: data) else {
+                return nil
+            }
+            return draft
+        }
+        .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func save(_ draft: PageCreationDraft, mediaSources: [String: URL]) throws {
+        let draftDirectory = draftsDirectory.appendingPathComponent(draft.id.uuidString, isDirectory: true)
+        let mediaDirectory = draftDirectory.appendingPathComponent("media", isDirectory: true)
+        try fileManager.createDirectory(at: mediaDirectory, withIntermediateDirectories: true)
+
+        let allowedFilenames = Set(draft.mediaFilenames.map { URL(fileURLWithPath: $0).lastPathComponent })
+        if let existingFiles = try? fileManager.contentsOfDirectory(at: mediaDirectory, includingPropertiesForKeys: nil) {
+            for file in existingFiles where !allowedFilenames.contains(file.lastPathComponent) {
+                try? fileManager.removeItem(at: file)
+            }
+        }
+
+        for filename in allowedFilenames {
+            guard let source = mediaSources[filename] ?? mediaSources.first(where: { URL(fileURLWithPath: $0.key).lastPathComponent == filename })?.value else {
+                continue
+            }
+            let destination = mediaDirectory.appendingPathComponent(filename)
+            if source.standardizedFileURL.path != destination.standardizedFileURL.path {
+                if fileManager.fileExists(atPath: destination.path) {
+                    try fileManager.removeItem(at: destination)
+                }
+                try fileManager.copyItem(at: source, to: destination)
+            }
+        }
+
+        let fileURL = draftDirectory.appendingPathComponent("draft.json")
+        try encoder.encode(draft).write(to: fileURL, options: .atomic)
+        reload()
+    }
+
+    func mediaURL(for draft: PageCreationDraft, filename: String) -> URL {
+        draftsDirectory
+            .appendingPathComponent(draft.id.uuidString, isDirectory: true)
+            .appendingPathComponent("media", isDirectory: true)
+            .appendingPathComponent(URL(fileURLWithPath: filename).lastPathComponent)
+    }
+
+    func delete(id: UUID) {
+        let directory = draftsDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
+        try? fileManager.removeItem(at: directory)
+        drafts.removeAll { $0.id == id }
+    }
+
+    private func purgeExpiredDrafts() {
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: draftsDirectory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return
+        }
+
+        let expiration = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+        for entry in entries {
+            let fileURL = entry.appendingPathComponent("draft.json")
+            guard let data = try? Data(contentsOf: fileURL),
+                  let draft = try? decoder.decode(PageCreationDraft.self, from: data) else {
+                continue
+            }
+            if draft.updatedAt < expiration {
+                try? fileManager.removeItem(at: entry)
+            }
+        }
+    }
+}

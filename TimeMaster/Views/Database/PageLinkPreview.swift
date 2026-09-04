@@ -128,7 +128,8 @@ enum LinkMetadataFetcher {
         let existingLookup = Dictionary(uniqueKeysWithValues: existing.map { ($0.url, $0) })
 
         for url in urls {
-            if let cached = existingLookup[url] {
+            if let cached = existingLookup[url],
+               cached.title != nil || cached.description != nil || cached.thumbnailURL != nil {
                 results.append(cached)
                 continue
             }

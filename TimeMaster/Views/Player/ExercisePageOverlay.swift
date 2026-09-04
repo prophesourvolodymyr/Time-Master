@@ -76,28 +76,39 @@ struct ExercisePageOverlay: View {
     private func coverSection(page: ExercisePage) -> some View {
         ZStack(alignment: .bottomLeading) {
             if let coverURL = page.coverImageURL {
-                coverImageView(url: coverURL)
-            } else if let iconName = page.manifest.iconName {
-                iconCoverView(iconName: iconName, page: page)
+                AsyncCoverImage(url: coverURL, height: 220, overlayGradient: true)
             } else {
-                gradientCoverView(page: page)
+                LinearGradient(
+                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .overlay(
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.55)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                )
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(page.title)
                     .font(.title2.weight(.bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.4), radius: 3)
                     .lineLimit(2)
-                if let wt = page.effectiveWorkoutType {
+                if let type = page.effectiveWorkoutType {
                     HStack(spacing: 4) {
-                        Image(systemName: wt.iconName).font(.caption)
-                        Text(wt.name).font(.caption.weight(.medium))
+                        Image(systemName: type.iconName)
+                            .font(.caption)
+                        Text(type.name)
+                            .font(.caption.weight(.medium))
                     }
-                    .foregroundColor(Color(hex: wt.colorHex))
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color(hex: wt.colorHex).opacity(0.2))
-                    .cornerRadius(5)
+                    .foregroundStyle(Color(hex: type.colorHex))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color(hex: type.colorHex).opacity(0.2), in: RoundedRectangle(cornerRadius: 5))
                 }
             }
             .padding(.horizontal, 20)
@@ -105,62 +116,6 @@ struct ExercisePageOverlay: View {
         }
         .frame(height: 220)
         .clipped()
-    }
-
-    private func coverImageView(url: URL) -> some View {
-        AsyncCoverImage(url: url, height: 220, overlayGradient: true)
-    }
-
-    private func iconCoverView(iconName: String, page: ExercisePage) -> some View {
-        let color = page.effectiveWorkoutType?.colorHex ?? "FFFFFF"
-        return AnyView(
-            ZStack {
-                Color(hex: color).opacity(0.3)
-                Image(systemName: iconName)
-                    .font(.system(size: 64))
-                    .foregroundColor(Color(hex: color).opacity(0.7))
-            }
-            .frame(height: 220)
-            .overlay(
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.55)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-            )
-        )
-    }
-
-    private func gradientCoverView(page: ExercisePage) -> some View {
-        RoundedRectangle(cornerRadius: 0)
-            .fill(
-                LinearGradient(
-                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .frame(height: 220)
-            .overlay(
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Image(systemName: page.isContainer ? "folder.fill" : "doc.text.fill")
-                            .font(.system(size: 48))
-                            .foregroundColor(.white.opacity(0.08))
-                        Spacer()
-                    }
-                    Spacer()
-                }
-            )
-            .overlay(
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.55)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-            )
     }
 
     private func contentSection(page: ExercisePage) -> some View {
@@ -211,17 +166,20 @@ struct ExercisePageOverlay: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Workout Config")
                 .font(.headline)
-                .foregroundColor(Theme.textPrimary)
+                .foregroundStyle(Theme.textPrimary)
             HStack(spacing: 10) {
                 configBadge(label: "Duration", value: "\(page.manifest.duration ?? 0)s")
-                if let rest = page.manifest.restAfter {
-                    configBadge(label: "Rest", value: "\(rest)s")
-                }
                 if let sets = page.manifest.sets {
                     configBadge(label: "Sets", value: "\(sets)")
                 }
-                if let restSets = page.manifest.restBetweenSets {
-                    configBadge(label: "Set Rest", value: "\(restSets)s")
+                if let restSets = page.manifest.restBetweenSets, (page.manifest.sets ?? 1) > 1 {
+                    configBadge(label: "Rest Between Sets", value: "\(restSets)s")
+                }
+                if let rest = page.manifest.restAfter {
+                    configBadge(
+                        label: (page.manifest.sets ?? 1) > 1 ? "Big Rest" : "Rest",
+                        value: "\(rest)s"
+                    )
                 }
             }
         }
@@ -231,15 +189,14 @@ struct ExercisePageOverlay: View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.title3.weight(.semibold))
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
             Text(label)
                 .font(.caption2)
-                .foregroundColor(Theme.textSecondary)
+                .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(Theme.surface)
-        .cornerRadius(10)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
     }
 
 

@@ -393,7 +393,7 @@ struct DatabaseView: View {
     @State private var noteToMove: DatabaseNote?
     @State private var folderToExport: ExerciseFolder?
     @State private var showingCreatePage = false
-    @State private var selectedPage: ExercisePage?
+    @State private var creationLeafFirst = false
     @State private var pageToMove: ExercisePage?
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
@@ -421,57 +421,76 @@ struct DatabaseView: View {
             .navigationTitle(databaseTitle(isV2: isV2))
             .toolbar {
                 if isV2 {
-                    AppToolbar.iconGroup(placement: .primaryAction) { Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { isGridMode.toggle() }
-                    } label: {
-                        Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
+                    AppToolbar.iconGroup(placement: .primaryAction) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isGridMode.toggle()
+                            }
+                        } label: {
+                            Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
+                        }
+                        .foregroundStyle(Theme.primary)
+
+                        Menu {
+                            ForEach(PageSortOption.allCases, id: \.self) { option in
+                                Button {
+                                    sortOption = option
+                                } label: {
+                                    Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .foregroundStyle(Theme.primary)
                     }
-                    .foregroundColor(.white)
-                    
+                }
+                #if os(iOS)
+                AppToolbar.item(placement: .primaryAction) {
+                    EditButton()
+                        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+                }
+                #endif
+                AppToolbar.iconGroup(placement: .primaryAction) {
+                    Button { showingImport = true } label: {
+                        Image(systemName: "video.badge.plus")
+                    }
+                    .foregroundStyle(Theme.primary)
+                    Button { showingDatabaseImport = true } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .foregroundStyle(Theme.primary)
                     Menu {
-                        ForEach(PageSortOption.allCases, id: \.self) { option in
+                        if isV2 {
                             Button {
-                                sortOption = option
+                                creationLeafFirst = false
+                                showingCreatePage = true
                             } label: {
-                                Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                                Label("New Container", systemImage: "folder.badge.plus")
+                            }
+                            Button {
+                                creationLeafFirst = true
+                                showingCreatePage = true
+                            } label: {
+                                Label("New Exercise", systemImage: "figure.run")
+                            }
+                        } else {
+                            Button { showingNewFolderSheet = true } label: {
+                                Label("New Folder", systemImage: "folder.badge.plus")
+                            }
+                            Button { showingAddRootNote = true } label: {
+                                Label("New Note", systemImage: "note.text.badge.plus")
+                            }
+                            Button { showingAddRootExercise = true } label: {
+                                Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
                             }
                         }
                     } label: {
-                        Image(systemName: "arrow.up.arrow.down")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
                     }
-                    .foregroundColor(.white)
-                                         }
+                    .foregroundStyle(Theme.primary)
                 }
-                #if os(iOS)
-                AppToolbar.item(placement: .primaryAction) { EditButton().foregroundColor(.white)
-                                 }
-                #endif
-                AppToolbar.iconGroup(placement: .primaryAction) { Button { showingImport = true } label: {
-                    Image(systemName: "video.badge.plus")
-                }
-                Button { showingDatabaseImport = true } label: {
-                    Image(systemName: "square.and.arrow.down")
-                }
-                Menu {
-                    if isV2 {
-                        Button { showingCreatePage = true } label: {
-                            Label("New Container", systemImage: "folder.badge.plus")
-                        }
-                    } else {
-                        Button { showingNewFolderSheet = true } label: {
-                            Label("New Folder", systemImage: "folder.badge.plus")
-                        }
-                        Button { showingAddRootNote = true } label: {
-                            Label("New Note", systemImage: "note.text.badge.plus")
-                        }
-                        Button { showingAddRootExercise = true } label: {
-                            Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
-                        }
-                    }
-                } label: {
-                    Image(systemName: "plus.circle.fill").font(.title3)
-                }
-                                 }
             }
             .sheet(isPresented: $showingNewFolderSheet) {
                 NewFolderSheet { name, colorHex, workoutType in
@@ -479,12 +498,14 @@ struct DatabaseView: View {
                 }
             }
             .sheet(isPresented: $showingCreatePage) {
-                PageCreationSheet { manifest, parentID in
+                PageCreationSheet(leafFirst: creationLeafFirst) { manifest, parentID in
+                    try store.createPage(manifest: manifest, parentID: parentID)
+                } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
                     try store.createPageWithMedia(
                         manifest: manifest,
                         parentID: parentID,
-                        coverData: nil,
-                        mediaData: []
+                        coverData: coverData,
+                        mediaData: mediaData
                     )
                 }
                 .environmentObject(workoutStore)
@@ -504,11 +525,13 @@ struct DatabaseView: View {
             .sheet(isPresented: $showingAddChildPage) {
                 if let parent = childParentPage {
                     PageCreationSheet(parentID: parent.manifest.id) { manifest, parentID in
+                        try store.createPage(manifest: manifest, parentID: parentID)
+                    } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
                         try store.createPageWithMedia(
                             manifest: manifest,
                             parentID: parentID,
-                            coverData: nil,
-                            mediaData: []
+                            coverData: coverData,
+                            mediaData: mediaData
                         )
                     }
                     .environmentObject(workoutStore)
@@ -811,7 +834,7 @@ struct DatabaseView: View {
                     searchText = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(Theme.textSecondary.opacity(0.6))
+                        .foregroundStyle(Theme.primary)
                 }
             }
         }
@@ -844,10 +867,10 @@ struct DatabaseView: View {
         } label: {
             Text(label)
                 .font(.system(size: 11, weight: isActive ? .semibold : .regular))
-                .foregroundColor(isActive ? .black : Theme.textSecondary)
+                .foregroundStyle(isActive ? .black : Theme.textSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background(isActive ? Color.white : Theme.surface)
+                .background(isActive ? Theme.primary : Theme.surface, in: Capsule())
                 .cornerRadius(14)
         }
     }
@@ -864,8 +887,8 @@ struct DatabaseView: View {
                 Button("Clear Search") {
                     searchText = ""
                 }
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.primary)
                 .padding(.top, 4)
             }
         }
@@ -1010,15 +1033,15 @@ struct DatabaseView: View {
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             Button {
+                creationLeafFirst = false
                 showingCreatePage = true
             } label: {
                 Text("Create First Page")
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundStyle(.black)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
-                    .background(Color.white)
-                    .cornerRadius(10)
+                    .background(Theme.primary, in: RoundedRectangle(cornerRadius: 10))
             }
             .padding(.top, 8)
         }

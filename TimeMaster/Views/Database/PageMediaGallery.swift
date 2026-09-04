@@ -12,7 +12,7 @@ struct PageMediaGallery: View {
 
             if urls.isEmpty {
                 Text("No media")
-                    .foregroundColor(Theme.textSecondary)
+                    .foregroundStyle(Theme.textSecondary)
             } else {
                 #if os(iOS)
                 TabView(selection: $selectedIndex) {
@@ -35,7 +35,7 @@ struct PageMediaGallery: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title)
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundStyle(.white.opacity(0.85))
                             .padding(20)
                     }
                 }
@@ -58,16 +58,13 @@ struct PageMediaGallery: View {
     private func mediaView(for url: URL) -> some View {
         let ext = url.pathExtension.lowercased()
         if ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext) {
-            videoPlayer(url: url)
+            PageGalleryVideoPlayer(url: url)
         } else {
             zoomableImageView(url: url)
         }
     }
 
-    private func videoPlayer(url: URL) -> some View {
-        PageGalleryVideoPlayer(url: url)
-    }
-
+    @ViewBuilder
     private func zoomableImageView(url: URL) -> some View {
         #if os(iOS)
         ZoomableImageView(url: url)
@@ -83,7 +80,7 @@ private struct PageGalleryVideoPlayer: View {
 
     var body: some View {
         Group {
-            if let player = player {
+            if let player {
                 #if os(iOS)
                 PlayerLayerView(player: player, gravity: .resizeAspect)
                 #elseif os(macOS)
@@ -119,18 +116,18 @@ private struct macOSMediaViewer: View {
                     Button { selectedIndex = max(0, selectedIndex - 1) } label: {
                         Image(systemName: "chevron.left.circle.fill")
                             .font(.title)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                     }
                     .disabled(selectedIndex == 0)
 
                     Text("\(selectedIndex + 1) / \(urls.count)")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .font(.subheadline)
 
                     Button { selectedIndex = min(urls.count - 1, selectedIndex + 1) } label: {
                         Image(systemName: "chevron.right.circle.fill")
                             .font(.title)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                     }
                     .disabled(selectedIndex == urls.count - 1)
                 }
@@ -145,10 +142,6 @@ private struct macOSMediaViewer: View {
         if ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext) {
             VideoPlayer(player: AVPlayer(url: url))
                 .aspectRatio(contentMode: .fit)
-                .onAppear {
-                    let player = AVPlayer(url: url)
-                    player.play()
-                }
         } else {
             MacOSImageView(url: url)
         }
@@ -165,7 +158,7 @@ private struct MacOSImageView: View {
                 .aspectRatio(contentMode: .fit)
         } else {
             Color.gray.opacity(0.3)
-                .overlay(Text("Could not load image").foregroundColor(.white.opacity(0.6)))
+                .overlay(Text("Could not load image").foregroundStyle(.white.opacity(0.6)))
         }
     }
 }
@@ -175,14 +168,14 @@ private struct MacOSImageView: View {
 private struct ZoomableImageView: View {
     let url: URL
 
-    @State private var currentScale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
+    @State private var currentScale: CGFloat = 1
+    @State private var lastScale: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
 
     var body: some View {
         if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
-            GeometryReader { geo in
+            GeometryReader { _ in
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -190,23 +183,23 @@ private struct ZoomableImageView: View {
                     .offset(offset)
                     .gesture(
                         MagnificationGesture()
-                            .onChanged { val in
-                                currentScale = max(1.0, lastScale * val)
+                            .onChanged { value in
+                                currentScale = max(1, lastScale * value)
                             }
                             .onEnded { _ in
                                 lastScale = currentScale
-                                if currentScale <= 1.0 {
+                                if currentScale <= 1 {
                                     withAnimation { offset = .zero; lastOffset = .zero }
                                 }
                             }
                     )
                     .simultaneousGesture(
                         DragGesture()
-                            .onChanged { val in
-                                guard currentScale > 1.0 else { return }
+                            .onChanged { value in
+                                guard currentScale > 1 else { return }
                                 offset = CGSize(
-                                    width: lastOffset.width + val.translation.width,
-                                    height: lastOffset.height + val.translation.height
+                                    width: lastOffset.width + value.translation.width,
+                                    height: lastOffset.height + value.translation.height
                                 )
                             }
                             .onEnded { _ in
@@ -215,8 +208,8 @@ private struct ZoomableImageView: View {
                     )
                     .onTapGesture {
                         withAnimation {
-                            currentScale = 1.0
-                            lastScale = 1.0
+                            currentScale = 1
+                            lastScale = 1
                             offset = .zero
                             lastOffset = .zero
                         }
@@ -225,7 +218,7 @@ private struct ZoomableImageView: View {
             }
         } else {
             Color.gray.opacity(0.3)
-                .overlay(Text("Could not load image").foregroundColor(.white.opacity(0.6)))
+                .overlay(Text("Could not load image").foregroundStyle(.white.opacity(0.6)))
         }
     }
 }
@@ -235,63 +228,96 @@ struct PageMediaGalleryGrid: View {
     let urls: [URL]
     let onTapMedia: (Int) -> Void
 
-    private let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Media")
-                .font(.headline)
-                .foregroundColor(Theme.textPrimary)
-
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
-                    mediaThumbnail(url: url)
-                        .onTapGesture { onTapMedia(index) }
+            HStack(alignment: .firstTextBaseline) {
+                Text("Media")
+                    .font(.headline)
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                if urls.count > 1 {
+                    Text("Swipe to browse")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
                 }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 12) {
+                    ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                        mediaThumbnail(url: url, index: index)
+                            .onTapGesture { onTapMedia(index) }
+                    }
+                }
+                .padding(.vertical, 2)
             }
         }
     }
 
     @ViewBuilder
-    private func mediaThumbnail(url: URL) -> some View {
+    private func mediaThumbnail(url: URL, index: Int) -> some View {
+        let isCover = index == 0
+        let width: CGFloat = isCover ? 184 : 154
+        let aspectRatio: CGFloat = isCover ? 1 : 1080.0 / 1480.0
+        let height = width / aspectRatio
         let ext = url.pathExtension.lowercased()
         let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext)
 
-        ZStack {
-            #if os(iOS)
-            if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 120)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Theme.surface)
-                    .frame(height: 120)
+        ZStack(alignment: .topTrailing) {
+            Group {
+                #if os(iOS)
+                if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    placeholder
+                }
+                #elseif os(macOS)
+                if let data = try? Data(contentsOf: url), let image = NSImage(data: data) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    placeholder
+                }
+                #endif
             }
-            #elseif os(macOS)
-            if let data = try? Data(contentsOf: url), let image = NSImage(data: data) {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 120)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Theme.surface)
-                    .frame(height: 120)
+            .frame(width: width, height: height)
+            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isCover ? Theme.primary : Color.white.opacity(0.1), lineWidth: isCover ? 2 : 1)
             }
-            #endif
+
+            if isCover {
+                Label("Cover", systemImage: "pin.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(Theme.primary, in: Capsule())
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
 
             if isVideo {
                 Image(systemName: "play.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(.white.opacity(0.85))
+                    .font(.system(size: 32))
+                    .foregroundStyle(.white.opacity(0.9))
                     .shadow(color: .black.opacity(0.5), radius: 2)
+                    .frame(width: width, height: height)
             }
         }
+    }
+
+    private var placeholder: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Theme.surface)
+            .overlay {
+                Image(systemName: "photo")
+                    .foregroundStyle(Theme.textSecondary.opacity(0.45))
+            }
     }
 }
