@@ -22,6 +22,7 @@ struct WorkoutDetailView: View {
     @State private var showingAddOptions = false
     @State private var showingSavedWorkoutPicker = false
     @State private var browserStartsInBundleMode = false
+    @State private var workoutSummaryFrame = CGRect.zero
 
     let workoutID: UUID
     @State private var sectionIDs: [UUID] = []
@@ -47,14 +48,33 @@ struct WorkoutDetailView: View {
                 emptySectionsView
             } else {
                 VStack(spacing: 0) {
-                    if !workout.sections.isEmpty {
-                        workoutSummary
+                    ZStack(alignment: .top) {
+                        sectionList
+
+                        if !workout.sections.isEmpty {
+                            compactWorkoutSummary
+                                .opacity(Double(workoutSummaryCollapseProgress))
+                                .allowsHitTesting(workoutSummaryCollapseProgress > 0.85)
+                                .accessibilityHidden(workoutSummaryCollapseProgress < 0.85)
+                                .zIndex(1)
+                        }
                     }
-                    sectionList
                     startButton
                 }
             }
         }
+        .navigationTitle(workout.name)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
+        .onAppear { sectionIDs = workout.sections.map(\.id) }
+        .onChange(of: workout.sections.count) { _ in sectionIDs = workout.sections.map(\.id) }
+        .sheet(isPresented: $showPlayer) {
+            WorkoutPlayerView(workout: workout)
+                .environmentObject(store)
+                .environmentObject(DatabaseStore.shared)
+        }
+        .toolbar { toolbarItems }
         .navigationTitle(workout.name)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
@@ -278,9 +298,99 @@ struct WorkoutDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+    private var compactWorkoutSummary: some View {
+        HStack(spacing: 8) {
+            WorkoutCoverMosaic(
+                workout: workout,
+                size: 42,
+                styleOverride: .exerciseThumbnails
+            )
+
+            Text(workout.name)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
+
+            HStack(spacing: 8) {
+                compactDetailMetric(
+                    value: "\(workout.sectionCount)",
+                    icon: "square.stack.3d.up",
+                    label: "Sections"
+                )
+                compactDetailMetric(
+                    value: "\(workoutSetCount)",
+                    icon: "square.grid.2x2",
+                    label: "Sets"
+                )
+                compactDetailMetric(
+                    value: formatCompactDuration(workout.totalDuration),
+                    icon: "clock",
+                    label: "Duration"
+                )
+                compactDetailMetric(
+                    value: "\(completedSessionCount)",
+                    icon: "checkmark.circle",
+                    label: "Completed"
+                )
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Theme.background)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
+        }
+    }
+
+    private func compactDetailMetric(value: String, icon: String, label: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .semibold))
+            Text(value)
+                .font(.caption2.monospacedDigit())
+        }
+        .foregroundStyle(Theme.textSecondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
+    }
+
+    private var workoutSummaryCollapseProgress: CGFloat {
+        guard workoutSummaryFrame.height > 0 else { return 0 }
+        let collapseDistance = max(workoutSummaryFrame.height * 0.65, 1)
+        return min(1, max(0, -workoutSummaryFrame.minY / collapseDistance))
+    }
+
+    private var workoutSetCount: Int {
+        workout.sections.reduce(0) { $0 + $1.slotCount }
+    }
+
+    private var completedSessionCount: Int {
+        store.historyEntries.filter { $0.workoutId == workout.id }.count
+    }
+
 
     private var sectionList: some View {
         List {
+            if !workout.sections.isEmpty {
+                workoutSummary
+                    .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 8, trailing: 12))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .background {
+                        GeometryReader { proxy in
+                            Color.clear.preference(
+                                key: WorkoutSummaryFramePreferenceKey.self,
+                                value: proxy.frame(in: .named("workout-detail-scroll"))
+                            )
+                        }
+                    }
+            }
+
             if let pending = pendingSection {
                 builderListRow(
                     pendingConfigCard(pending),
@@ -340,9 +450,13 @@ struct WorkoutDetailView: View {
             }
             .onMove(perform: moveSections)
         }
+        .coordinateSpace(name: "workout-detail-scroll")
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .animation(.smooth(duration: 0.28), value: workout.sections.map(\.id))
+        .onPreferenceChange(WorkoutSummaryFramePreferenceKey.self) { frame in
+            workoutSummaryFrame = frame
+        }
     }
 
     private func builderListRow<Content: View>(
@@ -1246,7 +1360,7 @@ struct WorkoutDetailView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .foregroundColor(.white)
+                    .foregroundStyle(.orange)
             }
             .accessibilityLabel("Workout actions")
         }
@@ -1255,7 +1369,7 @@ struct WorkoutDetailView: View {
                 showingAddOptions = true
             } label: {
                 Image(systemName: "plus")
-                    .foregroundColor(.white)
+                    .foregroundStyle(.orange)
             }
             .accessibilityLabel("Add to workout")
         }
@@ -1264,7 +1378,7 @@ struct WorkoutDetailView: View {
                 openBrowser(.newSection)
             } label: {
                 Image(systemName: "folder.fill.badge.plus")
-                    .foregroundColor(.white)
+                    .foregroundStyle(.orange)
             }
             .accessibilityLabel("Browse exercises")
         }
@@ -1655,6 +1769,14 @@ struct WorkoutDetailView: View {
             .restExercisePageID
     }
 
+}
+
+private struct WorkoutSummaryFramePreferenceKey: PreferenceKey {
+    static var defaultValue = CGRect.zero
+
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
 }
 
 struct PendingSectionConfig {
