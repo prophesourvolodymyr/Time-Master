@@ -1340,7 +1340,7 @@ struct WorkoutDetailView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.white)
             }
             .accessibilityLabel("Workout actions")
         }
@@ -1349,7 +1349,7 @@ struct WorkoutDetailView: View {
                 showingAddOptions = true
             } label: {
                 Image(systemName: "plus")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.white)
             }
             .accessibilityLabel("Add to workout")
         }
@@ -1358,7 +1358,7 @@ struct WorkoutDetailView: View {
                 openBrowser(.newSection)
             } label: {
                 Image(systemName: "folder.fill.badge.plus")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.white)
             }
             .accessibilityLabel("Browse exercises")
         }

@@ -102,7 +102,7 @@ struct WorkoutListView: View {
                     } label: {
                         Image(systemName: showingSearch ? "xmark" : "magnifyingglass")
                             .font(.title3)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.white)
                     }
                     .accessibilityLabel(showingSearch ? "Hide workout search" : "Search workouts")
                 }
@@ -110,14 +110,14 @@ struct WorkoutListView: View {
                     Button { showingSettings = true } label: {
                         Image(systemName: "gearshape")
                             .font(.title3)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.white)
                     }
                 }
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Button { showingAddWorkout = true } label: {
                         Image(systemName: "plus")
                             .font(.title3)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.white)
                     }
                 }
             }
