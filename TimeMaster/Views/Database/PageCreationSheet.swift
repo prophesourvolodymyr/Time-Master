@@ -968,7 +968,7 @@ struct PageCreationSheet: View {
             return (filename: filename, data: data)
         }
         var manifest = makeManifest()
-        if existingPage == nil && !mediaData.isEmpty {
+        if existingPage == nil {
             manifest.mediaFilenames = []
         }
 
