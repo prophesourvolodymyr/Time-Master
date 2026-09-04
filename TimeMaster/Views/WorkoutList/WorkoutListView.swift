@@ -11,7 +11,6 @@ struct WorkoutListView: View {
     @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
     @Binding var requestedWorkoutID: UUID?
-    @State private var navigationPath: [Workout] = []
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
@@ -19,6 +18,8 @@ struct WorkoutListView: View {
     @State private var showingTodayOnly = false
     @State private var selectedTypeID: String?
     @State private var searchText = ""
+    @State private var showingSearch = false
+    @FocusState private var searchFieldFocused: Bool
     @State private var showingSettings = false
     @State private var playerWorkout: Workout?
     #if os(iOS)
@@ -46,10 +47,7 @@ struct WorkoutListView: View {
                             if visibleWorkouts.isEmpty {
                                 filteredEmptyState
                             } else {
-                                LazyVGrid(
-                                    columns: [GridItem(.adaptive(minimum: 300), spacing: 14)],
-                                    spacing: 14
-                                ) {
+                                LazyVStack(spacing: 12) {
                                     ForEach(visibleWorkouts) { workout in
                                         NavigationLink(value: workout) {
                                             workoutCardLabel(for: workout)
@@ -94,20 +92,31 @@ struct WorkoutListView: View {
                 }
             }
             .navigationTitle("Workouts")
-            .searchable(text: $searchText, prompt: "Search workouts")
             .toolbar {
+                AppToolbar.iconItem(placement: .primaryAction) {
+                    Button {
+                        withAnimation(.smooth(duration: 0.2)) {
+                            showingSearch.toggle()
+                        }
+                    } label: {
+                        Image(systemName: showingSearch ? "xmark" : "magnifyingglass")
+                            .font(.title3)
+                            .foregroundStyle(.orange)
+                    }
+                    .accessibilityLabel(showingSearch ? "Hide workout search" : "Search workouts")
+                }
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Button { showingSettings = true } label: {
                         Image(systemName: "gearshape")
                             .font(.title3)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.orange)
                     }
                 }
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Button { showingAddWorkout = true } label: {
                         Image(systemName: "plus")
                             .font(.title3)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.orange)
                     }
                 }
             }
@@ -147,6 +156,12 @@ struct WorkoutListView: View {
             }
             .onChange(of: requestedWorkoutID) { workoutID in
                 openRequestedWorkout(workoutID)
+            }
+            .onChange(of: showingSearch) { isShowing in
+                searchFieldFocused = isShowing
+                if !isShowing {
+                    searchText = ""
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .newWorkoutCommand)) { _ in
                 showingAddWorkout = true
@@ -223,58 +238,118 @@ struct WorkoutListView: View {
                 Text("Your training library")
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Theme.textPrimary)
-                Text("\(store.workouts.count) saved \(store.workouts.count == 1 ? "workout" : "workouts")")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
             }
 
-            HStack(spacing: 10) {
-                metricTile(
-                    value: "\(completedSessionsThisWeek)",
-                    label: "sessions this week",
-                    icon: "checkmark.circle"
-                )
-                metricTile(
-                    value: durationText(totalSecondsThisWeek),
-                    label: "training this week",
-                    icon: "clock"
-                )
-                metricTile(
-                    value: "\(store.streakInfo().current)",
-                    label: "day streak",
-                    icon: "flame"
-                )
+            if showingSearch {
+                searchField
             }
 
+            metricSquares
             weeklyGoalProgress
             resumeBanner
         }
     }
+    private var metricSquares: some View {
+        HStack(spacing: 10) {
+            metricSquare(
+                value: "\(completedSessionsThisWeek)",
+                label: "Sessions this week",
+                icon: "checkmark.circle"
+            )
+            metricSquare(
+                value: durationText(totalSecondsThisWeek),
+                label: "Training this week",
+                icon: "clock"
+            )
+            metricSquare(
+                value: "\(store.streakInfo().current)",
+                label: "Day streak",
+                icon: "flame"
+            )
+        }
+        .frame(maxWidth: 360)
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private func metricSquare(value: String, label: String, icon: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Text(value)
+                .font(.title3.weight(.semibold).monospacedDigit())
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(Theme.textSecondary)
+
+            TextField("Search workouts", text: $searchText)
+                .textFieldStyle(.plain)
+                .foregroundStyle(Theme.textPrimary)
+                .focused($searchFieldFocused)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear workout search")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Theme.surface, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
+    }
 
     private var weeklyGoalProgress: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Weekly goal")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                Text("\(completedSessionsThisWeek) of \(store.weeklyGoal)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(Theme.textSecondary)
-            }
+        VStack(spacing: 12) {
+            Text("Weekly goal")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+
+            Text("\(completedSessionsThisWeek) of \(store.weeklyGoal)")
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(Theme.textSecondary)
 
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Theme.surface2)
+                        .fill(Color.green.opacity(0.16))
                     Capsule()
-                        .fill(Color.white)
+                        .fill(Color.green)
                         .frame(width: proxy.size.width * weeklyGoalProgressValue)
                 }
             }
-            .frame(height: 6)
+            .frame(height: 10)
         }
-        .padding(.top, 2)
+        .frame(maxWidth: .infinity)
+        .padding(18)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        }
     }
 
     @ViewBuilder
@@ -316,37 +391,72 @@ struct WorkoutListView: View {
     }
 
     private var filterBar: some View {
-        HStack(spacing: 12) {
-            Picker("Workout scope", selection: $showingTodayOnly) {
-                Text("All").tag(false)
-                Text("Today").tag(true)
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 220)
-
-            Menu {
-                Button("All Types") {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterChip(
+                    title: "All",
+                    icon: "square.grid.2x2",
+                    isSelected: !showingTodayOnly && selectedTypeID == nil,
+                    tint: .orange
+                ) {
+                    showingTodayOnly = false
                     selectedTypeID = nil
                 }
+
+                filterChip(
+                    title: "Today",
+                    icon: "calendar",
+                    isSelected: showingTodayOnly,
+                    tint: .orange
+                ) {
+                    showingTodayOnly.toggle()
+                }
+
                 ForEach(WorkoutType.all(custom: store.customWorkoutTypes)) { type in
-                    Button {
-                        selectedTypeID = type.id
-                    } label: {
-                        Label(type.name, systemImage: type.icon)
+                    filterChip(
+                        title: type.name,
+                        icon: type.icon,
+                        isSelected: selectedTypeID == type.id,
+                        tint: Color(hex: type.colorHex)
+                    ) {
+                        selectedTypeID = selectedTypeID == type.id ? nil : type.id
                     }
                 }
-            } label: {
-                Label(selectedTypeName, systemImage: "line.3.horizontal.decrease")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 9)
-                    .background(Theme.surface, in: Capsule())
             }
-            .menuStyle(.borderlessButton)
-
-            Spacer()
+            .padding(.vertical, 2)
         }
+    }
+
+    private func filterChip(
+        title: String,
+        icon: String,
+        isSelected: Bool,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.caption2.weight(.semibold))
+                Text(title)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                isSelected ? tint.opacity(0.22) : Theme.surface,
+                in: Capsule()
+            )
+            .overlay {
+                Capsule()
+                    .stroke(
+                        isSelected ? tint.opacity(0.75) : Color.white.opacity(0.06),
+                        lineWidth: 1
+                    )
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var filteredEmptyState: some View {
@@ -375,41 +485,7 @@ struct WorkoutListView: View {
         .padding(.vertical, 48)
     }
 
-    private func metricTile(value: String, label: String, icon: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(width: 28, height: 28)
-                .background(Theme.surface2, in: Circle())
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.headline.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(Theme.textPrimary)
-                Text(label)
-                    .font(.caption2)
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
-        }
-    }
-
-    private var selectedTypeName: String {
-        guard let selectedTypeID,
-              let type = WorkoutType.all(custom: store.customWorkoutTypes).first(where: { $0.id == selectedTypeID })
-        else {
-            return "All types"
-        }
-        return type.name
-    }
 
     private var completedSessionsThisWeek: Int {
         weekHistoryEntries.count
