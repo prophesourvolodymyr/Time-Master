@@ -75,18 +75,6 @@ struct WorkoutDetailView: View {
                 .environmentObject(DatabaseStore.shared)
         }
         .toolbar { toolbarItems }
-        .navigationTitle(workout.name)
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
-        #endif
-        .onAppear { sectionIDs = workout.sections.map(\.id) }
-        .onChange(of: workout.sections.count) { _ in sectionIDs = workout.sections.map(\.id) }
-        .sheet(isPresented: $showPlayer) {
-            WorkoutPlayerView(workout: workout)
-                .environmentObject(store)
-                .environmentObject(DatabaseStore.shared)
-        }
-        .toolbar { toolbarItems }
         .alert("Delete Section", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { sectionToDelete = nil }
             Button("Delete", role: .destructive) {
