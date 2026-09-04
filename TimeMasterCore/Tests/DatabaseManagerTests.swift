@@ -509,6 +509,24 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertFalse(fs.fileExists(at: folder.appendingPathComponent(coverFilename)))
     }
 
+    func testPageMediaOrderCanBePersisted() throws {
+        try db.bootstrapIfNeeded()
+
+        let page = ExercisePageManifest(id: "ordered-page", title: "Ordered", pageKind: .leaf, duration: 30)
+        try db.createPage(manifest: page)
+
+        let firstSource = tempDir.appendingPathComponent("first.jpg")
+        let secondSource = tempDir.appendingPathComponent("second.jpg")
+        try Data("first".utf8).write(to: firstSource)
+        try Data("second".utf8).write(to: secondSource)
+
+        let first = try db.uploadMediaToPage(pageID: page.id, sourceURL: firstSource)
+        let second = try db.uploadMediaToPage(pageID: page.id, sourceURL: secondSource)
+        try db.reorderPageMedia(pageID: page.id, filenames: [second, first])
+
+        XCTAssertEqual(try db.getPage(id: page.id).mediaFilenames, [second, first])
+    }
+
     func testNestedContainersInheritRootWorkoutTypeAndRejectOverrides() throws {
         try db.bootstrapIfNeeded()
         let root = ExercisePageManifest(id: "typed-root", title: "Root", workoutType: .strength)

@@ -963,9 +963,12 @@ struct PageCreationSheet: View {
 
     private func savePage() {
         guard canSave else { return }
-        let mediaData = pendingMediaFiles.compactMap { pending -> (filename: String, data: Data)? in
-            guard let data = try? Data(contentsOf: pending.temporaryURL) else { return nil }
-            return (filename: pending.filename, data: data)
+        let mediaData = mediaFilenames.compactMap { filename -> (filename: String, data: Data)? in
+            guard let pending = pendingMediaFiles.first(where: { $0.filename == filename }),
+                  let data = try? Data(contentsOf: pending.temporaryURL) else {
+                return nil
+            }
+            return (filename: filename, data: data)
         }
         var manifest = makeManifest()
         if existingPage == nil && !mediaData.isEmpty {
