@@ -1142,6 +1142,7 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func applyMusicContentFit(_ height: CGFloat, layout: OutdoorPineGeometry) {
+        guard feature == .music, !musicHeightManuallyAdjusted, height > 0 else { return }
         let preferred = min(layout.musicMaximumHeight, max(layout.musicCompactHeight, height))
         if !featureDrag.isDragging, featureHeight == 0 || abs(featureHeight - preferred) > 12 {
             featureHeight = preferred
