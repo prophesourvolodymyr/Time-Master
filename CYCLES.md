@@ -784,6 +784,23 @@ F27 Home ───────────────┘
     - [ ] Hand every F28 child to human for verification
     - [x] Size route buttons so labels stay inside their controls
 
+## Cycle 24 — Video Editor UX & Platform Parity
+
+- [x] macOS video editor timeline UX
+  - [x] Clicking the timeline moves the playhead directly without dragging it
+  - [x] Clicking timeline segments selects them
+  - [x] The `X` key splits the selected timeline segment at the playhead
+- [x] Video editor media tray grouping
+  - [x] Every captured still and clip is its own draggable media element
+  - [x] Dragging one media element onto another groups their media for saving
+  - [x] Grouped media stays within the twenty-item page limit
+- [x] macOS save destination popover compact sizing
+- [x] iOS video editor adaptation
+  - [x] Timeline playhead scrubs by touch and selects the touched segment
+  - [x] Split action cuts the selected segment at the current playhead
+  - [x] Media tray captures each still or clip as an independent card
+  - [x] Video media saves to the page-backed database with existing/new destinations
+
 ---
 
 ## Notes

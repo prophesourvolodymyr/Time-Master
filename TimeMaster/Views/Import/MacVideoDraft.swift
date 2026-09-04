@@ -3,9 +3,34 @@ import AppKit
 import Foundation
 
 struct MacVideoDraft: Identifiable {
-    enum Kind {
+    enum Kind: Equatable {
         case screenshot
         case clip
+    }
+
+    struct Media: Identifiable {
+        let id: UUID
+        let kind: Kind
+        let startTime: Double
+        let endTime: Double?
+        let thumbnail: NSImage
+        let sourceSegmentID: UUID?
+
+        init(
+            id: UUID = UUID(),
+            kind: Kind,
+            startTime: Double,
+            endTime: Double?,
+            thumbnail: NSImage,
+            sourceSegmentID: UUID? = nil
+        ) {
+            self.id = id
+            self.kind = kind
+            self.startTime = startTime
+            self.endTime = endTime
+            self.thumbnail = thumbnail
+            self.sourceSegmentID = sourceSegmentID
+        }
     }
 
     let id: UUID
@@ -18,6 +43,7 @@ struct MacVideoDraft: Identifiable {
     var displayName: String?
     var isSaved = false
     var savedTargetLabel: String?
+    var groupedMedia: [Media]
 
     init(
         id: UUID = UUID(),
@@ -28,7 +54,8 @@ struct MacVideoDraft: Identifiable {
         sourceSegmentID: UUID? = nil,
         displayName: String? = nil,
         isSaved: Bool = false,
-        savedTargetLabel: String? = nil
+        savedTargetLabel: String? = nil,
+        groupedMedia: [Media] = []
     ) {
         self.id = id
         self.kind = kind
@@ -39,6 +66,28 @@ struct MacVideoDraft: Identifiable {
         self.displayName = displayName
         self.isSaved = isSaved
         self.savedTargetLabel = savedTargetLabel
+        self.groupedMedia = groupedMedia
+    }
+
+    var mediaItems: [Media] {
+        [
+            Media(
+                id: id,
+                kind: kind,
+                startTime: startTime,
+                endTime: endTime,
+                thumbnail: thumbnail,
+                sourceSegmentID: sourceSegmentID
+            )
+        ] + groupedMedia
+    }
+
+    var mediaCount: Int {
+        1 + groupedMedia.count
+    }
+
+    mutating func append(media: [Media]) {
+        groupedMedia.append(contentsOf: media)
     }
 
     var title: String {
@@ -56,13 +105,16 @@ struct MacVideoDraft: Identifiable {
     }
 
     var systemImage: String {
-        switch kind {
-        case .screenshot: "camera.fill"
-        case .clip: "film.fill"
-        }
+        mediaCount > 1
+            ? "square.stack.3d.up.fill"
+            : (kind == .screenshot ? "camera.fill" : "film.fill")
     }
 
     var rangeLabel: String {
+        guard mediaCount == 1 else {
+            return "\(mediaCount) media items"
+        }
+
         switch kind {
         case .screenshot:
             return "Frame at \(Self.timeString(startTime))"

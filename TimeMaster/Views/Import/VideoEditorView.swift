@@ -155,13 +155,15 @@ struct VideoEditorView: View {
             timeLabelsRow
             VideoScrubberView(
                 currentTime: $vm.currentTime,
-                inPoint: $vm.inPoint,
-                outPoint: $vm.outPoint,
+                segments: vm.segments,
+                selectedSegmentID: vm.selectedSegmentID,
                 duration: vm.duration,
-                mode: vm.mode,
-                onSeek: { vm.seek(to: $0) }
+                onSelectSegment: vm.selectSegment,
+                onSeek: vm.seek,
+                onScrubBegan: vm.beginScrubbing,
+                onScrubEnded: vm.endScrubbing
             )
-            .frame(height: 44)
+            .frame(height: 52)
             .padding(.horizontal, 16)
             .padding(.bottom, 6)
         }
@@ -173,8 +175,8 @@ struct VideoEditorView: View {
             Text(formatTime(vm.currentTime))
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundColor(Theme.textSecondary)
-            if vm.mode == .clip && vm.duration > 0 {
-                Text("  ·  \(formatTime(vm.inPoint)) → \(formatTime(vm.outPoint))")
+            if let segment = vm.selectedSegment {
+                Text("  ·  \(formatTime(segment.startTime)) → \(formatTime(segment.endTime))")
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundColor(Theme.textSecondary.opacity(0.55))
             }
@@ -252,13 +254,12 @@ struct VideoEditorView: View {
 
     private var clipActions: some View {
         HStack(spacing: 10) {
-            actionBtn("Set In",  icon: "arrow.left.to.line") {
-                vm.inPoint = vm.currentTime
-                if vm.inPoint >= vm.outPoint { vm.outPoint = min(vm.duration, vm.inPoint + 5) }
-            }
-            actionBtn("Set Out", icon: "arrow.right.to.line") {
-                vm.outPoint = vm.currentTime
-                if vm.outPoint <= vm.inPoint { vm.inPoint = max(0, vm.outPoint - 5) }
+            actionBtn(
+                "Split",
+                icon: "scissors",
+                disabled: !vm.canSplit(at: vm.currentTime)
+            ) {
+                vm.splitSegment(at: vm.currentTime)
             }
             actionBtn("Add Clip", icon: "plus.circle") {
                 Task { await vm.addClip() }
@@ -279,7 +280,12 @@ struct VideoEditorView: View {
         .background(Color.black)
     }
 
-    private func actionBtn(_ label: String, icon: String, action: @escaping () -> Void) -> some View {
+    private func actionBtn(
+        _ label: String,
+        icon: String,
+        disabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon).font(.caption)
@@ -290,7 +296,7 @@ struct VideoEditorView: View {
             .background(Theme.surface)
             .cornerRadius(8)
         }
-        .disabled(vm.isProcessing)
+        .disabled(vm.isProcessing || disabled)
     }
 
     // MARK: - Tray
@@ -305,13 +311,19 @@ struct VideoEditorView: View {
     }
 
     private var trayHeader: some View {
-        HStack {
+        HStack(spacing: 8) {
             Text("TRAY")
                 .font(.caption2).fontWeight(.semibold).tracking(1)
+                .foregroundColor(Theme.textSecondary)
+            Text("\(vm.mediaCount)/20")
+                .font(.caption2.monospacedDigit())
                 .foregroundColor(Theme.textSecondary)
             if !vm.statusMessage.isEmpty {
                 Text("· \(vm.statusMessage)")
                     .font(.caption2).foregroundColor(Theme.textSecondary)
+            } else if vm.trayItems.count > 1 {
+                Text("· Drag media onto another to group")
+                    .font(.caption2).foregroundColor(Theme.textSecondary.opacity(0.7))
             }
             Spacer()
         }
@@ -322,39 +334,29 @@ struct VideoEditorView: View {
     private var trayScrollRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                ForEach(Array(vm.trayItems.enumerated()), id: \.element.id) { idx, item in
-                    TrayCardView(
-                        item: item,
-                        isSelected: idx == vm.selectedTrayIndex,
-                        onSelect: { vm.selectedTrayIndex = idx },
-                        onRemove: { vm.removeCard(id: item.id) },
-                        onMerge: { srcID in vm.mergeCards(sourceID: srcID, intoID: item.id) },
-                        onPreview: { media in previewItem = IdentifiableMedia(media: media) }
-                    )
+                if vm.trayItems.isEmpty {
+                    Text("Add a clip or still to start")
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                        .frame(height: 90)
+                } else {
+                    ForEach(Array(vm.trayItems.enumerated()), id: \.element.id) { idx, item in
+                        TrayCardView(
+                            item: item,
+                            isSelected: idx == vm.selectedTrayIndex,
+                            onSelect: { vm.selectedTrayIndex = idx },
+                            onRemove: { vm.removeCard(id: item.id) },
+                            onMerge: { srcID in vm.mergeCards(sourceID: srcID, intoID: item.id) },
+                            onPreview: { media in previewItem = IdentifiableMedia(media: media) }
+                        )
+                    }
                 }
-                addCardButton
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
     }
 
-    private var addCardButton: some View {
-        Button { vm.addNewCard() } label: {
-            VStack(spacing: 4) {
-                Image(systemName: "plus").font(.title3)
-                Text("New").font(.caption2)
-            }
-            .foregroundColor(Theme.textSecondary)
-            .frame(width: 72, height: 90)
-            .background(Theme.surface2)
-            .cornerRadius(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Theme.separator, lineWidth: 1)
-            )
-        }
-    }
 
     // MARK: - Helpers
 
@@ -488,51 +490,87 @@ struct PlayerLayerView: UIViewRepresentable {
 
 private struct VideoScrubberView: View {
     @Binding var currentTime: Double
-    @Binding var inPoint: Double
-    @Binding var outPoint: Double
+    let segments: [MacVideoTimelineSegment]
+    let selectedSegmentID: UUID?
     let duration: Double
-    let mode: EditMode
+    let onSelectSegment: (UUID) -> Void
     let onSeek: (Double) -> Void
+    let onScrubBegan: () -> Void
+    let onScrubEnded: () -> Void
 
     var body: some View {
         GeometryReader { geo in
-            let w = geo.size.width
-            let midY = geo.size.height / 2
+            let width = max(1, geo.size.width)
+            let height = geo.size.height
+            let playheadX = duration > 0
+                ? width * CGFloat(max(0, min(duration, currentTime)) / duration)
+                : 0
 
             ZStack(alignment: .leading) {
-                // Track
                 Capsule()
                     .fill(Theme.surface2)
-                    .frame(height: 5)
-                    .offset(y: midY - 2.5)
+                    .frame(height: 6)
+                    .offset(y: height / 2 - 3)
 
-                // In/Out highlight (clip mode)
-                if mode == .clip && duration > 0 {
-                    let inX  = CGFloat(inPoint  / duration) * w
-                    let outX = CGFloat(outPoint / duration) * w
-                    Capsule()
-                        .fill(Color.white.opacity(0.25))
-                        .frame(width: max(0, outX - inX), height: 5)
-                        .offset(x: inX, y: midY - 2.5)
-                }
-
-                // Playhead thumb
                 if duration > 0 {
-                    let thumbX = CGFloat(currentTime / duration) * w
+                    ForEach(segments) { segment in
+                        let startX = width * CGFloat(segment.startTime / duration)
+                        let segmentWidth = width * CGFloat(segment.duration / duration)
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(
+                                segment.id == selectedSegmentID
+                                    ? Color.white.opacity(0.4)
+                                    : Color.white.opacity(0.18)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .stroke(
+                                        segment.id == selectedSegmentID
+                                            ? Color.white.opacity(0.9)
+                                            : Color.white.opacity(0.22),
+                                        lineWidth: 1
+                                    )
+                            }
+                            .frame(width: max(5, segmentWidth), height: 22)
+                            .offset(x: startX, y: height / 2 - 11)
+                            .allowsHitTesting(false)
+                    }
+
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(width: 2, height: height - 4)
+                        .offset(x: playheadX - 1, y: 2)
+
                     Circle()
                         .fill(Color.white)
-                        .frame(width: 20, height: 20)
-                        .offset(x: thumbX - 10, y: midY - 10)
+                        .frame(width: 22, height: 22)
+                        .offset(x: playheadX - 11, y: height / 2 - 11)
                 }
             }
+            .contentShape(Rectangle())
             .gesture(
-                DragGesture(minimumDistance: 0)
+                DragGesture(minimumDistance: 0, coordinateSpace: .local)
                     .onChanged { value in
                         guard duration > 0 else { return }
-                        let t = Double(value.location.x / w) * duration
-                        onSeek(max(0, min(duration, t)))
+                        onScrubBegan()
+                        let time = max(0, min(duration, Double(value.location.x / width) * duration))
+                        if let segment = segments.first(where: { $0.contains(time) }) {
+                            onSelectSegment(segment.id)
+                        }
+                        onSeek(time)
+                    }
+                    .onEnded { _ in
+                        onScrubEnded()
                     }
             )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Video timeline")
+            .accessibilityValue("\(formatTimelineTime(currentTime)) of \(formatTimelineTime(duration))")
         }
+    }
+
+    private func formatTimelineTime(_ seconds: Double) -> String {
+        let value = max(0, Int(seconds.rounded(.down)))
+        return String(format: "%d:%02d", value / 60, value % 60)
     }
 }

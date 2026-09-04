@@ -25,21 +25,20 @@ final class VideoEditorViewModel: ObservableObject {
 
     private var timeObserverToken: Any?
     private var notificationObserver: NSObjectProtocol?
+    private let minimumSegmentDuration = 0.25
+    private let mediaLimit = 20
+    private var isScrubbing = false
 
     // MARK: Published State
 
-    @Published var duration: Double = 0
+    @Published private(set) var duration: Double = 0
     @Published var currentTime: Double = 0
     @Published var isPlaying: Bool = false
     @Published var mode: EditMode = .clip
+    @Published private(set) var segments: [MacVideoTimelineSegment] = []
+    @Published private(set) var selectedSegmentID: UUID?
 
-    /// In-point for clip selection (seconds)
-    @Published var inPoint: Double = 0
-    /// Out-point for clip selection (seconds)
-    @Published var outPoint: Double = 30
-
-    /// Tray — starts with one empty card
-    @Published var trayItems: [TrayItem] = [TrayItem()]
+    @Published private(set) var trayItems: [TrayItem] = []
     @Published var selectedTrayIndex: Int = 0
 
     @Published var isProcessing: Bool = false
@@ -64,9 +63,11 @@ final class VideoEditorViewModel: ObservableObject {
                 let seconds = CMTimeGetSeconds(dur)
                 guard let self, seconds.isFinite, seconds > 0 else { return }
                 self.duration = seconds
-                self.outPoint = min(seconds, 30)
+                let segment = MacVideoTimelineSegment(startTime: 0, endTime: seconds)
+                self.segments = [segment]
+                self.selectedSegmentID = segment.id
             } catch {
-                print("VideoEditorViewModel: duration load error \(error)")
+                self?.statusMessage = "Could not read video duration"
             }
         }
     }
@@ -74,11 +75,15 @@ final class VideoEditorViewModel: ObservableObject {
     private func setupTimeObserver() {
         let interval = CMTime(seconds: 0.05, preferredTimescale: 600)
         timeObserverToken = player.addPeriodicTimeObserver(
-            forInterval: interval, queue: .main
+            forInterval: interval,
+            queue: .main
         ) { [weak self] time in
-            guard let self else { return }
-            let t = CMTimeGetSeconds(time)
-            if t.isFinite { self.currentTime = t }
+            let seconds = CMTimeGetSeconds(time)
+            guard seconds.isFinite else { return }
+            Task { @MainActor [weak self] in
+                guard let self, !self.isScrubbing else { return }
+                self.currentTime = min(max(0, seconds), self.duration)
+            }
         }
 
         notificationObserver = NotificationCenter.default.addObserver(
@@ -114,85 +119,192 @@ final class VideoEditorViewModel: ObservableObject {
         }
     }
 
-    func seek(to time: Double) {
-        let t = CMTime(seconds: time, preferredTimescale: 600)
-        player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero)
-        currentTime = time
+    func beginScrubbing() {
+        guard !isScrubbing else { return }
+        isScrubbing = true
+        player.pause()
+        isPlaying = false
     }
 
-    func skipBackward() { seek(to: max(0, currentTime - 5)) }
-    func skipForward()  { seek(to: min(duration, currentTime + 5)) }
+    func endScrubbing() {
+        guard isScrubbing else { return }
+        isScrubbing = false
+        seek(to: currentTime)
+    }
+
+    func seek(to time: Double) {
+        let clampedTime = max(0, min(duration, time))
+        let t = CMTime(seconds: clampedTime, preferredTimescale: 600)
+        player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero)
+        currentTime = clampedTime
+    }
+
+    func skipBackward() { seek(to: currentTime - 5) }
+    func skipForward() { seek(to: currentTime + 5) }
+
+    // MARK: Timeline
+
+    func selectSegment(id: UUID) {
+        guard segments.contains(where: { $0.id == id }) else { return }
+        selectedSegmentID = id
+    }
+
+    @discardableResult
+    func splitSegment(at time: Double) -> UUID? {
+        guard duration >= minimumSegmentDuration * 2 else {
+            statusMessage = "This video is too short to split"
+            scheduleStatusClear()
+            return nil
+        }
+
+        guard let index = segments.firstIndex(where: {
+            time > $0.startTime + minimumSegmentDuration &&
+                time < $0.endTime - minimumSegmentDuration
+        }) else {
+            statusMessage = "Place the playhead inside a segment to split it"
+            scheduleStatusClear()
+            return nil
+        }
+
+        let segment = segments[index]
+        let splitTime = min(
+            max(time, segment.startTime + minimumSegmentDuration),
+            segment.endTime - minimumSegmentDuration
+        )
+        segments[index] = MacVideoTimelineSegment(
+            id: segment.id,
+            startTime: segment.startTime,
+            endTime: splitTime
+        )
+        let newSegment = MacVideoTimelineSegment(
+            startTime: splitTime,
+            endTime: segment.endTime
+        )
+        segments.insert(newSegment, at: index + 1)
+        selectedSegmentID = newSegment.id
+        statusMessage = "Segment split at \(formatTime(splitTime))"
+        scheduleStatusClear()
+        return newSegment.id
+    }
+
+    func canSplit(at time: Double) -> Bool {
+        duration >= minimumSegmentDuration * 2 &&
+        segments.contains {
+            time > $0.startTime + minimumSegmentDuration &&
+                time < $0.endTime - minimumSegmentDuration
+        }
+    }
 
     // MARK: Actions
 
     func captureScreenshot() async {
-        isProcessing = true
-        statusMessage = "Capturing…"
-        if let img = await VideoTrimService.thumbnail(asset: asset, at: currentTime) {
-            guard selectedTrayIndex < trayItems.count else {
-                isProcessing = false; statusMessage = "No card selected"; return
-            }
-            trayItems[selectedTrayIndex].mediaList.append(.screenshot(img))
-            statusMessage = "Screenshot added"
-        } else {
-            statusMessage = "Failed to capture"
-        }
-        isProcessing = false
-        scheduleStatusClear()
-    }
-
-    func addClip() async {
-        guard inPoint < outPoint else {
-            statusMessage = "In-point must be before out-point"
+        guard mediaCount < mediaLimit else {
+            statusMessage = "The media tray is full"
             scheduleStatusClear()
             return
         }
+
         isProcessing = true
-        statusMessage = "Extracting clip…"
+        statusMessage = "Capturing…"
+        defer {
+            isProcessing = false
+            scheduleStatusClear()
+        }
+
+        guard let image = await VideoTrimService.thumbnail(asset: asset, at: currentTime) else {
+            statusMessage = "Could not capture a still"
+            return
+        }
+
+        appendMedia(.screenshot(image))
+        statusMessage = "Still added"
+    }
+
+    func addClip() async {
+        guard mediaCount < mediaLimit else {
+            statusMessage = "The media tray is full"
+            scheduleStatusClear()
+            return
+        }
+
+        guard let segment = selectedSegment ?? segments.first(where: { $0.contains(currentTime) }) else {
+            statusMessage = "Select a timeline segment first"
+            scheduleStatusClear()
+            return
+        }
+
+        isProcessing = true
+        statusMessage = "Preparing clip…"
+        defer {
+            isProcessing = false
+            scheduleStatusClear()
+        }
 
         #if os(iOS)
-        let thumb = await VideoTrimService.thumbnail(asset: asset, at: inPoint) ?? UIImage()
+        let thumbnail = await VideoTrimService.thumbnail(
+            asset: asset,
+            at: segment.startTime
+        ) ?? UIImage()
         #elseif os(macOS)
-        let thumb = await VideoTrimService.thumbnail(asset: asset, at: inPoint) ?? NSImage()
+        let thumbnail = await VideoTrimService.thumbnail(
+            asset: asset,
+            at: segment.startTime
+        ) ?? NSImage()
         #endif
 
-        guard selectedTrayIndex < trayItems.count else {
-            isProcessing = false; statusMessage = "No card selected"; return
-        }
-        trayItems[selectedTrayIndex].mediaList.append(
-            .clip(startTime: inPoint, endTime: outPoint, thumbnail: thumb)
+        appendMedia(
+            .clip(
+                startTime: segment.startTime,
+                endTime: segment.endTime,
+                thumbnail: thumbnail
+            )
         )
         statusMessage = "Clip added"
-        isProcessing = false
-        scheduleStatusClear()
     }
 
     // MARK: Tray Management
 
-    func addNewCard() {
-        trayItems.append(TrayItem())
-        selectedTrayIndex = trayItems.count - 1
+    var mediaCount: Int {
+        trayItems.reduce(0) { $0 + $1.mediaList.count }
     }
 
     func removeCard(id: UUID) {
-        guard trayItems.count > 1,
-              let idx = trayItems.firstIndex(where: { $0.id == id }) else { return }
-        trayItems.remove(at: idx)
-        selectedTrayIndex = max(0, min(selectedTrayIndex, trayItems.count - 1))
+        guard let index = trayItems.firstIndex(where: { $0.id == id }) else { return }
+        trayItems.remove(at: index)
+
+        if trayItems.isEmpty {
+            selectedTrayIndex = 0
+        } else if index < selectedTrayIndex {
+            selectedTrayIndex -= 1
+        } else {
+            selectedTrayIndex = min(selectedTrayIndex, trayItems.count - 1)
+        }
     }
 
     /// Move all media from the source card into the target card, then remove source.
     func mergeCards(sourceID: UUID, intoID targetID: UUID) {
         guard sourceID != targetID,
-              let srcIdx = trayItems.firstIndex(where: { $0.id == sourceID }),
-              let dstIdx = trayItems.firstIndex(where: { $0.id == targetID }) else { return }
-        trayItems[dstIdx].mediaList.append(contentsOf: trayItems[srcIdx].mediaList)
-        trayItems.remove(at: srcIdx)
-        selectedTrayIndex = max(0, min(selectedTrayIndex, trayItems.count - 1))
+              let sourceIndex = trayItems.firstIndex(where: { $0.id == sourceID }),
+              let targetIndex = trayItems.firstIndex(where: { $0.id == targetID }) else {
+            return
+        }
+
+        trayItems[targetIndex].mediaList.append(contentsOf: trayItems[sourceIndex].mediaList)
+        trayItems.remove(at: sourceIndex)
+        let remainingTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
+        selectedTrayIndex = remainingTargetIndex
+        statusMessage = "Media items grouped"
+        scheduleStatusClear()
     }
 
-    func seekToClip(in item: TrayItem) {
-        if let t = item.firstClipStartTime { seek(to: t) }
+    var selectedSegment: MacVideoTimelineSegment? {
+        guard let selectedSegmentID else { return nil }
+        return segments.first { $0.id == selectedSegmentID }
+    }
+
+    private func appendMedia(_ media: TrayMedia) {
+        trayItems.append(TrayItem(mediaList: [media]))
+        selectedTrayIndex = trayItems.count - 1
     }
 
     // MARK: Helpers
@@ -202,5 +314,10 @@ final class VideoEditorViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             if !isProcessing { statusMessage = "" }
         }
+    }
+
+    private func formatTime(_ seconds: Double) -> String {
+        let value = max(0, Int(seconds.rounded(.down)))
+        return String(format: "%d:%02d", value / 60, value % 60)
     }
 }

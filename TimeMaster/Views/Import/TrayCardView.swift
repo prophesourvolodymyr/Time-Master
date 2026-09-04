@@ -39,6 +39,16 @@ struct TrayCardView: View {
             .contextMenu {
                 contextMenuItems
             }
+            .accessibilityLabel(
+                item.mediaList.count == 1
+                    ? "Media item"
+                    : "\(item.mediaList.count) grouped media items"
+            )
+            .accessibilityHint(
+                item.mediaList.count == 1
+                    ? "Drag onto another media item to group it."
+                    : "Drag onto another media item to move this group."
+            )
     }
 
     @ViewBuilder

@@ -15,11 +15,9 @@ struct MacVideoEditorView: View {
     @State private var selectedDraftID: UUID?
     @State private var draftForSaving: MacVideoDraft?
     @State private var isTrayDropTargeted = false
-    @State private var splitHoverX: CGFloat?
-    @State private var isSplitCursorPushed = false
-    @State private var playheadDragStartTime: Double?
- @State private var splitToolActive = false
- @State private var isFullscreen = false
+    @State private var draftDropTargetID: UUID?
+    @FocusState private var editorFocused: Bool
+    @State private var isFullscreen = false
 
     init(
         source: MacVideoSource,
@@ -48,6 +46,13 @@ struct MacVideoEditorView: View {
             }
         }
         .onDisappear(perform: model.stopPlayback)
+        .focusable()
+        .focusEffectDisabled()
+        .focused($editorFocused)
+        .onAppear {
+            editorFocused = true
+        }
+        .onKeyPress(phases: [.down], action: handleKeyPress)
         .popover(
             item: $draftForSaving,
             attachmentAnchor: .point(.center),
@@ -200,11 +205,11 @@ struct MacVideoEditorView: View {
             HStack {
                 Label("Media Tray", systemImage: "tray.full")
                     .font(.headline)
-                Text("\(model.drafts.count) of 20")
+                Text("\(model.mediaCount) of 20")
                     .foregroundStyle(.secondary)
                 Spacer()
                 if isTrayDropTargeted {
-                    Label("Drop clip", systemImage: "arrow.down.to.line")
+                    Label("Drop media", systemImage: "arrow.down.to.line")
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
                 }
@@ -321,6 +326,11 @@ struct MacVideoEditorView: View {
                     Text(draft.rangeLabel)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if draft.mediaCount > 1 {
+                        Text("\(draft.mediaCount) grouped")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                     if draft.isSaved, let target = draft.savedTargetLabel {
                         Text("Saved in \(target)")
                             .font(.caption2)
@@ -350,13 +360,41 @@ struct MacVideoEditorView: View {
 
                 Spacer()
 
-                if draft.sourceSegmentID != nil {
+                if draft.mediaItems.contains(where: { $0.sourceSegmentID != nil }) {
                     Label("Timeline clip", systemImage: "scissors")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedDraftID = draft.id
+            model.selectDraft(id: draft.id)
+        }
+        .onDrag {
+            NSItemProvider(object: "draft:\(draft.id.uuidString)" as NSString)
+        }
+        .onDrop(
+            of: [UTType.plainText],
+            isTargeted: Binding(
+                get: { draftDropTargetID == draft.id },
+                set: { isTargeted in
+                    draftDropTargetID = isTargeted ? draft.id : nil
+                }
+            )
+        ) { providers in
+            receiveDraftDrop(providers, targetID: draft.id)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(
+                    draftDropTargetID == draft.id || isSelected
+                        ? Color.accentColor
+                        : Color.clear,
+                    lineWidth: draftDropTargetID == draft.id ? 2 : 1
+                )
+        )
     }
     private var timeline: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -368,20 +406,18 @@ struct MacVideoEditorView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
 
-                if splitToolActive {
-                    Text("move cursor to cut")
+                if let selectedSegmentID,
+                   let selectedSegment = model.segments.first(where: { $0.id == selectedSegmentID }) {
+                    Text("Selected \(timeString(selectedSegment.startTime)) – \(timeString(selectedSegment.endTime))")
                         .font(.caption2)
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(.secondary)
                 }
 
-                Button {
-                    splitToolActive.toggle()
-                } label: {
-                    Label("Split", systemImage: "scissors")
+                Button("Split", systemImage: "scissors") {
+                    splitAtPlayhead()
                 }
                 .buttonStyle(.bordered)
-                .tint(splitToolActive ? Color.accentColor : nil)
-
+                .disabled(!canSplit || model.isProcessing)
                 Button("Still", systemImage: "camera") {
                     Task { await model.addStill() }
                 }
@@ -403,15 +439,6 @@ struct MacVideoEditorView: View {
         .padding(.horizontal, 12)
         .padding(.top, 8)
         .padding(.bottom, 10)
-        .onChange(of: splitToolActive) { _, active in
-            if !active {
-                splitHoverX = nil
-                if isSplitCursorPushed {
-                    NSCursor.pop()
-                    isSplitCursorPushed = false
-                }
-            }
-        }
     }
 
     private func timelineRuler(width: CGFloat) -> some View {
@@ -464,70 +491,13 @@ struct MacVideoEditorView: View {
                     y: (trackHeight + 10) / 2
                 )
 
-            Color.clear
-                .frame(width: 16, height: trackHeight + 10)
-                .contentShape(Rectangle())
-                .position(
-                    x: max(8, min(width - 8, playheadX)),
-                    y: (trackHeight + 10) / 2
-                )
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            if playheadDragStartTime == nil {
-                                playheadDragStartTime = model.currentTime
-                            }
-                            let startTime = playheadDragStartTime ?? model.currentTime
-                            let offset = Double(value.translation.width / max(width, 1)) * model.duration
-                            model.seek(to: startTime + offset)
-                        }
-                        .onEnded { _ in
-                            playheadDragStartTime = nil
-                        }
-                )
-                .allowsHitTesting(!splitToolActive)
-
-            if splitToolActive {
-                // Full width layer for split tool: follow cursor to scrub video, click to cut
-                Color.clear
-                    .frame(width: width, height: trackHeight + 10)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                let x = value.location.x
-                                splitHoverX = x
-                                let t = positionToTime(x: x, width: width)
-                                model.seek(to: t)
-                            }
-                            .onEnded { value in
-                                let x = value.location.x
-                                splitHoverX = nil
-                                let t = positionToTime(x: x, width: width)
-                                model.splitSegment(at: t)
-                            }
-                    )
-                    .onHover { isHovering in
-                        if splitToolActive && isHovering {
-                            if !isSplitCursorPushed {
-                                NSCursor.crosshair.push()
-                                isSplitCursorPushed = true
-                            }
-                        } else if isSplitCursorPushed {
-                            NSCursor.pop()
-                            isSplitCursorPushed = false
-                        }
-                    }
-
-                // Visual split preview line following the cursor
-                if let x = splitHoverX {
-                    Rectangle()
-                        .fill(Color.red.opacity(0.8))
-                        .frame(width: 1, height: trackHeight + 10)
-                        .position(x: x, y: (trackHeight + 10) / 2)
-                }
-            }
         }
+        .simultaneousGesture(
+            SpatialTapGesture()
+                .onEnded { value in
+                    seekToTimelineLocation(value.location.x, width: width)
+                }
+        )
         .frame(height: trackHeight + 10)
     }
     private func timelineSegment(
@@ -576,12 +546,8 @@ struct MacVideoEditorView: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            selectedSegmentID = segment.id
-            model.seek(to: segment.startTime)
-        }
         .onDrag {
-            NSItemProvider(object: segment.id.uuidString as NSString)
+            NSItemProvider(object: "segment:\(segment.id.uuidString)" as NSString)
         }
         .contextMenu {
             Button(role: .destructive) {
@@ -619,6 +585,26 @@ struct MacVideoEditorView: View {
         guard model.duration > 0 else { return 0 }
         return model.duration * Double(max(0, min(width, x)) / max(width, 1))
     }
+    private func seekToTimelineLocation(_ x: CGFloat, width: CGFloat) {
+        let time = positionToTime(x: x, width: width)
+        selectedSegmentID = model.segments.first(where: { $0.contains(time) })?.id
+        editorFocused = true
+        model.seek(to: time)
+    }
+
+    private func splitAtPlayhead() {
+        guard let newSegmentID = model.splitSegment(at: model.currentTime) else { return }
+        selectedSegmentID = newSegmentID
+    }
+
+    private func handleKeyPress(_ keyPress: KeyPress) -> KeyPress.Result {
+        guard keyPress.modifiers.isEmpty,
+              keyPress.characters.lowercased() == "x" else {
+            return .ignored
+        }
+        splitAtPlayhead()
+        return .handled
+    }
     private var canSplit: Bool {
         guard model.duration >= 0.5 else { return false }
         return model.segments.contains {
@@ -632,7 +618,10 @@ struct MacVideoEditorView: View {
 
         provider.loadObject(ofClass: NSString.self) { object, _ in
             guard let string = object as? String,
-                  let segmentID = UUID(uuidString: string) else {
+                  string.hasPrefix("segment:") else {
+                return
+            }
+            guard let segmentID = UUID(uuidString: String(string.dropFirst("segment:".count))) else {
                 Task { @MainActor in
                     model.reportMessage("That drop did not contain a valid timeline segment.")
                 }
@@ -640,6 +629,25 @@ struct MacVideoEditorView: View {
             }
             Task { @MainActor in
                 await model.addSegmentToTray(id: segmentID)
+            }
+        }
+        return true
+    }
+
+    private func receiveDraftDrop(
+        _ providers: [NSItemProvider],
+        targetID: UUID
+    ) -> Bool {
+        guard let provider = providers.first else { return false }
+
+        provider.loadObject(ofClass: NSString.self) { object, _ in
+            guard let string = object as? String,
+                  string.hasPrefix("draft:"),
+                  let sourceID = UUID(uuidString: String(string.dropFirst("draft:".count))) else {
+                return
+            }
+            Task { @MainActor in
+                model.mergeDrafts(sourceID: sourceID, intoID: targetID)
             }
         }
         return true

@@ -314,10 +314,11 @@ struct MacVideoSavePopover: View {
                     Label(draft.title, systemImage: draft.systemImage)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(Theme.textPrimary)
-                    Text(draft.rangeLabel)
-                        .font(.caption)
-                        .foregroundStyle(Theme.textSecondary)
-                    Text("First attachment.")
+                    Text(
+                        draft.mediaCount == 1
+                            ? "First attachment."
+                            : "\(draft.mediaCount) grouped attachments."
+                    )
                         .font(.caption)
                         .foregroundStyle(Theme.textSecondary)
                 }
@@ -336,7 +337,7 @@ struct MacVideoSavePopover: View {
                     .font(.headline)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
-                Text("\(existingMediaCount + 1 + pendingAdditionalMedia.count)/20")
+                Text("\(existingMediaCount + draft.mediaCount + pendingAdditionalMedia.count)/20")
                     .font(.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
@@ -611,7 +612,7 @@ struct MacVideoSavePopover: View {
         return targetPage != nil
             && !trimmedTitle.isEmpty
             && timingIsValid
-            && existingMediaCount + 1 + pendingAdditionalMedia.count <= 20
+            && existingMediaCount + draft.mediaCount + pendingAdditionalMedia.count <= 20
     }
 
     private func continueToForm() {
@@ -755,7 +756,7 @@ struct MacVideoSavePopover: View {
     }
 
     private func stageAdditionalMedia(_ sourceURL: URL) {
-        guard existingMediaCount + 1 + pendingAdditionalMedia.count < 20 else {
+        guard existingMediaCount + draft.mediaCount + pendingAdditionalMedia.count < 20 else {
             saveErrorMessage = "This page cannot contain more than 20 media items."
             return
         }

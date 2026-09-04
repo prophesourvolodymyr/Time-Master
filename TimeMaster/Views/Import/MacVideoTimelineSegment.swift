@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 struct MacVideoTimelineSegment: Identifiable, Equatable {
@@ -29,4 +28,3 @@ struct MacVideoTimelineSegment: Identifiable, Equatable {
         time >= startTime && time <= endTime
     }
 }
-#endif

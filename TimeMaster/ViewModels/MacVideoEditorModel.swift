@@ -13,6 +13,9 @@ final class MacVideoEditorModel: ObservableObject {
     @Published private(set) var isProcessing = false
     @Published private(set) var message: String?
     @Published private(set) var drafts: [MacVideoDraft] = []
+    var mediaCount: Int {
+        drafts.reduce(0) { $0 + $1.mediaCount }
+    }
     @Published private(set) var segments: [MacVideoTimelineSegment] = []
 
     private let minimumSegmentDuration = 0.25
@@ -65,10 +68,11 @@ final class MacVideoEditorModel: ObservableObject {
         currentTime = clampedTime
     }
 
-    func splitSegment(at time: Double) {
+    @discardableResult
+    func splitSegment(at time: Double) -> UUID? {
         guard duration >= minimumSegmentDuration * 2 else {
             message = "This video is too short to split."
-            return
+            return nil
         }
 
         guard let index = segments.firstIndex(where: {
@@ -76,21 +80,26 @@ final class MacVideoEditorModel: ObservableObject {
                 time < $0.endTime - minimumSegmentDuration
         }) else {
             message = "Place the playhead inside a segment to split it."
-            return
+            return nil
         }
 
         let segment = segments[index]
-        let splitTime = min(max(time, segment.startTime + minimumSegmentDuration), segment.endTime - minimumSegmentDuration)
+        let splitTime = min(
+            max(time, segment.startTime + minimumSegmentDuration),
+            segment.endTime - minimumSegmentDuration
+        )
         segments[index] = MacVideoTimelineSegment(
             id: segment.id,
             startTime: segment.startTime,
             endTime: splitTime
         )
-        segments.insert(
-            MacVideoTimelineSegment(startTime: splitTime, endTime: segment.endTime),
-            at: index + 1
+        let newSegment = MacVideoTimelineSegment(
+            startTime: splitTime,
+            endTime: segment.endTime
         )
+        segments.insert(newSegment, at: index + 1)
         message = "Segment split at \(timeString(splitTime))."
+        return newSegment.id
     }
 
     func setBoundary(
@@ -153,7 +162,7 @@ final class MacVideoEditorModel: ObservableObject {
     }
 
     func addSegmentToTray(id: UUID) async {
-        guard drafts.count < mediaLimit else {
+        guard mediaCount < mediaLimit else {
             message = "A page can contain up to 20 media items."
             return
         }
@@ -161,7 +170,9 @@ final class MacVideoEditorModel: ObservableObject {
             message = "That timeline segment is no longer available."
             return
         }
-        guard !drafts.contains(where: { $0.sourceSegmentID == id }) else {
+        guard !drafts.contains(where: { draft in
+            draft.mediaItems.contains { $0.sourceSegmentID == id }
+        }) else {
             message = "That segment is already in the media tray."
             return
         }
@@ -174,20 +185,22 @@ final class MacVideoEditorModel: ObservableObject {
 
     func addAllSegmentsToTray() async {
         let availableSegments = segments.filter { segment in
-            !drafts.contains(where: { $0.sourceSegmentID == segment.id })
+            !drafts.contains { draft in
+                draft.mediaItems.contains { $0.sourceSegmentID == segment.id }
+            }
         }
 
         guard !availableSegments.isEmpty else {
             message = "All timeline segments are already in the media tray."
             return
         }
-        guard drafts.count < mediaLimit else {
+        guard mediaCount < mediaLimit else {
             message = "A page can contain up to 20 media items."
             return
         }
 
         var stagedCount = 0
-        for segment in availableSegments where drafts.count < mediaLimit {
+        for segment in availableSegments where mediaCount < mediaLimit {
             if await stageSegment(segment) {
                 stagedCount += 1
             }
@@ -198,13 +211,13 @@ final class MacVideoEditorModel: ObservableObject {
                 ? "1 clip added to the media tray."
                 : "\(stagedCount) clips added to the media tray."
         }
-        if drafts.count >= mediaLimit && availableSegments.count > stagedCount {
+        if mediaCount >= mediaLimit && availableSegments.count > stagedCount {
             message = "The media tray is full at 20 items."
         }
     }
 
     func addStill() async {
-        guard drafts.count < mediaLimit else {
+        guard mediaCount < mediaLimit else {
             message = "A page can contain up to 20 media items."
             return
         }
@@ -241,6 +254,18 @@ final class MacVideoEditorModel: ObservableObject {
     func removeDraft(id: UUID) {
         drafts.removeAll { $0.id == id }
         message = drafts.isEmpty ? nil : "Media tray updated."
+    }
+
+    func mergeDrafts(sourceID: UUID, intoID targetID: UUID) {
+        guard sourceID != targetID,
+              let sourceIndex = drafts.firstIndex(where: { $0.id == sourceID }),
+              let targetIndex = drafts.firstIndex(where: { $0.id == targetID }) else {
+            return
+        }
+
+        drafts[targetIndex].append(media: drafts[sourceIndex].mediaItems)
+        drafts.remove(at: sourceIndex)
+        message = "Media items grouped."
     }
 
     func markDraftSaved(id: UUID, targetLabel: String) {
