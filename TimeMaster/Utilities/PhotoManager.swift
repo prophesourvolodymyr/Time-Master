@@ -166,7 +166,7 @@ extension PhotoManager {
             return cached
         }
 
-        let data = await Task.detached(priority: .userInitiated, operation: {
+        let data = await Task.detached(priority: .userInitiated, operation: { () -> Data? in
             let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased())
             if isVideo {
                 let asset = AVURLAsset(url: url)
