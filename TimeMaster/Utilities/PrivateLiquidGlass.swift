@@ -81,7 +81,7 @@ struct TimeMasterPrivateGlassSurface: ViewModifier {
         cornerRadius: CGFloat,
         isInteractive: Bool,
         tint: Color = .orange,
-        tintOpacity: Double = 0.28
+        tintOpacity: Double = 0.4
     ) {
         self.cornerRadius = cornerRadius
         self.isInteractive = isInteractive

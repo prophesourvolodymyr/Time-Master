@@ -140,7 +140,7 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
             .frame(width: 36, height: 36)
             .background {
                 Circle()
-                    .fill(reduceTransparency ? Color.orange.opacity(0.9) : Color.orange.opacity(0.28))
+                    .fill(reduceTransparency ? Color.orange.opacity(0.9) : Color.orange.opacity(0.4))
                 if !reduceTransparency {
                     Circle().fill(.ultraThinMaterial)
                 }
@@ -170,6 +170,31 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
                 reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
                 value: configuration.isPressed
             )
+    }
+}
+
+struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                reduceTransparency ? Theme.surface2 : Color.white.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: 9)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 9)
+                    .stroke(
+                        isEnabled ? Theme.primary.opacity(0.55) : Color.white.opacity(0.12),
+                        lineWidth: 1
+                    )
+            }
+            .opacity(configuration.isPressed ? 0.78 : 1)
     }
 }
 
