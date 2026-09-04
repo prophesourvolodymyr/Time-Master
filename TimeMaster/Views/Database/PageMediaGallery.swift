@@ -264,31 +264,23 @@ struct PageMediaGalleryGrid: View {
         let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext)
 
         ZStack(alignment: .topTrailing) {
-            Group {
-                #if os(iOS)
-                if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    placeholder
-                }
-                #elseif os(macOS)
-                if let data = try? Data(contentsOf: url), let image = NSImage(data: data) {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    placeholder
-                }
-                #endif
-            }
+            AsyncCoverImage(
+                url: url,
+                fallbackIcon: isVideo ? "play.rectangle.fill" : "photo",
+                fallbackColor: isVideo ? Theme.primary : nil,
+                height: height,
+                contentMode: .fill,
+                overlayGradient: false
+            )
             .frame(width: width, height: height)
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isCover ? Theme.primary : Color.white.opacity(0.1), lineWidth: isCover ? 2 : 1)
+                    .stroke(
+                        isCover ? Theme.primary : Color.white.opacity(0.1),
+                        lineWidth: isCover ? 2 : 1
+                    )
             }
 
             if isCover {
@@ -310,14 +302,5 @@ struct PageMediaGalleryGrid: View {
                     .frame(width: width, height: height)
             }
         }
-    }
-
-    private var placeholder: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Theme.surface)
-            .overlay {
-                Image(systemName: "photo")
-                    .foregroundStyle(Theme.textSecondary.opacity(0.45))
-            }
     }
 }

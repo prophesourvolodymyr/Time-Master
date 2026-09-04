@@ -165,15 +165,47 @@ extension PhotoManager {
         if let cached = cache.object(forKey: url.absoluteString as NSString) {
             return cached
         }
-        guard let data = try? await Task.detached(priority: .userInitiated, operation: {
-            try Data(contentsOf: url)
-        }).value else { return nil }
+
+        let data = await Task.detached(priority: .userInitiated, operation: {
+            let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased())
+            if isVideo {
+                let asset = AVURLAsset(url: url)
+                let generator = AVAssetImageGenerator(asset: asset)
+                generator.appliesPreferredTrackTransform = true
+                generator.maximumSize = CGSize(width: 800, height: 800)
+                guard let cgImage = try? generator.copyCGImage(
+                    at: CMTime(seconds: 0, preferredTimescale: 600),
+                    actualTime: nil
+                ) else {
+                    return nil
+                }
+                #if os(iOS)
+                return UIImage(cgImage: cgImage).jpegData(compressionQuality: 0.9)
+                #else
+                let image = NSImage(
+                    cgImage: cgImage,
+                    size: NSSize(width: cgImage.width, height: cgImage.height)
+                )
+                guard let tiff = image.tiffRepresentation,
+                      let bitmap = NSBitmapImageRep(data: tiff) else {
+                    return nil
+                }
+                return bitmap.representation(using: .png, properties: [:])
+                #endif
+            }
+
+            return try? Data(contentsOf: url)
+        }).value
+
+        guard let data else { return nil }
         #if os(iOS)
-        guard let image = UIImage(data: data) else { return nil }
+        let image = UIImage(data: data)
         #else
-        guard let image = NSImage(data: data) else { return nil }
+        let image = NSImage(data: data)
         #endif
-        cache.setObject(image, forKey: url.absoluteString as NSString)
+        if let image {
+            cache.setObject(image, forKey: url.absoluteString as NSString)
+        }
         return image
     }
 
