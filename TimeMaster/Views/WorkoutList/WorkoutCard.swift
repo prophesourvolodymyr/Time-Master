@@ -142,19 +142,31 @@ struct WorkoutCard: View {
     }
 }
 
-private struct WorkoutCoverMosaic: View {
+struct WorkoutCoverMosaic: View {
     let workout: Workout
+    let size: CGFloat
+    let styleOverride: WorkoutCoverStyle?
+
+    init(
+        workout: Workout,
+        size: CGFloat = 82,
+        styleOverride: WorkoutCoverStyle? = nil
+    ) {
+        self.workout = workout
+        self.size = size
+        self.styleOverride = styleOverride
+    }
 
     var body: some View {
         Group {
-            switch workout.coverStyle {
+            switch styleOverride ?? workout.coverStyle {
             case .customImage:
                 if let imageFilename = workout.imageFilename {
                     AsyncCoverImage(
                         url: PhotoManager.shared.photoURL(for: imageFilename),
                         fallbackIcon: workout.type.iconName,
                         fallbackColor: Color(hex: workout.type.colorHex),
-                        height: 82,
+                        height: size,
                         contentMode: .fill,
                         overlayGradient: false
                     )
@@ -167,55 +179,65 @@ private struct WorkoutCoverMosaic: View {
                 exerciseMosaic
             }
         }
-        .frame(width: 82, height: 82)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: min(12, size / 6), style: .continuous))
     }
 
     private var exerciseMosaic: some View {
-        LazyVGrid(
+        let tileSize = max(1, (size - 2) / 2)
+
+        return LazyVGrid(
             columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)],
             spacing: 2
         ) {
             ForEach(0..<4, id: \.self) { index in
                 if let section = workout.sections[safe: index] {
-                    sectionCover(section)
+                    sectionCover(section, size: tileSize)
                 } else {
-                    Color(hex: workout.type.colorHex).opacity(0.18)
+                    Color(hex: workout.type.colorHex)
+                        .opacity(0.18)
+                        .frame(width: tileSize, height: tileSize)
                 }
             }
         }
+        .frame(width: size, height: size)
         .background(Color(hex: workout.type.colorHex).opacity(0.22))
     }
 
     @ViewBuilder
-    private func sectionCover(_ section: Section) -> some View {
+    private func sectionCover(_ section: Section, size: CGFloat) -> some View {
         if let media = section.mediaItems.first {
-            MediaThumbnailView(item: media, size: 40, cornerRadius: 2)
+            MediaThumbnailView(item: media, size: size, cornerRadius: 2)
         } else if let page = section.pageID.flatMap({ DatabaseStore.shared.page(id: $0) }),
                   let url = page.coverImageURL {
             AsyncCoverImage(
                 url: url,
                 fallbackIcon: page.manifest.iconName ?? workout.type.iconName,
                 fallbackColor: Color(hex: workout.type.colorHex),
-                height: 40,
+                height: size,
                 contentMode: .fill,
                 overlayGradient: false
             )
+            .frame(width: size, height: size)
         } else {
-            Color(hex: workout.type.colorHex).opacity(0.18)
+            Color(hex: workout.type.colorHex)
+                .opacity(0.18)
+                .frame(width: size, height: size)
                 .overlay {
                     Image(systemName: workout.type.iconName)
-                        .font(.caption)
+                        .font(.system(size: max(12, size * 0.3)))
                         .foregroundStyle(.white.opacity(0.8))
                 }
         }
     }
 
     private var iconCover: some View {
-        Color(hex: workout.type.colorHex).opacity(0.32)
+        Color(hex: workout.type.colorHex)
+            .opacity(0.32)
+            .frame(width: size, height: size)
             .overlay {
                 Image(systemName: workout.type.iconName)
-                    .font(.title2.weight(.semibold))
+                    .font(.system(size: max(16, size * 0.3), weight: .semibold))
                     .foregroundStyle(.white)
             }
     }
