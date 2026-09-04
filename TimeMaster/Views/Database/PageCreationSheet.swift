@@ -56,6 +56,7 @@ struct PageCreationSheet: View {
     @State private var showDeleteConfirm = false
     @State private var showDraftList = false
     @State private var draftID: UUID
+    @State private var didSavePage = false
     @State private var draftSavedMessage: String?
     @State private var saveErrorMessage: String?
     @State private var markdownEditorHeight: CGFloat = 180
@@ -760,14 +761,16 @@ struct PageCreationSheet: View {
 
     private var actionBar: some View {
         HStack(spacing: 10) {
-            Button {
-                saveDraft()
-            } label: {
-                Label("Draft", systemImage: "doc.badge.clock")
-                    .frame(maxWidth: .infinity)
+            if existingPage == nil {
+                Button {
+                    saveDraft()
+                } label: {
+                    Label("Draft", systemImage: "doc.badge.clock")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(OrangeSecondaryButtonStyle())
+                .disabled(!canDraft)
             }
-            .buttonStyle(OrangeSecondaryButtonStyle())
-            .disabled(!canDraft)
 
             Button {
                 savePage()
@@ -811,7 +814,7 @@ struct PageCreationSheet: View {
     }
 
     private func scheduleAutosave() {
-        guard existingPage == nil else { return }
+        guard existingPage == nil, !didSavePage else { return }
         autosaveTask?.cancel()
         autosaveTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 700_000_000)
@@ -888,7 +891,7 @@ struct PageCreationSheet: View {
     private func removeMedia(filename: String) {
         if let page = existingPage {
             try? DatabaseManager.shared.removeMediaFromPage(pageID: page.manifest.id, filename: filename)
-            databaseStore.updatePageMedia(pageID: page.manifest.id, mediaFilenames: [])
+            databaseStore.reload()
         }
         mediaFilenames.removeAll { $0 == filename }
         mediaPreviewThumbnails.removeAll { $0.filename == filename }
@@ -906,7 +909,7 @@ struct PageCreationSheet: View {
     }
 
     private func persistDraftIfNeeded(showConfirmation: Bool = false) {
-        guard existingPage == nil, hasDraftContent else { return }
+        guard existingPage == nil, !didSavePage, hasDraftContent else { return }
         let draft = makeDraft()
         let sources = Dictionary(uniqueKeysWithValues: pendingMediaFiles.map { ($0.filename, $0.temporaryURL) })
         do {
@@ -978,6 +981,8 @@ struct PageCreationSheet: View {
                     uploadMediaAfterFallbackSave(pageID: manifest.id, mediaData: mediaData)
                 }
             }
+            didSavePage = true
+            autosaveTask?.cancel()
             if existingPage == nil {
                 PageCreationDraftStore.shared.delete(id: draftID)
             }

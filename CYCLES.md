@@ -446,6 +446,20 @@ F27 Home ───────────────┘
   - [ ] Verified: workout editor never shows the old V1 folder picker; freshly-imported DB pages immediately selectable in the editor; section persists across re-open; macOS + iOS builds succeed; core tests pass
 
 
+
+### Phase 1A — Database page creation and media polish
+- [x] Allow root exercise pages without a container
+- [x] Pin create actions and persist full local drafts
+- [x] Apply orange creation form accents and disabled states
+- [x] Replace link textarea with previewable add-below rows
+- [x] Support manual and database-backed drop sets
+- [x] Rename rest options dynamically, including Big Rest
+- [x] Make ordered media the shared cover source and remove page icons
+- [x] Render markdown live with a draggable editor height
+- [x] Mark required and optional creation fields clearly
+- [x] Give creation and edit controls orange button bases
+- [x] Show large horizontal media thumbnails in page views
+- [x] Style database corner controls with shared bases and orange accents
 - [x] Exercise Database Fixture & Validation
   - [x] Detail: Seeded 52 source video clips across Boxing, Core & Wrestling, Flexibility, Gymnastics, and Kickboxing with generated cover frames, guides, durations, rests, sets, and SF Symbol icons
   - [x] Detail: Added parent links and explicit page kinds/workout types to the existing hierarchy; removed the stale accidental test page with a recoverable backup

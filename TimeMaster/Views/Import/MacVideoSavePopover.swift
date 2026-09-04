@@ -128,7 +128,10 @@ struct MacVideoSavePopover: View {
             }
             .onDisappear(perform: cleanupPendingMedia)
         }
-        .frame(minWidth: 700, minHeight: 760)
+        .frame(
+            width: step == .target ? 440 : 560,
+            height: step == .target ? (saveChoice == nil ? 300 : 440) : 640
+        )
     }
 
     private var targetPicker: some View {
