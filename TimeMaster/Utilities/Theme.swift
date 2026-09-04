@@ -34,10 +34,16 @@ enum AppToolbar {
         @ViewBuilder content: @escaping () -> Content
     ) -> some ToolbarContent {
         if #available(iOS 26.0, macOS 26.0, *) {
-            ToolbarItem(placement: placement, content: content)
-                .sharedBackgroundVisibility(.visible)
+            ToolbarItem(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
+            }
+            .sharedBackgroundVisibility(.visible)
         } else {
-            ToolbarItem(placement: placement, content: content)
+            ToolbarItem(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
+            }
         }
     }
 
@@ -47,20 +53,35 @@ enum AppToolbar {
         @ViewBuilder content: @escaping () -> Content
     ) -> some ToolbarContent {
         if #available(iOS 26.0, macOS 26.0, *) {
-            ToolbarItemGroup(placement: placement, content: content)
-                .sharedBackgroundVisibility(.visible)
+            ToolbarItemGroup(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
+            }
+            .sharedBackgroundVisibility(.visible)
         } else {
-            ToolbarItemGroup(placement: placement, content: content)
+            ToolbarItemGroup(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
+            }
         }
     }
+
     @ToolbarContentBuilder
     static func iconItem<Content: View>(
         placement: ToolbarItemPlacement,
         @ViewBuilder content: @escaping () -> Content
     ) -> some ToolbarContent {
-        item(placement: placement) {
-            content()
-                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        if #available(iOS 26.0, macOS 26.0, *) {
+            ToolbarItem(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            }
+            .sharedBackgroundVisibility(.visible)
+        } else {
+            ToolbarItem(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            }
         }
     }
 
@@ -69,12 +90,19 @@ enum AppToolbar {
         placement: ToolbarItemPlacement,
         @ViewBuilder content: @escaping () -> Content
     ) -> some ToolbarContent {
-        group(placement: placement) {
-            content()
-                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        if #available(iOS 26.0, macOS 26.0, *) {
+            ToolbarItemGroup(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            }
+            .sharedBackgroundVisibility(.visible)
+        } else {
+            ToolbarItemGroup(placement: placement) {
+                content()
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            }
         }
     }
-
 }
 
 struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
@@ -85,6 +113,7 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         #if os(iOS)
         configuration.label
+            .foregroundStyle(.white)
             .frame(width: 36, height: 36)
             .modifier(
                 TimeMasterPrivateGlassSurface(
@@ -107,6 +136,7 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
     @ViewBuilder
     private func fallback(_ configuration: Configuration) -> some View {
         configuration.label
+            .foregroundStyle(.white)
             .frame(width: 36, height: 36)
             .background {
                 Circle()
@@ -135,6 +165,31 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
                 y: 3
             )
             .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.92)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .animation(
+                reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
+                value: configuration.isPressed
+            )
+    }
+}
+
+struct TimeMasterToolbarWideButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @ViewBuilder
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 36)
+            .modifier(
+                TimeMasterPrivateGlassSurface(
+                    cornerRadius: 18,
+                    isInteractive: true
+                )
+            )
+            .clipShape(Capsule())
+            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.96)
             .opacity(configuration.isPressed ? 0.82 : 1)
             .animation(
                 reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),

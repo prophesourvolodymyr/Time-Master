@@ -39,7 +39,7 @@ final class TimeMasterLiquidGlassHost: UIView {
             effectView = UIVisualEffectView(effect: effect)
         } else if MTLCreateSystemDefaultDevice() == nil {
             let fallbackView = UIView()
-            fallbackView.backgroundColor = UIColor(white: 0.12, alpha: 0.95)
+            fallbackView.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.9)
             effectView = fallbackView
         } else {
             let effect = LiquidGlassEffect(style: .regular, isNative: false)
@@ -74,32 +74,51 @@ final class TimeMasterLiquidGlassHost: UIView {
 struct TimeMasterPrivateGlassSurface: ViewModifier {
     let cornerRadius: CGFloat
     let isInteractive: Bool
+    let tint: Color
+    let tintOpacity: Double
+
+    init(
+        cornerRadius: CGFloat,
+        isInteractive: Bool,
+        tint: Color = .orange,
+        tintOpacity: Double = 0.28
+    ) {
+        self.cornerRadius = cornerRadius
+        self.isInteractive = isInteractive
+        self.tint = tint
+        self.tintOpacity = tintOpacity
+    }
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     @ViewBuilder
     func body(content: Content) -> some View {
 #if os(iOS)
-        if reduceTransparency {
-            content
-                .background {
+        content
+            .background {
+                if reduceTransparency {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Theme.surface2)
-                }
-        } else {
-            content
-                .background {
+                        .fill(tint.opacity(0.9))
+                } else {
                     TimeMasterLiquidGlassBackground(
                         cornerRadius: cornerRadius,
                         isInteractive: isInteractive
                     )
                 }
-        }
+            }
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(tint.opacity(tintOpacity))
+            }
 #else
         content
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(.ultraThinMaterial)
+            }
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(tint.opacity(reduceTransparency ? 0.9 : tintOpacity))
             }
 #endif
     }
