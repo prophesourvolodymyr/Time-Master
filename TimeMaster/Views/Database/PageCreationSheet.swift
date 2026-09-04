@@ -169,7 +169,8 @@ struct PageCreationSheet: View {
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(Theme.primary)
+                        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+                        .tint(Theme.primary)
                 }
                 if existingPage == nil {
                     AppToolbar.iconItem(placement: .primaryAction) {
@@ -626,36 +627,32 @@ struct PageCreationSheet: View {
                 }
 
                 HStack {
-                    Text("Preview")
+                    Text("Live Preview")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.primary)
                     Spacer()
-                    Capsule()
-                        .fill(Theme.primary.opacity(0.75))
-                        .frame(width: 34, height: 4)
-                        .overlay {
-                            Image(systemName: "arrow.up.and.down")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(Theme.primary)
-                                .offset(y: -1)
-                        }
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.primary)
+                        .frame(width: 32, height: 28)
+                        .contentShape(Rectangle())
+                        .accessibilityLabel("Resize markdown editor")
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    if markdownResizeStartHeight == nil {
+                                        markdownResizeStartHeight = markdownEditorHeight
+                                    }
+                                    let start = markdownResizeStartHeight ?? markdownEditorHeight
+                                    markdownEditorHeight = min(600, max(150, start + value.translation.height))
+                                }
+                                .onEnded { _ in
+                                    markdownResizeStartHeight = nil
+                                }
+                        )
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            if markdownResizeStartHeight == nil {
-                                markdownResizeStartHeight = markdownEditorHeight
-                            }
-                            let start = markdownResizeStartHeight ?? markdownEditorHeight
-                            markdownEditorHeight = min(600, max(150, start + value.translation.height))
-                        }
-                        .onEnded { _ in
-                            markdownResizeStartHeight = nil
-                        }
-                )
 
                 Group {
                     if markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -1432,7 +1429,8 @@ private struct PageCreationDraftListSheet: View {
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(Theme.primary)
+                        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+                        .tint(Theme.primary)
                 }
             }
             .task { store.reload() }

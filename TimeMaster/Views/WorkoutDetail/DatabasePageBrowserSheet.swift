@@ -137,7 +137,8 @@ struct DatabasePageBrowserSheet: View {
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(Theme.primary)
+                        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+                        .tint(Theme.primary)
                 }
                 if onNewExercise != nil {
                     AppToolbar.iconItem(placement: .primaryAction) {
