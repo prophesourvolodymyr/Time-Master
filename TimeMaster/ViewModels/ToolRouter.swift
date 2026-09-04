@@ -232,9 +232,7 @@ final class ToolRouter {
     }
 
     private func createExercisePage(_ args: [String: Any]) throws -> String {
-        guard let parentID = args["parentID"] as? String, !parentID.isEmpty else {
-            throw ToolError.missingParameter("parentID")
-        }
+        let parentID = (args["parentID"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         if args["coverImageFilename"] != nil {
             throw ToolError.invalidSettings("Exercise pages cannot define coverImageFilename; the first media item is the cover.")
         }

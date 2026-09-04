@@ -15,9 +15,9 @@ struct ExercisePage: Identifiable {
     var isLeaf: Bool { manifest.pageKind == .leaf }
     var isRoot: Bool { manifest.parentID == nil }
     var hasWorkoutConfig: Bool { isLeaf && manifest.duration != nil }
-    var hasCover: Bool { manifest.coverImageFilename != nil }
+    var hasCover: Bool { coverImageURL != nil }
     var hasLinks: Bool { !manifest.linkURLs.isEmpty }
-    var hasMedia: Bool { !manifest.mediaFilenames.isEmpty }
+    var hasMedia: Bool { !mediaURLs.isEmpty }
     var hasMarkdown: Bool { !manifest.markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     var effectiveWorkoutType: TimeMasterCore.WorkoutType? { manifest.workoutType ?? inheritedWorkoutType }
     var totalChildCount: Int { children.count + children.reduce(0) { $0 + $1.totalChildCount } }
@@ -44,18 +44,28 @@ struct ExercisePage: Identifiable {
         self.path = path
         self.inheritedWorkoutType = nil
 
-        if let coverFilename = manifest.coverImageFilename, manifest.pageKind == .container {
-            self.coverImageURL = baseURL.appendingPathComponent(coverFilename)
-        } else if manifest.pageKind == .leaf, let firstMedia = manifest.mediaFilenames.first {
-            self.coverImageURL = baseURL
-                .appendingPathComponent("media", isDirectory: true)
-                .appendingPathComponent(firstMedia)
-        } else {
-            self.coverImageURL = nil
+        let mediaDirectory = baseURL.appendingPathComponent("media", isDirectory: true)
+        var resolvedMediaURLs: [URL] = []
+
+        if let legacyCover = manifest.coverImageFilename {
+            let legacyURL = baseURL.appendingPathComponent(legacyCover)
+            let mediaURL = mediaDirectory.appendingPathComponent(legacyCover)
+            if manifest.mediaFilenames.first == legacyCover,
+               FileManager.default.fileExists(atPath: mediaURL.path) {
+                resolvedMediaURLs.append(mediaURL)
+            } else if FileManager.default.fileExists(atPath: legacyURL.path) {
+                resolvedMediaURLs.append(legacyURL)
+            }
         }
 
-        self.mediaURLs = manifest.mediaFilenames.map { filename in
-            baseURL.appendingPathComponent("media", isDirectory: true).appendingPathComponent(filename)
+        for filename in manifest.mediaFilenames {
+            let url = mediaDirectory.appendingPathComponent(filename)
+            if !resolvedMediaURLs.contains(url) {
+                resolvedMediaURLs.append(url)
+            }
         }
+
+        self.mediaURLs = resolvedMediaURLs
+        self.coverImageURL = resolvedMediaURLs.first
     }
 }

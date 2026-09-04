@@ -200,52 +200,42 @@ class DatabaseStore: ObservableObject {
     ) throws {
         var persistedManifest = manifest
         persistedManifest.parentID = parentID ?? manifest.parentID
-        if !mediaData.isEmpty {
+
+        var uploads = mediaData
+        if let coverData {
+            let filename = persistedManifest.coverImageFilename ?? "cover.jpg"
+            uploads.insert((filename: filename, data: coverData), at: 0)
+        }
+        persistedManifest.coverImageFilename = nil
+        if !uploads.isEmpty {
             persistedManifest.mediaFilenames = []
         }
+
         invalidatePendingReloads()
         try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
         publishCreatedPage(persistedManifest)
 
+        guard !uploads.isEmpty else { return }
         let pageID = persistedManifest.id
-        let coverUpload = coverData.flatMap { data -> (String, Data)? in
-            guard let filename = persistedManifest.coverImageFilename else { return nil }
-            return (filename, data)
-        }
-        guard coverUpload != nil || !mediaData.isEmpty else { return }
-
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
 
-            if let (filename, data) = coverUpload {
-                let tempURL = FileManager.default.temporaryDirectory
+            for (filename, data) in uploads {
+                let temporaryURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString + "-" + filename)
                 do {
-                    try data.write(to: tempURL)
-                    let uploadedFilename = try DatabaseManager.shared.uploadCoverImage(
-                        pageID: pageID,
-                        sourceURL: tempURL
-                    )
-                    self.publishUploadedMedia(pageID: pageID, coverFilename: uploadedFilename)
-                } catch {}
-                try? FileManager.default.removeItem(at: tempURL)
-            }
-
-            for (filename, data) in mediaData {
-                let tempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString + "-" + filename)
-                do {
-                    try data.write(to: tempURL)
+                    try data.write(to: temporaryURL)
                     let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
                         pageID: pageID,
-                        sourceURL: tempURL
+                        sourceURL: temporaryURL
                     )
                     self.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename])
                 } catch {}
-                try? FileManager.default.removeItem(at: tempURL)
+                try? FileManager.default.removeItem(at: temporaryURL)
             }
         }
     }
+
 
     func publishUploadedMedia(
         pageID: String,
@@ -263,21 +253,13 @@ class DatabaseStore: ObservableObject {
             }
 
             let currentPage = self.allPagesFlat[index]
-            let coverURL: URL?
-            if manifest.pageKind == .container, let filename = manifest.coverImageFilename {
-                coverURL = try? DatabaseManager.shared.pageCoverURL(pageID: pageID, filename: filename)
-            } else if manifest.pageKind == .leaf, let filename = manifest.mediaFilenames.first {
-                coverURL = try? DatabaseManager.shared.pageMediaURL(pageID: pageID, filename: filename)
-            } else {
-                coverURL = nil
-            }
-            let mediaURLs = manifest.mediaFilenames.compactMap {
-                try? DatabaseManager.shared.pageMediaURL(pageID: pageID, filename: $0)
-            }
+            let pageURL = self.resolvePageFolderURL(id: pageID)
+                ?? DatabaseManager.shared.exercisesDatabaseURL.appendingPathComponent(currentPage.path, isDirectory: true)
+            let refreshed = ExercisePage(from: manifest, baseURL: pageURL, path: currentPage.path)
             self.allPagesFlat[index] = ExercisePage(
-                manifest: manifest,
-                coverImageURL: coverURL,
-                mediaURLs: mediaURLs,
+                manifest: refreshed.manifest,
+                coverImageURL: refreshed.coverImageURL,
+                mediaURLs: refreshed.mediaURLs,
                 path: currentPage.path,
                 inheritedWorkoutType: currentPage.inheritedWorkoutType
             )
@@ -333,25 +315,15 @@ class DatabaseStore: ObservableObject {
         newManifest.childIDs = []
         newManifest.parentID = page.manifest.parentID
         newManifest.order = page.manifest.order + 1
+        newManifest.coverImageFilename = nil
+        newManifest.mediaFilenames = []
         try DatabaseManager.shared.createPage(manifest: newManifest, parentID: page.manifest.parentID)
 
-        if let coverFilename = page.manifest.coverImageFilename {
-            let sourceDir = DatabaseManager.shared.exercisesDatabaseURL
-            if let existingFolder = resolvePageFolderURL(id: page.manifest.id) {
-                let sourceURL = existingFolder.appendingPathComponent(coverFilename)
-                if FileManager.default.fileExists(atPath: sourceURL.path) {
-                    try? DatabaseManager.shared.uploadCoverImage(pageID: newManifest.id, sourceURL: sourceURL)
-                }
-            }
-        }
-
-        for filename in page.manifest.mediaFilenames {
-            if let existingFolder = resolvePageFolderURL(id: page.manifest.id) {
-                let sourceURL = existingFolder.appendingPathComponent("media", isDirectory: true).appendingPathComponent(filename)
-                if FileManager.default.fileExists(atPath: sourceURL.path) {
-                    try? DatabaseManager.shared.uploadMediaToPage(pageID: newManifest.id, sourceURL: sourceURL)
-                }
-            }
+        for sourceURL in page.mediaURLs where FileManager.default.fileExists(atPath: sourceURL.path) {
+            try? DatabaseManager.shared.uploadMediaToPage(
+                pageID: newManifest.id,
+                sourceURL: sourceURL
+            )
         }
 
         reload()

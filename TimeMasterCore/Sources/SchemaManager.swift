@@ -176,16 +176,15 @@ public final class SchemaManager {
                 "title": PropertySchema(type: "string", description: "Page title"),
                 "parentID": PropertySchema(type: "string", description: "Optional parent page UUID", optional: true),
             ]),
-            ToolSchema(name: "create_container_page", description: "Create a root organization container. Containers can have children and an optional cover, but no workout timing. Only root containers may define workoutType; nested containers inherit it.", write: true, parameters: [
+            ToolSchema(name: "create_container_page", description: "Create an organization container. Containers can have child pages, media, and an optional root workout type.", write: true, parameters: [
                 "title": PropertySchema(type: "string", description: "Container title"),
-                "parentID": PropertySchema(type: "string", description: "Optional parent container UUID; nested containers inherit the root type", optional: true),
-                "coverImageFilename": PropertySchema(type: "string", description: "Optional cover filename in the container folder", optional: true),
-                "iconName": PropertySchema(type: "string", description: "Optional SF Symbol fallback", optional: true),
-                "workoutType": PropertySchema(type: "object", description: "Optional workout type; accepted only when parentID is omitted", optional: true),
+                "parentID": PropertySchema(type: "string", description: "Optional parent container UUID", optional: true),
+                "coverImageFilename": PropertySchema(type: "string", description: "Legacy optional cover filename; new pages use the first media item", optional: true),
+                "workoutType": PropertySchema(type: "object", description: "Optional root workout type; nested containers inherit it", optional: true),
             ]),
-            ToolSchema(name: "create_exercise_page", description: "Create a workout-ready leaf exercise inside a container. Its first media item is its cover; explicit cover filenames and per-page workout types are forbidden.", write: true, parameters: [
+            ToolSchema(name: "create_exercise_page", description: "Create a workout-ready leaf exercise at the database root or inside a container. Its first media item is its cover; explicit cover filenames and per-page workout types are forbidden.", write: true, parameters: [
                 "title": PropertySchema(type: "string", description: "Exercise title"),
-                "parentID": PropertySchema(type: "string", description: "Required parent container UUID"),
+                "parentID": PropertySchema(type: "string", description: "Optional parent container UUID", optional: true),
                 "duration": PropertySchema(type: "integer", description: "Exercise duration in seconds", format: "seconds"),
                 "restAfter": PropertySchema(type: "integer", description: "Rest after the exercise in seconds", format: "seconds", optional: true),
                 "sets": PropertySchema(type: "integer", description: "Default number of sets", optional: true),

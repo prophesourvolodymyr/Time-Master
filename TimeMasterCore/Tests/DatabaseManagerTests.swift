@@ -464,6 +464,23 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertThrowsError(try db.createPage(manifest: invalidLeaf, parentID: root.id))
     }
 
+    func testRootLeafPageCanBeCreatedWithoutContainer() throws {
+        try db.bootstrapIfNeeded()
+
+        let exercise = ExercisePageManifest(
+            id: "root-exercise",
+            title: "Root Exercise",
+            pageKind: .leaf,
+            duration: 30
+        )
+
+        try db.createPage(manifest: exercise)
+
+        let persisted = try db.getPage(id: exercise.id)
+        XCTAssertEqual(persisted.pageKind, .leaf)
+        XCTAssertNil(persisted.parentID)
+    }
+
     func testNestedContainersInheritRootWorkoutTypeAndRejectOverrides() throws {
         try db.bootstrapIfNeeded()
         let root = ExercisePageManifest(id: "typed-root", title: "Root", workoutType: .strength)

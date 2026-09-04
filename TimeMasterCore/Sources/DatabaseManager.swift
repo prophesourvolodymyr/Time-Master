@@ -355,14 +355,13 @@ Query the TimeMaster exercise database.
     }
 
     private func validatePageManifest(_ manifest: ExercisePageManifest, parentID: String?) throws {
-        if manifest.pageKind == .leaf, parentID == nil {
-            throw FileSystemHelper.Error.invalidPageKind("exercise pages must be inside a container")
-        }
-
+        // Leaf pages may live at the database root or inside a container.
+        // A parent, when supplied, still has to be a container.
         if let parentID {
             guard parentID != manifest.id else {
                 throw FileSystemHelper.Error.invalidPageKind("a page cannot be its own parent")
             }
+
             let parent = try getPage(id: parentID)
             guard parent.pageKind == .container else {
                 throw FileSystemHelper.Error.invalidPageKind("pages can only be nested inside containers")
@@ -399,6 +398,30 @@ Query the TimeMaster exercise database.
             }
         }
     }
+
+    private func migrateLegacyCoverIfNeeded(
+        existing: ExercisePageManifest,
+        updated: ExercisePageManifest,
+        in folder: URL
+    ) throws {
+        guard let legacyFilename = existing.coverImageFilename else { return }
+
+        let legacyURL = folder.appendingPathComponent(legacyFilename)
+        let mediaDirectory = folder.appendingPathComponent("media", isDirectory: true)
+        let mediaURL = mediaDirectory.appendingPathComponent(legacyFilename)
+
+        if updated.mediaFilenames.contains(legacyFilename) {
+            try fs.ensureDirectory(mediaDirectory)
+            if fs.fileExists(at: legacyURL) && !fs.fileExists(at: mediaURL) {
+                try FileManager.default.moveItem(at: legacyURL, to: mediaURL)
+            } else if fs.fileExists(at: legacyURL), fs.fileExists(at: mediaURL) {
+                try fs.moveToTrash(source: legacyURL)
+            }
+        } else if fs.fileExists(at: legacyURL) {
+            try fs.moveToTrash(source: legacyURL)
+        }
+    }
+
 
     private func pageIDs(parentID: String?) throws -> [String] {
         if let parentID {
@@ -489,6 +512,7 @@ Query the TimeMaster exercise database.
         guard fs.directoryExists(at: currentFolder) else {
             throw FileSystemHelper.Error.notFound(currentFolder.path)
         }
+        try migrateLegacyCoverIfNeeded(existing: existing, updated: updated, in: currentFolder)
 
         if existing.parentID != resolvedParentID {
             let newFolder = try pageFolder(for: id, parentID: resolvedParentID)
@@ -513,6 +537,7 @@ Query the TimeMaster exercise database.
         let insertionIndex = min(max(updated.order, 0), newIDs.count)
         newIDs.insert(id, at: insertionIndex)
         try persistChildOrdering(parentID: resolvedParentID, childIDs: newIDs)
+
     }
 
 
@@ -626,17 +651,33 @@ Query the TimeMaster exercise database.
         let mediaDir = folder.appendingPathComponent("media", isDirectory: true)
         try fs.ensureDirectory(mediaDir)
         let ext = sourceURL.pathExtension.isEmpty ? "jpg" : sourceURL.pathExtension
-        let uuid = UUID().uuidString
-        let filename = "\(uuid).\(ext)"
-        let dest = mediaDir.appendingPathComponent(filename)
-        try fs.copyItem(from: sourceURL, to: dest)
+        let filename = "\(UUID().uuidString).\(ext)"
+        let manifest = try getPage(id: pageID)
+        guard manifest.mediaFilenames.count < 20 else {
+            throw FileSystemHelper.Error.writeFailed("A page can contain up to 20 media items.")
+        }
+        let destination = mediaDir.appendingPathComponent(filename)
+        try fs.copyItem(from: sourceURL, to: destination)
+        var updatedManifest = manifest
+        updatedManifest.mediaFilenames.append(filename)
+        updatedManifest.updatedAt = Date()
+        let manifestURL = folder.appendingPathComponent("manifest.json")
+        try fs.writeAtomically(to: manifestURL, value: updatedManifest, encoder: encoder)
+        return filename
+    }
+
+    public func reorderPageMedia(pageID: String, filenames: [String]) throws {
+        let folder = try resolvePageFolder(id: pageID)
         var manifest = try getPage(id: pageID)
-        if manifest.mediaFilenames.count >= 20 { return filename }
-        manifest.mediaFilenames.append(filename)
+        let allowed = Set(manifest.mediaFilenames)
+        let reordered = filenames.filter { allowed.contains($0) }
+        guard Set(reordered) == allowed, reordered.count == allowed.count else {
+            throw FileSystemHelper.Error.writeFailed("Media order must contain every existing media item exactly once.")
+        }
+        manifest.mediaFilenames = reordered
         manifest.updatedAt = Date()
         let manifestURL = folder.appendingPathComponent("manifest.json")
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
-        return filename
     }
     public func pageMediaURL(pageID: String, filename: String) throws -> URL {
         let folder = try resolvePageFolder(id: pageID)
