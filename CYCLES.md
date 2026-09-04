@@ -732,6 +732,7 @@ F27 Home ───────────────┘
       - [x] Limit tray sources to workout types containing music
       - [x] Keep tray search inline with an explicit Search action
       - [x] Adapt editor content to the available pane height
+    - [x] Cap the Music pane at twenty percent of usable height
   - [ ] F28-F — Finish Establish and Library
     - [ ] Morph live pine into Finish state in-place
     - [ ] Bind Finish statistics to finalized real activity

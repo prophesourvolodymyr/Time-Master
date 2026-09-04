@@ -815,8 +815,11 @@ struct OutdoorRouteRecordingView: View {
         guard let selectedFeature = feature else { return }
         let minimum: CGFloat = 1
         let lowerBottom = layout.size.height - layout.lowerInset
-        let maximum = max(
-            layout.featureExpandedHeight,
+        let contentMaximum = selectedFeature == .music
+            ? layout.musicMaximumHeight
+            : layout.featureExpandedHeight
+        let maximum = min(
+            contentMaximum,
             lowerBottom - layout.safeAreaTop - 8 - layout.mainMinimumWithFeature
         )
         let value = min(maximum, max(minimum, proposed))
@@ -855,9 +858,20 @@ struct OutdoorRouteRecordingView: View {
 
     private func settleFeature(to projected: CGFloat, layout: OutdoorPineGeometry) {
         guard let feature else { return }
-        let points: [CGFloat] = feature == .music
-            ? [layout.featureCompactHeight, layout.musicFitHeight, layout.usableHeight - layout.safeAreaTop - layout.lowerInset - 8 - layout.mainMinimumWithFeature]
-            : [layout.featureCompactHeight, layout.featureMediumHeight, layout.featureExpandedHeight]
+        let points: [CGFloat]
+        if feature == .music {
+            points = [
+                layout.musicCompactHeight,
+                layout.musicMediumHeight,
+                layout.musicMaximumHeight
+            ]
+        } else {
+            points = [
+                layout.featureCompactHeight,
+                layout.featureMediumHeight,
+                layout.featureExpandedHeight
+            ]
+        }
         let valid = points.filter { $0 > layout.featureCloseThreshold }
         if projected <= layout.featureCloseThreshold {
             closeFeature()
@@ -1086,10 +1100,22 @@ struct OutdoorRouteRecordingView: View {
             ? .expanded
             : actualHeight >= layout.mainMediumHeight - 16 ? .medium : .compact
     }
-
     private func adjustFeatureDetent(_ direction: AccessibilityAdjustmentDirection, layout: OutdoorPineGeometry) {
         guard let selectedFeature = feature else { return }
-        let points: [CGFloat] = [layout.featureCompactHeight, layout.featureMediumHeight, layout.featureExpandedHeight]
+        let points: [CGFloat]
+        if selectedFeature == .music {
+            points = [
+                layout.musicCompactHeight,
+                layout.musicMediumHeight,
+                layout.musicFitHeight
+            ]
+        } else {
+            points = [
+                layout.featureCompactHeight,
+                layout.featureMediumHeight,
+                layout.featureExpandedHeight
+            ]
+        }
         let current = nearest(to: featureHeight, among: points)
         guard let index = points.firstIndex(of: current) else { return }
         if selectedFeature == .music {
@@ -1107,14 +1133,16 @@ struct OutdoorRouteRecordingView: View {
 
     private func featureDetentName(_ layout: OutdoorPineGeometry, isMaxDrawer: Bool) -> String {
         if isMaxDrawer { return "Drawer" }
+        if feature == .music, featureHeight <= layout.musicCompactHeight + 8 { return "Compact" }
+        if feature == .music, featureHeight <= layout.musicMediumHeight + 8 { return "Medium" }
+        if feature == .music { return "Expanded" }
         if featureHeight <= layout.featureCompactHeight + 8 { return "Compact" }
         if featureHeight <= layout.featureMediumHeight + 8 { return "Medium" }
         return "Expanded"
     }
 
     private func applyMusicContentFit(_ height: CGFloat, layout: OutdoorPineGeometry) {
-        guard feature == .music, !musicHeightManuallyAdjusted, height > 0 else { return }
-        let preferred = min(layout.featureExpandedHeight, max(layout.featureCompactHeight, height))
+        let preferred = min(layout.musicMaximumHeight, max(layout.musicCompactHeight, height))
         if !featureDrag.isDragging, featureHeight == 0 || abs(featureHeight - preferred) > 12 {
             featureHeight = preferred
         }
