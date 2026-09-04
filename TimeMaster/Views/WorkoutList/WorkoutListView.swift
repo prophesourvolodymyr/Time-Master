@@ -11,6 +11,7 @@ struct WorkoutListView: View {
     @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
     @Binding var requestedWorkoutID: UUID?
+    @State private var navigationPath: [Workout] = []
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
