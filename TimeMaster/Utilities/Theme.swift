@@ -140,7 +140,7 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
             .frame(width: 36, height: 36)
             .background {
                 Circle()
-                    .fill(reduceTransparency ? Theme.surface2 : Color.clear)
+                    .fill(reduceTransparency ? Color.orange.opacity(0.9) : Color.orange.opacity(0.28))
                 if !reduceTransparency {
                     Circle().fill(.ultraThinMaterial)
                 }
