@@ -254,6 +254,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             }
 
             let selection = session.requestMode(mode)
+            reportCapability(selection.capability)
             OutdoorMapMode.overlayModes.forEach { reportCapability(session.capability(for: $0)) }
             guard selection.capability.isUsable else {
                 if let style = map.style {

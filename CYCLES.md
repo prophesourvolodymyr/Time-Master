@@ -727,6 +727,11 @@ F27 Home ───────────────┘
     - [ ] Keep cross-section imports session-only per workout
     - [ ] Implement persistent fixed-height compact player pine
     - [ ] Return every Music Edit action to same editor
+    - [x] Clarified: route Run/Bike/Walk modes stay outside Music Editor
+      - [x] Drive editor sections from Advanced Music Settings
+      - [x] Limit tray sources to workout types containing music
+      - [x] Keep tray search inline with an explicit Search action
+      - [x] Adapt editor content to the available pane height
   - [ ] F28-F — Finish Establish and Library
     - [ ] Morph live pine into Finish state in-place
     - [ ] Bind Finish statistics to finalized real activity

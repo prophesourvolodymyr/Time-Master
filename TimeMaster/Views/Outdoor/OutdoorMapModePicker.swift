@@ -54,7 +54,6 @@ struct OutdoorMapModePicker: View {
         let capability = capabilities[mode] ?? OutdoorMapProviderConfiguration.main.capability(for: mode)
         let selected = isBase ? mode == baseMode : enabledOverlays.contains(mode)
         let enabled = capability.isUsable
-        let tileWidth = isBase ? nil : overlayTileWidth
         let tileHeight = isBase ? baseTileHeight : overlayTileHeight
 
         return Button {
@@ -77,10 +76,11 @@ struct OutdoorMapModePicker: View {
                         .frame(maxWidth: .infinity)
                 }
                 .foregroundStyle(selected ? Theme.textPrimary : Theme.textSecondary)
-                .frame(width: tileWidth, height: tileHeight)
-                .background(
-                    selected ? Theme.restAccent.opacity(0.18) : Theme.surface.opacity(0.72),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .frame(
+                    minWidth: isBase ? 0 : overlayTileWidth,
+                    maxWidth: isBase ? .infinity : overlayTileWidth,
+                    minHeight: tileHeight,
+                    maxHeight: tileHeight
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)

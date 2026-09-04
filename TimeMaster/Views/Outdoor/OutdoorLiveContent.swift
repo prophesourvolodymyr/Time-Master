@@ -23,30 +23,43 @@ struct OutdoorLiveContent: View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             GeometryReader { proxy in
                 let contentWidth = max(1, proxy.size.width - 24)
-                let actionHeight = min(58, max(46, proxy.size.height * 0.13))
-                let statusInset: CGFloat = statusText == nil ? 34 : 50
-                let metricsHeight = max(1, proxy.size.height - statusInset - actionHeight - 18)
+                let actionHeight = min(58, max(48, proxy.size.height * 0.13))
+                let actionReserve = actionHeight + 7
+                let statusInset: CGFloat = statusText == nil ? 34 : 52
+                let metricRegionHeight = max(1, proxy.size.height - actionReserve)
+                let metricHeight = max(1, metricRegionHeight - statusInset)
 
-                ZStack(alignment: .top) {
-                    metrics(
-                        at: context.date,
-                        in: CGSize(width: contentWidth, height: metricsHeight)
-                    )
-                    .frame(width: contentWidth, height: metricsHeight)
-                    .padding(.top, statusInset)
+                ZStack {
+                    VStack(spacing: 0) {
+                        ZStack(alignment: .top) {
+                            metrics(
+                                at: context.date,
+                                in: CGSize(width: contentWidth, height: metricHeight)
+                            )
+                            .frame(width: contentWidth, height: metricHeight)
+                            .padding(.top, statusInset)
 
-                    if let status = statusText {
-                        statusPill(status)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 4)
+                            if let status = statusText {
+                                statusPill(status)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.top, 4)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: metricRegionHeight)
+
+                        actionBar(height: actionHeight)
+                            .padding(.horizontal, 7)
+                            .padding(.bottom, 7)
+                            .frame(height: actionReserve)
+                    }
+
+                    if let message = recorder.errorMessage, recorder.state == .failed {
+                        recoveryMessage(message)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(18)
                     }
                 }
                 .padding(.horizontal, 12)
-                .overlay(alignment: .bottom) {
-                    actionBar(height: actionHeight)
-                        .padding(.horizontal, 7)
-                        .padding(.bottom, 7)
-                }
             }
         }
         .accessibilityElement(children: .contain)
@@ -61,9 +74,19 @@ struct OutdoorLiveContent: View {
     @ViewBuilder
     private func metrics(at date: Date, in size: CGSize) -> some View {
         let progress = min(1, max(0, expansion))
-        let time = formattedTime(at: date)
+        let time = progress < 0.55 ? formattedCompactTime(at: date) : formattedTime(at: date)
         let speed = formattedSpeed
         let distance = formattedDistance
+        let reflow = min(1, max(0, (progress - 0.62) / 0.24))
+        let timeX = interpolate(0.80, 0.50, reflow) * size.width
+        let timeY = interpolate(0.50, 0.24, reflow) * size.height
+        let speedY = 0.50 * size.height
+        let totalX = interpolate(0.20, 0.50, reflow) * size.width
+        let totalY = interpolate(0.50, 0.74, reflow) * size.height
+        let speedSize = interpolate(42, 92, progress)
+        let secondarySize = interpolate(16, 27, progress)
+        let labelSize = interpolate(10, 13, progress)
+        let speedUnitBelow = reflow > 0.72
 
         if dynamicTypeSize.isAccessibilitySize {
             ScrollView(.vertical, showsIndicators: false) {
@@ -78,15 +101,6 @@ struct OutdoorLiveContent: View {
                 .padding(.vertical, 8)
             }
         } else {
-            let timeX = interpolate(0.82, 0.50, progress) * size.width
-            let timeY = interpolate(0.48, 0.23, progress) * size.height
-            let speedY = interpolate(0.48, 0.48, progress) * size.height
-            let totalX = interpolate(0.18, 0.50, progress) * size.width
-            let totalY = interpolate(0.48, 0.72, progress) * size.height
-            let speedSize = interpolate(56, 82, progress)
-            let secondarySize = interpolate(17, 27, progress)
-            let labelSize = interpolate(10, 13, progress)
-
             ZStack {
                 liveMetric(
                     title: "Time",
@@ -105,7 +119,8 @@ struct OutdoorLiveContent: View {
                     unit: speed.unit,
                     valueSize: speedSize,
                     labelSize: labelSize,
-                    alignment: .center
+                    alignment: .center,
+                    unitBelow: speedUnitBelow
                 )
                 .position(x: size.width * 0.5, y: speedY)
                 .accessibilityLabel("Speed \(speed.value) \(speed.unit)")
@@ -170,7 +185,8 @@ struct OutdoorLiveContent: View {
         unit: String?,
         valueSize: CGFloat,
         labelSize: CGFloat,
-        alignment: HorizontalAlignment
+        alignment: HorizontalAlignment,
+        unitBelow: Bool = false
     ) -> some View {
         VStack(alignment: alignment, spacing: 4) {
             if let title {
@@ -178,12 +194,21 @@ struct OutdoorLiveContent: View {
                     .font(.system(size: labelSize * liveLabelScale, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary.opacity(0.72))
             }
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                metricValueText(value, size: valueSize)
-                if let unit {
+            if unitBelow, let unit {
+                VStack(alignment: alignment, spacing: 2) {
+                    metricValueText(value, size: valueSize)
                     Text(unit)
-                        .font(.system(size: max(9, valueSize * 0.42) * liveLabelScale, weight: .medium))
+                        .font(.system(size: max(10, valueSize * 0.30) * liveLabelScale, weight: .medium))
                         .foregroundStyle(Theme.textPrimary.opacity(0.62))
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    metricValueText(value, size: valueSize)
+                    if let unit {
+                        Text(unit)
+                            .font(.system(size: max(9, valueSize * 0.42) * liveLabelScale, weight: .medium))
+                            .foregroundStyle(Theme.textPrimary.opacity(0.62))
+                    }
                 }
             }
         }
@@ -304,6 +329,10 @@ struct OutdoorLiveContent: View {
     private func formattedTime(at date: Date) -> String {
         let seconds = max(0, recorder.elapsedSeconds(at: date))
         return String(format: "%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, seconds % 60)
+    }
+    private func formattedCompactTime(at date: Date) -> String {
+        let seconds = max(0, recorder.elapsedSeconds(at: date))
+        return String(format: "%02d:%02d", seconds / 3600, (seconds % 3600) / 60)
     }
 
     private var formattedDistance: (value: String, unit: String) {

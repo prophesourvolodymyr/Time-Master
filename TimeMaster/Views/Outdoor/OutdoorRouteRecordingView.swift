@@ -558,11 +558,18 @@ struct OutdoorRouteRecordingView: View {
             interactive: true
         ) {
             ZStack(alignment: .bottom) {
-                featureContent(selectedFeature, layout: layout)
-                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985, anchor: .bottom)))
-                    .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.88), value: feature)
-                    .frame(height: layout.usableHeight)
-                    .accessibilityFocused($focusedFeature, equals: selectedFeature)
+                Group {
+                    if selectedFeature == .music {
+                        featureContent(selectedFeature, layout: layout)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        featureContent(selectedFeature, layout: layout)
+                            .frame(height: layout.usableHeight)
+                    }
+                }
+                .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985, anchor: .bottom)))
+                .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.88), value: feature)
+                .accessibilityFocused($focusedFeature, equals: selectedFeature)
             }
             .frame(maxWidth: .infinity)
             .frame(height: height, alignment: .bottom)
@@ -1171,7 +1178,6 @@ struct OutdoorMusicFeatureSlot: View {
     let resetToken: Int
     let onImportLocalMusic: () -> Void
     let onMeasuredHeight: (CGFloat) -> Void
-
     var body: some View {
         OutdoorMusicEditorView(
             library: library,
@@ -1181,6 +1187,7 @@ struct OutdoorMusicFeatureSlot: View {
             onMeasuredHeight: onMeasuredHeight,
             onImportLocalMusic: onImportLocalMusic
         )
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Music editor")
         .accessibilityValue(entry?.title ?? "Shared music library")
     }
