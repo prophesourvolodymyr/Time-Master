@@ -119,12 +119,15 @@ struct AnalyticsView: View {
                 Text(label)
                     .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundColor(selected ? .black : Color.white.opacity(0.7))
+            .foregroundStyle(.white)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .background(selected ? Color.white : Color.white.opacity(0.1))
-            .clipShape(Capsule())
         }
+        .buttonStyle(
+            TimeMasterGlobalFrostedButtonStyle(
+                tintOpacity: selected ? 0.58 : 0.36
+            )
+        )
     }
 
     // MARK: Scroll content
@@ -178,12 +181,13 @@ struct AnalyticsView: View {
                     } label: {
                         Text("\(n)")
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 38)
-                            .background(Theme.surface)
-                            .cornerRadius(8)
                     }
+                    .buttonStyle(
+                        TimeMasterGlobalFrostedButtonStyle(tintOpacity: 0.4)
+                    )
                 }
             }
             Text("You can also set goals in Settings → Workout Types.")
@@ -724,18 +728,14 @@ private struct CalendarPage: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.body.weight(.semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
             }
-
-            Spacer()
-            Text("\(currentYear)")
-                .font(.title2.bold())
-                .foregroundColor(Theme.textPrimary)
-            Spacer()
-
+            .buttonStyle(
+                TimeMasterGlobalFrostedButtonStyle(
+                    circular: true,
+                    minimumSize: 36,
+                    tintOpacity: 0.52
+                )
+            )
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     currentMonth = calendar.date(byAdding: .year, value: 1, to: currentMonth) ?? currentMonth
@@ -743,11 +743,14 @@ private struct CalendarPage: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.body.weight(.semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
             }
+            .buttonStyle(
+                TimeMasterGlobalFrostedButtonStyle(
+                    circular: true,
+                    minimumSize: 36,
+                    tintOpacity: 0.52
+                )
+            )
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)

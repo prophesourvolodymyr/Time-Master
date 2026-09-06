@@ -246,6 +246,65 @@ struct TimeMasterToolbarWideButtonStyle: ButtonStyle {
             )
     }
 }
+struct TimeMasterGlobalFrostedButtonStyle: ButtonStyle {
+    let circular: Bool
+    let minimumSize: CGFloat
+    let tintOpacity: Double
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isEnabled) private var isEnabled
+
+    init(
+        circular: Bool = false,
+        minimumSize: CGFloat = 44,
+        tintOpacity: Double = 0.52
+    ) {
+        self.circular = circular
+        self.minimumSize = minimumSize
+        self.tintOpacity = tintOpacity
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = AnyShape(
+            circular
+                ? AnyShape(Circle())
+                : AnyShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        )
+        let cornerRadius = circular ? minimumSize / 2 : 14
+
+        return configuration.label
+            .padding(.horizontal, circular ? 0 : 12)
+            .frame(width: circular ? minimumSize : nil, height: circular ? minimumSize : nil)
+            .frame(minWidth: minimumSize, minHeight: minimumSize)
+            .foregroundStyle(.white)
+            .background {
+                shape.fill(Theme.toolbarOrange.opacity(tintOpacity))
+            }
+            .modifier(
+                TimeMasterPrivateGlassSurface(
+                    cornerRadius: cornerRadius,
+                    isInteractive: true,
+                    tint: Theme.toolbarOrange,
+                    tintOpacity: tintOpacity
+                )
+            )
+            .overlay {
+                shape.stroke(Color.white.opacity(0.2), lineWidth: 1)
+            }
+            .clipShape(shape)
+            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.96)
+            .opacity(
+                configuration.isPressed
+                    ? 0.84
+                    : isEnabled ? 1 : 0.5
+            )
+            .animation(
+                reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
+                value: configuration.isPressed
+            )
+            .contentShape(shape)
+    }
+}
 
 // MARK: - IconColorPicker
 
