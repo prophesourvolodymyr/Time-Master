@@ -5,7 +5,7 @@ struct Theme {
     static let primary       = Color(hex: "FF6B35")
     static let accent        = Color(hex: "4ECDC4")
     static let restAccent = Color(hex: "FF9500")
-
+    static let toolbarOrange = Color(hex: "FF7A00")
     // App-wide monochrome palette
     static let background    = Color(hex: "0A0A0A")
     static let surface       = Color(hex: "141414")
@@ -118,7 +118,9 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
             .modifier(
                 TimeMasterPrivateGlassSurface(
                     cornerRadius: 18,
-                    isInteractive: true
+                    isInteractive: true,
+                    tint: Theme.toolbarOrange,
+                    tintOpacity: 0.52
                 )
             )
             .clipShape(Circle())
@@ -140,7 +142,7 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
             .frame(width: 36, height: 36)
             .background {
                 Circle()
-                    .fill(reduceTransparency ? Color.orange.opacity(0.9) : Color.orange.opacity(0.4))
+                    .fill(reduceTransparency ? Theme.toolbarOrange.opacity(0.9) : Theme.toolbarOrange.opacity(0.52))
                 if !reduceTransparency {
                     Circle().fill(.ultraThinMaterial)
                 }
@@ -175,22 +177,26 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
 
 struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
+            .foregroundStyle(isEnabled ? Theme.toolbarOrange : Theme.textSecondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(
-                reduceTransparency ? Theme.surface2 : Color.white.opacity(0.08),
-                in: RoundedRectangle(cornerRadius: 9)
+            .modifier(
+                TimeMasterPrivateGlassSurface(
+                    cornerRadius: 9,
+                    isInteractive: true,
+                    tint: isEnabled ? Theme.toolbarOrange : Theme.surface2,
+                    tintOpacity: isEnabled ? 0.48 : 0.26
+                )
             )
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 9)
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .stroke(
-                        isEnabled ? Theme.primary.opacity(0.55) : Color.white.opacity(0.12),
+                        isEnabled ? Theme.toolbarOrange.opacity(0.7) : Color.white.opacity(0.12),
                         lineWidth: 1
                     )
             }
@@ -210,7 +216,9 @@ struct TimeMasterToolbarWideButtonStyle: ButtonStyle {
             .modifier(
                 TimeMasterPrivateGlassSurface(
                     cornerRadius: 18,
-                    isInteractive: true
+                    isInteractive: true,
+                    tint: Theme.toolbarOrange,
+                    tintOpacity: 0.52
                 )
             )
             .clipShape(Capsule())

@@ -38,9 +38,16 @@ final class TimeMasterLiquidGlassHost: UIView {
             effect.isInteractive = isInteractive
             effectView = UIVisualEffectView(effect: effect)
         } else if MTLCreateSystemDefaultDevice() == nil {
-            let fallbackView = UIView()
-            fallbackView.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.9)
-            effectView = fallbackView
+            let fallbackBlur = UIVisualEffectView(
+                effect: UIBlurEffect(style: .systemMaterialDark)
+            )
+            fallbackBlur.backgroundColor = UIColor(
+                red: 1,
+                green: 0.478,
+                blue: 0,
+                alpha: 0.52
+            )
+            effectView = fallbackBlur
         } else {
             let effect = LiquidGlassEffect(style: .regular, isNative: false)
             effect.isInteractive = isInteractive
