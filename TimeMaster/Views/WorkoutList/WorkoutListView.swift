@@ -397,7 +397,8 @@ struct WorkoutListView: View {
                 filterChip(
                     title: "All",
                     icon: "square.grid.2x2",
-                    isSelected: !showingTodayOnly && selectedTypeID == nil
+                    isSelected: !showingTodayOnly && selectedTypeID == nil,
+                    tint: .orange
                 ) {
                     showingTodayOnly = false
                     selectedTypeID = nil
@@ -406,7 +407,8 @@ struct WorkoutListView: View {
                 filterChip(
                     title: "Today",
                     icon: "calendar",
-                    isSelected: showingTodayOnly
+                    isSelected: showingTodayOnly,
+                    tint: .orange
                 ) {
                     showingTodayOnly.toggle()
                 }
@@ -415,7 +417,8 @@ struct WorkoutListView: View {
                     filterChip(
                         title: type.name,
                         icon: type.icon,
-                        isSelected: selectedTypeID == type.id
+                        isSelected: selectedTypeID == type.id,
+                        tint: Color(hex: type.colorHex)
                     ) {
                         selectedTypeID = selectedTypeID == type.id ? nil : type.id
                     }
@@ -429,6 +432,7 @@ struct WorkoutListView: View {
         title: String,
         icon: String,
         isSelected: Bool,
+        tint: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -438,13 +442,22 @@ struct WorkoutListView: View {
                 Text(title)
             }
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
-        }
-        .buttonStyle(
-            TimeMasterGlobalFrostedButtonStyle(
-                tintOpacity: isSelected ? 0.58 : 0.36
+            .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                isSelected ? tint.opacity(0.22) : Theme.surface,
+                in: Capsule()
             )
-        )
+            .overlay {
+                Capsule()
+                    .stroke(
+                        isSelected ? tint.opacity(0.75) : Color.white.opacity(0.06),
+                        lineWidth: 1
+                    )
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var filteredEmptyState: some View {
@@ -546,8 +559,11 @@ struct WorkoutListView: View {
             } label: {
                 Label("Create Workout", systemImage: "plus")
                     .font(.headline)
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .background(Color.white, in: Capsule())
             }
-            .buttonStyle(TimeMasterGlobalFrostedButtonStyle(tintOpacity: 0.58))
             .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -568,17 +584,17 @@ struct WorkoutListView: View {
                                 showingAddWorkout = false
                                 activeOutdoorKind = .run
                             } label: { Label("Run", systemImage: "figure.run") }
-                                .buttonStyle(TimeMasterGlobalFrostedButtonStyle(tintOpacity: 0.58))
+                                .buttonStyle(.bordered)
                             Button {
                                 showingAddWorkout = false
                                 activeOutdoorKind = .walk
                             } label: { Label("Walk", systemImage: "figure.walk") }
-                                .buttonStyle(TimeMasterGlobalFrostedButtonStyle(tintOpacity: 0.58))
+                                .buttonStyle(.bordered)
                             Button {
                                 showingAddWorkout = false
                                 activeOutdoorKind = .bike
                             } label: { Label("Bike", systemImage: "bicycle") }
-                                .buttonStyle(TimeMasterGlobalFrostedButtonStyle(tintOpacity: 0.58))
+                                .buttonStyle(.bordered)
                         }
                     }
                     }
@@ -608,16 +624,18 @@ struct WorkoutListView: View {
                                          Image(systemName: type.icon)
                                          Text(type.name)
                                      }
-                                     .font(.subheadline)
-                                     .fontWeight(newWorkoutType == type ? .semibold : .regular)
-                                     .foregroundStyle(.white)
-                                     .frame(maxWidth: .infinity)
-                                 }
-                                 .buttonStyle(
-                                     TimeMasterGlobalFrostedButtonStyle(
-                                         tintOpacity: newWorkoutType == type ? 0.58 : 0.36
-                                     )
-                                 )
+                                    .font(.subheadline)
+                                    .fontWeight(newWorkoutType == type ? .semibold : .regular)
+                                    .foregroundColor(.white)
+                                    .padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(newWorkoutType == type ? Color.white.opacity(0.2) : Theme.surface)
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(newWorkoutType == type ? Color.white : Color.clear, lineWidth: 1)
+                                    )
+                                }
                             }
                         }
                     }
@@ -650,9 +668,12 @@ struct WorkoutListView: View {
                     } label: {
                         Text("Create Workout")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundColor(newWorkoutName.isEmpty ? Color.white.opacity(0.3) : .black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(newWorkoutName.isEmpty ? Theme.surface : Color.white)
+                            .cornerRadius(12)
                     }
-                    .buttonStyle(TimeMasterGlobalFrostedButtonStyle(tintOpacity: 0.58))
                     .disabled(newWorkoutName.isEmpty)
                 }
                 .padding(16)

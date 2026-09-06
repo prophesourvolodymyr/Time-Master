@@ -41,13 +41,7 @@ struct OutdoorTypePicker: View {
                 Image(systemName: "checkmark")
                     .font(.headline.weight(.bold))
             }
-            .buttonStyle(
-                TimeMasterGlobalFrostedButtonStyle(
-                    circular: true,
-                    minimumSize: 48,
-                    tintOpacity: 0.58
-                )
-            )
+            .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: true))
             .frame(width: 48, height: 48)
             .padding(.trailing, 12)
             .padding(.bottom, 82)
