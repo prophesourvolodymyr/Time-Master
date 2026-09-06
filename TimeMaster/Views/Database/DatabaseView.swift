@@ -429,7 +429,7 @@ struct DatabaseView: View {
                         } label: {
                             Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
                         }
-                        .foregroundStyle(Theme.primary)
+                        .foregroundStyle(.white)
 
                         Menu {
                             ForEach(PageSortOption.allCases, id: \.self) { option in
@@ -441,8 +441,9 @@ struct DatabaseView: View {
                             }
                         } label: {
                             Image(systemName: "arrow.up.arrow.down")
+                                .modifier(TimeMasterToolbarIconSurface())
                         }
-                        .foregroundStyle(Theme.primary)
+                        .foregroundStyle(.white)
                     }
                 }
                 #if os(iOS)
@@ -455,11 +456,11 @@ struct DatabaseView: View {
                     Button { showingImport = true } label: {
                         Image(systemName: "video.badge.plus")
                     }
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(.white)
                     Button { showingDatabaseImport = true } label: {
                         Image(systemName: "square.and.arrow.down")
                     }
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(.white)
                     Menu {
                         if isV2 {
                             Button {
@@ -488,8 +489,9 @@ struct DatabaseView: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
+                            .modifier(TimeMasterToolbarIconSurface())
                     }
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(.white)
                 }
             }
             .sheet(isPresented: $showingNewFolderSheet) {
@@ -772,7 +774,9 @@ struct DatabaseView: View {
                 Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
             }
         } label: {
-            Image(systemName: "plus.circle.fill").font(.title3)
+            Image(systemName: "plus.circle.fill")
+                .font(.title3)
+                .modifier(TimeMasterToolbarIconSurface())
         }
                  }
     }
@@ -800,10 +804,12 @@ struct DatabaseView: View {
                     Label("New Page", systemImage: "doc.badge.plus")
                 }
             } label: {
-                Image(systemName: "plus.circle.fill").font(.title3)
+                Image(systemName: "plus.circle.fill")
+                    .font(.title3)
+                    .modifier(TimeMasterToolbarIconSurface())
             }
-                         }
         }
+    }
     }
 
     private var pageTreeView: some View {
@@ -1329,7 +1335,9 @@ struct FolderDetailView: View {
                 Label("Export Folder…", systemImage: "square.and.arrow.up")
             }
         } label: {
-            Image(systemName: "plus.circle.fill").font(.title3)
+            Image(systemName: "plus.circle.fill")
+                .font(.title3)
+                .modifier(TimeMasterToolbarIconSurface())
         }
                  }
     }

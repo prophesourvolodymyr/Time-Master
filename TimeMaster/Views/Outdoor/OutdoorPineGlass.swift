@@ -125,19 +125,24 @@ struct OutdoorPineButtonStyle: ButtonStyle {
     }
 
     func makeBody(configuration: Configuration) -> some View {
-        material(
+        let tintOpacity = prominent ? 0.58 : 0.46
+        return material(
             configuration.label
                 .padding(.horizontal, circular ? 0 : 8)
                 .frame(width: circular ? minimumSize : nil, height: circular ? minimumSize : nil)
                 .frame(minWidth: minimumSize, minHeight: minimumSize)
-                .foregroundStyle(prominent ? Theme.background : Theme.textPrimary)
+                .foregroundStyle(Theme.textPrimary)
                 .background {
                     shape
-                        .fill(prominent ? Theme.restAccent : Color.white.opacity(reduceTransparency ? 0.16 : 0.08))
+                        .fill(
+                            reduceTransparency
+                                ? Theme.toolbarOrange.opacity(0.9)
+                                : Theme.toolbarOrange.opacity(tintOpacity)
+                        )
                 }
                 .overlay {
                     shape.strokeBorder(
-                        prominent ? Color.white.opacity(0.42) : Color.white.opacity(reduceTransparency ? 0.28 : 0.14),
+                        Color.white.opacity(reduceTransparency ? 0.32 : 0.18),
                         lineWidth: 1
                     )
                 }
@@ -157,19 +162,16 @@ struct OutdoorPineButtonStyle: ButtonStyle {
         if reduceTransparency {
             content
         } else if #available(iOS 26.0, *) {
-            if prominent {
-                content.glassEffect(
-                    .regular.tint(Theme.restAccent).interactive(),
+            content
+                .glassEffect(
+                    .regular.tint(Theme.toolbarOrange).interactive(),
                     in: shape
                 )
-            } else {
-                content.glassEffect(.regular.interactive(), in: shape)
-            }
         } else {
             content
                 .background {
                     OutdoorFrostedGlassBackground()
-                    shape.fill(Theme.surface.opacity(0.18))
+                    shape.fill(Theme.toolbarOrange.opacity(0.24))
                 }
         }
     }

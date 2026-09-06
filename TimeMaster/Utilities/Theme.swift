@@ -174,6 +174,22 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
             )
     }
 }
+struct TimeMasterToolbarIconSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .foregroundStyle(.white)
+            .frame(width: 36, height: 36)
+            .modifier(
+                TimeMasterPrivateGlassSurface(
+                    cornerRadius: 18,
+                    isInteractive: true,
+                    tint: Theme.toolbarOrange,
+                    tintOpacity: 0.52
+                )
+            )
+            .clipShape(Circle())
+    }
+}
 
 struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
@@ -181,7 +197,7 @@ struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isEnabled ? Theme.toolbarOrange : Theme.textSecondary)
+            .foregroundStyle(.white)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .modifier(
