@@ -399,7 +399,8 @@ struct DatabaseView: View {
     @State private var sortOption: PageSortOption = .name
     @State private var filterOption: PageFilterOption = .all
     @State private var creationPageType: PageType?
-    @State private var searchText = ""
+    @State private var showingDatabaseSearch = false
+    @State private var expandedPageIDs: Set<String> = []
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
     @State private var showingAddChildPage = false
@@ -411,88 +412,63 @@ struct DatabaseView: View {
         return NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
-                if isV2 && !store.rootPages.isEmpty {
-                    pageTreeView
-                } else if !isV2 {
-                    rootList
-                } else {
-                    v2EmptyState
+                VStack(spacing: 0) {
+                    databaseHeader
+                    if isV2 && !store.rootPages.isEmpty {
+                        pageTreeView
+                    } else if !isV2 {
+                        rootList
+                    } else {
+                        v2EmptyState
+                    }
                 }
             }
-            .navigationTitle(databaseTitle)
+            .navigationTitle("")
             .toolbar {
-                    AppToolbar.iconGroup(placement: .primaryAction) {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isGridMode.toggle()
-                            }
-                        } label: {
-                            Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
+                AppToolbar.iconGroup(placement: .primaryAction) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isGridMode.toggle()
                         }
-                        .foregroundStyle(.white)
-
-                        Menu {
-                            ForEach(PageSortOption.allCases, id: \.self) { option in
-                                Button {
-                                    sortOption = option
-                                } label: {
-                                    Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .modifier(TimeMasterToolbarIconSurface())
-                        }
-                        .foregroundStyle(.white)
+                    } label: {
+                        Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
                     }
-                #if os(iOS)
-                AppToolbar.item(placement: .primaryAction) {
-                    EditButton()
-                        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+
+                    Menu {
+                        ForEach(PageSortOption.allCases, id: \.self) { option in
+                            Button {
+                                sortOption = option
+                            } label: {
+                                Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
                 }
-                #endif
+                AppToolbar.iconItem(placement: .primaryAction) {
+                    Button {
+                        showingDatabaseSearch = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .help("Search Database")
+                }
                 AppToolbar.iconGroup(placement: .primaryAction) {
                     Button { showingImport = true } label: {
                         Image(systemName: "video.badge.plus")
                     }
-                    .foregroundStyle(.white)
                     Button { showingDatabaseImport = true } label: {
                         Image(systemName: "square.and.arrow.down")
                     }
-                    .foregroundStyle(.white)
-                    Menu {
-                        if isV2 {
-                            Button {
-                                creationLeafFirst = false
-                                creationPageType = nil
-                                showingCreatePage = true
-                            } label: {
-                                Label("New Container", systemImage: "folder.badge.plus")
-                            }
-                            Button {
-                                creationLeafFirst = true
-                                creationPageType = .exercise
-                                showingCreatePage = true
-                            } label: {
-                                Label("New Exercise", systemImage: "figure.run")
-                            }
-                        } else {
-                            Button { showingNewFolderSheet = true } label: {
-                                Label("New Folder", systemImage: "folder.badge.plus")
-                            }
-                            Button { showingAddRootNote = true } label: {
-                                Label("New Note", systemImage: "note.text.badge.plus")
-                            }
-                            Button { showingAddRootExercise = true } label: {
-                                Label("New Exercise", systemImage: "figure.strengthtraining.traditional")
-                            }
-                        }
+                    Button {
+                        creationLeafFirst = false
+                        creationPageType = .skill
+                        showingCreatePage = true
                     } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .modifier(TimeMasterToolbarIconSurface())
+                        Image(systemName: "plus")
                     }
-                    .foregroundStyle(.white)
+                    .help("Create Skill")
                 }
             }
             .sheet(isPresented: $showingNewFolderSheet) {
@@ -516,6 +492,10 @@ struct DatabaseView: View {
                 }
                 .environmentObject(workoutStore)
                 .environmentObject(store)
+            }
+            .sheet(isPresented: $showingDatabaseSearch) {
+                DatabaseSearchSheet()
+                    .environmentObject(store)
             }
             .sheet(item: $pageToEdit) { page in
                 PageCreationSheet(page: page) { manifest, parentID in
@@ -591,8 +571,14 @@ struct DatabaseView: View {
         }
     }
 
-    private var databaseTitle: String {
-        searchText.isEmpty ? "Exercise Database" : "Search"
+    private var databaseHeader: some View {
+        Text("Exercise Database")
+            .font(.title2.weight(.bold))
+            .foregroundStyle(Theme.textPrimary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
     }
 
     private func handleDatabaseImport(_ result: Result<[URL], Error>) {
@@ -812,10 +798,7 @@ struct DatabaseView: View {
 
     private var pageTreeView: some View {
         VStack(spacing: 0) {
-            if !isGridMode {
-                searchBarView
-                filterChipsRow
-            }
+            filterChipsRow
 
             if filteredRootPages.isEmpty {
                 noResultsView
@@ -827,76 +810,52 @@ struct DatabaseView: View {
         }
     }
 
-
-    private var searchBarView: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(Theme.textSecondary.opacity(0.6))
-            TextField("Search pages...", text: $searchText)
-                .foregroundColor(Theme.textPrimary)
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Theme.primary)
-                }
-            }
-        }
-        .padding(10)
-        .background(Theme.surface)
-        .cornerRadius(10)
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-    }
-
     private var filterChipsRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                filterChip(.all, label: "All")
-                filterChip(.exercise, label: "Exercises")
-                filterChip(.tutorial, label: "Tutorials")
-                filterChip(.container, label: "Containers")
-                ForEach(uniqueWorkoutTypes) { type in
-                    filterChip(.type(type.id), label: type.name)
+        GeometryReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    filterChip(.all, label: "All")
+                    ForEach(uniqueWorkoutTypes) { type in
+                        filterChip(.type(type.id), label: type.name)
+                    }
                 }
+                .frame(minWidth: max(proxy.size.width - 32, 0))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
         }
+        .frame(height: 48)
     }
 
     private func filterChip(_ option: PageFilterOption, label: String) -> some View {
         let isActive = filterOption == option
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) { filterOption = option }
+            withAnimation(.easeInOut(duration: 0.15)) {
+                filterOption = option
+            }
         } label: {
             Text(label)
-                .font(.system(size: 11, weight: isActive ? .semibold : .regular))
-                .foregroundStyle(isActive ? .black : Theme.textSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(isActive ? Theme.primary : Theme.surface, in: Capsule())
-                .cornerRadius(14)
+                .font(.system(size: 12, weight: isActive ? .semibold : .medium))
+                .foregroundStyle(isActive ? .black : Theme.textPrimary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isActive ? Theme.primary : Theme.surface2, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .stroke(isActive ? Theme.primary : Theme.primary.opacity(0.28), lineWidth: 1)
+                }
         }
+        .buttonStyle(.plain)
     }
 
     private var noResultsView: some View {
         VStack(spacing: 12) {
-            Image(systemName: searchText.isEmpty ? "doc.text.magnifyingglass" : "magnifyingglass")
+            Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 36))
-                .foregroundColor(Theme.textSecondary.opacity(0.4))
-            Text(searchText.isEmpty ? "No pages match filter" : "No results for \"\(searchText)\"")
+                .foregroundStyle(Theme.textSecondary.opacity(0.4))
+            Text("No exercises match this type")
                 .font(.headline)
-                .foregroundColor(Theme.textPrimary)
-            if !searchText.isEmpty {
-                Button("Clear Search") {
-                    searchText = ""
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.primary)
-                .padding(.top, 4)
-            }
+                .foregroundStyle(Theme.textPrimary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
@@ -904,12 +863,8 @@ struct DatabaseView: View {
 
     private var listContentView: some View {
         List {
-            ForEach(filteredRootPages) { page in
-                pageRow(page)
-            }
-            .onMove { indices, offset in
-                store.rootPages.move(fromOffsets: indices, toOffset: offset)
-                store.persistRootPageOrder()
+            ForEach(visiblePageEntries) { entry in
+                pageRow(entry)
             }
         }
         #if os(iOS)
@@ -922,29 +877,21 @@ struct DatabaseView: View {
 
     private var gridContentView: some View {
         ScrollView {
-            searchBarView
-                .padding(.horizontal, 0)
             LazyVGrid(columns: gridColumns, spacing: 10) {
-                ForEach(filteredRootPages) { page in
-                    NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
-                        PageCardView(
-                            page: page,
-                            isGridMode: true,
-                            onAddToWorkout: { pageToAddWorkout = page },
-                            onEdit: { pageToEdit = page },
-                            onAddChild: { childParentPage = page; showingAddChildPage = true },
-                            onDuplicate: { try? store.duplicatePage(page) },
-                            onDelete: { try? store.deletePage(id: page.manifest.id) },
-                            onMoveIntoContainer: { sourceID in
-                                try? store.movePage(
-                                    id: sourceID,
-                                    newParentID: page.manifest.id,
-                                    newOrder: page.children.count
-                                )
-                            }
-                        )
+                ForEach(visiblePageEntries) { entry in
+                    let page = entry.page
+                    ZStack(alignment: .topLeading) {
+                        NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                            pageCard(page, isGridMode: true)
+                        }
+                        .buttonStyle(.plain)
+
+                        if page.isContainer {
+                            disclosureButton(page)
+                                .padding(7)
+                        }
                     }
-                    .buttonStyle(.plain)
+                    .padding(.leading, CGFloat(entry.depth * 12))
                 }
             }
             .padding(.horizontal, 16)
@@ -955,10 +902,10 @@ struct DatabaseView: View {
     private var uniqueWorkoutTypes: [FilterTypeChip] {
         var seen = Set<String>()
         var result: [FilterTypeChip] = []
-        for page in store.rootPages {
-            if let wt = page.effectiveWorkoutType, !seen.contains(wt.id) {
-                seen.insert(wt.id)
-                result.append(FilterTypeChip(id: wt.id, name: wt.name, colorHex: wt.colorHex))
+        for page in store.allPagesFlat where page.isExercise {
+            if let type = page.effectiveWorkoutType, !seen.contains(type.id) {
+                seen.insert(type.id)
+                result.append(FilterTypeChip(id: type.id, name: type.name, colorHex: type.colorHex))
             }
         }
         return result.sorted { $0.name < $1.name }
@@ -968,50 +915,52 @@ struct DatabaseView: View {
         var pages = store.rootPages.filter { !$0.isSkill }
 
         switch filterOption {
-        case .all: break
-        case .container: pages = pages.filter { $0.isContainer && $0.pageType == nil }
-        case .exercise: pages = pages.filter(\.isExercise)
-        case .skill: pages = pages.filter(\.isSkill)
-        case .tutorial: pages = pages.filter(\.isTutorial)
-        case .type(let typeId): pages = pages.filter { $0.effectiveWorkoutType?.id == typeId }
-        }
-
-        if !searchText.isEmpty {
-            pages = pages.filter { page in
-                page.title.localizedCaseInsensitiveContains(searchText) ||
-                page.manifest.markdownBody.localizedCaseInsensitiveContains(searchText)
-            }
+        case .all, .container, .exercise, .skill, .tutorial:
+            break
+        case .type(let typeID):
+            pages = pages.filter { $0.effectiveWorkoutType?.id == typeID }
         }
 
         switch sortOption {
-        case .name: pages.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
-        case .dateCreated: pages.sort { $0.manifest.createdAt > $1.manifest.createdAt }
-        case .workoutType: pages.sort { ($0.effectiveWorkoutType?.name ?? "zzz") < ($1.effectiveWorkoutType?.name ?? "zzz") }
+        case .name:
+            pages.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
+        case .dateCreated:
+            pages.sort { $0.manifest.createdAt > $1.manifest.createdAt }
+        case .workoutType:
+            pages.sort { ($0.effectiveWorkoutType?.name ?? "zzz") < ($1.effectiveWorkoutType?.name ?? "zzz") }
         }
 
         return pages
     }
 
+    private var visiblePageEntries: [DatabasePageEntry] {
+        filteredRootPages.flatMap { flattenedEntries(for: $0, depth: 0) }
+    }
 
-    @ViewBuilder
-    private func pageRow(_ page: ExercisePage) -> some View {
-        NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
-            PageCardView(
-                page: page,
-                onAddToWorkout: { pageToAddWorkout = page },
-                onEdit: { pageToEdit = page },
-                onAddChild: { childParentPage = page; showingAddChildPage = true },
-                onDuplicate: { try? store.duplicatePage(page) },
-                onDelete: { try? store.deletePage(id: page.manifest.id) },
-                onMoveIntoContainer: { sourceID in
-                    try? store.movePage(
-                        id: sourceID,
-                        newParentID: page.manifest.id,
-                        newOrder: page.children.count
-                    )
-                }
-            )
+    private func flattenedEntries(for page: ExercisePage, depth: Int) -> [DatabasePageEntry] {
+        var entries = [DatabasePageEntry(page: page, depth: depth)]
+        guard expandedPageIDs.contains(page.manifest.id) else { return entries }
+        for child in page.children {
+            entries.append(contentsOf: flattenedEntries(for: child, depth: depth + 1))
         }
+        return entries
+    }
+
+    private func pageRow(_ entry: DatabasePageEntry) -> some View {
+        let page = entry.page
+        return HStack(spacing: 8) {
+            if page.isContainer {
+                disclosureButton(page)
+            } else {
+                Color.clear
+                    .frame(width: 30, height: 30)
+            }
+            NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                pageCard(page, isGridMode: false)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.leading, CGFloat(entry.depth * 14))
         .listRowBackground(Theme.surface)
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             Button { pageToMove = page } label: {
@@ -1027,6 +976,50 @@ struct DatabaseView: View {
             }
             .tint(.red)
         }
+    }
+
+    private func pageCard(_ page: ExercisePage, isGridMode: Bool) -> some View {
+        PageCardView(
+            page: page,
+            isGridMode: isGridMode,
+            showsTrailingChevron: false,
+            onAddToWorkout: { pageToAddWorkout = page },
+            onEdit: { pageToEdit = page },
+            onAddChild: { childParentPage = page; showingAddChildPage = true },
+            onDuplicate: { try? store.duplicatePage(page) },
+            onDelete: { try? store.deletePage(id: page.manifest.id) },
+            onMoveIntoContainer: { sourceID in
+                try? store.movePage(
+                    id: sourceID,
+                    newParentID: page.manifest.id,
+                    newOrder: page.children.count
+                )
+            }
+        )
+    }
+
+    private func disclosureButton(_ page: ExercisePage) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if expandedPageIDs.contains(page.manifest.id) {
+                    expandedPageIDs.remove(page.manifest.id)
+                } else {
+                    expandedPageIDs.insert(page.manifest.id)
+                }
+            }
+        } label: {
+            Image(systemName: expandedPageIDs.contains(page.manifest.id) ? "chevron.down" : "chevron.right")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Theme.primary)
+                .frame(width: 30, height: 30)
+                .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Theme.primary.opacity(0.65), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(expandedPageIDs.contains(page.manifest.id) ? "Collapse \(page.title)" : "Expand \(page.title)")
     }
 
     private var v2EmptyState: some View {
@@ -1057,6 +1050,132 @@ struct DatabaseView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
     }
+private struct DatabasePageEntry: Identifiable {
+    let page: ExercisePage
+    let depth: Int
+
+    var id: String { page.manifest.id }
+}
+
+private struct DatabaseSearchSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: DatabaseStore
+    @State private var searchText = ""
+
+    private var results: [ExercisePage] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        return store.allPagesFlat
+            .filter { page in
+                page.title.localizedCaseInsensitiveContains(query) ||
+                page.manifest.markdownBody.localizedCaseInsensitiveContains(query)
+            }
+            .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(Theme.primary)
+                        TextField("Search every page", text: $searchText)
+                            .textFieldStyle(.plain)
+                            .foregroundStyle(Theme.textPrimary)
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(13)
+                    .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Theme.primary.opacity(0.35), lineWidth: 1)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                    if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "arrow.down.right.and.arrow.up.left")
+                                .font(.system(size: 34))
+                                .foregroundStyle(Theme.primary.opacity(0.8))
+                            Text("Search the full database")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+                            Text("Results include pages nested inside any container.")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(28)
+                    } else if results.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .font(.system(size: 34))
+                                .foregroundStyle(Theme.textSecondary)
+                            Text("No matching pages")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        List {
+                            ForEach(results) { page in
+                                NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: page.isContainer ? "rectangle.stack" : "doc.text")
+                                            .foregroundStyle(Theme.primary)
+                                            .frame(width: 24)
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(page.title)
+                                                .foregroundStyle(Theme.textPrimary)
+                                            Text(searchTypeLabel(page))
+                                                .font(.caption)
+                                                .foregroundStyle(Theme.textSecondary)
+                                        }
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 5)
+                                }
+                                .listRowBackground(Theme.surface)
+                            }
+                        }
+                        .scrollContentBackground(.hidden)
+                    }
+                }
+            }
+            .navigationTitle("Search Database")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+    private func searchTypeLabel(_ page: ExercisePage) -> String {
+        switch page.pageType {
+        case .exercise: "Exercise"
+        case .skill: "Skill"
+        case .tutorial: "Tutorial"
+        case nil: "Container"
+        }
+    }
+
+}
+
 
     // MARK: - V2 Sheets (continued in body extensions)
 }

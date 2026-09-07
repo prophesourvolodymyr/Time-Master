@@ -37,19 +37,30 @@ public enum SkillStatus: String, Codable, Equatable, CaseIterable {
     case completed
 }
 
+public enum SkillBoardIconType: String, Codable, Equatable {
+    case emoji
+    case system
+}
+
 public struct SkillBoardSection: Codable, Equatable, Identifiable {
     public var id: String
     public var title: String
     public var order: Int
+    public var icon: String?
+    public var iconType: SkillBoardIconType?
 
     public init(
         id: String = UUID().uuidString,
         title: String,
-        order: Int = 0
+        order: Int = 0,
+        icon: String? = nil,
+        iconType: SkillBoardIconType? = nil
     ) {
         self.id = id
         self.title = title
         self.order = max(0, order)
+        self.icon = icon
+        self.iconType = iconType
     }
 }
 

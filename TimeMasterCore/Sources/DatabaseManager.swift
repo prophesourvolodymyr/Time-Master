@@ -367,7 +367,13 @@ Query the TimeMaster exercise database.
             normalized.skillBoardSections = normalized.skillBoardSections
                 .enumerated()
                 .map { index, section in
-                    SkillBoardSection(id: section.id, title: section.title, order: index)
+                    SkillBoardSection(
+                        id: section.id,
+                        title: section.title,
+                        order: index,
+                        icon: section.icon,
+                        iconType: section.iconType
+                    )
                 }
             if parentID == nil {
                 normalized.workoutType = normalized.workoutType ?? .other
@@ -670,7 +676,13 @@ Query the TimeMaster exercise database.
             .filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .enumerated()
             .map { index, section in
-                SkillBoardSection(id: section.id, title: section.title, order: index)
+                SkillBoardSection(
+                    id: section.id,
+                    title: section.title,
+                    order: index,
+                    icon: section.icon,
+                    iconType: section.iconType
+                )
             }
         let sectionIDs = Set(normalizedSections.map(\.id))
         let childIDs = Set(container.childIDs)

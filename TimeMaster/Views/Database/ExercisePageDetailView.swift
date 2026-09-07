@@ -65,8 +65,17 @@ struct ExercisePageDetailView: View {
                     } label: {
                         Image(systemName: "figure.strengthtraining.traditional")
                     }
-                    .foregroundStyle(Theme.primary)
                     .help("Add to Workout")
+                }
+            }
+            if page?.isSkillLike == true {
+                AppToolbar.iconItem(placement: .primaryAction) {
+                    Button {
+                        showingLinkedPagePicker = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .help("Attach Page")
                 }
             }
             AppToolbar.item(placement: .primaryAction) {
@@ -74,7 +83,6 @@ struct ExercisePageDetailView: View {
                     isEditing.toggle()
                 }
                 .buttonStyle(TimeMasterToolbarTextButtonStyle())
-                .tint(Theme.primary)
             }
             if page?.canContainChildren == true {
                 AppToolbar.iconItem(placement: .primaryAction) {
@@ -83,7 +91,6 @@ struct ExercisePageDetailView: View {
                     } label: {
                         Image(systemName: "doc.badge.plus")
                     }
-                    .foregroundStyle(Theme.primary)
                     .help("Add Child Page")
                 }
             }
@@ -94,7 +101,6 @@ struct ExercisePageDetailView: View {
                 } label: {
                     Image(systemName: "photo.badge.plus")
                 }
-                .foregroundStyle(Theme.primary)
             }
             #endif
         }
@@ -205,7 +211,7 @@ struct ExercisePageDetailView: View {
                     breadcrumbRow
                 }
                 Text(page.title)
-                    .font(.title2.weight(.bold))
+                    .font(.largeTitle.weight(.bold))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.4), radius: 3)
                     .lineLimit(2)
@@ -270,20 +276,10 @@ struct ExercisePageDetailView: View {
 
     private func detailContent(page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            if page.isSkill {
-                attachmentsSection(page: page)
-                if page.hasMarkdown {
-                    markdownSection(page: page, title: "Notes")
+            if page.isSkill || page.isTutorial {
+                if page.hasMedia {
+                    attachmentsSection(page: page)
                 }
-                if !children.isEmpty {
-                    skillChildPagesSection
-                }
-                attachedPagesSection
-                if page.hasLinks {
-                    linksSection(page: page)
-                }
-            } else if page.isTutorial {
-                attachmentsSection(page: page)
                 if page.hasMarkdown {
                     markdownSection(page: page, title: "Notes")
                 }
@@ -293,7 +289,25 @@ struct ExercisePageDetailView: View {
                 if !children.isEmpty {
                     skillChildPagesSection
                 }
-                attachedPagesSection
+                if !linkedPages.isEmpty {
+                    attachedPagesSection
+                }
+            } else if page.isContainer {
+                ContainerChildrenTabs(container: page)
+                    .environmentObject(store)
+                    .environmentObject(workoutStore)
+                if page.hasMarkdown {
+                    markdownSection(page: page, title: "Notes")
+                }
+                if page.hasMedia {
+                    PageMediaGalleryGrid(title: "Attachments", urls: page.mediaURLs) { index in
+                        selectedMediaIndex = index
+                        mediaGalleryPresented = true
+                    }
+                }
+                if page.hasLinks {
+                    linksSection(page: page)
+                }
             } else {
                 if page.hasMarkdown {
                     markdownSection(page: page, title: "Guide")
@@ -310,14 +324,13 @@ struct ExercisePageDetailView: View {
                 if page.hasLinks {
                     linksSection(page: page)
                 }
-                if page.isContainer {
-                    ContainerChildrenTabs(container: page)
-                        .environmentObject(store)
-                        .environmentObject(workoutStore)
-                }
             }
 
-            if !page.hasMarkdown && !page.hasMedia && !page.hasLinks && children.isEmpty && linkedPages.isEmpty {
+            if !page.isContainer &&
+                !page.isSkillLike &&
+                !page.hasMarkdown &&
+                !page.hasMedia &&
+                !page.hasLinks {
                 emptyContentPrompt
             }
         }
@@ -577,6 +590,209 @@ private enum SkillBoardPresentation: String, CaseIterable, Identifiable {
         }
     }
 }
+private struct SkillPresentationPicker: View {
+    @Binding var selection: SkillBoardPresentation
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(SkillBoardPresentation.allCases) { presentation in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            selection = presentation
+                        }
+                    } label: {
+                        Text(presentation.title)
+                            .font(.subheadline.weight(selection == presentation ? .semibold : .medium))
+                            .foregroundStyle(selection == presentation ? .black : Theme.textPrimary)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 9)
+                            .background(
+                                selection == presentation ? Theme.primary : Theme.surface2,
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(
+                                        selection == presentation
+                                            ? Theme.primary
+                                            : Theme.primary.opacity(0.28),
+                                        lineWidth: 1
+                                    )
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+}
+
+private struct SkillBoardSectionIconView: View {
+    let icon: String?
+    let iconType: SkillBoardIconType?
+    var size: CGFloat = 18
+
+    var body: some View {
+        Group {
+            if let icon, !icon.isEmpty {
+                if iconType == .system {
+                    Image(systemName: icon)
+                        .font(.system(size: size, weight: .semibold))
+                } else {
+                    Text(icon)
+                        .font(.system(size: size))
+                }
+            } else {
+                Image(systemName: "square.grid.2x2")
+                    .font(.system(size: size, weight: .semibold))
+            }
+        }
+        .foregroundStyle(Theme.primary)
+        .frame(width: size + 8, height: size + 8)
+        .background(Theme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+    }
+}
+
+private struct SkillSectionEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let onSave: (SkillBoardSection) -> Void
+    @State private var title = ""
+    @State private var iconType: SkillBoardIconType = .emoji
+    @State private var emoji = ""
+    @State private var systemIcon = "star.fill"
+
+    private let systemIcons = [
+        "star.fill", "flag.fill", "flame.fill", "bolt.fill",
+        "target", "checkmark.seal.fill", "figure.run", "dumbbell.fill",
+        "book.closed.fill", "graduationcap.fill", "mountain.2.fill", "sparkles"
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Section name")
+                            .font(.headline)
+                            .foregroundStyle(Theme.textPrimary)
+                        TextField("e.g. Foundations", text: $title)
+                            .textFieldStyle(.plain)
+                            .padding(13)
+                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Section icon")
+                            .font(.headline)
+                            .foregroundStyle(Theme.textPrimary)
+                        HStack(spacing: 8) {
+                            iconTypeButton(.emoji, title: "Emoji")
+                            iconTypeButton(.system, title: "Icon")
+                        }
+
+                        if iconType == .emoji {
+                            TextField("Choose an emoji", text: $emoji)
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 28))
+                                .multilineTextAlignment(.center)
+                                .padding(12)
+                                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+                                .foregroundStyle(Theme.textPrimary)
+                        } else {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 10) {
+                                ForEach(systemIcons, id: \.self) { icon in
+                                    Button {
+                                        systemIcon = icon
+                                    } label: {
+                                        Image(systemName: icon)
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(systemIcon == icon ? .black : Theme.textPrimary)
+                                            .frame(maxWidth: .infinity, minHeight: 42)
+                                            .background(
+                                                systemIcon == icon ? Theme.primary : Theme.surface,
+                                                in: RoundedRectangle(cornerRadius: 10)
+                                            )
+                                            .overlay {
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(
+                                                        systemIcon == icon ? Theme.primary : Theme.primary.opacity(0.22),
+                                                        lineWidth: 1
+                                                    )
+                                            }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .background(Theme.background.ignoresSafeArea())
+            .navigationTitle("New Section")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                AppToolbar.item(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+
+    private func iconTypeButton(_ type: SkillBoardIconType, title: String) -> some View {
+        Button {
+            iconType = type
+        } label: {
+            Text(title)
+                .font(.subheadline.weight(iconType == type ? .semibold : .medium))
+                .foregroundStyle(iconType == type ? .black : Theme.textPrimary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    iconType == type ? Theme.primary : Theme.surface,
+                    in: RoundedRectangle(cornerRadius: 9)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9)
+                        .stroke(
+                            iconType == type ? Theme.primary : Theme.primary.opacity(0.24),
+                            lineWidth: 1
+                        )
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func save() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+        let selectedIcon: String
+        if iconType == .emoji {
+            selectedIcon = emoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            selectedIcon = systemIcon
+        }
+        onSave(
+            SkillBoardSection(
+                title: trimmedTitle,
+                icon: selectedIcon.isEmpty ? nil : selectedIcon,
+                iconType: selectedIcon.isEmpty ? nil : iconType
+            )
+        )
+        dismiss()
+    }
+}
+
 
 private struct ContainerChildrenTabs: View {
     @EnvironmentObject private var store: DatabaseStore
@@ -632,14 +848,21 @@ private struct ContainerChildrenTabs: View {
                         selectedTab = tab
                     } label: {
                         Text(tab.title)
-                            .font(.subheadline.weight(selectedTab == tab ? .semibold : .regular))
+                            .font(.subheadline.weight(selectedTab == tab ? .semibold : .medium))
                             .foregroundStyle(selectedTab == tab ? .black : Theme.textPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                             .background(
-                                selectedTab == tab ? Theme.primary : Theme.surface,
-                                in: RoundedRectangle(cornerRadius: 10)
+                                selectedTab == tab ? Theme.primary : Theme.surface2,
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                             )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(
+                                        selectedTab == tab ? Theme.primary : Theme.primary.opacity(0.25),
+                                        lineWidth: 1
+                                    )
+                            }
                     }
                     .buttonStyle(.plain)
                     .simultaneousGesture(
@@ -652,25 +875,23 @@ private struct ContainerChildrenTabs: View {
             }
 
             if selectedTab == .skills {
+                Text("Skills")
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 4)
+
                 HStack(spacing: 10) {
-                    Picker("Skills view", selection: $skillPresentation) {
-                        ForEach(SkillBoardPresentation.allCases) { presentation in
-                            Text(presentation.title).tag(presentation)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    SkillPresentationPicker(selection: $skillPresentation)
 
                     Button {
                         showingSkillCreation = true
                     } label: {
                         Image(systemName: "plus")
-                            .frame(width: 38, height: 34)
+                            .font(.headline.weight(.semibold))
+                            .frame(width: 38, height: 38)
                             .foregroundStyle(Theme.primary)
-                            .background(Theme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Theme.primary.opacity(0.7), lineWidth: 1)
-                            )
+                            .modifier(TimeMasterToolbarIconSurface())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Create skill in \(container.title)")
@@ -750,7 +971,6 @@ private struct SkillSectionList: View {
     @State private var sections: [SkillBoardSection]
     @State private var draggedPageID: String?
     @State private var isPresentingNewSection = false
-    @State private var newSectionTitle = ""
 
     init(container: ExercisePage, skills: [ExercisePage], status: SkillStatus) {
         self.container = container
@@ -762,60 +982,72 @@ private struct SkillSectionList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Skill Sections")
+                Text("Sections")
                     .font(.headline)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Button {
                     isPresentingNewSection = true
                 } label: {
-                    Label("Section", systemImage: "plus")
+                    Label("Add Section", systemImage: "plus")
                         .font(.caption.weight(.semibold))
                 }
                 .foregroundStyle(Theme.primary)
             }
 
-            listGroup(title: "Unsectioned", sectionID: nil)
-            ForEach(sections) { section in
-                listGroup(title: section.title, sectionID: section.id)
+            if sections.isEmpty {
+                listGroup(title: nil, section: nil, sectionID: nil)
+            } else {
+                listGroup(title: "Unsectioned", section: nil, sectionID: nil)
+                ForEach(sections) { section in
+                    listGroup(title: section.title, section: section, sectionID: section.id)
+                }
             }
         }
-        .alert("New skill section", isPresented: $isPresentingNewSection) {
-            TextField("Section title", text: $newSectionTitle)
-            Button("Add") { addSection() }
-            Button("Cancel", role: .cancel) { newSectionTitle = "" }
-        } message: {
-            Text("Sections divide skills inline.")
+        .sheet(isPresented: $isPresentingNewSection) {
+            SkillSectionEditorSheet { section in
+                addSection(section)
+            }
         }
     }
 
-    private func listGroup(title: String, sectionID: String?) -> some View {
+    private func listGroup(
+        title: String?,
+        section: SkillBoardSection?,
+        sectionID: String?
+    ) -> some View {
         let grouped = skills
             .filter { ($0.manifest.skillStatus ?? .notStarted) == status }
             .filter { $0.manifest.skillBoardSectionID == sectionID }
             .sorted { ($0.manifest.skillBoardOrder ?? 0) < ($1.manifest.skillBoardOrder ?? 0) }
+
         return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer()
-                if let sectionID {
-                    Button(role: .destructive) {
-                        deleteSection(id: sectionID)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.caption2.weight(.bold))
+            if let title {
+                HStack {
+                    if let section {
+                        SkillBoardSectionIconView(icon: section.icon, iconType: section.iconType, size: 15)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.textSecondary)
-                    .accessibilityLabel("Delete \(title) section")
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer()
+                    if let sectionID {
+                        Button(role: .destructive) {
+                            deleteSection(id: sectionID)
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption2.weight(.bold))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Theme.textSecondary)
+                        .accessibilityLabel("Delete \(title) section")
+                    }
                 }
             }
 
             VStack(spacing: 8) {
                 if grouped.isEmpty {
-                    Text("Drop skills here")
+                    Text(sections.isEmpty ? "Create a section to organize skills." : "Drop skills here")
                         .font(.caption)
                         .foregroundStyle(Theme.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 48)
@@ -888,11 +1120,10 @@ private struct SkillSectionList: View {
         )
     }
 
-    private func addSection() {
-        let title = newSectionTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else { return }
-        sections.append(SkillBoardSection(title: title, order: sections.count))
-        newSectionTitle = ""
+    private func addSection(_ section: SkillBoardSection) {
+        var section = section
+        section.order = sections.count
+        sections.append(section)
         persistSections()
     }
 
@@ -929,17 +1160,16 @@ private struct SkillSectionList: View {
         )
     }
 }
-
 private struct SkillBoardItem: Identifiable {
     let page: ExercisePage
     var status: SkillStatus
     var sectionID: String?
     var order: Int
 
-    var id: String {
-        page.manifest.id
-    }
+    var id: String { page.manifest.id }
 }
+
+
 
 private struct SkillTableBoardView: View {
     @EnvironmentObject private var store: DatabaseStore
@@ -949,7 +1179,6 @@ private struct SkillTableBoardView: View {
     @State private var items: [SkillBoardItem]
     @State private var draggedItemID: String?
     @State private var isPresentingNewSection = false
-    @State private var newSectionTitle = ""
 
     init(container: ExercisePage, skills: [ExercisePage]) {
         self.container = container
@@ -967,14 +1196,14 @@ private struct SkillTableBoardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Table")
+                Text("Sections")
                     .font(.headline)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Button {
                     isPresentingNewSection = true
                 } label: {
-                    Label("Section", systemImage: "plus")
+                    Label("Add Section", systemImage: "plus")
                         .font(.caption.weight(.semibold))
                 }
                 .foregroundStyle(Theme.primary)
@@ -991,12 +1220,10 @@ private struct SkillTableBoardView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 340)
         }
-        .alert("New skill section", isPresented: $isPresentingNewSection) {
-            TextField("Section title", text: $newSectionTitle)
-            Button("Add") { addSection() }
-            Button("Cancel", role: .cancel) { newSectionTitle = "" }
-        } message: {
-            Text("Sections divide skills inside every status column.")
+        .sheet(isPresented: $isPresentingNewSection) {
+            SkillSectionEditorSheet { section in
+                addSection(section)
+            }
         }
     }
 
@@ -1012,9 +1239,13 @@ private struct SkillTableBoardView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
 
-            tableGroup(title: "Unsectioned", status: status, sectionID: nil)
-            ForEach(sections) { section in
-                tableGroup(title: section.title, status: status, sectionID: section.id)
+            if sections.isEmpty {
+                tableGroup(title: nil, section: nil, status: status, sectionID: nil)
+            } else {
+                tableGroup(title: "Unsectioned", section: nil, status: status, sectionID: nil)
+                ForEach(sections) { section in
+                    tableGroup(title: section.title, section: section, status: status, sectionID: section.id)
+                }
             }
         }
         .padding(10)
@@ -1022,30 +1253,40 @@ private struct SkillTableBoardView: View {
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
     }
 
-    private func tableGroup(title: String, status: SkillStatus, sectionID: String?) -> some View {
+    private func tableGroup(
+        title: String?,
+        section: SkillBoardSection?,
+        status: SkillStatus,
+        sectionID: String?
+    ) -> some View {
         let groupItems = sortedItems(status: status, sectionID: sectionID)
         return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer()
-                if let sectionID {
-                    Button(role: .destructive) {
-                        deleteSection(id: sectionID)
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.caption2.weight(.bold))
+            if let title {
+                HStack {
+                    if let section {
+                        SkillBoardSectionIconView(icon: section.icon, iconType: section.iconType, size: 14)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.textSecondary)
-                    .accessibilityLabel("Delete \(title) section")
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer()
+                    if let sectionID {
+                        Button(role: .destructive) {
+                            deleteSection(id: sectionID)
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption2.weight(.bold))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Theme.textSecondary)
+                        .accessibilityLabel("Delete \(title) section")
+                    }
                 }
             }
 
             VStack(spacing: 8) {
                 if groupItems.isEmpty {
-                    Text("Drop skills here")
+                    Text(sections.isEmpty ? "Create a section to organize skills." : "Drop skills here")
                         .font(.caption)
                         .foregroundStyle(Theme.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 54)
@@ -1151,11 +1392,11 @@ private struct SkillTableBoardView: View {
         }
     }
 
-    private func addSection() {
-        let title = newSectionTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !title.isEmpty else { return }
-        sections.append(SkillBoardSection(title: title, order: sections.count))
-        newSectionTitle = ""
+    private func addSection(_ section: SkillBoardSection) {
+        var section = section
+        section.order = sections.count
+        sections.append(section)
+        normalizeOrders()
         persist()
     }
 
@@ -1192,6 +1433,7 @@ private struct ContainerCategoryPage: View {
 
     let destination: ContainerCategoryDestination
     @State private var skillPresentation: SkillBoardPresentation = .notStarted
+    @State private var showingSkillCreation = false
 
     private var container: ExercisePage? {
         store.page(id: destination.containerID)
@@ -1217,18 +1459,34 @@ private struct ContainerCategoryPage: View {
                 VStack(alignment: .leading, spacing: 14) {
                     if let container {
                         if destination.tab == .skills {
-                            Picker("Skills view", selection: $skillPresentation) {
-                                ForEach(SkillBoardPresentation.allCases) { mode in
-                                    Text(mode.title).tag(mode)
+                            Text("Skills")
+                                .font(.largeTitle.weight(.bold))
+                                .foregroundStyle(Theme.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                            HStack(spacing: 10) {
+                                SkillPresentationPicker(selection: $skillPresentation)
+                                Button {
+                                    showingSkillCreation = true
+                                } label: {
+                                    Image(systemName: "plus")
+                                        .font(.headline.weight(.semibold))
+                                        .frame(width: 38, height: 38)
+                                        .foregroundStyle(Theme.primary)
+                                        .modifier(TimeMasterToolbarIconSurface())
                                 }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Create skill in \(container.title)")
                             }
-                            .pickerStyle(.segmented)
                             if skillPresentation == .table {
                                 SkillTableBoardView(container: container, skills: skills)
                             } else if let status = skillPresentation.status {
                                 SkillSectionList(container: container, skills: skills, status: status)
                             }
                         } else {
+                            Text("Exercises")
+                                .font(.largeTitle.weight(.bold))
+                                .foregroundStyle(Theme.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .center)
                             ExerciseChildList(pages: exercises)
                         }
                     }
@@ -1236,11 +1494,43 @@ private struct ContainerCategoryPage: View {
                 .padding(16)
             }
         }
-        .navigationTitle(destination.tab.title)
+        .navigationTitle("")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
         .toolbar {
+            if destination.tab == .skills {
+                AppToolbar.iconItem(placement: .primaryAction) {
+                    Button {
+                        showingSkillCreation = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .help("Create Skill")
+                }
+            }
             AppToolbar.item(placement: .cancellationAction) {
                 Button("Back") { dismiss() }
                     .buttonStyle(TimeMasterToolbarTextButtonStyle())
+            }
+        }
+        .sheet(isPresented: $showingSkillCreation) {
+            if let container {
+                PageCreationSheet(
+                    parentID: container.manifest.id,
+                    initialPageType: .skill
+                ) { manifest, parentID in
+                    try store.createPage(manifest: manifest, parentID: parentID)
+                } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
+                    try store.createPageWithMedia(
+                        manifest: manifest,
+                        parentID: parentID,
+                        coverData: coverData,
+                        mediaData: mediaData
+                    )
+                }
+                .environmentObject(store)
+                .environmentObject(workoutStore)
             }
         }
     }

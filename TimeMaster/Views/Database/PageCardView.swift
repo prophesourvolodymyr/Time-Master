@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct PageCardView: View {
     let page: ExercisePage
     var isGridMode: Bool = false
+    var showsTrailingChevron: Bool = true
     var onAddToWorkout: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
     var onAddChild: (() -> Void)? = nil
@@ -52,7 +53,9 @@ struct PageCardView: View {
             coverArea
             infoArea
             Spacer(minLength: 4)
-            chevron
+            if showsTrailingChevron {
+                chevron
+            }
         }
         .padding(.vertical, 4)
         .contextMenu { contextMenuContent }
