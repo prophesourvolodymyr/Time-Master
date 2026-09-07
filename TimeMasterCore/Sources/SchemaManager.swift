@@ -23,7 +23,7 @@ public final class SchemaManager {
                     "mediaFilenames": PropertySchema(type: "array<string>", description: "Ordered media files in page's media/ subdir; first item is the cover", optional: true),
                     "linkURLs": PropertySchema(type: "array<string>", description: "External URLs (YouTube, Instagram, TikTok, web)", optional: true),
                     "linkMetadata": PropertySchema(type: "array<object>", description: "Pre-fetched metadata for link previews", optional: true),
-                    "workoutType": PropertySchema(type: "object", description: "Assigned only to the absolute root container; all descendants inherit it", optional: true),
+                    "workoutType": PropertySchema(type: "object", description: "Optional page workout type; descendants inherit the container default unless overridden", optional: true),
                     "duration": PropertySchema(type: "integer", description: "Leaf exercise duration in seconds; forbidden on containers", format: "seconds", optional: true),
                     "restAfter": PropertySchema(type: "integer", description: "Rest after this exercise in seconds", format: "seconds", optional: true),
                     "prepareTime": PropertySchema(type: "integer", description: "Preparation before each set in seconds; leaf exercises only", format: "seconds", optional: true),
@@ -175,13 +175,13 @@ public final class SchemaManager {
                 "title": PropertySchema(type: "string", description: "Page title"),
                 "parentID": PropertySchema(type: "string", description: "Optional parent page UUID", optional: true),
             ]),
-            ToolSchema(name: "create_container_page", description: "Create an organization container. Containers can have child pages, media, and an optional root workout type.", write: true, parameters: [
+            ToolSchema(name: "create_container_page", description: "Create an organization container. Containers can have child pages, media, and an optional workout type; children inherit it unless they override it.", write: true, parameters: [
                 "title": PropertySchema(type: "string", description: "Container title"),
                 "parentID": PropertySchema(type: "string", description: "Optional parent container UUID", optional: true),
                 "mediaFilenames": PropertySchema(type: "array<string>", description: "Ordered media files; first item is the cover", optional: true),
-                "workoutType": PropertySchema(type: "object", description: "Optional root workout type; nested containers inherit it", optional: true),
+                "workoutType": PropertySchema(type: "object", description: "Optional workout type; children inherit it unless overridden", optional: true),
             ]),
-            ToolSchema(name: "create_exercise_page", description: "Create a workout-ready leaf exercise at the database root or inside a container. Its first media item is its cover; explicit cover filenames and per-page workout types are forbidden.", write: true, parameters: [
+            ToolSchema(name: "create_exercise_page", description: "Create a workout-ready leaf exercise at the database root or inside a container. Its first media item is its cover; workoutType optionally overrides its container default.", write: true, parameters: [
                 "title": PropertySchema(type: "string", description: "Exercise title"),
                 "parentID": PropertySchema(type: "string", description: "Optional parent container UUID", optional: true),
                 "duration": PropertySchema(type: "integer", description: "Exercise duration in seconds", format: "seconds"),
@@ -189,6 +189,7 @@ public final class SchemaManager {
                 "sets": PropertySchema(type: "integer", description: "Default number of sets", optional: true),
                 "restBetweenSets": PropertySchema(type: "integer", description: "Rest between sets in seconds", format: "seconds", optional: true),
                 "mediaFilenames": PropertySchema(type: "array<string>", description: "Media files; first item becomes the cover", optional: true),
+                "workoutType": PropertySchema(type: "object", description: "Optional workout type override", optional: true),
             ]),
             ToolSchema(name: "updatePage", description: "Update an existing page manifest", write: true, parameters: [
                 "id": PropertySchema(type: "string", description: "Page UUID to update"),

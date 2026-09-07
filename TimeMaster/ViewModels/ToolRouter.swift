@@ -207,11 +207,8 @@ final class ToolRouter {
     private func createContainerPage(_ args: [String: Any]) throws -> String {
         let title = args["title"] as? String ?? "New Container"
         let parentID = args["parentID"] as? String
-        if parentID != nil, args["workoutType"] != nil {
-            throw ToolError.invalidSettings("Nested containers inherit the root container workout type.")
-        }
         let workoutType: WT? = {
-            guard parentID == nil, let raw = args["workoutType"] as? [String: Any] else { return nil }
+            guard let raw = args["workoutType"] as? [String: Any] else { return nil }
             return WT(
                 id: raw["id"] as? String ?? "other",
                 name: raw["name"] as? String ?? "Other",
@@ -238,14 +235,24 @@ final class ToolRouter {
         guard let duration = args["duration"] as? Int else {
             throw ToolError.missingParameter("duration")
         }
-
         let title = args["title"] as? String ?? "New Exercise"
+
+        let workoutType: WT? = {
+            guard let raw = args["workoutType"] as? [String: Any] else { return nil }
+            return WT(
+                id: raw["id"] as? String ?? "other",
+                name: raw["name"] as? String ?? "Other",
+                iconName: raw["iconName"] as? String ?? "star.fill",
+                colorHex: raw["colorHex"] as? String ?? "FFFFFF"
+            )
+        }()
         let manifest = ExercisePageManifest(
             title: title,
             pageKind: .leaf,
             markdownBody: args["markdownBody"] as? String ?? "",
             mediaFilenames: args["mediaFilenames"] as? [String] ?? [],
             linkURLs: args["linkURLs"] as? [String] ?? [],
+            workoutType: workoutType,
             duration: duration,
             restAfter: args["restAfter"] as? Int ?? 0,
             sets: args["sets"] as? Int ?? 1,

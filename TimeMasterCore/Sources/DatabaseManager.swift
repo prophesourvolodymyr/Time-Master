@@ -329,8 +329,6 @@ Query the TimeMaster exercise database.
 
         if normalized.pageKind == .container, parentID == nil {
             normalized.workoutType = normalized.workoutType ?? .other
-        } else {
-            normalized.workoutType = nil
         }
         if normalized.pageKind == .container {
             normalized.duration = nil
@@ -381,9 +379,6 @@ Query the TimeMaster exercise database.
             if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
                 throw FileSystemHelper.Error.invalidPageKind("containers cannot have workout timing")
             }
-            if parentID != nil, manifest.workoutType != nil {
-                throw FileSystemHelper.Error.invalidPageKind("nested containers inherit the root container workout type")
-            }
         } else {
             if manifest.coverImageFilename != nil {
                 throw FileSystemHelper.Error.invalidPageKind("exercise pages use their first media item as the cover")
@@ -393,9 +388,6 @@ Query the TimeMaster exercise database.
             }
             if !manifest.childIDs.isEmpty {
                 throw FileSystemHelper.Error.invalidPageKind("exercise pages cannot contain child pages")
-            }
-            if manifest.workoutType != nil {
-                throw FileSystemHelper.Error.invalidPageKind("exercise pages inherit the root container workout type")
             }
         }
     }
@@ -470,9 +462,6 @@ Query the TimeMaster exercise database.
 
     public func createPage(manifest: ExercisePageManifest, parentID: String? = nil) throws {
         let resolvedParentID = parentID ?? manifest.parentID
-        if resolvedParentID != nil, manifest.workoutType != nil {
-            throw FileSystemHelper.Error.invalidPageKind("only the absolute root container may define a workout type")
-        }
         var candidate = manifest
         candidate.parentID = resolvedParentID
         try validatePageManifest(candidate, parentID: resolvedParentID)

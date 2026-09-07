@@ -126,11 +126,7 @@ struct PageCreationSheet: View {
                         }
                         pageKindCard
                         mediaCard
-                        if pageKind == .container && draftParentID == nil {
-                            workoutTypeCard
-                        } else if draftParentID != nil {
-                            inheritedWorkoutTypeCard
-                        }
+                        workoutTypeCard
                         if pageKind == .leaf {
                             timingCard
                             dropSetTemplatesCard
@@ -266,7 +262,7 @@ struct PageCreationSheet: View {
 
     private var titleCard: some View {
         formCard {
-            formHeading("Title", required: true)
+            sectionHeading("Title", required: true)
             TextField("Page title", text: $title)
                 .textFieldStyle(.plain)
                 .padding(13)
@@ -277,16 +273,11 @@ struct PageCreationSheet: View {
 
     private var pageKindCard: some View {
         formCard {
-            formHeading("Page Type", required: true)
+            sectionHeading("Page Type", required: true)
             HStack(spacing: 8) {
                 kindButton(.container, title: "Container", systemImage: "square.stack.3d.up")
                 kindButton(.leaf, title: "Exercise", systemImage: "figure.run")
             }
-            Text(draftParentID == nil
-                 ? "Root pages can be containers or exercises."
-                 : "This page is inside a container and can hold its own media and content.")
-                .font(.caption)
-                .foregroundStyle(Theme.textSecondary)
         }
     }
 
@@ -312,19 +303,9 @@ struct PageCreationSheet: View {
 
     private var mediaCard: some View {
         formCard {
-            HStack(alignment: .firstTextBaseline) {
-                formHeading("Media", optional: true)
-                Spacer()
-                Text("First item = Cover")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.primary)
-            }
+            sectionHeading("Media", optional: true)
 
-            if mediaFilenames.isEmpty {
-                Text("Add photos or videos. The first item becomes the cover and stays visible in the gallery.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
-            } else {
+            if !mediaFilenames.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .top, spacing: 10) {
                         ForEach(mediaFilenames, id: \.self) { filename in
@@ -413,12 +394,18 @@ struct PageCreationSheet: View {
 
     private var workoutTypeCard: some View {
         formCard {
-            formHeading("Workout Type", optional: true)
+            sectionHeading("Workout Type", optional: true)
+            if let inheritedWorkoutType {
+                Text("Uses \(inheritedWorkoutType.name) from the container by default.")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 Button {
                     workoutType = nil
                 } label: {
-                    Text("None")
+                    Text(inheritedWorkoutType == nil ? "None" : "Container default")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(OrangeChoiceButtonStyle(isSelected: workoutType == nil))
@@ -439,26 +426,9 @@ struct PageCreationSheet: View {
         }
     }
 
-    private var inheritedWorkoutTypeCard: some View {
-        Group {
-            if let inheritedWorkoutType {
-                HStack(spacing: 8) {
-                    Image(systemName: inheritedWorkoutType.iconName)
-                        .foregroundStyle(Color(hex: inheritedWorkoutType.colorHex))
-                    Text("Uses \(inheritedWorkoutType.name) from its container")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.textSecondary)
-                    Spacer()
-                }
-                .padding(12)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
-            }
-        }
-    }
-
     private var timingCard: some View {
         formCard {
-            formHeading("Workout Config", required: true)
+            sectionHeading("Workout Config", required: true)
             VStack(spacing: 8) {
                 stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s", required: true)
                 stepperRow(label: "Prepare Time", value: $prepareTime, range: 0...30, step: 1, unit: "s", optional: true)
@@ -499,33 +469,29 @@ struct PageCreationSheet: View {
 
     private var dropSetTemplatesCard: some View {
         formCard {
-            HStack(alignment: .firstTextBaseline) {
-                formHeading("Drop Sets", optional: true)
-                Spacer()
+            sectionHeading("Drop Sets", optional: true)
+            HStack(spacing: 12) {
                 Button {
                     addManualDropSet()
                 } label: {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "plus")
+                        .frame(width: 48, height: 42)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Theme.primary)
+                .buttonStyle(OrangeDraftIconButtonStyle())
                 .accessibilityLabel("Add manual drop set")
 
                 Button {
                     showDropSetPicker = true
                 } label: {
                     Image(systemName: "externaldrive.badge.plus")
+                        .frame(width: 48, height: 42)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Theme.primary)
+                .buttonStyle(OrangeDraftIconButtonStyle())
                 .accessibilityLabel("Add drop set from database")
             }
+            .frame(maxWidth: .infinity, alignment: .center)
 
-            if dropSetTemplates.isEmpty {
-                Text("Use + for a typed drop set or the database button to choose an exercise page.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
-            } else {
+            if !dropSetTemplates.isEmpty {
                 ForEach($dropSetTemplates) { $template in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
@@ -601,18 +567,12 @@ struct PageCreationSheet: View {
 
     private var markdownCard: some View {
         formCard {
-            HStack(alignment: .firstTextBaseline) {
-                formHeading("Guide", optional: true)
-                Spacer()
-                Text("Markdown")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.textSecondary)
-            }
+            sectionHeading("Guide", optional: true)
 
             VStack(spacing: 0) {
                 ZStack(alignment: .topLeading) {
                     if markdownBody.isEmpty {
-                        Text("Write a guide here… supports **bold**, *italic*, headings, and lists")
+                        Text("Write a guide here…")
                             .font(.body)
                             .foregroundStyle(Theme.textSecondary.opacity(0.65))
                             .padding(.top, 14)
@@ -627,9 +587,6 @@ struct PageCreationSheet: View {
                 }
 
                 HStack {
-                    Text("Live Preview")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.primary)
                     Spacer()
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.caption.weight(.bold))
@@ -654,19 +611,12 @@ struct PageCreationSheet: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
 
-                Group {
-                    if markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text("Rendered markdown will appear here as you type.")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.textSecondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        MarkdownTextView(text: markdownBody)
-                    }
+                if !markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    MarkdownTextView(text: markdownBody)
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.background.opacity(0.55))
                 }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.background.opacity(0.55))
             }
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
         }
@@ -674,24 +624,22 @@ struct PageCreationSheet: View {
 
     private var linksCard: some View {
         formCard {
-            HStack(alignment: .firstTextBaseline) {
-                formHeading("External Links", optional: true)
-                Spacer()
-                Button {
-                    linkRows.append(PageCreationLinkRow(url: ""))
-                } label: {
-                    Image(systemName: "plus.circle")
+            ZStack {
+                sectionHeading("External Links", optional: true)
+                HStack {
+                    Spacer()
+                    Button {
+                        linkRows.append(PageCreationLinkRow(url: ""))
+                    } label: {
+                        Image(systemName: "plus.circle")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.primary)
+                    .accessibilityLabel("Add external link")
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(Theme.primary)
-                .accessibilityLabel("Add external link")
             }
 
-            if linkRows.isEmpty {
-                Text("Paste one link per row. A live preview appears when the URL responds.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
-            } else {
+            if !linkRows.isEmpty {
                 ForEach($linkRows) { $row in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
@@ -845,21 +793,36 @@ struct PageCreationSheet: View {
         VStack(alignment: .leading, spacing: 10, content: content)
     }
 
-    @ViewBuilder
-    private func formHeading(_ title: String, required: Bool = false, optional: Bool = false) -> some View {
-        HStack(spacing: 5) {
+    private func sectionHeading(_ title: String, required: Bool = false, optional: Bool = false) -> some View {
+        HStack(spacing: 4) {
+            Spacer(minLength: 0)
             Text(title)
-                .font(.headline)
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(Theme.textPrimary)
-            if required {
-                Text("Required")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.primary)
-            } else if optional {
-                Text("Optional")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.textSecondary)
-            }
+            statusMark(required: required, optional: optional)
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private func statusMark(required: Bool, optional: Bool) -> some View {
+        if required {
+            Text("*")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Theme.primary)
+        } else if optional {
+            Text("opt")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+        }
+    }
+
+    private func formHeading(_ title: String, required: Bool = false, optional: Bool = false) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+            statusMark(required: required, optional: optional)
         }
     }
 
@@ -1001,11 +964,9 @@ struct PageCreationSheet: View {
             return url.isEmpty ? nil : (url, row.metadata)
         }
         let normalizedDropSets = normalizedDropSetTemplates()
-        let coreWorkoutType: TimeMasterCore.WorkoutType? = pageKind == .container && draftParentID == nil
-            ? workoutType.map {
-                TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
-            }
-            : nil
+        let coreWorkoutType: TimeMasterCore.WorkoutType? = workoutType.map {
+            TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
+        }
         let restBetweenSetsValue = pageKind == .leaf && sets > 1 ? restBetweenSets : nil
 
         if let existingPage {

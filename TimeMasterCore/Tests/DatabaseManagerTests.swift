@@ -527,7 +527,7 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertEqual(try db.getPage(id: page.id).mediaFilenames, [second, first])
     }
 
-    func testNestedContainersInheritRootWorkoutTypeAndRejectOverrides() throws {
+    func testNestedPagesInheritContainerWorkoutTypeAndAllowOverrides() throws {
         try db.bootstrapIfNeeded()
         let root = ExercisePageManifest(id: "typed-root", title: "Root", workoutType: .strength)
         try db.createPage(manifest: root)
@@ -540,7 +540,24 @@ final class DatabaseManagerTests: XCTestCase {
         try db.createPage(manifest: leaf, parentID: nested.id)
         XCTAssertNil(try db.getPage(id: leaf.id).workoutType)
 
-        let invalidNested = ExercisePageManifest(id: "invalid-nested", title: "Invalid", workoutType: .hiit, parentID: root.id)
-        XCTAssertThrowsError(try db.createPage(manifest: invalidNested, parentID: root.id))
+        let nestedOverride = ExercisePageManifest(
+            id: "nested-override",
+            title: "Override",
+            workoutType: .hiit,
+            parentID: root.id
+        )
+        try db.createPage(manifest: nestedOverride, parentID: root.id)
+        XCTAssertEqual(try db.getPage(id: nestedOverride.id).workoutType, .hiit)
+
+        let leafOverride = ExercisePageManifest(
+            id: "leaf-override",
+            title: "Leaf Override",
+            pageKind: .leaf,
+            workoutType: .yoga,
+            duration: 30,
+            parentID: nested.id
+        )
+        try db.createPage(manifest: leafOverride, parentID: nested.id)
+        XCTAssertEqual(try db.getPage(id: leafOverride.id).workoutType, .yoga)
     }
 }
