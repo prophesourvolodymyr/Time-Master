@@ -428,8 +428,7 @@ struct DatabaseView: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    databaseHeader
-                    databaseControls
+                    databaseChrome
                     if isV2 && !store.rootPages.isEmpty {
                         pageTreeView
                     } else if !isV2 {
@@ -557,77 +556,111 @@ struct DatabaseView: View {
         }
     }
 
+    private var databaseChrome: some View {
+        VStack(spacing: 0) {
+            databaseHeader
+            databaseControls
+        }
+        .background(Theme.background)
+        .zIndex(1)
+    }
+
     private var databaseControls: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 12) {
-                databaseActionButton(
-                    systemImage: isGridMode ? "list.bullet" : "square.grid.2x2",
-                    label: isGridMode ? "List View" : "Gallery View"
-                ) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isGridMode.toggle()
-                    }
-                }
-
-                databaseSortMenu
-
-                databaseActionButton(systemImage: "magnifyingglass", label: "Search Database") {
-                    showingDatabaseSearch = true
-                }
-
-                databaseActionButton(systemImage: "video.badge.plus", label: "Import Video") {
-                    showingImport = true
-                }
+        HStack(spacing: 10) {
+            databaseMajorButton(systemImage: "video.badge.plus", title: "Import Video") {
+                showingImport = true
             }
-            .frame(maxWidth: .infinity, alignment: .center)
-
-            HStack(spacing: 12) {
-                databaseActionButton(systemImage: "square.and.arrow.down", label: "Import Database") {
-                    showingDatabaseImport = true
-                }
-                databaseActionButton(systemImage: "plus", label: "Create Skill") {
-                    creationLeafFirst = false
-                    creationPageType = .skill
-                    showingCreatePage = true
-                }
+            databaseAddMenu
+            databaseMajorButton(systemImage: "magnifyingglass", title: "Search") {
+                showingDatabaseSearch = true
             }
-            .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 10)
     }
 
-    private func databaseActionButton(
+    private func databaseMajorButton(
         systemImage: String,
-        label: String,
+        title: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 21, weight: .semibold))
+            databaseMajorLabel(systemImage: systemImage, title: title)
         }
-        .modifier(TimeMasterToolbarIconSurface(size: 48))
-        .accessibilityLabel(label)
-        .help(label)
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel(title)
+        .help(title)
     }
 
-    private var databaseSortMenu: some View {
+    private var databaseAddMenu: some View {
         Menu {
-            ForEach(PageSortOption.allCases, id: \.self) { option in
-                Button {
-                    sortOption = option
-                } label: {
-                    Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
-                }
+            Button {
+                creationLeafFirst = false
+                creationPageType = .skill
+                showingCreatePage = true
+            } label: {
+                Label("New Skill", systemImage: "flag.checkered")
+            }
+            Button {
+                creationLeafFirst = true
+                creationPageType = .exercise
+                showingCreatePage = true
+            } label: {
+                Label("New Exercise", systemImage: "figure.run")
+            }
+            Button {
+                creationLeafFirst = false
+                creationPageType = nil
+                showingCreatePage = true
+            } label: {
+                Label("New Container", systemImage: "folder.badge.plus")
+            }
+            Button {
+                creationLeafFirst = false
+                creationPageType = .tutorial
+                showingCreatePage = true
+            } label: {
+                Label("New Tutorial", systemImage: "book.closed")
+            }
+            Divider()
+            Button {
+                showingDatabaseImport = true
+            } label: {
+                Label("Import Database File", systemImage: "square.and.arrow.down")
             }
         } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .font(.system(size: 21, weight: .semibold))
-                .modifier(TimeMasterToolbarIconSurface(size: 48))
+            databaseMajorLabel(systemImage: "plus", title: "Add")
         }
-        .accessibilityLabel("Sort Database")
-        .help("Sort Database")
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel("Add")
+        .help("Add")
+    }
+
+    private func databaseMajorLabel(systemImage: String, title: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 20, weight: .semibold))
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, minHeight: 54)
+        .modifier(
+            TimeMasterPrivateGlassSurface(
+                cornerRadius: 14,
+                isInteractive: true,
+                tint: Theme.toolbarOrange,
+                tintOpacity: 0.42
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Theme.toolbarOrange.opacity(0.65), lineWidth: 1)
+        }
     }
 
     private var databaseHeader: some View {
@@ -845,7 +878,7 @@ struct DatabaseView: View {
     }
 
     private var filterChipsRow: some View {
-        GeometryReader { proxy in
+        HStack(spacing: 8) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     filterChip(.all, label: "All")
@@ -853,12 +886,42 @@ struct DatabaseView: View {
                         filterChip(.type(type.id), label: type.name)
                     }
                 }
-                .frame(minWidth: max(proxy.size.width - 32, 0))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.leading, 16)
+                .padding(.vertical, 7)
             }
+            .frame(maxWidth: .infinity)
+
+            databaseFilterControls
+                .padding(.trailing, 16)
         }
         .frame(height: 48)
+    }
+
+    private var databaseFilterControls: some View {
+        HStack(spacing: 5) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isGridMode.toggle()
+                }
+            } label: {
+                Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
+            }
+            .buttonStyle(DatabaseFilterButtonStyle(label: isGridMode ? "List View" : "Gallery View"))
+
+            Menu {
+                ForEach(PageSortOption.allCases, id: \.self) { option in
+                    Button {
+                        sortOption = option
+                    } label: {
+                        Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                    }
+                }
+            } label: {
+                Image(systemName: "arrow.up.arrow.down")
+            }
+            .buttonStyle(DatabaseFilterButtonStyle(label: "Reorder"))
+            .accessibilityLabel("Reorder")
+        }
     }
 
     private func filterChip(_ option: PageFilterOption, label: String) -> some View {
@@ -1102,6 +1165,24 @@ struct DatabaseView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
     }
+private struct DatabaseFilterButtonStyle: ButtonStyle {
+    let label: String
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Theme.textSecondary)
+            .frame(width: 30, height: 30)
+            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Theme.separator, lineWidth: 1)
+            }
+            .opacity(configuration.isPressed ? 0.65 : 1)
+            .accessibilityLabel(label)
+    }
+}
+
 private struct DatabasePageEntry: Identifiable {
     let page: ExercisePage
     let depth: Int
