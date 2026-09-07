@@ -1,19 +1,20 @@
 #if os(iOS)
 import SwiftUI
+import CoreLocation
 
 struct OutdoorMapControls: View {
     let weatherState: OutdoorWeatherState
     let weatherInfoEnabled: Bool
     let followsUser: Bool
+    let heading: CLLocationDirection
     let mapAttribution: OutdoorMapAttribution
     let onDownload: () -> Void
     let onFocusLocation: () -> Void
+    let onResetNorth: () -> Void
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 8) {
-            mapAttributionView
-
             Button(action: onDownload) {
                 Image(systemName: "arrow.down.circle")
                     .font(.system(size: 17, weight: .semibold))
@@ -32,34 +33,57 @@ struct OutdoorMapControls: View {
             .accessibilityHint("Centers the map on your current position and follows it.")
 
             if weatherInfoEnabled {
-                weatherView
+                VStack(alignment: .trailing, spacing: 4) {
+                    weatherView
+                    if let presentation = weatherState.presentation {
+                        weatherAttributionView(presentation.attribution)
+                    }
+                }
             }
-            if let presentation = weatherState.presentation {
-                weatherAttributionView(presentation.attribution)
-            }
+
+            compassButton
+            mapAttributionView
         }
     }
 
     private var mapAttributionView: some View {
-        let text = ([mapAttribution.providerName] + mapAttribution.notices).joined(separator: " · ")
-        return Group {
+        let noticeText = mapAttribution.notices.joined(separator: " · ")
+        return VStack(alignment: .trailing, spacing: 1) {
             if let URL = mapAttribution.URLs.first {
-                Link(text, destination: URL)
+                Link(mapAttribution.providerName, destination: URL)
             } else {
-                Text(text)
+                Text(mapAttribution.providerName)
+            }
+            if !noticeText.isEmpty {
+                Text(noticeText)
+                    .font(.caption2.weight(.regular))
             }
         }
-        .font(.caption2.weight(.medium))
+        .font(.caption2.weight(.semibold))
         .foregroundStyle(Theme.textSecondary)
-        .lineLimit(2)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
         .multilineTextAlignment(.trailing)
         .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: 140, alignment: .trailing)
+        .frame(maxWidth: 170, alignment: .trailing)
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .background(reduceTransparency ? Theme.surface : Theme.surface.opacity(0.78), in: Capsule())
+        .accessibilityElement(children: .combine)
         .accessibilityLabel("Map data attribution")
-        .accessibilityValue(text)
+        .accessibilityValue([mapAttribution.providerName, noticeText].filter { !$0.isEmpty }.joined(separator: ", "))
+    }
+
+    private var compassButton: some View {
+        Button(action: onResetNorth) {
+            Image(systemName: "location.north.line.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .rotationEffect(.degrees(-heading))
+        }
+        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+        .accessibilityLabel("Compass")
+        .accessibilityValue(abs(heading) < 1 ? "North" : "Heading \(Int(heading.rounded())) degrees")
+        .accessibilityHint("Resets the map so north is up.")
     }
 
     private func weatherAttributionView(_ attribution: OutdoorWeatherAttribution) -> some View {
@@ -88,7 +112,7 @@ struct OutdoorMapControls: View {
     private var weatherView: some View {
         switch weatherState {
         case .disabled:
-            EmptyView()
+            weatherStatusCapsule(title: "Weather updating", systemImage: "cloud.sun", value: "—")
         case .loading(let previous):
             if let previous {
                 weatherCapsule(previous, status: "Updating")

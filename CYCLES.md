@@ -727,10 +727,10 @@ F27 Home ───────────────┘
     - [ ] Preserve legacy Run & Walk while adding Run and Walk
   - [ ] F28-D — Map Platform
     - [ ] Connect map-side controls through real service boundaries
-    - [ ] Keep weather display-only and noninteractive
+    - [x] Keep weather display-only and noninteractive
     - [ ] Preserve deferred offline-area-selection service contract
     - [x] Implement categorized base-map and overlay controls
-    - [ ] Connect approved production map providers and attribution
+    - [x] Connect approved production map providers and attribution
     - [x] Rebuild map settings as contextual rows
     - [x] Disable incompatible map layers for Terrain and Satellite
     - [ ] Implement Explore Terrain Satellite 3D Transit Traffic Cycling Dark Direction
@@ -744,7 +744,7 @@ F27 Home ───────────────┘
     - [x] Apply an orange route accent, blue water, and restrained green landscape
     - [x] Replace the dimmed dark overlay with a direct dark map palette
     - [x] Densify the Map pane and remove redundant base and overlay summaries
-    - [x] Use a compact provider-hosted Noto Sans label hierarchy
+    - [x] Package custom map glyphs before overriding the provider font stack
   - [ ] F28-E — Music Workout Editor
     - [ ] Connect Music Editor to existing Settings music system
     - [ ] Implement content-driven Music pine sizing

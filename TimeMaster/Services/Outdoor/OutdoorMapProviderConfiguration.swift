@@ -14,7 +14,7 @@ struct OutdoorMapProviderConfiguration {
         let mapTilerDarkStyleURL = "TMMapTilerDarkStyleURL"
         let mapTilerOfflineStyleURL = "TMMapTilerOfflineStyleURL"
         let mapTilerOfflineLicensed = "TMMapTilerOfflineLicensed"
-        let terrainRasterTileURL = "TMTerrainRasterTileURL"
+        let terrainDEMURL = "TMTerrainDEMURL"
         let satelliteRasterTileURL = "TMSatelliteRasterTileURL"
         let tomTomTrafficTileURL = "TMTomTomTrafficTileURL"
         let tomTomTrafficKey = "TMTomTomTrafficKey"
@@ -35,7 +35,7 @@ struct OutdoorMapProviderConfiguration {
     let mapTilerDarkStyleURL: URL?
     let mapTilerOfflineStyleURL: URL?
     let mapTilerOfflineLicensed: Bool
-    let terrainRasterTileURLTemplate: String?
+    let terrainDEMURLTemplate: String?
     let satelliteRasterTileURLTemplate: String?
     let tomTomTrafficTileURLTemplate: String?
     let tomTomTrafficKey: String?
@@ -61,7 +61,7 @@ struct OutdoorMapProviderConfiguration {
         mapTilerDarkStyleURL = Self.url(infoDictionary[keys.mapTilerDarkStyleURL])
         mapTilerOfflineStyleURL = Self.url(infoDictionary[keys.mapTilerOfflineStyleURL])
         mapTilerOfflineLicensed = Self.bool(infoDictionary[keys.mapTilerOfflineLicensed])
-        terrainRasterTileURLTemplate = Self.template(infoDictionary[keys.terrainRasterTileURL])
+        terrainDEMURLTemplate = Self.template(infoDictionary[keys.terrainDEMURL])
         satelliteRasterTileURLTemplate = Self.template(infoDictionary[keys.satelliteRasterTileURL])
         tomTomTrafficTileURLTemplate = Self.template(infoDictionary[keys.tomTomTrafficTileURL])
         tomTomTrafficKey = Self.secretLikeValue(infoDictionary[keys.tomTomTrafficKey])
@@ -97,24 +97,21 @@ struct OutdoorMapProviderConfiguration {
             )
 
         case .terrain:
-            if mapTilerKey != nil, mapTilerTerrainStyleURL != nil {
-                return mapTilerCapability(mode: mode, coverage: .providerDefined, cacheRights: mapTilerCacheRights)
-            }
-            guard exploreStyleURL != nil, terrainRasterTileURLTemplate != nil else {
+            guard exploreStyleURL != nil, terrainDEMURLTemplate != nil else {
                 return .unavailable(
                     mode: mode,
-                    provider: .openTopoMap,
+                    provider: .awsTerrain,
                     status: .missingEndpoint,
-                    reason: "No terrain map endpoint is configured.",
-                    attribution: openTopoMapAttribution
+                    reason: "A vector base map and DEM endpoint are required before terrain relief can be shown.",
+                    attribution: awsTerrainAttribution
                 )
             }
             return OutdoorMapCapability(
                 mode: mode,
-                provider: .openTopoMap,
+                provider: .awsTerrain,
                 status: .available,
                 reason: nil,
-                attribution: openTopoMapAttribution,
+                attribution: awsTerrainAttribution,
                 cacheRights: .networkOnly,
                 freshness: .init(maximumAge: nil, lastUpdated: nil),
                 coverage: .global
@@ -145,25 +142,22 @@ struct OutdoorMapProviderConfiguration {
             )
 
         case .threeD:
-            if mapTilerThreeDStyleURL != nil, mapTilerKey == nil {
-                return missingMapTilerCredential(for: mode)
-            }
-            guard exploreStyleURL != nil else {
+            guard exploreStyleURL != nil, terrainDEMURLTemplate != nil else {
                 return .unavailable(
                     mode: mode,
-                    provider: .openFreeMap,
+                    provider: .awsTerrain,
                     status: .missingEndpoint,
-                    reason: "A vector style with building data is required for 3D.",
-                    attribution: openFreeMapAttribution
+                    reason: "A vector base map and DEM endpoint are required before 3D relief can be shown.",
+                    attribution: awsTerrainAttribution
                 )
             }
             return OutdoorMapCapability(
                 mode: mode,
-                provider: mapTilerThreeDStyleURL == nil ? .openFreeMap : .mapTiler,
+                provider: .awsTerrain,
                 status: .available,
                 reason: nil,
-                attribution: mapTilerThreeDStyleURL == nil ? openFreeMapAttribution : mapTilerAttribution,
-                cacheRights: mapTilerThreeDStyleURL == nil ? (exploreOfflineAllowed ? openFreeMapOfflineRights : .networkOnly) : mapTilerCacheRights,
+                attribution: awsTerrainAttribution,
+                cacheRights: .networkOnly,
                 freshness: .init(maximumAge: nil, lastUpdated: nil),
                 coverage: .global
             )
@@ -270,8 +264,7 @@ struct OutdoorMapProviderConfiguration {
                 freshness: .init(maximumAge: nil, lastUpdated: nil),
                 coverage: .global
             )
-
-    }
+        }
     }
 
     func style(for mode: OutdoorMapMode) -> OutdoorMapStyleDefinition? {
@@ -288,21 +281,12 @@ struct OutdoorMapProviderConfiguration {
             )
         case .terrain:
             guard let exploreStyleURL else { return nil }
-            if let mapTilerTerrainStyleURL, mapTilerKey != nil {
-                return OutdoorMapStyleDefinition(
-                    styleURL: expandedURL(mapTilerTerrainStyleURL, key: mapTilerKey),
-                    rasterTileURLTemplate: nil,
-                    vectorTileURLTemplate: nil,
-                    vectorSourceLayer: nil,
-                    attribution: mapTilerAttribution
-                )
-            }
             return OutdoorMapStyleDefinition(
                 styleURL: exploreStyleURL,
-                rasterTileURLTemplate: terrainRasterTileURLTemplate,
+                rasterTileURLTemplate: nil,
                 vectorTileURLTemplate: nil,
                 vectorSourceLayer: nil,
-                attribution: openTopoMapAttribution
+                attribution: awsTerrainAttribution
             )
         case .satellite:
             guard let exploreStyleURL else { return nil }
@@ -323,12 +307,13 @@ struct OutdoorMapProviderConfiguration {
                 attribution: esriAttribution
             )
         case .threeD:
+            guard let exploreStyleURL else { return nil }
             return OutdoorMapStyleDefinition(
-                styleURL: expandedURL(mapTilerThreeDStyleURL ?? exploreStyleURL!, key: mapTilerKey),
+                styleURL: exploreStyleURL,
                 rasterTileURLTemplate: nil,
                 vectorTileURLTemplate: nil,
                 vectorSourceLayer: nil,
-                attribution: mapTilerThreeDStyleURL == nil ? openFreeMapAttribution : mapTilerAttribution
+                attribution: awsTerrainAttribution
             )
         case .transit:
             guard let exploreStyleURL else { return nil }
@@ -375,7 +360,7 @@ struct OutdoorMapProviderConfiguration {
             return exploreOfflineAllowed ? openFreeMapOfflineRights : .networkOnly
         case .mapTiler:
             return mapTilerCacheRights
-        case .openTopoMap, .esri, .tomTom, .licensedTransit, .device:
+        case .openTopoMap, .awsTerrain, .esri, .tomTom, .licensedTransit, .device:
             return .networkOnly
         }
     }
@@ -384,7 +369,10 @@ struct OutdoorMapProviderConfiguration {
         OutdoorMapAttribution(
             providerName: "OpenFreeMap",
             notices: ["© OpenStreetMap contributors"],
-            URLs: ["https://openfreemap.org", "https://www.openstreetmap.org/copyright"].compactMap(URL.init(string:))
+            URLs: [
+                "https://openfreemap.org",
+                "https://www.openstreetmap.org/copyright"
+            ].compactMap(URL.init(string:))
         )
     }
 
@@ -392,17 +380,28 @@ struct OutdoorMapProviderConfiguration {
         OutdoorMapAttribution(
             providerName: "MapTiler",
             notices: ["© MapTiler", "© OpenStreetMap contributors"],
-            URLs: ["https://www.maptiler.com/copyright/", "https://www.openstreetmap.org/copyright"].compactMap(URL.init(string:))
+            URLs: [
+                "https://www.maptiler.com/copyright/",
+                "https://www.openstreetmap.org/copyright"
+            ].compactMap(URL.init(string:))
+        )
+    }
+
+    var awsTerrainAttribution: OutdoorMapAttribution {
+        OutdoorMapAttribution(
+            providerName: "OpenFreeMap · AWS Terrain",
+            notices: ["© OpenStreetMap contributors"],
+            URLs: [
+                "https://openfreemap.org",
+                "https://registry.opendata.aws/terrain-tiles/"
+            ].compactMap(URL.init(string:))
         )
     }
 
     var openTopoMapAttribution: OutdoorMapAttribution {
-        OutdoorMapAttribution(
-            providerName: "OpenTopoMap",
-            notices: ["© OpenStreetMap contributors", "SRTM"],
-            URLs: ["https://opentopomap.org/about", "https://www.openstreetmap.org/copyright"].compactMap(URL.init(string:))
-        )
+        awsTerrainAttribution
     }
+
 
     var esriAttribution: OutdoorMapAttribution {
         OutdoorMapAttribution(

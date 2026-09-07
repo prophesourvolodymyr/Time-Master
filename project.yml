@@ -66,7 +66,7 @@ targets:
         TM_MAPTILER_DARK_STYLE_URL: ""
         TM_MAPTILER_OFFLINE_STYLE_URL: ""
         TM_MAPTILER_OFFLINE_LICENSED: NO
-        TM_TERRAIN_RASTER_TILE_URL: "https://tile.opentopomap.org/{z}/{x}/{y}.png"
+        TM_TERRAIN_DEM_URL: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
         TM_SATELLITE_RASTER_TILE_URL: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         TM_TOMTOM_TRAFFIC_TILE_URL: ""
         TM_TOMTOM_TRAFFIC_KEY: ""

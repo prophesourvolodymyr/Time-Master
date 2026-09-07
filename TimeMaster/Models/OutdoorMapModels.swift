@@ -63,6 +63,7 @@ enum OutdoorMapMode: String, CaseIterable, Codable, Identifiable {
 enum OutdoorMapProvider: String, Codable {
     case openFreeMap
     case openTopoMap
+    case awsTerrain
     case esri
     case mapTiler
     case tomTom

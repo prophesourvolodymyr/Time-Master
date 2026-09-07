@@ -95,7 +95,7 @@ final class OutdoorMapSession {
             mode: .threeD,
             provider: base.provider,
             status: .unsupported,
-            reason: "The loaded vector style does not expose real building extrusion data.",
+            reason: "The loaded style does not expose the required building or elevation data.",
             attribution: base.attribution,
             cacheRights: base.cacheRights,
             freshness: base.freshness,

@@ -63,8 +63,8 @@
 	<string>$(TM_MAPTILER_OFFLINE_STYLE_URL)</string>
 	<key>TMMapTilerOfflineLicensed</key>
 	<string>$(TM_MAPTILER_OFFLINE_LICENSED)</string>
-	<key>TMTerrainRasterTileURL</key>
-	<string>$(TM_TERRAIN_RASTER_TILE_URL)</string>
+	<key>TMTerrainDEMURL</key>
+	<string>$(TM_TERRAIN_DEM_URL)</string>
 	<key>TMSatelliteRasterTileURL</key>
 	<string>$(TM_SATELLITE_RASTER_TILE_URL)</string>
 	<key>TMTomTomTrafficTileURL</key>

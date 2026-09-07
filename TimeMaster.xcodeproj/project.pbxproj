@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00475B10D54B98E90FB9CC20 /* HomeWidgetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA516C7C1A9687022D33978 /* HomeWidgetPicker.swift */; };
+		A8F31C0E7B1249A1B2C3D4E5 /* MapGlyphs in Resources */ = {isa = PBXBuildFile; fileRef = B9E42D1F8C2350B2C3D4E5F6 /* MapGlyphs */; };
 		005E36B44A5D97B0347339A0 /* OutdoorMapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B252752B4743B22C413C4047 /* OutdoorMapModels.swift */; };
 		00DE919604F3F6021AE8F641 /* OutdoorCompactPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C26F385E634A4382548D776 /* OutdoorCompactPlayerView.swift */; };
 		0189FC4912A6DF293AC5099A /* OutdoorMapProviderConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8E01AB070280DD89F7AF23 /* OutdoorMapProviderConfiguration.swift */; };
@@ -365,6 +366,7 @@
 		47FC162E9FB73397A81F0F44 /* TrayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayCardView.swift; sourceTree = "<group>"; };
 		4C6FF36A9DF857B888B29855 /* TimeMaster.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMaster.entitlements; sourceTree = "<group>"; };
 		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B9E42D1F8C2350B2C3D4E5F6 /* MapGlyphs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = MapGlyphs; sourceTree = "<group>"; };
 		4DCD77E9F42424355F9374FE /* OutdoorTypePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTypePicker.swift; sourceTree = "<group>"; };
 		50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDownloadService.swift; sourceTree = "<group>"; };
 		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
@@ -612,6 +614,7 @@
 		2BDBBAF7F873D8DF1820C983 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				B9E42D1F8C2350B2C3D4E5F6 /* MapGlyphs */,
 				4CF0096279C5C397D6B69421 /* Assets.xcassets */,
 			);
 			path = Resources;
@@ -1005,6 +1008,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A8F31C0E7B1249A1B2C3D4E5 /* MapGlyphs in Resources */,
 				C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */,
 				8E7C11DD25A21C06BAFAF5AF /* Info-macOS.plist in Resources */,
 			);
@@ -1598,7 +1602,7 @@
 				TM_MAPTILER_SATELLITE_STYLE_URL = "";
 				TM_MAPTILER_TERRAIN_STYLE_URL = "";
 				TM_SATELLITE_RASTER_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-				TM_TERRAIN_RASTER_TILE_URL = "https://tile.opentopomap.org/{z}/{x}/{y}.png";
+				TM_TERRAIN_DEM_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 				TM_TOMTOM_TRAFFIC_KEY = "";
 				TM_TOMTOM_TRAFFIC_SOURCE_LAYER = flow;
 				TM_TOMTOM_TRAFFIC_TILE_URL = "";
@@ -1670,7 +1674,7 @@
 				TM_MAPTILER_SATELLITE_STYLE_URL = "";
 				TM_MAPTILER_TERRAIN_STYLE_URL = "";
 				TM_SATELLITE_RASTER_TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-				TM_TERRAIN_RASTER_TILE_URL = "https://tile.opentopomap.org/{z}/{x}/{y}.png";
+				TM_TERRAIN_DEM_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 				TM_TOMTOM_TRAFFIC_KEY = "";
 				TM_TOMTOM_TRAFFIC_SOURCE_LAYER = flow;
 				TM_TOMTOM_TRAFFIC_TILE_URL = "";

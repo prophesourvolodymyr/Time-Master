@@ -1,6 +1,7 @@
 #if os(iOS)
 import SwiftUI
 import UIKit
+import CoreLocation
 import UniformTypeIdentifiers
 
 @MainActor
@@ -43,8 +44,10 @@ struct OutdoorRouteRecordingView: View {
     @State private var mapCapabilities: [OutdoorMapMode: OutdoorMapCapability] = [:]
     @State private var weatherState: OutdoorWeatherState = .disabled
     @State private var mapFocusRequestID = 0
+    @State private var mapNorthRequestID = 0
     @State private var mapCityFitRequestID = 0
     @State private var mapFollowsUser = false
+    @State private var mapHeading: CLLocationDirection = 0
     @State private var upperQuickFeature: OutdoorUpperQuickFeature?
     @State private var mapOfflineMessage: String?
     @State private var mapControlsHeight: CGFloat = 134
@@ -108,6 +111,7 @@ struct OutdoorRouteRecordingView: View {
                     mode: mapMode,
                     overlayModes: mapOverlayModes,
                     focusRequestID: mapFocusRequestID,
+                    northRequestID: mapNorthRequestID,
                     cityFitRequestID: mapCityFitRequestID,
                     weatherInfoEnabled: preferences.preferences.weatherInfo,
                     onCapabilityChange: { capability in
@@ -121,6 +125,9 @@ struct OutdoorRouteRecordingView: View {
                     },
                     onFollowStateChange: { followsUser in
                         mapFollowsUser = followsUser
+                    },
+                    onHeadingChange: { heading in
+                        mapHeading = heading
                     },
                     onFocusFailure: { message in
                         mapFollowsUser = false
@@ -161,7 +168,7 @@ struct OutdoorRouteRecordingView: View {
                     )
                     .frame(width: 44, height: OutdoorPineGeometry.quickStackHeight)
                     .position(x: 33, y: quickGeometry.top + (OutdoorPineGeometry.quickStackHeight / 2))
-                    .zIndex(4)
+                    .zIndex(70)
                 }
 
                 if upperQuickFeature == nil,
@@ -174,10 +181,10 @@ struct OutdoorRouteRecordingView: View {
 
                 if canDismissRoute {
                     OutdoorRouteIdleCloseControl(onDismiss: { dismiss() })
-                        .padding(.top, layout.safeAreaTop + 12)
-                        .padding(.trailing, 10)
+                        .padding(.top, layout.safeAreaTop + 8)
+                        .padding(.trailing, 8)
                         .frame(maxWidth: .infinity, alignment: .topTrailing)
-                        .zIndex(6)
+                        .zIndex(100)
                 }
 
                 if let upperQuickFeature {
@@ -202,7 +209,7 @@ struct OutdoorRouteRecordingView: View {
                             : .scale(scale: 0.08, anchor: upperQuickOrigin(for: upperQuickFeature, layout: layout))
                                 .combined(with: .opacity)
                     )
-                    .zIndex(40)
+                    .zIndex(80)
                 }
 
                 mainPine(layout)
@@ -377,21 +384,25 @@ struct OutdoorRouteRecordingView: View {
         let controlsHeight = max(134, mapControlsHeight)
         let hasRoom = mainTop - layout.safeAreaTop >= controlsHeight + 18
         let bottomClearance = max(18, layout.size.height - mainTop + 18)
+        let attributionMode: OutdoorMapMode = mapOverlayModes.contains(.threeD) ? .threeD : activeMapMode
+        let mapAttribution = (
+            mapCapabilities[attributionMode]
+                ?? OutdoorMapProviderConfiguration.main.capability(for: attributionMode)
+        ).attribution
         return VStack(spacing: 0) {
             Spacer(minLength: 0)
             OutdoorMapControls(
                 weatherState: weatherState,
                 weatherInfoEnabled: preferences.preferences.weatherInfo,
                 followsUser: mapFollowsUser,
-                mapAttribution: (
-                    mapCapabilities[activeMapMode]
-                        ?? OutdoorMapProviderConfiguration.main.capability(for: activeMapMode)
-                ).attribution,
+                heading: mapHeading,
+                mapAttribution: mapAttribution,
                 onDownload: {
                     mapCityFitRequestID &+= 1
                     mapOfflineMessage = "Map view resized to city scale. Offline area selection is not available yet."
                 },
-                onFocusLocation: focusMapLocation
+                onFocusLocation: focusMapLocation,
+                onResetNorth: resetMapNorth
             )
             .background {
                 GeometryReader { proxy in
@@ -418,6 +429,10 @@ struct OutdoorRouteRecordingView: View {
     private func focusMapLocation() {
         mapOfflineMessage = nil
         mapFocusRequestID &+= 1
+    }
+
+    private func resetMapNorth() {
+        mapNorthRequestID &+= 1
     }
 
     private func selectMapMode(_ mode: OutdoorMapMode) {
