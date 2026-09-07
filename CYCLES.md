@@ -466,6 +466,14 @@ F27 Home ───────────────┘
   - [x] Detail: Updated `SchemaManager.validateAll()` to validate page manifests while retaining legacy exercise fallback; string-backed page enums are accepted by schema validation
   - [x] Verified: 88 page manifests decode through `DatabaseManager.walkPageTree`, 52 video references resolve, and CLI validation reports `valid: true`
 
+### Phase 1B — Typed pages and skills boards
+- [x] Model Exercise, Skill, and Tutorial as page types; skills and tutorials keep attachments, notes, links, child pages, and linked page references without workout timing
+- [x] Add container-level Exercises and Skills tabs; double-tap opens each category as a full page
+- [x] Add Not Started, Learning, and Completed skill views plus a horizontally scrollable board with custom sections and drag reordering
+- [x] Allow skills to be added to workouts while keeping tutorials and containers out of workout sections
+- [x] Remove the global Skills mode and title counts; skills are created and organized inside containers
+- [x] Verified: 94 TimeMasterCore tests pass and the iOS simulator Debug app installs and launches; human verification remains required
+
 ### Phase 2 — V2 Workout Management + V2 Player (paired)
 - [ ] F15 — V2 Workout Management Rework
 - [x] F15-A — V2 `WorkoutListView` card grid with page-backed cover thumbnails, today-only filter (consumes F20), scheduled-time badges, empty state
