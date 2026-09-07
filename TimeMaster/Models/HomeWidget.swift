@@ -102,10 +102,10 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
     case outdoorSummary
     case recoverActivity
     case savedRoutes
+    case outdoorMap
     case exerciseDatabase
     case databaseOverview
     case buildFromDatabase
-
     var id: String { rawValue }
 
     var category: HomeWidgetCategory {
@@ -113,7 +113,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         case .greeting, .today, .quickStart: .today
         case .activityShortcuts, .recentWorkouts, .resumeWorkout, .selectedWorkout: .workouts
         case .metrics, .streak, .weeklyRhythm, .activityHeatmap, .lifetimeStats, .typeBreakdown: .analytics
-        case .outdoorSummary, .recoverActivity, .savedRoutes: .outdoor
+        case .outdoorSummary, .recoverActivity, .savedRoutes, .outdoorMap: .outdoor
         case .exerciseDatabase, .databaseOverview, .buildFromDatabase: .database
         }
     }
@@ -136,6 +136,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         case .outdoorSummary: "Outdoor Summary"
         case .recoverActivity: "Recover Activity"
         case .savedRoutes: "Saved Routes"
+        case .outdoorMap: "Map"
         case .exerciseDatabase: "Exercise Database"
         case .databaseOverview: "Database Overview"
         case .buildFromDatabase: "Build from Database"
@@ -160,6 +161,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         case .outdoorSummary: "figure.outdoor.cycle"
         case .recoverActivity: "arrow.clockwise.circle.fill"
         case .savedRoutes: "map.fill"
+        case .outdoorMap: "map"
         case .exerciseDatabase: "cylinder.split.1x2.fill"
         case .databaseOverview: "square.stack.3d.up.fill"
         case .buildFromDatabase: "plus.rectangle.on.rectangle"
@@ -179,7 +181,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
 
     var supportsOptions: Bool {
         switch self {
-        case .greeting, .streak, .lifetimeStats, .databaseOverview, .buildFromDatabase, .recoverActivity: false
+        case .greeting, .streak, .lifetimeStats, .databaseOverview, .buildFromDatabase, .recoverActivity, .outdoorMap: false
         default: true
         }
     }
@@ -292,7 +294,8 @@ enum HomeWidgetCatalog {
         HomeWidgetInstance(kind: .today),
         HomeWidgetInstance(kind: .quickStart),
         HomeWidgetInstance(kind: .activityShortcuts),
-        HomeWidgetInstance(kind: .metrics)
+        HomeWidgetInstance(kind: .outdoorMap),
+        HomeWidgetInstance(kind: .metrics),
     ]
 
     static func options(for kind: HomeWidgetKind) -> [HomeWidgetKind] {

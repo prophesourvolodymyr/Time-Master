@@ -8,6 +8,7 @@ import UIKit
 struct MainTabView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     @StateObject private var databaseStore = DatabaseStore.shared
+    @StateObject private var databaseNavigationState = DatabaseNavigationState()
     @StateObject private var aiStore = AIStore.shared
     @StateObject private var outdoorStore = OutdoorActivityStore()
     @StateObject private var musicLibraryStore = MusicLibraryStore()
@@ -19,9 +20,25 @@ struct MainTabView: View {
     @State private var activeOutdoorKind: OutdoorActivityKind?
     @State private var activeOutdoorPlannedRoute: PlannedRoute?
     @State private var activeOutdoorActivityID: UUID?
-#endif
+    @StateObject private var outdoorRecorder: OutdoorLocationRecorder
+    #endif
 #if os(macOS)
     private let macSlotBarHeight: CGFloat = 196
+#endif
+#if os(iOS)
+    init() {
+        let outdoorStore = OutdoorActivityStore()
+        let outdoorPreferences = OutdoorRecordingPreferencesStore()
+        _outdoorStore = StateObject(wrappedValue: outdoorStore)
+        _outdoorPreferencesStore = StateObject(wrappedValue: outdoorPreferences)
+        _outdoorRecorder = StateObject(
+            wrappedValue: OutdoorLocationRecorder(
+                kind: .run,
+                store: outdoorStore,
+                preferences: outdoorPreferences
+            )
+        )
+    }
 #endif
 
 
@@ -44,15 +61,25 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
             routeToWorkoutDetail(notification)
         }
-        #if os(iOS)
+        .overlay(alignment: .topTrailing) {
+            if outdoorRecorder.isLiveSession {
+                OutdoorLiveWorkoutStatusWidget(
+                    recorder: outdoorRecorder,
+                    onOpenMap: openActiveOutdoorMap
+                )
+                .padding(.top, 8)
+                .padding(.trailing, 12)
+                .zIndex(100)
+            }
+        }
         .fullScreenCover(
             item: Binding(
                 get: { UIDevice.current.userInterfaceIdiom == .phone ? activeOutdoorKind : nil },
                 set: { activeOutdoorKind = $0 }
             ),
             onDismiss: {
-            activeOutdoorPlannedRoute = nil
-            activeOutdoorActivityID = nil
+                activeOutdoorPlannedRoute = nil
+                activeOutdoorActivityID = nil
             }
         ) { kind in
             OutdoorRouteRecordingView(
@@ -61,14 +88,15 @@ struct MainTabView: View {
                 plannedRoute: activeOutdoorPlannedRoute,
                 preferences: outdoorPreferencesStore,
                 musicLibrary: musicLibraryStore,
-                initialActivityID: activeOutdoorActivityID
+                initialActivityID: activeOutdoorActivityID,
+                recordingSession: outdoorRecorder
             )
         }
-        #endif
         #endif
         }
         .environmentObject(musicLibraryStore)
         .environmentObject(outdoorPreferencesStore)
+        .environmentObject(databaseNavigationState)
 #if os(macOS)
         .buttonStyle(.plain)
 #endif
@@ -156,6 +184,15 @@ struct MainTabView: View {
     }
 #endif
 
+#if os(iOS)
+    private func openActiveOutdoorMap() {
+        guard UIDevice.current.userInterfaceIdiom == .phone,
+              let activity = outdoorRecorder.activeActivity
+        else { return }
+        activeOutdoorKind = activity.kind
+        activeOutdoorActivityID = activity.id
+    }
+#endif
     private func openWorkoutCreator() {
         selectedTab = SlotNavigationItem.index(for: 1)
         DispatchQueue.main.async {

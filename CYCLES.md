@@ -745,6 +745,9 @@ F27 Home ───────────────┘
     - [x] Replace the dimmed dark overlay with a direct dark map palette
     - [x] Densify the Map pane and remove redundant base and overlay summaries
     - [x] Package custom map glyphs before overriding the provider font stack
+    - [x] Keep the live workout session alive when the map is dismissed
+    - [x] Show live speed and distance in the main app
+    - [x] Add a Home map opener for starting outdoor workouts
   - [ ] F28-E — Music Workout Editor
     - [ ] Connect Music Editor to existing Settings music system
     - [ ] Implement content-driven Music pine sizing

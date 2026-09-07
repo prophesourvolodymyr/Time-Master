@@ -56,6 +56,8 @@ struct HomeWidgetContent: View {
             typeBreakdown
         case .outdoorSummary:
             outdoorSummary
+        case .outdoorMap:
+            outdoorMap
         case .recoverActivity:
             recoverActivity
         case .savedRoutes:
@@ -408,6 +410,43 @@ struct HomeWidgetContent: View {
                 metricValue("\(finished.filter { $0.kind == .bike }.count)", label: "rides", icon: "bicycle")
                 metricValue(String(format: "%.1f km", finished.reduce(0) { $0 + $1.distanceMeters } / 1000), label: "distance", icon: "point.topleft.down.curvedto.point.bottomright.up")
             }
+        }
+    }
+    private var outdoorMap: some View {
+        HomeWidgetChrome(title: "Map", surface: true) {
+            Button {
+                onStartOutdoor(.run, nil, nil)
+            } label: {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.cyan.opacity(0.16))
+                            .frame(width: 52, height: 52)
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 23, weight: .semibold))
+                            .foregroundStyle(.cyan)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Open live map")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("Choose Run, Walk, or Bike")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+
+                    Spacer(minLength: 6)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .padding(.horizontal, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open live map")
+            .accessibilityHint("Opens the outdoor map so you can choose an activity and start recording.")
         }
     }
 

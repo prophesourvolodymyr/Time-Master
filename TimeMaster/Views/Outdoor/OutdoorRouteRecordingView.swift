@@ -66,22 +66,22 @@ struct OutdoorRouteRecordingView: View {
         musicLibrary: MusicLibraryStore,
         initialActivityID: UUID? = nil,
         initialLibraryEntry: MusicLibraryItem? = nil,
+        recordingSession: OutdoorLocationRecorder? = nil,
         finishedActivity: Binding<OutdoorActivity?> = .constant(nil)
     ) {
         let normalizedKind = kind
+        let resolvedRecorder = recordingSession ?? OutdoorLocationRecorder(
+            kind: normalizedKind,
+            store: store,
+            preferences: preferences,
+            plannedRoute: plannedRoute
+        )
         self.initialActivityID = initialActivityID
         self.initialLibraryEntry = initialLibraryEntry
         self.musicLibrary = musicLibrary
         self._store = ObservedObject(wrappedValue: store)
         self._preferences = ObservedObject(wrappedValue: preferences)
-        self._recorder = StateObject(
-            wrappedValue: OutdoorLocationRecorder(
-                kind: normalizedKind,
-                store: store,
-                preferences: preferences,
-                plannedRoute: plannedRoute
-            )
-        )
+        self._recorder = StateObject(wrappedValue: resolvedRecorder)
         self._musicSession = StateObject(wrappedValue: OutdoorMusicSession())
         self._exposedFinishedActivity = finishedActivity
         self._musicManager = ObservedObject(wrappedValue: MusicManager.shared)
@@ -181,6 +181,12 @@ struct OutdoorRouteRecordingView: View {
 
                 if canDismissRoute {
                     OutdoorRouteIdleCloseControl(onDismiss: { dismiss() })
+                        .padding(.top, layout.safeAreaTop + 8)
+                        .padding(.trailing, 8)
+                        .frame(maxWidth: .infinity, alignment: .topTrailing)
+                        .zIndex(100)
+                } else if recorder.isLiveSession {
+                    OutdoorRouteExitControl(onExit: exitToApp)
                         .padding(.top, layout.safeAreaTop + 8)
                         .padding(.trailing, 8)
                         .frame(maxWidth: .infinity, alignment: .topTrailing)
@@ -373,6 +379,16 @@ struct OutdoorRouteRecordingView: View {
             && pineFinishedActivity == nil
             && mainContent != .library
             && mainContent != .finish
+    }
+
+    private var canExitToApp: Bool {
+        recorder.isLiveSession
+    }
+
+    private func exitToApp() {
+        guard canExitToApp else { return }
+        recorder.checkpoint()
+        dismiss()
     }
 
     private func mapControls(_ layout: OutdoorPineGeometry) -> some View {
@@ -1002,6 +1018,7 @@ struct OutdoorRouteRecordingView: View {
     private func startRecording() {
         shortSessionReason = nil
         mainContent = .live
+        recorder.updateKind(committedKind)
         recorder.start()
     }
 

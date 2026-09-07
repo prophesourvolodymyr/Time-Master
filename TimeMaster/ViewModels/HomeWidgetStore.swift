@@ -9,6 +9,7 @@ final class HomeWidgetStore: ObservableObject {
     private let layoutKey = "home_widget_layout_v1"
     private let skippedScheduleKey = "home_skipped_schedule_instances_v1"
     private let greetingStripMigrationKey = "home_greeting_strip_migration_v1"
+    private let mapOpenerMigrationKey = "home_map_opener_migration_v1"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -30,17 +31,27 @@ final class HomeWidgetStore: ObservableObject {
             return widget
         }
         let addedWalkShortcut = outdoorShortcutWidgets != loadedWidgets
-
+        let mapOpenerMigrationNeeded = defaults.bool(forKey: mapOpenerMigrationKey) == false
+        let mapOpenerWidgets: [HomeWidgetInstance]
+        if mapOpenerMigrationNeeded,
+           !outdoorShortcutWidgets.contains(where: { $0.kind == .outdoorMap }) {
+            var migrated = outdoorShortcutWidgets
+            migrated.insert(HomeWidgetInstance(kind: .outdoorMap), at: min(4, migrated.count))
+            mapOpenerWidgets = migrated
+        } else {
+            mapOpenerWidgets = outdoorShortcutWidgets
+        }
+        let addedMapOpener = mapOpenerWidgets != outdoorShortcutWidgets
         let needsGreetingStripMigration = defaults.bool(forKey: greetingStripMigrationKey) == false
         widgets = needsGreetingStripMigration
-            ? outdoorShortcutWidgets.map { widget in
+            ? mapOpenerWidgets.map { widget in
                 var widget = widget
                 if widget.kind == .greeting {
                     widget.footprint = .wide
                 }
                 return widget
             }
-            : outdoorShortcutWidgets
+            : mapOpenerWidgets
 
         if let data = defaults.data(forKey: skippedScheduleKey),
            let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
@@ -49,8 +60,9 @@ final class HomeWidgetStore: ObservableObject {
             skippedScheduledInstanceIDs = []
         }
 
-        if needsGreetingStripMigration || addedWalkShortcut {
+        if needsGreetingStripMigration || addedWalkShortcut || addedMapOpener {
             defaults.set(true, forKey: greetingStripMigrationKey)
+            defaults.set(true, forKey: mapOpenerMigrationKey)
             save()
         }
     }

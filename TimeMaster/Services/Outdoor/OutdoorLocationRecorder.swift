@@ -115,6 +115,16 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
     func clearError() {
         errorMessage = nil
     }
+    var isLiveSession: Bool {
+        guard activeActivity != nil else { return false }
+        switch state {
+        case .requestingAuthorization, .recording, .manualPaused, .autoPaused:
+            return true
+        case .idle, .finished, .failed:
+            return false
+        }
+    }
+
     func elapsedSeconds(at date: Date = Date()) -> Int {
         guard let activity = activeActivity else { return 0 }
         if activity.finished { return activity.elapsedSeconds }

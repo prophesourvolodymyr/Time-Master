@@ -263,4 +263,99 @@ struct OutdoorRouteIdleCloseControl: View {
         .accessibilityHint("Returns to the app surface that opened the route feature.")
     }
 }
+
+struct OutdoorRouteExitControl: View {
+    let onExit: () -> Void
+
+    var body: some View {
+        Button(action: onExit) {
+            Image(systemName: "rectangle.portrait.and.arrow.right")
+                .font(.system(size: 15, weight: .semibold))
+        }
+        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 38))
+        .padding(3)
+        .accessibilityLabel("Return to app")
+        .accessibilityHint("Leaves the map while keeping the active workout running.")
+    }
+}
+
+struct OutdoorLiveWorkoutStatusWidget: View {
+    @ObservedObject var recorder: OutdoorLocationRecorder
+    let onOpenMap: () -> Void
+
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if recorder.isLiveSession {
+            Button(action: onOpenMap) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(recorder.state == .recording ? Color.green : Theme.toolbarOrange)
+                            .frame(width: 7, height: 7)
+                        Text(recorder.state == .recording ? "LIVE" : "PAUSED")
+                            .font(.caption2.weight(.bold))
+                            .tracking(0.8)
+                            .foregroundStyle(Theme.textSecondary)
+                        Spacer(minLength: 4)
+                        Image(systemName: "map")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+
+                    HStack(spacing: 14) {
+                        metric(value: speedText, label: "km/h")
+                        metric(value: distanceText, label: "km")
+                    }
+                }
+                .padding(.horizontal, 13)
+                .padding(.vertical, 11)
+                .frame(width: 174, alignment: .leading)
+                .background {
+                    if reduceTransparency {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Theme.surface)
+                    } else {
+                        OutdoorFrostedGlassBackground(style: .systemMaterialDark)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Theme.surface.opacity(0.28))
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Live \(recorder.activeActivity?.kind.displayName ?? "workout")")
+            .accessibilityValue("\(speedText) kilometres per hour, \(distanceText) kilometres")
+            .accessibilityHint("Opens the active workout map.")
+        }
+    }
+
+    private var speedText: String {
+        let metersPerSecond = recorder.smoothedLiveSpeedMetersPerSecond
+            ?? recorder.liveSpeedMetersPerSecond
+            ?? 0
+        return String(format: "%.1f", max(0, metersPerSecond * 3.6))
+    }
+
+    private var distanceText: String {
+        String(format: "%.2f", max(0, (recorder.activeActivity?.distanceMeters ?? 0) / 1000))
+    }
+
+    private func metric(value: String, label: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(value)
+                .font(.system(size: 21, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(Theme.textPrimary)
+            Text(label)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(Theme.textSecondary)
+        }
+    }
+}
 #endif
