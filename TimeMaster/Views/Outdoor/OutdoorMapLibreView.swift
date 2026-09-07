@@ -621,12 +621,12 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
         private func labelFontStack(for identifier: String) -> [String] {
             if identifier.hasPrefix("highway-name") {
-                return ["Roboto Condensed Regular", "Noto Sans Regular"]
+                return ["Noto Sans Regular"]
             }
             if identifier.hasPrefix("water") {
-                return ["Roboto Italic", "Noto Sans Italic"]
+                return ["Noto Sans Italic"]
             }
-            return ["Roboto Medium", "Noto Sans Regular"]
+            return ["Noto Sans Bold"]
         }
 
         private func updateMinimalLabelVisibility(in style: MLNStyle, showsTransit: Bool) {

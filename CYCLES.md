@@ -736,7 +736,7 @@ F27 Home ───────────────┘
     - [x] Apply an orange route accent, blue water, and restrained green landscape
     - [x] Replace the dimmed dark overlay with a direct dark map palette
     - [x] Densify the Map pane and remove redundant base and overlay summaries
-    - [x] Use compact Roboto map labels with a Noto Sans fallback
+    - [x] Use a compact provider-hosted Noto Sans label hierarchy
   - [ ] F28-E — Music Workout Editor
     - [ ] Connect Music Editor to existing Settings music system
     - [ ] Implement content-driven Music pine sizing
