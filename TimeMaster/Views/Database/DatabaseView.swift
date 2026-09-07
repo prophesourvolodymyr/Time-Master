@@ -414,6 +414,7 @@ struct DatabaseView: View {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 0) {
                     databaseHeader
+                    databaseControls
                     if isV2 && !store.rootPages.isEmpty {
                         pageTreeView
                     } else if !isV2 {
@@ -424,53 +425,6 @@ struct DatabaseView: View {
                 }
             }
             .navigationTitle("")
-            .toolbar {
-                AppToolbar.iconGroup(placement: .primaryAction) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isGridMode.toggle()
-                        }
-                    } label: {
-                        Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
-                    }
-
-                    Menu {
-                        ForEach(PageSortOption.allCases, id: \.self) { option in
-                            Button {
-                                sortOption = option
-                            } label: {
-                                Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                    }
-                }
-                AppToolbar.iconItem(placement: .primaryAction) {
-                    Button {
-                        showingDatabaseSearch = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .help("Search Database")
-                }
-                AppToolbar.iconGroup(placement: .primaryAction) {
-                    Button { showingImport = true } label: {
-                        Image(systemName: "video.badge.plus")
-                    }
-                    Button { showingDatabaseImport = true } label: {
-                        Image(systemName: "square.and.arrow.down")
-                    }
-                    Button {
-                        creationLeafFirst = false
-                        creationPageType = .skill
-                        showingCreatePage = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .help("Create Skill")
-                }
-            }
             .sheet(isPresented: $showingNewFolderSheet) {
                 NewFolderSheet { name, colorHex, workoutType in
                     store.addRootFolder(name: name, colorHex: colorHex, workoutType: workoutType)
@@ -571,9 +525,79 @@ struct DatabaseView: View {
         }
     }
 
+    private var databaseControls: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                databaseActionButton(
+                    systemImage: isGridMode ? "list.bullet" : "square.grid.2x2",
+                    label: isGridMode ? "List View" : "Gallery View"
+                ) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isGridMode.toggle()
+                    }
+                }
+
+                databaseSortMenu
+
+                databaseActionButton(systemImage: "magnifyingglass", label: "Search Database") {
+                    showingDatabaseSearch = true
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+
+            HStack(spacing: 12) {
+                databaseActionButton(systemImage: "video.badge.plus", label: "Import Video") {
+                    showingImport = true
+                }
+                databaseActionButton(systemImage: "square.and.arrow.down", label: "Import Database") {
+                    showingDatabaseImport = true
+                }
+                databaseActionButton(systemImage: "plus", label: "Create Skill") {
+                    creationLeafFirst = false
+                    creationPageType = .skill
+                    showingCreatePage = true
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
+    }
+
+    private func databaseActionButton(
+        systemImage: String,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+        }
+        .modifier(TimeMasterToolbarIconSurface())
+        .accessibilityLabel(label)
+        .help(label)
+    }
+
+    private var databaseSortMenu: some View {
+        Menu {
+            ForEach(PageSortOption.allCases, id: \.self) { option in
+                Button {
+                    sortOption = option
+                } label: {
+                    Label(option.label, systemImage: option == sortOption ? "checkmark" : "")
+                }
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .modifier(TimeMasterToolbarIconSurface())
+        }
+        .accessibilityLabel("Sort Database")
+        .help("Sort Database")
+    }
+
     private var databaseHeader: some View {
         Text("Exercise Database")
-            .font(.title2.weight(.bold))
+            .font(.largeTitle.weight(.bold))
             .foregroundStyle(Theme.textPrimary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
@@ -798,6 +822,8 @@ struct DatabaseView: View {
 
     private var pageTreeView: some View {
         VStack(spacing: 0) {
+            Divider()
+                .background(Theme.separator)
             filterChipsRow
 
             if filteredRootPages.isEmpty {
@@ -880,15 +906,18 @@ struct DatabaseView: View {
             LazyVGrid(columns: gridColumns, spacing: 10) {
                 ForEach(visiblePageEntries) { entry in
                     let page = entry.page
-                    ZStack(alignment: .topLeading) {
+                    ZStack(alignment: .topTrailing) {
                         NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
                             pageCard(page, isGridMode: true)
                         }
                         .buttonStyle(.plain)
 
                         if page.isContainer {
-                            disclosureButton(page)
-                                .padding(7)
+                            HStack(spacing: 6) {
+                                disclosureButton(page)
+                                openContainerButton(page)
+                            }
+                            .padding(7)
                         }
                     }
                     .padding(.leading, CGFloat(entry.depth * 12))
@@ -949,16 +978,16 @@ struct DatabaseView: View {
     private func pageRow(_ entry: DatabasePageEntry) -> some View {
         let page = entry.page
         return HStack(spacing: 8) {
-            if page.isContainer {
-                disclosureButton(page)
-            } else {
-                Color.clear
-                    .frame(width: 30, height: 30)
-            }
             NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
                 pageCard(page, isGridMode: false)
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if page.isContainer {
+                disclosureButton(page)
+                openContainerButton(page)
+            }
         }
         .padding(.leading, CGFloat(entry.depth * 14))
         .listRowBackground(Theme.surface)
@@ -1020,6 +1049,21 @@ struct DatabaseView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(expandedPageIDs.contains(page.manifest.id) ? "Collapse \(page.title)" : "Expand \(page.title)")
+    }
+    private func openContainerButton(_ page: ExercisePage) -> some View {
+        NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Theme.primary)
+                .frame(width: 30, height: 30)
+                .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Theme.primary.opacity(0.65), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open \(page.title)")
     }
 
     private var v2EmptyState: some View {
