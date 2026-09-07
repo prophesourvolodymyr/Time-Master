@@ -65,7 +65,7 @@ enum WorkoutSectionBuilder {
         page: ExercisePage,
         configuration: WorkoutSectionImportConfiguration
     ) -> Section? {
-        guard page.isLeaf else { return nil }
+        guard page.isWorkoutAddable else { return nil }
 
         return Section(
             name: page.title,
@@ -92,7 +92,7 @@ enum WorkoutSectionBuilder {
         configuration: WorkoutSectionImportConfiguration
     ) -> Section? {
         makeBundle(
-            sources: pages.filter(\.isLeaf).map { .page($0) },
+            sources: pages.filter(\.isWorkoutAddable).map { .page($0) },
             configuration: configuration
         )
     }
@@ -107,7 +107,7 @@ enum WorkoutSectionBuilder {
             let restAfter = index < sources.count - 1 ? configuration.restBetweenSets : 0
             switch source {
             case .page(let page):
-                guard page.isLeaf else { return nil }
+                guard page.isWorkoutAddable else { return nil }
                 return makeSlot(
                     page: page,
                     duration: page.manifest.duration ?? configuration.duration,

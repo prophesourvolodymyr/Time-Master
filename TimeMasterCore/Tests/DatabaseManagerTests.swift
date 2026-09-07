@@ -560,4 +560,89 @@ final class DatabaseManagerTests: XCTestCase {
         try db.createPage(manifest: leafOverride, parentID: nested.id)
         XCTAssertEqual(try db.getPage(id: leafOverride.id).workoutType, .yoga)
     }
+    func testSkillAndTutorialPagesPersistWithoutTimingAndCanContainChildren() throws {
+        try db.bootstrapIfNeeded()
+
+        let container = ExercisePageManifest(id: "skill-container", title: "Calisthenics")
+        try db.createPage(manifest: container)
+
+        let skill = ExercisePageManifest(
+            id: "handstand-skill",
+            title: "Handstand",
+            pageKind: .container,
+            pageType: .skill,
+            skillStatus: .learning,
+            parentID: container.id
+        )
+        try db.createPage(manifest: skill, parentID: container.id)
+
+        let tutorial = ExercisePageManifest(
+            id: "handstand-tutorial",
+            title: "Handstand Basics",
+            pageKind: .container,
+            pageType: .tutorial,
+            parentID: container.id
+        )
+        try db.createPage(manifest: tutorial, parentID: container.id)
+
+        let exercise = ExercisePageManifest(
+            id: "wall-handstand",
+            title: "Wall Handstand",
+            pageKind: .leaf,
+            pageType: .exercise,
+            duration: 30,
+            parentID: skill.id
+        )
+        try db.createPage(manifest: exercise, parentID: skill.id)
+
+        let persistedSkill = try db.getPage(id: skill.id)
+        XCTAssertEqual(persistedSkill.pageKind, .container)
+        XCTAssertEqual(persistedSkill.pageType, .skill)
+        XCTAssertEqual(persistedSkill.skillStatus, .learning)
+        XCTAssertNil(persistedSkill.duration)
+        XCTAssertEqual(try db.getPage(id: tutorial.id).skillStatus, .notStarted)
+        XCTAssertEqual(try db.getPage(id: exercise.id).parentID, skill.id)
+    }
+
+    func testSkillBoardSectionsAndPlacementsPersist() throws {
+        try db.bootstrapIfNeeded()
+
+        let container = ExercisePageManifest(id: "board-container", title: "Skills")
+        try db.createPage(manifest: container)
+
+        let first = ExercisePageManifest(
+            id: "board-first",
+            title: "Handstand",
+            pageKind: .container,
+            pageType: .skill,
+            parentID: container.id
+        )
+        let second = ExercisePageManifest(
+            id: "board-second",
+            title: "Front Lever",
+            pageKind: .container,
+            pageType: .skill,
+            parentID: container.id
+        )
+        try db.createPage(manifest: first, parentID: container.id)
+        try db.createPage(manifest: second, parentID: container.id)
+
+        let section = SkillBoardSection(id: "strength", title: "Strength Foundations")
+        try db.updateSkillBoard(
+            containerID: container.id,
+            sections: [section],
+            placements: [
+                SkillBoardPlacement(pageID: first.id, status: .learning, sectionID: section.id, order: 1),
+                SkillBoardPlacement(pageID: second.id, status: .completed, sectionID: nil, order: 0)
+            ]
+        )
+
+        XCTAssertEqual(try db.getPage(id: container.id).skillBoardSections, [section])
+        let persistedFirst = try db.getPage(id: first.id)
+        XCTAssertEqual(persistedFirst.skillStatus, .learning)
+        XCTAssertEqual(persistedFirst.skillBoardSectionID, section.id)
+        XCTAssertEqual(persistedFirst.skillBoardOrder, 1)
+        XCTAssertEqual(try db.getPage(id: second.id).skillStatus, .completed)
+    }
+
 }

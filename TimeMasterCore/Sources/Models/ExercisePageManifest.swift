@@ -25,6 +25,53 @@ public struct PageDropSetTemplate: Codable, Equatable, Identifiable {
     }
 }
 
+public enum PageType: String, Codable, Equatable, CaseIterable {
+    case exercise
+    case skill
+    case tutorial
+}
+
+public enum SkillStatus: String, Codable, Equatable, CaseIterable {
+    case notStarted
+    case learning
+    case completed
+}
+
+public struct SkillBoardSection: Codable, Equatable, Identifiable {
+    public var id: String
+    public var title: String
+    public var order: Int
+
+    public init(
+        id: String = UUID().uuidString,
+        title: String,
+        order: Int = 0
+    ) {
+        self.id = id
+        self.title = title
+        self.order = max(0, order)
+    }
+}
+
+public struct SkillBoardPlacement: Equatable {
+    public var pageID: String
+    public var status: SkillStatus
+    public var sectionID: String?
+    public var order: Int
+
+    public init(
+        pageID: String,
+        status: SkillStatus,
+        sectionID: String?,
+        order: Int
+    ) {
+        self.pageID = pageID
+        self.status = status
+        self.sectionID = sectionID
+        self.order = max(0, order)
+    }
+}
+
 public struct ExercisePageManifest: Codable {
     public enum PageKind: String, Codable, Equatable {
         case container
@@ -41,6 +88,12 @@ public struct ExercisePageManifest: Codable {
     public var linkURLs: [String]
     public var linkMetadata: [LinkMetadata]
     public var workoutType: WorkoutType?
+    public var pageType: PageType?
+    public var skillStatus: SkillStatus?
+    public var skillBoardSectionID: String?
+    public var skillBoardOrder: Int?
+    public var skillBoardSections: [SkillBoardSection]
+    public var linkedPageIDs: [String]
     public var duration: Int?
     public var restAfter: Int?
     public var prepareTime: Int?
@@ -56,9 +109,10 @@ public struct ExercisePageManifest: Codable {
     public var kind: String { "page" }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, pageKind, coverImageFilename, iconName, markdownBody
-        case mediaFilenames, linkURLs, linkMetadata
+        case id, title, pageKind, pageType, coverImageFilename, iconName, markdownBody
+        case mediaFilenames, linkURLs, linkMetadata, linkedPageIDs
         case workoutType, duration, restAfter, prepareTime, sets, restBetweenSets, dropSetTemplates
+        case skillStatus, skillBoardSectionID, skillBoardOrder, skillBoardSections
         case childIDs, parentID, order, createdAt, updatedAt
     }
 
@@ -66,13 +120,19 @@ public struct ExercisePageManifest: Codable {
         id: String = UUID().uuidString,
         title: String,
         pageKind: PageKind = .container,
+        pageType: PageType? = nil,
         coverImageFilename: String? = nil,
         iconName: String? = nil,
         markdownBody: String = "",
         mediaFilenames: [String] = [],
         linkURLs: [String] = [],
         linkMetadata: [LinkMetadata] = [],
+        linkedPageIDs: [String] = [],
         workoutType: WorkoutType? = nil,
+        skillStatus: SkillStatus? = nil,
+        skillBoardSectionID: String? = nil,
+        skillBoardOrder: Int? = nil,
+        skillBoardSections: [SkillBoardSection] = [],
         duration: Int? = nil,
         restAfter: Int? = nil,
         prepareTime: Int? = nil,
@@ -85,16 +145,30 @@ public struct ExercisePageManifest: Codable {
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
+        let resolvedPageType = pageType ?? (pageKind == .leaf ? .exercise : nil)
+        let resolvedPageKind: PageKind = (resolvedPageType == .skill || resolvedPageType == .tutorial)
+            ? .container
+            : pageKind
+        let isSkillPage = resolvedPageType == .skill || resolvedPageType == .tutorial
+
         self.id = id
         self.title = title
-        self.pageKind = pageKind
+        self.pageKind = resolvedPageKind
+        self.pageType = resolvedPageType
         self.coverImageFilename = coverImageFilename
         self.iconName = iconName
         self.markdownBody = markdownBody
         self.mediaFilenames = mediaFilenames
         self.linkURLs = linkURLs
         self.linkMetadata = linkMetadata
+        self.linkedPageIDs = resolvedPageType == nil ? [] : linkedPageIDs
         self.workoutType = workoutType
+        self.skillStatus = isSkillPage ? skillStatus ?? .notStarted : nil
+        self.skillBoardSectionID = isSkillPage ? skillBoardSectionID : nil
+        self.skillBoardOrder = isSkillPage ? max(0, skillBoardOrder ?? 0) : nil
+        self.skillBoardSections = resolvedPageType == nil && resolvedPageKind == .container
+            ? skillBoardSections.sorted { $0.order < $1.order }
+            : []
         self.duration = duration.map { max(5, $0) }
         self.restAfter = restAfter.map { max(0, $0) }
         self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
@@ -122,13 +196,19 @@ public struct ExercisePageManifest: Codable {
             id: id,
             title: title,
             pageKind: pageKind,
+            pageType: try values.decodeIfPresent(PageType.self, forKey: .pageType),
             coverImageFilename: try values.decodeIfPresent(String.self, forKey: .coverImageFilename),
             iconName: try values.decodeIfPresent(String.self, forKey: .iconName),
             markdownBody: try values.decodeIfPresent(String.self, forKey: .markdownBody) ?? "",
             mediaFilenames: try values.decodeIfPresent([String].self, forKey: .mediaFilenames) ?? [],
             linkURLs: try values.decodeIfPresent([String].self, forKey: .linkURLs) ?? [],
             linkMetadata: try values.decodeIfPresent([LinkMetadata].self, forKey: .linkMetadata) ?? [],
+            linkedPageIDs: try values.decodeIfPresent([String].self, forKey: .linkedPageIDs) ?? [],
             workoutType: try values.decodeIfPresent(WorkoutType.self, forKey: .workoutType),
+            skillStatus: try values.decodeIfPresent(SkillStatus.self, forKey: .skillStatus),
+            skillBoardSectionID: try values.decodeIfPresent(String.self, forKey: .skillBoardSectionID),
+            skillBoardOrder: try values.decodeIfPresent(Int.self, forKey: .skillBoardOrder),
+            skillBoardSections: try values.decodeIfPresent([SkillBoardSection].self, forKey: .skillBoardSections) ?? [],
             duration: duration,
             restAfter: try values.decodeIfPresent(Int.self, forKey: .restAfter),
             prepareTime: try values.decodeIfPresent(Int.self, forKey: .prepareTime),

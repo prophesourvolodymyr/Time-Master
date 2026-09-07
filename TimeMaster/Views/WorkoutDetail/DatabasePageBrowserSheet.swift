@@ -51,9 +51,11 @@ struct DatabasePageBrowserSheet: View {
         var result = pages
         switch filterOption {
         case .all: break
-        case .container: result = result.filter { $0.isContainer }
-        case .leaf: result = result.filter { $0.isLeaf }
-        case .type(let typeId): result = result.filter { $0.manifest.workoutType?.id == typeId }
+        case .container: result = result.filter { $0.isContainer && $0.pageType == nil }
+        case .exercise: result = result.filter(\.isExercise)
+        case .skill: result = result.filter(\.isSkill)
+        case .tutorial: result = result.filter(\.isTutorial)
+        case .type(let typeId): result = result.filter { $0.effectiveWorkoutType?.id == typeId }
         }
         if !searchText.isEmpty {
             result = result.filter { page in
@@ -64,7 +66,7 @@ struct DatabasePageBrowserSheet: View {
         switch sortOption {
         case .name: result.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
         case .dateCreated: result.sort { $0.manifest.createdAt > $1.manifest.createdAt }
-        case .workoutType: result.sort { ($0.manifest.workoutType?.name ?? "zzz") < ($1.manifest.workoutType?.name ?? "zzz") }
+        case .workoutType: result.sort { ($0.effectiveWorkoutType?.name ?? "zzz") < ($1.effectiveWorkoutType?.name ?? "zzz") }
         }
         return result
     }
@@ -201,7 +203,7 @@ struct DatabasePageBrowserSheet: View {
             .sheet(item: $detailPreviewPage) { page in
                 ExercisePageQuickPreview(
                     page: page,
-                    canAdd: page.isLeaf,
+                    canAdd: page.isWorkoutAddable,
                     onAdd: {
                         onAdd(page, duration, sets, reps, restAfter, restBetweenSets, prepareTime)
                         detailPreviewPage = nil
@@ -241,8 +243,10 @@ struct DatabasePageBrowserSheet: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 filterChip(.all, label: "All")
+                filterChip(.exercise, label: "Exercises")
+                filterChip(.skill, label: "Skills")
+                filterChip(.tutorial, label: "Tutorials")
                 filterChip(.container, label: "Containers")
-                filterChip(.leaf, label: "Leaves")
                 ForEach(uniqueWorkoutTypes) { type in
                     filterChip(.type(type.id), label: type.name)
                 }
@@ -313,7 +317,7 @@ struct DatabasePageBrowserSheet: View {
                     pageGridCard(page)
                         .onDrag { NSItemProvider(object: page.manifest.id as NSString) }
                         .onTapGesture {
-                            if isBundleMode, page.isLeaf {
+                            if isBundleMode, page.isWorkoutAddable {
                                 toggleBundleSelection(page)
                             } else {
                                 previewConfig(for: page)
@@ -335,7 +339,7 @@ struct DatabasePageBrowserSheet: View {
                     .listRowBackground(Theme.surface)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        if isBundleMode, page.isLeaf {
+                        if isBundleMode, page.isWorkoutAddable {
                             toggleBundleSelection(page)
                         } else {
                             previewConfig(for: page)
@@ -442,7 +446,7 @@ struct DatabasePageBrowserSheet: View {
         }
     }
     private func toggleBundleSelection(_ page: ExercisePage) {
-        guard page.isLeaf else { return }
+        guard page.isWorkoutAddable else { return }
         let id = "page:\(page.manifest.id)"
         if selectedBundleIDs.contains(id) {
             selectedBundleIDs.remove(id)
@@ -492,18 +496,19 @@ struct DatabasePageBrowserSheet: View {
                         previewPage = nil
                     } label: {
                         HStack {
-                            Image(systemName: page.isLeaf ? "plus.circle.fill" : "folder")
-                            Text(page.isLeaf ? "Add Section" : "Container cannot be added")
+                            Image(systemName: page.isWorkoutAddable ? "plus.circle.fill" : "folder")
+                            Text(page.isWorkoutAddable ? "Add Section" : "This page cannot be added")
                         }
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
+                        .padding(.vertical, 12)
+                        .background(page.isWorkoutAddable ? Theme.primary : Theme.surface2)
                         .cornerRadius(10)
                     }
-                    .disabled(!page.isLeaf)
-                    .opacity(page.isLeaf ? 1 : 0.5)
+                    .buttonStyle(.plain)
+                    .disabled(!page.isWorkoutAddable)
+                    .opacity(page.isWorkoutAddable ? 1 : 0.5)
                 }
             }
             .padding(.horizontal, 16)
@@ -615,7 +620,7 @@ struct DatabasePageBrowserSheet: View {
             guard let rawID = (object as? NSString)?.description,
                   let page = pages.first(where: { $0.manifest.id == rawID }) else { return }
             DispatchQueue.main.async {
-                guard page.isLeaf else { return }
+                guard page.isWorkoutAddable else { return }
                 if asBundle {
                     let id = "page:\(page.manifest.id)"
                     if !selectedBundleIDs.contains(id) {

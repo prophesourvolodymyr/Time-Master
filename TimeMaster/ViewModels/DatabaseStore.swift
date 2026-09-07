@@ -290,6 +290,33 @@ class DatabaseStore: ObservableObject {
         reload()
     }
 
+    func persistSkillBoard(
+        containerID: String,
+        sections: [SkillBoardSection],
+        placements: [SkillBoardPlacement]
+    ) throws {
+        try DatabaseManager.shared.updateSkillBoard(
+            containerID: containerID,
+            sections: sections,
+            placements: placements
+        )
+        reload()
+    }
+
+    func updateLinkedPages(pageID: String, linkedPageIDs: [String]) throws {
+        guard let page = allPagesFlat.first(where: { $0.manifest.id == pageID }) else {
+            throw FileSystemHelper.Error.notFound(pageID)
+        }
+        var manifest = page.manifest
+        manifest.linkedPageIDs = Array(NSOrderedSet(array: linkedPageIDs)) as? [String] ?? linkedPageIDs
+        try DatabaseManager.shared.updatePage(
+            id: pageID,
+            manifest: manifest,
+            newParentID: manifest.parentID
+        )
+        reload()
+    }
+
     func persistRootPageOrder() {
         for (index, page) in rootPages.enumerated() {
             var updatedManifest = page.manifest
@@ -842,6 +869,9 @@ struct PageCreationDraft: Codable, Identifiable, Equatable {
     let id: UUID
     var title: String
     var pageKind: ExercisePageManifest.PageKind
+    var pageType: PageType?
+    var skillStatus: SkillStatus?
+    var skillBoardSectionID: String?
     var parentID: String?
     var workoutType: TimeMasterCore.WorkoutType?
     var markdownBody: String

@@ -225,20 +225,23 @@ private struct ZoomableImageView: View {
 #endif
 
 struct PageMediaGalleryGrid: View {
+    var title: String = "Media"
     let urls: [URL]
     let onTapMedia: (Int) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Media")
-                    .font(.headline)
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                if urls.count > 1 {
-                    Text("Swipe to browse")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textSecondary)
+            if !title.isEmpty {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    if urls.count > 1 {
+                        Text("Swipe to browse")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
             }
 

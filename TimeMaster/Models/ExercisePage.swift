@@ -11,10 +11,18 @@ struct ExercisePage: Identifiable {
 
     var id: UUID { UUID(uuidString: manifest.id) ?? UUID() }
     var title: String { manifest.title }
+    var pageType: PageType? { manifest.pageType }
     var isContainer: Bool { manifest.pageKind == .container }
     var isLeaf: Bool { manifest.pageKind == .leaf }
     var isRoot: Bool { manifest.parentID == nil }
-    var hasWorkoutConfig: Bool { isLeaf && manifest.duration != nil }
+    var isExercise: Bool { pageType == .exercise }
+    var isSkill: Bool { pageType == .skill }
+    var isTutorial: Bool { pageType == .tutorial }
+    var isSkillLike: Bool { isSkill || isTutorial }
+    var isContentPage: Bool { pageType != nil }
+    var canContainChildren: Bool { isContainer }
+    var isWorkoutAddable: Bool { isExercise || isSkill }
+    var hasWorkoutConfig: Bool { isExercise && manifest.duration != nil }
     var hasCover: Bool { coverImageURL != nil }
     var hasLinks: Bool { !manifest.linkURLs.isEmpty }
     var hasMedia: Bool { !mediaURLs.isEmpty }

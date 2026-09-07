@@ -49,6 +49,7 @@ struct TimeMasterApp: App {
         MigrationManager.migrateIfNeeded()
         MigrationManager.migrateToV2PagesIfNeeded()
         MigrationManager.normalizeV2PageKindsIfNeeded()
+        MigrationManager.normalizePageTypesIfNeeded()
         MigrationManager.cleanLegacyPageCacheIfNeeded()
         let ws = WorkoutStore()
         let ds = DatabaseStore.shared

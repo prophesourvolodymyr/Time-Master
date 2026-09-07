@@ -398,6 +398,7 @@ struct DatabaseView: View {
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
     @State private var filterOption: PageFilterOption = .all
+    @State private var creationPageType: PageType?
     @State private var searchText = ""
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
@@ -418,9 +419,8 @@ struct DatabaseView: View {
                     v2EmptyState
                 }
             }
-            .navigationTitle(databaseTitle(isV2: isV2))
+            .navigationTitle(databaseTitle)
             .toolbar {
-                if isV2 {
                     AppToolbar.iconGroup(placement: .primaryAction) {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -445,7 +445,6 @@ struct DatabaseView: View {
                         }
                         .foregroundStyle(.white)
                     }
-                }
                 #if os(iOS)
                 AppToolbar.item(placement: .primaryAction) {
                     EditButton()
@@ -465,12 +464,14 @@ struct DatabaseView: View {
                         if isV2 {
                             Button {
                                 creationLeafFirst = false
+                                creationPageType = nil
                                 showingCreatePage = true
                             } label: {
                                 Label("New Container", systemImage: "folder.badge.plus")
                             }
                             Button {
                                 creationLeafFirst = true
+                                creationPageType = .exercise
                                 showingCreatePage = true
                             } label: {
                                 Label("New Exercise", systemImage: "figure.run")
@@ -500,7 +501,10 @@ struct DatabaseView: View {
                 }
             }
             .sheet(isPresented: $showingCreatePage) {
-                PageCreationSheet(leafFirst: creationLeafFirst) { manifest, parentID in
+                PageCreationSheet(
+                    leafFirst: creationLeafFirst,
+                    initialPageType: creationPageType
+                ) { manifest, parentID in
                     try store.createPage(manifest: manifest, parentID: parentID)
                 } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
                     try store.createPageWithMedia(
@@ -587,14 +591,8 @@ struct DatabaseView: View {
         }
     }
 
-    private func databaseTitle(isV2: Bool) -> String {
-        guard searchText.isEmpty else { return "Search" }
-        if isV2 {
-            let count = store.allPagesFlat.count
-            return count == 0 ? "Exercise Database" : "Exercise Database · \(count)"
-        }
-        let count = store.rootFolders.count + store.rootExercises.count + store.rootNotes.count
-        return count == 0 ? "Exercise Database" : "Exercise Database · \(count)"
+    private var databaseTitle: String {
+        searchText.isEmpty ? "Exercise Database" : "Search"
     }
 
     private func handleDatabaseImport(_ result: Result<[URL], Error>) {
@@ -829,6 +827,7 @@ struct DatabaseView: View {
         }
     }
 
+
     private var searchBarView: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
@@ -855,8 +854,9 @@ struct DatabaseView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 filterChip(.all, label: "All")
+                filterChip(.exercise, label: "Exercises")
+                filterChip(.tutorial, label: "Tutorials")
                 filterChip(.container, label: "Containers")
-                filterChip(.leaf, label: "Leaves")
                 ForEach(uniqueWorkoutTypes) { type in
                     filterChip(.type(type.id), label: type.name)
                 }
@@ -965,12 +965,14 @@ struct DatabaseView: View {
     }
 
     private var filteredRootPages: [ExercisePage] {
-        var pages = store.rootPages
+        var pages = store.rootPages.filter { !$0.isSkill }
 
         switch filterOption {
         case .all: break
-        case .container: pages = pages.filter { $0.isContainer }
-        case .leaf: pages = pages.filter { $0.isLeaf }
+        case .container: pages = pages.filter { $0.isContainer && $0.pageType == nil }
+        case .exercise: pages = pages.filter(\.isExercise)
+        case .skill: pages = pages.filter(\.isSkill)
+        case .tutorial: pages = pages.filter(\.isTutorial)
         case .type(let typeId): pages = pages.filter { $0.effectiveWorkoutType?.id == typeId }
         }
 
@@ -989,6 +991,7 @@ struct DatabaseView: View {
 
         return pages
     }
+
 
     @ViewBuilder
     private func pageRow(_ page: ExercisePage) -> some View {
@@ -2643,6 +2646,7 @@ private struct ExportSectionHeader: View {
     }
 }
 
+
 enum PageSortOption: String, CaseIterable {
     case name
     case dateCreated
@@ -2660,7 +2664,9 @@ enum PageSortOption: String, CaseIterable {
 enum PageFilterOption: Hashable {
     case all
     case container
-    case leaf
+    case exercise
+    case skill
+    case tutorial
     case type(String)
 }
 

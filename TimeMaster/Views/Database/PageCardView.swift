@@ -60,7 +60,7 @@ struct PageCardView: View {
 
     @ViewBuilder
     private var contextMenuContent: some View {
-        if page.isLeaf, let onAddToWorkout {
+        if page.isWorkoutAddable, let onAddToWorkout {
             Button { onAddToWorkout() } label: {
                 Label("Add to Workout", systemImage: "figure.strengthtraining.traditional")
             }
@@ -226,12 +226,21 @@ struct PageCardView: View {
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(Theme.textSecondary.opacity(0.7))
                 }
-                if page.isLeaf && page.effectiveWorkoutType == nil {
-                    Text("Exercise")
+                if let pageTypeLabel {
+                    Text(pageTypeLabel)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(Theme.textSecondary.opacity(0.6))
                 }
             }
+        }
+    }
+
+    private var pageTypeLabel: String? {
+        switch page.pageType {
+        case .exercise: "Exercise"
+        case .skill: "Skill"
+        case .tutorial: "Tutorial"
+        case nil: nil
         }
     }
 

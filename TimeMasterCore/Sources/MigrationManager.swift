@@ -229,6 +229,7 @@ public final class MigrationManager {
 
     private static let v2PagesMarkerName = ".migration_v2_pages_complete"
     private static let pageKindsMarkerName = ".migration_page_kinds_complete"
+    private static let pageTypesMarkerName = ".migration_page_types_complete"
 
     public var isV2PageMigrationComplete: Bool {
         let markerURL = fs.configDirectory.appendingPathComponent(Self.v2PagesMarkerName)
@@ -253,11 +254,12 @@ public final class MigrationManager {
                 var normalized = manifest
                 let parentID = manifest.parentID
 
-                if manifest.pageKind == .container, manifest.duration != nil {
+                if manifest.pageKind == .container, manifest.pageType == nil, manifest.duration != nil {
                     let childID = UUID().uuidString
                     var child = manifest
                     child.id = childID
                     child.title = "\(manifest.title) Exercise"
+                    child.pageType = .exercise
                     child.pageKind = .leaf
                     child.coverImageFilename = nil
                     child.parentID = manifest.id
@@ -272,25 +274,66 @@ public final class MigrationManager {
                     normalized.mediaFilenames = []
                     normalized.childIDs.append(childID)
                     try manager.db.updatePage(id: normalized.id, manifest: normalized, newParentID: parentID)
-                    try manager.db.createPage(manifest: child, parentID: manifest.id)
                 } else {
-                    if manifest.pageKind == .container && parentID != nil {
-                        normalized.workoutType = nil
+                    if normalized.pageKind == .leaf, normalized.pageType == nil {
+                        normalized.pageType = .exercise
                     }
-                    if manifest.pageKind == .leaf {
-                        normalized.workoutType = nil
+                    if normalized.pageType == .skill || normalized.pageType == .tutorial {
+                        normalized.pageKind = .container
+                        normalized.duration = nil
+                        normalized.restAfter = nil
+                        normalized.prepareTime = nil
+                        normalized.sets = nil
+                        normalized.restBetweenSets = nil
+                        normalized.dropSetTemplates = []
+                        normalized.skillStatus = normalized.skillStatus ?? .notStarted
                     }
-                    if normalized.workoutType != manifest.workoutType {
+                    if normalized.pageKind != manifest.pageKind
+                        || normalized.pageType != manifest.pageType
+                        || normalized.skillStatus != manifest.skillStatus {
                         try manager.db.updatePage(id: normalized.id, manifest: normalized, newParentID: parentID)
                     }
                 }
             }
             try manager.fs.writeAtomically(to: markerURL, data: Data("1".utf8))
         } catch {
-            // Leave the marker absent so a later launch can retry safely.
         }
     }
 
+
+    public static func normalizePageTypesIfNeeded() {
+        let manager = MigrationManager(db: .shared)
+        let markerURL = manager.fs.configDirectory.appendingPathComponent(pageTypesMarkerName)
+        guard !manager.fs.fileExists(at: markerURL), isV2PageMigrationComplete else { return }
+
+        do {
+            let pages = try manager.db.walkPageTree(in: manager.fs.exercisesDatabaseDirectory)
+            for (manifest, _) in pages {
+                var normalized = manifest
+                if normalized.pageKind == .leaf, normalized.pageType == nil {
+                    normalized.pageType = .exercise
+                }
+                if normalized.pageType == .skill || normalized.pageType == .tutorial {
+                    normalized.pageKind = .container
+                    normalized.duration = nil
+                    normalized.restAfter = nil
+                    normalized.prepareTime = nil
+                    normalized.sets = nil
+                    normalized.restBetweenSets = nil
+                    normalized.dropSetTemplates = []
+                    normalized.skillStatus = normalized.skillStatus ?? .notStarted
+                    normalized.skillBoardOrder = max(0, normalized.skillBoardOrder ?? 0)
+                }
+                try manager.db.updatePage(
+                    id: normalized.id,
+                    manifest: normalized,
+                    newParentID: normalized.parentID
+                )
+            }
+            try manager.fs.writeAtomically(to: markerURL, data: Data("1".utf8))
+        } catch {
+        }
+    }
     public static func cleanLegacyPageCacheIfNeeded() {
         let manager = MigrationManager(db: .shared)
         let markerURL = manager.fs.configDirectory.appendingPathComponent(".legacy_page_cache_clean")
@@ -302,7 +345,7 @@ public final class MigrationManager {
                 guard manifest.pageKind == .container || manifest.pageKind == .leaf else { continue }
                 let folder = manager.fs.exercisesDatabaseDirectory.appendingPathComponent(path, isDirectory: true)
                 var cleaned = manifest
-                if cleaned.pageKind == .container {
+                if cleaned.pageKind == .container, cleaned.pageType == nil {
                     cleaned.mediaFilenames = []
                     cleaned.duration = nil
                     cleaned.restAfter = nil
@@ -310,14 +353,10 @@ public final class MigrationManager {
                     cleaned.sets = nil
                     cleaned.restBetweenSets = nil
                 }
-                cleaned.workoutType = cleaned.parentID == nil && cleaned.pageKind == .container
-                    ? (cleaned.workoutType ?? .other)
-                    : nil
                 try manager.fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: cleaned)
             }
             try manager.fs.writeAtomically(to: markerURL, data: Data("1".utf8))
         } catch {
-            // Retry on the next launch if cleanup cannot complete.
         }
     }
 

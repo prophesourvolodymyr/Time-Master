@@ -35,6 +35,9 @@ struct PageCreationSheet: View {
     let onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)?
 
     @State private var pageKind: ExercisePageManifest.PageKind
+    @State private var pageType: PageType?
+    @State private var skillStatus: SkillStatus?
+    @State private var skillBoardSectionID: String?
     @State private var draftParentID: String?
     @State private var title: String
     @State private var workoutType: WorkoutType?
@@ -70,6 +73,7 @@ struct PageCreationSheet: View {
         page: ExercisePage? = nil,
         parentID: String? = nil,
         leafFirst: Bool = false,
+        initialPageType: PageType? = nil,
         onSave: @escaping (ExercisePageManifest, String?) throws -> Void,
         onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)? = nil
     ) {
@@ -78,7 +82,16 @@ struct PageCreationSheet: View {
         self.onSaveWithMedia = onSaveWithMedia
 
         let resolvedParentID = parentID ?? page?.manifest.parentID
-        let initialKind = page?.manifest.pageKind ?? (leafFirst || resolvedParentID != nil ? .leaf : .container)
+        let defaultPageType: PageType? = initialPageType
+            ?? ((leafFirst || resolvedParentID != nil) ? .exercise : nil)
+        let initialType = page?.manifest.pageType
+            ?? (page?.manifest.pageKind == .leaf ? .exercise : defaultPageType)
+        let initialKind: ExercisePageManifest.PageKind = {
+            if initialType == .skill || initialType == .tutorial {
+                return .container
+            }
+            return page?.manifest.pageKind ?? (initialType == .exercise ? .leaf : .container)
+        }()
         let initialLinks = Self.makeLinkRows(
             urls: page?.manifest.linkURLs ?? [],
             metadata: page?.manifest.linkMetadata ?? []
@@ -86,6 +99,9 @@ struct PageCreationSheet: View {
         let initialMedia = page.map(Self.orderedMediaFilenames) ?? []
 
         _pageKind = State(initialValue: initialKind)
+        _pageType = State(initialValue: initialType)
+        _skillStatus = State(initialValue: page?.manifest.skillStatus)
+        _skillBoardSectionID = State(initialValue: page?.manifest.skillBoardSectionID)
         _draftParentID = State(initialValue: resolvedParentID)
         _title = State(initialValue: page?.manifest.title ?? "")
         if let type = page?.manifest.workoutType {
@@ -127,7 +143,10 @@ struct PageCreationSheet: View {
                         pageKindCard
                         mediaCard
                         workoutTypeCard
-                        if pageKind == .leaf {
+                        if isSkillLikePage {
+                            skillTrackingCard
+                        }
+                        if isExercisePage {
                             timingCard
                             dropSetTemplatesCard
                         }
@@ -274,29 +293,45 @@ struct PageCreationSheet: View {
     private var pageKindCard: some View {
         formCard {
             sectionHeading("Page Type", required: true)
-            HStack(spacing: 8) {
-                kindButton(.container, title: "Container", systemImage: "square.stack.3d.up")
-                kindButton(.leaf, title: "Exercise", systemImage: "figure.run")
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                pageTypeButton(nil, title: "Container", systemImage: "square.stack.3d.up")
+                pageTypeButton(.exercise, title: "Exercise", systemImage: "figure.run")
+                pageTypeButton(.skill, title: "Skill", systemImage: "flag.checkered")
+                pageTypeButton(.tutorial, title: "Tutorial", systemImage: "book.closed")
             }
         }
     }
 
-    private func kindButton(
-        _ kind: ExercisePageManifest.PageKind,
+    private func pageTypeButton(
+        _ type: PageType?,
         title: String,
         systemImage: String
     ) -> some View {
-        Button {
+        let isSelected = pageType == type && (type != nil || pageKind == .container)
+        return Button {
             withAnimation(.easeOut(duration: 0.2)) {
-                pageKind = kind
+                pageType = type
+                switch type {
+                case .exercise:
+                    pageKind = .leaf
+                    skillStatus = nil
+                    skillBoardSectionID = nil
+                case .skill, .tutorial:
+                    pageKind = .container
+                    skillStatus = skillStatus ?? .notStarted
+                case nil:
+                    pageKind = .container
+                    skillStatus = nil
+                    skillBoardSectionID = nil
+                }
             }
         } label: {
             Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(pageKind == kind ? .semibold : .regular))
-                .foregroundStyle(pageKind == kind ? .black : Theme.textPrimary)
+                .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? .black : Theme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
-                .background(pageKind == kind ? Theme.primary : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
+                .background(isSelected ? Theme.primary : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
     }
@@ -422,6 +457,44 @@ struct PageCreationSheet: View {
                     }
                     .buttonStyle(OrangeChoiceButtonStyle(isSelected: workoutType == type))
                 }
+            }
+        }
+    }
+
+    private var skillTrackingCard: some View {
+        formCard {
+            sectionHeading(pageType == .tutorial ? "Tutorial Status" : "Skill Status", required: true)
+            HStack(spacing: 8) {
+                ForEach(SkillStatus.allCases, id: \.self) { status in
+                    Button {
+                        skillStatus = status
+                    } label: {
+                        Text(skillStatusTitle(status))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(OrangeChoiceButtonStyle(isSelected: effectiveSkillStatus == status))
+                }
+            }
+            if !availableSkillBoardSections.isEmpty {
+                Menu {
+                    Button("Unsectioned") {
+                        skillBoardSectionID = nil
+                    }
+                    ForEach(availableSkillBoardSections) { section in
+                        Button(section.title) {
+                            skillBoardSectionID = section.id
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedSkillBoardSection?.title ?? "Unsectioned")
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                    }
+                    .padding(12)
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+                }
+                .foregroundStyle(Theme.textPrimary)
             }
         }
     }
@@ -747,6 +820,9 @@ struct PageCreationSheet: View {
         [
             title,
             pageKind.rawValue,
+            pageType?.rawValue ?? "",
+            skillStatus?.rawValue ?? "",
+            skillBoardSectionID ?? "",
             draftParentID ?? "",
             markdownBody,
             "\(duration)",
@@ -779,14 +855,36 @@ struct PageCreationSheet: View {
             || !markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !linkRows.allSatisfy { $0.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             || !mediaFilenames.isEmpty
-            || pageKind == .leaf
+            || pageType != nil
             || !dropSetTemplates.isEmpty
     }
+
+    private var isExercisePage: Bool { pageType == .exercise }
+    private var isSkillLikePage: Bool { pageType == .skill || pageType == .tutorial }
+    private var effectiveSkillStatus: SkillStatus { skillStatus ?? .notStarted }
 
     private var inheritedWorkoutType: TimeMasterCore.WorkoutType? {
         guard let parentID = draftParentID,
               let parentUUID = UUID(uuidString: parentID) else { return nil }
         return databaseStore.page(id: parentUUID)?.effectiveWorkoutType
+    }
+
+    private var availableSkillBoardSections: [SkillBoardSection] {
+        guard let parentID = draftParentID,
+              let parentUUID = UUID(uuidString: parentID) else { return [] }
+        return databaseStore.page(id: parentUUID)?.manifest.skillBoardSections ?? []
+    }
+
+    private var selectedSkillBoardSection: SkillBoardSection? {
+        availableSkillBoardSections.first { $0.id == skillBoardSectionID }
+    }
+
+    private func skillStatusTitle(_ status: SkillStatus) -> String {
+        switch status {
+        case .notStarted: "Not started"
+        case .learning: "Learning"
+        case .completed: "Completed"
+        }
     }
 
     private func formCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -904,6 +1002,9 @@ struct PageCreationSheet: View {
             id: draftID,
             title: title,
             pageKind: pageKind,
+            pageType: pageType,
+            skillStatus: skillStatus,
+            skillBoardSectionID: skillBoardSectionID,
             parentID: draftParentID,
             workoutType: workoutType.map {
                 TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
@@ -967,12 +1068,18 @@ struct PageCreationSheet: View {
         let coreWorkoutType: TimeMasterCore.WorkoutType? = workoutType.map {
             TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
         }
-        let restBetweenSetsValue = pageKind == .leaf && sets > 1 ? restBetweenSets : nil
+        let resolvedPageType = pageType ?? (pageKind == .leaf ? .exercise : nil)
+        let structuralKind: ExercisePageManifest.PageKind = resolvedPageType == .exercise ? .leaf : .container
+        let isExercise = resolvedPageType == .exercise
+        let isSkillLike = resolvedPageType == .skill || resolvedPageType == .tutorial
+        let status = isSkillLike ? effectiveSkillStatus : nil
+        let boardSectionID = isSkillLike ? skillBoardSectionID : nil
 
         if let existingPage {
             var manifest = existingPage.manifest
             manifest.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
-            manifest.pageKind = pageKind
+            manifest.pageKind = structuralKind
+            manifest.pageType = resolvedPageType
             manifest.parentID = draftParentID
             manifest.coverImageFilename = nil
             manifest.iconName = nil
@@ -981,32 +1088,45 @@ struct PageCreationSheet: View {
             manifest.mediaFilenames = mediaFilenames
             manifest.linkURLs = links.map(\.0)
             manifest.linkMetadata = links.map { $0.1 ?? LinkMetadata(url: $0.0) }
-            manifest.duration = pageKind == .leaf ? duration : nil
-            manifest.prepareTime = pageKind == .leaf ? prepareTime : nil
-            manifest.restAfter = pageKind == .leaf ? restAfter : nil
-            manifest.sets = pageKind == .leaf ? sets : nil
-            manifest.restBetweenSets = restBetweenSetsValue
-            manifest.dropSetTemplates = pageKind == .leaf ? normalizedDropSets : []
-            manifest.childIDs = pageKind == .container ? existingPage.manifest.childIDs : []
+            manifest.duration = isExercise ? duration : nil
+            manifest.prepareTime = isExercise ? prepareTime : nil
+            manifest.restAfter = isExercise ? restAfter : nil
+            manifest.sets = isExercise ? sets : nil
+            manifest.restBetweenSets = isExercise && sets > 1 ? restBetweenSets : nil
+            manifest.dropSetTemplates = isExercise ? normalizedDropSets : []
+            manifest.childIDs = structuralKind == .container ? existingPage.manifest.childIDs : []
+            manifest.skillStatus = status
+            manifest.skillBoardSectionID = boardSectionID
+            manifest.skillBoardOrder = isSkillLike
+                ? max(0, existingPage.manifest.skillBoardOrder ?? nextSkillBoardOrder)
+                : nil
+            if isExercise {
+                manifest.linkedPageIDs = []
+                manifest.skillBoardSections = []
+            }
             manifest.updatedAt = Date()
             return manifest
         }
 
         return ExercisePageManifest(
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-            pageKind: pageKind,
+            pageKind: structuralKind,
+            pageType: resolvedPageType,
             iconName: nil,
             markdownBody: markdownBody,
             mediaFilenames: mediaFilenames,
             linkURLs: links.map(\.0),
             linkMetadata: links.map { $0.1 ?? LinkMetadata(url: $0.0) },
             workoutType: coreWorkoutType,
-            duration: pageKind == .leaf ? duration : nil,
-            restAfter: pageKind == .leaf ? restAfter : nil,
-            prepareTime: pageKind == .leaf ? prepareTime : nil,
-            sets: pageKind == .leaf ? sets : nil,
-            restBetweenSets: restBetweenSetsValue,
-            dropSetTemplates: pageKind == .leaf ? normalizedDropSets : [],
+            skillStatus: status,
+            skillBoardSectionID: boardSectionID,
+            skillBoardOrder: isSkillLike ? nextSkillBoardOrder : nil,
+            duration: isExercise ? duration : nil,
+            restAfter: isExercise ? restAfter : nil,
+            prepareTime: isExercise ? prepareTime : nil,
+            sets: isExercise ? sets : nil,
+            restBetweenSets: isExercise && sets > 1 ? restBetweenSets : nil,
+            dropSetTemplates: isExercise ? normalizedDropSets : [],
             parentID: draftParentID
         )
     }
@@ -1048,10 +1168,23 @@ struct PageCreationSheet: View {
         }
     }
 
+    private var nextSkillBoardOrder: Int {
+        guard let parentID = draftParentID,
+              let parentUUID = UUID(uuidString: parentID) else { return 0 }
+        return databaseStore.children(of: parentUUID)
+            .filter { $0.isSkillLike }
+            .filter { $0.manifest.skillStatus == effectiveSkillStatus }
+            .filter { $0.manifest.skillBoardSectionID == skillBoardSectionID }
+            .count
+    }
+
     private func apply(draft: PageCreationDraft) {
         draftID = draft.id
         title = draft.title
         pageKind = draft.pageKind
+        pageType = draft.pageType ?? (draft.pageKind == .leaf ? .exercise : nil)
+        skillStatus = draft.skillStatus
+        skillBoardSectionID = draft.skillBoardSectionID
         draftParentID = draft.parentID
         workoutType = draft.workoutType.map {
             WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)

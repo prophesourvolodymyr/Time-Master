@@ -327,22 +327,54 @@ Query the TimeMaster exercise database.
         normalized.parentID = parentID
         normalized.iconName = nil
 
-        if normalized.pageKind == .container, parentID == nil {
-            normalized.workoutType = normalized.workoutType ?? .other
-        }
-        if normalized.pageKind == .container {
+        let contentType = normalized.pageType
+            ?? (normalized.pageKind == .leaf ? .exercise : nil)
+
+        if contentType == .skill || contentType == .tutorial {
+            normalized.pageKind = .container
+            normalized.pageType = contentType
             normalized.duration = nil
             normalized.restAfter = nil
             normalized.prepareTime = nil
             normalized.sets = nil
             normalized.restBetweenSets = nil
-        } else {
+            normalized.dropSetTemplates = []
+            normalized.skillStatus = normalized.skillStatus ?? .notStarted
+            normalized.skillBoardOrder = max(0, normalized.skillBoardOrder ?? 0)
+        } else if contentType == .exercise {
+            normalized.pageKind = .leaf
+            normalized.pageType = .exercise
             normalized.coverImageFilename = nil
             normalized.childIDs = []
+            normalized.skillStatus = nil
+            normalized.skillBoardSectionID = nil
+            normalized.skillBoardOrder = nil
+            normalized.skillBoardSections = []
+            normalized.linkedPageIDs = []
+        } else {
+            normalized.pageKind = .container
+            normalized.pageType = nil
+            normalized.duration = nil
+            normalized.restAfter = nil
+            normalized.prepareTime = nil
+            normalized.sets = nil
+            normalized.restBetweenSets = nil
+            normalized.dropSetTemplates = []
+            normalized.skillStatus = nil
+            normalized.skillBoardSectionID = nil
+            normalized.skillBoardOrder = nil
+            normalized.linkedPageIDs = []
+            normalized.skillBoardSections = normalized.skillBoardSections
+                .enumerated()
+                .map { index, section in
+                    SkillBoardSection(id: section.id, title: section.title, order: index)
+                }
+            if parentID == nil {
+                normalized.workoutType = normalized.workoutType ?? .other
+            }
         }
         return normalized
     }
-
 
     private func writePageFiles(_ manifest: ExercisePageManifest, in folder: URL) throws {
         let manifestURL = folder.appendingPathComponent("manifest.json")
@@ -354,8 +386,6 @@ Query the TimeMaster exercise database.
     }
 
     private func validatePageManifest(_ manifest: ExercisePageManifest, parentID: String?) throws {
-        // Leaf pages may live at the database root or inside a container.
-        // A parent, when supplied, still has to be a container.
         if let parentID {
             guard parentID != manifest.id else {
                 throw FileSystemHelper.Error.invalidPageKind("a page cannot be its own parent")
@@ -363,7 +393,7 @@ Query the TimeMaster exercise database.
 
             let parent = try getPage(id: parentID)
             guard parent.pageKind == .container else {
-                throw FileSystemHelper.Error.invalidPageKind("pages can only be nested inside containers")
+                throw FileSystemHelper.Error.invalidPageKind("pages can only be nested inside pages that allow children")
             }
 
             var ancestorID = parent.parentID
@@ -375,11 +405,17 @@ Query the TimeMaster exercise database.
             }
         }
 
-        if manifest.pageKind == .container {
-            if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
-                throw FileSystemHelper.Error.invalidPageKind("containers cannot have workout timing")
+        guard !manifest.linkedPageIDs.contains(manifest.id) else {
+            throw FileSystemHelper.Error.invalidPageKind("a page cannot attach itself")
+        }
+
+        let contentType = manifest.pageType
+            ?? (manifest.pageKind == .leaf ? .exercise : nil)
+        switch contentType {
+        case .exercise:
+            guard manifest.pageKind == .leaf else {
+                throw FileSystemHelper.Error.invalidPageKind("exercise pages cannot contain child pages")
             }
-        } else {
             if manifest.coverImageFilename != nil {
                 throw FileSystemHelper.Error.invalidPageKind("exercise pages use their first media item as the cover")
             }
@@ -388,6 +424,17 @@ Query the TimeMaster exercise database.
             }
             if !manifest.childIDs.isEmpty {
                 throw FileSystemHelper.Error.invalidPageKind("exercise pages cannot contain child pages")
+            }
+        case .skill, .tutorial:
+            if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
+                throw FileSystemHelper.Error.invalidPageKind("skill and tutorial pages do not have workout timing")
+            }
+        case nil:
+            guard manifest.pageKind == .container else {
+                throw FileSystemHelper.Error.invalidPageKind("untyped pages must be containers")
+            }
+            if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
+                throw FileSystemHelper.Error.invalidPageKind("containers cannot have workout timing")
             }
         }
     }
@@ -607,6 +654,48 @@ Query the TimeMaster exercise database.
         manifest.updatedAt = Date()
         let manifestURL = parentFolder.appendingPathComponent("manifest.json")
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+    }
+
+    public func updateSkillBoard(
+        containerID: String,
+        sections: [SkillBoardSection],
+        placements: [SkillBoardPlacement]
+    ) throws {
+        var container = try getPage(id: containerID)
+        guard container.pageKind == .container else {
+            throw FileSystemHelper.Error.invalidPageKind("skill boards belong to pages that allow children")
+        }
+
+        let normalizedSections = sections
+            .filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .enumerated()
+            .map { index, section in
+                SkillBoardSection(id: section.id, title: section.title, order: index)
+            }
+        let sectionIDs = Set(normalizedSections.map(\.id))
+        let childIDs = Set(container.childIDs)
+
+        for placement in placements {
+            guard childIDs.contains(placement.pageID) else {
+                throw FileSystemHelper.Error.invalidPageKind("skill board items must be direct child pages")
+            }
+            guard placement.sectionID == nil || sectionIDs.contains(placement.sectionID!) else {
+                throw FileSystemHelper.Error.writeFailed("skill board placement references an unknown section")
+            }
+            var page = try getPage(id: placement.pageID)
+            guard page.pageType == .skill || page.pageType == .tutorial else {
+                throw FileSystemHelper.Error.invalidPageKind("only skills and tutorials can be placed on a skill board")
+            }
+            page.skillStatus = placement.status
+            page.skillBoardSectionID = placement.sectionID
+            page.skillBoardOrder = max(0, placement.order)
+            page.updatedAt = Date()
+            try writePageFiles(page, in: try resolvePageFolder(id: placement.pageID))
+        }
+
+        container.skillBoardSections = normalizedSections
+        container.updatedAt = Date()
+        try writePageFiles(container, in: try resolvePageFolder(id: containerID))
     }
 
     public func readGuideContent(pageID: String) throws -> String {
