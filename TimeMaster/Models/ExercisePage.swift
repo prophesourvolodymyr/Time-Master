@@ -21,7 +21,7 @@ struct ExercisePage: Identifiable {
     var isSkillLike: Bool { isSkill || isTutorial }
     var isContentPage: Bool { pageType != nil }
     var canContainChildren: Bool { isContainer }
-    var isWorkoutAddable: Bool { isExercise || isSkill }
+    var isWorkoutAddable: Bool { isExercise || isSkillLike }
     var hasWorkoutConfig: Bool { isExercise && manifest.duration != nil }
     var hasCover: Bool { coverImageURL != nil }
     var hasLinks: Bool { !manifest.linkURLs.isEmpty }

@@ -470,7 +470,7 @@ F27 Home ───────────────┘
 - [x] Model Exercise, Skill, and Tutorial as page types; skills and tutorials keep attachments, notes, links, child pages, and linked page references without workout timing
 - [x] Add container-level Exercises and Skills tabs; double-tap opens each category as a full page
 - [x] Add Not Started, Learning, and Completed skill views plus a horizontally scrollable board with custom sections and drag reordering
-- [x] Allow skills to be added to workouts while keeping tutorials and containers out of workout sections
+- [x] Allow skills and tutorials to be added to workouts while keeping containers out of workout sections
 - [x] Remove the global Skills mode and title counts; skills are created and organized inside containers
 - [x] Verified: 94 TimeMasterCore tests pass and the iOS simulator Debug app installs and launches; human verification remains required
 
