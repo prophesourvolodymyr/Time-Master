@@ -758,17 +758,6 @@ struct PageCreationSheet: View {
 
     private var actionBar: some View {
         HStack(spacing: 10) {
-            if existingPage == nil {
-                Button {
-                    saveDraft()
-                } label: {
-                    Label("Draft", systemImage: "doc.badge.clock")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(OrangeSecondaryButtonStyle())
-                .disabled(!canDraft)
-            }
-
             Button {
                 savePage()
             } label: {
@@ -777,6 +766,19 @@ struct PageCreationSheet: View {
             }
             .buttonStyle(OrangePrimaryButtonStyle())
             .disabled(!canSave)
+
+            if existingPage == nil {
+                Button {
+                    saveDraft()
+                } label: {
+                    Image(systemName: "doc.badge.clock")
+                        .font(.headline)
+                        .frame(width: 50, height: 50)
+                }
+                .buttonStyle(OrangeDraftIconButtonStyle())
+                .disabled(!canDraft)
+                .accessibilityLabel("Save draft")
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 11)
@@ -1478,6 +1480,26 @@ private struct OrangePrimaryButtonStyle: ButtonStyle {
                 in: RoundedRectangle(cornerRadius: 11)
             )
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
+    }
+}
+
+private struct OrangeDraftIconButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
+            .background(
+                isEnabled
+                    ? Theme.primary.opacity(configuration.isPressed ? 0.25 : 0.12)
+                    : Theme.surface2,
+                in: RoundedRectangle(cornerRadius: 11)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 11)
+                    .stroke(isEnabled ? Theme.primary.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 1)
+            }
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
     }
 }
 
