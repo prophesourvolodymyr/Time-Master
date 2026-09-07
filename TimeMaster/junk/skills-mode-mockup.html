@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TimeMaster — Skills mode concept</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0c0b;
+      --surface: #151715;
+      --surface-2: #1d201d;
+      --surface-3: #252925;
+      --ink: #f4f1e9;
+      --muted: #9b9b91;
+      --quiet: #666960;
+      --line: rgba(244, 241, 233, .10);
+      --ember: #ff7438;
+      --ember-soft: rgba(255, 116, 56, .14);
+      --amber: #ffb35c;
+      --mint: #b6e9bf;
+      --sky: #a9d6f5;
+      --rose: #f5b8ae;
+      --shadow: 0 30px 90px rgba(0, 0, 0, .52);
+      --radius-card: 22px;
+      --radius-control: 14px;
+      --font-display: "Avenir Next", "SF Pro Display", ui-rounded, system-ui, sans-serif;
+      --font-body: "Avenir Next", "SF Pro Text", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255, 116, 56, .12), transparent 28rem),
+        radial-gradient(circle at 80% 95%, rgba(182, 233, 191, .08), transparent 24rem),
+        #080908;
+      color: var(--ink);
+      font-family: var(--font-body);
+      letter-spacing: -.01em;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .stage-label {
+      position: fixed;
+      top: 22px;
+      left: 28px;
+      color: rgba(244, 241, 233, .45);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .phone {
+      position: relative;
+      width: min(390px, 100vw);
+      height: min(844px, calc(100vh - 36px));
+      min-height: 680px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 44px;
+      background: var(--bg);
+      box-shadow: var(--shadow), 0 0 0 7px rgba(255, 255, 255, .025);
+      isolation: isolate;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      z-index: 5;
+      top: 10px;
+      left: 50%;
+      width: 102px;
+      height: 26px;
+      transform: translateX(-50%);
+      border-radius: 20px;
+      background: #050605;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+      pointer-events: none;
+    }
+
+    .phone-status {
+      position: relative;
+      z-index: 4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 46px;
+      padding: 13px 22px 0;
+      color: rgba(244, 241, 233, .9);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .status-right { display: flex; gap: 8px; align-items: center; }
+    .signal { width: 16px; height: 10px; display: flex; gap: 2px; align-items: end; }
+    .signal i { display: block; width: 3px; border-radius: 4px; background: currentColor; opacity: .8; }
+    .signal i:nth-child(1) { height: 4px; opacity: .4; }
+    .signal i:nth-child(2) { height: 6px; opacity: .55; }
+    .signal i:nth-child(3) { height: 8px; opacity: .7; }
+    .signal i:nth-child(4) { height: 10px; }
+    .battery { position: relative; width: 23px; height: 11px; border: 1px solid currentColor; border-radius: 4px; }
+    .battery::after { content: ""; position: absolute; right: -3px; top: 3px; width: 2px; height: 4px; border-radius: 0 2px 2px 0; background: currentColor; }
+    .battery::before { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 5px; border-radius: 2px; background: var(--mint); }
+
+    .app { position: absolute; inset: 0; display: flex; flex-direction: column; }
+    .scroll { flex: 1; overflow: auto; padding: 0 18px 116px; scrollbar-width: none; }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    .topbar { display: flex; justify-content: space-between; align-items: end; padding: 17px 2px 14px; }
+    .eyebrow { margin: 0 0 6px; color: var(--ember); font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-family: var(--font-display); font-size: 36px; line-height: .98; letter-spacing: -.055em; }
+    h2 { font-family: var(--font-display); font-size: 25px; line-height: 1.05; letter-spacing: -.04em; }
+    h3 { font-size: 17px; line-height: 1.15; letter-spacing: -.025em; }
+    .subtitle { margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 14px;
+      background: var(--surface-2);
+      color: var(--ink);
+      transition: transform .18s ease, border-color .18s ease, color .18s ease;
+    }
+    .icon-button:hover { border-color: var(--ember); color: var(--ember); transform: translateY(-1px); }
+    .icon-button svg { width: 18px; height: 18px; }
+
+    .mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 17px; background: rgba(255,255,255,.035); }
+    .mode-switch button { min-height: 38px; border-radius: 12px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 750; transition: background .18s ease, color .18s ease, transform .18s ease; }
+    .mode-switch button.active { background: var(--ink); color: #111310; }
+    .mode-switch button:active { transform: scale(.98); }
+
+    .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 14px 0 18px; }
+    .summary-card { min-height: 68px; padding: 12px; border: 1px solid var(--line); border-radius: 17px; background: linear-gradient(140deg, rgba(255,255,255,.08), rgba(255,255,255,.025)); }
+    .summary-value { display: block; font-family: var(--font-display); font-size: 21px; letter-spacing: -.05em; }
+    .summary-label { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.1; }
+
+    .section-row { display: flex; justify-content: space-between; align-items: center; margin: 18px 2px 9px; }
+    .section-row h2 { font-size: 18px; letter-spacing: -.03em; }
+    .section-link { color: var(--ember); background: transparent; font-size: 12px; font-weight: 750; }
+
+    .filters { display: flex; gap: 7px; overflow-x: auto; margin: 0 -2px 14px; padding: 2px; scrollbar-width: none; }
+    .filters::-webkit-scrollbar { display: none; }
+    .filter { flex: 0 0 auto; padding: 9px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 11px; font-weight: 750; }
+    .filter.active { border-color: var(--ember); background: var(--ember-soft); color: var(--amber); }
+
+    .skill-list { display: grid; gap: 10px; }
+    .skill-card { position: relative; overflow: hidden; padding: 15px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); text-align: left; color: var(--ink); transition: transform .2s ease, border-color .2s ease, background .2s ease; }
+    .skill-card:hover { border-color: rgba(255, 116, 56, .62); background: #191c18; transform: translateY(-2px); }
+    .skill-card::after { content: ""; position: absolute; right: -30px; bottom: -56px; width: 150px; height: 150px; border-radius: 50%; background: var(--card-glow, rgba(255,116,56,.08)); filter: blur(2px); pointer-events: none; }
+    .skill-card-top { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 12px; }
+    .skill-icon { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 14px; background: var(--card-soft, var(--ember-soft)); color: var(--card-color, var(--ember)); }
+    .skill-icon svg { width: 20px; height: 20px; }
+    .skill-card-copy { flex: 1; min-width: 0; }
+    .skill-card h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .skill-group { margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .status { display: inline-flex; align-items: center; flex: 0 0 auto; height: 24px; padding: 0 8px; border-radius: 999px; font-size: 10px; font-weight: 800; }
+    .status.learning { background: rgba(255, 179, 92, .15); color: var(--amber); }
+    .status.completed { background: rgba(182, 233, 191, .14); color: var(--mint); }
+    .status.not-started { background: rgba(255,255,255,.08); color: var(--muted); }
+    .skill-card-bottom { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; margin-top: 16px; }
+    .progress { flex: 1; height: 5px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.1); }
+    .progress i { display: block; height: 100%; border-radius: inherit; background: var(--card-color, var(--ember)); }
+    .exercise-count { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .skill-card-chevron { position: absolute; right: 13px; bottom: 14px; z-index: 2; color: rgba(255,255,255,.38); }
+
+    .primary-action { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin-top: 14px; border-radius: 15px; background: var(--ember); color: #19100b; font-size: 14px; font-weight: 850; box-shadow: 0 12px 28px rgba(255,116,56,.16); transition: transform .18s ease, filter .18s ease; }
+    .primary-action:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .primary-action:active { transform: scale(.985); }
+    .secondary-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 13px; border: 1px solid rgba(255, 116, 56, .5); border-radius: 13px; background: var(--ember-soft); color: var(--amber); font-size: 12px; font-weight: 800; }
+
+    .empty { padding: 35px 18px; border: 1px dashed rgba(255,255,255,.17); border-radius: 20px; color: var(--muted); text-align: center; }
+    .empty strong { display: block; margin-bottom: 5px; color: var(--ink); font-size: 15px; }
+    .empty p { font-size: 12px; line-height: 1.4; }
+
+    .detail-top { display: flex; align-items: center; gap: 11px; padding: 15px 0 17px; }
+    .back-button { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); color: var(--ink); }
+    .detail-top-copy { min-width: 0; flex: 1; }
+    .detail-top-copy .eyebrow { margin-bottom: 4px; }
+    .detail-top-copy h1 { font-size: 25px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-menu { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; background: var(--ember-soft); color: var(--ember); }
+
+    .detail-hero { position: relative; overflow: hidden; min-height: 166px; padding: 20px; border-radius: 27px; background: linear-gradient(135deg, #202d21, #121713 60%, #2d1c16); }
+    .detail-hero::before { content: ""; position: absolute; right: -36px; top: -58px; width: 210px; height: 210px; border-radius: 50%; background: rgba(255, 179, 92, .17); filter: blur(6px); }
+    .detail-hero::after { content: ""; position: absolute; left: -45px; bottom: -75px; width: 190px; height: 140px; border-radius: 50%; background: rgba(182, 233, 191, .13); filter: blur(8px); }
+    .detail-hero-content { position: relative; z-index: 1; }
+    .detail-hero h2 { max-width: 75%; margin-top: 7px; font-size: 31px; }
+    .detail-hero p { max-width: 83%; margin-top: 10px; color: rgba(244, 241, 233, .72); font-size: 12px; line-height: 1.4; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+    .meta-chip { padding: 7px 9px; border: 1px solid rgba(255,255,255,.12); border-radius: 999px; background: rgba(0,0,0,.18); color: rgba(244,241,233,.82); font-size: 10px; font-weight: 750; }
+
+    .status-switch { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); }
+    .status-switch button { min-height: 34px; border-radius: 10px; background: transparent; color: var(--muted); font-size: 10px; font-weight: 800; }
+    .status-switch button.active { background: var(--surface-3); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    .status-switch button.active.completed { color: var(--mint); }
+    .status-switch button.active.learning { color: var(--amber); }
+
+    .exercise-list { display: grid; gap: 8px; }
+    .exercise-row { display: flex; align-items: center; gap: 10px; padding: 11px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+    .exercise-thumb { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(145deg, rgba(255,116,56,.26), rgba(255,255,255,.06)); color: var(--amber); }
+    .exercise-thumb svg { width: 19px; height: 19px; }
+    .exercise-copy { min-width: 0; flex: 1; }
+    .exercise-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .exercise-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .role-select { height: 28px; padding: 0 5px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--muted); font-size: 10px; }
+    .remove-exercise { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(245,184,174,.1); color: var(--rose); }
+
+    .bottom-nav { position: absolute; z-index: 3; right: 12px; bottom: 12px; left: 12px; display: grid; grid-template-columns: repeat(4, 1fr); padding: 7px; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: rgba(24, 26, 24, .91); box-shadow: 0 14px 36px rgba(0,0,0,.34); backdrop-filter: blur(20px); }
+    .nav-item { display: grid; place-items: center; gap: 3px; min-height: 45px; border-radius: 15px; background: transparent; color: var(--quiet); font-size: 9px; font-weight: 750; }
+    .nav-item svg { width: 18px; height: 18px; }
+    .nav-item.active { background: var(--ember-soft); color: var(--ember); }
+
+    .sheet-layer { position: absolute; z-index: 10; inset: 0; display: none; align-items: end; background: rgba(0,0,0,.58); backdrop-filter: blur(8px); }
+    .sheet-layer.open { display: flex; animation: fade-in .2s ease both; }
+    .sheet { width: 100%; max-height: 86%; overflow: auto; padding: 10px 18px 28px; border-top: 1px solid rgba(255,255,255,.15); border-radius: 28px 28px 0 0; background: #171a17; box-shadow: 0 -20px 60px rgba(0,0,0,.45); animation: sheet-up .28s cubic-bezier(.2,.9,.2,1) both; }
+    .sheet-handle { width: 38px; height: 4px; margin: 2px auto 18px; border-radius: 99px; background: rgba(255,255,255,.22); }
+    .sheet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .sheet-header h2 { font-size: 24px; }
+    .close-button { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--surface-3); color: var(--muted); }
+    .field { display: grid; gap: 7px; margin-bottom: 13px; }
+    .field label { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .field input, .field textarea, .field select { width: 100%; border: 1px solid var(--line); border-radius: 13px; background: #111311; color: var(--ink); padding: 13px; }
+    .field textarea { min-height: 80px; resize: vertical; }
+    .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .sheet-actions button { min-height: 45px; border-radius: 13px; font-size: 13px; font-weight: 800; }
+    .sheet-actions .cancel { background: var(--surface-3); color: var(--muted); }
+    .sheet-actions .save { background: var(--ember); color: #1c100a; }
+    .exercise-picker { display: grid; gap: 8px; }
+    .picker-row { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; }
+    .picker-row.selected { border-color: var(--ember); background: var(--ember-soft); }
+    .check { display: grid; place-items: center; flex: 0 0 22px; width: 22px; height: 22px; border: 1px solid rgba(255,255,255,.24); border-radius: 7px; color: transparent; }
+    .picker-row.selected .check { border-color: var(--ember); background: var(--ember); color: #1b1009; }
+    .picker-copy { min-width: 0; }
+    .picker-copy strong { display: block; font-size: 12px; }
+    .picker-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+
+    .toast { position: absolute; z-index: 20; right: 18px; bottom: 85px; left: 18px; display: none; padding: 12px 14px; border: 1px solid rgba(255,179,92,.35); border-radius: 14px; background: rgba(39, 31, 21, .95); color: var(--amber); font-size: 12px; font-weight: 750; text-align: center; box-shadow: 0 12px 30px rgba(0,0,0,.28); }
+    .toast.show { display: block; animation: toast-in .22s ease both; }
+
+    .hidden { display: none !important; }
+    @keyframes sheet-up { from { transform: translateY(30px); opacity: .7; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @media (max-width: 560px) {
+      body { display: block; padding: 0; background: var(--bg); }
+      .stage-label { display: none; }
+      .phone { width: 100vw; height: 100dvh; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage-label">TimeMaster / Skills mode concept</div>
+  <section class="phone" aria-label="TimeMaster skills mode phone mockup">
+    <div class="phone-status" aria-hidden="true">
+      <span>9:41</span>
+      <div class="status-right"><span class="signal"><i></i><i></i><i></i><i></i></span><span>◔</span><span class="battery"></span></div>
+    </div>
+    <main id="app" class="app"></main>
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item active" data-nav="database" aria-label="Database">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.12 7.58 3 12 3s8 1.12 8 2.5S16.42 8 12 8 4 6.88 4 5.5Z"/><path d="M4 5.5v6C4 12.88 7.58 14 12 14s8-1.12 8-2.5v-6"/><path d="M4 11.5v6C4 18.88 7.58 20 12 20s8-1.12 8-2.5v-6"/></svg>
+        <span>Database</span>
+      </button>
+      <button class="nav-item" data-nav="workouts" aria-label="Workouts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8v8M3.5 10v4M18 8v8M20.5 10v4M6 12h12"/></svg>
+        <span>Workouts</span>
+      </button>
+      <button class="nav-item" data-nav="coach" aria-label="Coach">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a7 7 0 0 0-7 7v4a4 4 0 0 0 4 4h1v3h4v-3h1a4 4 0 0 0 4-4v-4a7 7 0 0 0-7-7Z"/><path d="M9 10h.01M15 10h.01M9 14c1.7 1.2 4.3 1.2 6 0"/></svg>
+        <span>Coach</span>
+      </button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4Z"/><path d="m19.4 15 .1.1a2 2 0 1 1-2.8 2.8l-.1-.1a2 2 0 0 0-3.4 1.4v.2a2 2 0 1 1-4 0v-.2a2 2 0 0 0-3.4-1.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A2 2 0 0 0 3.7 12a2 2 0 0 0-.7-1.5l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A2 2 0 0 0 9.2 6.3h.1V6a2 2 0 1 1 4 0v.3a2 2 0 0 0 3.4 1.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a2 2 0 0 0-1.4 3.4l.1.1Z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+    <div id="sheet-layer" class="sheet-layer" aria-hidden="true"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </section>
+
+  <script>
+    const icons = {
+      arrowLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>',
+      arrowRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>',
+      plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 4 4L19 6"/></svg>',
+      spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></svg>',
+      link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13.5a4 4 0 0 0 5.7.2l2.2-2.2a4 4 0 0 0-5.7-5.7L11 7"/><path d="M14 10.5a4 4 0 0 0-5.7-.2l-2.2 2.2a4 4 0 0 0 5.7 5.7L13 17"/></svg>',
+      dots: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+      play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13L18.5 12 8 5.5Z"/></svg>',
+      bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m13 2-8 12h6l-1 8 8-12h-6l1-8Z"/></svg>'
+    };
+
+    const state = {
+      mode: 'skills',
+      filter: 'All',
+      selectedSkill: null,
+      sheet: null,
+      selectedExercises: new Set(),
+      skills: [
+        { id: 'handstand', title: 'Handstand', group: 'Calisthenics', status: 'Learning', progress: 46, description: 'Build the line, balance, and confidence to hold a clean freestanding handstand.', color: '#ffb35c', soft: 'rgba(255,179,92,.15)', glow: 'rgba(255,179,92,.12)', exercises: [ ['wall-handstand', 'Prerequisite'], ['pike-handstand', 'Practice'], ['freestanding-attempts', 'Test'] ] },
+        { id: 'l-sit', title: 'L-sit', group: 'Calisthenics', status: 'Not started', progress: 0, description: 'Own the compression and shoulder strength for a controlled L-sit hold.', color: '#a9d6f5', soft: 'rgba(169,214,245,.14)', glow: 'rgba(169,214,245,.10)', exercises: [ ['tuck-support', 'Prerequisite'], ['compression-lift', 'Practice'] ] },
+        { id: 'deep-squat', title: 'Deep Squat', group: 'Mobility', status: 'Completed', progress: 100, description: 'A comfortable, controlled bottom position with heels grounded.', color: '#b6e9bf', soft: 'rgba(182,233,191,.14)', glow: 'rgba(182,233,191,.10)', exercises: [ ['ankle-rocks', 'Practice'], ['goblet-squat', 'Test'] ] },
+        { id: 'planche', title: 'Tuck Planche', group: 'Calisthenics', status: 'Not started', progress: 0, description: 'Begin the forward lean and straight-arm strength that lead toward planche.', color: '#f5b8ae', soft: 'rgba(245,184,174,.13)', glow: 'rgba(245,184,174,.09)', exercises: [] }
+      ],
+      exercises: [
+        { id: 'wall-handstand', title: 'Wall Handstand', group: 'Strength · 30s' },
+        { id: 'pike-handstand', title: 'Pike Handstand', group: 'Strength · 25s' },
+        { id: 'freestanding-attempts', title: 'Freestanding Attempts', group: 'Skill practice · 10 min' },
+        { id: 'tuck-support', title: 'Tuck Support Hold', group: 'Strength · 20s' },
+        { id: 'compression-lift', title: 'Compression Lift', group: 'Mobility · 12 reps' },
+        { id: 'ankle-rocks', title: 'Ankle Rocks', group: 'Mobility · 12 reps' },
+        { id: 'goblet-squat', title: 'Goblet Squat', group: 'Strength · 40s' },
+        { id: 'planche-lean', title: 'Planche Lean', group: 'Strength · 20s' }
+      ]
+    };
+
+    const statusClass = status => status.toLowerCase().replace(' ', '-');
+    const escapeHTML = value => String(value).replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
+    const findSkill = id => state.skills.find(skill => skill.id === id);
+    const findExercise = id => state.exercises.find(exercise => exercise.id === id);
+    const skillIcon = group => group === 'Mobility' ? '◌' : '✦';
+
+    function render() {
+      const app = document.querySelector('#app');
+      app.innerHTML = state.selectedSkill ? renderDetail(findSkill(state.selectedSkill)) : renderHome();
+      bindEvents();
+    }
+
+    function renderHome() {
+      if (state.mode === 'pages') return renderPagesMode();
+      const visible = state.skills.filter(skill => state.filter === 'All' || skill.status === state.filter);
+      const completed = state.skills.filter(skill => skill.status === 'Completed').length;
+      const learning = state.skills.filter(skill => skill.status === 'Learning').length;
+      return `
+        <div class="scroll">
+          <header class="topbar">
+            <div><p class="eyebrow">Database / progress layer</p><h1>Skills</h1><p class="subtitle">Track abilities separately from the exercises that build them.</p></div>
+            <button class="icon-button" data-action="create" aria-label="Create skill">${icons.plus}</button>
+          </header>
+          <div class="mode-switch" role="tablist" aria-label="Database mode">
+            <button data-mode="pages" role="tab">Pages</button>
+            <button class="active" data-mode="skills" role="tab" aria-selected="true">Skills</button>
+          </div>
+          <div class="summary">
+            <div class="summary-card"><span class="summary-value">${state.skills.length}</span><span class="summary-label">Total skills</span></div>
+            <div class="summary-card"><span class="summary-value">${learning}</span><span class="summary-label">In learning</span></div>
+            <div class="summary-card"><span class="summary-value">${completed}</span><span class="summary-label">Completed</span></div>
+          </div>
+          <div class="section-row"><h2>My skills</h2><button class="section-link" data-action="create">+ Add skill</button></div>
+          <div class="filters" aria-label="Skill filters">
+            ${['All', 'Not started', 'Learning', 'Completed'].map(filter => `<button class="filter ${state.filter === filter ? 'active' : ''}" data-filter="${filter}">${filter}</button>`).join('')}
+          </div>
+          <section class="skill-list" aria-label="Skills list">
+            ${visible.length ? visible.map(renderSkillCard).join('') : `<div class="empty"><strong>Nothing here yet</strong><p>Change the filter or add a skill to start tracking progress.</p></div>`}
+          </section>
+          <button class="primary-action" data-action="create">${icons.plus} Create skill</button>
+        </div>`;
+    }
+
+    function renderSkillCard(skill) {
+      return `<button class="skill-card" data-skill="${skill.id}" style="--card-color:${skill.color};--card-soft:${skill.soft};--card-glow:${skill.glow}" aria-label="Open ${escapeHTML(skill.title)}">
+        <div class="skill-card-top"><span class="skill-icon">${skillIcon(skill.group)}</span><div class="skill-card-copy"><h3>${escapeHTML(skill.title)}</h3><p class="skill-group">${escapeHTML(skill.group)}</p></div><span class="status ${statusClass(skill.status)}">${skill.status}</span></div>
+        <div class="skill-card-bottom"><span class="progress"><i style="width:${skill.progress}%"></i></span><span class="exercise-count">${skill.exercises.length} exercises</span></div>
+        <span class="skill-card-chevron">${icons.arrowRight}</span>
+      </button>`;
+    }
+
+    function renderPagesMode() {
+      return `<div class="scroll">
+        <header class="topbar"><div><p class="eyebrow">Database / content layer</p><h1>Pages</h1><p class="subtitle">Training pages stay in the normal exercise hierarchy.</p></div><button class="icon-button" data-action="toast" aria-label="Page actions">${icons.dots}</button></header>
+        <div class="mode-switch" role="tablist" aria-label="Database mode"><button class="active" data-mode="pages" role="tab" aria-selected="true">Pages</button><button data-mode="skills" role="tab">Skills</button></div>
+        <div class="empty" style="margin-top:22px"><strong>Training content stays here</strong><p>Exercises remain organized as pages. Switch to Skills to track abilities without mixing them into the page tree.</p><button class="primary-action" data-mode="skills">Open Skills</button></div>
+      </div>`;
+    }
+
+    function renderDetail(skill) {
+      const linked = skill.exercises.map(([id, role]) => ({ exercise: findExercise(id), role })).filter(item => item.exercise);
+      return `<div class="scroll">
+        <header class="detail-top"><button class="back-button" data-action="back" aria-label="Back to skills">${icons.arrowLeft}</button><div class="detail-top-copy"><p class="eyebrow">Skill detail</p><h1>${escapeHTML(skill.title)}</h1></div><button class="detail-menu" data-action="toast" aria-label="Skill options">${icons.dots}</button></header>
+        <section class="detail-hero" style="--hero-color:${skill.color}"><div class="detail-hero-content"><p class="eyebrow">${escapeHTML(skill.group)}</p><h2>${escapeHTML(skill.title)}</h2><p>${escapeHTML(skill.description)}</p><div class="hero-meta"><span class="meta-chip">${skill.exercises.length} linked exercises</span><span class="meta-chip">${skill.progress}% path</span></div></div></section>
+        <div class="section-row"><h2>Status</h2><span class="status ${statusClass(skill.status)}">${skill.status}</span></div>
+        <div class="status-switch" role="tablist" aria-label="Skill status">
+          ${['Not started','Learning','Completed'].map(status => `<button class="${skill.status === status ? `active ${statusClass(status)}` : ''}" data-status="${status}">${status}</button>`).join('')}
+        </div>
+        <div class="section-row"><h2>Build this skill</h2><button class="section-link" data-action="add-exercises">${icons.plus} Add</button></div>
+        <section class="exercise-list" aria-label="Linked exercises">
+          ${linked.length ? linked.map(({ exercise, role }) => `<div class="exercise-row"><span class="exercise-thumb">${icons.bolt}</span><div class="exercise-copy"><strong>${escapeHTML(exercise.title)}</strong><span>${escapeHTML(exercise.group)}</span></div><select class="role-select" data-role="${exercise.id}" aria-label="Role for ${escapeHTML(exercise.title)}"><option ${role === 'Prerequisite' ? 'selected' : ''}>Prerequisite</option><option ${role === 'Practice' ? 'selected' : ''}>Practice</option><option ${role === 'Test' ? 'selected' : ''}>Test</option></select><button class="remove-exercise" data-remove="${exercise.id}" aria-label="Remove ${escapeHTML(exercise.title)}">×</button></div>`).join('') : `<div class="empty"><strong>No exercises linked</strong><p>Add existing database pages that help you learn this skill.</p></div>`}
+        </section>
+        <button class="primary-action" data-action="add-exercises">${icons.link} Link existing exercises</button>
+      </div>`;
+    }
+
+    function renderSheet() {
+      const layer = document.querySelector('#sheet-layer');
+      if (!state.sheet) { layer.className = 'sheet-layer'; layer.innerHTML = ''; layer.setAttribute('aria-hidden', 'true'); return; }
+      layer.className = 'sheet-layer open'; layer.setAttribute('aria-hidden', 'false');
+      layer.innerHTML = state.sheet === 'create' ? renderCreateSheet() : renderExerciseSheet();
+      bindSheetEvents();
+    }
+
+    function renderCreateSheet() {
+      return `<div class="sheet" role="dialog" aria-modal="true" aria-label="Create skill"><div class="sheet-handle"></div><div class="sheet-header"><h2>New skill</h2><button class="close-button" data-sheet-close aria-label="Close">×</button></div><form id="create-skill-form"><div class="field"><label for="skill-title">Skill name</label><input id="skill-title" name="title" placeholder="e.g. Handstand" required></div><div class="field"><label for="skill-group">Skill group</label><input id="skill-group" name="group" placeholder="e.g. Calisthenics"></div><div class="field"><label for="skill-status">Starting status</label><select id="skill-status" name="status"><option>Not started</option><option>Learning</option><option>Completed</option></select></div><div class="field"><label for="skill-description">What does success look like?</label><textarea id="skill-description" name="description" placeholder="A short note about the ability..."></textarea></div><div class="sheet-actions"><button type="button" class="cancel" data-sheet-close>Cancel</button><button type="submit" class="save">Create skill</button></div></form></div>`;
+    }
+
+    function renderExerciseSheet() {
+      const skill = findSkill(state.selectedSkill);
+      const selected = new Set((skill?.exercises || []).map(([id]) => id));
+      state.selectedExercises = selected;
+      return `<div class="sheet" role="dialog" aria-modal="true" aria-label="Link exercises"><div class="sheet-handle"></div><div class="sheet-header"><div><p class="eyebrow">${escapeHTML(skill?.title || 'Skill')}</p><h2>Link exercises</h2></div><button class="close-button" data-sheet-close aria-label="Close">×</button></div><div class="exercise-picker">${state.exercises.map(exercise => `<button class="picker-row ${selected.has(exercise.id) ? 'selected' : ''}" data-picker-exercise="${exercise.id}"><span class="check">${icons.check}</span><span class="picker-copy"><strong>${escapeHTML(exercise.title)}</strong><span>${escapeHTML(exercise.group)}</span></span></button>`).join('')}</div><div class="sheet-actions"><button class="cancel" data-sheet-close>Cancel</button><button class="save" data-save-exercises>Save links</button></div></div>`;
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { state.mode = button.dataset.mode; state.selectedSkill = null; render(); }));
+      document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => { state.filter = button.dataset.filter; render(); }));
+      document.querySelectorAll('[data-skill]').forEach(button => button.addEventListener('click', () => { state.selectedSkill = button.dataset.skill; render(); }));
+      document.querySelectorAll('[data-action="create"]').forEach(button => button.addEventListener('click', () => { state.sheet = 'create'; renderSheet(); }));
+      document.querySelectorAll('[data-action="add-exercises"]').forEach(button => button.addEventListener('click', () => { state.sheet = 'exercises'; renderSheet(); }));
+      document.querySelectorAll('[data-action="back"]').forEach(button => button.addEventListener('click', () => { state.selectedSkill = null; render(); }));
+      document.querySelectorAll('[data-action="toast"]').forEach(button => button.addEventListener('click', () => showToast('More actions would live here.')));
+      document.querySelectorAll('[data-status]').forEach(button => button.addEventListener('click', () => { const skill = findSkill(state.selectedSkill); if (!skill) return; skill.status = button.dataset.status; skill.progress = skill.status === 'Completed' ? 100 : skill.status === 'Learning' ? Math.max(skill.progress, 20) : 0; render(); showToast(`${skill.title} marked ${skill.status.toLowerCase()}.`); }));
+      document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { const skill = findSkill(state.selectedSkill); if (!skill) return; skill.exercises = skill.exercises.filter(([id]) => id !== button.dataset.remove); render(); showToast('Exercise unlinked.'); }));
+      document.querySelectorAll('[data-role]').forEach(select => select.addEventListener('change', () => { const skill = findSkill(state.selectedSkill); if (!skill) return; const item = skill.exercises.find(pair => pair[0] === select.dataset.role); if (item) item[1] = select.value; }));
+      document.querySelectorAll('[data-nav]').forEach(button => button.addEventListener('click', () => { if (button.dataset.nav !== 'database') showToast(`${button.textContent.trim()} is outside this concept.`); }));
+    }
+
+    function bindSheetEvents() {
+      document.querySelectorAll('[data-sheet-close]').forEach(button => button.addEventListener('click', closeSheet));
+      document.querySelector('#sheet-layer').addEventListener('click', event => { if (event.target.id === 'sheet-layer') closeSheet(); });
+      const form = document.querySelector('#create-skill-form');
+      if (form) form.addEventListener('submit', event => { event.preventDefault(); const data = new FormData(form); const id = String(data.get('title')).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `skill-${Date.now()}`; const title = String(data.get('title')).trim(); const status = String(data.get('status')); state.skills.unshift({ id, title, group: String(data.get('group')).trim() || 'Unsorted', status, progress: status === 'Completed' ? 100 : 0, description: String(data.get('description')).trim() || 'A new skill to build over time.', color: '#ff7438', soft: 'rgba(255,116,56,.14)', glow: 'rgba(255,116,56,.10)', exercises: [] }); closeSheet(); state.selectedSkill = id; render(); showToast('Skill created.'); });
+      document.querySelectorAll('[data-picker-exercise]').forEach(button => button.addEventListener('click', () => { const id = button.dataset.pickerExercise; if (state.selectedExercises.has(id)) state.selectedExercises.delete(id); else state.selectedExercises.add(id); button.classList.toggle('selected'); }));
+      document.querySelector('[data-save-exercises]')?.addEventListener('click', () => { const skill = findSkill(state.selectedSkill); if (!skill) return; const oldRoles = new Map(skill.exercises); skill.exercises = [...state.selectedExercises].map(id => [id, oldRoles.get(id) || 'Practice']); if (skill.exercises.length && skill.status === 'Not started') skill.status = 'Learning'; closeSheet(); render(); showToast('Exercises linked.'); });
+    }
+
+    function closeSheet() { state.sheet = null; renderSheet(); }
+    let toastTimer;
+    function showToast(message) { const toast = document.querySelector('#toast'); toast.textContent = message; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 1900); }
+
+    render();
+  </script>
+</body>
+</html>
