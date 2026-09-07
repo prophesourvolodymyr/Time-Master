@@ -186,7 +186,6 @@ struct OutdoorRouteRecordingView: View {
                         namespace: glassNamespace,
                         mapMode: mapMode,
                         enabledOverlays: mapOverlayModes,
-                        activeMapMode: activeMapMode,
                         mapCapabilities: mapCapabilities,
                         preferences: preferences,
                         offlineCapabilities: offlineCapabilities,

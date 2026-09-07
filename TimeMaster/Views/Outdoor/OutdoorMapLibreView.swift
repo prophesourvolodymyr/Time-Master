@@ -3,6 +3,64 @@ import SwiftUI
 import MapLibre
 import CoreLocation
 
+private enum OutdoorMinimalMapPalette {
+    struct Style {
+        let canvas: UIColor
+        let land: UIColor
+        let landDetail: UIColor
+        let green: UIColor
+        let water: UIColor
+        let waterLine: UIColor
+        let road: UIColor
+        let roadCasing: UIColor
+        let path: UIColor
+        let rail: UIColor
+        let boundary: UIColor
+        let building: UIColor
+        let label: UIColor
+        let labelHalo: UIColor
+        let plannedRoute: UIColor
+    }
+
+    static let routeAccent = UIColor(red: 1, green: 0.478, blue: 0, alpha: 1)
+
+    static let light = Style(
+        canvas: UIColor(red: 0.956, green: 0.956, blue: 0.941, alpha: 1),
+        land: UIColor(red: 0.929, green: 0.929, blue: 0.902, alpha: 1),
+        landDetail: UIColor(red: 0.890, green: 0.890, blue: 0.855, alpha: 1),
+        green: UIColor(red: 0.858, green: 0.906, blue: 0.842, alpha: 1),
+        water: UIColor(red: 0.847, green: 0.910, blue: 0.953, alpha: 1),
+        waterLine: UIColor(red: 0.682, green: 0.808, blue: 0.890, alpha: 1),
+        road: UIColor(red: 0.997, green: 0.997, blue: 0.986, alpha: 1),
+        roadCasing: UIColor(red: 0.836, green: 0.836, blue: 0.810, alpha: 1),
+        path: UIColor(red: 0.673, green: 0.680, blue: 0.651, alpha: 1),
+        rail: UIColor(red: 0.576, green: 0.584, blue: 0.553, alpha: 1),
+        boundary: UIColor(red: 0.745, green: 0.749, blue: 0.718, alpha: 1),
+        building: UIColor(red: 0.861, green: 0.855, blue: 0.831, alpha: 1),
+        label: UIColor(red: 0.247, green: 0.251, blue: 0.231, alpha: 1),
+        labelHalo: UIColor(red: 0.956, green: 0.956, blue: 0.941, alpha: 1),
+        plannedRoute: UIColor(red: 0.278, green: 0.282, blue: 0.259, alpha: 0.76)
+    )
+
+    static let dark = Style(
+        canvas: UIColor(red: 0.055, green: 0.059, blue: 0.055, alpha: 1),
+        land: UIColor(red: 0.086, green: 0.094, blue: 0.086, alpha: 1),
+        landDetail: UIColor(red: 0.129, green: 0.141, blue: 0.129, alpha: 1),
+        green: UIColor(red: 0.137, green: 0.212, blue: 0.145, alpha: 1),
+        water: UIColor(red: 0.063, green: 0.149, blue: 0.208, alpha: 1),
+        waterLine: UIColor(red: 0.169, green: 0.341, blue: 0.443, alpha: 1),
+        road: UIColor(red: 0.255, green: 0.267, blue: 0.251, alpha: 1),
+        roadCasing: UIColor(red: 0.149, green: 0.157, blue: 0.149, alpha: 1),
+        path: UIColor(red: 0.424, green: 0.459, blue: 0.424, alpha: 1),
+        rail: UIColor(red: 0.503, green: 0.522, blue: 0.490, alpha: 1),
+        boundary: UIColor(red: 0.286, green: 0.314, blue: 0.286, alpha: 1),
+        building: UIColor(red: 0.149, green: 0.165, blue: 0.153, alpha: 1),
+        label: UIColor(red: 0.910, green: 0.922, blue: 0.898, alpha: 1),
+        labelHalo: UIColor(red: 0.055, green: 0.059, blue: 0.055, alpha: 1),
+        plannedRoute: UIColor(red: 0.790, green: 0.812, blue: 0.780, alpha: 0.78)
+    )
+}
+
 struct OutdoorMapLibreView: UIViewRepresentable {
     var points: [OutdoorTrackPoint]
     var followsUser: Bool
@@ -35,7 +93,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         } else {
             map = MLNMapView(
                 frame: .zero,
-                styleJSON: ##"{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#08101A"}}]}"##
+                styleJSON: ##"{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#F4F4F0"}}]}"##
             )
         }
         context.coordinator.attach(to: map)
@@ -77,7 +135,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var hasCenteredOnUser = false
         private var loadedStyleURL: URL?
         private var activeTileSourceIDs: Set<String> = []
-        private var darkOverlayView: UIView?
+        private var minimalMapStyleID: ObjectIdentifier?
+        private var minimalMapUsesDarkPalette: Bool?
         private var configuredStyleID: ObjectIdentifier?
         private var configuredMode: OutdoorMapMode?
         private var configuredStyleURL: URL?
@@ -135,12 +194,11 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
         func attach(to map: MLNMapView) {
-            darkOverlayView?.removeFromSuperview()
-            darkOverlayView = nil
             self.map = map
             map.delegate = self
             map.showsUserLocation = true
             map.userTrackingMode = .none
+            map.tintColor = OutdoorMinimalMapPalette.routeAccent
             map.isScrollEnabled = true
             map.isZoomEnabled = true
             map.isRotateEnabled = true
@@ -155,6 +213,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             configuredMode = nil
             configuredStyleURL = nil
             configuredOverlays = []
+            minimalMapStyleID = nil
+            minimalMapUsesDarkPalette = nil
             latestOverlayModes = []
             lastRenderedPointsSignature = nil
             lastRenderedPlannedPointsSignature = nil
@@ -341,6 +401,28 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
 
 
+        func mapView(_ mapView: MLNMapView, viewFor annotation: MLNAnnotation) -> MLNAnnotationView? {
+            guard let point = annotation as? MLNPointAnnotation else { return nil }
+            let isStart = point.title == "Start"
+            let reuseIdentifier = isStart ? "outdoor-start-marker" : "outdoor-end-marker"
+            let marker = mapView.dequeueReusableAnnotationView(withIdentifier: reuseIdentifier)
+                ?? MLNAnnotationView(reuseIdentifier: reuseIdentifier)
+            let size: CGFloat = isStart ? 12 : 16
+            marker.bounds = CGRect(x: 0, y: 0, width: size, height: size)
+            let palette = currentMinimalMapPalette
+            marker.backgroundColor = isStart ? palette.canvas : OutdoorMinimalMapPalette.routeAccent
+            marker.layer.cornerRadius = size / 2
+            marker.layer.borderWidth = isStart ? 2 : 2.5
+            marker.layer.borderColor = isStart
+                ? palette.label.cgColor
+                : palette.canvas.cgColor
+            marker.layer.shadowColor = UIColor.black.cgColor
+            marker.layer.shadowOpacity = 0.18
+            marker.layer.shadowRadius = 3
+            marker.layer.shadowOffset = CGSize(width: 0, height: 1)
+            return marker
+        }
+
         private func requestFocus(on map: MLNMapView) {
             switch locationManager.authorizationStatus {
             case .authorizedAlways, .authorizedWhenInUse:
@@ -449,7 +531,113 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             adapter.update(location: location, enabled: latestWeatherInfoEnabled)
         }
 
+        private var currentMinimalMapPalette: OutdoorMinimalMapPalette.Style {
+            latestOverlayModes.contains(.dark)
+                ? OutdoorMinimalMapPalette.dark
+                : OutdoorMinimalMapPalette.light
+        }
+
+        private func applyMinimalMapPresentation(to style: MLNStyle, overlays: Set<OutdoorMapMode>) {
+            guard style.source(withIdentifier: "openmaptiles") != nil else { return }
+            let styleID = ObjectIdentifier(style)
+            let usesDarkPalette = overlays.contains(.dark)
+            let palette = usesDarkPalette ? OutdoorMinimalMapPalette.dark : OutdoorMinimalMapPalette.light
+            guard minimalMapStyleID != styleID || minimalMapUsesDarkPalette != usesDarkPalette else {
+                updateMinimalLabelVisibility(in: style, showsTransit: overlays.contains(.transit))
+                return
+            }
+
+            minimalMapStyleID = styleID
+            minimalMapUsesDarkPalette = usesDarkPalette
+            liveRouteSignature = nil
+            plannedRouteSignature = nil
+
+            for layer in style.layers {
+                let identifier = layer.identifier
+                guard !identifier.hasPrefix("outdoor-"),
+                      identifier != "live-route-line",
+                      identifier != "planned-route-line"
+                else { continue }
+
+                switch layer {
+                case let background as MLNBackgroundStyleLayer:
+                    background.backgroundColor = NSExpression(forConstantValue: palette.canvas)
+                case let raster as MLNRasterStyleLayer where identifier == "natural_earth":
+                    raster.rasterOpacity = NSExpression(forConstantValue: usesDarkPalette ? 0.02 : 0.04)
+                case let fill as MLNFillStyleLayer:
+                    if identifier == "water" {
+                        fill.fillColor = NSExpression(forConstantValue: palette.water)
+                        fill.fillOutlineColor = NSExpression(forConstantValue: palette.waterLine)
+                    } else if identifier == "building" {
+                        fill.fillColor = NSExpression(forConstantValue: palette.building)
+                        fill.fillOutlineColor = NSExpression(forConstantValue: palette.roadCasing)
+                    } else if identifier == "road_area_pattern" || identifier == "landcover_wetland" {
+                        fill.isVisible = false
+                    } else if identifier == "park"
+                        || identifier.hasPrefix("landcover")
+                        || identifier == "landuse_pitch"
+                        || identifier == "landuse_track"
+                        || identifier == "landuse_cemetery" {
+                        fill.fillColor = NSExpression(forConstantValue: palette.green)
+                        fill.fillOutlineColor = NSExpression(forConstantValue: palette.landDetail)
+                    } else {
+                        fill.fillColor = NSExpression(forConstantValue: palette.land)
+                        fill.fillOutlineColor = NSExpression(forConstantValue: palette.landDetail)
+                    }
+                case let extrusion as MLNFillExtrusionStyleLayer:
+                    extrusion.fillExtrusionColor = NSExpression(forConstantValue: palette.building)
+                    extrusion.fillExtrusionOpacity = NSExpression(forConstantValue: usesDarkPalette ? 0.86 : 0.72)
+                case let line as MLNLineStyleLayer:
+                    if identifier.hasPrefix("waterway") {
+                        line.lineColor = NSExpression(forConstantValue: palette.waterLine)
+                    } else if identifier.hasPrefix("boundary") {
+                        line.lineColor = NSExpression(forConstantValue: palette.boundary)
+                    } else if identifier.contains("rail") {
+                        line.lineColor = NSExpression(forConstantValue: palette.rail)
+                    } else if identifier.hasPrefix("road") {
+                        let color: UIColor
+                        if identifier.contains("path") || identifier.contains("service") || identifier.contains("track") {
+                            color = palette.path
+                        } else if identifier.contains("casing") {
+                            color = palette.roadCasing
+                        } else {
+                            color = palette.road
+                        }
+                        line.lineColor = NSExpression(forConstantValue: color)
+                    } else {
+                        line.lineColor = NSExpression(forConstantValue: palette.landDetail)
+                    }
+                case let symbol as MLNSymbolStyleLayer:
+                    symbol.textColor = NSExpression(forConstantValue: palette.label)
+                    symbol.textHaloColor = NSExpression(forConstantValue: palette.labelHalo)
+                    symbol.textOpacity = NSExpression(forConstantValue: 0.78)
+                default:
+                    break
+                }
+            }
+            updateMinimalLabelVisibility(in: style, showsTransit: overlays.contains(.transit))
+        }
+
+        private func updateMinimalLabelVisibility(in style: MLNStyle, showsTransit: Bool) {
+            for case let symbol as MLNSymbolStyleLayer in style.layers {
+                let identifier = symbol.identifier
+                if identifier == "poi_transit" {
+                    symbol.isVisible = showsTransit
+                } else if identifier.hasPrefix("poi_")
+                    || identifier.hasPrefix("housenumber")
+                    || identifier.hasPrefix("road_one_way")
+                    || identifier.hasPrefix("road_shield")
+                    || identifier.hasPrefix("highway-shield")
+                    || identifier == "highway-name-path"
+                    || identifier == "highway-name-minor"
+                    || identifier == "airport" {
+                    symbol.isVisible = false
+                }
+            }
+        }
+
         private func configureProviderLayers(style: MLNStyle, overlays: Set<OutdoorMapMode>) {
+            applyMinimalMapPresentation(to: style, overlays: overlays)
             let styleID = ObjectIdentifier(style)
             let styleURL = map?.styleURL
             let baseMode = session.activeMode
@@ -475,10 +663,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             liveRouteSignature = nil
             plannedRouteSignature = nil
 
-            guard let baseDefinition = session.configuration.style(for: baseMode) else {
-                updateDarkOverlay(on: map, overlays: overlays)
-                return
-            }
+            guard let baseDefinition = session.configuration.style(for: baseMode) else { return }
 
             if let template = baseDefinition.rasterTileURLTemplate, !template.isEmpty {
                 let sourceID = "outdoor-\(baseMode.rawValue)-raster-source"
@@ -550,31 +735,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 style.addLayer(layer)
                 activeTileSourceIDs.insert(layerID)
             }
-            updateDarkOverlay(on: map, overlays: overlays)
         }
 
-        private func updateDarkOverlay(on map: MLNMapView?, overlays: Set<OutdoorMapMode>) {
-            guard let map else {
-                darkOverlayView?.removeFromSuperview()
-                darkOverlayView = nil
-                return
-            }
-
-            if overlays.contains(.dark) {
-                let overlay = darkOverlayView ?? UIView()
-                overlay.backgroundColor = UIColor.black.withAlphaComponent(0.30)
-                overlay.isUserInteractionEnabled = false
-                overlay.frame = map.bounds
-                overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                if overlay.superview == nil {
-                    map.addSubview(overlay)
-                }
-                darkOverlayView = overlay
-            } else {
-                darkOverlayView?.removeFromSuperview()
-                darkOverlayView = nil
-            }
-        }
 
         private func applyThreeDIfSupported(
             map: MLNMapView,
@@ -647,14 +809,20 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 sourceID: sourceID,
                 shape: MLNPolyline(coordinates: coordinates(for: points), count: UInt(points.count))
             )
-            if style.layer(withIdentifier: layerID) == nil {
-                let layer = MLNLineStyleLayer(identifier: layerID, source: source)
-                layer.lineColor = NSExpression(forConstantValue: UIColor.systemBlue)
-                layer.lineWidth = NSExpression(forConstantValue: 5)
-                layer.lineJoin = NSExpression(forConstantValue: "round")
-                layer.lineCap = NSExpression(forConstantValue: "round")
+            let layer: MLNLineStyleLayer
+            if let existing = style.layer(withIdentifier: layerID) as? MLNLineStyleLayer {
+                layer = existing
+            } else {
+                layer = MLNLineStyleLayer(identifier: layerID, source: source)
                 style.addLayer(layer)
             }
+            layer.lineColor = NSExpression(forConstantValue: OutdoorMinimalMapPalette.routeAccent)
+            layer.lineWidth = NSExpression(
+                format: "mgl_interpolate:withCurveType:parameters:stops:($zoomLevel, 'linear', nil, %@)",
+                [8: 3.0, 14: 5.0, 18: 7.0]
+            )
+            layer.lineJoin = NSExpression(forConstantValue: "round")
+            layer.lineCap = NSExpression(forConstantValue: "round")
 
         }
         private func updatePlannedRoute(style: MLNStyle, points: [OutdoorTrackPoint]) {
@@ -672,15 +840,21 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 sourceID: sourceID,
                 shape: MLNPolyline(coordinates: coordinates(for: points), count: UInt(points.count))
             )
-            if style.layer(withIdentifier: layerID) == nil {
-                let layer = MLNLineStyleLayer(identifier: layerID, source: source)
-                layer.lineColor = NSExpression(forConstantValue: UIColor.systemOrange)
-                layer.lineWidth = NSExpression(forConstantValue: 4)
-                layer.lineDashPattern = NSExpression(forConstantValue: [2, 2])
-                layer.lineJoin = NSExpression(forConstantValue: "round")
-                layer.lineCap = NSExpression(forConstantValue: "round")
+            let layer: MLNLineStyleLayer
+            if let existing = style.layer(withIdentifier: layerID) as? MLNLineStyleLayer {
+                layer = existing
+            } else {
+                layer = MLNLineStyleLayer(identifier: layerID, source: source)
                 style.addLayer(layer)
             }
+            layer.lineColor = NSExpression(forConstantValue: currentMinimalMapPalette.plannedRoute)
+            layer.lineWidth = NSExpression(
+                format: "mgl_interpolate:withCurveType:parameters:stops:($zoomLevel, 'linear', nil, %@)",
+                [8: 2.0, 14: 3.0, 18: 4.0]
+            )
+            layer.lineDashPattern = NSExpression(forConstantValue: [1.5, 1.8])
+            layer.lineJoin = NSExpression(forConstantValue: "round")
+            layer.lineCap = NSExpression(forConstantValue: "round")
         }
 
         private func shapeSource(style: MLNStyle, sourceID: String, shape: MLNShape) -> MLNShapeSource {

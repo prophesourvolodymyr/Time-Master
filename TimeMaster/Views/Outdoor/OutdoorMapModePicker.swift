@@ -4,57 +4,43 @@ import SwiftUI
 struct OutdoorMapModePicker: View {
     let baseMode: OutdoorMapMode
     let enabledOverlays: Set<OutdoorMapMode>
-    let activeMode: OutdoorMapMode
     let capabilities: [OutdoorMapMode: OutdoorMapCapability]
     let onBaseSelect: (OutdoorMapMode) -> Void
     let onToggleOverlay: (OutdoorMapMode) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let baseTileHeight: CGFloat = 76
-    private let overlayTileWidth: CGFloat = 58
-    private let overlayTileHeight: CGFloat = 66
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            sectionTitle("Map view")
-            HStack(spacing: 7) {
-                ForEach(OutdoorMapMode.baseModes) { mode in
-                    modeButton(mode, isBase: true)
-                        .frame(maxWidth: .infinity)
+        GeometryReader { proxy in
+            let spacing: CGFloat = 6
+            let availableHeight = max(0, proxy.size.height - spacing)
+            let baseHeight = availableHeight * 0.54
+            let overlayHeight = availableHeight - baseHeight
+
+            VStack(spacing: spacing) {
+                HStack(spacing: spacing) {
+                    ForEach(OutdoorMapMode.baseModes) { mode in
+                        modeButton(mode, isBase: true, height: baseHeight)
+                    }
+                }
+
+                HStack(spacing: spacing) {
+                    ForEach(OutdoorMapMode.overlayModes) { mode in
+                        modeButton(mode, isBase: false, height: overlayHeight)
+                    }
                 }
             }
-            .frame(height: baseTileHeight)
-
-            sectionTitle("Map overlays")
-            HStack(spacing: 5) {
-                ForEach(OutdoorMapMode.overlayModes) { mode in
-                    modeButton(mode, isBase: false)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: overlayTileHeight)
-
-            capabilitySummary
-                .padding(.horizontal, 2)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 8)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Theme.textPrimary.opacity(0.78))
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func modeButton(_ mode: OutdoorMapMode, isBase: Bool) -> some View {
+    private func modeButton(_ mode: OutdoorMapMode, isBase: Bool, height: CGFloat) -> some View {
         let capability = capabilities[mode] ?? OutdoorMapProviderConfiguration.main.capability(for: mode)
         let selected = isBase ? mode == baseMode : enabledOverlays.contains(mode)
         let enabled = capability.isUsable
-        let tileHeight = isBase ? baseTileHeight : overlayTileHeight
 
         return Button {
             guard enabled else { return }
@@ -64,40 +50,40 @@ struct OutdoorMapModePicker: View {
                 onToggleOverlay(mode)
             }
         } label: {
-            ZStack(alignment: .topTrailing) {
-                VStack(spacing: 4) {
-                    Image(systemName: mode.systemImageName)
-                        .font(.system(size: isBase ? 21 : 19, weight: .semibold))
-                        .frame(height: isBase ? 28 : 24)
-                    Text(mode.displayName)
-                        .font(.caption2.weight(.semibold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.68)
-                        .frame(maxWidth: .infinity)
-                }
-                .foregroundStyle(selected ? Theme.textPrimary : Theme.textSecondary)
-                .frame(
-                    minWidth: isBase ? 0 : overlayTileWidth,
-                    maxWidth: isBase ? .infinity : overlayTileWidth,
-                    minHeight: tileHeight,
-                    maxHeight: tileHeight
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(
-                            selected ? Theme.restAccent.opacity(0.68) : Color.white.opacity(0.12),
-                            lineWidth: 1
-                        )
-                }
-
-                Image(systemName: selected ? "checkmark.circle.fill" : enabled ? "circle" : "lock.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(
-                        selected
-                            ? Theme.restAccent
-                            : enabled ? Theme.textSecondary : Theme.textSecondary.opacity(0.7)
+            VStack(spacing: isBase ? 6 : 4) {
+                Image(systemName: mode.systemImageName)
+                    .font(.system(size: isBase ? 22 : 18, weight: .semibold))
+                    .frame(height: isBase ? 28 : 22)
+                Text(mode.displayName)
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+            }
+            .foregroundStyle(selected ? Theme.textPrimary : Theme.textSecondary)
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(selected ? Theme.toolbarOrange.opacity(0.20) : Color.white.opacity(0.05))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        selected ? Theme.toolbarOrange.opacity(0.78) : Color.white.opacity(0.12),
+                        lineWidth: 1
                     )
-                    .padding(5)
+            }
+            .overlay(alignment: .topTrailing) {
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Theme.toolbarOrange)
+                        .padding(6)
+                } else if !enabled {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary.opacity(0.7))
+                        .padding(6)
+                }
             }
         }
         .buttonStyle(.plain)
@@ -107,41 +93,6 @@ struct OutdoorMapModePicker: View {
         .accessibilityValue(accessibilityValue(for: mode, capability: capability, selected: selected, enabled: enabled, isBase: isBase))
         .accessibilityHint(cardHint(for: mode, capability: capability, enabled: enabled, isBase: isBase))
         .animation(reduceMotion ? .none : .easeOut(duration: 0.18), value: selected)
-    }
-
-    @ViewBuilder
-    private var capabilitySummary: some View {
-        let capability = capabilities[baseMode] ?? OutdoorMapProviderConfiguration.main.capability(for: baseMode)
-        if capability.isUsable {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Base map: \(activeMode.displayName)")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Text(enabledOverlaySummary)
-                    .font(.caption2)
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(baseMode.displayName) unavailable")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.yellow)
-                Text(capability.reason ?? statusText(capability.status))
-                    .font(.caption2)
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-            }
-        }
-    }
-
-    private var enabledOverlaySummary: String {
-        let names = OutdoorMapMode.overlayModes
-            .filter(enabledOverlays.contains)
-            .map(\.displayName)
-        return names.isEmpty ? "Overlays: None" : "Overlays: \(names.joined(separator: ", "))"
     }
 
     private func accessibilityValue(

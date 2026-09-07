@@ -733,6 +733,9 @@ F27 Home ───────────────┘
     - [x] Hide native map footer controls behind the route pane
     - [x] Place route notifications at the safe-area top
     - [x] Put the quick-pane close action in the top-right corner
+    - [x] Apply an orange route accent, blue water, and restrained green landscape
+    - [x] Replace the dimmed dark overlay with a direct dark map palette
+    - [x] Densify the Map pane and remove redundant base and overlay summaries
   - [ ] F28-E — Music Workout Editor
     - [ ] Connect Music Editor to existing Settings music system
     - [ ] Implement content-driven Music pine sizing

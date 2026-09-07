@@ -6,7 +6,6 @@ struct OutdoorUpperQuickPine: View {
     let namespace: Namespace.ID
     let mapMode: OutdoorMapMode
     let enabledOverlays: Set<OutdoorMapMode>
-    let activeMapMode: OutdoorMapMode
     let mapCapabilities: [OutdoorMapMode: OutdoorMapCapability]
     @ObservedObject var preferences: OutdoorRecordingPreferencesStore
     let offlineCapabilities: [OutdoorMapCapability]
@@ -34,12 +33,13 @@ struct OutdoorUpperQuickPine: View {
         .padding(.horizontal, 8)
     }
     private var header: some View {
-        ZStack(alignment: .topTrailing) {
-            Text(feature == .map ? "Map details" : feature.title)
+        HStack(spacing: 8) {
+            Text(feature == .map ? "Map" : feature.title)
                 .font(.headline.weight(.semibold))
                 .lineLimit(1)
-                .frame(maxWidth: .infinity)
                 .foregroundStyle(Theme.textPrimary)
+
+            Spacer(minLength: 0)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
@@ -52,8 +52,9 @@ struct OutdoorUpperQuickPine: View {
             .accessibilityLabel("Close \(feature.title) quick pane")
             .accessibilityHint("Returns focus to the map quick controls.")
         }
-        .padding(.horizontal, 8)
-        .frame(height: 54)
+        .padding(.leading, 16)
+        .padding(.trailing, 6)
+        .frame(height: 44)
     }
 
 
@@ -65,12 +66,10 @@ struct OutdoorUpperQuickPine: View {
             OutdoorMapModePicker(
                 baseMode: mapMode,
                 enabledOverlays: enabledOverlays,
-                activeMode: activeMapMode,
                 capabilities: mapCapabilities,
                 onBaseSelect: onMapMode,
                 onToggleOverlay: onToggleOverlay
             )
-            .padding(.bottom, 8)
         case .trophy:
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
