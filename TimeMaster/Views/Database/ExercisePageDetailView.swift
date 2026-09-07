@@ -49,15 +49,38 @@ struct ExercisePageDetailView: View {
                     coverHero(page: page)
                     detailContent(page: page)
                 }
+                .ignoresSafeArea(edges: .top)
             } else {
                 emptyPageView
+            }
+        }
+        .overlay(alignment: .top) {
+            if page != nil {
+                LinearGradient(
+                    colors: [
+                        Theme.background.opacity(0.86),
+                        Theme.background.opacity(0.36),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 108)
+                .allowsHitTesting(false)
             }
         }
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        #else
+        .navigationBarBackButtonHidden(true)
         #endif
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                TimeMasterBackButton()
+            }
             if page?.isWorkoutAddable == true {
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Button {
@@ -256,7 +279,7 @@ struct ExercisePageDetailView: View {
                             .foregroundStyle(.white.opacity(0.5))
                     }
                     if crumb.id != pageID {
-                        NavigationLink(destination: ExercisePageDetailView(pageID: crumb.id)) {
+                        NavigationLink(value: DatabasePageRoute(pageID: crumb.manifest.id)) {
                             Text(crumb.title)
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.white.opacity(0.8))
@@ -438,7 +461,7 @@ struct ExercisePageDetailView: View {
             }
 
             ForEach(children) { child in
-                NavigationLink(destination: ExercisePageDetailView(pageID: child.id)) {
+                NavigationLink(value: DatabasePageRoute(pageID: child.manifest.id)) {
                     PageCardView(page: child)
                         .padding(12)
                         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -469,7 +492,7 @@ struct ExercisePageDetailView: View {
                     .foregroundStyle(Theme.textSecondary)
             } else {
                 ForEach(linkedPages) { linkedPage in
-                    NavigationLink(destination: ExercisePageDetailView(pageID: linkedPage.id)) {
+                    NavigationLink(value: DatabasePageRoute(pageID: linkedPage.manifest.id)) {
                         PageCardView(page: linkedPage)
                             .padding(12)
                             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -549,7 +572,7 @@ struct ExercisePageDetailView: View {
     #endif
 }
 
-private enum ContainerChildTab: String, CaseIterable, Identifiable, Hashable {
+enum ContainerChildTab: String, CaseIterable, Identifiable, Hashable {
     case exercises
     case skills
 
@@ -557,7 +580,7 @@ private enum ContainerChildTab: String, CaseIterable, Identifiable, Hashable {
     var title: String { self == .exercises ? "Exercises" : "Skills" }
 }
 
-private struct ContainerCategoryDestination: Identifiable, Hashable {
+struct ContainerCategoryDestination: Identifiable, Hashable {
     let containerID: UUID
     let tab: ContainerChildTab
 
@@ -797,11 +820,11 @@ private struct SkillSectionEditorSheet: View {
 private struct ContainerChildrenTabs: View {
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
+    @EnvironmentObject private var navigationState: DatabaseNavigationState
 
     let container: ExercisePage
     @State private var selectedTab: ContainerChildTab = .exercises
     @State private var skillPresentation: SkillBoardPresentation = .notStarted
-    @State private var categoryDestination: ContainerCategoryDestination?
     @State private var showingSkillCreation = false
 
     private var children: [ExercisePage] {
@@ -816,28 +839,8 @@ private struct ContainerChildrenTabs: View {
         children.filter(\.isSkillLike)
     }
 
-    @ViewBuilder
     var body: some View {
-        #if os(iOS)
-        if #available(iOS 17.0, *) {
-            tabsContent
-                .navigationDestination(item: $categoryDestination) { destination in
-                    categoryPage(destination)
-                }
-        } else {
-            tabsContent
-                .sheet(item: $categoryDestination) { destination in
-                    NavigationStack {
-                        categoryPage(destination)
-                    }
-                }
-        }
-        #else
         tabsContent
-            .navigationDestination(item: $categoryDestination) { destination in
-                categoryPage(destination)
-            }
-        #endif
     }
 
     private var tabsContent: some View {
@@ -867,7 +870,12 @@ private struct ContainerChildrenTabs: View {
                     .buttonStyle(.plain)
                     .simultaneousGesture(
                         TapGesture(count: 2).onEnded {
-                            categoryDestination = ContainerCategoryDestination(containerID: container.id, tab: tab)
+                            navigationState.path.append(
+                                DatabaseCategoryRoute(
+                                    containerID: container.manifest.id,
+                                    tab: tab
+                                )
+                            )
                         }
                     )
                     .accessibilityHint("Double tap to open \(tab.title.lowercased()) as a full page")
@@ -924,12 +932,6 @@ private struct ContainerChildrenTabs: View {
             .environmentObject(workoutStore)
         }
     }
-
-    private func categoryPage(_ destination: ContainerCategoryDestination) -> some View {
-        ContainerCategoryPage(destination: destination)
-            .environmentObject(store)
-            .environmentObject(workoutStore)
-    }
 }
 
 private struct ExerciseChildList: View {
@@ -951,7 +953,7 @@ private struct ExerciseChildList: View {
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
             } else {
                 ForEach(pages) { page in
-                    NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                    NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                         PageCardView(page: page)
                             .padding(12)
                             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -1057,7 +1059,7 @@ private struct SkillSectionList: View {
                         )
                 } else {
                     ForEach(grouped) { page in
-                        NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                        NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                             HStack(spacing: 10) {
                                 PageCardView(page: page)
                                 Text(skillStatusLabel(page.manifest.skillStatus ?? .notStarted))
@@ -1312,7 +1314,7 @@ private struct SkillTableBoardView: View {
     }
 
     private func skillCard(_ item: SkillBoardItem, status: SkillStatus, sectionID: String?) -> some View {
-        NavigationLink(destination: ExercisePageDetailView(pageID: item.page.id)) {
+        NavigationLink(value: DatabasePageRoute(pageID: item.page.manifest.id)) {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .top) {
                     Text(item.page.title)
@@ -1426,7 +1428,7 @@ private struct SkillTableBoardView: View {
     }
 }
 
-private struct ContainerCategoryPage: View {
+struct ContainerCategoryPage: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
@@ -1497,8 +1499,15 @@ private struct ContainerCategoryPage: View {
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        #else
+        .navigationBarBackButtonHidden(true)
         #endif
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                TimeMasterBackButton()
+            }
             if destination.tab == .skills {
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Button {
@@ -1508,10 +1517,6 @@ private struct ContainerCategoryPage: View {
                     }
                     .help("Create Skill")
                 }
-            }
-            AppToolbar.item(placement: .cancellationAction) {
-                Button("Back") { dismiss() }
-                    .buttonStyle(TimeMasterToolbarTextButtonStyle())
             }
         }
         .sheet(isPresented: $showingSkillCreation) {

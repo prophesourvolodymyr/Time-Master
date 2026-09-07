@@ -2036,11 +2036,29 @@ private struct RestNoteTarget: Identifiable {
 
 private struct WorkoutPageInspector: View {
     let pageID: UUID
+    @StateObject private var navigationState = DatabaseNavigationState()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationState.path) {
             ExercisePageDetailView(pageID: pageID)
+                .navigationDestination(for: DatabasePageRoute.self) { route in
+                    if let pageID = UUID(uuidString: route.pageID) {
+                        ExercisePageDetailView(pageID: pageID)
+                    }
+                }
+                .navigationDestination(for: DatabaseCategoryRoute.self) { route in
+                    if let containerID = UUID(uuidString: route.containerID) {
+                        ContainerCategoryPage(
+                            destination: ContainerCategoryDestination(
+                                containerID: containerID,
+                                tab: route.tab
+                            )
+                        )
+                        .environmentObject(navigationState)
+                    }
+                }
         }
+        .environmentObject(navigationState)
     }
 }
 

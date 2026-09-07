@@ -7,6 +7,20 @@ import TimeMasterCore
 import AVKit
 #endif
 
+@MainActor
+final class DatabaseNavigationState: ObservableObject {
+    @Published var path = NavigationPath()
+}
+
+struct DatabasePageRoute: Hashable {
+    let pageID: String
+}
+
+struct DatabaseCategoryRoute: Hashable {
+    let containerID: String
+    let tab: ContainerChildTab
+}
+
 // MARK: - MovieFile (Transferable for video picking — module-wide)
 
 struct MovieFile: Transferable {
@@ -382,6 +396,7 @@ struct DatabaseView: View {
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
     @EnvironmentObject var outdoorStore: OutdoorActivityStore
+    @EnvironmentObject private var navigationState: DatabaseNavigationState
     @State private var showingNewFolderSheet     = false
     @State private var showingImport             = false
     @State private var showingDatabaseImport     = false
@@ -409,7 +424,7 @@ struct DatabaseView: View {
     var body: some View {
         let isV2 = MigrationManager.isV2PageMigrationComplete
 
-        return NavigationStack {
+        return NavigationStack(path: $navigationState.path) {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 0) {
@@ -425,6 +440,23 @@ struct DatabaseView: View {
                 }
             }
             .navigationTitle("")
+            .navigationDestination(for: DatabasePageRoute.self) { route in
+                if let pageID = UUID(uuidString: route.pageID) {
+                    ExercisePageDetailView(pageID: pageID)
+                }
+            }
+            .navigationDestination(for: DatabaseCategoryRoute.self) { route in
+                if let containerID = UUID(uuidString: route.containerID) {
+                    ContainerCategoryPage(
+                        destination: ContainerCategoryDestination(
+                            containerID: containerID,
+                            tab: route.tab
+                        )
+                    )
+                    .environmentObject(store)
+                    .environmentObject(workoutStore)
+                }
+            }
             .sheet(isPresented: $showingNewFolderSheet) {
                 NewFolderSheet { name, colorHex, workoutType in
                     store.addRootFolder(name: name, colorHex: colorHex, workoutType: workoutType)
@@ -542,13 +574,14 @@ struct DatabaseView: View {
                 databaseActionButton(systemImage: "magnifyingglass", label: "Search Database") {
                     showingDatabaseSearch = true
                 }
+
+                databaseActionButton(systemImage: "video.badge.plus", label: "Import Video") {
+                    showingImport = true
+                }
             }
             .frame(maxWidth: .infinity, alignment: .center)
 
             HStack(spacing: 12) {
-                databaseActionButton(systemImage: "video.badge.plus", label: "Import Video") {
-                    showingImport = true
-                }
                 databaseActionButton(systemImage: "square.and.arrow.down", label: "Import Database") {
                     showingDatabaseImport = true
                 }
@@ -572,8 +605,9 @@ struct DatabaseView: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
+                .font(.system(size: 21, weight: .semibold))
         }
-        .modifier(TimeMasterToolbarIconSurface())
+        .modifier(TimeMasterToolbarIconSurface(size: 48))
         .accessibilityLabel(label)
         .help(label)
     }
@@ -589,7 +623,8 @@ struct DatabaseView: View {
             }
         } label: {
             Image(systemName: "arrow.up.arrow.down")
-                .modifier(TimeMasterToolbarIconSurface())
+                .font(.system(size: 21, weight: .semibold))
+                .modifier(TimeMasterToolbarIconSurface(size: 48))
         }
         .accessibilityLabel("Sort Database")
         .help("Sort Database")
@@ -793,37 +828,10 @@ struct DatabaseView: View {
 
     // MARK: - V2 Page Tree
 
-    private var toolbarContent: some ToolbarContent {
-        Group {
-            AppToolbar.item(placement: .primaryAction) { #if os(iOS)
-            EditButton().foregroundColor(.white)
-            #endif
-                         }
-            AppToolbar.iconItem(placement: .primaryAction) { Button { showingImport = true } label: {
-                Image(systemName: "video.badge.plus")
-            }
-                         }
-            AppToolbar.iconItem(placement: .primaryAction) { Button { showingDatabaseImport = true } label: {
-                Image(systemName: "square.and.arrow.down")
-            }
-                         }
-            AppToolbar.iconItem(placement: .primaryAction) { Menu {
-                Button { showingCreatePage = true } label: {
-                    Label("New Page", systemImage: "doc.badge.plus")
-                }
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title3)
-                    .modifier(TimeMasterToolbarIconSurface())
-            }
-        }
-    }
-    }
-
     private var pageTreeView: some View {
         VStack(spacing: 0) {
-            Divider()
-                .background(Theme.separator)
+            TimeMasterGlassDivider()
+                .padding(.horizontal, 18)
             filterChipsRow
 
             if filteredRootPages.isEmpty {
@@ -907,7 +915,7 @@ struct DatabaseView: View {
                 ForEach(visiblePageEntries) { entry in
                     let page = entry.page
                     ZStack(alignment: .topTrailing) {
-                        NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                        NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                             pageCard(page, isGridMode: true)
                         }
                         .buttonStyle(.plain)
@@ -978,7 +986,7 @@ struct DatabaseView: View {
     private func pageRow(_ entry: DatabasePageEntry) -> some View {
         let page = entry.page
         return HStack(spacing: 8) {
-            NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+            NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                 pageCard(page, isGridMode: false)
             }
             .buttonStyle(.plain)
@@ -1051,7 +1059,7 @@ struct DatabaseView: View {
         .accessibilityLabel(expandedPageIDs.contains(page.manifest.id) ? "Collapse \(page.title)" : "Expand \(page.title)")
     }
     private func openContainerButton(_ page: ExercisePage) -> some View {
-        NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+        NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
             Image(systemName: "arrow.up.right")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Theme.primary)
@@ -1104,6 +1112,7 @@ private struct DatabasePageEntry: Identifiable {
 private struct DatabaseSearchSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: DatabaseStore
+    @StateObject private var navigationState = DatabaseNavigationState()
     @State private var searchText = ""
 
     private var results: [ExercisePage] {
@@ -1118,7 +1127,7 @@ private struct DatabaseSearchSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationState.path) {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 0) {
@@ -1175,7 +1184,7 @@ private struct DatabaseSearchSheet: View {
                     } else {
                         List {
                             ForEach(results) { page in
-                                NavigationLink(destination: ExercisePageDetailView(pageID: page.id)) {
+                                NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                                     HStack(spacing: 12) {
                                         Image(systemName: page.isContainer ? "rectangle.stack" : "doc.text")
                                             .foregroundStyle(Theme.primary)
@@ -1199,6 +1208,24 @@ private struct DatabaseSearchSheet: View {
                 }
             }
             .navigationTitle("Search Database")
+            .navigationDestination(for: DatabasePageRoute.self) { route in
+                if let pageID = UUID(uuidString: route.pageID) {
+                    ExercisePageDetailView(pageID: pageID)
+                        .environmentObject(navigationState)
+                }
+            }
+            .navigationDestination(for: DatabaseCategoryRoute.self) { route in
+                if let containerID = UUID(uuidString: route.containerID) {
+                    ContainerCategoryPage(
+                        destination: ContainerCategoryDestination(
+                            containerID: containerID,
+                            tab: route.tab
+                        )
+                    )
+                    .environmentObject(store)
+                    .environmentObject(navigationState)
+                }
+            }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -1208,6 +1235,7 @@ private struct DatabaseSearchSheet: View {
                 }
             }
         }
+        .environmentObject(navigationState)
     }
     private func searchTypeLabel(_ page: ExercisePage) -> String {
         switch page.pageType {
@@ -2843,5 +2871,6 @@ struct FilterTypeChip: Identifiable {
     DatabaseView()
         .environmentObject(DatabaseStore.shared)
         .environmentObject(WorkoutStore())
+        .environmentObject(DatabaseNavigationState())
         .preferredColorScheme(.dark)
 }

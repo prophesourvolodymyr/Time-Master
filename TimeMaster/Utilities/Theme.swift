@@ -175,19 +175,51 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
     }
 }
 struct TimeMasterToolbarIconSurface: ViewModifier {
+    let size: CGFloat
+
+    init(size: CGFloat = 36) {
+        self.size = size
+    }
+
     func body(content: Content) -> some View {
         content
             .foregroundStyle(.white)
-            .frame(width: 36, height: 36)
+            .frame(width: size, height: size)
             .modifier(
                 TimeMasterPrivateGlassSurface(
-                    cornerRadius: 18,
+                    cornerRadius: size / 2,
                     isInteractive: true,
                     tint: Theme.toolbarOrange,
                     tintOpacity: 0.52
                 )
             )
             .clipShape(Circle())
+    }
+}
+
+struct TimeMasterBackButton: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 16, weight: .bold))
+        }
+        .buttonStyle(.plain)
+        .modifier(TimeMasterToolbarIconSurface(size: 38))
+        .accessibilityLabel("Back")
+    }
+}
+
+struct TimeMasterGlassDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            .overlay(Color.white.opacity(0.12))
+            .frame(height: 1)
+            .accessibilityHidden(true)
     }
 }
 
