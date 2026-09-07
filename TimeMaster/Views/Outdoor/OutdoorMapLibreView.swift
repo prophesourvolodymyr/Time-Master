@@ -611,11 +611,22 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                     symbol.textColor = NSExpression(forConstantValue: palette.label)
                     symbol.textHaloColor = NSExpression(forConstantValue: palette.labelHalo)
                     symbol.textOpacity = NSExpression(forConstantValue: 0.78)
+                    symbol.textFontNames = NSExpression(forConstantValue: labelFontStack(for: identifier))
                 default:
                     break
                 }
             }
             updateMinimalLabelVisibility(in: style, showsTransit: overlays.contains(.transit))
+        }
+
+        private func labelFontStack(for identifier: String) -> [String] {
+            if identifier.hasPrefix("highway-name") {
+                return ["Roboto Condensed Regular", "Noto Sans Regular"]
+            }
+            if identifier.hasPrefix("water") {
+                return ["Roboto Italic", "Noto Sans Italic"]
+            }
+            return ["Roboto Medium", "Noto Sans Regular"]
         }
 
         private func updateMinimalLabelVisibility(in style: MLNStyle, showsTransit: Bool) {
