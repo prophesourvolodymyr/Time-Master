@@ -565,14 +565,17 @@ struct DatabaseView: View {
     private var databaseV2Content: some View {
         ScrollView {
             VStack(spacing: 0) {
-                GeometryReader { proxy in
-                    Color.clear
-                        .preference(
-                            key: DatabaseScrollOffsetKey.self,
-                            value: proxy.frame(in: .named("databaseScroll")).minY
-                        )
-                }
-                .frame(height: 0)
+                Color.clear
+                    .frame(height: 1)
+                    .background {
+                        GeometryReader { proxy in
+                            Color.clear
+                                .preference(
+                                    key: DatabaseScrollOffsetKey.self,
+                                    value: proxy.frame(in: .named("databaseScroll")).minY
+                                )
+                        }
+                    }
 
                 databaseHeader(progress: databaseChromeProgress)
                 databaseControls(progress: databaseChromeProgress)
