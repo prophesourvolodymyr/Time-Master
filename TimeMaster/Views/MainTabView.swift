@@ -183,7 +183,7 @@ struct MainTabView: View {
             musicLibrary: musicLibraryStore,
             initialActivityID: outdoorRecorder.activeActivity?.id,
             recordingSession: outdoorRecorder,
-            onExit: { selectedTab = SlotNavigationItem.index(for: 0) }
+            onExit: { selectedTab = max(0, selectedTab - 1) }
         )
     }
 #else

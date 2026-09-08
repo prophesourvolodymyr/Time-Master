@@ -60,7 +60,8 @@ struct SlotNavigationItem: Identifiable, Hashable {
                 id: 6,
                 symbolName: "map.fill",
                 title: "Map",
-                accessibilityHint: "Opens the live outdoor map and workout start page."
+                accessibilityHint: "Opens the live outdoor map and workout start page.",
+                presentation: .hidden
             )
         )
         #endif

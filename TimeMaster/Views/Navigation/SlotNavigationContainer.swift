@@ -193,8 +193,8 @@ struct SlotNavigationContainer<Content: View>: View {
             .onEnded { value in
                 guard effectiveNavigationPresentation == .hidden,
                       !hiddenNavigationIsRevealed,
-                      value.startLocation.y >= size.height - 88,
-                      (value.startLocation.x <= 44 || value.startLocation.x >= size.width - 44),
+                      value.startLocation.y >= size.height - 96,
+                      value.startLocation.x >= size.width - 72,
                       value.translation.height <= -42,
                       abs(value.translation.height) > abs(value.translation.width) else {
                     return
