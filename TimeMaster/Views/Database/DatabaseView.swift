@@ -803,7 +803,7 @@ struct DatabaseView: View {
 
     private func databaseHeader(progress: CGFloat = 0) -> some View {
         Text("Exercise Database")
-            .font(.system(size: 34 - (14 * progress), weight: .bold))
+            .font(.system(size: 36 - (14 * progress), weight: .bold))
             .foregroundStyle(Theme.textPrimary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)

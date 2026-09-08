@@ -49,10 +49,16 @@ struct SlotNavigationContainer<Content: View>: View {
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if effectiveNavigationPresentation != .hidden {
-                    navigationBar(
-                        bottomSafeArea: proxy.safeAreaInsets.bottom,
-                        layout: barLayout(for: effectiveNavigationPresentation)
-                    )
+                    let layout = barLayout(for: effectiveNavigationPresentation)
+                    let visibleBarHeight = layout == .full ? barHeight : SlotNavigationBar.inlineHeight
+                    ZStack(alignment: .bottom) {
+                        Color.clear
+                        navigationBar(
+                            bottomSafeArea: proxy.safeAreaInsets.bottom,
+                            layout: layout
+                        )
+                    }
+                    .frame(height: visibleBarHeight + navigationContentClearance(for: layout))
                 }
             }
 #if os(iOS)
@@ -131,6 +137,9 @@ struct SlotNavigationContainer<Content: View>: View {
 
     private func barLayout(for presentation: SlotNavigationPresentation) -> SlotNavigationBarLayout {
         presentation == .full ? .full : .inline
+    }
+    private func navigationContentClearance(for layout: SlotNavigationBarLayout) -> CGFloat {
+        layout == .full ? 56 : 28
     }
     private func defaultNavigationPresentation(for index: Int) -> SlotNavigationPresentation {
         guard items.indices.contains(index) else { return .full }
