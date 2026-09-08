@@ -418,6 +418,7 @@ struct DatabaseView: View {
     @State private var expandedPageIDs: Set<String> = []
     @State private var databaseScrollOffset: CGFloat = 0
     @State private var databaseChromeProgress: CGFloat = 0
+    @State private var isDatabaseChromeCollapsed = false
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
     @State private var showingAddChildPage = false
