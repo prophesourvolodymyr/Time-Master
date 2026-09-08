@@ -44,7 +44,7 @@ struct SlotNavigationContainer<Content: View>: View {
                     .transition(pageTransition)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .simultaneousGesture(pageSwipeGesture)
+                    .simultaneousGesture(pageSwipeGesture(in: proxy.size))
                     .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size))
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -252,13 +252,16 @@ struct SlotNavigationContainer<Content: View>: View {
         )
     }
 
-    private var pageSwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 28, coordinateSpace: .local)
+    private func pageSwipeGesture(in size: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 44, coordinateSpace: .local)
             .onEnded { value in
                 let horizontalDistance = value.translation.width
                 let verticalDistance = abs(value.translation.height)
-                guard abs(horizontalDistance) > 56,
-                      abs(horizontalDistance) > verticalDistance * 1.25 else { return }
+                let startedAtAbsoluteEdge = value.startLocation.x <= 28
+                    || value.startLocation.x >= size.width - 28
+                guard startedAtAbsoluteEdge,
+                      abs(horizontalDistance) >= 110,
+                      abs(horizontalDistance) > verticalDistance * 1.7 else { return }
 
                 let direction = horizontalDistance < 0 ? 1 : -1
                 let nextSelection = min(
