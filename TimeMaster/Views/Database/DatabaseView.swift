@@ -623,8 +623,13 @@ struct DatabaseView: View {
 
     private func databaseChrome(progress: CGFloat) -> some View {
         VStack(spacing: 0) {
-            databaseHeader(progress: progress)
-            databaseControls(progress: progress)
+            ZStack(alignment: .topLeading) {
+                databaseHeader(progress: progress)
+                databaseControls(progress: progress)
+                    .offset(y: 52 * (1 - progress))
+            }
+            .frame(height: (52 + 90) * (1 - progress) + 52 * progress)
+
             TimeMasterGlassDivider()
                 .padding(.horizontal, 18)
             filterChipsRow
@@ -634,12 +639,7 @@ struct DatabaseView: View {
     }
 
     private var databaseChrome: some View {
-        VStack(spacing: 0) {
-            databaseHeader()
-            databaseControls()
-        }
-        .background(Theme.background)
-        .zIndex(1)
+        databaseChrome(progress: 0)
     }
 
     private func databaseControls(progress: CGFloat = 0) -> some View {
