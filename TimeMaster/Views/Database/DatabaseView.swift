@@ -626,9 +626,9 @@ struct DatabaseView: View {
             ZStack(alignment: .topLeading) {
                 databaseHeader(progress: progress)
                 databaseControls(progress: progress)
-                    .offset(y: 52 * (1 - progress))
+                    .offset(y: 56 * (1 - progress))
             }
-            .frame(height: (52 + 90) * (1 - progress) + 52 * progress)
+            .frame(height: 56 + (90 * (1 - progress)))
 
             TimeMasterGlassDivider()
                 .padding(.horizontal, 18)
@@ -644,10 +644,11 @@ struct DatabaseView: View {
 
     private func databaseControls(progress: CGFloat = 0) -> some View {
         GeometryReader { proxy in
-            let expandedWidth = max((proxy.size.width - 40) / 3, 1)
+            let contentWidth = max(proxy.size.width - 40, 0)
+            let expandedWidth = max((contentWidth - 20) / 3, 48)
             let buttonWidth = expandedWidth * (1 - progress) + 48 * progress
             let groupWidth = buttonWidth * 3 + 20
-            let travel = max((proxy.size.width - groupWidth) / 2, 0)
+            let travel = max((contentWidth - groupWidth) / 2, 0)
 
             HStack(spacing: 10) {
                 databaseMajorButton(
@@ -670,64 +671,46 @@ struct DatabaseView: View {
             }
             .frame(width: groupWidth)
             .offset(x: travel * progress)
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
-        .frame(height: 72 * (1 - progress) + 48 * progress)
+        .frame(height: 90 * (1 - progress) + 48 * progress)
         .padding(.horizontal, 20)
-        .padding(.top, 8 * (1 - progress))
-        .padding(.bottom, 10 * (1 - progress))
     }
 
-    @ViewBuilder
     private func databaseMajorButton(
         systemImage: String,
         title: String,
         progress: CGFloat = 0,
-        width: CGFloat? = nil,
+        width: CGFloat,
         action: @escaping () -> Void
     ) -> some View {
-        if let width {
-            Button(action: action) {
-                databaseMajorLabel(systemImage: systemImage, title: title, progress: progress)
-            }
-            .buttonStyle(.plain)
-            .frame(width: width)
-            .accessibilityLabel(title)
-            .help(title)
-        } else {
-            Button(action: action) {
-                databaseMajorLabel(systemImage: systemImage, title: title, progress: progress)
-            }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .accessibilityLabel(title)
-            .help(title)
+        Button(action: action) {
+            databaseMajorLabel(
+                systemImage: systemImage,
+                title: title,
+                progress: progress,
+                width: width
+            )
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .help(title)
     }
 
-    @ViewBuilder
-    private func databaseAddMenu(progress: CGFloat = 0, width: CGFloat? = nil) -> some View {
-        if let width {
-            Menu {
-                addMenuItems
-            } label: {
-                databaseMajorLabel(systemImage: "plus", title: "Add", progress: progress)
-            }
-            .buttonStyle(.plain)
-            .frame(width: width)
-            .accessibilityLabel("Add")
-            .help("Add")
-        } else {
-            Menu {
-                addMenuItems
-            } label: {
-                databaseMajorLabel(systemImage: "plus", title: "Add", progress: progress)
-            }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .accessibilityLabel("Add")
-            .help("Add")
+    private func databaseAddMenu(progress: CGFloat = 0, width: CGFloat) -> some View {
+        Menu {
+            addMenuItems
+        } label: {
+            databaseMajorLabel(
+                systemImage: "plus",
+                title: "Add",
+                progress: progress,
+                width: width
+            )
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add")
+        .help("Add")
     }
 
     @ViewBuilder
@@ -771,21 +754,23 @@ struct DatabaseView: View {
     private func databaseMajorLabel(
         systemImage: String,
         title: String,
-        progress: CGFloat = 0
+        progress: CGFloat,
+        width: CGFloat
     ) -> some View {
         VStack(spacing: 4 * (1 - progress)) {
             Image(systemName: systemImage)
                 .font(.system(size: 22, weight: .semibold))
+                .frame(maxWidth: .infinity)
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .opacity(1 - progress)
                 .scaleEffect(1 - (0.1 * progress))
+                .frame(maxWidth: .infinity)
         }
         .foregroundStyle(.white)
-        .frame(maxWidth: .infinity, minHeight: 72 * (1 - progress) + 48 * progress)
-        .scaleEffect(1 - (0.06 * progress))
+        .frame(width: width, height: 72 * (1 - progress) + 48 * progress)
         .modifier(
             TimeMasterPrivateGlassSurface(
                 cornerRadius: 14 + (10 * progress),
