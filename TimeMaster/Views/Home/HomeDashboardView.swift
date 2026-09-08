@@ -6,6 +6,7 @@ struct HomeDashboardView: View {
     @EnvironmentObject private var databaseStore: DatabaseStore
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
@@ -37,11 +38,26 @@ struct HomeDashboardView: View {
                     onCreateWorkout: onCreateWorkout,
                     onStartOutdoor: onStartOutdoor
                 )
+                LinearGradient(
+                    colors: [
+                        Theme.background.opacity(reduceTransparency ? 0.84 : 0.62),
+                        Theme.background.opacity(reduceTransparency ? 0.42 : 0.20),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 150)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
             .navigationTitle("")
             .toolbar {
                 toolbarContent
             }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .onAppear {
                 now = Date()
             }
