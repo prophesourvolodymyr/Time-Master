@@ -758,9 +758,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             plannedRouteSignature = nil
 
             guard let baseDefinition = session.configuration.style(for: baseMode) else { return }
-            if baseMode == .terrain || overlays.contains(.threeD) {
-                addTerrainRelief(to: style)
-            }
 
             if let template = baseDefinition.rasterTileURLTemplate, !template.isEmpty {
                 let sourceID = "outdoor-\(baseMode.rawValue)-raster-source"
@@ -839,47 +836,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
 
-        private func addTerrainRelief(to style: MLNStyle) {
-            guard let template = session.configuration.terrainDEMURLTemplate,
-                  !template.isEmpty
-            else { return }
-
-            let sourceID = "outdoor-terrain-dem-source"
-            let layerID = "outdoor-terrain-hillshade-layer"
-            let options: [MLNTileSourceOption: Any] = [
-                .demEncoding: NSNumber(value: 1),
-                .tileSize: NSNumber(value: 256)
-            ]
-            let source = MLNRasterDEMSource(
-                identifier: sourceID,
-                tileURLTemplates: [template],
-                options: options
-            )
-            style.addSource(source)
-
-            let hillshade = MLNHillshadeStyleLayer(identifier: layerID, source: source)
-            hillshade.hillshadeMethod = NSExpression(forConstantValue: "multidirectional")
-            hillshade.hillshadeIlluminationAnchor = NSExpression(forConstantValue: "map")
-            hillshade.hillshadeExaggeration = NSExpression(forConstantValue: 0.24)
-            hillshade.hillshadeAccentColor = NSExpression(
-                forConstantValue: UIColor(red: 0.23, green: 0.27, blue: 0.23, alpha: 1)
-            )
-            hillshade.hillshadeHighlightColor = NSExpression(
-                forConstantValue: UIColor(red: 0.97, green: 0.97, blue: 0.93, alpha: 1)
-            )
-            hillshade.hillshadeShadowColor = NSExpression(
-                forConstantValue: UIColor(red: 0.46, green: 0.50, blue: 0.44, alpha: 1)
-            )
-            if let roadLayer = style.layers.first(where: { $0.identifier.hasPrefix("road") }) {
-                style.insertLayer(hillshade, below: roadLayer)
-            } else if let firstSymbol = style.layers.first(where: { $0 is MLNSymbolStyleLayer }) {
-                style.insertLayer(hillshade, below: firstSymbol)
-            } else {
-                style.addLayer(hillshade)
-            }
-            activeTileSourceIDs.insert(sourceID)
-            activeTileSourceIDs.insert(layerID)
-        }
 
         private func applyThreeDIfSupported(
             map: MLNMapView,
@@ -907,8 +863,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 guard let layer = $0 as? MLNFillExtrusionStyleLayer else { return false }
                 return layer.sourceLayerIdentifier != nil
             }
-            let hasTerrainRelief = style.source(withIdentifier: "outdoor-terrain-dem-source") != nil
-            guard hasRealBuildingExtrusion, hasTerrainRelief else {
+            guard hasRealBuildingExtrusion else {
                 session.markThreeDUnsupported()
                 reportCapability(session.capability(for: .threeD))
                 return

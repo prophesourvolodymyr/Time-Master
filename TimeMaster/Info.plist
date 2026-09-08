@@ -82,6 +82,12 @@
 	<key>TMLicensedTransitAttribution</key>
 	<string>$(TM_LICENSED_TRANSIT_ATTRIBUTION)</string>
 
+	<key>UIAppFonts</key>
+	<array>
+		<string>MapGlyphs/FontFiles/Inter Black.ttf</string>
+		<string>MapGlyphs/FontFiles/Inter Light.ttf</string>
+	</array>
+
 	<!-- UI settings -->
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleLightContent</string>

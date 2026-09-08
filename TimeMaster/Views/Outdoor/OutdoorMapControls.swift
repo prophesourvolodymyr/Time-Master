@@ -59,7 +59,7 @@ struct OutdoorMapControls: View {
         .foregroundStyle(Theme.textSecondary)
         .lineLimit(1)
         .minimumScaleFactor(0.8)
-        .multilineTextAlignment(.trailing)
+        .font(.custom("Inter Light", size: 11, relativeTo: .caption2))
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: 170, alignment: .trailing)
         .padding(.horizontal, 6)
@@ -119,7 +119,7 @@ struct OutdoorMapControls: View {
                 Image(systemName: presentation.symbolName)
                     .font(.body.weight(.medium))
                 Text(presentation.temperatureText)
-                    .font(.caption2.weight(.semibold))
+                    .font(.custom("Inter Black", size: 12, relativeTo: .caption2))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
