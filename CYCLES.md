@@ -473,6 +473,9 @@ F27 Home ───────────────┘
 - [x] Allow skills and tutorials to be added to workouts while keeping containers out of workout sections
 - [x] Remove the global Skills mode and title counts; skills are created and organized inside containers
 - [x] Verified: 94 TimeMasterCore tests pass and the iOS simulator Debug app installs and launches; human verification remains required
+- [ ] Repair the database header with a fixed scroll viewport and one continuously morphing title/action group
+- [ ] Keep type filters pinned, center compact action icons, and preserve scrolling for short result sets
+- [ ] Build and exercise database collapse, reversal, action menus, and detail navigation in the simulator; hand off for human review
 
 ### Phase 2 — V2 Workout Management + V2 Player (paired)
 - [ ] F15 — V2 Workout Management Rework
@@ -816,6 +819,12 @@ F27 Home ───────────────┘
   - [x] Media tray captures each still or clip as an independent card
   - [x] Video media saves to the page-backed database with existing/new destinations
 
+- [ ] iOS Photos or Files source choice with owned temporary video copies
+- [ ] Live video preview seeking, scrub resume, replay, and dismissal pause on iOS and macOS
+- [ ] Editor workspace hierarchy with filmstrip, transport, capture tools, and connected media tray
+- [ ] Keep database parent references consistent when removing failed imports
+- [ ] Reload and exercise the editor on the existing iOS 18 simulator
+- [ ] Human review of the updated iOS and macOS editor
 ---
 
 ## Notes
