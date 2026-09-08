@@ -563,36 +563,37 @@ struct DatabaseView: View {
     }
 
     private var databaseV2Content: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                Color.clear
-                    .frame(height: 1)
-                    .background {
-                        GeometryReader { proxy in
-                            Color.clear
-                                .preference(
-                                    key: DatabaseScrollOffsetKey.self,
-                                    value: proxy.frame(in: .named("databaseScroll")).minY
-                                )
+        ZStack(alignment: .top) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: 1)
+                        .background {
+                            GeometryReader { proxy in
+                                Color.clear
+                                    .preference(
+                                        key: DatabaseScrollOffsetKey.self,
+                                        value: proxy.frame(in: .named("databaseViewport")).minY
+                                    )
+                            }
                         }
-                    }
 
-                databaseHeader(progress: databaseChromeProgress)
-                databaseControls(progress: databaseChromeProgress)
-                pageTreeView
+                    databaseHeader(progress: databaseChromeProgress)
+                    databaseControls(progress: databaseChromeProgress)
+                    pageTreeView
+                }
             }
-        }
-        .coordinateSpace(name: "databaseScroll")
-        .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
-            databaseScrollOffset = offset
-            databaseChromeProgress = min(1, max(0, -offset / 96))
-        }
-        .overlay(alignment: .top) {
+            .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
+                databaseScrollOffset = offset
+                databaseChromeProgress = min(1, max(0, -offset / 96))
+            }
+
             compactDatabaseChrome
                 .opacity(databaseChromeProgress)
                 .allowsHitTesting(databaseChromeProgress > 0.85)
                 .zIndex(2)
         }
+        .coordinateSpace(name: "databaseViewport")
     }
 
     private var compactDatabaseChrome: some View {
