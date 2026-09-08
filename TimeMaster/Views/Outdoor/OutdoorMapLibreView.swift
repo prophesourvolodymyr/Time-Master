@@ -387,7 +387,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             map.showsCompassView = true
             map.compassView.isHidden = false
             map.compassViewPosition = .topRight
-            map.compassViewMargins = CGPoint(x: 12, y: 12)
+            map.compassViewMargins = CGPoint(x: 12, y: 86)
             map.attributionButton.isHidden = true
             map.logoView.isHidden = true
         }
@@ -395,9 +395,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
             loadedStyleURL = mapView.styleURL
             hideNativeOrnaments(on: mapView)
-            if installLocalGlyphTemplate(in: style) {
-                return
-            }
             isApplyingCamera = true
             session.restoreCamera(on: mapView)
             isApplyingCamera = false
@@ -410,25 +407,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             updateWeather()
         }
 
-        private func installLocalGlyphTemplate(in style: MLNStyle) -> Bool {
-            guard let glyphTemplate = localGlyphTemplate,
-                  let data = style.styleJSON.data(using: .utf8),
-                  var json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-            else { return false }
-
-            if json["glyphs"] as? String == glyphTemplate {
-                return false
-            }
-
-            json["glyphs"] = glyphTemplate
-            guard JSONSerialization.isValidJSONObject(json),
-                  let rewrittenData = try? JSONSerialization.data(withJSONObject: json),
-                  let rewrittenStyle = String(data: rewrittenData, encoding: .utf8)
-            else { return false }
-
-            style.styleJSON = rewrittenStyle
-            return true
-        }
 
         func mapViewDidFailLoadingMap(_ mapView: MLNMapView, withError error: Error) {
             let failedMode = session.requestedMode
@@ -647,27 +625,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 ? OutdoorMinimalMapPalette.dark
                 : OutdoorMinimalMapPalette.light
         }
-        private var localGlyphTemplate: String? {
-            guard let resourceURL = Bundle.main.resourceURL else { return nil }
-            let glyphDirectory = resourceURL.appendingPathComponent("MapGlyphs", isDirectory: true)
-            guard FileManager.default.fileExists(atPath: glyphDirectory.path) else { return nil }
-            return glyphDirectory
-                .appendingPathComponent("{fontstack}", isDirectory: true)
-                .appendingPathComponent("{range}.pbf")
-                .absoluteString
-        }
-
-        private func labelFontStack(for identifier: String) -> [String] {
-            let isPlaceLabel = identifier.contains("place")
-                || identifier.contains("country")
-                || identifier.contains("state")
-                || identifier.contains("city")
-                || identifier.contains("town")
-                || identifier.contains("village")
-            return isPlaceLabel
-                ? ["Inter Black Regular", "Inter Light Regular", "Noto Sans Regular"]
-                : ["Inter Light Regular", "Inter Black Regular", "Noto Sans Regular"]
-        }
 
         private func applyMinimalMapPresentation(to style: MLNStyle, overlays: Set<OutdoorMapMode>) {
             guard style.source(withIdentifier: "openmaptiles") != nil else { return }
@@ -678,13 +635,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 updateMinimalLabelVisibility(in: style, showsTransit: overlays.contains(.transit))
                 for case let extrusion as MLNFillExtrusionStyleLayer in style.layers {
                     extrusion.isVisible = overlays.contains(.threeD)
-                }
-                if localGlyphTemplate != nil {
-                    for case let symbol as MLNSymbolStyleLayer in style.layers {
-                        symbol.textFontNames = NSExpression(
-                            forConstantValue: labelFontStack(for: symbol.identifier)
-                        )
-                    }
                 }
                 return
             }
@@ -754,11 +704,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                     symbol.textColor = NSExpression(forConstantValue: palette.label)
                     symbol.textHaloColor = NSExpression(forConstantValue: palette.labelHalo)
                     symbol.textOpacity = NSExpression(forConstantValue: 0.78)
-                    if localGlyphTemplate != nil {
-                        symbol.textFontNames = NSExpression(
-                            forConstantValue: labelFontStack(for: identifier)
-                        )
-                    }
                 default:
                     break
                 }

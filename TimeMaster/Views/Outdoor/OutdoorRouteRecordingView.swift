@@ -184,13 +184,13 @@ struct OutdoorRouteRecordingView: View {
 
                 if canDismissRoute {
                     OutdoorRouteIdleCloseControl(onDismiss: leaveRoute)
-                        .padding(.top, layout.safeAreaTop + 2)
+                        .padding(.top, max(0, layout.safeAreaTop - 24))
                         .padding(.trailing, 8)
                         .frame(maxWidth: .infinity, alignment: .topTrailing)
                         .zIndex(100)
                 } else if recorder.isLiveSession {
                     OutdoorRouteExitControl(onExit: exitToApp)
-                        .padding(.top, layout.safeAreaTop + 2)
+                        .padding(.top, max(0, layout.safeAreaTop - 24))
                         .padding(.trailing, 8)
                         .frame(maxWidth: .infinity, alignment: .topTrailing)
                         .zIndex(100)

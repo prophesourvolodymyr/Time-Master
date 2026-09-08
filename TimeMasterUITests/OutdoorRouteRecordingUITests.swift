@@ -163,4 +163,18 @@ final class OutdoorRouteRecordingUITests: XCTestCase {
         app.buttons["Profile"].tap()
         XCTAssertTrue(app.staticTexts["Outdoor activity"].waitForExistence(timeout: 10))
     }
+    func testMapDestinationAppearsAndCloseReturnsToPreviousPage() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.timemaster.TimeMaster")
+        app.launch()
+
+        let map = app.buttons["Map"]
+        XCTAssertTrue(map.waitForExistence(timeout: 10))
+        map.tap()
+
+        XCTAssertTrue(app.buttons["Close route"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Map"].exists)
+
+        app.buttons["Close route"].tap()
+        XCTAssertTrue(app.buttons["Profile"].waitForExistence(timeout: 10))
+    }
 }
