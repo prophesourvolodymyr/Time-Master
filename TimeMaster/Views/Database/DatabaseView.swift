@@ -565,29 +565,7 @@ struct DatabaseView: View {
 
     private var databaseV2Content: some View {
         ZStack(alignment: .top) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    Color.clear
-                        .frame(height: 1)
-                        .background {
-                            GeometryReader { proxy in
-                                Color.clear
-                                    .preference(
-                                        key: DatabaseScrollOffsetKey.self,
-                                        value: proxy.frame(in: .named("databaseViewport")).minY
-                                    )
-                            }
-                        }
-
-                    databaseHeader(progress: databaseChromeProgress)
-                    databaseControls(progress: databaseChromeProgress)
-                    pageTreeView
-                }
-            }
-            .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
-                databaseScrollOffset = offset
-                databaseChromeProgress = min(1, max(0, -offset / 96))
-            }
+            databaseScrollSurface
 
             compactDatabaseChrome
                 .opacity(databaseChromeProgress)
@@ -595,6 +573,61 @@ struct DatabaseView: View {
                 .zIndex(2)
         }
         .coordinateSpace(name: "databaseViewport")
+    }
+
+    @ViewBuilder
+    private var databaseScrollSurface: some View {
+        #if os(iOS)
+        if #available(iOS 18.0, *) {
+            ScrollView {
+                databaseScrollContent
+            }
+            .onScrollGeometryChange(for: CGFloat.self, of: { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top
+            }, action: { _, offset in
+                updateDatabaseChromeProgress(offset)
+            })
+        } else {
+            fallbackDatabaseScrollSurface
+        }
+        #else
+        fallbackDatabaseScrollSurface
+        #endif
+    }
+
+    private var fallbackDatabaseScrollSurface: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                Color.clear
+                    .frame(height: 1)
+                    .background {
+                        GeometryReader { proxy in
+                            Color.clear
+                                .preference(
+                                    key: DatabaseScrollOffsetKey.self,
+                                    value: proxy.frame(in: .named("databaseViewport")).minY
+                                )
+                        }
+                    }
+                databaseScrollContent
+            }
+        }
+        .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
+            updateDatabaseChromeProgress(max(0, -offset))
+        }
+    }
+
+    private var databaseScrollContent: some View {
+        VStack(spacing: 0) {
+            databaseHeader(progress: databaseChromeProgress)
+            databaseControls(progress: databaseChromeProgress)
+            pageTreeView
+        }
+    }
+
+    private func updateDatabaseChromeProgress(_ offset: CGFloat) {
+        databaseScrollOffset = offset
+        databaseChromeProgress = min(1, max(0, offset / 96))
     }
 
     private var compactDatabaseChrome: some View {
