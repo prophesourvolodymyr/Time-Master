@@ -417,7 +417,7 @@ struct DatabaseView: View {
     @State private var showingDatabaseSearch = false
     @State private var expandedPageIDs: Set<String> = []
     @State private var databaseScrollOffset: CGFloat = 0
-    @State private var isDatabaseChromeCollapsed = false
+    @State private var databaseChromeProgress: CGFloat = 0
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
     @State private var showingAddChildPage = false
@@ -574,25 +574,21 @@ struct DatabaseView: View {
                 }
                 .frame(height: 0)
 
-                databaseHeader
-                databaseControls
+                databaseHeader(progress: databaseChromeProgress)
+                databaseControls(progress: databaseChromeProgress)
                 pageTreeView
             }
         }
         .coordinateSpace(name: "databaseScroll")
         .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
             databaseScrollOffset = offset
-            let shouldCollapse = offset < -72
-            guard shouldCollapse != isDatabaseChromeCollapsed else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isDatabaseChromeCollapsed = shouldCollapse
-            }
+            databaseChromeProgress = min(1, max(0, -offset / 96))
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if isDatabaseChromeCollapsed {
-                compactDatabaseChrome
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
+        .overlay(alignment: .top) {
+            compactDatabaseChrome
+                .opacity(databaseChromeProgress)
+                .allowsHitTesting(databaseChromeProgress > 0.85)
+                .zIndex(2)
         }
     }
 
@@ -650,35 +646,39 @@ struct DatabaseView: View {
 
     private var databaseChrome: some View {
         VStack(spacing: 0) {
-            databaseHeader
-            databaseControls
+            databaseHeader()
+            databaseControls()
         }
         .background(Theme.background)
         .zIndex(1)
     }
 
-    private var databaseControls: some View {
+    private func databaseControls(progress: CGFloat = 0) -> some View {
         HStack(spacing: 10) {
-            databaseMajorButton(systemImage: "video.badge.plus", title: "From Video") {
+            databaseMajorButton(systemImage: "video.badge.plus", title: "From Video", progress: progress) {
                 showingImport = true
             }
-            databaseAddMenu
-            databaseMajorButton(systemImage: "magnifyingglass", title: "Search") {
+            databaseAddMenu(progress: progress)
+            databaseMajorButton(systemImage: "magnifyingglass", title: "Search", progress: progress) {
                 showingDatabaseSearch = true
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 10)
+        .opacity(1 - progress)
+        .offset(y: -10 * progress)
+        .scaleEffect(1 - 0.04 * progress, anchor: .top)
     }
 
     private func databaseMajorButton(
         systemImage: String,
         title: String,
+        progress: CGFloat = 0,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            databaseMajorLabel(systemImage: systemImage, title: title)
+            databaseMajorLabel(systemImage: systemImage, title: title, progress: progress)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
@@ -686,11 +686,11 @@ struct DatabaseView: View {
         .help(title)
     }
 
-    private var databaseAddMenu: some View {
+    private func databaseAddMenu(progress: CGFloat = 0) -> some View {
         Menu {
             addMenuItems
         } label: {
-            databaseMajorLabel(systemImage: "plus", title: "Add")
+            databaseMajorLabel(systemImage: "plus", title: "Add", progress: progress)
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
@@ -736,7 +736,11 @@ struct DatabaseView: View {
         }
     }
 
-    private func databaseMajorLabel(systemImage: String, title: String) -> some View {
+    private func databaseMajorLabel(
+        systemImage: String,
+        title: String,
+        progress: CGFloat = 0
+    ) -> some View {
         VStack(spacing: 4) {
             Image(systemName: systemImage)
                 .font(.system(size: 22, weight: .semibold))
@@ -747,6 +751,7 @@ struct DatabaseView: View {
         }
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, minHeight: 72)
+        .scaleEffect(1 - (0.06 * progress))
         .modifier(
             TimeMasterPrivateGlassSurface(
                 cornerRadius: 14,
@@ -762,14 +767,16 @@ struct DatabaseView: View {
         }
     }
 
-    private var databaseHeader: some View {
+    private func databaseHeader(progress: CGFloat = 0) -> some View {
         Text("Exercise Database")
-            .font(.largeTitle.weight(.bold))
+            .font(.system(size: 34 - (14 * progress), weight: .bold))
             .foregroundStyle(Theme.textPrimary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 6)
+            .offset(x: -110 * progress)
+            .scaleEffect(1 - (0.04 * progress), anchor: .leading)
     }
 
     private func handleDatabaseImport(_ result: Result<[URL], Error>) {
