@@ -418,7 +418,6 @@ struct DatabaseView: View {
     @State private var expandedPageIDs: Set<String> = []
     @State private var databaseScrollOffset: CGFloat = 0
     @State private var databaseChromeProgress: CGFloat = 0
-    @State private var isDatabaseChromeCollapsed = false
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
     @State private var showingAddChildPage = false
@@ -564,15 +563,11 @@ struct DatabaseView: View {
     }
 
     private var databaseV2Content: some View {
-        ZStack(alignment: .top) {
-            databaseScrollSurface
-
-            compactDatabaseChrome
-                .opacity(databaseChromeProgress)
-                .allowsHitTesting(databaseChromeProgress > 0.85)
-                .zIndex(2)
-        }
-        .coordinateSpace(name: "databaseViewport")
+        databaseScrollSurface
+            .safeAreaInset(edge: .top, spacing: 0) {
+                databaseChrome(progress: databaseChromeProgress)
+            }
+            .coordinateSpace(name: "databaseViewport")
     }
 
     @ViewBuilder
@@ -580,7 +575,7 @@ struct DatabaseView: View {
         #if os(iOS)
         if #available(iOS 18.0, *) {
             ScrollView {
-                databaseScrollContent
+                databaseResultsContent
             }
             .onScrollGeometryChange(for: CGFloat.self, of: { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top
@@ -609,7 +604,7 @@ struct DatabaseView: View {
                                 )
                         }
                     }
-                databaseScrollContent
+                databaseResultsContent
             }
         }
         .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
@@ -617,12 +612,8 @@ struct DatabaseView: View {
         }
     }
 
-    private var databaseScrollContent: some View {
-        VStack(spacing: 0) {
-            databaseHeader(progress: databaseChromeProgress)
-            databaseControls(progress: databaseChromeProgress)
-            pageTreeView
-        }
+    private var databaseResultsContent: some View {
+        pageTreeView
     }
 
     private func updateDatabaseChromeProgress(_ offset: CGFloat) {
@@ -630,56 +621,16 @@ struct DatabaseView: View {
         databaseChromeProgress = min(1, max(0, offset / 96))
     }
 
-    private var compactDatabaseChrome: some View {
+    private func databaseChrome(progress: CGFloat) -> some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Text("Exercise Database")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                compactDatabaseAction(systemImage: "video.badge.plus", label: "From Video") {
-                    showingImport = true
-                }
-                compactDatabaseAddMenu
-                compactDatabaseAction(systemImage: "magnifyingglass", label: "Search") {
-                    showingDatabaseSearch = true
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-
+            databaseHeader(progress: progress)
+            databaseControls(progress: progress)
             TimeMasterGlassDivider()
-                .padding(.horizontal, 16)
-
+                .padding(.horizontal, 18)
             filterChipsRow
         }
         .background(Theme.background)
-    }
-
-    private func compactDatabaseAction(
-        systemImage: String,
-        label: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 16, weight: .semibold))
-        }
-        .buttonStyle(.plain)
-        .modifier(TimeMasterToolbarIconSurface(size: 40))
-        .accessibilityLabel(label)
-    }
-
-    private var compactDatabaseAddMenu: some View {
-        Menu {
-            addMenuItems
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 16, weight: .semibold))
-                .modifier(TimeMasterToolbarIconSurface(size: 40))
-        }
-        .accessibilityLabel("Add")
+        .zIndex(1)
     }
 
     private var databaseChrome: some View {
@@ -692,48 +643,91 @@ struct DatabaseView: View {
     }
 
     private func databaseControls(progress: CGFloat = 0) -> some View {
-        HStack(spacing: 10) {
-            databaseMajorButton(systemImage: "video.badge.plus", title: "From Video", progress: progress) {
-                showingImport = true
+        GeometryReader { proxy in
+            let expandedWidth = max((proxy.size.width - 40) / 3, 1)
+            let buttonWidth = expandedWidth * (1 - progress) + 48 * progress
+            let groupWidth = buttonWidth * 3 + 20
+            let travel = max((proxy.size.width - groupWidth) / 2, 0)
+
+            HStack(spacing: 10) {
+                databaseMajorButton(
+                    systemImage: "video.badge.plus",
+                    title: "From Video",
+                    progress: progress,
+                    width: buttonWidth
+                ) {
+                    showingImport = true
+                }
+                databaseAddMenu(progress: progress, width: buttonWidth)
+                databaseMajorButton(
+                    systemImage: "magnifyingglass",
+                    title: "Search",
+                    progress: progress,
+                    width: buttonWidth
+                ) {
+                    showingDatabaseSearch = true
+                }
             }
-            databaseAddMenu(progress: progress)
-            databaseMajorButton(systemImage: "magnifyingglass", title: "Search", progress: progress) {
-                showingDatabaseSearch = true
-            }
+            .frame(width: groupWidth)
+            .offset(x: travel * progress)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
+        .frame(height: 72 * (1 - progress) + 48 * progress)
         .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .opacity(1 - progress)
-        .offset(y: -10 * progress)
-        .scaleEffect(1 - 0.04 * progress, anchor: .top)
+        .padding(.top, 8 * (1 - progress))
+        .padding(.bottom, 10 * (1 - progress))
     }
 
+    @ViewBuilder
     private func databaseMajorButton(
         systemImage: String,
         title: String,
         progress: CGFloat = 0,
+        width: CGFloat? = nil,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            databaseMajorLabel(systemImage: systemImage, title: title, progress: progress)
+        if let width {
+            Button(action: action) {
+                databaseMajorLabel(systemImage: systemImage, title: title, progress: progress)
+            }
+            .buttonStyle(.plain)
+            .frame(width: width)
+            .accessibilityLabel(title)
+            .help(title)
+        } else {
+            Button(action: action) {
+                databaseMajorLabel(systemImage: systemImage, title: title, progress: progress)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel(title)
+            .help(title)
         }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .accessibilityLabel(title)
-        .help(title)
     }
 
-    private func databaseAddMenu(progress: CGFloat = 0) -> some View {
-        Menu {
-            addMenuItems
-        } label: {
-            databaseMajorLabel(systemImage: "plus", title: "Add", progress: progress)
+    @ViewBuilder
+    private func databaseAddMenu(progress: CGFloat = 0, width: CGFloat? = nil) -> some View {
+        if let width {
+            Menu {
+                addMenuItems
+            } label: {
+                databaseMajorLabel(systemImage: "plus", title: "Add", progress: progress)
+            }
+            .buttonStyle(.plain)
+            .frame(width: width)
+            .accessibilityLabel("Add")
+            .help("Add")
+        } else {
+            Menu {
+                addMenuItems
+            } label: {
+                databaseMajorLabel(systemImage: "plus", title: "Add", progress: progress)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel("Add")
+            .help("Add")
         }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .accessibilityLabel("Add")
-        .help("Add")
     }
 
     @ViewBuilder
@@ -779,28 +773,30 @@ struct DatabaseView: View {
         title: String,
         progress: CGFloat = 0
     ) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 4 * (1 - progress)) {
             Image(systemName: systemImage)
                 .font(.system(size: 22, weight: .semibold))
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
+                .opacity(1 - progress)
+                .scaleEffect(1 - (0.1 * progress))
         }
         .foregroundStyle(.white)
-        .frame(maxWidth: .infinity, minHeight: 72)
+        .frame(maxWidth: .infinity, minHeight: 72 * (1 - progress) + 48 * progress)
         .scaleEffect(1 - (0.06 * progress))
         .modifier(
             TimeMasterPrivateGlassSurface(
-                cornerRadius: 14,
+                cornerRadius: 14 + (10 * progress),
                 isInteractive: true,
                 tint: Theme.toolbarOrange,
                 tintOpacity: 0.42
             )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 14 + (10 * progress), style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 14 + (10 * progress), style: .continuous)
                 .stroke(Theme.toolbarOrange.opacity(0.65), lineWidth: 1)
         }
     }
@@ -1007,10 +1003,6 @@ struct DatabaseView: View {
 
     private var pageTreeView: some View {
         VStack(spacing: 0) {
-            TimeMasterGlassDivider()
-                .padding(.horizontal, 18)
-            filterChipsRow
-
             if filteredRootPages.isEmpty {
                 noResultsView
             } else if isGridMode {
