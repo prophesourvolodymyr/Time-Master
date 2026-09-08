@@ -73,11 +73,11 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var musicCompactHeight: CGFloat {
-        usableHeight * 0.14
+        usableHeight * 0.28
     }
 
     var musicMediumHeight: CGFloat {
-        usableHeight * 0.17
+        usableHeight * 0.48
     }
 
     var featureMediumHeight: CGFloat {
@@ -89,11 +89,11 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var musicFitHeight: CGFloat {
-        usableHeight * 0.20
+        usableHeight * 0.62
     }
 
     var musicMaximumHeight: CGFloat {
-        usableHeight * 0.20
+        usableHeight * 0.70
     }
 
     var compactPlayerReserve: CGFloat {
@@ -125,7 +125,7 @@ struct OutdoorPineGeometry: Equatable {
         case .compact: music ? musicCompactHeight : featureCompactHeight
         case .medium: music ? musicMediumHeight : featureMediumHeight
         case .expanded: music ? musicFitHeight : featureExpandedHeight
-        case .max: usableHeight * 0.31
+        case .max: music ? musicMaximumHeight : usableHeight * 0.31
         }
     }
 

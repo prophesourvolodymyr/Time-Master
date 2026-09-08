@@ -45,14 +45,27 @@ struct SlotNavigationItem: Identifiable, Hashable {
         self.presentation = presentation
     }
 
-    static let timeMaster: [SlotNavigationItem] = [
-        SlotNavigationItem(id: 4, symbolName: "brain.head.profile", title: "AI Coach", accessibilityHint: "Opens your AI coach.", presentation: .inline),
-        SlotNavigationItem(id: 5, symbolName: "person.crop.circle", title: "Profile", accessibilityHint: "Shows your profile and history."),
-        SlotNavigationItem(id: 0, symbolName: "house.fill", title: "Home", accessibilityHint: "Shows your daily dashboard."),
-        SlotNavigationItem(id: 1, symbolName: "dumbbell.fill", title: "Workouts", accessibilityHint: "Shows your workouts."),
-        SlotNavigationItem(id: 2, symbolName: "books.vertical.fill", title: "Database", accessibilityHint: "Shows your exercise database."),
-        SlotNavigationItem(id: 3, symbolName: "chart.bar.fill", title: "Analytics", accessibilityHint: "Shows your workout analytics.")
-    ]
+    static let timeMaster: [SlotNavigationItem] = {
+        var items = [
+            SlotNavigationItem(id: 4, symbolName: "brain.head.profile", title: "AI Coach", accessibilityHint: "Opens your AI coach.", presentation: .inline),
+            SlotNavigationItem(id: 5, symbolName: "person.crop.circle", title: "Profile", accessibilityHint: "Shows your profile and history."),
+            SlotNavigationItem(id: 0, symbolName: "house.fill", title: "Home", accessibilityHint: "Shows your daily dashboard."),
+            SlotNavigationItem(id: 1, symbolName: "dumbbell.fill", title: "Workouts", accessibilityHint: "Shows your workouts."),
+            SlotNavigationItem(id: 2, symbolName: "books.vertical.fill", title: "Database", accessibilityHint: "Shows your exercise database."),
+            SlotNavigationItem(id: 3, symbolName: "chart.bar.fill", title: "Analytics", accessibilityHint: "Shows your workout analytics.")
+        ]
+        #if os(iOS)
+        items.append(
+            SlotNavigationItem(
+                id: 6,
+                symbolName: "map.fill",
+                title: "Map",
+                accessibilityHint: "Opens the live outdoor map and workout start page."
+            )
+        )
+        #endif
+        return items
+    }()
 
     static func index(for destinationID: Int) -> Int {
         timeMaster.firstIndex { $0.id == destinationID } ?? 0

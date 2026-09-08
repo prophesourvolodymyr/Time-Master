@@ -1,16 +1,13 @@
 #if os(iOS)
 import SwiftUI
-import CoreLocation
 
 struct OutdoorMapControls: View {
     let weatherState: OutdoorWeatherState
     let weatherInfoEnabled: Bool
     let followsUser: Bool
-    let heading: CLLocationDirection
     let mapAttribution: OutdoorMapAttribution
     let onDownload: () -> Void
     let onFocusLocation: () -> Void
-    let onResetNorth: () -> Void
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
@@ -41,7 +38,6 @@ struct OutdoorMapControls: View {
                 }
             }
 
-            compassButton
             mapAttributionView
         }
     }
@@ -74,17 +70,6 @@ struct OutdoorMapControls: View {
         .accessibilityValue([mapAttribution.providerName, noticeText].filter { !$0.isEmpty }.joined(separator: ", "))
     }
 
-    private var compassButton: some View {
-        Button(action: onResetNorth) {
-            Image(systemName: "location.north.line.fill")
-                .font(.system(size: 17, weight: .semibold))
-                .rotationEffect(.degrees(-heading))
-        }
-        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
-        .accessibilityLabel("Compass")
-        .accessibilityValue(abs(heading) < 1 ? "North" : "Heading \(Int(heading.rounded())) degrees")
-        .accessibilityHint("Resets the map so north is up.")
-    }
 
     private func weatherAttributionView(_ attribution: OutdoorWeatherAttribution) -> some View {
         Link(destination: attribution.legalPageURL) {

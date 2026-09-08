@@ -384,8 +384,10 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
         private func hideNativeOrnaments(on map: MLNMapView) {
-            map.showsCompassView = false
-            map.compassView.isHidden = true
+            map.showsCompassView = true
+            map.compassView.isHidden = false
+            map.compassViewPosition = .topRight
+            map.compassViewMargins = CGPoint(x: 12, y: 12)
             map.attributionButton.isHidden = true
             map.logoView.isHidden = true
         }

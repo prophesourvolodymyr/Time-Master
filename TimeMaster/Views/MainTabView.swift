@@ -62,7 +62,7 @@ struct MainTabView: View {
             routeToWorkoutDetail(notification)
         }
         .overlay(alignment: .topTrailing) {
-            if outdoorRecorder.isLiveSession {
+            if selectedDestinationID != 6, outdoorRecorder.isLiveSession {
                 OutdoorLiveWorkoutStatusWidget(
                     recorder: outdoorRecorder,
                     onOpenMap: openActiveOutdoorMap
@@ -148,6 +148,10 @@ struct MainTabView: View {
         case 5:
             ProfileView()
                 .environmentObject(outdoorStore)
+        #if os(iOS)
+        case 6:
+            mapDestination
+        #endif
         default:
             homeDestination
         }
@@ -169,6 +173,18 @@ struct MainTabView: View {
         .environmentObject(outdoorStore)
         .environmentObject(workoutStore)
         .environmentObject(databaseStore)
+    }
+    @ViewBuilder
+    private var mapDestination: some View {
+        OutdoorRouteRecordingView(
+            kind: outdoorRecorder.activeActivity?.kind ?? .run,
+            store: outdoorStore,
+            preferences: outdoorPreferencesStore,
+            musicLibrary: musicLibraryStore,
+            initialActivityID: outdoorRecorder.activeActivity?.id,
+            recordingSession: outdoorRecorder,
+            onExit: { selectedTab = SlotNavigationItem.index(for: 0) }
+        )
     }
 #else
     @ViewBuilder

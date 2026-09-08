@@ -19,6 +19,7 @@ struct OutdoorRouteRecordingView: View {
     @Binding private var exposedFinishedActivity: OutdoorActivity?
     private let initialActivityID: UUID?
     private let initialLibraryEntry: MusicLibraryItem?
+    private let onExit: (() -> Void)?
 
     @Namespace private var glassNamespace
     @State private var committedKind: OutdoorActivityKind
@@ -67,6 +68,7 @@ struct OutdoorRouteRecordingView: View {
         initialActivityID: UUID? = nil,
         initialLibraryEntry: MusicLibraryItem? = nil,
         recordingSession: OutdoorLocationRecorder? = nil,
+        onExit: (() -> Void)? = nil,
         finishedActivity: Binding<OutdoorActivity?> = .constant(nil)
     ) {
         let normalizedKind = kind
@@ -79,6 +81,7 @@ struct OutdoorRouteRecordingView: View {
         self.initialActivityID = initialActivityID
         self.initialLibraryEntry = initialLibraryEntry
         self.musicLibrary = musicLibrary
+        self.onExit = onExit
         self._store = ObservedObject(wrappedValue: store)
         self._preferences = ObservedObject(wrappedValue: preferences)
         self._recorder = StateObject(wrappedValue: resolvedRecorder)
@@ -180,14 +183,14 @@ struct OutdoorRouteRecordingView: View {
 
 
                 if canDismissRoute {
-                    OutdoorRouteIdleCloseControl(onDismiss: { dismiss() })
-                        .padding(.top, layout.safeAreaTop + 8)
+                    OutdoorRouteIdleCloseControl(onDismiss: leaveRoute)
+                        .padding(.top, layout.safeAreaTop + 2)
                         .padding(.trailing, 8)
                         .frame(maxWidth: .infinity, alignment: .topTrailing)
                         .zIndex(100)
                 } else if recorder.isLiveSession {
                     OutdoorRouteExitControl(onExit: exitToApp)
-                        .padding(.top, layout.safeAreaTop + 8)
+                        .padding(.top, layout.safeAreaTop + 2)
                         .padding(.trailing, 8)
                         .frame(maxWidth: .infinity, alignment: .topTrailing)
                         .zIndex(100)
@@ -388,7 +391,14 @@ struct OutdoorRouteRecordingView: View {
     private func exitToApp() {
         guard canExitToApp else { return }
         recorder.checkpoint()
-        dismiss()
+        leaveRoute()
+    }
+    private func leaveRoute() {
+        if let onExit {
+            onExit()
+        } else {
+            dismiss()
+        }
     }
 
     private func mapControls(_ layout: OutdoorPineGeometry) -> some View {
@@ -411,14 +421,12 @@ struct OutdoorRouteRecordingView: View {
                 weatherState: weatherState,
                 weatherInfoEnabled: preferences.preferences.weatherInfo,
                 followsUser: mapFollowsUser,
-                heading: mapHeading,
                 mapAttribution: mapAttribution,
                 onDownload: {
                     mapCityFitRequestID &+= 1
                     mapOfflineMessage = "Map view resized to city scale. Offline area selection is not available yet."
                 },
-                onFocusLocation: focusMapLocation,
-                onResetNorth: resetMapNorth
+                onFocusLocation: focusMapLocation
             )
             .background {
                 GeometryReader { proxy in
@@ -576,7 +584,10 @@ struct OutdoorRouteRecordingView: View {
     private func featurePine(_ layout: OutdoorPineGeometry) -> some View {
         let selectedFeature = feature ?? rememberedFeature
         let isMaxDrawer = mainDetent == .max
-        let height = isMaxDrawer ? min(featureHeight, layout.usableHeight * 0.31) : max(1, featureHeight)
+        let maxFeatureHeight = selectedFeature == .music
+            ? layout.musicMaximumHeight
+            : layout.usableHeight * 0.31
+        let height = isMaxDrawer ? min(featureHeight, maxFeatureHeight) : max(1, featureHeight)
         let top = layout.size.height - layout.lowerInset - height
         let cornerRadius: CGFloat = isMaxDrawer ? 28 : 25
 
@@ -1012,7 +1023,7 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func closeLibrary() {
-        dismiss()
+        leaveRoute()
     }
 
     private func startRecording() {
