@@ -416,6 +416,8 @@ struct DatabaseView: View {
     @State private var creationPageType: PageType?
     @State private var showingDatabaseSearch = false
     @State private var expandedPageIDs: Set<String> = []
+    @State private var databaseScrollOffset: CGFloat = 0
+    @State private var isDatabaseChromeCollapsed = false
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
     @State private var showingAddChildPage = false
@@ -427,17 +429,19 @@ struct DatabaseView: View {
         return NavigationStack(path: $navigationState.path) {
             ZStack {
                 Theme.background.ignoresSafeArea()
-                VStack(spacing: 0) {
-                    if isV2 && !store.rootPages.isEmpty {
-                        pageTreeView
-                    } else if !isV2 {
-                        rootList
-                    } else {
-                        v2EmptyState
+                if isV2 && !store.rootPages.isEmpty {
+                    databaseV2Content
+                } else {
+                    VStack(spacing: 0) {
+                        if !isV2 {
+                            rootList
+                        } else {
+                            v2EmptyState
+                        }
                     }
-                }
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    databaseChrome
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        databaseChrome
+                    }
                 }
             }
             .navigationTitle("")
@@ -558,6 +562,92 @@ struct DatabaseView: View {
         }
     }
 
+    private var databaseV2Content: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(
+                            key: DatabaseScrollOffsetKey.self,
+                            value: proxy.frame(in: .named("databaseScroll")).minY
+                        )
+                }
+                .frame(height: 0)
+
+                databaseHeader
+                databaseControls
+                pageTreeView
+            }
+        }
+        .coordinateSpace(name: "databaseScroll")
+        .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
+            databaseScrollOffset = offset
+            let shouldCollapse = offset < -72
+            guard shouldCollapse != isDatabaseChromeCollapsed else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isDatabaseChromeCollapsed = shouldCollapse
+            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if isDatabaseChromeCollapsed {
+                compactDatabaseChrome
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+    }
+
+    private var compactDatabaseChrome: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text("Exercise Database")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                compactDatabaseAction(systemImage: "video.badge.plus", label: "From Video") {
+                    showingImport = true
+                }
+                compactDatabaseAddMenu
+                compactDatabaseAction(systemImage: "magnifyingglass", label: "Search") {
+                    showingDatabaseSearch = true
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            TimeMasterGlassDivider()
+                .padding(.horizontal, 16)
+
+            filterChipsRow
+        }
+        .background(Theme.background)
+    }
+
+    private func compactDatabaseAction(
+        systemImage: String,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+        }
+        .buttonStyle(.plain)
+        .modifier(TimeMasterToolbarIconSurface(size: 40))
+        .accessibilityLabel(label)
+    }
+
+    private var compactDatabaseAddMenu: some View {
+        Menu {
+            addMenuItems
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 16, weight: .semibold))
+                .modifier(TimeMasterToolbarIconSurface(size: 40))
+        }
+        .accessibilityLabel("Add")
+    }
+
     private var databaseChrome: some View {
         VStack(spacing: 0) {
             databaseHeader
@@ -569,7 +659,7 @@ struct DatabaseView: View {
 
     private var databaseControls: some View {
         HStack(spacing: 10) {
-            databaseMajorButton(systemImage: "video.badge.plus", title: "Import Video") {
+            databaseMajorButton(systemImage: "video.badge.plus", title: "From Video") {
                 showingImport = true
             }
             databaseAddMenu
@@ -598,40 +688,7 @@ struct DatabaseView: View {
 
     private var databaseAddMenu: some View {
         Menu {
-            Button {
-                creationLeafFirst = false
-                creationPageType = .skill
-                showingCreatePage = true
-            } label: {
-                Label("New Skill", systemImage: "flag.checkered")
-            }
-            Button {
-                creationLeafFirst = true
-                creationPageType = .exercise
-                showingCreatePage = true
-            } label: {
-                Label("New Exercise", systemImage: "figure.run")
-            }
-            Button {
-                creationLeafFirst = false
-                creationPageType = nil
-                showingCreatePage = true
-            } label: {
-                Label("New Container", systemImage: "folder.badge.plus")
-            }
-            Button {
-                creationLeafFirst = false
-                creationPageType = .tutorial
-                showingCreatePage = true
-            } label: {
-                Label("New Tutorial", systemImage: "book.closed")
-            }
-            Divider()
-            Button {
-                showingDatabaseImport = true
-            } label: {
-                Label("Import Database File", systemImage: "square.and.arrow.down")
-            }
+            addMenuItems
         } label: {
             databaseMajorLabel(systemImage: "plus", title: "Add")
         }
@@ -641,15 +698,55 @@ struct DatabaseView: View {
         .help("Add")
     }
 
+    @ViewBuilder
+    private var addMenuItems: some View {
+        Button {
+            creationLeafFirst = false
+            creationPageType = .skill
+            showingCreatePage = true
+        } label: {
+            Label("New Skill", systemImage: "flag.checkered")
+        }
+        Button {
+            creationLeafFirst = true
+            creationPageType = .exercise
+            showingCreatePage = true
+        } label: {
+            Label("New Exercise", systemImage: "figure.run")
+        }
+        Button {
+            creationLeafFirst = false
+            creationPageType = nil
+            showingCreatePage = true
+        } label: {
+            Label("New Container", systemImage: "folder.badge.plus")
+        }
+        Button {
+            creationLeafFirst = false
+            creationPageType = .tutorial
+            showingCreatePage = true
+        } label: {
+            Label("New Tutorial", systemImage: "book.closed")
+        }
+        Divider()
+        Button {
+            showingDatabaseImport = true
+        } label: {
+            Label("Import Database File", systemImage: "square.and.arrow.down")
+        }
+    }
+
     private func databaseMajorLabel(systemImage: String, title: String) -> some View {
-        HStack(spacing: 8) {
+        VStack(spacing: 4) {
             Image(systemName: systemImage)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: 22, weight: .semibold))
             Text(title)
                 .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
         .foregroundStyle(.white)
-        .frame(maxWidth: .infinity, minHeight: 54)
+        .frame(maxWidth: .infinity, minHeight: 72)
         .modifier(
             TimeMasterPrivateGlassSurface(
                 cornerRadius: 14,
@@ -961,44 +1058,39 @@ struct DatabaseView: View {
     }
 
     private var listContentView: some View {
-        List {
+        LazyVStack(spacing: 4) {
             ForEach(visiblePageEntries) { entry in
                 pageRow(entry)
             }
         }
-        #if os(iOS)
-        .listStyle(.insetGrouped)
-        #endif
-        .scrollContentBackground(.hidden)
+        .padding(.vertical, 8)
     }
 
     private let gridColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
     private var gridContentView: some View {
-        ScrollView {
-            LazyVGrid(columns: gridColumns, spacing: 10) {
-                ForEach(visiblePageEntries) { entry in
-                    let page = entry.page
-                    ZStack(alignment: .topTrailing) {
-                        NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
-                            pageCard(page, isGridMode: true)
-                        }
-                        .buttonStyle(.plain)
-
-                        if page.isContainer {
-                            HStack(spacing: 6) {
-                                disclosureButton(page)
-                                openContainerButton(page)
-                            }
-                            .padding(7)
-                        }
+        LazyVGrid(columns: gridColumns, spacing: 10) {
+            ForEach(visiblePageEntries) { entry in
+                let page = entry.page
+                ZStack(alignment: .topTrailing) {
+                    NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
+                        pageCard(page, isGridMode: true)
                     }
-                    .padding(.leading, CGFloat(entry.depth * 12))
+                    .buttonStyle(.plain)
+
+                    if page.isContainer {
+                        HStack(spacing: 6) {
+                            disclosureButton(page)
+                            openContainerButton(page)
+                        }
+                        .padding(7)
+                    }
                 }
+                .padding(.leading, CGFloat(entry.depth * 12))
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
         }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
     }
 
     private var uniqueWorkoutTypes: [FilterTypeChip] {
@@ -1050,7 +1142,7 @@ struct DatabaseView: View {
 
     private func pageRow(_ entry: DatabasePageEntry) -> some View {
         let page = entry.page
-        return HStack(spacing: 8) {
+        return HStack(spacing: 10) {
             NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                 pageCard(page, isGridMode: false)
             }
@@ -1062,29 +1154,17 @@ struct DatabaseView: View {
                 openContainerButton(page)
             }
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.horizontal, 16)
         .padding(.leading, CGFloat(entry.depth * 14))
-        .listRowBackground(Theme.surface)
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            Button { pageToMove = page } label: {
-                Label("Move", systemImage: "folder")
-            }
-            .tint(Color.white.opacity(0.8))
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                try? store.deletePage(id: page.manifest.id)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .tint(.red)
-        }
     }
 
     private func pageCard(_ page: ExercisePage, isGridMode: Bool) -> some View {
         PageCardView(
             page: page,
             isGridMode: isGridMode,
-            showsTrailingChevron: false,
             onAddToWorkout: { pageToAddWorkout = page },
             onEdit: { pageToEdit = page },
             onAddChild: { childParentPage = page; showingAddChildPage = true },
@@ -1167,6 +1247,14 @@ struct DatabaseView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
     }
+private struct DatabaseScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 private struct DatabaseFilterButtonStyle: ButtonStyle {
     let label: String
 
