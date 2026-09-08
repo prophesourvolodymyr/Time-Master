@@ -809,7 +809,7 @@ struct DatabaseView: View {
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 6)
-            .offset(x: -110 * progress)
+            .offset(x: -55 * progress)
             .scaleEffect(1 - (0.04 * progress), anchor: .leading)
     }
 
