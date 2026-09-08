@@ -428,7 +428,6 @@ struct DatabaseView: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    databaseChrome
                     if isV2 && !store.rootPages.isEmpty {
                         pageTreeView
                     } else if !isV2 {
@@ -436,6 +435,9 @@ struct DatabaseView: View {
                     } else {
                         v2EmptyState
                     }
+                }
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    databaseChrome
                 }
             }
             .navigationTitle("")
