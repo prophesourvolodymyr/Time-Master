@@ -97,12 +97,12 @@ struct OutdoorMapProviderConfiguration {
             )
 
         case .terrain:
-            guard exploreStyleURL != nil, terrainDEMURLTemplate != nil else {
+            guard exploreStyleURL != nil else {
                 return .unavailable(
                     mode: mode,
                     provider: .awsTerrain,
                     status: .missingEndpoint,
-                    reason: "A vector base map and DEM endpoint are required before terrain relief can be shown.",
+                    reason: "A vector base map is required before terrain mode can be shown.",
                     attribution: awsTerrainAttribution
                 )
             }
@@ -142,12 +142,12 @@ struct OutdoorMapProviderConfiguration {
             )
 
         case .threeD:
-            guard exploreStyleURL != nil, terrainDEMURLTemplate != nil else {
+            guard exploreStyleURL != nil else {
                 return .unavailable(
                     mode: mode,
                     provider: .awsTerrain,
                     status: .missingEndpoint,
-                    reason: "A vector base map and DEM endpoint are required before 3D relief can be shown.",
+                    reason: "A vector base map is required before 3D mode can be shown.",
                     attribution: awsTerrainAttribution
                 )
             }
