@@ -812,6 +812,9 @@ F27 Home ───────────────┘
       - [x] Keep recording-error recovery controls scrollable instead of overlaying live actions
       - [x] Respect imperial units in the live widget and distinguish finished rides awaiting establishment
       - [ ] User visual and interaction review; AI UI testing stopped at the user's request
+      - [x] Extend maximum recording mode to the phone edges while keeping controls inside the safe area
+      - [x] Increase the default base from 30% to 35% and its minimum beside a feature pane from 22% to 28%
+      - [x] Hide the close and exit controls in both expanded and maximum modes
     - [ ] Test user tracking and GPS failure handling
       - [x] Keep accepting valid fixes after switching to Precise accuracy; clear stale speed and expose lost or inaccurate GPS
       - [x] Run all 15 app-hosted ride safety regressions on iOS 18.6, including the synthetic 50 km ride
@@ -833,6 +836,7 @@ F27 Home ───────────────┘
       - [x] Add required Motion permission text and background location indicator
       - [x] Add app-hosted safety regression target and fix platform plist and glyph-resource packaging
       - [x] Compile the final iPhone app with an iOS 16.0 minimum deployment target; physical iOS 16.1 runtime verification remains pending
+      - [x] Package and validate an unsigned arm64 Release IPA for the user's sideloading test
     - [ ] Human review and short physical-device ride before attempting 50 km
 ## Cycle 24 — Video Editor UX & Platform Parity
 

@@ -182,18 +182,20 @@ struct OutdoorRouteRecordingView: View {
                 }
 
 
-                if canDismissRoute {
-                    OutdoorRouteIdleCloseControl(onDismiss: leaveRoute)
-                        .padding(.top, max(0, layout.safeAreaTop - 24))
-                        .padding(.trailing, 8)
-                        .frame(maxWidth: .infinity, alignment: .topTrailing)
-                        .zIndex(100)
-                } else if recorder.isLiveSession {
-                    OutdoorRouteExitControl(onExit: exitToApp)
-                        .padding(.top, max(0, layout.safeAreaTop - 24))
-                        .padding(.trailing, 8)
-                        .frame(maxWidth: .infinity, alignment: .topTrailing)
-                        .zIndex(100)
+                if mainDetent != .expanded && mainDetent != .max {
+                    if canDismissRoute {
+                        OutdoorRouteIdleCloseControl(onDismiss: leaveRoute)
+                            .padding(.top, max(0, layout.safeAreaTop - 24))
+                            .padding(.trailing, 8)
+                            .frame(maxWidth: .infinity, alignment: .topTrailing)
+                            .zIndex(100)
+                    } else if recorder.isLiveSession {
+                        OutdoorRouteExitControl(onExit: exitToApp)
+                            .padding(.top, max(0, layout.safeAreaTop - 24))
+                            .padding(.trailing, 8)
+                            .frame(maxWidth: .infinity, alignment: .topTrailing)
+                            .zIndex(100)
+                    }
                 }
 
                 if let upperQuickFeature {
@@ -533,7 +535,7 @@ struct OutdoorRouteRecordingView: View {
     private func mainPine(_ layout: OutdoorPineGeometry) -> some View {
         let isMax = mainDetent == .max
         let height = displayedMainHeight(layout)
-        let top = isMax ? layout.safeAreaTop : layout.mainTop(
+        let top = isMax ? -layout.safeAreaTop : layout.mainTop(
             mainHeight: height,
             featureHeight: feature != nil && !isMax ? featureHeight : nil
         )
@@ -573,6 +575,8 @@ struct OutdoorRouteRecordingView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, isMax ? layout.safeAreaTop : 0)
+            .padding(.bottom, isMax ? layout.safeAreaBottom + layout.playerReserve : 0)
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
@@ -919,7 +923,7 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func displayedMainHeight(_ layout: OutdoorPineGeometry) -> CGFloat {
-        if mainDetent == .max { return layout.usableHeight }
+        if mainDetent == .max { return layout.mainMaximumHeight }
         let base = mainHeight > 0 ? mainHeight : layout.mainHeight(for: mainDetent)
         guard feature != nil else { return min(layout.mainFullHeight, base) }
         let top = layout.size.height - layout.lowerInset - featureHeight
@@ -1103,7 +1107,7 @@ struct OutdoorRouteRecordingView: View {
             closeFeatureForMax()
             animate {
                 mainDetent = .max
-                mainHeight = layout.usableHeight
+                mainHeight = layout.mainMaximumHeight
             }
         }
     }

@@ -57,7 +57,7 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var mainCompactHeight: CGFloat {
-        usableHeight * 0.30
+        usableHeight * 0.35
     }
 
     var mainMediumHeight: CGFloat {
@@ -66,6 +66,10 @@ struct OutdoorPineGeometry: Equatable {
 
     var mainFullHeight: CGFloat {
         max(mainMediumHeight, usableHeight - 12)
+    }
+
+    var mainMaximumHeight: CGFloat {
+        size.height + safeAreaTop + safeAreaBottom
     }
 
     var featureCompactHeight: CGFloat {
@@ -105,7 +109,7 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var mainMinimumWithFeature: CGFloat {
-        usableHeight * 0.22
+        usableHeight * 0.28
     }
 
     func mainHeight(for detent: OutdoorPineDetent) -> CGFloat {
@@ -113,7 +117,7 @@ struct OutdoorPineGeometry: Equatable {
         case .compact: mainCompactHeight
         case .medium: mainMediumHeight
         case .expanded: mainFullHeight
-        case .max: usableHeight
+        case .max: mainMaximumHeight
         }
     }
     var libraryHeight: CGFloat {
