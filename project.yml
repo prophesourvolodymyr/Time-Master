@@ -36,6 +36,11 @@ targets:
       - path: TimeMaster
         excludes:
           - "**/.DS_Store"
+          - "Resources/MapGlyphs"
+          - "Info-macOS.plist"
+          - "junk"
+      - path: TimeMaster/Resources/MapGlyphs
+        type: folder
     dependencies:
       - package: ZIPFoundation
       - package: SwiftMP3
@@ -99,6 +104,22 @@ targets:
         CODE_SIGNING_ALLOWED: NO
         SKIP_INSTALL: YES
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+  TimeMasterTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.1"
+    sources:
+      - path: TimeMasterTests
+    dependencies:
+      - target: TimeMaster
+      - package: TimeMasterCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.timemaster.TimeMasterTests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
   TimeMasterUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -121,6 +142,9 @@ targets:
       - path: TimeMaster
         excludes:
           - "**/.DS_Store"
+          - "Resources/MapGlyphs"
+          - "Info.plist"
+          - "junk"
     dependencies:
       - package: ZIPFoundation
       - package: SwiftMP3
@@ -152,6 +176,7 @@ schemes:
       config: Debug
       targets:
         - TimeMasterUITests
+        - TimeMasterTests
     profile:
       config: Release
     analyze:

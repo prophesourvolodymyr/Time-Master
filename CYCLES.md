@@ -804,16 +804,24 @@ F27 Home ───────────────┘
 
   - [ ] Pre-ride safety verification requested for a 50 km Bike ride on iOS 16.1
     - [ ] Test background recording and recovery after termination
+      - [x] Preserve recorded data without inventing distance across termination and finished-session gaps
     - [ ] Test complete UI including music panel accessibility
     - [ ] Test user tracking and GPS failure handling
-    - [ ] Test ride distance speed and duration measurements
+      - [x] Keep accepting valid fixes after switching to Precise accuracy; clear stale speed and expose lost or inaccurate GPS
+      - [x] Reset short discarded sessions so a different next activity can start
+    - [x] Test ride distance speed and duration measurements with a 50 km, 5,001-point synthetic ride, pause boundaries, finish, establishment, and reload
     - [ ] Test ride saving persistence and relaunch recovery
       - [x] Preserve the last valid manifest on failed updates and use atomic file replacement
       - [x] Preserve the next GPS fix after an interrupted JSONL append
       - [x] Preserve fractional GPS timestamps in storage and backup codecs
+      - [x] Recover uncheckpointed elevation and retain finished rides until establishment
     - [ ] Test terrain hill elevation totals and 3D
+      - [x] Count gradual climbs without counting stationary noise or barometer reanchoring as ascent
+      - [ ] Implement actual terrain relief, 3D hills, and upcoming-climb height; current mode tilts the map and extrudes buildings only
     - [ ] Test all map options including location recentering
     - [ ] Investigate additional ride safety and iOS 16.1 compatibility bugs
+      - [x] Add required Motion permission text and background location indicator
+      - [x] Add app-hosted safety regression target and fix platform plist and glyph-resource packaging
     - [ ] Human review and short physical-device ride before attempting 50 km
 ## Cycle 24 — Video Editor UX & Platform Parity
 

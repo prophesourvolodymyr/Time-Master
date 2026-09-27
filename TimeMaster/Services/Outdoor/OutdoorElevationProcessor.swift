@@ -28,6 +28,10 @@ final class OutdoorElevationProcessor: NSObject {
                 barometricReferenceAbsoluteMeters = nil
                 barometricBaselineRelativeMeters = nil
             }
+            if isRunning {
+                stop()
+                start()
+            }
         }
     }
     var noiseThresholdMeters: Double {
@@ -60,7 +64,9 @@ final class OutdoorElevationProcessor: NSObject {
     func start() {
         guard !isRunning else { return }
         isRunning = true
-        guard CMAltimeter.isRelativeAltitudeAvailable() else {
+        guard source != .gps, CMAltimeter.isRelativeAltitudeAvailable(),
+              CMAltimeter.authorizationStatus() != .denied,
+              CMAltimeter.authorizationStatus() != .restricted else {
             barometerAvailable = false
             return
         }
@@ -152,22 +158,25 @@ final class OutdoorElevationProcessor: NSObject {
             }
         }
 
-        if let resolved {
-            if let previous = previousResolvedElevationMeters {
-                let change = resolved - previous
-                if change > noiseThresholdMeters {
-                    elevationGainMeters += change
-                }
-            }
-            previousResolvedElevationMeters = resolved
-        } else if let relative {
-            if let previous = previousRelativeElevationMeters {
-                let change = relative - previous
-                if change > noiseThresholdMeters {
-                    elevationGainMeters += change
-                }
-            }
-            previousRelativeElevationMeters = relative
+        if source != .gps, let barometric {
+            OutdoorMetricsCalculator.accumulateElevation(
+                barometric,
+                anchor: &previousRelativeElevationMeters,
+                gain: &elevationGainMeters,
+                threshold: noiseThresholdMeters
+            )
+            previousResolvedElevationMeters = nil
+        } else if let resolved {
+            OutdoorMetricsCalculator.accumulateElevation(
+                resolved,
+                anchor: &previousResolvedElevationMeters,
+                gain: &elevationGainMeters,
+                threshold: noiseThresholdMeters
+            )
+            previousRelativeElevationMeters = nil
+        } else {
+            previousResolvedElevationMeters = nil
+            previousRelativeElevationMeters = nil
         }
         return OutdoorElevationUpdate(
             elevationMeters: resolved,

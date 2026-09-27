@@ -67,10 +67,14 @@ final class OutdoorActivityStore: ObservableObject {
                 let metrics = OutdoorMetricsCalculator.aggregate(points: points, pauses: activity.pauseIntervals)
                 let correctedElapsed = max(activity.elapsedSeconds, metrics.elapsedSeconds)
                 let correctedMoving = min(correctedElapsed, max(activity.movingSeconds, metrics.movingSeconds))
+                let correctedGain = [activity.elevationGainMeters, metrics.elevationGainMeters].compactMap { $0 }.max()
+                let correctedHighest = [activity.highestElevationMeters, metrics.highestElevationMeters].compactMap { $0 }.max()
                 if activity.trackPointCount != points.count
                     || abs(activity.distanceMeters - metrics.distanceMeters) > 1
                     || activity.elapsedSeconds != correctedElapsed
                     || activity.movingSeconds != correctedMoving
+                    || activity.elevationGainMeters != correctedGain
+                    || activity.highestElevationMeters != correctedHighest
                     || requiresMigration {
                     activity.trackPointCount = points.count
                     activity.distanceMeters = metrics.distanceMeters
@@ -78,6 +82,8 @@ final class OutdoorActivityStore: ObservableObject {
                     activity.movingSeconds = correctedMoving
                     activity.averageSpeedMetersPerSecond = correctedMoving > 0 ? metrics.distanceMeters / Double(correctedMoving) : nil
                     activity.maxSpeedMetersPerSecond = [activity.maxSpeedMetersPerSecond, metrics.maxSpeedMetersPerSecond].compactMap { $0 }.max()
+                    activity.elevationGainMeters = correctedGain
+                    activity.highestElevationMeters = correctedHighest
                     if activity.distanceMeters > 0, activity.movingSeconds > 0 {
                         activity.averagePaceSecondsPerKilometer = Double(activity.movingSeconds) * 1_000 / activity.distanceMeters
                     }
@@ -87,7 +93,7 @@ final class OutdoorActivityStore: ObservableObject {
             loadedByID[activity.id] = activity
         }
         activities = loadedByID.values.sorted { $0.startedAt > $1.startedAt }
-        recoverableActivities = activities.filter { !$0.finished && $0.establishedAt == nil }
+        recoverableActivities = activities.filter { $0.establishedAt == nil }
     }
 
     func begin(
@@ -136,6 +142,7 @@ final class OutdoorActivityStore: ObservableObject {
         updateElevationAndPace(
             &activity,
             filteredElevationGainMeters: filteredElevationGainMeters,
+            metrics: metrics,
             filteredHighestElevationMeters: filteredHighestElevationMeters
         )
         let now = Date()
@@ -212,15 +219,18 @@ final class OutdoorActivityStore: ObservableObject {
         removePublished(id: activity.id)
     }
 
-    func resume(_ activity: OutdoorActivity) throws {
+    func resume(_ activity: OutdoorActivity, at date: Date = Date()) throws {
         var resumed = activities.first(where: { $0.id == activity.id }) ?? activity
-        if resumed.finished {
+        let points = try database.readOutdoorTrackPoints(id: resumed.id.uuidString).map(OutdoorTrackPoint.init)
+        if resumed.finished || (activeActivity == nil && resumed.recordingState == .recording) {
+            if let gapStart = resumed.endedAt ?? points.last?.timestamp, date > gapStart {
+                resumed.pauseIntervals.append(OutdoorPauseInterval(startedAt: gapStart, endedAt: date, automatic: true))
+            }
             resumed.finished = false
             resumed.endedAt = nil
             resumed.recordingState = .recording
             try database.updateOutdoorActivity(id: resumed.id.uuidString, manifest: resumed.coreValue)
         }
-        let points = try database.readOutdoorTrackPoints(id: resumed.id.uuidString).map(OutdoorTrackPoint.init)
         activeActivity = resumed
         activePoints = points
         lastPersistedAt = Date()
@@ -443,6 +453,7 @@ final class OutdoorActivityStore: ObservableObject {
     private func updateElevationAndPace(
         _ activity: inout OutdoorActivity,
         filteredElevationGainMeters: Double? = nil,
+        metrics: OutdoorMetrics,
         filteredHighestElevationMeters: Double? = nil
     ) {
         if activity.distanceMeters > 0, activity.movingSeconds > 0 {
@@ -451,11 +462,8 @@ final class OutdoorActivityStore: ObservableObject {
             activity.averagePaceSecondsPerKilometer = nil
         }
 
-        let absoluteElevations = activePoints.compactMap(\.elevationMeters).filter(\.isFinite)
-        if let highest = filteredHighestElevationMeters {
+        if let highest = filteredHighestElevationMeters ?? metrics.highestElevationMeters {
             activity.highestElevationMeters = max(activity.highestElevationMeters ?? highest, highest)
-        } else if let highest = absoluteElevations.max() {
-            activity.highestElevationMeters = highest
         }
 
         if let filteredElevationGainMeters {
@@ -463,26 +471,7 @@ final class OutdoorActivityStore: ObservableObject {
             return
         }
 
-        var gain = 0.0
-        var previousAbsolute: Double?
-        var previousRelative: Double?
-        for point in activePoints {
-            if let elevation = point.elevationMeters, elevation.isFinite {
-                if let previousAbsolute {
-                    let change = elevation - previousAbsolute
-                    if change > 1.5 { gain += change }
-                }
-                previousAbsolute = elevation
-                previousRelative = nil
-            } else if let relative = point.barometricRelativeAltitudeMeters, relative.isFinite {
-                if let previousRelative {
-                    let change = relative - previousRelative
-                    if change > 1.5 { gain += change }
-                }
-                previousRelative = relative
-            }
-        }
-        if !absoluteElevations.isEmpty || activePoints.contains(where: { $0.barometricRelativeAltitudeMeters?.isFinite == true }) {
+        if let gain = metrics.elevationGainMeters {
             activity.elevationGainMeters = gain
         }
     }
@@ -512,7 +501,7 @@ final class OutdoorActivityStore: ObservableObject {
             activities.insert(activity, at: 0)
         }
         activities.sort { $0.startedAt > $1.startedAt }
-        recoverableActivities = activities.filter { !$0.finished && $0.establishedAt == nil }
+        recoverableActivities = activities.filter { $0.establishedAt == nil }
     }
 
     private func removePublished(id: UUID) {

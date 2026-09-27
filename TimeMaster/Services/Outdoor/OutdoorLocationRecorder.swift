@@ -52,6 +52,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
     private var hasRequestedAutomaticOfflineArea = false
     private var hasRequestedAuthorization = false
     private var isStarted = false
+    private var gpsHealthMonitor: AnyCancellable?
 
     init(
         kind: OutdoorActivityKind,
@@ -84,6 +85,9 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         }
         locationManager.delegate = self
         configureLocationManager()
+        gpsHealthMonitor = Timer.publish(every: 5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in self?.refreshGPSHealth() }
     }
 
     convenience init(
@@ -118,9 +122,9 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
     var isLiveSession: Bool {
         guard activeActivity != nil else { return false }
         switch state {
-        case .requestingAuthorization, .recording, .manualPaused, .autoPaused:
+        case .requestingAuthorization, .recording, .manualPaused, .autoPaused, .failed:
             return true
-        case .idle, .finished, .failed:
+        case .idle, .finished:
             return false
         }
     }
@@ -149,6 +153,9 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         updateKind(newKind)
     }
     func applyPreferences() {
+        if state == .autoPaused, preferenceStore?.preferences.autoPause == false {
+            resumeManually()
+        }
         refreshPreferences()
         updateIdleTimer()
     }
@@ -180,6 +187,8 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         do {
             try store.pauseManually()
             state = .manualPaused
+            activeActivity = store.active
+            elevationProcessor.stop()
             liveSpeedMetersPerSecond = 0
             smoothedLiveSpeedMetersPerSecond = 0
             previousAcceptedLocation = nil
@@ -200,6 +209,10 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
                 try store.resumeAutomatically()
             }
             state = .recording
+            activeActivity = store.active
+            elevationBaseGainMeters = activeActivity?.elevationGainMeters ?? 0
+            elevationProcessor.reset()
+            elevationProcessor.start()
             liveSpeedMetersPerSecond = 0
             smoothedLiveSpeedMetersPerSecond = 0
             previousAcceptedLocation = nil
@@ -241,6 +254,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
                 liveSpeedMetersPerSecond = nil
                 smoothedLiveSpeedMetersPerSecond = nil
                 state = .idle
+                isStarted = false
                 updateIdleTimer()
                 errorMessage = "Workout not saved — less than 3 m recorded."
                 return .shortSessionDiscarded(distanceMeters: distance)
@@ -295,6 +309,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             plannedPoints = plannedRoute?.points ?? []
             state = Self.state(for: activeActivity?.recordingState ?? .recording)
             isStarted = true
+            gpsUnavailable = state == .recording || state == .autoPaused
             previousAcceptedLocation = route.last.map(Self.location(from:))
             lastObservedLocation = previousAcceptedLocation
             elevationBaseGainMeters = candidate.elevationGainMeters ?? 0
@@ -372,7 +387,13 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         gpsUnavailable = true
-        if state == .requestingAuthorization { fail(error.localizedDescription) }
+        liveSpeedMetersPerSecond = nil
+        smoothedLiveSpeedMetersPerSecond = nil
+        if (error as? CLError)?.code == .denied {
+            fail("Location access was revoked. Allow Location While Using the App and Precise Location in Settings to continue this saved workout.")
+        } else if state == .requestingAuthorization {
+            fail(error.localizedDescription)
+        }
     }
 
     func downloadOfflineRegion(bounds: MLNCoordinateBounds, styleURL: URL, minZoom: Int, maxZoom: Int) {
@@ -412,7 +433,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             lastObservedLocation = nil
             stationarySince = nil
             resumeSamples = 0
-            gpsUnavailable = false
+            gpsUnavailable = true
             elevationBaseGainMeters = 0
             liveSpeedMetersPerSecond = nil
             smoothedLiveSpeedMetersPerSecond = nil
@@ -432,7 +453,12 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
 
     private func process(_ location: CLLocation) {
         guard state == .recording || state == .autoPaused else { return }
-        guard isUsableLocation(location) else { return }
+        guard isUsableLocation(location) else {
+            gpsUnavailable = true
+            liveSpeedMetersPerSecond = nil
+            smoothedLiveSpeedMetersPerSecond = nil
+            return
+        }
         if let lastObservedLocation, location.timestamp <= lastObservedLocation.timestamp { return }
         let observedMovement = lastObservedLocation.map { location.distance(from: $0) } ?? 0
         lastObservedLocation = location
@@ -458,6 +484,10 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
                     try store.resumeAutomatically(at: location.timestamp)
                     state = .recording
                     resumeSamples = 0
+                    activeActivity = store.active
+                    elevationBaseGainMeters = activeActivity?.elevationGainMeters ?? 0
+                    elevationProcessor.reset()
+                    elevationProcessor.start()
                     stationarySince = nil
                     var resumedCandidate = candidate
                     resumedCandidate.state = .recording
@@ -476,6 +506,8 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             }
             return
         }
+        updateLiveSpeed(location: location)
+
 
         if OutdoorMetricsCalculator.accepts(
             candidate,
@@ -496,7 +528,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         let elevation = elevationProcessor.process(location: location)
         var acceptedPoint = point
         acceptedPoint.elevationMeters = elevation.elevationMeters
-        acceptedPoint.barometricRelativeAltitudeMeters = elevationProcessor.latestBarometricRelativeAltitudeMeters
+        acceptedPoint.barometricRelativeAltitudeMeters = preferences.elevationSource == .gps ? nil : elevationProcessor.latestBarometricRelativeAltitudeMeters
         do {
             try store.append(
                 point: acceptedPoint,
@@ -506,7 +538,6 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             route.append(acceptedPoint)
             requestAutomaticOfflineAreaIfNeeded(location.coordinate)
             activeActivity = store.active
-            updateLiveSpeed(location: location)
             snappedPosition = plannedRoute.flatMap { OutdoorRouteSnapper.snap(location: location, to: $0.points) }
             return true
         } catch {
@@ -529,6 +560,8 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
                     haptic()
                     try store.pauseAutomatically(at: date)
                     state = .autoPaused
+                    activeActivity = store.active
+                    elevationProcessor.stop()
                     resumeSamples = 0
                     liveSpeedMetersPerSecond = 0
                     smoothedLiveSpeedMetersPerSecond = 0
@@ -537,6 +570,15 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             }
         } else {
             stationarySince = nil
+        }
+    }
+
+    func refreshGPSHealth(at date: Date = Date()) {
+        guard state == .recording || state == .autoPaused else { return }
+        if lastObservedLocation.map({ date.timeIntervalSince($0.timestamp) > 15 }) ?? true {
+            gpsUnavailable = true
+            liveSpeedMetersPerSecond = nil
+            smoothedLiveSpeedMetersPerSecond = nil
         }
     }
 
@@ -572,6 +614,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         locationManager.distanceFilter = preferences.gpsAccuracy == .precise ? 1 : 5
         locationManager.pausesLocationUpdatesAutomatically = false
         locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.showsBackgroundLocationIndicator = true
         locationManager.activityType = kind == .bike ? .fitness : .otherNavigation
     }
 

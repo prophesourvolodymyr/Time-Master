@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		00475B10D54B98E90FB9CC20 /* HomeWidgetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA516C7C1A9687022D33978 /* HomeWidgetPicker.swift */; };
-		A8F31C0E7B1249A1B2C3D4E5 /* MapGlyphs in Resources */ = {isa = PBXBuildFile; fileRef = B9E42D1F8C2350B2C3D4E5F6 /* MapGlyphs */; };
 		005E36B44A5D97B0347339A0 /* OutdoorMapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B252752B4743B22C413C4047 /* OutdoorMapModels.swift */; };
 		00DE919604F3F6021AE8F641 /* OutdoorCompactPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C26F385E634A4382548D776 /* OutdoorCompactPlayerView.swift */; };
 		0189FC4912A6DF293AC5099A /* OutdoorMapProviderConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8E01AB070280DD89F7AF23 /* OutdoorMapProviderConfiguration.swift */; };
@@ -75,6 +74,7 @@
 		3098DC6341C897F9D10C082F /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */; };
 		3157B85C810E38C457FC1C7E /* MusicSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544CDDB388219EA439FC403E /* MusicSettingsView.swift */; };
 		32A7DE735947C3A995C1ABED /* OutdoorMetricsCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B332BC1DDB6BB0093965A456 /* OutdoorMetricsCalculator.swift */; };
+		33B91A2434A40488D46D3D2F /* OutdoorRideEndToEndTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */; };
 		34EEDD619D2CC4FB2EAB1265 /* OutdoorLibraryContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B365EF6F42049DD314787EF /* OutdoorLibraryContent.swift */; };
 		355D53015A74800EB1032FB4 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F807BCDB518D68ED40746740 /* Theme.swift */; };
 		36662D83C3CB3D8D357DEB4C /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 85E2120C60EC88EBCAB370DF /* ZIPFoundation */; };
@@ -150,12 +150,12 @@
 		7B53FEBE75247574E2D513E2 /* SwiftMP3 in Frameworks */ = {isa = PBXBuildFile; productRef = 08B40C23A0D2EC5ACDFA623B /* SwiftMP3 */; };
 		7C5FFA24F31FE1821A041E53 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */; };
 		7D60CF2FC810CA8CDC9A7D90 /* WorkoutSectionBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE151E4B99B53638232D2DB /* WorkoutSectionBuilder.swift */; };
-		7DB0E30619543987A477CDB6 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3C6AF2DDD32ED947B58D02B0 /* Info.plist */; };
 		7E3E7C0A82E3BD9DABD69583 /* OutdoorLocationRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8D7A548AC7A53A5EB150FA /* OutdoorLocationRecorder.swift */; };
 		812293D59B8D2DC72C9767B0 /* OutdoorMapOfflineManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B58013D8E786ACE5E076ADF7 /* OutdoorMapOfflineManager.swift */; };
 		81FB475AFB479F71C7428AB0 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = BBF59F7E7638550A5AE16200 /* ZIPFoundation */; };
 		82AF5B7320BEF46320E1F53B /* VideoEmbedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2174535363CFC988D190B790 /* VideoEmbedCard.swift */; };
 		82DB6A336E75B5E7CB4FC3F6 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */; };
+		83419122FA9E99BB94FE884E /* MapGlyphs in Resources */ = {isa = PBXBuildFile; fileRef = 8B0BA674EDC86792635987F6 /* MapGlyphs */; };
 		86B5AEF3ACE4323FE1957C86 /* TimeMasterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6597294304852DBC80D29D90 /* TimeMasterCore */; };
 		8738B5C840599628FD8BD930 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADDE983BD98A183CACB5A0A /* NotificationManager.swift */; };
 		8766E931A44209E4AE84B482 /* VideoEmbedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2174535363CFC988D190B790 /* VideoEmbedCard.swift */; };
@@ -169,7 +169,6 @@
 		8ADC60A7F1B2F25CE2EEC828 /* TrayItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */; };
 		8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
 		8E2B0A26DC9A0E3B11BE05B6 /* TimeMasterWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFEB284497317ED4F6F95B5 /* TimeMasterWidget.swift */; };
-		8E7C11DD25A21C06BAFAF5AF /* Info-macOS.plist in Resources */ = {isa = PBXBuildFile; fileRef = 9991CAB36F9339458080C09D /* Info-macOS.plist */; };
 		90F67F23C5E12ED3F7D9E680 /* MacVideoDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */; };
 		915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A /* PhotoManager.swift */; };
 		92B305907B5F01A1B8A5B690 /* OutdoorMapModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2663673BC39C65E6A1A361 /* OutdoorMapModePicker.swift */; };
@@ -189,6 +188,8 @@
 		9CC9684997DA3660B5666198 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */; };
 		9CCD24B9A2CE8065FDD8507D /* ExercisePageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */; };
 		9CE5F2326BA858138E1E243C /* PrivateLiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */; };
+		9DBC3465A8A4F651A166770E /* OutdoorRideSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3EBE0E3B5F2BD49A8C6C802 /* OutdoorRideSafetyTests.swift */; };
+		9F9BDDCF69E5E41DA50B5418 /* TimeMasterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A711FE6542B6079C6060FE3 /* TimeMasterCore */; };
 		A248D30E44101EBE3E5878D8 /* SlotNavigationItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF3BA19ED70686C66D9D7AD6 /* SlotNavigationItem.swift */; };
 		A250AB5CC10EA0272D2ED9ED /* OutdoorLocationRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8D7A548AC7A53A5EB150FA /* OutdoorLocationRecorder.swift */; };
 		A52B57AED83D34523ACF7433 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3323F148BE5A75196E090AC /* MainTabView.swift */; };
@@ -303,6 +304,13 @@
 			remoteGlobalIDString = A9869356E186BE43EA3A8C23;
 			remoteInfo = TimeMaster;
 		};
+		D415DC7125E56BF85B7634CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A81F1550B5F09DC65B9D99F6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A9869356E186BE43EA3A8C23;
+			remoteInfo = TimeMaster;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -329,6 +337,7 @@
 		066DA8112F0CED117EACE9C7 /* TimeMasterWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidgetBundle.swift; sourceTree = "<group>"; };
 		08AAEB576B7DB134E5212C54 /* AIStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStore.swift; sourceTree = "<group>"; };
 		0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseDatabase.swift; sourceTree = "<group>"; };
+		0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRideEndToEndTests.swift; sourceTree = "<group>"; };
 		0C26F385E634A4382548D776 /* OutdoorCompactPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorCompactPlayerView.swift; sourceTree = "<group>"; };
 		0CFE4033315C9DD766463155 /* MusicLibraryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryScreen.swift; sourceTree = "<group>"; };
 		108D87DB2422C2B7434532CE /* MotivationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationManager.swift; sourceTree = "<group>"; };
@@ -366,7 +375,6 @@
 		47FC162E9FB73397A81F0F44 /* TrayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayCardView.swift; sourceTree = "<group>"; };
 		4C6FF36A9DF857B888B29855 /* TimeMaster.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMaster.entitlements; sourceTree = "<group>"; };
 		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		B9E42D1F8C2350B2C3D4E5F6 /* MapGlyphs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = MapGlyphs; sourceTree = "<group>"; };
 		4DCD77E9F42424355F9374FE /* OutdoorTypePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTypePicker.swift; sourceTree = "<group>"; };
 		50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDownloadService.swift; sourceTree = "<group>"; };
 		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
@@ -396,6 +404,7 @@
 		87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoImportSheet.swift; sourceTree = "<group>"; };
 		8880F70DC5DDC88AD96D653B /* MusicGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGuideOverlay.swift; sourceTree = "<group>"; };
 		8A1602CC55687977DCBEBCB6 /* HomeWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetStore.swift; sourceTree = "<group>"; };
+		8B0BA674EDC86792635987F6 /* MapGlyphs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MapGlyphs; path = TimeMaster/Resources/MapGlyphs; sourceTree = SOURCE_ROOT; };
 		8E05E0D00A32813995076AC9 /* MusicGlassControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGlassControls.swift; sourceTree = "<group>"; };
 		8EAE79631040FBF42F00924E /* OutdoorPineGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorPineGlass.swift; sourceTree = "<group>"; };
 		901825E1313282F9A698669C /* WorkoutPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPickerSheet.swift; sourceTree = "<group>"; };
@@ -441,6 +450,7 @@
 		CD4F62BFC9951F32AD71E3B9 /* OutdoorRouteRecordingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRouteRecordingView.swift; sourceTree = "<group>"; };
 		CD7B32138339076BA55E2078 /* OutdoorLiveContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorLiveContent.swift; sourceTree = "<group>"; };
 		CEA516C7C1A9687022D33978 /* HomeWidgetPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetPicker.swift; sourceTree = "<group>"; };
+		CEF1316E66A8713FE9790891 /* TimeMasterTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TimeMasterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0E979AE3B62E51D54E10AB4 /* OutdoorPrivacyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorPrivacyService.swift; sourceTree = "<group>"; };
 		D142A4D421FFD74BB77ADBCE /* OutdoorQuickSettingsPine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorQuickSettingsPine.swift; sourceTree = "<group>"; };
 		D163AA4744C0E86692930FB6 /* PageMediaGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageMediaGallery.swift; sourceTree = "<group>"; };
@@ -456,6 +466,7 @@
 		EEFEB284497317ED4F6F95B5 /* TimeMasterWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidget.swift; sourceTree = "<group>"; };
 		F1DAA5F8821CDF4789BC0D1A /* OutdoorWeatherKitAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorWeatherKitAdapter.swift; sourceTree = "<group>"; };
 		F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayItem.swift; sourceTree = "<group>"; };
+		F3EBE0E3B5F2BD49A8C6C802 /* OutdoorRideSafetyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRideSafetyTests.swift; sourceTree = "<group>"; };
 		F41735A413ED73FC1C0E6F5F /* TimeMasterWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMasterWidget.entitlements; sourceTree = "<group>"; };
 		F5F451370DBD282BA9ED115D /* ExerciseNamingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseNamingService.swift; sourceTree = "<group>"; };
 		F786CE0AA31679A4215E233B /* OutdoorActivityPineSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorActivityPineSupport.swift; sourceTree = "<group>"; };
@@ -470,6 +481,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		93FCCEEFB9E2109687304D3D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F9BDDCF69E5E41DA50B5418 /* TimeMasterCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DFFDAF7BDE8E107FB4EA1928 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -498,6 +517,7 @@
 		039FCDF3858D9BE9A8C105BE /* TimeMasterUITests */ = {
 			isa = PBXGroup;
 			children = (
+				0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */,
 				1C43508BAD6948505C29F8E4 /* OutdoorRouteRecordingUITests.swift */,
 			);
 			path = TimeMasterUITests;
@@ -588,6 +608,7 @@
 			children = (
 				5F9DFA16477EC88FEF1F13EF /* TimeMaster-macOS.app */,
 				69344764F8B3AC313FF4CBC5 /* TimeMaster.app */,
+				CEF1316E66A8713FE9790891 /* TimeMasterTests.xctest */,
 				F8A200C6E638C14F20D13AED /* TimeMasterUITests.xctest */,
 				18516CBADB7132BEE77F21DB /* TimeMasterWidget.appex */,
 			);
@@ -614,7 +635,6 @@
 		2BDBBAF7F873D8DF1820C983 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				B9E42D1F8C2350B2C3D4E5F6 /* MapGlyphs */,
 				4CF0096279C5C397D6B69421 /* Assets.xcassets */,
 			);
 			path = Resources;
@@ -675,6 +695,14 @@
 				F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */,
 			);
 			path = WorkoutList;
+			sourceTree = "<group>";
+		};
+		4FD4626F2266EE951B2BCA3D /* TimeMasterTests */ = {
+			isa = PBXGroup;
+			children = (
+				F3EBE0E3B5F2BD49A8C6C802 /* OutdoorRideSafetyTests.swift */,
+			);
+			path = TimeMasterTests;
 			sourceTree = "<group>";
 		};
 		5FE4E674646659C60F0E0432 /* Settings */ = {
@@ -766,8 +794,10 @@
 		C70E59D4A6468EC75DF66FD0 = {
 			isa = PBXGroup;
 			children = (
+				8B0BA674EDC86792635987F6 /* MapGlyphs */,
 				876B42657ED58460E1C4E3E1 /* Packages */,
 				9D2F50228B8AAEC8E808D0AA /* TimeMaster */,
+				4FD4626F2266EE951B2BCA3D /* TimeMasterTests */,
 				039FCDF3858D9BE9A8C105BE /* TimeMasterUITests */,
 				D1395437EBEAEBD23FFE151E /* TimeMasterWidget */,
 				26FA13129B845B5C3499F3CB /* Products */,
@@ -899,6 +929,26 @@
 			productReference = F8A200C6E638C14F20D13AED /* TimeMasterUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		6DFA309D82A226F0AC28BAA5 /* TimeMasterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2F8CA189C902D855A466CFD1 /* Build configuration list for PBXNativeTarget "TimeMasterTests" */;
+			buildPhases = (
+				FFEBA8A1414968394373EB1D /* Sources */,
+				93FCCEEFB9E2109687304D3D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F054E802C6EB6E6A6A23CF25 /* PBXTargetDependency */,
+			);
+			name = TimeMasterTests;
+			packageProductDependencies = (
+				3A711FE6542B6079C6060FE3 /* TimeMasterCore */,
+			);
+			productName = TimeMasterTests;
+			productReference = CEF1316E66A8713FE9790891 /* TimeMasterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		8F8A9B3CDDC0696D43D3DE68 /* TimeMasterWidget */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 06183E95887CC539A6A33E06 /* Build configuration list for PBXNativeTarget "TimeMasterWidget" */;
@@ -988,6 +1038,7 @@
 			targets = (
 				A9869356E186BE43EA3A8C23 /* TimeMaster */,
 				1A8659C6D23D6DCC509045C6 /* TimeMaster-macOS */,
+				6DFA309D82A226F0AC28BAA5 /* TimeMasterTests */,
 				33D412B7918145EE15555CA6 /* TimeMasterUITests */,
 				8F8A9B3CDDC0696D43D3DE68 /* TimeMasterWidget */,
 			);
@@ -1000,7 +1051,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				456D34AD6F57FBF2E8B267C4 /* Assets.xcassets in Resources */,
-				7DB0E30619543987A477CDB6 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1008,9 +1058,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A8F31C0E7B1249A1B2C3D4E5 /* MapGlyphs in Resources */,
 				C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */,
-				8E7C11DD25A21C06BAFAF5AF /* Info-macOS.plist in Resources */,
+				83419122FA9E99BB94FE884E /* MapGlyphs in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1306,7 +1355,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				33B91A2434A40488D46D3D2F /* OutdoorRideEndToEndTests.swift in Sources */,
 				212C12128B809802961F0EFF /* OutdoorRouteRecordingUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FFEBA8A1414968394373EB1D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9DBC3465A8A4F651A166770E /* OutdoorRideSafetyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1322,6 +1380,11 @@
 			isa = PBXTargetDependency;
 			target = 8F8A9B3CDDC0696D43D3DE68 /* TimeMasterWidget */;
 			targetProxy = 7A32869E4D38CFF721B4DFF7 /* PBXContainerItemProxy */;
+		};
+		F054E802C6EB6E6A6A23CF25 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A9869356E186BE43EA3A8C23 /* TimeMaster */;
+			targetProxy = D415DC7125E56BF85B7634CF /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1539,6 +1602,26 @@
 			};
 			name = Debug;
 		};
+		6C95CF9930084522E0CA5CCD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.TimeMasterTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeMaster.app/TimeMaster";
+			};
+			name = Debug;
+		};
 		7BDC9E2A686CF1B02D6BB27D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1634,6 +1717,26 @@
 			};
 			name = Release;
 		};
+		C759DA1EDDC0221EDDB1CBD6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.TimeMasterTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TimeMaster.app/TimeMaster";
+			};
+			name = Release;
+		};
 		E61947F389A25D1A4A7B27BC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1689,6 +1792,15 @@
 			buildConfigurations = (
 				574BA40E0A5BA922C65BBEE9 /* Debug */,
 				7BDC9E2A686CF1B02D6BB27D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2F8CA189C902D855A466CFD1 /* Build configuration list for PBXNativeTarget "TimeMasterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C95CF9930084522E0CA5CCD /* Debug */,
+				C759DA1EDDC0221EDDB1CBD6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -1787,6 +1899,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C73D7CF2D7D649BC79CEB2B6 /* XCRemoteSwiftPackageReference "swift-mp3" */;
 			productName = SwiftMP3;
+		};
+		3A711FE6542B6079C6060FE3 /* TimeMasterCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TimeMasterCore;
 		};
 		6597294304852DBC80D29D90 /* TimeMasterCore */ = {
 			isa = XCSwiftPackageProductDependency;

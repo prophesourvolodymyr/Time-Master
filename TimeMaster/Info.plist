@@ -43,6 +43,8 @@
 	<string>Time-Master needs local network access to discover the companion server automatically</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Time-Master records your active Run, Walk, or Bike route while you exercise.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Time-Master uses the barometer to measure elevation gain during your outdoor workout.</string>
 	<key>TMExploreStyleURL</key>
 	<string>$(TM_EXPLORE_STYLE_URL)</string>
 	<key>TMExploreOfflineAllowed</key>

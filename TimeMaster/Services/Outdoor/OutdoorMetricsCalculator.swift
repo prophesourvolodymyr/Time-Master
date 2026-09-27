@@ -88,7 +88,7 @@ enum OutdoorMetricsCalculator {
         guard let previous else { return true }
         guard isValidLocationPoint(
             previous,
-            maximumHorizontalAccuracyMeters: maximumHorizontalAccuracyMeters,
+            maximumHorizontalAccuracyMeters: max(maximumHorizontalAccuracyMeters, defaultMaximumHorizontalAccuracyMeters),
             maximumPlausibleSpeedMetersPerSecond: maximumPlausibleSpeedMetersPerSecond
         ) else { return false }
         let delta = point.timestamp.timeIntervalSince(previous.timestamp)
@@ -121,6 +121,8 @@ enum OutdoorMetricsCalculator {
         var elevationGain = 0.0
         var highestElevation: Double?
         var hasElevation = false
+        var elevationAnchor: Double?
+        var relativeElevationAnchor: Double?
 
         for point in points {
             guard isValidLocationPoint(
@@ -137,7 +139,9 @@ enum OutdoorMetricsCalculator {
                     if let elevation = point.elevationMeters {
                         highestElevation = elevation
                         hasElevation = true
+                        elevationAnchor = elevation
                     }
+                    relativeElevationAnchor = point.barometricRelativeAltitudeMeters
                 }
                 continue
             }
@@ -147,11 +151,15 @@ enum OutdoorMetricsCalculator {
 
             guard point.state == .recording else {
                 previousRecordingPoint = nil
+                elevationAnchor = nil
+                relativeElevationAnchor = nil
                 continue
             }
             guard let previousRecording = previousRecordingPoint else {
                 selfUpdateHighest(&highestElevation, point: point, hasElevation: &hasElevation)
                 previousRecordingPoint = point
+                elevationAnchor = point.elevationMeters
+                relativeElevationAnchor = point.barometricRelativeAltitudeMeters
                 continue
             }
             let delta = point.timestamp.timeIntervalSince(previousRecording.timestamp)
@@ -171,19 +179,21 @@ enum OutdoorMetricsCalculator {
             guard pauseOverlap == 0 else {
                 selfUpdateHighest(&highestElevation, point: point, hasElevation: &hasElevation)
                 previousRecordingPoint = point
+                elevationAnchor = point.elevationMeters
+                relativeElevationAnchor = point.barometricRelativeAltitudeMeters
                 continue
             }
             distance += segmentDistance
             moving += delta
             maxSpeed = max(maxSpeed ?? 0, max(derivedSpeed, reportedSpeed))
-            if let previousElevation = previousRecording.elevationMeters,
-               let currentElevation = point.elevationMeters,
-               previousElevation.isFinite, currentElevation.isFinite {
+            if let relative = point.barometricRelativeAltitudeMeters, relative.isFinite {
                 hasElevation = true
-                let change = currentElevation - previousElevation
-                if change > max(0, elevationNoiseThresholdMeters) {
-                    elevationGain += change
-                }
+                accumulateElevation(relative, anchor: &relativeElevationAnchor, gain: &elevationGain, threshold: elevationNoiseThresholdMeters)
+                elevationAnchor = nil
+            } else if let elevation = point.elevationMeters {
+                hasElevation = true
+                accumulateElevation(elevation, anchor: &elevationAnchor, gain: &elevationGain, threshold: elevationNoiseThresholdMeters)
+                relativeElevationAnchor = nil
             }
             selfUpdateHighest(&highestElevation, point: point, hasElevation: &hasElevation)
             previousRecordingPoint = point
@@ -212,6 +222,21 @@ enum OutdoorMetricsCalculator {
             elevationGainMeters: hasElevation ? elevationGain : nil,
             highestElevationMeters: highestElevation
         )
+    }
+
+    static func accumulateElevation(_ elevation: Double, anchor: inout Double?, gain: inout Double, threshold: Double) {
+        guard elevation.isFinite else { return }
+        guard let previous = anchor else {
+            anchor = elevation
+            return
+        }
+        let change = elevation - previous
+        if change > max(0, threshold) {
+            gain += change
+            anchor = elevation
+        } else if change < -max(0, threshold) {
+            anchor = elevation
+        }
     }
 
     private static func isValidCoordinate(_ latitude: Double, _ longitude: Double) -> Bool {

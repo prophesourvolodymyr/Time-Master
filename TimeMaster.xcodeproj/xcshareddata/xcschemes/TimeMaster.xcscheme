@@ -50,6 +50,17 @@
                ReferencedContainer = "container:TimeMaster.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "6DFA309D82A226F0AC28BAA5"
+               BuildableName = "TimeMasterTests.xctest"
+               BlueprintName = "TimeMasterTests"
+               ReferencedContainer = "container:TimeMaster.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>
