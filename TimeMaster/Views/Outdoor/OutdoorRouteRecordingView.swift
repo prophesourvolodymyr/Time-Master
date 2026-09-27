@@ -701,39 +701,32 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
+    @ViewBuilder
     private func featureContent(_ selectedFeature: OutdoorRouteFeature, layout: OutdoorPineGeometry) -> some View {
-        ZStack {
+        switch selectedFeature {
+        case .type:
             OutdoorTypePicker(
                 previewKind: $previewKind,
                 committedKind: committedKind,
                 onCommit: commitType
             )
-            .opacity(selectedFeature == .type ? 1 : 0)
-            .allowsHitTesting(selectedFeature == .type)
-            .accessibilityHidden(selectedFeature != .type)
-
+        case .music:
             OutdoorMusicFeatureSlot(
                 library: musicLibrary,
                 musicManager: musicManager,
                 entry: initialLibraryEntry,
                 resetToken: musicEditorResetToken,
                 onImportLocalMusic: { showingMusicFileImporter = true },
-                onMeasuredHeight: { height in
+                onMeasuredHeight: { height, requiresSpace in
                     guard feature == .music else { return }
-                    applyMusicContentFit(height, layout: layout)
+                    applyMusicContentFit(height, requiresSpace: requiresSpace, layout: layout)
                 }
             )
-            .opacity(selectedFeature == .music ? 1 : 0)
-            .allowsHitTesting(selectedFeature == .music)
-            .accessibilityHidden(selectedFeature != .music)
-
-            if selectedFeature == .rate || selectedFeature == .route {
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .accessibilityHidden(true)
-            }
+        case .rate, .route:
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityHidden(true)
         }
-        .animation(reduceMotion ? .none : .easeOut(duration: 0.18), value: selectedFeature)
     }
 
     private func mainHandle(_ layout: OutdoorPineGeometry) -> some View {
@@ -941,7 +934,11 @@ struct OutdoorRouteRecordingView: View {
 
     private func preferredFeatureHeight(for feature: OutdoorRouteFeature?, layout: OutdoorPineGeometry) -> CGFloat {
         guard let feature else { return layout.featureCompactHeight }
-        if let remembered = rememberedFeatureHeights[feature] { return remembered }
+        if let remembered = rememberedFeatureHeights[feature] {
+            let minimum = feature == .music ? layout.musicCompactHeight : layout.featureCompactHeight
+            let maximum = feature == .music ? layout.musicMaximumHeight : layout.featureExpandedHeight
+            return min(maximum, max(minimum, remembered))
+        }
         return feature == .music ? layout.musicFitHeight : layout.featureCompactHeight
     }
 
@@ -1183,11 +1180,15 @@ struct OutdoorRouteRecordingView: View {
         return "Expanded"
     }
 
-    private func applyMusicContentFit(_ height: CGFloat, layout: OutdoorPineGeometry) {
-        guard feature == .music, !musicHeightManuallyAdjusted, height > 0 else { return }
+    private func applyMusicContentFit(_ height: CGFloat, requiresSpace: Bool, layout: OutdoorPineGeometry) {
+        guard feature == .music, height > 0, !featureDrag.isDragging else { return }
         let preferred = min(layout.musicMaximumHeight, max(layout.musicCompactHeight, height))
-        if !featureDrag.isDragging, featureHeight == 0 || abs(featureHeight - preferred) > 12 {
-            featureHeight = preferred
+        if requiresSpace {
+            if featureHeight < preferred {
+                updateFeatureHeight(preferred, layout: layout, animated: true)
+            }
+        } else if !musicHeightManuallyAdjusted, featureHeight == 0 || abs(featureHeight - preferred) > 12 {
+            updateFeatureHeight(preferred, layout: layout, animated: false)
         }
     }
 
@@ -1248,7 +1249,7 @@ struct OutdoorMusicFeatureSlot: View {
     let entry: MusicLibraryItem?
     let resetToken: Int
     let onImportLocalMusic: () -> Void
-    let onMeasuredHeight: (CGFloat) -> Void
+    let onMeasuredHeight: (CGFloat, Bool) -> Void
     var body: some View {
         OutdoorMusicEditorView(
             library: library,

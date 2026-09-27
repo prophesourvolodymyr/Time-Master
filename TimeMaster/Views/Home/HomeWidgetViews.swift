@@ -457,7 +457,7 @@ struct HomeWidgetContent: View {
                     Text(activity.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
-                    Text("An unfinished \(activity.kind.displayName.lowercased()) is saved.")
+                    Text(activity.finished ? "Your \(activity.kind.displayName.lowercased()) is saved and ready to establish." : "An unfinished \(activity.kind.displayName.lowercased()) is saved.")
                         .font(.caption)
                         .foregroundStyle(Theme.textSecondary)
                     #if os(iOS)
@@ -465,7 +465,7 @@ struct HomeWidgetContent: View {
                         Button {
                             onStartOutdoor(activity.kind, outdoorStore.plannedRoute(withID: activity.plannedRouteID ?? ""), activity.id)
                         } label: {
-                            Label("Resume", systemImage: "play.fill")
+                            Label(activity.finished ? "Review" : "Resume", systemImage: activity.finished ? "checkmark.circle" : "play.fill")
                         }
                         .buttonStyle(.bordered)
                     } else {

@@ -806,8 +806,15 @@ F27 Home ───────────────┘
     - [ ] Test background recording and recovery after termination
       - [x] Preserve recorded data without inventing distance across termination and finished-session gaps
     - [ ] Test complete UI including music panel accessibility
+      - [x] Place speed units below their values and constrain compact and expanded metric layouts
+      - [x] Separate GPS status from the route drag handle with a dedicated status row
+      - [x] Restore Music above its compact minimum and expand for search and picker controls without overlapping recording actions
+      - [x] Keep recording-error recovery controls scrollable instead of overlaying live actions
+      - [x] Respect imperial units in the live widget and distinguish finished rides awaiting establishment
+      - [ ] User visual and interaction review; AI UI testing stopped at the user's request
     - [ ] Test user tracking and GPS failure handling
       - [x] Keep accepting valid fixes after switching to Precise accuracy; clear stale speed and expose lost or inaccurate GPS
+      - [x] Run all 15 app-hosted ride safety regressions on iOS 18.6, including the synthetic 50 km ride
       - [x] Reset short discarded sessions so a different next activity can start
     - [x] Test ride distance speed and duration measurements with a 50 km, 5,001-point synthetic ride, pause boundaries, finish, establishment, and reload
     - [ ] Test ride saving persistence and relaunch recovery
@@ -815,13 +822,17 @@ F27 Home ───────────────┘
       - [x] Preserve the next GPS fix after an interrupted JSONL append
       - [x] Preserve fractional GPS timestamps in storage and backup codecs
       - [x] Recover uncheckpointed elevation and retain finished rides until establishment
+      - [x] Run all 16 outdoor storage tests, including failed writes, interrupted appends, and fractional timestamps
     - [ ] Test terrain hill elevation totals and 3D
       - [x] Count gradual climbs without counting stationary noise or barometer reanchoring as ascent
       - [ ] Implement actual terrain relief, 3D hills, and upcoming-climb height; current mode tilts the map and extrudes buildings only
     - [ ] Test all map options including location recentering
+      - [x] Let explicit recentering restore follow mode after manual map movement
+      - [ ] User checks map modes, recentering, and settings; automatic UI checks were stopped
     - [ ] Investigate additional ride safety and iOS 16.1 compatibility bugs
       - [x] Add required Motion permission text and background location indicator
       - [x] Add app-hosted safety regression target and fix platform plist and glyph-resource packaging
+      - [x] Compile the final iPhone app with an iOS 16.0 minimum deployment target; physical iOS 16.1 runtime verification remains pending
     - [ ] Human review and short physical-device ride before attempting 50 km
 ## Cycle 24 — Video Editor UX & Platform Parity
 

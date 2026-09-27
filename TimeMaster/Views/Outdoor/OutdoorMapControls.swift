@@ -266,6 +266,7 @@ struct OutdoorRouteExitControl: View {
 
 struct OutdoorLiveWorkoutStatusWidget: View {
     @ObservedObject var recorder: OutdoorLocationRecorder
+    @ObservedObject var preferences: OutdoorRecordingPreferencesStore
     let onOpenMap: () -> Void
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -289,8 +290,8 @@ struct OutdoorLiveWorkoutStatusWidget: View {
                     }
 
                     HStack(spacing: 14) {
-                        metric(value: speedText, label: "km/h")
-                        metric(value: distanceText, label: "km")
+                        metric(value: speedText, label: isMetric ? "km/h" : "mph")
+                        metric(value: distanceText, label: isMetric ? "km" : "mi")
                     }
                 }
                 .padding(.horizontal, 13)
@@ -315,20 +316,22 @@ struct OutdoorLiveWorkoutStatusWidget: View {
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Live \(recorder.activeActivity?.kind.displayName ?? "workout")")
-            .accessibilityValue("\(speedText) kilometres per hour, \(distanceText) kilometres")
+            .accessibilityValue("\(speedText) \(isMetric ? "kilometres" : "miles") per hour, \(distanceText) \(isMetric ? "kilometres" : "miles")")
             .accessibilityHint("Opens the active workout map.")
         }
     }
+    private var isMetric: Bool { preferences.preferences.unitSystem == .metric }
+
 
     private var speedText: String {
         let metersPerSecond = recorder.smoothedLiveSpeedMetersPerSecond
             ?? recorder.liveSpeedMetersPerSecond
             ?? 0
-        return String(format: "%.1f", max(0, metersPerSecond * 3.6))
+        return String(format: "%.1f", max(0, metersPerSecond * (isMetric ? 3.6 : 2.23694)))
     }
 
     private var distanceText: String {
-        String(format: "%.2f", max(0, (recorder.activeActivity?.distanceMeters ?? 0) / 1000))
+        String(format: "%.2f", max(0, (recorder.activeActivity?.distanceMeters ?? 0) / (isMetric ? 1_000 : 1_609.344)))
     }
 
     private func metric(value: String, label: String) -> some View {

@@ -22,41 +22,35 @@ struct OutdoorLiveContent: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             GeometryReader { proxy in
-                let contentWidth = max(1, proxy.size.width - 24)
                 let actionHeight = min(58, max(48, proxy.size.height * 0.13))
                 let actionReserve = actionHeight + 7
-                let statusInset: CGFloat = statusText == nil ? 34 : 52
-                let metricRegionHeight = max(1, proxy.size.height - actionReserve)
-                let metricHeight = max(1, metricRegionHeight - statusInset)
 
-                ZStack {
-                    VStack(spacing: 0) {
-                        ZStack(alignment: .top) {
-                            metrics(
-                                at: context.date,
-                                in: CGSize(width: contentWidth, height: metricHeight)
-                            )
-                            .frame(width: contentWidth, height: metricHeight)
-                            .padding(.top, statusInset)
-
-                            if let status = statusText {
-                                statusPill(status)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.top, 4)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: metricRegionHeight)
-
-                        actionBar(height: actionHeight)
-                            .padding(.horizontal, 7)
-                            .padding(.bottom, 7)
-                            .frame(height: actionReserve)
-                    }
-
+                Group {
                     if let message = recorder.errorMessage, recorder.state == .failed {
-                        recoveryMessage(message)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(18)
+                        ScrollView {
+                            recoveryMessage(message)
+                                .padding(.top, 32)
+                                .padding(.bottom, 12)
+                        }
+                    } else {
+                        VStack(spacing: 0) {
+                            VStack(spacing: 8) {
+                                if let status = statusText {
+                                    statusPill(status)
+                                        .frame(maxWidth: .infinity)
+                                }
+                                GeometryReader { metricsProxy in
+                                    metrics(at: context.date, in: metricsProxy.size)
+                                }
+                            }
+                            .padding(.top, 48)
+                            .padding(.bottom, 8)
+
+                            actionBar(height: actionHeight)
+                                .padding(.horizontal, 7)
+                                .padding(.bottom, 7)
+                                .frame(height: actionReserve)
+                        }
                     }
                 }
                 .padding(.horizontal, 12)
@@ -77,66 +71,81 @@ struct OutdoorLiveContent: View {
         let time = progress < 0.55 ? formattedCompactTime(at: date) : formattedTime(at: date)
         let speed = formattedSpeed
         let distance = formattedDistance
-        let reflow = min(1, max(0, (progress - 0.62) / 0.24))
-        let timeX = interpolate(0.80, 0.50, reflow) * size.width
-        let timeY = interpolate(0.50, 0.24, reflow) * size.height
-        let speedY = 0.50 * size.height
-        let totalX = interpolate(0.20, 0.50, reflow) * size.width
-        let totalY = interpolate(0.50, 0.74, reflow) * size.height
-        let speedSize = interpolate(42, 92, progress)
-        let secondarySize = interpolate(16, 27, progress)
+        let stacked = progress >= 0.74
         let labelSize = interpolate(10, 13, progress)
-        let speedUnitBelow = reflow > 0.72
+        let secondarySize = min(
+            interpolate(16, 27, progress),
+            max(1, (size.height / (stacked ? 5 : 1) - 1.25 * labelSize * liveLabelScale - 4) / (1.25 * liveValueScale))
+        )
+        let secondaryHeight = 1.25 * (labelSize * liveLabelScale + secondarySize * liveValueScale) + 4
+        let speedHeight = stacked ? size.height - 2 * secondaryHeight - 32 : size.height
+        let speedSize = min(
+            interpolate(42, 92, progress),
+            max(1, (speedHeight - 12.5 * liveLabelScale - 4) / (1.25 * liveValueScale + 0.375 * liveLabelScale))
+        )
 
         if dynamicTypeSize.isAccessibilitySize {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 12) {
                     accessibleMetric(title: "Speed", value: speed.value, unit: speed.unit, prominent: true)
-                    HStack(alignment: .top, spacing: 18) {
-                        accessibleMetric(title: "Time", value: time, unit: nil, prominent: false)
-                        accessibleMetric(title: "Total", value: distance.value, unit: distance.unit, prominent: false)
-                    }
+                    accessibleMetric(title: "Time", value: time, unit: nil, prominent: false)
+                    accessibleMetric(title: "Total", value: distance.value, unit: distance.unit, prominent: false)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
         } else {
-            ZStack {
-                liveMetric(
-                    title: "Time",
-                    value: time,
-                    unit: nil,
-                    valueSize: secondarySize,
-                    labelSize: labelSize,
-                    alignment: .center
-                )
-                .position(x: timeX, y: timeY)
-                .accessibilityLabel("Time \(time)")
+            let timeMetric = liveMetric(
+                title: "Time",
+                value: time,
+                unit: nil,
+                valueSize: secondarySize,
+                labelSize: labelSize,
+                alignment: .center
+            )
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel("Time \(time)")
+            let speedMetric = liveMetric(
+                title: nil,
+                value: speed.value,
+                unit: speed.unit,
+                valueSize: speedSize,
+                labelSize: labelSize,
+                alignment: .center,
+                unitBelow: true
+            )
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel("Speed \(speed.value) \(speed.unit)")
+            let totalMetric = liveMetric(
+                title: "Total",
+                value: distance.value,
+                unit: distance.unit,
+                valueSize: secondarySize,
+                labelSize: labelSize,
+                alignment: .center
+            )
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel("Total \(distance.value) \(distance.unit)")
 
-                liveMetric(
-                    title: nil,
-                    value: speed.value,
-                    unit: speed.unit,
-                    valueSize: speedSize,
-                    labelSize: labelSize,
-                    alignment: .center,
-                    unitBelow: speedUnitBelow
-                )
-                .position(x: size.width * 0.5, y: speedY)
-                .accessibilityLabel("Speed \(speed.value) \(speed.unit)")
-
-                liveMetric(
-                    title: "Total",
-                    value: distance.value,
-                    unit: distance.unit,
-                    valueSize: secondarySize,
-                    labelSize: labelSize,
-                    alignment: .center
-                )
-                .position(x: totalX, y: totalY)
-                .accessibilityLabel("Total \(distance.value) \(distance.unit)")
+            Group {
+                if stacked {
+                    VStack(spacing: 8) {
+                        timeMetric
+                        Spacer(minLength: 0)
+                        speedMetric
+                        Spacer(minLength: 0)
+                        totalMetric
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        totalMetric
+                        speedMetric
+                        timeMetric
+                    }
+                }
             }
-            .animation(isDragging || reduceMotion ? .none : .spring(response: 0.35, dampingFraction: 0.9), value: progress)
+            .frame(width: size.width, height: size.height)
+            .transaction { $0.animation = nil }
         }
     }
 
@@ -150,10 +159,12 @@ struct OutdoorLiveContent: View {
             Text(title)
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(Theme.textPrimary.opacity(0.72))
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+            VStack(spacing: 3) {
                 Text(value)
                     .font((prominent ? Font.largeTitle : Font.title2).weight(.semibold))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                 if let unit {
                     Text(unit)
                         .font(.headline)
@@ -212,7 +223,9 @@ struct OutdoorLiveContent: View {
                 }
             }
         }
-        .fixedSize()
+        .lineLimit(1)
+        .minimumScaleFactor(0.5)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
@@ -296,11 +309,16 @@ struct OutdoorLiveContent: View {
             Text(message)
                 .font(.subheadline.weight(.semibold))
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 280)
             Button("Try Again", action: onRetry)
                 .buttonStyle(OutdoorPineButtonStyle(prominent: true))
             if recorder.requiresLocationSettingsRecovery {
                 Button("Open Settings", action: onOpenSettings)
+                    .buttonStyle(OutdoorPineButtonStyle())
+            }
+            if recorder.activeActivity != nil {
+                Button("Finish saved workout", action: onFinish)
                     .buttonStyle(OutdoorPineButtonStyle())
             }
         }

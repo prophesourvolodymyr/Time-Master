@@ -485,21 +485,27 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             return marker
         }
 
+        private func reportFocusFailure(_ message: String) {
+            DispatchQueue.main.async { [weak self] in
+                self?.onFocusFailure?(message)
+            }
+        }
+
         private func requestFocus(on map: MLNMapView) {
             switch locationManager.authorizationStatus {
             case .authorizedAlways, .authorizedWhenInUse:
                 enableFollow(on: map)
             case .notDetermined:
-                onFocusFailure?("Start recording to request location access, then focus the map.")
+                reportFocusFailure("Start recording to request location access, then focus the map.")
             case .denied, .restricted:
-                onFocusFailure?("Location access is required to focus the map. Allow it in Settings and try again.")
+                reportFocusFailure("Location access is required to focus the map. Allow it in Settings and try again.")
             @unknown default:
-                onFocusFailure?("Location access is unavailable.")
+                reportFocusFailure("Location access is unavailable.")
             }
         }
 
         private func enableFollow(on map: MLNMapView) {
-            session.setFollowRequested(true)
+            session.resetFollowAfterExplicitFocus()
             applyFollowState(to: map)
             reportFollowState(true)
         }

@@ -9,9 +9,7 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         app.resetAuthorizationStatus(for: .location)
         XCUIDevice.shared.location = XCUILocation(location: CLLocation(latitude: 45.9237, longitude: 6.8694))
         app.launch()
-        XCTAssertTrue(app.buttons["Bike"].waitForExistence(timeout: 20))
-        if !app.buttons["Bike"].isHittable { app.swipeUp() }
-        app.buttons["Bike"].tap()
+        openBike()
         allowLocationIfRequested()
         XCTAssertTrue(app.buttons["Start Bike recording"].waitForExistence(timeout: 10))
     }
@@ -35,6 +33,23 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         allowLocationIfRequested()
         XCTAssertTrue(app.buttons["Finish workout"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["Try Again"].exists, "Location authorization must succeed before measuring a ride")
+    }
+
+    private func capture(_ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    private func openBike() {
+        let bike = app.buttons["Bike"]
+        XCTAssertTrue(bike.waitForExistence(timeout: 15))
+        if bike.frame.maxY > app.frame.height * 0.7 || !bike.isHittable {
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(bike.isHittable)
+        bike.tap()
     }
 
 
@@ -88,12 +103,17 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         let beforeRelaunch = distanceText()
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.buttons["Bike"].waitForExistence(timeout: 15))
-        app.buttons["Bike"].tap()
+        openBike()
         XCTAssertTrue(app.buttons["Resume workout"].waitForExistence(timeout: 10))
         XCTAssertEqual(distanceText(), beforeRelaunch, "Persisted distance must survive termination")
         visibleButton("Resume workout").tap()
         move(7)
+        let beforeActiveTermination = distanceText()
+        app.terminate()
+        app.launch()
+        openBike()
+        XCTAssertTrue(app.buttons["Finish workout"].waitForExistence(timeout: 10))
+        XCTAssertEqual(distanceText(), beforeActiveTermination, "An active ride must recover after termination")
         move(8)
         visibleButton("Finish workout").tap()
         visibleButton("Establish workout").tap()
@@ -104,8 +124,7 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         XCTAssertTrue(app.buttons["Start Bike recording"].waitForExistence(timeout: 10))
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.buttons["Bike"].waitForExistence(timeout: 15))
-        app.buttons["Bike"].tap()
+        openBike()
         visibleButton("Library").tap()
         XCTAssertTrue(app.buttons["Exit workout library"].waitForExistence(timeout: 10))
         let library = XCTAttachment(string: app.debugDescription)
@@ -120,8 +139,16 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         XCTAssertTrue(app.otherElements["Music editor"].waitForExistence(timeout: 8))
         visibleButton("Choose music section").tap()
         XCTAssertTrue(app.pickerWheels.firstMatch.waitForExistence(timeout: 5))
+        capture("Music section chooser before recording")
         visibleButton("Close music section chooser").tap()
         visibleButton("Search music").tap()
+        let searchField = app.textFields["Search music library"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5))
+        XCTAssertTrue(searchField.isHittable)
+        searchField.tap()
+        searchField.typeText("ride")
+        visibleButton("Search").tap()
+        capture("Music search with keyboard")
         visibleButton("Close music search tray").tap()
         let handle = app.otherElements["Music pane handle"]
         XCTAssertTrue(handle.exists)
@@ -132,12 +159,14 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         startRide()
         visibleButton("Music").tap()
         visibleButton("Choose music section").tap()
+        capture("Music section chooser during recording")
         visibleButton("Close music section chooser").tap()
         visibleButton("Finish workout").tap()
         XCTAssertTrue(app.buttons["Start Bike recording"].waitForExistence(timeout: 10))
     }
 
     func testMapModesRecenterAndSettingsPersistence() throws {
+
         visibleButton("Focus current location").tap()
         let following = NSPredicate(format: "value == %@", "Following")
         expectation(for: following, evaluatedWith: app.buttons["Focus current location"])
@@ -147,6 +176,7 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         XCTAssertEqual(app.buttons["Focus current location"].value as? String, "Not following")
         visibleButton("Focus current location").tap()
         expectation(for: following, evaluatedWith: app.buttons["Focus current location"])
+        capture("Recentered map after panning")
         waitForExpectations(timeout: 10)
         visibleButton("Open map quick pane").tap()
         for mode in ["Terrain", "Satellite", "Explore"] {
@@ -162,6 +192,7 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         XCTAssertFalse(app.buttons["Map mode, Traffic"].isEnabled)
         visibleButton("Close Map quick pane").tap()
         visibleButton("Open settings quick pane").tap()
+        capture("Map modes and overlay options")
         let autoPause = app.switches["Auto Pause"]
         XCTAssertTrue(autoPause.waitForExistence(timeout: 5))
         let original = autoPause.value as? String
@@ -172,8 +203,7 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         visibleButton("Close route").tap()
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.buttons["Bike"].waitForExistence(timeout: 15))
-        app.buttons["Bike"].tap()
+        openBike()
         visibleButton("Open settings quick pane").tap()
         XCTAssertEqual(app.switches["Auto Pause"].value as? String, changed)
         app.switches["Auto Pause"].tap()

@@ -65,6 +65,7 @@ struct MainTabView: View {
             if selectedDestinationID != 6, outdoorRecorder.isLiveSession {
                 OutdoorLiveWorkoutStatusWidget(
                     recorder: outdoorRecorder,
+                    preferences: outdoorPreferencesStore,
                     onOpenMap: openActiveOutdoorMap
                 )
                 .padding(.top, 8)

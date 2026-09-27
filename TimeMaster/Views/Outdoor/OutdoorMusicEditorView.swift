@@ -7,7 +7,7 @@ struct OutdoorMusicEditorView: View {
     @ObservedObject private var library: MusicLibraryStore
     let initialItem: MusicLibraryItem?
     let resetToken: Int
-    let onMeasuredHeight: (CGFloat) -> Void
+    let onMeasuredHeight: (CGFloat, Bool) -> Void
     let onImportLocalMusic: (() -> Void)?
 
     @ObservedObject private var musicManager: MusicManager
@@ -45,7 +45,7 @@ struct OutdoorMusicEditorView: View {
         musicManager: MusicManager,
         initialItem: MusicLibraryItem? = nil,
         resetToken: Int = 0,
-        onMeasuredHeight: @escaping (CGFloat) -> Void,
+        onMeasuredHeight: @escaping (CGFloat, Bool) -> Void,
         onImportLocalMusic: (() -> Void)? = nil
     ) {
         self.initialItem = initialItem
@@ -57,32 +57,31 @@ struct OutdoorMusicEditorView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            VStack(spacing: 8) {
-                header
-                if let collectionDetailID {
-                    collectionDetail(for: collectionDetailID)
-                        .frame(maxHeight: .infinity)
-                } else {
-                    libraryList
-                        .frame(maxHeight: .infinity)
-                }
-                if searchOpen {
-                    searchTray
-                        .layoutPriority(1)
-                        .offset(y: searchTrayOffset)
-                        .transition(
-                            reduceMotion
-                                ? .opacity
-                                : .move(edge: .bottom).combined(with: .opacity)
-                        )
-                }
-                if let pendingTransfer {
-                    transferPanel(for: pendingTransfer)
-                }
+        VStack(spacing: 8) {
+            header
+            if let collectionDetailID {
+                collectionDetail(for: collectionDetailID)
+                    .frame(maxHeight: .infinity)
+            } else {
+                libraryList
+                    .frame(maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
+            if searchOpen {
+                searchTray
+                    .layoutPriority(1)
+                    .offset(y: searchTrayOffset)
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .move(edge: .bottom).combined(with: .opacity)
+                    )
+            }
+            if let pendingTransfer {
+                transferPanel(for: pendingTransfer)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .overlay(alignment: .topLeading) {
             if showingMainPicker {
                 mainDestinationPicker
                     .padding(.top, 40)
@@ -95,12 +94,12 @@ struct OutdoorMusicEditorView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.top, 8)
+        .padding(.top, 48)
         .padding(.bottom, 10)
         .preference(key: OutdoorMusicEditorTotalHeightKey.self, value: desiredEditorHeight)
         .onPreferenceChange(OutdoorMusicEditorTotalHeightKey.self) { height in
             guard height > 1 else { return }
-            onMeasuredHeight(min(720, max(188, height)))
+            onMeasuredHeight(min(720, max(188, height)), showingMainPicker || searchOpen)
         }
         .animation(reduceMotion ? .none : .easeOut(duration: 0.24), value: showingMainPicker)
         .animation(reduceMotion ? .none : .easeOut(duration: 0.24), value: showingSearchPicker)
@@ -580,8 +579,8 @@ struct OutdoorMusicEditorView: View {
                     importSourceDestinations.isEmpty
                         ? "Add music to a workout type in Music Settings to search it."
                         : query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            ? "Search \(library.destinationName(searchSourceDestination)) music."
-                            : "No matching music in \(library.destinationName(searchSourceDestination))."
+                        ? "Search \(library.destinationName(searchSourceDestination)) music."
+                        : "No matching music in \(library.destinationName(searchSourceDestination))."
                 )
                 .font(.caption)
                 .foregroundStyle(Theme.textSecondary)
@@ -697,7 +696,8 @@ struct OutdoorMusicEditorView: View {
             trayHeight = 0
         }
         let transferHeight: CGFloat = pendingTransfer == nil ? 0 : 112
-        return 8 + 36 + 8 + libraryHeight + trayHeight + transferHeight + 20
+        let contentHeight: CGFloat = 48 + 44 + 8 + libraryHeight + trayHeight + transferHeight + 20
+        return showingMainPicker ? max(contentHeight, 48 + 40 + 240 + 10) : contentHeight
     }
 
     private var editorSectionDestinations: [MusicDestination] {
