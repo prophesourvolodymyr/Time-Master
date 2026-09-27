@@ -115,13 +115,7 @@ public final class FileSystemHelper {
         let directory = url.deletingLastPathComponent()
         try ensureDirectory(directory)
 
-        let tempURL = directory.appendingPathComponent(".\(url.lastPathComponent).tmp")
-        try data.write(to: tempURL, options: .atomic)
-
-        if fileManager.fileExists(atPath: url.path) {
-            try fileManager.removeItem(at: url)
-        }
-        try fileManager.moveItem(at: tempURL, to: url)
+        try data.write(to: url, options: .atomic)
     }
 
     public func writeAtomically<T: Encodable>(to url: URL, value: T, encoder: JSONEncoder = JSONEncoder()) throws {
@@ -139,10 +133,18 @@ public final class FileSystemHelper {
             }
         }
         do {
-            let handle = try FileHandle(forWritingTo: url)
+            let handle = try FileHandle(forUpdating: url)
             defer { try? handle.close() }
-            try handle.seekToEnd()
-            handle.write(data)
+            let end = try handle.seekToEnd()
+            if end > 0 {
+                try handle.seek(toOffset: end - 1)
+                let lastByte = try handle.read(upToCount: 1)
+                try handle.seekToEnd()
+                if lastByte?.first != 0x0A {
+                    try handle.write(contentsOf: Data([0x0A]))
+                }
+            }
+            try handle.write(contentsOf: data)
             try handle.synchronize()
         } catch {
             throw Error.writeFailed(url.path)

@@ -212,8 +212,7 @@ final class BackupManager {
             }
         }
 
-        let routeEncoder = JSONEncoder()
-        routeEncoder.dateEncodingStrategy = .iso8601
+        let routeEncoder = TimeMasterCore.OutdoorTrackPoint.makeJSONEncoder()
         for activity in snapshot.outdoorActivities {
             let routeLines = try (snapshot.outdoorRoutes[activity.id.uuidString] ?? []).map { point -> String in
                 String(data: try routeEncoder.encode(point.coreValue), encoding: .utf8) ?? ""
@@ -268,8 +267,7 @@ final class BackupManager {
             let activity: OutdoorActivity
             let points: [OutdoorTrackPoint]
         }
-        let routeDecoder = JSONDecoder()
-        routeDecoder.dateDecodingStrategy = .iso8601
+        let routeDecoder = TimeMasterCore.OutdoorTrackPoint.makeJSONDecoder()
         var pendingOutdoorImports: [PendingOutdoorImport] = []
         for activity in manifest.outdoorActivities ?? [] {
             let id = activity.id.uuidString

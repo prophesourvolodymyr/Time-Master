@@ -802,6 +802,19 @@ F27 Home ───────────────┘
     - [ ] Hand every F28 child to human for verification
     - [x] Size route buttons so labels stay inside their controls
 
+  - [ ] Pre-ride safety verification requested for a 50 km Bike ride on iOS 16.1
+    - [ ] Test background recording and recovery after termination
+    - [ ] Test complete UI including music panel accessibility
+    - [ ] Test user tracking and GPS failure handling
+    - [ ] Test ride distance speed and duration measurements
+    - [ ] Test ride saving persistence and relaunch recovery
+      - [x] Preserve the last valid manifest on failed updates and use atomic file replacement
+      - [x] Preserve the next GPS fix after an interrupted JSONL append
+      - [x] Preserve fractional GPS timestamps in storage and backup codecs
+    - [ ] Test terrain hill elevation totals and 3D
+    - [ ] Test all map options including location recentering
+    - [ ] Investigate additional ride safety and iOS 16.1 compatibility bugs
+    - [ ] Human review and short physical-device ride before attempting 50 km
 ## Cycle 24 — Video Editor UX & Platform Parity
 
 - [x] macOS video editor timeline UX

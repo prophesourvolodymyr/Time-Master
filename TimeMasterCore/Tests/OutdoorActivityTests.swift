@@ -54,6 +54,47 @@ final class OutdoorActivityTests: XCTestCase {
         XCTAssertEqual(points.last?.timestamp, baseDate.addingTimeInterval(99))
     }
 
+    func testFailedManifestUpdatePreservesRecoverableActivity() throws {
+        try db.bootstrapIfNeeded()
+        let id = UUID().uuidString
+        let original = OutdoorActivityManifest(id: id, kind: .bike, startedAt: baseDate)
+        try db.createOutdoorActivity(id: id, manifest: original)
+        var invalid = original
+        invalid.distanceMeters = .nan
+        XCTAssertThrowsError(try db.updateOutdoorActivity(id: id, manifest: invalid))
+        XCTAssertEqual(try db.getOutdoorActivity(id: id), original)
+        XCTAssertEqual(try db.listOutdoorActivities().map(\.id), [id])
+    }
+
+    func testTrackPreservesSubsecondFixesAcrossRelaunch() throws {
+        try db.bootstrapIfNeeded()
+        let id = UUID().uuidString
+        try db.createOutdoorActivity(id: id, manifest: OutdoorActivityManifest(id: id, kind: .bike, startedAt: baseDate))
+        let points = [0.25, 0.75].map {
+            OutdoorTrackPoint(timestamp: baseDate.addingTimeInterval($0), latitude: 45 + $0 / 1000,
+                              longitude: 7, horizontalAccuracyMeters: 4, speedMetersPerSecond: 5, state: .recording)
+        }
+        for point in points { try db.appendOutdoorTrackPoint(id: id, point: point) }
+        let reopened = DatabaseManager(fs: FileSystemHelper(dataRoot: tempDir))
+        XCTAssertEqual(try reopened.readOutdoorTrackPoints(id: id), points)
+    }
+
+    func testAppendingAfterInterruptedLinePreservesNextFix() throws {
+        try db.bootstrapIfNeeded()
+        let id = UUID().uuidString
+        try db.createOutdoorActivity(id: id, manifest: OutdoorActivityManifest(id: id, kind: .bike, startedAt: baseDate))
+        let first = OutdoorTrackPoint(timestamp: baseDate, latitude: 45, longitude: 7,
+                                     horizontalAccuracyMeters: 4, speedMetersPerSecond: 5, state: .recording)
+        var next = first
+        next.timestamp = baseDate.addingTimeInterval(2)
+        next.latitude += 0.0001
+        try db.appendOutdoorTrackPoint(id: id, point: first)
+        let routeURL = fs.outdoorActivitiesDirectory.appendingPathComponent(id).appendingPathComponent("track.jsonl")
+        try fs.appendLineAtomically(to: routeURL, data: Data("{\"timestamp\":".utf8))
+        try db.appendOutdoorTrackPoint(id: id, point: next)
+        XCTAssertEqual(try db.readOutdoorTrackPoints(id: id), [first, next])
+    }
+
     func testManifestISO8601AndFinishedMetadataRoundTrip() throws {
         try db.bootstrapIfNeeded()
         let pause = OutdoorPauseInterval(startedAt: baseDate.addingTimeInterval(10), endedAt: baseDate.addingTimeInterval(30), automatic: true)

@@ -60,6 +60,28 @@ public struct OutdoorTrackPoint: Codable, Equatable {
         self.speedMetersPerSecond = speedMetersPerSecond
         self.state = state
     }
+
+    public static func makeJSONEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(date.ISO8601Format(.init(includingFractionalSeconds: true)))
+        }
+        return encoder
+    }
+
+    public static func makeJSONDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(String.self)
+            if let date = try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(value) {
+                return date
+            }
+            return try Date.ISO8601FormatStyle().parse(value)
+        }
+        return decoder
+    }
 }
 
 public struct OutdoorPauseInterval: Codable, Equatable, Identifiable {

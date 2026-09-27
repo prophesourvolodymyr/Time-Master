@@ -1009,7 +1009,6 @@ Query the TimeMaster exercise database.
         let folder = outdoorActivityDirectory(id)
         guard fs.directoryExists(at: folder) else { throw FileSystemHelper.Error.notFound(folder.path) }
         let manifestURL = folder.appendingPathComponent("manifest.json")
-        if fs.fileExists(at: manifestURL) { try fs.moveToTrash(source: manifestURL) }
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
     }
 
@@ -1029,6 +1028,7 @@ Query the TimeMaster exercise database.
         guard fs.fileExists(at: url) else { return [] }
         let data = try fs.readRawData(from: url)
         guard let text = String(data: data, encoding: .utf8) else { return [] }
+        let decoder = OutdoorTrackPoint.makeJSONDecoder()
         return text.split(separator: "\n", omittingEmptySubsequences: true).compactMap { line in
             try? decoder.decode(OutdoorTrackPoint.self, from: Data(line.utf8))
         }
@@ -1037,8 +1037,7 @@ Query the TimeMaster exercise database.
     public func appendOutdoorTrackPoint(id: String, point: OutdoorTrackPoint) throws {
         let folder = outdoorActivityDirectory(id)
         guard fs.directoryExists(at: folder) else { throw FileSystemHelper.Error.notFound(folder.path) }
-        let lineEncoder = JSONEncoder()
-        lineEncoder.dateEncodingStrategy = .iso8601
+        let lineEncoder = OutdoorTrackPoint.makeJSONEncoder()
         let line = try lineEncoder.encode(point)
         try fs.appendLineAtomically(to: folder.appendingPathComponent("track.jsonl"), data: line + Data([0x0A]))
     }
