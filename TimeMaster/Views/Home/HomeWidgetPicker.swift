@@ -6,11 +6,9 @@ struct HomeWidgetPicker: View {
     @EnvironmentObject private var databaseStore: DatabaseStore
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @ObservedObject var widgetStore: HomeWidgetStore
+    let onAdd: (HomeWidgetKind, HomeWidgetFootprint) -> Void
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 14),
-        GridItem(.flexible(), spacing: 14)
-    ]
+    private let columns = [GridItem(.flexible())]
 
     var body: some View {
         NavigationStack {
@@ -50,21 +48,13 @@ struct HomeWidgetPicker: View {
             LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
                 ForEach(widgets) { kind in
                     widgetCard(kind)
-                        .gridCellColumns(pickerFootprint(for: kind).columnSpan)
                 }
             }
         }
     }
 
     private func pickerFootprint(for kind: HomeWidgetKind) -> HomeWidgetFootprint {
-        switch kind.category {
-        case .workouts:
-            .compact
-        case .analytics:
-            .wide
-        default:
-            kind.defaultFootprint
-        }
+        kind.defaultFootprint
     }
 
     private func widgetCard(_ kind: HomeWidgetKind) -> some View {
@@ -83,7 +73,7 @@ struct HomeWidgetPicker: View {
             .padding(14)
 
             Button {
-                widgetStore.add(kind, footprint: footprint)
+                onAdd(kind, footprint)
             } label: {
                 Image(systemName: canAdd ? "plus" : "checkmark")
                     .font(.system(size: 18, weight: .bold))
@@ -101,6 +91,7 @@ struct HomeWidgetPicker: View {
             }
             .buttonStyle(.plain)
             .disabled(!canAdd)
+            .accessibilityLabel("Add \(kind.title) widget")
             .padding(7)
             .offset(x: 6, y: -6)
         }
@@ -136,22 +127,11 @@ private struct HomeWidgetPreview: View {
     @State private var previewDate = Date()
 
     var body: some View {
-        Group {
-            if footprint.columnSpan == 1 {
-                HStack(spacing: 12) {
-                    previewContent
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(footprint.aspectRatio, contentMode: .fit)
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                }
-            } else {
-                previewContent
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(footprint.aspectRatio, contentMode: .fit)
-            }
-        }
-        .allowsHitTesting(false)
+        previewContent
+            .frame(maxWidth: .infinity)
+            .aspectRatio(footprint.aspectRatio, contentMode: .fit)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         .clipped()
         .onAppear {
             previewDate = Date()

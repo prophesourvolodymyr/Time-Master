@@ -15,6 +15,7 @@ struct SlotNavigationContainer<Content: View>: View {
     @State private var navigationPresentation: SlotNavigationPresentation = .full
     @State private var hiddenNavigationIsRevealed = false
     @State private var hiddenNavigationDismissTask: Task<Void, Never>?
+    @State private var pageSwipesDisabled = false
 
     private var arcCurveOffset: CGFloat {
 #if os(iOS)
@@ -38,14 +39,20 @@ struct SlotNavigationContainer<Content: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let layout = barLayout(for: effectiveNavigationPresentation)
+            let reservedHeight = effectiveNavigationPresentation == .hidden ? 0
+                : (layout == .full ? barHeight : SlotNavigationBar.inlineHeight) + navigationContentClearance(for: layout)
+            let frame = proxy.frame(in: .global)
+            let contentBounds = CGRect(x: frame.minX, y: frame.minY, width: frame.width, height: max(1, frame.height - reservedHeight))
             VStack(spacing: 0) {
                 content()
+                    .environment(\.slotNavigationContentBounds, contentBounds)
                     .id(selection)
                     .transition(pageTransition)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .simultaneousGesture(pageSwipeGesture(in: proxy.size))
-                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size))
+                    .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: pageSwipesDisabled ? .subviews : .all)
+                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: effectiveNavigationPresentation == .hidden ? .all : .subviews)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if effectiveNavigationPresentation != .hidden {
@@ -104,6 +111,7 @@ struct SlotNavigationContainer<Content: View>: View {
             .onPreferenceChange(SlotNavigationPresentationPreferenceKey.self) { requestedPresentation in
                 applyNavigationPresentation(resolvedNavigationPresentation(requestedPresentation))
             }
+            .onPreferenceChange(SlotNavigationEditingPreferenceKey.self) { pageSwipesDisabled = $0 }
             .animation(pageAnimation, value: selection)
             .animation(navigationPresentationAnimation, value: effectiveNavigationPresentation)
             .accessibilityElement(children: .contain)
@@ -323,4 +331,23 @@ struct SlotNavigationContainer<Content: View>: View {
 private enum PageTransitionDirection {
     case forward
     case backward
+}
+
+struct SlotNavigationEditingPreferenceKey: PreferenceKey {
+    static var defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
+private struct SlotNavigationContentBoundsKey: EnvironmentKey {
+    static let defaultValue: CGRect? = nil
+}
+
+extension EnvironmentValues {
+    var slotNavigationContentBounds: CGRect? {
+        get { self[SlotNavigationContentBoundsKey.self] }
+        set { self[SlotNavigationContentBoundsKey.self] = newValue }
+    }
 }

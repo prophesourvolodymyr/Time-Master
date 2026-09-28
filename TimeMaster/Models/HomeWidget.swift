@@ -46,9 +46,6 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// `compact` is the half-width, two-row footprint rendered as a square
-    /// tile. `square` is full-width 1:1, and `wide` is the full-width 1:2
-    /// footprint.
     var aspectRatio: CGFloat {
         switch self {
         case .compact, .square: 1
@@ -65,24 +62,25 @@ enum HomeWidgetFootprint: String, Codable, CaseIterable, Identifiable {
 
     var accessibilityName: String {
         switch self {
-        case .compact: "compact, half-width, two-row"
-        case .square: "square, full-width, one-row"
-        case .wide: "wide, full-width, half-height"
+        case .compact: "Small"
+        case .square: "Large"
+        case .wide: "Medium"
         }
     }
 
     var menuTitle: String {
         switch self {
-        case .compact: "Compact · 0.5:2"
-        case .square: "Square · 1:1"
-        case .wide: "Wide · 1:2"
+        case .compact: "Small"
+        case .square: "Large"
+        case .wide: "Medium"
         }
     }
 }
 
 enum HomeWidgetSizing {
     static let canvasPadding: CGFloat = 16
-    static let cornerRadius: CGFloat = 18
+    static let cornerRadius: CGFloat = 26
+    static let spacing: CGFloat = 14
 }
 
 enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
@@ -187,7 +185,11 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
     }
 
     var supportedFootprints: [HomeWidgetFootprint] {
-        self == .greeting ? [.wide] : HomeWidgetFootprint.allCases
+        switch self {
+        case .greeting: [.wide]
+        case .activityHeatmap, .activityShortcuts: [.wide, .square]
+        default: [.compact, .wide, .square]
+        }
     }
 
     static var catalog: [HomeWidgetKind] { allCases }
@@ -300,5 +302,62 @@ enum HomeWidgetCatalog {
 
     static func options(for kind: HomeWidgetKind) -> [HomeWidgetKind] {
         HomeWidgetKind.catalog.filter { $0.category == kind.category }
+    }
+}
+
+
+struct HomeWidgetGrid {
+    let frames: [UUID: CGRect]
+    let height: CGFloat
+
+    init(widgets: [HomeWidgetInstance], width: CGFloat, greetingHeight: CGFloat) {
+        let gap = HomeWidgetSizing.spacing
+        var frames: [UUID: CGRect] = [:]
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var secondColumn = false
+        for widget in widgets {
+            let compact = widget.footprint == .compact && widget.kind != .greeting
+            if !compact && secondColumn {
+                y += rowHeight + gap
+                secondColumn = false
+                rowHeight = 0
+            }
+            let size = widget.kind == .greeting
+                ? CGSize(width: width, height: greetingHeight)
+                : Self.size(widget.footprint, width: width)
+            let x = compact && secondColumn ? (width + gap) / 2 : 0
+            frames[widget.id] = CGRect(origin: CGPoint(x: x, y: y), size: size)
+            rowHeight = max(rowHeight, size.height)
+            if compact && !secondColumn {
+                secondColumn = true
+            } else {
+                y += rowHeight + gap
+                rowHeight = 0
+                secondColumn = false
+            }
+        }
+        self.frames = frames
+        height = max(0, secondColumn ? y + rowHeight : y - gap)
+    }
+
+    static func size(_ footprint: HomeWidgetFootprint, width: CGFloat) -> CGSize {
+        let small = (width - HomeWidgetSizing.spacing) / 2
+        switch footprint {
+        case .compact: return CGSize(width: small, height: small)
+        case .wide: return CGSize(width: width, height: small)
+        case .square: return CGSize(width: width, height: width)
+        }
+    }
+
+    static func nearestFootprint(
+        to size: CGSize, supported: [HomeWidgetFootprint], width: CGFloat
+    ) -> HomeWidgetFootprint {
+        supported.min { left, right in
+            let lhs = Self.size(left, width: width)
+            let rhs = Self.size(right, width: width)
+            return hypot(lhs.width - size.width, lhs.height - size.height)
+                < hypot(rhs.width - size.width, rhs.height - size.height)
+        } ?? .wide
     }
 }

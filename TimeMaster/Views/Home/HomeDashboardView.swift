@@ -6,7 +6,6 @@ struct HomeDashboardView: View {
     @EnvironmentObject private var databaseStore: DatabaseStore
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     let onBrowseWorkouts: () -> Void
     let onBrowseDatabase: () -> Void
@@ -18,6 +17,8 @@ struct HomeDashboardView: View {
     @State private var showingSettings = false
     @State private var showingWidgetPicker = false
     @State private var isEditing = false
+    @State private var pendingWidget: HomeWidgetInstance?
+    @State private var insertedWidgetID: UUID?
     @State private var now = Date()
 
     var body: some View {
@@ -30,6 +31,7 @@ struct HomeDashboardView: View {
                     databaseStore: databaseStore,
                     outdoorStore: outdoorStore,
                     isEditing: $isEditing,
+                    insertedWidgetID: insertedWidgetID,
                     now: now,
                     skippedScheduledInstanceIDs: widgetStore.skippedScheduledInstanceIDs,
                     onStartWorkout: startWorkout,
@@ -38,26 +40,16 @@ struct HomeDashboardView: View {
                     onCreateWorkout: onCreateWorkout,
                     onStartOutdoor: onStartOutdoor
                 )
-                LinearGradient(
-                    colors: [
-                        Theme.background.opacity(reduceTransparency ? 0.84 : 0.62),
-                        Theme.background.opacity(reduceTransparency ? 0.42 : 0.20),
-                        .clear
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 150)
-                .frame(maxHeight: .infinity, alignment: .top)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
             }
             .navigationTitle("")
+            .preference(key: SlotNavigationEditingPreferenceKey.self, value: isEditing)
             .toolbar {
                 toolbarContent
             }
+            #if os(iOS)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            #endif
             .onAppear {
                 now = Date()
             }
@@ -65,11 +57,9 @@ struct HomeDashboardView: View {
                 now = date
             }
             .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.75)
-                    .onEnded { _ in
-                        guard !isEditing else { return }
-                        setEditing(true)
-                    }
+                LongPressGesture(minimumDuration: 0.6, maximumDistance: 10)
+                    .onEnded { _ in setEditing(true) },
+                including: isEditing ? .subviews : .all
             )
             .sheet(item: $playerWorkout) { workout in
                 WorkoutPlayerView(workout: workout)
@@ -81,8 +71,11 @@ struct HomeDashboardView: View {
                     .environmentObject(store)
                     .environmentObject(outdoorStore)
             }
-            .sheet(isPresented: $showingWidgetPicker) {
-                HomeWidgetPicker(widgetStore: widgetStore)
+            .sheet(isPresented: $showingWidgetPicker, onDismiss: insertPendingWidget) {
+                HomeWidgetPicker(widgetStore: widgetStore) { kind, footprint in
+                    pendingWidget = HomeWidgetInstance(kind: kind, footprint: footprint)
+                    showingWidgetPicker = false
+                }
             }
         }
     }
@@ -127,6 +120,14 @@ struct HomeDashboardView: View {
                 }
                 .accessibilityLabel("Open Settings")
             }
+        }
+    }
+
+    private func insertPendingWidget() {
+        guard let pendingWidget else { return }
+        self.pendingWidget = nil
+        withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.48, dampingFraction: 0.78)) {
+            insertedWidgetID = widgetStore.add(pendingWidget.kind, footprint: pendingWidget.footprint)
         }
     }
 

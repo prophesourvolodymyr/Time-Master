@@ -863,6 +863,24 @@ F27 Home ───────────────┘
 - [ ] Human review of the updated iOS and macOS editor
 ---
 
+## Cycle 25 — Home Widget Direct Manipulation
+
+**Requested with user: 2026-09-27. Implementation handed off; human review pending.**
+
+- [x] Move the actual Home widget under the finger with live neighboring layout and edge scrolling
+- [x] Drop newly added widgets at the top after dismissing the picker
+- [x] Resize supported widgets continuously with corner grips and Small, Medium, and Large snap sizes
+- [x] Pack adjacent Small widgets side by side and preserve saved widget identities, configuration, order, and sizes
+- [x] Simplify Today and other widget content with centered bold headings and concise empty states
+- [x] Restore scrolling after cancelled or interrupted gestures and keep the final widgets reachable above navigation
+- [x] Reset interrupted navigation rail gestures and disable page-swipe competition while editing Home
+- [x] Exercise dragging, resizing, insertion, persistence, interruption, edge scrolling, larger text, and Reduce Motion on iPhone 16 with iOS 18.6
+- [x] Build iOS and macOS in an isolated working copy using committed app-entry files without restoring the user's local deletions
+- [ ] Human review of Home dragging, resizing, insertion, and widget appearance
+- [ ] Human review of Home scrolling and navigation rail responsiveness
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

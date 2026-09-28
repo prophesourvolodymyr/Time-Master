@@ -28,6 +28,9 @@ final class HomeWidgetStore: ObservableObject {
                !widget.configuration.activityShortcuts.contains(.walk) {
                 widget.configuration.activityShortcuts.append(.walk)
             }
+            if !widget.kind.supportedFootprints.contains(widget.footprint) {
+                widget.footprint = widget.kind.defaultFootprint
+            }
             return widget
         }
         let addedWalkShortcut = outdoorShortcutWidgets != loadedWidgets
@@ -73,20 +76,18 @@ final class HomeWidgetStore: ObservableObject {
         }
     }
 
+    @discardableResult
     func add(
         _ kind: HomeWidgetKind,
         footprint: HomeWidgetFootprint? = nil,
         configuration: HomeWidgetConfiguration? = nil
-    ) {
-        guard canAdd(kind) else { return }
-        widgets.append(
-            HomeWidgetInstance(
-                kind: kind,
-                footprint: footprint,
-                configuration: configuration
-            )
-        )
+    ) -> UUID? {
+        guard canAdd(kind) else { return nil }
+        let size = footprint.flatMap { kind.supportedFootprints.contains($0) ? $0 : nil }
+        let widget = HomeWidgetInstance(kind: kind, footprint: size, configuration: configuration)
+        widgets.insert(widget, at: 0)
         save()
+        return widget.id
     }
 
     func remove(id: UUID) {
@@ -94,18 +95,13 @@ final class HomeWidgetStore: ObservableObject {
         save()
     }
 
-    func move(id: UUID, toInsertionIndex destination: Int) {
+    func move(id: UUID, toIndex destination: Int) {
         guard let source = widgets.firstIndex(where: { $0.id == id }) else { return }
-
-        let item = widgets.remove(at: source)
-        let adjustedDestination = destination > source ? destination - 1 : destination
-        let insertionIndex = min(max(adjustedDestination, 0), widgets.count)
-        guard insertionIndex != source else {
-            widgets.insert(item, at: source)
-            return
-        }
-
-        widgets.insert(item, at: insertionIndex)
+        let target = min(max(destination, 0), widgets.count - 1)
+        guard source != target else { return }
+        var reordered = widgets
+        reordered.insert(reordered.remove(at: source), at: target)
+        widgets = reordered
         save()
     }
 
@@ -118,7 +114,8 @@ final class HomeWidgetStore: ObservableObject {
 
     func updateFootprint(_ footprint: HomeWidgetFootprint, for id: UUID) {
         guard let index = widgets.firstIndex(where: { $0.id == id }),
-              widgets[index].kind.supportedFootprints.contains(footprint) else { return }
+              widgets[index].kind.supportedFootprints.contains(footprint),
+              widgets[index].footprint != footprint else { return }
         widgets[index].footprint = footprint
         save()
     }

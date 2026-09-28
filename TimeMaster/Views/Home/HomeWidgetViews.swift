@@ -1,7 +1,6 @@
 import SwiftUI
 
 #if os(iOS)
-import CoreMotion
 import UIKit
 #endif
 
@@ -18,7 +17,6 @@ struct HomeWidgetContent: View {
     let onCreateWorkout: () -> Void
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
-    @StateObject private var activityMotion = HomeActivityMotion()
     let onSkipScheduledWorkout: (ScheduledWorkout) -> Void
 
     var body: some View {
@@ -88,20 +86,13 @@ struct HomeWidgetContent: View {
     }
 
     private var today: some View {
-        HomeWidgetChrome(title: "Today") {
-            let items = visibleTodayItems
-            VStack(alignment: .leading, spacing: 9) {
-                if items.isEmpty {
-                    Text("Nothing scheduled today")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.textSecondary)
-                    Button("Browse workouts", action: onBrowseWorkouts)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                } else {
-                    ForEach(items) { item in
-                        todayRow(item)
-                    }
+        let items = visibleTodayItems
+        return HomeWidgetChrome(title: items.isEmpty ? nil : "Today") {
+            if items.isEmpty {
+                quietEmpty("Nothing planned\ntoday.")
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(items) { item in todayRow(item) }
                 }
             }
         }
@@ -118,18 +109,13 @@ struct HomeWidgetContent: View {
                                 .font(.title3.weight(.bold))
                                 .foregroundStyle(.white)
                                 .lineLimit(2)
-                            if widget.configuration.showDetails {
+                            if widget.configuration.showDetails && widget.footprint != .compact {
                                 Text("\(workout.sectionCount) sections · \(durationText(workout.totalDuration))")
                                     .font(.caption)
                                     .foregroundStyle(Theme.textSecondary)
                             }
                         }
                         Spacer(minLength: 8)
-                        Image(systemName: workout.type.iconName)
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 38, height: 38)
-                            .background(Color(hex: workout.colorHex), in: RoundedRectangle(cornerRadius: 11))
                     }
                     Button {
                         onStartWorkout(workout)
@@ -151,51 +137,29 @@ struct HomeWidgetContent: View {
 
     private var activityShortcuts: some View {
         let shortcuts = supportedShortcuts
-        return VStack(alignment: .leading, spacing: 12) {
-            Text("Start something")
-                .font(.headline)
-                .foregroundStyle(.white)
-
-            if shortcuts.isEmpty {
-                Text("Choose an activity in the widget menu.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
-            } else {
-                GeometryReader { proxy in
-                    let columns = max(3, shortcuts.count)
-                    let diameter = max(0, (proxy.size.width - CGFloat(columns - 1) * 12) / CGFloat(columns))
-                    HStack(spacing: 12) {
-                        ForEach(shortcuts) { shortcut in
-                            HomeActivityShortcutCircle(
-                                shortcut: shortcut,
-                                diameter: diameter,
-                                roll: activityMotion.roll,
-                                pitch: activityMotion.pitch,
-                                action: { start(shortcut) }
-                            )
-                        }
+        return HomeWidgetChrome(title: "Start") {
+            GeometryReader { proxy in
+                let count = widget.footprint == .square ? 2 : max(1, shortcuts.count)
+                let rows = max(1, Int(ceil(Double(shortcuts.count) / Double(count))))
+                let diameter = max(44, min(
+                    (proxy.size.width - CGFloat(count - 1) * 12) / CGFloat(count),
+                    (proxy.size.height - CGFloat(rows - 1) * 12) / CGFloat(rows)
+                ))
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: count), spacing: 12) {
+                    ForEach(shortcuts) { shortcut in
+                        HomeActivityShortcutCircle(shortcut: shortcut, diameter: diameter, action: { start(shortcut) })
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .aspectRatio(CGFloat(max(3, shortcuts.count)), contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .onAppear {
-            activityMotion.start()
-        }
-        .onDisappear {
-            activityMotion.stop()
-        }
-
     }
 
     private var recentWorkouts: some View {
-        let entries = Array(workoutStore.historyEntries.sorted { $0.completedAt > $1.completedAt }.prefix(max(1, widget.configuration.visibleCount)))
+        let entries = Array(workoutStore.historyEntries.sorted { $0.completedAt > $1.completedAt }.prefix(visibleRowCount))
         return HomeWidgetChrome(title: "Recent workouts") {
             if entries.isEmpty {
-                Text("Finish a workout and it will appear here.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
+                quietEmpty("No workouts yet.")
             } else {
                 VStack(alignment: .leading, spacing: 9) {
                     ForEach(entries) { entry in
@@ -215,9 +179,11 @@ struct HomeWidgetContent: View {
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
                                 Spacer(minLength: 6)
-                                Text(entry.completedAt, style: .relative)
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.textSecondary)
+                                if widget.footprint != .compact {
+                                    Text(entry.completedAt, style: .relative)
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.textSecondary)
+                                }
                             }
                         }
                         .buttonStyle(.plain)
@@ -252,9 +218,7 @@ struct HomeWidgetContent: View {
                     .buttonStyle(.plain)
                 }
             } else {
-                Text("No workout is waiting to be resumed.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
+                quietEmpty("All caught up.")
             }
         }
     }
@@ -294,7 +258,7 @@ struct HomeWidgetContent: View {
 
     private var metrics: some View {
         return HomeWidgetChrome(title: "Progress", surface: true) {
-            HStack(spacing: 8) {
+            metricLayout {
                 ForEach(widget.configuration.metricFields) { field in
                     metricCell(field)
                 }
@@ -305,20 +269,19 @@ struct HomeWidgetContent: View {
     private var streak: some View {
         let streak = workoutStore.streakInfo()
         return HomeWidgetChrome(title: "Streak", surface: true) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Image(systemName: streak.current == 0 ? "flame" : "flame.fill")
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(streak.current == 0 ? Theme.textSecondary : .orange)
+            VStack(spacing: 4) {
                 Text("\(streak.current)")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .monospacedDigit()
                     .foregroundStyle(.white)
                 Text(streak.current == 1 ? "day" : "days")
                     .font(.subheadline)
                     .foregroundStyle(Theme.textSecondary)
-                Spacer()
-                Text("Best \(streak.best)")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textSecondary)
+                if widget.footprint == .square {
+                    Text("Best · \(streak.best)")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.textSecondary)
+                }
             }
         }
     }
@@ -327,12 +290,10 @@ struct HomeWidgetContent: View {
         let types = visibleTypes
         return HomeWidgetChrome(title: "Weekly rhythm", surface: true) {
             if types.isEmpty {
-                Text("Complete a workout or set a schedule to see progress.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
+                quietEmpty("Your week starts here.")
             } else {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(types) { type in
+                    ForEach(Array(types.prefix(visibleRowCount))) { type in
                         let stats = workoutStore.typeStats(for: type)
                         let goal = max(GoalsManager.shared.goal(for: type), 1)
                         HStack(spacing: 8) {
@@ -356,20 +317,22 @@ struct HomeWidgetContent: View {
         }
     }
 
+    @ViewBuilder
     private var activityHeatmap: some View {
-        ActivityHeatmap(
-            entries: workoutStore.historyEntries,
-            outdoorActivities: outdoorStore.establishedActivities
-        )
-        .environmentObject(workoutStore)
+        if workoutStore.historyEntries.isEmpty && outdoorStore.establishedActivities.isEmpty && workoutStore.typeSchedules.allSatisfy({ !$0.isActive }) {
+            HomeWidgetChrome(title: "Activity") { quietEmpty("No activity yet.") }
+        } else {
+            ActivityHeatmap(entries: workoutStore.historyEntries, outdoorActivities: outdoorStore.establishedActivities)
+                .environmentObject(workoutStore)
+        }
     }
 
     private var lifetimeStats: some View {
         let minutes = workoutStore.historyEntries.reduce(0) { $0 + $1.durationCompleted } / 60
         return HomeWidgetChrome(title: "Lifetime", surface: true) {
-            HStack(spacing: 8) {
-                metricValue("\(workoutStore.historyEntries.count)", label: "sessions", icon: "checkmark.circle")
-                metricValue("\(minutes)m", label: "minutes", icon: "clock")
+            metricLayout {
+                metricValue("\(workoutStore.historyEntries.count)", label: "sessions")
+                metricValue("\(minutes)m", label: "minutes")
             }
         }
     }
@@ -378,12 +341,10 @@ struct HomeWidgetContent: View {
         let types = visibleTypes
         return HomeWidgetChrome(title: "By type", surface: true) {
             if types.isEmpty {
-                Text("No type data yet.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
+                quietEmpty("No activity yet.")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(types) { type in
+                    ForEach(Array(types.prefix(visibleRowCount))) { type in
                         let stats = workoutStore.typeStats(for: type)
                         HStack {
                             Image(systemName: type.iconName)
@@ -405,48 +366,31 @@ struct HomeWidgetContent: View {
     private var outdoorSummary: some View {
         let finished = outdoorStore.establishedActivities
         return HomeWidgetChrome(title: "Outdoor", surface: true) {
-            HStack(spacing: 8) {
-                metricValue("\(finished.filter { $0.kind != .bike }.count)", label: "on foot", icon: "figure.walk")
-                metricValue("\(finished.filter { $0.kind == .bike }.count)", label: "rides", icon: "bicycle")
-                metricValue(String(format: "%.1f km", finished.reduce(0) { $0 + $1.distanceMeters } / 1000), label: "distance", icon: "point.topleft.down.curvedto.point.bottomright.up")
+            metricLayout {
+                metricValue("\(finished.filter { $0.kind != .bike }.count)", label: "on foot")
+                metricValue("\(finished.filter { $0.kind == .bike }.count)", label: "rides")
+                metricValue(String(format: "%.1f km", finished.reduce(0) { $0 + $1.distanceMeters } / 1000), label: "distance")
             }
         }
     }
     private var outdoorMap: some View {
-        HomeWidgetChrome(title: "Map", surface: true) {
+        HomeWidgetChrome(title: nil, surface: true) {
             Button {
                 onStartOutdoor(.run, nil, nil)
             } label: {
-                HStack(spacing: 14) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.cyan.opacity(0.16))
-                            .frame(width: 52, height: 52)
-                        Image(systemName: "map.fill")
-                            .font(.system(size: 23, weight: .semibold))
-                            .foregroundStyle(.cyan)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Open live map")
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(Theme.textPrimary)
-                        Text("Choose Run, Walk, or Bike")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textSecondary)
-                    }
-
-                    Spacer(minLength: 6)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.textSecondary)
+                VStack(spacing: 10) {
+                    Image(systemName: "map.fill")
+                        .font(.largeTitle)
+                        .foregroundStyle(.cyan)
+                    Text("Explore")
+                        .font(.title3.bold())
+                        .foregroundStyle(Theme.textPrimary)
                 }
-                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Open live map")
-            .accessibilityHint("Opens the outdoor map so you can choose an activity and start recording.")
         }
     }
 
@@ -457,7 +401,7 @@ struct HomeWidgetContent: View {
                     Text(activity.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
-                    Text(activity.finished ? "Your \(activity.kind.displayName.lowercased()) is saved and ready to establish." : "An unfinished \(activity.kind.displayName.lowercased()) is saved.")
+                    Text(activity.finished ? "Ready to save" : "Paused")
                         .font(.caption)
                         .foregroundStyle(Theme.textSecondary)
                     #if os(iOS)
@@ -480,9 +424,7 @@ struct HomeWidgetContent: View {
                     #endif
                 }
             } else {
-                Text("No unfinished activity.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
+                quietEmpty("All caught up.")
             }
         }
     }
@@ -490,12 +432,10 @@ struct HomeWidgetContent: View {
     private var savedRoutes: some View {
         HomeWidgetChrome(title: "Saved routes") {
             if outdoorStore.plannedRoutes.isEmpty {
-                Text("Save a route while recording to see it here.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
+                quietEmpty("No saved routes.")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array(outdoorStore.plannedRoutes.prefix(max(1, widget.configuration.visibleCount)))) { route in
+                    ForEach(Array(outdoorStore.plannedRoutes.prefix(visibleRowCount))) { route in
                         #if os(iOS)
                         if UIDevice.current.userInterfaceIdiom == .phone {
                             Button {
@@ -517,42 +457,62 @@ struct HomeWidgetContent: View {
     }
 
     private var exerciseDatabase: some View {
-        HomeWidgetChrome(title: "Exercise database") {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("\(databaseCount) exercises and pages ready to use.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
-                Button("Open database", action: onBrowseDatabase)
-                    .buttonStyle(.bordered)
+        HomeWidgetChrome(title: "Exercises") {
+            Button(action: onBrowseDatabase) {
+                VStack(spacing: 6) {
+                    Text("\(databaseCount)")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                    Text("Open database")
+                        .font(.subheadline.weight(.medium))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
     }
 
     private var databaseOverview: some View {
         return HomeWidgetChrome(title: "Database", surface: true) {
-            HStack(spacing: 8) {
-                metricValue("\(databaseStore.rootPages.count)", label: "root pages", icon: "square.stack")
-                metricValue("\(databaseCount)", label: "pages", icon: "doc.text")
+            metricLayout {
+                metricValue("\(databaseStore.rootPages.count)", label: "root pages")
+                metricValue("\(databaseCount)", label: "pages")
             }
         }
     }
 
     private var buildFromDatabase: some View {
-        HomeWidgetChrome(title: "Build from database") {
-            VStack(alignment: .leading, spacing: 9) {
-                Text("Turn a saved exercise into your next workout.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
-                Button("Browse exercises", action: onBrowseDatabase)
-                    .buttonStyle(.borderedProminent)
-            }
+        HomeWidgetChrome(title: "Build a workout") {
+            emptyAction("Browse exercises", systemImage: "plus", action: onBrowseDatabase)
         }
+    }
+
+    private var visibleRowCount: Int {
+        let capacity = widget.footprint == .compact ? 1 : (widget.footprint == .wide ? 2 : 5)
+        return min(max(1, widget.configuration.visibleCount), capacity)
+    }
+
+    private var metricLayout: AnyLayout {
+        widget.footprint == .compact
+            ? AnyLayout(VStackLayout(spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 12))
+    }
+
+    private func quietEmpty(_ text: String) -> some View {
+        Text(text)
+            .font(.title3.weight(.bold))
+            .multilineTextAlignment(.center)
+            .foregroundStyle(Theme.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var visibleTodayItems: [ScheduledWorkout] {
         workoutStore.scheduledWorkouts(for: now)
             .filter { !skippedScheduledInstanceIDs.contains($0.id) }
-            .prefix(max(1, widget.configuration.visibleCount))
+            .prefix(visibleRowCount)
             .map { $0 }
     }
 
@@ -615,70 +575,65 @@ struct HomeWidgetContent: View {
     }
 
     private func todayRow(_ item: ScheduledWorkout) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: item.status == .completed ? "checkmark.square.fill" : "square")
-                .font(.title3)
-                .foregroundStyle(item.status == .completed ? .green : Theme.textSecondary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.workout.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                Text(item.timeRangeText)
-                    .font(.caption)
-                    .foregroundStyle(Theme.textSecondary)
-            }
-            Spacer(minLength: 4)
-            if widget.configuration.showStatus {
-                Text(item.status.title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(statusColor(item.status))
-            }
-            Button(item.status == .missed ? "Start Now" : "Start") {
-                onStartWorkout(item.workout)
-            }
-            .font(.caption.weight(.semibold))
-            .contextMenu {
-                if item.status != .completed {
-                    Button("Skip", role: .destructive) {
-                        onSkipScheduledWorkout(item)
+        Button {
+            onStartWorkout(item.workout)
+        } label: {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.workout.name)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    if widget.configuration.showScheduledTime {
+                        Text(item.timeRangeText)
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
+                Spacer(minLength: 0)
+                Image(systemName: item.status == .completed ? "checkmark.circle.fill" : "play.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(widget.configuration.showStatus ? statusColor(item.status) : .white)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(item.workout.name), \(item.timeRangeText), \(item.status.title)")
+        .accessibilityHint("Start workout")
+        .contextMenu {
+            if item.status != .completed {
+                Button("Skip", role: .destructive) { onSkipScheduledWorkout(item) }
             }
         }
     }
 
     private func metricCell(_ field: HomeMetricField) -> some View {
         let value: String
-        let icon: String
-        let tint: Color
         switch field {
-        case .sessions:
-            value = "\(weeklyEntries.count)"
-            icon = "checkmark.seal.fill"
-            tint = .green
-        case .streak:
-            value = "\(workoutStore.streakInfo().current)"
-            icon = "flame.fill"
-            tint = .orange
-        case .activeMinutes:
-            value = "\(weeklyMinutes)m"
-            icon = "timer"
-            tint = .cyan
+        case .sessions: value = "\(weeklyEntries.count)"
+        case .streak: value = "\(workoutStore.streakInfo().current)"
+        case .activeMinutes: value = "\(weeklyMinutes)m"
         }
-        return VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: icon).foregroundStyle(tint)
-            Text(value).font(.title3.bold()).foregroundStyle(.white).monospacedDigit()
-            Text(field.title).font(.caption2).foregroundStyle(Theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        return metricValue(value, label: field.title)
     }
 
-    private func metricValue(_ value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: icon).foregroundStyle(.cyan)
-            Text(value).font(.headline.monospacedDigit()).foregroundStyle(.white)
-            Text(label).font(.caption2).foregroundStyle(Theme.textSecondary)
+    private func metricValue(_ value: String, label: String) -> some View {
+        let layout = widget.footprint == .compact
+            ? AnyLayout(HStackLayout(spacing: 8))
+            : AnyLayout(VStackLayout(spacing: 6))
+        return layout {
+            Text(value)
+                .font(widget.footprint == .compact ? .headline : .title.bold())
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
     }
@@ -753,8 +708,6 @@ struct HomeWidgetContent: View {
 private struct HomeActivityShortcutCircle: View {
     let shortcut: HomeActivityShortcut
     let diameter: CGFloat
-    let roll: Double
-    let pitch: Double
     let action: () -> Void
 
     var body: some View {
@@ -776,21 +729,9 @@ private struct HomeActivityShortcutCircle: View {
                 Circle()
                     .stroke(shortcutColor.opacity(0.72), lineWidth: 1.5)
             )
-            .shadow(color: shortcutColor.opacity(0.24), radius: 12, y: 7)
         }
         .buttonStyle(.plain)
         .contentShape(Circle())
-        .rotation3DEffect(
-            .degrees(pitch * 5),
-            axis: (x: 1, y: 0, z: 0),
-            perspective: 0.7
-        )
-        .rotation3DEffect(
-            .degrees(-roll * 5),
-            axis: (x: 0, y: 1, z: 0),
-            perspective: 0.7
-        )
-        .offset(x: CGFloat(roll) * 2, y: CGFloat(pitch) * 2)
         .accessibilityLabel(shortcut.title)
         .accessibilityHint("Start \(shortcut.title)")
     }
@@ -805,72 +746,41 @@ private struct HomeActivityShortcutCircle: View {
     }
 }
 
-private final class HomeActivityMotion: ObservableObject {
-    @Published private(set) var roll = 0.0
-    @Published private(set) var pitch = 0.0
-
-    #if os(iOS)
-    private let manager = CMMotionManager()
-    #endif
-
-    func start() {
-        #if os(iOS)
-        guard manager.isDeviceMotionAvailable, !manager.isDeviceMotionActive else { return }
-        manager.deviceMotionUpdateInterval = 1.0 / 30.0
-        manager.startDeviceMotionUpdates(
-            using: .xArbitraryZVertical,
-            to: .main
-        ) { [weak self] motion, _ in
-            guard let gravity = motion?.gravity else { return }
-            self?.roll = min(max(gravity.x, -1), 1)
-            self?.pitch = min(max(gravity.y, -1), 1)
-        }
-        #endif
-    }
-
-    func stop() {
-        #if os(iOS)
-        manager.stopDeviceMotionUpdates()
-        #endif
-    }
-}
 
 struct HomeWidgetChrome<Content: View>: View {
     let title: String?
     let surface: Bool
-    let content: () -> Content
+    let content: Content
 
     init(
         title: String?,
-        surface: Bool = false,
-        @ViewBuilder content: @escaping () -> Content
+        surface: Bool = true,
+        @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.surface = surface
-        self.content = content
+        self.content = content()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             if let title {
                 Text(title)
-                    .font(.headline)
+                    .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity)
             }
-            content()
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(surface ? 16 : 0)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             if surface {
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)
                     .fill(Theme.surface)
-            }
-        }
-        .overlay {
-            if surface {
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(.white.opacity(0.08), lineWidth: 1)
             }
         }
     }

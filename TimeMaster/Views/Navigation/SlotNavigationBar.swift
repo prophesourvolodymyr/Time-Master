@@ -22,6 +22,8 @@ struct SlotNavigationBar: View {
     @State private var isDragging = false
     @State private var hasMeasured = false
     @State private var inlineDragTranslation: CGFloat = 0
+    @GestureState private var fullDragActive = false
+    @GestureState private var inlineDragActive = false
 
     init(
         selection: Binding<Int>,
@@ -77,6 +79,7 @@ struct SlotNavigationBar: View {
                             )
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                     .gesture(dragGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset))
                     .onAppear {
@@ -103,6 +106,14 @@ struct SlotNavigationBar: View {
                             reelOffset = nextOffset
                         }
                     }
+                    .onChange(of: fullDragActive) { active in
+                        guard !active, isDragging else { return }
+                        isDragging = false
+                        withAnimation(selectionAnimation) {
+                            dragIntensity = 0
+                            reelOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
+                        }
+                    }
                 }
                 .zIndex(0)
             } else {
@@ -113,6 +124,12 @@ struct SlotNavigationBar: View {
         .frame(height: layout == .full ? barHeight : Self.inlineHeight)
         .animation(presentationAnimation, value: layout)
         .accessibilityElement(children: .contain)
+        .onChange(of: layout) { _ in
+            isDragging = false
+            hasMeasured = false
+            dragIntensity = 0
+            inlineDragTranslation = 0
+        }
     }
 
 
@@ -131,6 +148,11 @@ struct SlotNavigationBar: View {
             .offset(x: inlineDragTranslation)
             .contentShape(Rectangle())
             .simultaneousGesture(inlineDragGesture(step: step))
+        }
+        .onChange(of: inlineDragActive) { active in
+            if !active {
+                withAnimation(selectionAnimation) { inlineDragTranslation = 0 }
+            }
         }
         .background(Theme.surface.opacity(0.98))
         .overlay(alignment: .top) {
@@ -189,6 +211,7 @@ struct SlotNavigationBar: View {
     }
     private func inlineDragGesture(step: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .local)
+            .updating($inlineDragActive) { _, active, _ in active = true }
             .onChanged { value in
                 let translationLimit = max(step * 0.8, 24)
                 let boundedTranslation = rubberBand(
@@ -461,6 +484,7 @@ struct SlotNavigationBar: View {
         fallbackOffset: CGFloat
     ) -> some Gesture {
         DragGesture(minimumDistance: 8, coordinateSpace: .local)
+            .updating($fullDragActive) { _, active, _ in active = true }
             .onChanged { value in
                 if !isDragging {
                     isDragging = true
