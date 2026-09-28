@@ -57,6 +57,8 @@ struct OutdoorRouteRecordingView: View {
     @State private var didConfigureInitialContent = false
     @State private var showingMusicFileImporter = false
     @State private var musicImportError: String?
+    private let modeReminder = OutdoorModeReminder.shared
+    @State private var modePrompt: OutdoorModeReminder.Prompt?
     @AccessibilityFocusState private var focusedFeature: OutdoorRouteFeature?
 
     init(
@@ -162,7 +164,6 @@ struct OutdoorRouteRecordingView: View {
 
 
                 if upperQuickFeature == nil,
-                   (mainContent == .start || mainContent == .live),
                    mainDetent != .max,
                    quickGeometry.opacity > 0 {
                     OutdoorMapQuickStack(
@@ -175,7 +176,6 @@ struct OutdoorRouteRecordingView: View {
                 }
 
                 if upperQuickFeature == nil,
-                   (mainContent == .start || mainContent == .live),
                    mainDetent != .max {
                     mapControls(layout)
                         .zIndex(5)
@@ -218,7 +218,7 @@ struct OutdoorRouteRecordingView: View {
                         reduceMotion
                             ? .opacity
                             : .scale(scale: 0.08, anchor: upperQuickOrigin(for: upperQuickFeature, layout: layout))
-                                .combined(with: .opacity)
+                            .combined(with: .opacity)
                     )
                     .zIndex(80)
                 }
@@ -285,6 +285,25 @@ struct OutdoorRouteRecordingView: View {
                 musicLibrary.resetRouteSession()
                 musicSession.stop()
             }
+        }
+        .sheet(item: $modePrompt, onDismiss: {
+            committedKind = previewKind
+            recorder.updateKind(committedKind)
+        }) { prompt in
+            OutdoorModeConfirmation(
+                prompt: prompt,
+                kind: $previewKind,
+                onCancel: { modePrompt = nil },
+                onConfirm: {
+                    committedKind = previewKind
+                    recorder.updateKind(committedKind)
+                    modeReminder.confirm()
+                    modePrompt = nil
+                    beginConfirmedRecording()
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .fileImporter(
             isPresented: $showingMusicFileImporter,
@@ -549,30 +568,29 @@ struct OutdoorRouteRecordingView: View {
             flat: isMax,
             interactive: true
         ) {
-            ZStack(alignment: .top) {
+            VStack(spacing: 0) {
+                OutdoorPaneHeader {
+                    mainHandle(layout)
+                } accessory: {
+                    if (mainDetent == .expanded && !mainDrag.isDragging) || isMax {
+                        Button {
+                            toggleMax(layout)
+                        } label: {
+                            Image(systemName: isMax ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                                .font(.body.weight(.semibold))
+                                .frame(minWidth: 48, minHeight: 48)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isMax ? "Exit maximum route view" : "Enter maximum route view")
+                        .accessibilityValue(isMax ? "Maximum" : "Full")
+                    }
+                }
+                .allowsHitTesting(!finishModalPresented)
+                .accessibilityHidden(finishModalPresented)
+
                 mainContentView(expansion: expansion, layout: layout)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-
-                mainHandle(layout)
-                    .allowsHitTesting(!finishModalPresented)
-                    .accessibilityHidden(finishModalPresented)
-
-                if !finishModalPresented && ((mainDetent == .expanded && !mainDrag.isDragging) || isMax) {
-                    Button {
-                        toggleMax(layout)
-                    } label: {
-                        Image(systemName: isMax ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(width: 48, height: 48)
-                    .padding(.top, 4)
-                    .padding(.trailing, 6)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .accessibilityLabel(isMax ? "Exit maximum route view" : "Enter maximum route view")
-                    .accessibilityValue(isMax ? "Maximum" : "Full")
-                }
+                    .clipped()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, isMax ? layout.safeAreaTop : 0)
@@ -602,25 +620,21 @@ struct OutdoorRouteRecordingView: View {
             flat: false,
             interactive: true
         ) {
-            ZStack(alignment: .bottom) {
-                Group {
-                    if selectedFeature == .music {
-                        featureContent(selectedFeature, layout: layout)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        featureContent(selectedFeature, layout: layout)
-                            .frame(height: layout.usableHeight)
-                    }
+            VStack(spacing: 0) {
+                OutdoorPaneHeader {
+                    featureHandle(layout, isMaxDrawer: isMaxDrawer)
+                } accessory: {
+                    EmptyView()
                 }
-                .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985, anchor: .bottom)))
-                .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.88), value: feature)
-                .accessibilityFocused($focusedFeature, equals: selectedFeature)
+                featureContent(selectedFeature, layout: layout)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985, anchor: .bottom)))
+                    .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.88), value: feature)
+                    .accessibilityFocused($focusedFeature, equals: selectedFeature)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: height, alignment: .bottom)
-            .overlay(alignment: .top) {
-                featureHandle(layout, isMaxDrawer: isMaxDrawer)
-            }
+            .frame(height: height)
             .clipped()
             .contentShape(Rectangle())
         }
@@ -1028,6 +1042,16 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func startRecording() {
+        guard modePrompt == nil else { return }
+        if recorder.activeActivity == nil, let prompt = modeReminder.requestPrompt() {
+            previewKind = committedKind
+            modePrompt = prompt
+            return
+        }
+        beginConfirmedRecording()
+    }
+
+    private func beginConfirmedRecording() {
         shortSessionReason = nil
         mainContent = .live
         recorder.updateKind(committedKind)
@@ -1080,11 +1104,14 @@ struct OutdoorRouteRecordingView: View {
         guard let activity = pineFinishedActivity ?? exposedFinishedActivity ?? recorder.activeActivity else {
             return
         }
-        guard recorder.resumeAfterFinish(activity) else {
+        let latest = store.activities.first { $0.id == activity.id } ?? activity
+        guard recorder.resumeAfterFinish(latest) else {
             shortSessionReason = recorder.errorMessage
             return
         }
-        musicSession.start(activityID: activity.id, existingEvents: activity.playedTracks)
+        committedKind = latest.kind
+        previewKind = latest.kind
+        musicSession.start(activityID: latest.id, existingEvents: latest.playedTracks)
         pineFinishedActivity = nil
         exposedFinishedActivity = nil
         mainContent = .live

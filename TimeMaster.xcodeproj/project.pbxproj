@@ -112,6 +112,7 @@
 		4CFDD4F767F087E04B3C554E /* SlotNavigationContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754B28C30A321F0E407FC8FA /* SlotNavigationContainer.swift */; };
 		4D34183ADD9043FD3D2457EE /* MusicSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544CDDB388219EA439FC403E /* MusicSettingsView.swift */; };
 		4F827B5F7BFAB9ECD9CCF4D2 /* MusicProviderAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C92EF761CE54686C4177F7 /* MusicProviderAdapters.swift */; };
+		4FB9A036F1A1A024318EE9DF /* OutdoorSelectionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */; };
 		50DA339EE8C7EF070D76D618 /* OutdoorPineGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746E0E8210EFD993244CDD40 /* OutdoorPineGeometry.swift */; };
 		51521585263E680D0796CD7D /* MotivationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 262C63F71236516065104666 /* MotivationSettingsView.swift */; };
 		518B2DE773F5BA3742F43985 /* MacVideoImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */; };
@@ -144,6 +145,7 @@
 		70A8938D4FADD29277FBC7EC /* MusicLibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFE4033315C9DD766463155 /* MusicLibraryScreen.swift */; };
 		72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */; };
 		772385FE936467AA631F28E3 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C /* Workout.swift */; };
+		77C75331D5DFAC32DCD06E1C /* OutdoorSelectionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */; };
 		782B9D5AB04A08739419EA34 /* HomeWidgetCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */; };
 		799EFBBC8EC17CA89623F013 /* VideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */; };
 		7B2898679D8E35DE5A22BACF /* OutdoorElevationProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD166C97E49788FC12E86DBD /* OutdoorElevationProcessor.swift */; };
@@ -205,6 +207,7 @@
 		AA7714A8E81C30CF1B9F4F96 /* VideoEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */; };
 		AA84BBB117033E14993E543F /* OutdoorTypePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD77E9F42424355F9374FE /* OutdoorTypePicker.swift */; };
 		AAD684B85FF8425C89AC4A5E /* MapLibre in Frameworks */ = {isa = PBXBuildFile; productRef = 9657EC7E161B4E4B7E8855A2 /* MapLibre */; };
+		ADD7C0DF1CE0C71E0EA8A45A /* OutdoorModeReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8733B7850E54109F06C8240F /* OutdoorModeReminder.swift */; };
 		AE60993DD2ED3AED3CFCDFC1 /* AIProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A30541E8A14548A023A7CCF /* AIProvider.swift */; };
 		B22120765D2981114065BDE8 /* OutdoorPrivacyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E979AE3B62E51D54E10AB4 /* OutdoorPrivacyService.swift */; };
 		B2D52CB64479681B826E0A02 /* OutdoorTypePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD77E9F42424355F9374FE /* OutdoorTypePicker.swift */; };
@@ -257,6 +260,7 @@
 		D876BBF5D66A951F5E3066F4 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7D941281F25CED3B19B4557 /* ProfileView.swift */; };
 		D8A1E60796D329D723DD081E /* HomeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 330EF96B497C63642640EBD3 /* HomeWidget.swift */; };
 		DCAC8A1DEFC515EA16E5619B /* OutdoorPineGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EAE79631040FBF42F00924E /* OutdoorPineGlass.swift */; };
+		DD3692E698B0CDDCFFD51EE5 /* OutdoorModeReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8733B7850E54109F06C8240F /* OutdoorModeReminder.swift */; };
 		DD5692635CA853C9090A7230 /* OutdoorStartContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD91AD9DB9234FDA30CEF19 /* OutdoorStartContent.swift */; };
 		DDF89578EABAC73ED7DCFA9C /* BackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5560E604DE15405F64FB3B6B /* BackupView.swift */; };
 		DDF988DA3D5FC60ED0A4E250 /* OutdoorActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01618C53E4137D7AC1CB4DCF /* OutdoorActivityStore.swift */; };
@@ -334,6 +338,7 @@
 		0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportSheetView.swift; sourceTree = "<group>"; };
 		03DCFAED7489A746DEF2AFCA /* MacCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacCommands.swift; sourceTree = "<group>"; };
 		044840F8C2EAA06CD43381D5 /* DurationPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationPickerView.swift; sourceTree = "<group>"; };
+		04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorSelectionControls.swift; sourceTree = "<group>"; };
 		066DA8112F0CED117EACE9C7 /* TimeMasterWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidgetBundle.swift; sourceTree = "<group>"; };
 		08AAEB576B7DB134E5212C54 /* AIStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStore.swift; sourceTree = "<group>"; };
 		0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseDatabase.swift; sourceTree = "<group>"; };
@@ -401,6 +406,7 @@
 		7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePageOverlay.swift; sourceTree = "<group>"; };
 		811BB55E3BD88B54CD74BF4C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorView.swift; sourceTree = "<group>"; };
+		8733B7850E54109F06C8240F /* OutdoorModeReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorModeReminder.swift; sourceTree = "<group>"; };
 		87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoImportSheet.swift; sourceTree = "<group>"; };
 		8880F70DC5DDC88AD96D653B /* MusicGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGuideOverlay.swift; sourceTree = "<group>"; };
 		8A1602CC55687977DCBEBCB6 /* HomeWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetStore.swift; sourceTree = "<group>"; };
@@ -567,6 +573,7 @@
 				8EAE79631040FBF42F00924E /* OutdoorPineGlass.swift */,
 				D142A4D421FFD74BB77ADBCE /* OutdoorQuickSettingsPine.swift */,
 				CD4F62BFC9951F32AD71E3B9 /* OutdoorRouteRecordingView.swift */,
+				04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */,
 				BAD91AD9DB9234FDA30CEF19 /* OutdoorStartContent.swift */,
 				4DCD77E9F42424355F9374FE /* OutdoorTypePicker.swift */,
 				2D4DE30F7F34FC710FFA43F9 /* OutdoorUpperQuickPine.swift */,
@@ -584,6 +591,7 @@
 				A694D8D9DD60CCD872FB8C2D /* MusicLibraryModels.swift */,
 				1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */,
 				B252752B4743B22C413C4047 /* OutdoorMapModels.swift */,
+				8733B7850E54109F06C8240F /* OutdoorModeReminder.swift */,
 				449515AADD3620C6E8397EFD /* OutdoorRecordingPreferencesStore.swift */,
 				E8B651EB5E182B829EAB5F72 /* PlannedRoute.swift */,
 				F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */,
@@ -1148,6 +1156,7 @@
 				0CDC4792225536EFC094DD99 /* OutdoorMapRouteSnapshotService.swift in Sources */,
 				D2A77CEADC95F66DCD625C4D /* OutdoorMapSession.swift in Sources */,
 				32A7DE735947C3A995C1ABED /* OutdoorMetricsCalculator.swift in Sources */,
+				ADD7C0DF1CE0C71E0EA8A45A /* OutdoorModeReminder.swift in Sources */,
 				9ABD0A0B167BB5A812296795 /* OutdoorMusicEditorView.swift in Sources */,
 				C418DB1DB2414D4CE155E742 /* OutdoorMusicSession.swift in Sources */,
 				37B45B1AF694C7BDAB12A472 /* OutdoorPineGeometry.swift in Sources */,
@@ -1157,6 +1166,7 @@
 				086F6D66763D803C6B434C18 /* OutdoorRecordingPreferencesStore.swift in Sources */,
 				E75326F96D128BE8DA17278D /* OutdoorRouteRecordingView.swift in Sources */,
 				5B75D83FC26CD308E19AF683 /* OutdoorRouteSnapper.swift in Sources */,
+				4FB9A036F1A1A024318EE9DF /* OutdoorSelectionControls.swift in Sources */,
 				5CFB8E1C2438CE52259C25AD /* OutdoorStartContent.swift in Sources */,
 				B2D52CB64479681B826E0A02 /* OutdoorTypePicker.swift in Sources */,
 				0B896E296758E7B556658D52 /* OutdoorUpperQuickPine.swift in Sources */,
@@ -1295,6 +1305,7 @@
 				1D7BBA5B8D29582B8B4A44FA /* OutdoorMapRouteSnapshotService.swift in Sources */,
 				4A02A1DF0FEFC80B588ED3B3 /* OutdoorMapSession.swift in Sources */,
 				3B4226EB7ADBAD2EB945B88E /* OutdoorMetricsCalculator.swift in Sources */,
+				DD3692E698B0CDDCFFD51EE5 /* OutdoorModeReminder.swift in Sources */,
 				0C94492B3B3533561C778E60 /* OutdoorMusicEditorView.swift in Sources */,
 				D7962C2DEC8B15DD06078634 /* OutdoorMusicSession.swift in Sources */,
 				50DA339EE8C7EF070D76D618 /* OutdoorPineGeometry.swift in Sources */,
@@ -1304,6 +1315,7 @@
 				87B2EBE45EB9339CB9899968 /* OutdoorRecordingPreferencesStore.swift in Sources */,
 				23D6D7123058D074002C58BF /* OutdoorRouteRecordingView.swift in Sources */,
 				3BBC9310F475328AC32F36DC /* OutdoorRouteSnapper.swift in Sources */,
+				77C75331D5DFAC32DCD06E1C /* OutdoorSelectionControls.swift in Sources */,
 				DD5692635CA853C9090A7230 /* OutdoorStartContent.swift in Sources */,
 				AA84BBB117033E14993E543F /* OutdoorTypePicker.swift in Sources */,
 				47AE5403686C7047029AC887 /* OutdoorUpperQuickPine.swift in Sources */,

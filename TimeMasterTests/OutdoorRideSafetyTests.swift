@@ -236,4 +236,75 @@ final class OutdoorRideSafetyTests: XCTestCase {
         recorder.updateKind(.walk)
         XCTAssertEqual(recorder.kind, .walk)
     }
+
+    func testSavedWorkoutEditsPreserveRecordedDataAndCustomName() throws {
+        _ = try begin()
+        try store.append(point: point(0, seconds: 0))
+        try store.append(point: point(100, seconds: 20, altitude: 120))
+        let finished = try XCTUnwrap(store.finish(at: start.addingTimeInterval(20)))
+        let saved = try store.establish(finished, visibility: .publicVisibility, at: start.addingTimeInterval(30))
+        let recordedPoints = store.trackPoints(for: saved)
+        try store.updateTitle("Morning hills", for: saved)
+        try store.setKind(.walk, for: saved)
+        try store.updateDetails(for: saved, description: "A good climb", tags: ["hills"], allowComments: false, hideStartFinish: true, endpointPrivacyMeters: 200, showPlayerTracks: false)
+        try store.setVisibility(.privateVisibility, for: saved)
+
+        let reopened = OutdoorActivityStore(database: DatabaseManager(fs: FileSystemHelper(dataRoot: root)))
+        let edited = try XCTUnwrap(reopened.establishedActivities.first)
+        XCTAssertEqual(edited.title, "Morning hills")
+        XCTAssertEqual(edited.kind, .walk)
+        XCTAssertEqual(edited.publicDescription, "A good climb")
+        XCTAssertEqual(edited.tags, ["hills"])
+        XCTAssertEqual(edited.visibility, .privateVisibility)
+        XCTAssertTrue(edited.hasPublicMetadata)
+        XCTAssertEqual(edited.establishedAt, saved.establishedAt)
+        XCTAssertEqual(edited.startedAt, saved.startedAt)
+        XCTAssertEqual(edited.endedAt, saved.endedAt)
+        XCTAssertEqual(edited.distanceMeters, saved.distanceMeters)
+        XCTAssertEqual(edited.movingSeconds, saved.movingSeconds)
+        XCTAssertEqual(edited.elevationGainMeters, saved.elevationGainMeters)
+        XCTAssertEqual(reopened.trackPoints(for: edited), recordedPoints)
+    }
+
+    func testChangingSavedTypeUpdatesAnAutomaticNameButRejectsAnActiveRide() throws {
+        let active = try begin()
+        XCTAssertThrowsError(try store.setKind(.walk, for: active))
+        XCTAssertEqual(store.active?.kind, .bike)
+        try store.append(point: point(0, seconds: 0))
+        try store.append(point: point(100, seconds: 20))
+        let finished = try XCTUnwrap(store.finish(at: start.addingTimeInterval(20)))
+        try store.setKind(.run, for: finished)
+        store.reload()
+        let edited = try XCTUnwrap(store.recoverableActivities.first)
+        XCTAssertEqual(edited.kind, .run)
+        XCTAssertEqual(edited.title, TimeMaster.OutdoorActivityKind.run.defaultTitle)
+    }
+
+    func testModeReminderRemembersCancellationAndConfirmationAcrossRelaunches() {
+        let suite = "OutdoorModeReminderTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let reminder = OutdoorModeReminder(defaults: defaults, at: start, observesLifecycle: false)
+        XCTAssertEqual(reminder.requestPrompt(at: start), .choose)
+        let reopened = OutdoorModeReminder(defaults: defaults, at: start.addingTimeInterval(20), observesLifecycle: false)
+        XCTAssertEqual(reopened.requestPrompt(at: start.addingTimeInterval(20)), .confirm)
+        reopened.confirm(at: start.addingTimeInterval(21))
+        let confirmed = OutdoorModeReminder(defaults: defaults, at: start.addingTimeInterval(40), observesLifecycle: false)
+        XCTAssertNil(confirmed.requestPrompt(at: start.addingTimeInterval(40)))
+    }
+
+    func testModeReminderExpiresAfterAnHourAwayButNotDuringActiveUse() {
+        let suite = "OutdoorModeReminderTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let reminder = OutdoorModeReminder(defaults: defaults, at: start, observesLifecycle: false)
+        reminder.confirm(at: start)
+        XCTAssertNil(reminder.requestPrompt(at: start.addingTimeInterval(7_200)))
+        reminder.wentAway(at: start.addingTimeInterval(7_200))
+        reminder.becameActive(at: start.addingTimeInterval(10_799))
+        XCTAssertNil(reminder.requestPrompt(at: start.addingTimeInterval(10_799)))
+        reminder.wentAway(at: start.addingTimeInterval(10_800))
+        let reopened = OutdoorModeReminder(defaults: defaults, at: start.addingTimeInterval(14_400), observesLifecycle: false)
+        XCTAssertEqual(reopened.requestPrompt(at: start.addingTimeInterval(14_400)), .choose)
+    }
 }

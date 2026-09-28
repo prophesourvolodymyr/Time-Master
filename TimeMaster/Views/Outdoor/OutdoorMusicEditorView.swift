@@ -94,7 +94,6 @@ struct OutdoorMusicEditorView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.top, 48)
         .padding(.bottom, 10)
         .preference(key: OutdoorMusicEditorTotalHeightKey.self, value: desiredEditorHeight)
         .onPreferenceChange(OutdoorMusicEditorTotalHeightKey.self) { height in

@@ -4,11 +4,14 @@ import TimeMasterCore
 
 enum OutdoorActivityStoreError: Error, LocalizedError {
     case cannotEstablishUnfinished
+    case cannotChangeActiveWorkoutType
 
     var errorDescription: String? {
         switch self {
         case .cannotEstablishUnfinished:
             "Only a finished outdoor activity can be established."
+        case .cannotChangeActiveWorkoutType:
+            "Finish this workout before changing its saved activity type."
         }
     }
 }
@@ -308,6 +311,37 @@ final class OutdoorActivityStore: ObservableObject {
         }
     }
 
+    func setKind(_ kind: OutdoorActivityKind, for activity: OutdoorActivity) throws {
+        let current = activities.first(where: { $0.id == activity.id }) ?? activity
+        guard current.finished else { throw OutdoorActivityStoreError.cannotChangeActiveWorkoutType }
+        _ = try persistMutation(current) { updated in
+            if updated.title == updated.kind.defaultTitle {
+                updated.title = kind.defaultTitle
+            }
+            updated.kind = kind
+        }
+    }
+
+    func updateDetails(
+        for activity: OutdoorActivity,
+        description: String,
+        tags: [String],
+        allowComments: Bool,
+        hideStartFinish: Bool,
+        endpointPrivacyMeters: Int,
+        showPlayerTracks: Bool
+    ) throws {
+        _ = try persistMutation(activity) {
+            $0.publicDescription = description
+            $0.tags = tags
+            $0.allowComments = allowComments
+            $0.hideStartFinish = hideStartFinish
+            $0.endpointPrivacyMeters = TimeMasterCore.OutdoorActivityManifest.clampedEndpointPrivacyMeters(endpointPrivacyMeters)
+            $0.showPlayerTracks = showPlayerTracks
+            $0.hasPublicMetadata = true
+        }
+    }
+
     @discardableResult
     private func persistMutation(
         _ activity: OutdoorActivity,
@@ -346,68 +380,6 @@ final class OutdoorActivityStore: ObservableObject {
 
     func updateVisibility(_ visibility: OutdoorActivityVisibility, for activity: OutdoorActivity) throws {
         try setVisibility(visibility, for: activity)
-    }
-
-    func setPublicDescription(_ description: String, for activity: OutdoorActivity) throws {
-        _ = try persistMutation(activity) {
-            $0.publicDescription = description
-            $0.hasPublicMetadata = true
-        }
-    }
-
-    func updatePublicDescription(_ description: String, for activity: OutdoorActivity) throws {
-        try setPublicDescription(description, for: activity)
-    }
-
-    func setTags(_ tags: [String], for activity: OutdoorActivity) throws {
-        _ = try persistMutation(activity) {
-            $0.tags = tags
-            $0.hasPublicMetadata = true
-        }
-    }
-
-    func updateTags(_ tags: [String], for activity: OutdoorActivity) throws {
-        try setTags(tags, for: activity)
-    }
-
-    func setAllowComments(_ allow: Bool, for activity: OutdoorActivity) throws {
-        _ = try persistMutation(activity) {
-            $0.allowComments = allow
-            $0.hasPublicMetadata = true
-        }
-    }
-
-    func updateAllowComments(_ allow: Bool, for activity: OutdoorActivity) throws {
-        try setAllowComments(allow, for: activity)
-    }
-
-    func setHideStartFinish(_ hide: Bool, for activity: OutdoorActivity) throws {
-        _ = try persistMutation(activity) {
-            $0.hideStartFinish = hide
-            $0.hasPublicMetadata = true
-        }
-    }
-
-    func setEndpointPrivacyMeters(_ meters: Int, for activity: OutdoorActivity) throws {
-        _ = try persistMutation(activity) {
-            $0.endpointPrivacyMeters = TimeMasterCore.OutdoorActivityManifest.clampedEndpointPrivacyMeters(meters)
-            $0.hasPublicMetadata = true
-        }
-    }
-
-    func updateEndpointPrivacyMeters(_ meters: Int, for activity: OutdoorActivity) throws {
-        try setEndpointPrivacyMeters(meters, for: activity)
-    }
-
-    func setShowPlayerTracks(_ show: Bool, for activity: OutdoorActivity) throws {
-        _ = try persistMutation(activity) {
-            $0.showPlayerTracks = show
-            $0.hasPublicMetadata = true
-        }
-    }
-
-    func updateShowPlayerTracks(_ show: Bool, for activity: OutdoorActivity) throws {
-        try setShowPlayerTracks(show, for: activity)
     }
 
     func setPlayedTracks(_ tracks: [OutdoorPlayedTrackEvent], for activity: OutdoorActivity) throws {

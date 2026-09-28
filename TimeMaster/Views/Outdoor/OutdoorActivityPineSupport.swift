@@ -176,6 +176,118 @@ struct OutdoorMetricTile: View {
     }
 }
 
+struct OutdoorWorkoutSummary: View {
+    let activity: OutdoorActivity
+    let units: TimeMasterCore.OutdoorUnitSystem
+    var expanded = true
+    @ScaledMetric(relativeTo: .body) private var columnWidth: CGFloat = 130
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .top, spacing: 20) {
+                headlineMetric("Distance", outdoorDistanceText(activity.distanceMeters, unitSystem: units, precision: true))
+                headlineMetric("Duration", outdoorDurationText(activity.elapsedSeconds))
+            }
+            if expanded {
+                Divider().overlay(Color.white.opacity(0.08))
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: columnWidth), spacing: 20, alignment: .leading)], alignment: .leading, spacing: 18) {
+                    OutdoorMetricTile(label: "Moving time", value: outdoorDurationText(activity.movingSeconds))
+                    if activity.kind == .bike {
+                        OutdoorMetricTile(label: "Average speed", value: outdoorSpeedText(activity.averageSpeedMetersPerSecond, unitSystem: units))
+                    } else {
+                        OutdoorMetricTile(label: "Average pace", value: outdoorPaceText(activity.averagePaceSecondsPerKilometer, unitSystem: units))
+                    }
+                    OutdoorMetricTile(label: "Elevation gain", value: outdoorElevationText(activity.elevationGainMeters, unitSystem: units))
+                    OutdoorMetricTile(label: "Highest point", value: outdoorElevationText(activity.highestElevationMeters, unitSystem: units))
+                    OutdoorMetricTile(label: "Top speed", value: outdoorSpeedText(activity.maxSpeedMetersPerSecond, unitSystem: units))
+                }
+            }
+        }
+    }
+
+    private func headlineMetric(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Theme.textSecondary)
+            Text(value)
+                .font(.title2.weight(.bold).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct OutdoorPublicDetailsFields: View {
+    @Binding var description: String
+    @Binding var tagText: String
+    @Binding var allowComments: Bool
+    @Binding var hideStartFinish: Bool
+    @Binding var endpointPrivacyMeters: Int
+    @Binding var showPlayerTracks: Bool
+    var recentTags: [String] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            TextField("Add a note about your workout", text: $description, axis: .vertical)
+                .lineLimit(2...6)
+                .textFieldStyle(.plain)
+                .accessibilityLabel("Workout description")
+            Divider()
+            TextField("Tags, separated by commas", text: $tagText)
+                .textFieldStyle(.plain)
+                .accessibilityLabel("Workout tags")
+            if !recentTags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(recentTags, id: \.self) { tag in
+                            Button(tag) {
+                                var tags = outdoorParsedTags(tagText)
+                                if !tags.contains(tag) { tags.append(tag) }
+                                tagText = tags.joined(separator: ", ")
+                            }
+                            .font(.caption)
+                            .buttonStyle(OutdoorAccessoryButtonStyle())
+                            .accessibilityLabel("Add tag \(tag)")
+                        }
+                    }
+                }
+            }
+            Divider()
+            Toggle("Hide start and finish", isOn: $hideStartFinish)
+            if hideStartFinish {
+                HStack {
+                    Text("Hidden distance")
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer()
+                    OutdoorChoicePicker(
+                        title: "Endpoint privacy distance",
+                        selection: $endpointPrivacyMeters,
+                        options: OutdoorPrivacyService.supportedEndpointDistancesMeters.map {
+                            OutdoorChoiceOption(id: $0, title: "\($0) m", systemImage: "location.slash")
+                        }
+                    )
+                }
+            }
+            Toggle("Allow comments", isOn: $allowComments)
+            Toggle("Show played tracks", isOn: $showPlayerTracks)
+        }
+        .font(.subheadline)
+        .tint(Theme.restAccent)
+    }
+}
+
+func outdoorParsedTags(_ text: String) -> [String] {
+    var result: [String] = []
+    for value in text.split(separator: ",") {
+        let tag = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !tag.isEmpty && !result.contains(tag) { result.append(tag) }
+    }
+    return result
+}
+
 struct OutdoorTypeBadge: View {
     let kind: OutdoorActivityKind
 

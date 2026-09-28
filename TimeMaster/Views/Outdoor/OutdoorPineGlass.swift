@@ -107,7 +107,7 @@ struct OutdoorPineGlassSurface<Content: View>: View {
                 RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
             }
-}
+    }
 
 }
 struct OutdoorPineButtonStyle: ButtonStyle {
@@ -178,6 +178,23 @@ struct OutdoorPineButtonStyle: ButtonStyle {
 
     private var shape: RoundedRectangle {
         RoundedRectangle(cornerRadius: circular ? minimumSize / 2 : 14, style: .continuous)
+    }
+}
+
+struct OutdoorPaneHeader<Handle: View, Accessory: View>: View {
+    @ViewBuilder let handle: () -> Handle
+    @ViewBuilder let accessory: () -> Accessory
+
+    var body: some View {
+        ZStack {
+            handle()
+            HStack {
+                Spacer(minLength: 0)
+                accessory()
+            }
+        }
+        .frame(height: 48)
+        .padding(.horizontal, 6)
     }
 }
 

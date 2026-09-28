@@ -29,7 +29,7 @@ struct OutdoorLiveContent: View {
                     if let message = recorder.errorMessage, recorder.state == .failed {
                         ScrollView {
                             recoveryMessage(message)
-                                .padding(.top, 32)
+                                .padding(.top, 8)
                                 .padding(.bottom, 12)
                         }
                     } else {
@@ -43,7 +43,7 @@ struct OutdoorLiveContent: View {
                                     metrics(at: context.date, in: metricsProxy.size)
                                 }
                             }
-                            .padding(.top, 48)
+                            .padding(.top, 4)
                             .padding(.bottom, 8)
 
                             actionBar(height: actionHeight)

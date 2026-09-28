@@ -30,6 +30,8 @@ final class OutdoorRideEndToEndTests: XCTestCase {
 
     private func startRide() {
         visibleButton("Start Bike recording").tap()
+        let modeConfirmation = app.buttons["confirm-outdoor-mode"]
+        if modeConfirmation.waitForExistence(timeout: 2) { modeConfirmation.tap() }
         allowLocationIfRequested()
         XCTAssertTrue(app.buttons["Finish workout"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["Try Again"].exists, "Location authorization must succeed before measuring a ride")
@@ -116,11 +118,7 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         XCTAssertEqual(distanceText(), beforeActiveTermination, "An active ride must recover after termination")
         move(8)
         visibleButton("Finish workout").tap()
-        visibleButton("Establish workout").tap()
-        visibleButton("Private").tap()
-        if app.buttons["Save Private workout"].waitForExistence(timeout: 3) {
-            visibleButton("Save Private workout").tap()
-        }
+        visibleButton("save-outdoor-workout").tap()
         XCTAssertTrue(app.buttons["Start Bike recording"].waitForExistence(timeout: 10))
         app.terminate()
         app.launch()

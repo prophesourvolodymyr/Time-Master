@@ -837,7 +837,23 @@ F27 Home ───────────────┘
       - [x] Add app-hosted safety regression target and fix platform plist and glyph-resource packaging
       - [x] Compile the final iPhone app with an iOS 16.0 minimum deployment target; physical iOS 16.1 runtime verification remains pending
       - [x] Package and validate an unsigned arm64 Release IPA for the user's sideloading test
-    - [ ] Human review and short physical-device ride before attempting 50 km
+    - [x] User reports the recording backend working end-to-end during a real ride; UI revisions requested below
+
+  - [x] Field-ride UI revision — implemented, ready for human review
+    - [x] Reserve safe header space around expansion controls in every pane
+    - [x] Redesign Recent Rides using the existing orange and glass identity
+    - [x] Add a reusable search bar with the type selector on its right
+    - [x] Use anchored pop-up selectors for workout type and Private/Public
+    - [x] Give duration, distance, and workout type a clear information hierarchy
+    - [x] Make workout naming and saved-route renaming directly accessible
+    - [x] Keep map controls available while viewing saved workouts
+    - [x] Replace the layered Finish/Establish UI with one coherent Save flow
+    - [x] Ask for workout mode before the first recording and confirm after cancellation
+    - [x] Suppress confirmed mode prompts until the app has been away for one hour
+    - [x] Allow changing a saved workout's type without changing recorded data
+    - [x] Pass 19 app-hosted non-UI regressions and package the updated unsigned iPhone Release app; no automated UI tests run
+    - [ ] Human review of the revised interface on a physical device
+
 ## Cycle 24 — Video Editor UX & Platform Parity
 
 - [x] macOS video editor timeline UX
