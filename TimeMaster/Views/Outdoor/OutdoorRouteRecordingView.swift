@@ -1222,7 +1222,7 @@ struct OutdoorRouteRecordingView: View {
                 if let restoredDetent { mainDetent = restoredDetent }
             }
         }
-        let completed = {
+        let completed: @MainActor @Sendable () -> Void = {
             guard feature == nil, featurePresentationGeneration == generation else { return }
             withoutAnimation {
                 presentedFeature = nil
