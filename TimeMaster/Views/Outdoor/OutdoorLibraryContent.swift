@@ -2,7 +2,7 @@
 import SwiftUI
 import TimeMasterCore
 
-struct OutdoorLibraryContent: View {
+struct OutdoorLibraryContent<Handle: View>: View {
     @ObservedObject var store: OutdoorActivityStore
     @ObservedObject var preferences: OutdoorRecordingPreferencesStore
     @Binding var selectedActivityID: UUID?
@@ -10,6 +10,7 @@ struct OutdoorLibraryContent: View {
     let onClose: () -> Void
     let onShowMap: () -> Void
     let onModalStateChange: (Bool) -> Void
+    @ViewBuilder let handle: () -> Handle
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -73,41 +74,50 @@ struct OutdoorLibraryContent: View {
 
     private func libraryList(activities: [OutdoorActivity], starred: [OutdoorActivity], width: CGFloat) -> some View {
         VStack(spacing: 14) {
-            HStack(spacing: 8) {
-                if !searchPresented {
-                    Button(action: onClose) { Image(systemName: "chevron.left").font(.body.weight(.semibold)) }
-                        .buttonStyle(SpotlightCircleButtonStyle())
-                        .accessibilityLabel("Exit workout library")
-                    Text(starred.isEmpty ? "Recent" : "Starred")
-                        .font(.title2.weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .accessibilityAddTraits(.isHeader)
+            VStack(spacing: 0) {
+                handle()
+                ZStack {
+                    if !searchPresented {
+                        Text(starred.isEmpty ? "Recent" : "Starred")
+                            .font(.title2.weight(.bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 48 * 2 + 16)
+                            .accessibilityAddTraits(.isHeader)
+                    }
+                    HStack(spacing: 8) {
+                        if !searchPresented {
+                            Button(action: onClose) { Image(systemName: "chevron.left").font(.body.weight(.semibold)) }
+                                .buttonStyle(SpotlightCircleButtonStyle())
+                                .accessibilityLabel("Back to Start")
+                        }
+                        Spacer(minLength: 0)
+                        SpotlightSearchBar(text: $searchText, isPresented: $searchPresented, placeholder: "Search routes") {
+                            OutdoorChoicePicker(
+                                title: "Filter workout type",
+                                selection: $typeFilter,
+                                options: OutdoorLibraryTypeFilter.allCases.map {
+                                    OutdoorChoiceOption(id: $0, title: $0.title, systemImage: $0.systemImage)
+                                },
+                                compact: true
+                            )
+                        }
+                        if !searchPresented {
+                            OutdoorChoicePicker(
+                                title: "Sort workout library",
+                                selection: $sortOrder,
+                                options: OutdoorLibrarySortOrder.allCases.map {
+                                    OutdoorChoiceOption(id: $0, title: $0.title, systemImage: "arrow.up.arrow.down")
+                                },
+                                compact: true
+                            )
+                        }
+                    }
                 }
-                SpotlightSearchBar(text: $searchText, isPresented: $searchPresented, placeholder: "Search routes") {
-                    OutdoorChoicePicker(
-                        title: "Filter workout type",
-                        selection: $typeFilter,
-                        options: OutdoorLibraryTypeFilter.allCases.map {
-                            OutdoorChoiceOption(id: $0, title: $0.title, systemImage: $0.systemImage)
-                        },
-                        compact: true
-                    )
-                }
-                if !searchPresented {
-                    OutdoorChoicePicker(
-                        title: "Sort workout library",
-                        selection: $sortOrder,
-                        options: OutdoorLibrarySortOrder.allCases.map {
-                            OutdoorChoiceOption(id: $0, title: $0.title, systemImage: "arrow.up.arrow.down")
-                        },
-                        compact: true
-                    )
-                }
+                .padding(.horizontal, 12)
+                .animation(reduceMotion ? .none : .spring(response: 0.38, dampingFraction: 0.84), value: searchPresented)
             }
-            .padding(.horizontal, 12)
-            .animation(reduceMotion ? .none : .spring(response: 0.38, dampingFraction: 0.84), value: searchPresented)
             if let errorMessage { OutdoorInlineError(message: errorMessage).padding(.horizontal, 16) }
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: 20) {

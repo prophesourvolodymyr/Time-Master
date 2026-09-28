@@ -124,12 +124,11 @@ final class OutdoorRideEndToEndTests: XCTestCase {
         app.launch()
         openBike()
         visibleButton("Library").tap()
-        XCTAssertTrue(app.buttons["Exit workout library"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Back to Start"].waitForExistence(timeout: 10))
         let library = XCTAttachment(string: app.debugDescription)
         library.name = "Saved ride library hierarchy"
         library.lifetime = .keepAlways
         add(library)
-        XCTAssertTrue(app.staticTexts["Bike"].exists)
     }
 
     func testMusicControlsRemainReachableBeforeAndDuringRide() throws {

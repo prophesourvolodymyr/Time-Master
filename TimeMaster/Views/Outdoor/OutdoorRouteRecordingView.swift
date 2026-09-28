@@ -313,25 +313,6 @@ struct OutdoorRouteRecordingView: View {
                 musicSession.stop()
             }
         }
-        .sheet(item: $modePrompt, onDismiss: {
-            committedKind = previewKind
-            recorder.updateKind(committedKind)
-        }) { prompt in
-            OutdoorModeConfirmation(
-                prompt: prompt,
-                kind: $previewKind,
-                onCancel: { modePrompt = nil },
-                onConfirm: {
-                    committedKind = previewKind
-                    recorder.updateKind(committedKind)
-                    modeReminder.confirm()
-                    modePrompt = nil
-                    beginConfirmedRecording()
-                }
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-        }
         .fileImporter(
             isPresented: $showingMusicFileImporter,
             allowedContentTypes: [.audio, .movie, .mp3, .mpeg4Audio],
@@ -604,38 +585,35 @@ struct OutdoorRouteRecordingView: View {
             interactive: true
         ) {
             VStack(spacing: 0) {
-                OutdoorPaneHeader {
-                    if mainContent == .library, libraryActivityID != nil {
-                        HStack(spacing: 0) {
-                            Button { libraryActivityID = nil } label: {
+                if mainContent != .library || libraryActivityID != nil {
+                    OutdoorPaneHeader {
+                        if mainContent == .library, libraryActivityID != nil {
+                            HStack(spacing: 0) {
+                                Button { libraryActivityID = nil } label: {
+                                    Image(systemName: "chevron.left").frame(width: 44, height: 44)
+                                }
+                                .accessibilityLabel("Back to workout library")
+                                Button { libraryEditorPresented = true } label: {
+                                    Image(systemName: "pencil").frame(width: 44, height: 44)
+                                }
+                                .accessibilityLabel("Edit workout")
+                            }
+                            .buttonStyle(.plain)
+                        } else if mainContent == .routes {
+                            Button { closeLibrary(layout) } label: {
                                 Image(systemName: "chevron.left").frame(width: 44, height: 44)
                             }
-                            .accessibilityLabel("Back to workout library")
-                            Button { libraryEditorPresented = true } label: {
-                                Image(systemName: "pencil").frame(width: 44, height: 44)
-                            }
-                            .accessibilityLabel("Edit workout")
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Back to Start")
                         }
-                        .buttonStyle(.plain)
+                    } handle: {
+                        mainHandle(layout)
+                    } accessory: {
+                        EmptyView()
                     }
-                } handle: {
-                    mainHandle(layout)
-                } accessory: {
-                    if mainContent == .library || (mainDetent == .expanded && !mainDrag.isDragging) || isMax {
-                        Button {
-                            toggleMax(layout)
-                        } label: {
-                            Image(systemName: isMax ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                                .font(.body.weight(.semibold))
-                                .frame(minWidth: 48, minHeight: 48)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(isMax ? "Exit maximum route view" : mainDetent == .expanded ? "Enter maximum route view" : "Expand route view")
-                        .accessibilityValue(isMax ? "Maximum" : "Full")
-                    }
+                    .allowsHitTesting(!paneModalPresented)
+                    .accessibilityHidden(paneModalPresented)
                 }
-                .allowsHitTesting(!paneModalPresented)
-                .accessibilityHidden(paneModalPresented)
 
                 mainContentView(expansion: expansion, layout: layout)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -646,6 +624,22 @@ struct OutdoorRouteRecordingView: View {
                             $0.disablesAnimations = true
                         }
                     }
+                if mainContent == .library || mainContent == .routes || mainDetent == .expanded || isMax {
+                    HStack {
+                        Spacer(minLength: 0)
+                        Button { toggleMax(layout) } label: {
+                            Image(systemName: isMax ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                                .font(.body.weight(.semibold))
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(isMax ? "Exit maximum route view" : mainDetent == .expanded ? "Enter maximum route view" : "Expand route view")
+                    }
+                    .padding(.trailing, 12)
+                    .padding(.bottom, 4)
+                    .allowsHitTesting(!paneModalPresented)
+                    .accessibilityHidden(paneModalPresented)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, isMax ? layout.safeAreaTop : 0)
@@ -663,7 +657,7 @@ struct OutdoorRouteRecordingView: View {
         let isMaxDrawer = mainDetent == .max
         let maxFeatureHeight = selectedFeature == .music
             ? layout.musicMaximumHeight
-            : layout.usableHeight * 0.31
+            : selectedFeature == .type ? layout.featureMediumHeight : layout.usableHeight * 0.31
         let height = isMaxDrawer ? min(featureHeight, maxFeatureHeight) : max(1, featureHeight)
         let top = layout.size.height - layout.lowerInset - height
         let cornerRadius: CGFloat = isMaxDrawer ? 28 : 25
@@ -677,7 +671,13 @@ struct OutdoorRouteRecordingView: View {
         ) {
             VStack(spacing: 0) {
                 OutdoorPaneHeader {
-                    EmptyView()
+                    if selectedFeature == .type {
+                        Button { closeFeature() } label: {
+                            Image(systemName: "xmark").frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Cancel activity selection")
+                    }
                 } handle: {
                     featureHandle(layout, isMaxDrawer: isMaxDrawer)
                 } accessory: {
@@ -712,7 +712,7 @@ struct OutdoorRouteRecordingView: View {
                 committedKind: committedKind,
                 activeFeature: feature,
                 onLibrary: { openLibrary(layout) },
-                onStart: startRecording,
+                onStart: { startRecording(layout) },
                 onFeature: { next in
                     toggleFeature(next, layout: layout)
                 }
@@ -727,7 +727,7 @@ struct OutdoorRouteRecordingView: View {
                 onFinish: { finishRecording(layout) },
                 onTogglePause: togglePause,
                 onHeart: {},
-                onRetry: startRecording,
+                onRetry: { startRecording(layout) },
                 onOpenSettings: openLocationSettings
             )
         case .finish:
@@ -770,10 +770,14 @@ struct OutdoorRouteRecordingView: View {
                 preferences: preferences,
                 selectedActivityID: $libraryActivityID,
                 isEditing: $libraryEditorPresented,
-                onClose: closeLibrary,
+                onClose: { closeLibrary(layout) },
                 onShowMap: { showLibraryMap(layout) },
                 onModalStateChange: { paneModalPresented = $0 }
-            )
+            ) {
+                mainHandle(layout, compact: true)
+            }
+        case .routes:
+            featureContent(.route, layout: layout)
         }
     }
 
@@ -784,6 +788,7 @@ struct OutdoorRouteRecordingView: View {
             OutdoorTypePicker(
                 previewKind: $previewKind,
                 committedKind: committedKind,
+                prompt: modePrompt,
                 onCommit: commitType
             )
         case .music:
@@ -805,7 +810,7 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
-    private func mainHandle(_ layout: OutdoorPineGeometry) -> some View {
+    private func mainHandle(_ layout: OutdoorPineGeometry, compact: Bool = false) -> some View {
         Group {
             if mainContent == .library, libraryActivityID != nil {
                 Image(systemName: "chevron.down").font(.body.weight(.semibold))
@@ -813,7 +818,7 @@ struct OutdoorRouteRecordingView: View {
                 Capsule().fill(Color.white.opacity(0.76)).frame(width: 56, height: 5)
             }
         }
-        .frame(width: 132, height: 48)
+        .frame(width: 132, height: compact ? 20 : 48)
         .contentShape(Rectangle())
         .gesture(mainDragGesture(layout))
         .onTapGesture {
@@ -1022,15 +1027,30 @@ struct OutdoorRouteRecordingView: View {
             let minimum = feature == .music ? layout.musicCompactHeight : layout.featureCompactHeight
             return min(layout.maximumFeatureHeight(music: feature == .music), max(minimum, remembered))
         }
-        return min(layout.maximumFeatureHeight(music: feature == .music), feature == .music ? layout.musicFitHeight : layout.featureCompactHeight)
+        let preferred = feature == .music ? layout.musicFitHeight : feature == .type ? layout.featureMediumHeight : layout.featureCompactHeight
+        return min(layout.maximumFeatureHeight(music: feature == .music), preferred)
     }
 
     private func toggleFeature(_ next: OutdoorRouteFeature, layout: OutdoorPineGeometry) {
         guard mainContent != .finish else { return }
+        if next == .route {
+            closeFeature()
+            animate {
+                mainContent = .routes
+                mainDetent = .medium
+                mainHeight = layout.libraryHeight
+            }
+            return
+        }
         selectionHaptic()
         if feature == next {
             closeFeature()
             return
+        }
+        if next == .type {
+            previewKind = OutdoorActivityKind.newRecordingChoices.contains(committedKind) ? committedKind : .run
+        } else {
+            modePrompt = nil
         }
         if let current = feature {
             rememberedFeatureHeights[current] = featureHeight
@@ -1059,6 +1079,10 @@ struct OutdoorRouteRecordingView: View {
 
     private func closeFeature() {
         guard let current = feature else { return }
+        if current == .type {
+            modePrompt = nil
+            previewKind = committedKind
+        }
         if current == .music {
             musicEditorResetToken += 1
         }
@@ -1102,8 +1126,16 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
-    private func closeLibrary() {
-        leaveRoute()
+    private func closeLibrary(_ layout: OutdoorPineGeometry) {
+        closeFeature()
+        libraryActivityID = nil
+        libraryMapReturnHeight = nil
+        libraryEditorPresented = false
+        animate {
+            mainContent = .start
+            mainDetent = .compact
+            mainHeight = layout.mainCompactHeight
+        }
     }
 
     private func showLibraryMap(_ layout: OutdoorPineGeometry, returnHeight: CGFloat? = nil) {
@@ -1123,11 +1155,14 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
-    private func startRecording() {
+    private func startRecording(_ layout: OutdoorPineGeometry) {
         guard modePrompt == nil else { return }
         if recorder.activeActivity == nil, let prompt = modeReminder.requestPrompt() {
-            previewKind = committedKind
             modePrompt = prompt
+            if feature != .type {
+                toggleFeature(.type, layout: layout)
+            }
+            updateFeatureHeight(layout.featureMediumHeight, layout: layout, animated: true)
             return
         }
         beginConfirmedRecording()
@@ -1201,9 +1236,13 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func commitType() {
+        let startsRecording = modePrompt != nil
         selectionHaptic()
         animate { committedKind = previewKind }
         recorder.updateKind(previewKind)
+        if startsRecording { modeReminder.confirm() }
+        closeFeature()
+        if startsRecording { beginConfirmedRecording() }
     }
 
     private func toggleMax(_ layout: OutdoorPineGeometry) {
@@ -1341,6 +1380,7 @@ enum OutdoorMainContent: Hashable {
     case live
     case finish
     case library
+    case routes
 }
 
 enum OutdoorUpperQuickFeature: Equatable {

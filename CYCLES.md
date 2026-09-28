@@ -861,7 +861,35 @@ F27 Home ───────────────┘
     - [x] Match the route detail diagram with pencil editing and route-map preview/return
     - [x] Respect bottom boundaries and adapt action size and placement as panes resize
     - [x] Pass 20 app-hosted non-UI regressions and launch the updated iOS 18.6 iPhone 16 simulator app; no automated UI tests or interactions run
-    - [ ] User reviews the diagram-based UI and motion
+    - [x] User reviewed the UI and requested header, Start controls, Back navigation, and inline activity selection corrections
+
+  - [x] Outdoor pane alignment and activity selection corrections — implemented, ready for human review
+    - [x] Center Recent/Starred independently of toolbar widths and raise the header controls
+    - [x] Place the expansion control at the bottom-right of the main pane
+    - [x] Make library Back return to Start while keeping the map open
+    - [x] Keep Type, Heart, and Music along the bottom of Start
+    - [x] Place Route to the right of Start and open routes within the main pane
+    - [x] Replace the modal mode prompt with a large inline activity carousel
+    - [x] Show the committed activity icon and close the lower pane after acceptance
+    - [x] Pass 20 focused non-UI regressions, build the synchronized sources, and launch the corrected iOS 18.6 iPhone 16 app; no automated UI interactions run
+    - [ ] User reviews the corrected layout, carousel, and pane navigation
+
+  - [ ] Trip planning and bus-transfer accounting — implementation prepared; human review pending
+    - [x] Add Make a Trip, nearby suggestions, custom suggestions, saved trips, and drafts
+    - [x] Add editable ordered stops, current-location starts, place search, map picking, trip and leg preferences
+    - [x] Add a bounded floating destination panel, following map controls, and connected Save, Draft, and Delete actions
+    - [x] Add road-snapped blue route editing, hidden shaping points, surrounding route anchors, undo, cancellation, and stale-request protection
+    - [x] Add legal cycling and running profiles, elevation-aware running goals, and real POI-based route generation with distance tolerance
+    - [x] Add configurable GraphHopper, Photon, and Overpass services with explicit privacy and availability disclosures
+    - [x] Add a local GraphHopper launcher and seven routing profiles; exercise real Monaco routes and import Vancouver coverage
+    - [x] Add user-marked bus transfers as road estimates, with active distance primary and total distance including bus
+    - [x] Add explicit Board bus and Resume riding controls, recovery, immutable recorded-plan snapshots, and separate transport exports
+    - [x] Keep legacy GPX routes, unfinished workouts, trip drafts, and backup imports compatible
+    - [x] Pass 26 focused app-hosted checks and 18 core checks; independently decode FIT, GPX, and CSV exports
+    - [x] Build the latest planner and relaunch it on the iOS 18.6 iPhone 16 at the user's request
+    - [ ] Complete interactive trip-editor and route-drag verification; paused at the user's request to leave the relaunched app untouched
+    - [ ] Configure an operator-hosted HTTPS routing endpoint for production phone use
+    - [ ] Human review of trip planning, suggestion quality, route editing, and bus recording
 
 ## Cycle 24 — Video Editor UX & Platform Parity
 

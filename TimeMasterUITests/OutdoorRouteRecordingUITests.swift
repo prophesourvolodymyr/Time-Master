@@ -53,15 +53,19 @@ final class OutdoorRouteRecordingUITests: XCTestCase {
         XCTAssertTrue(app.switches["Auto Pause"].exists)
         app.buttons["Close Settings quick pane"].tap()
 
-        app.buttons.matching(NSPredicate(format: "label == %@ AND value == %@", "Type", "Closed")).firstMatch.tap()
-        XCTAssertTrue(app.buttons["Commit Run"].waitForExistence(timeout: 5))
-
-        app.buttons.matching(NSPredicate(format: "label == %@ AND value == %@", "Type", "Open")).firstMatch.tap()
+        app.buttons["Workout type"].tap()
+        XCTAssertTrue(app.buttons["confirm-outdoor-mode"].waitForExistence(timeout: 5))
+        app.buttons["confirm-outdoor-mode"].tap()
+        XCTAssertFalse(app.buttons["confirm-outdoor-mode"].exists)
+        XCTAssertTrue(app.buttons["Start Run recording"].exists)
         app.buttons["Music"].tap()
         XCTAssertTrue(app.otherElements["Music editor"].waitForExistence(timeout: 5))
 
         app.buttons["Library"].tap()
-        XCTAssertTrue(app.buttons["Exit workout library"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Back to Start"].waitForExistence(timeout: 5))
+        app.buttons["Back to Start"].tap()
+        XCTAssertTrue(app.buttons["Start Run recording"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Focus current location"].exists)
     }
 
     func testWalkAndBikeShortcutsOpenMatchingRecorders() throws {
@@ -156,8 +160,10 @@ final class OutdoorRouteRecordingUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["Start Run recording"].waitForExistence(timeout: 10))
         app.buttons["Library"].tap()
-        XCTAssertTrue(app.buttons["Exit workout library"].waitForExistence(timeout: 5))
-        app.buttons["Exit workout library"].tap()
+        XCTAssertTrue(app.buttons["Back to Start"].waitForExistence(timeout: 5))
+        app.buttons["Back to Start"].tap()
+        XCTAssertTrue(app.buttons["Start Run recording"].waitForExistence(timeout: 5))
+        app.buttons["Close route"].tap()
 
         XCTAssertTrue(app.buttons["Profile"].waitForExistence(timeout: 10))
         app.buttons["Profile"].tap()
