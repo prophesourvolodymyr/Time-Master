@@ -46,6 +46,7 @@
 		1E558892B824F7939B8184D4 /* HomeWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99980AE3FE3003D51B9296C3 /* HomeWidgetViews.swift */; };
 		1E682B19040505173A331CB0 /* FloatingControlsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E38BC78673EC52C30C37CFB /* FloatingControlsBar.swift */; };
 		1F014AA42226639BBE471F24 /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E287CB0142E9444C0E8CE06 /* BackupManager.swift */; };
+		1F274F3E8959E47F959214B8 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = E71A7098B60A6725751FAE2A /* ThirdPartyNotices.txt */; };
 		1F38F1E5BDA6E33ABCFF446E /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F596DD500BCC620B6E3318 /* MusicManager.swift */; };
 		1FB477637AC9EC02C7CB82AE /* WorkoutTypesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CA3D35330EB704FCDFB8B2 /* WorkoutTypesSettingsView.swift */; };
 		20A75B2A698DC7E5010B4CC5 /* OutdoorActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */; };
@@ -168,6 +169,7 @@
 		82DB6A336E75B5E7CB4FC3F6 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */; };
 		83419122FA9E99BB94FE884E /* MapGlyphs in Resources */ = {isa = PBXBuildFile; fileRef = 8B0BA674EDC86792635987F6 /* MapGlyphs */; };
 		85AE3363E097F4F926BFF257 /* SpotlightSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */; };
+		7A2F0C41D9E84B3AA1F5C8E2 /* ScrollingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */; };
 		85BEF18C3FEC934D85DBED4B /* OutdoorTrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED34D6AA29BFFF933FDE19E8 /* OutdoorTrip.swift */; };
 		86B5AEF3ACE4323FE1957C86 /* TimeMasterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6597294304852DBC80D29D90 /* TimeMasterCore */; };
 		8738B5C840599628FD8BD930 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADDE983BD98A183CACB5A0A /* NotificationManager.swift */; };
@@ -184,8 +186,10 @@
 		8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
 		8E2B0A26DC9A0E3B11BE05B6 /* TimeMasterWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFEB284497317ED4F6F95B5 /* TimeMasterWidget.swift */; };
 		90289B99B307C695C36631B0 /* SpotlightSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */; };
+		B93D7E60C1A24F5E8D0B3A74 /* ScrollingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */; };
 		90F67F23C5E12ED3F7D9E680 /* MacVideoDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */; };
 		915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A /* PhotoManager.swift */; };
+		928B4C3DBABA2523A7978779 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = E71A7098B60A6725751FAE2A /* ThirdPartyNotices.txt */; };
 		92B305907B5F01A1B8A5B690 /* OutdoorMapModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2663673BC39C65E6A1A361 /* OutdoorMapModePicker.swift */; };
 		93E9185010BEC8FBEDB66240 /* MusicLibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFE4033315C9DD766463155 /* MusicLibraryScreen.swift */; };
 		95A50701B3F318C1C99F6983 /* MotivationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 262C63F71236516065104666 /* MotivationSettingsView.swift */; };
@@ -430,6 +434,7 @@
 		8733B7850E54109F06C8240F /* OutdoorModeReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorModeReminder.swift; sourceTree = "<group>"; };
 		87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoImportSheet.swift; sourceTree = "<group>"; };
 		87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightSearchBar.swift; sourceTree = "<group>"; };
+		5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingChrome.swift; sourceTree = "<group>"; };
 		8880F70DC5DDC88AD96D653B /* MusicGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGuideOverlay.swift; sourceTree = "<group>"; };
 		8A1602CC55687977DCBEBCB6 /* HomeWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetStore.swift; sourceTree = "<group>"; };
 		8B0BA674EDC86792635987F6 /* MapGlyphs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MapGlyphs; path = TimeMaster/Resources/MapGlyphs; sourceTree = SOURCE_ROOT; };
@@ -493,6 +498,7 @@
 		DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorViewModel.swift; sourceTree = "<group>"; };
 		E3323F148BE5A75196E090AC /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		E6ED4DE0D6AB70A5C0092224 /* OutdoorExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorExportService.swift; sourceTree = "<group>"; };
+		E71A7098B60A6725751FAE2A /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
 		E7B131AC7DD63D608E6C3CB3 /* MusicPlayerPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayerPane.swift; sourceTree = "<group>"; };
 		E8B651EB5E182B829EAB5F72 /* PlannedRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedRoute.swift; sourceTree = "<group>"; };
 		EC7F0EFE2A38785AFA71B55A /* MusicLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryStore.swift; sourceTree = "<group>"; };
@@ -679,6 +685,7 @@
 			isa = PBXGroup;
 			children = (
 				4CF0096279C5C397D6B69421 /* Assets.xcassets */,
+				E71A7098B60A6725751FAE2A /* ThirdPartyNotices.txt */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -715,6 +722,7 @@
 				31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */,
 				E3323F148BE5A75196E090AC /* MainTabView.swift */,
 				87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */,
+				5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */,
 				25940776DFB474B5E84C5344 /* AICoach */,
 				36739A7D9D5BF1203FCD3C10 /* Analytics */,
 				D484AE590F5911664457F560 /* Database */,
@@ -1098,6 +1106,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				456D34AD6F57FBF2E8B267C4 /* Assets.xcassets in Resources */,
+				928B4C3DBABA2523A7978779 /* ThirdPartyNotices.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1107,6 +1116,7 @@
 			files = (
 				C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */,
 				83419122FA9E99BB94FE884E /* MapGlyphs in Resources */,
+				1F274F3E8959E47F959214B8 /* ThirdPartyNotices.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1237,6 +1247,7 @@
 				4CFDD4F767F087E04B3C554E /* SlotNavigationContainer.swift in Sources */,
 				8A1EE260FFAB26D2EB3A245C /* SlotNavigationItem.swift in Sources */,
 				90289B99B307C695C36631B0 /* SpotlightSearchBar.swift in Sources */,
+				B93D7E60C1A24F5E8D0B3A74 /* ScrollingChrome.swift in Sources */,
 				355D53015A74800EB1032FB4 /* Theme.swift in Sources */,
 				26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */,
 				1A09605C35CFF03E5621A168 /* ToolRouter.swift in Sources */,
@@ -1395,6 +1406,7 @@
 				C8F6639DE95AB713C35850EF /* SlotNavigationContainer.swift in Sources */,
 				A248D30E44101EBE3E5878D8 /* SlotNavigationItem.swift in Sources */,
 				85AE3363E097F4F926BFF257 /* SpotlightSearchBar.swift in Sources */,
+				7A2F0C41D9E84B3AA1F5C8E2 /* ScrollingChrome.swift in Sources */,
 				2681C7964176B8B24E7E591B /* Theme.swift in Sources */,
 				298AD304188737C7C50AFBD4 /* TimeMasterApp.swift in Sources */,
 				EC5386B83DE92454605914BD /* ToolRouter.swift in Sources */,

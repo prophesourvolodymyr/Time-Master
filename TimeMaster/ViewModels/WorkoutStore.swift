@@ -499,6 +499,9 @@ class WorkoutStore: ObservableObject {
         }
     }
 
+    /// True only while a weekly session target exists. The workout library hides its goal line without one.
+    var hasWeeklyGoal: Bool { weeklyGoal > 0 }
+
     func toggleRestDay(for date: Date) {
         let key = dateKey(from: date)
         if restDays.contains(key) {

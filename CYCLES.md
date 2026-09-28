@@ -934,6 +934,21 @@ F27 Home ───────────────┘
 
 ---
 
+## Cycle 26 — Workout Library Chrome Alignment
+
+**Requested with user: 2026-09-28. Implementation handed off; human review pending.**
+
+- [x] Share one collapsing page chrome between the Database and Workouts pages
+- [x] Move the Workouts corner actions — Search, Settings, Add — into the chrome as database-style glass squares that fold into compact circles while scrolling
+- [x] Keep the tracking indicators static: dark squares, expanded to the content borders
+- [x] Remove the "Your training library" heading and the navigation bar title; the page is labeled by the navigation rail
+- [x] Slim the weekly goal card into one persistent goal row with a thin progress line, hidden while no goal is set
+- [x] Match the workout group filter chips to the database chip style
+- [x] Keep the search field, resume state, and workout cards in the scrolling content under the pinned chrome
+- [ ] Human review of the Workouts page actions, collapse, tracking tiles, goal row, and filter chips
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

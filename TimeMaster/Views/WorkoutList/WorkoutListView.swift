@@ -40,87 +40,13 @@ struct WorkoutListView: View {
                 if store.workouts.isEmpty {
                     emptyState
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 24) {
-                            summaryHeader
-                            filterBar
-
-                            if visibleWorkouts.isEmpty {
-                                filteredEmptyState
-                            } else {
-                                LazyVStack(spacing: 12) {
-                                    ForEach(visibleWorkouts) { workout in
-                                        NavigationLink(value: workout) {
-                                            workoutCardLabel(for: workout)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .contextMenu {
-                                            Button {
-                                                playerWorkout = workout
-                                            } label: {
-                                                Label("Start Workout", systemImage: "play.fill")
-                                            }
-                                            .disabled(workout.sections.isEmpty)
-
-                                            Button {
-                                                pinToWidget(workout)
-                                            } label: {
-                                                Label("Pin to Widget", systemImage: "pin")
-                                            }
-
-                                            Button {
-                                                store.cloneWorkout(workout)
-                                            } label: {
-                                                Label("Duplicate", systemImage: "plus.square.on.square")
-                                            }
-
-                                            Divider()
-
-                                            Button(role: .destructive) {
-                                                store.deleteWorkout(workout)
-                                            } label: {
-                                                Label("Delete", systemImage: "trash")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .frame(maxWidth: 980, alignment: .leading)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 18)
-                    }
+                    workoutsChrome
                 }
             }
-            .navigationTitle("Workouts")
-            .toolbar {
-                AppToolbar.iconItem(placement: .primaryAction) {
-                    Button {
-                        withAnimation(.smooth(duration: 0.2)) {
-                            showingSearch.toggle()
-                        }
-                    } label: {
-                        Image(systemName: showingSearch ? "xmark" : "magnifyingglass")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                    }
-                    .accessibilityLabel(showingSearch ? "Hide workout search" : "Search workouts")
-                }
-                AppToolbar.iconItem(placement: .primaryAction) {
-                    Button { showingSettings = true } label: {
-                        Image(systemName: "gearshape")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                    }
-                }
-                AppToolbar.iconItem(placement: .primaryAction) {
-                    Button { showingAddWorkout = true } label: {
-                        Image(systemName: "plus")
-                            .font(.title3)
-                            .foregroundStyle(.white)
-                    }
-                }
-            }
+            .navigationTitle("")
+            #if os(iOS)
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
             .navigationDestination(for: Workout.self) { workout in
                 workoutDestination(for: workout)
             }
@@ -233,56 +159,204 @@ struct WorkoutListView: View {
         }
     }
 
-    private var summaryHeader: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Your training library")
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(Theme.textPrimary)
-            }
+    /// Widest the tracking tiles and chrome controls grow before they stop filling their row.
+    private static let trackingControlMaxHeight: CGFloat = 148
+    /// Reserved height of the slim weekly goal row inside the pinned chrome.
+    private static let weeklyGoalRowHeight: CGFloat = 36
+    /// Widest the page content and chrome grow on large screens.
+    private static let contentMaxWidth: CGFloat = 980
 
+    private var workoutsChrome: some View {
+        ScrollingChrome(metrics: { width in
+            ScrollingChromeMetrics(
+                width: min(width, Self.contentMaxWidth),
+                collapsedRowHeight: 48,
+                expandedControlWidthCap: .infinity,
+                expandedControlHeightCap: Self.trackingControlMaxHeight,
+                pinnedFooterHeight: 49 + (store.hasWeeklyGoal ? Self.weeklyGoalRowHeight : 0)
+            )
+        }) { metrics in
+            workoutsScrollContent(metrics: metrics)
+        } header: { progress, metrics in
+            workoutsHeader(progress: progress, metrics: metrics)
+        }
+    }
+
+    private func workoutsScrollContent(metrics: ScrollingChromeMetrics) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
             if showingSearch {
                 searchField
             }
 
-            metricSquares
-            weeklyGoalProgress
+            trackingTiles(metrics: metrics)
+
             resumeBanner
+
+            if visibleWorkouts.isEmpty {
+                filteredEmptyState
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(visibleWorkouts) { workout in
+                        NavigationLink(value: workout) {
+                            workoutCardLabel(for: workout)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                playerWorkout = workout
+                            } label: {
+                                Label("Start Workout", systemImage: "play.fill")
+                            }
+                            .disabled(workout.sections.isEmpty)
+
+                            Button {
+                                pinToWidget(workout)
+                            } label: {
+                                Label("Pin to Widget", systemImage: "pin")
+                            }
+
+                            Button {
+                                store.cloneWorkout(workout)
+                            } label: {
+                                Label("Duplicate", systemImage: "plus.square.on.square")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                store.deleteWorkout(workout)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+            }
         }
-    }
-    private var metricSquares: some View {
-        HStack(spacing: 10) {
-            metricSquare(
-                value: "\(completedSessionsThisWeek)",
-                label: "Sessions this week",
-                icon: "checkmark.circle"
-            )
-            metricSquare(
-                value: durationText(totalSecondsThisWeek),
-                label: "Training this week",
-                icon: "clock"
-            )
-            metricSquare(
-                value: "\(store.streakInfo().current)",
-                label: "Day streak",
-                icon: "flame"
-            )
-        }
-        .frame(maxWidth: 360)
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: Self.contentMaxWidth, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.bottom, 18)
     }
 
-    private func metricSquare(value: String, label: String, icon: String) -> some View {
+    private func workoutsHeader(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
+        let morph = metrics.morph(progress)
+        let controlWidth = metrics.controlWidth(morph)
+        let controlHeight = metrics.controlHeight(morph)
+        let groupWidth = controlWidth * 3 + metrics.controlSpacing * 2
+        let rowHeight = controlHeight + metrics.expandedControlPadding * 2 * (1 - progress)
+
+        return VStack(spacing: 0) {
+            HStack(spacing: metrics.controlSpacing) {
+                chromeButton(
+                    systemImage: showingSearch ? "xmark" : "magnifyingglass",
+                    title: showingSearch ? "Close" : "Search",
+                    progress: morph,
+                    width: controlWidth,
+                    height: controlHeight
+                ) {
+                    withAnimation(.smooth(duration: 0.2)) {
+                        showingSearch.toggle()
+                    }
+                }
+                chromeButton(
+                    systemImage: "gearshape",
+                    title: "Settings",
+                    progress: morph,
+                    width: controlWidth,
+                    height: controlHeight
+                ) {
+                    showingSettings = true
+                }
+                chromeButton(
+                    systemImage: "plus",
+                    title: "Add",
+                    progress: morph,
+                    width: controlWidth,
+                    height: controlHeight
+                ) {
+                    showingAddWorkout = true
+                }
+            }
+            .frame(width: groupWidth)
+            .offset(x: metrics.groupLeading(morph))
+            .frame(width: metrics.contentWidth, alignment: .leading)
+            .frame(height: rowHeight)
+            .padding(.horizontal, metrics.horizontalPadding)
+
+            if store.hasWeeklyGoal {
+                weeklyGoalRow(metrics: metrics)
+            }
+
+            TimeMasterGlassDivider()
+                .padding(.horizontal, metrics.horizontalPadding)
+
+            filterBar
+        }
+        .background(Theme.background.ignoresSafeArea(edges: .top))
+    }
+
+    private func chromeButton(
+        systemImage: String,
+        title: String,
+        progress: CGFloat,
+        width: CGFloat,
+        height: CGFloat,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            ScrollingChromeControl(
+                systemImage: systemImage,
+                title: title,
+                progress: progress,
+                width: width,
+                height: height
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .help(title)
+    }
+
+    private func trackingTiles(metrics: ScrollingChromeMetrics) -> some View {
+        HStack(spacing: metrics.controlSpacing) {
+            trackingTile(
+                systemImage: "checkmark.circle",
+                value: "\(completedSessionsThisWeek)",
+                label: "Sessions this week",
+                metrics: metrics
+            )
+            trackingTile(
+                systemImage: "clock",
+                value: durationText(totalSecondsThisWeek),
+                label: "Training this week",
+                metrics: metrics
+            )
+            trackingTile(
+                systemImage: "flame",
+                value: "\(store.streakInfo().current)",
+                label: "Day streak",
+                metrics: metrics
+            )
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func trackingTile(
+        systemImage: String,
+        value: String,
+        label: String,
+        metrics: ScrollingChromeMetrics
+    ) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: icon)
+            Image(systemName: systemImage)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Theme.textPrimary)
             Text(value)
                 .font(.title3.weight(.semibold).monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
+        .frame(width: metrics.expandedControlWidth, height: metrics.expandedControlHeight)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -291,6 +365,37 @@ struct WorkoutListView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityValue(value)
+    }
+
+    private func weeklyGoalRow(metrics: ScrollingChromeMetrics) -> some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Text("Weekly goal")
+                Spacer(minLength: 8)
+                Text("\(completedSessionsThisWeek) of \(store.weeklyGoal)")
+                    .monospacedDigit()
+            }
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(Theme.textSecondary)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.green.opacity(0.16))
+                    Capsule()
+                        .fill(Color.green)
+                        .frame(width: proxy.size.width * weeklyGoalProgress)
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(.horizontal, metrics.horizontalPadding)
+        .padding(.top, 2)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Weekly goal")
+        .accessibilityValue("\(completedSessionsThisWeek) of \(store.weeklyGoal)")
     }
 
     private var searchField: some View {
@@ -320,36 +425,6 @@ struct WorkoutListView: View {
         .overlay {
             Capsule()
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        }
-    }
-
-    private var weeklyGoalProgress: some View {
-        VStack(spacing: 12) {
-            Text("Weekly goal")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
-
-            Text("\(completedSessionsThisWeek) of \(store.weeklyGoal)")
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(Theme.textSecondary)
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.green.opacity(0.16))
-                    Capsule()
-                        .fill(Color.green)
-                        .frame(width: proxy.size.width * weeklyGoalProgressValue)
-                }
-            }
-            .frame(height: 10)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(18)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
         }
     }
 
@@ -395,67 +470,51 @@ struct WorkoutListView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 filterChip(
-                    title: "All",
-                    icon: "square.grid.2x2",
-                    isSelected: !showingTodayOnly && selectedTypeID == nil,
-                    tint: .orange
+                    label: "All",
+                    isSelected: !showingTodayOnly && selectedTypeID == nil
                 ) {
                     showingTodayOnly = false
                     selectedTypeID = nil
                 }
 
                 filterChip(
-                    title: "Today",
-                    icon: "calendar",
-                    isSelected: showingTodayOnly,
-                    tint: .orange
+                    label: "Today",
+                    isSelected: showingTodayOnly
                 ) {
                     showingTodayOnly.toggle()
                 }
 
                 ForEach(WorkoutType.all(custom: store.customWorkoutTypes)) { type in
                     filterChip(
-                        title: type.name,
-                        icon: type.icon,
-                        isSelected: selectedTypeID == type.id,
-                        tint: Color(hex: type.colorHex)
+                        label: type.name,
+                        isSelected: selectedTypeID == type.id
                     ) {
                         selectedTypeID = selectedTypeID == type.id ? nil : type.id
                     }
                 }
             }
-            .padding(.vertical, 2)
+            .padding(.leading, 16)
+            .padding(.vertical, 7)
         }
+        .frame(height: 48)
     }
 
     private func filterChip(
-        title: String,
-        icon: String,
+        label: String,
         isSelected: Bool,
-        tint: Color,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.caption2.weight(.semibold))
-                Text(title)
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                isSelected ? tint.opacity(0.22) : Theme.surface,
-                in: Capsule()
-            )
-            .overlay {
-                Capsule()
-                    .stroke(
-                        isSelected ? tint.opacity(0.75) : Color.white.opacity(0.06),
-                        lineWidth: 1
-                    )
-            }
+            Text(label)
+                .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
+                .foregroundStyle(isSelected ? .black : Theme.textPrimary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isSelected ? Theme.primary : Theme.surface2, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .stroke(isSelected ? Theme.primary : Theme.primary.opacity(0.28), lineWidth: 1)
+                }
         }
         .buttonStyle(.plain)
     }
@@ -498,7 +557,7 @@ struct WorkoutListView: View {
         }
     }
 
-    private var weeklyGoalProgressValue: CGFloat {
+    private var weeklyGoalProgress: CGFloat {
         CGFloat(min(1, Double(completedSessionsThisWeek) / Double(max(1, store.weeklyGoal))))
     }
 

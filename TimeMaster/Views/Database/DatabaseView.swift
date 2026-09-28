@@ -558,7 +558,9 @@ struct DatabaseView: View {
     }
 
     private var databaseV2Content: some View {
-        DatabaseScrollingChrome {
+        ScrollingChrome(metrics: { width in
+            ScrollingChromeMetrics(width: width)
+        }) { _ in
             if store.rootPages.isEmpty {
                 v2EmptyState
             } else {
@@ -569,19 +571,17 @@ struct DatabaseView: View {
         }
     }
 
-    private func databaseChrome(progress: CGFloat, metrics: DatabaseChromeMetrics) -> some View {
-        let settling = min(1, max(0, (progress - 0.5) / 0.25))
-        let morph = min(progress, 0.5) * 1.6 + 0.2 * settling * (2 - settling)
-        let height = metrics.titleHeight + metrics.collapseDistance * (1 - progress)
-        let buttonSize = metrics.expandedButtonSize
-            + (metrics.compactButtonSize - metrics.expandedButtonSize) * morph
-        let bottomPadding = metrics.actionPadding * (1 - progress)
-            + (metrics.titleHeight - metrics.compactButtonSize) / 2 * progress
+    private func databaseChrome(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
+        let morph = metrics.morph(progress)
+        let height = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
+        let buttonSize = metrics.controlHeight(morph)
+        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
+            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
 
         return VStack(spacing: 0) {
             ZStack(alignment: .top) {
                 DatabaseChromeTitle(progress: morph, metrics: metrics)
-                    .frame(height: metrics.titleHeight)
+                    .frame(height: metrics.collapsedRowHeight)
                 databaseControls(progress: morph, metrics: metrics)
                     .offset(y: height - buttonSize - bottomPadding)
             }
@@ -596,20 +596,17 @@ struct DatabaseView: View {
 
     private var databaseChrome: some View {
         GeometryReader { proxy in
-            databaseChrome(progress: 0, metrics: DatabaseChromeMetrics(width: proxy.size.width))
+            databaseChrome(progress: 0, metrics: ScrollingChromeMetrics(width: proxy.size.width))
         }
         .frame(height: 232)
     }
 
-    private func databaseControls(progress: CGFloat, metrics: DatabaseChromeMetrics) -> some View {
-        let buttonWidth = metrics.expandedButtonSize
-            + (metrics.compactButtonSize - metrics.expandedButtonSize) * progress
-        let groupWidth = buttonWidth * 3 + metrics.actionSpacing * 2
-        let expandedLeading = (metrics.contentWidth - metrics.expandedGroupWidth) / 2
-        let compactLeading = metrics.contentWidth - metrics.compactGroupWidth
-        let leading = expandedLeading + (compactLeading - expandedLeading) * progress
+    private func databaseControls(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
+        let buttonWidth = metrics.controlWidth(progress)
+        let groupWidth = buttonWidth * 3 + metrics.controlSpacing * 2
+        let leading = metrics.groupLeading(progress)
 
-        return HStack(spacing: metrics.actionSpacing) {
+        return HStack(spacing: metrics.controlSpacing) {
             databaseMajorButton(
                 systemImage: "video.badge.plus",
                 title: "From Video",
@@ -642,11 +639,12 @@ struct DatabaseView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            databaseMajorLabel(
+            ScrollingChromeControl(
                 systemImage: systemImage,
                 title: title,
                 progress: progress,
-                width: width
+                width: width,
+                height: width
             )
         }
         .buttonStyle(.plain)
@@ -658,11 +656,12 @@ struct DatabaseView: View {
         Menu {
             addMenuItems
         } label: {
-            databaseMajorLabel(
+            ScrollingChromeControl(
                 systemImage: "plus",
                 title: "Add",
                 progress: progress,
-                width: width
+                width: width,
+                height: width
             )
         }
         .buttonStyle(.plain)
@@ -707,45 +706,6 @@ struct DatabaseView: View {
             Label("Import Database File", systemImage: "square.and.arrow.down")
         }
     }
-
-    private func databaseMajorLabel(
-        systemImage: String,
-        title: String,
-        progress: CGFloat,
-        width: CGFloat
-    ) -> some View {
-        let labelProgress = min(1, progress / 0.65)
-        let cornerRadius = 14 + (width / 2 - 14) * progress
-
-        return ZStack {
-            Image(systemName: systemImage)
-                .font(.system(size: 22, weight: .semibold))
-                .offset(y: -12 * (1 - labelProgress))
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .fixedSize()
-                .opacity(1 - labelProgress)
-                .offset(y: 18)
-                .accessibilityHidden(true)
-        }
-        .foregroundStyle(.white)
-        .frame(width: width, height: width)
-        .modifier(
-            TimeMasterPrivateGlassSurface(
-                cornerRadius: cornerRadius,
-                isInteractive: true,
-                tint: Theme.toolbarOrange,
-                tintOpacity: 0.42
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Theme.toolbarOrange.opacity(0.65), lineWidth: 1)
-        }
-    }
-
 
     private func handleDatabaseImport(_ result: Result<[URL], Error>) {
         guard case .success(let urls) = result, let url = urls.first else { return }
@@ -1218,29 +1178,14 @@ struct DatabaseView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
     }
-private struct DatabaseChromeMetrics {
-    let width: CGFloat
-    let horizontalPadding: CGFloat = 20
-    let titleHeight: CGFloat = 56
-    let compactButtonSize: CGFloat = 48
-    let actionSpacing: CGFloat = 10
-    let actionPadding: CGFloat = 8
-
-    var contentWidth: CGFloat { max(0, width - horizontalPadding * 2) }
-    var expandedButtonSize: CGFloat { min(108, max(48, (contentWidth - actionSpacing * 2) / 3)) }
-    var expandedGroupWidth: CGFloat { expandedButtonSize * 3 + actionSpacing * 2 }
-    var compactGroupWidth: CGFloat { compactButtonSize * 3 + actionSpacing * 2 }
-    var collapseDistance: CGFloat { expandedButtonSize + actionPadding * 2 }
-    var pinnedHeight: CGFloat { titleHeight + 49 }
-}
 
 private struct DatabaseChromeTitle: View {
     let progress: CGFloat
-    let metrics: DatabaseChromeMetrics
+    let metrics: ScrollingChromeMetrics
     @State private var textSize: CGSize = .zero
 
     var body: some View {
-        let available = max(1, metrics.contentWidth - metrics.compactGroupWidth - metrics.actionSpacing)
+        let available = max(1, metrics.contentWidth - metrics.compactGroupWidth - metrics.controlSpacing)
         let compactScale = min(22 / 36, available / max(1, textSize.width))
         let scale = 1 + (compactScale - 1) * progress
         let leading = max(0, (metrics.contentWidth - textSize.width) / 2)
@@ -1256,86 +1201,6 @@ private struct DatabaseChromeTitle: View {
             .frame(width: metrics.contentWidth)
             .padding(.horizontal, metrics.horizontalPadding)
             .accessibilityAddTraits(.isHeader)
-    }
-}
-
-private struct DatabaseScrollingChrome<Content: View, Header: View>: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var collapse: CGFloat = 0
-    @Namespace private var viewport
-    @ViewBuilder let content: Content
-    @ViewBuilder let header: (CGFloat, DatabaseChromeMetrics) -> Header
-
-    var body: some View {
-        GeometryReader { proxy in
-            let metrics = DatabaseChromeMetrics(width: proxy.size.width)
-            let distance = reduceMotion ? 0 : metrics.collapseDistance
-            let progress = distance > 0 ? min(1, max(0, collapse / distance)) : 1
-
-            VStack(spacing: 0) {
-                Color.clear
-                    .frame(height: metrics.pinnedHeight)
-                    .overlay(alignment: .top) {
-                        header(progress, metrics)
-                    }
-                    .zIndex(1)
-                scrollSurface(metrics: metrics, distance: distance, height: proxy.size.height)
-                    .coordinateSpace(name: viewport)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func scrollSurface(metrics: DatabaseChromeMetrics, distance: CGFloat, height: CGFloat) -> some View {
-        if #available(iOS 18.0, macOS 15.0, *) {
-            ScrollView {
-                scrollContent(metrics: metrics, distance: distance, height: height)
-            }
-            .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                min(distance, max(0, geometry.contentOffset.y + geometry.contentInsets.top))
-            } action: { _, offset in
-                updateCollapse(offset)
-            }
-        } else {
-            ScrollView {
-                scrollContent(metrics: metrics, distance: distance, height: height)
-                    .background(alignment: .top) {
-                        GeometryReader { proxy in
-                            Color.clear.preference(
-                                key: DatabaseScrollOffsetKey.self,
-                                value: proxy.frame(in: .named(viewport)).minY
-                            )
-                        }
-                    }
-            }
-            .onPreferenceChange(DatabaseScrollOffsetKey.self) { offset in
-                updateCollapse(min(distance, max(0, -offset)))
-            }
-        }
-    }
-
-    private func scrollContent(metrics: DatabaseChromeMetrics, distance: CGFloat, height: CGFloat) -> some View {
-        VStack(spacing: 0) {
-            Color.clear.frame(height: distance)
-            content
-        }
-        .frame(minHeight: max(0, height - metrics.pinnedHeight) + distance, alignment: .top)
-    }
-
-    private func updateCollapse(_ offset: CGFloat) {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            collapse = offset
-        }
-    }
-}
-
-private struct DatabaseScrollOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 
