@@ -47,25 +47,26 @@ struct OutdoorPineGeometry: Equatable {
     var safeAreaBottom: CGFloat
     var playerReserve: CGFloat
     static let quickStackHeight: CGFloat = 148
+    private var minimumInteractivePaneHeight: CGFloat { 48 + 44 * 2 + 8 + 12 }
 
     var usableHeight: CGFloat {
         max(1, size.height - safeAreaTop - safeAreaBottom)
     }
 
     var lowerInset: CGFloat {
-        (playerReserve > 0 ? safeAreaBottom : 0) + 10 + playerReserve
+        safeAreaBottom + 10 + playerReserve
     }
 
     var mainCompactHeight: CGFloat {
-        usableHeight * 0.35
+        min(mainFullHeight, max(minimumInteractivePaneHeight, usableHeight * 0.35))
     }
 
     var mainMediumHeight: CGFloat {
-        usableHeight * 0.60
+        min(mainFullHeight, usableHeight * 0.60)
     }
 
     var mainFullHeight: CGFloat {
-        max(mainMediumHeight, usableHeight - 12)
+        max(1, size.height - safeAreaTop - lowerInset - 8)
     }
 
     var mainMaximumHeight: CGFloat {
@@ -109,7 +110,11 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var mainMinimumWithFeature: CGFloat {
-        usableHeight * 0.28
+        min(mainFullHeight, max(minimumInteractivePaneHeight, usableHeight * 0.28))
+    }
+
+    func maximumFeatureHeight(music: Bool) -> CGFloat {
+        max(1, min(music ? musicMaximumHeight : featureExpandedHeight, mainFullHeight - mainMinimumWithFeature))
     }
 
     func mainHeight(for detent: OutdoorPineDetent) -> CGFloat {

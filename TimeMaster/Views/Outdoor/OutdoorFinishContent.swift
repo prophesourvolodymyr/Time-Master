@@ -47,9 +47,9 @@ struct OutdoorFinishContent: View {
     var body: some View {
         Group {
             if let activity = currentActivity {
-                VStack(spacing: 0) {
+                OutdoorAdaptivePane { compact in
                     ScrollView(.vertical, showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: compact ? 12 : 18) {
                             HStack {
                                 Label("Workout complete", systemImage: "checkmark.circle.fill")
                                     .font(.caption.weight(.semibold))
@@ -58,48 +58,38 @@ struct OutdoorFinishContent: View {
                                 Menu {
                                     Button("Delete workout", role: .destructive) { showingDelete = true }
                                 } label: {
-                                    Image(systemName: "ellipsis")
-                                        .frame(minWidth: 44, minHeight: 44)
+                                    Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("Finished workout options")
                             }
                             HStack(spacing: 10) {
                                 TextField("Name your workout", text: $title)
-                                    .font(.title2.weight(.bold))
+                                    .font(compact ? .headline : .title2.weight(.bold))
                                     .textInputAutocapitalization(.sentences)
                                     .submitLabel(.done)
                                     .onSubmit { saveTitle() }
                                     .accessibilityLabel("Workout name")
-                                Image(systemName: "pencil")
-                                    .font(.body)
-                                    .foregroundStyle(Theme.textSecondary)
-                                    .accessibilityHidden(true)
+                                Image(systemName: "pencil").foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
                             }
                             .frame(minHeight: 44)
-                            OutdoorWorkoutSummary(activity: activity, units: preferences.preferences.unitSystem, expanded: expansion >= 0.4)
+                            OutdoorWorkoutSummary(activity: activity, units: preferences.preferences.unitSystem, expanded: !compact && expansion >= 0.4)
                             ViewThatFits(in: .horizontal) {
                                 HStack(spacing: 10) { selectors(activity) }
                                 VStack(alignment: .leading, spacing: 8) { selectors(activity) }
                             }
-                            Text(visibility == .publicVisibility ? "This workout will appear on your local profile." : "Private. Your workout stays in your own library.")
-                                .font(.caption)
-                                .foregroundStyle(Theme.textSecondary)
                             DisclosureGroup("Notes & privacy", isExpanded: $showingDetails) {
                                 OutdoorPublicDetailsFields(
-                                    description: $description,
-                                    tagText: $tagText,
-                                    allowComments: $allowComments,
-                                    hideStartFinish: $hideStartFinish,
-                                    endpointPrivacyMeters: $endpointPrivacyMeters,
-                                    showPlayerTracks: $showPlayerTracks,
-                                    recentTags: recentTags
+                                    description: $description, tagText: $tagText, allowComments: $allowComments,
+                                    hideStartFinish: $hideStartFinish, endpointPrivacyMeters: $endpointPrivacyMeters,
+                                    showPlayerTracks: $showPlayerTracks, recentTags: recentTags,
+                                    showsPublicOptions: visibility == .publicVisibility
                                 )
                                 .padding(.top, 16)
                             }
                             .font(.subheadline.weight(.semibold))
                             .tint(Theme.restAccent)
-                            if expansion >= 0.4 {
+                            if !compact, expansion >= 0.4 {
                                 OutdoorRouteThumbnailView(points: points, cacheKey: activity.id.uuidString)
                             }
                             if !activity.playedTracks.isEmpty {
@@ -107,36 +97,20 @@ struct OutdoorFinishContent: View {
                             }
                             if let errorMessage { OutdoorInlineError(message: errorMessage) }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 8)
                     }
                     .scrollDismissesKeyboard(.interactively)
-                    Divider().overlay(Color.white.opacity(0.1))
-                    HStack(spacing: 10) {
-                        Button {
-                            resume(activity)
-                        } label: {
-                            Label("Resume", systemImage: "play.fill")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .buttonStyle(OutdoorAccessoryButtonStyle())
-                        .accessibilityLabel("Resume workout")
-                        OutdoorExportShareControl(activity: exportDraft(activity), points: points, preferences: preferences, compact: true)
-                        Button {
-                            save(activity)
-                        } label: {
-                            Group {
-                                if isSaving { ProgressView() }
-                                else { Text("Save").font(.headline) }
+                } actions: { compact in
+                    Group {
+                        if compact {
+                            LazyVGrid(columns: [GridItem(.fixed(44)), GridItem(.fixed(44))], spacing: 8) {
+                                actionButtons(activity, compact: true)
                             }
-                            .frame(maxWidth: .infinity)
+                        } else {
+                            HStack(spacing: 10) { actionButtons(activity, compact: false) }
                         }
-                        .buttonStyle(OutdoorPineButtonStyle(prominent: true))
-                        .accessibilityLabel("Save workout")
-                        .accessibilityIdentifier("save-outdoor-workout")
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
                     .disabled(isSaving)
                 }
             } else {
@@ -147,12 +121,8 @@ struct OutdoorFinishContent: View {
         .overlay {
             if showingDelete, let activity = currentActivity {
                 OutdoorDeletionConfirmation(activity: activity, isPresented: $showingDelete) {
-                    do {
-                        try store.delete(activity)
-                        onDeleted()
-                    } catch {
-                        errorMessage = error.localizedDescription
-                    }
+                    do { try store.delete(activity); onDeleted() }
+                    catch { errorMessage = error.localizedDescription }
                 }
             }
         }
@@ -164,6 +134,23 @@ struct OutdoorFinishContent: View {
             }
             onModalStateChange(false)
         }
+    }
+
+    @ViewBuilder
+    private func actionButtons(_ activity: OutdoorActivity, compact: Bool) -> some View {
+        Button { resume(activity) } label: {
+            OutdoorPaneActionLabel(title: "Resume", systemImage: "play.fill", compact: compact)
+        }
+        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
+        .accessibilityLabel("Resume workout")
+        OutdoorExportShareControl(activity: exportDraft(activity), points: points, preferences: preferences, compact: true)
+        Button { save(activity) } label: {
+            if isSaving { ProgressView().frame(minWidth: 44, minHeight: 44) }
+            else { OutdoorPaneActionLabel(title: "Save", systemImage: "checkmark", compact: compact) }
+        }
+        .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: compact))
+        .accessibilityLabel("Save workout")
+        .accessibilityIdentifier("save-outdoor-workout")
     }
 
     private func selectors(_ activity: OutdoorActivity) -> some View {

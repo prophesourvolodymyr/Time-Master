@@ -71,6 +71,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var focusRequestID: Int = 0
     var northRequestID: Int = 0
     var cityFitRequestID: Int = 0
+    var routeFitRequestID: Int = 0
     var weatherInfoEnabled: Bool = false
     var configuration: OutdoorMapProviderConfiguration = .main
     var onCapabilityChange: ((OutdoorMapCapability) -> Void)? = nil
@@ -114,6 +115,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             focusRequestID: focusRequestID,
             northRequestID: northRequestID,
             cityFitRequestID: cityFitRequestID,
+            routeFitRequestID: routeFitRequestID,
             weatherInfoEnabled: weatherInfoEnabled
         )
     }
@@ -159,6 +161,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var lastRenderedWeatherInfoEnabled: Bool?
         private var lastRenderedCityFitRequestID: Int?
         private var pendingCityFit = false
+        private var lastRouteFitRequestID = 0
+        private var pendingRouteFit = false
         private var didRenderInputs = false
         private var liveRouteSignature: RouteRenderSignature?
         private var plannedRouteSignature: RouteRenderSignature?
@@ -233,6 +237,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             lastRenderedOverlayModes = nil
             lastRenderedCityFitRequestID = nil
             pendingCityFit = false
+            lastRouteFitRequestID = 0
+            pendingRouteFit = false
             lastRenderedWeatherInfoEnabled = nil
             didRenderInputs = false
             liveRouteSignature = nil
@@ -291,6 +297,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             focusRequestID: Int,
             northRequestID: Int,
             cityFitRequestID: Int,
+            routeFitRequestID: Int,
             weatherInfoEnabled: Bool
         ) {
             let mapWasReattached = self.map !== map
@@ -311,6 +318,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 || lastRenderedFocusRequestID != focusRequestID
                 || lastNorthRequestID != northRequestID
                 || lastRenderedCityFitRequestID != cityFitRequestID
+                || lastRouteFitRequestID != routeFitRequestID
                 || lastRenderedWeatherInfoEnabled != weatherInfoEnabled
             latestPoints = points
             latestPlannedPoints = plannedPoints
@@ -324,6 +332,10 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             lastRenderedMode = mode
             lastRenderedOverlayModes = overlayModes
             lastRenderedFocusRequestID = focusRequestID
+            if lastRouteFitRequestID != routeFitRequestID {
+                lastRouteFitRequestID = routeFitRequestID
+                pendingRouteFit = true
+            }
             if northRequestID != lastNorthRequestID {
                 lastNorthRequestID = northRequestID
                 resetNorth(on: map)
@@ -358,6 +370,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 }
                 applyFollowState(to: map)
                 fitMapToCityIfNeeded(map: map)
+                fitSavedRouteIfNeeded(map: map)
                 updateWeather()
                 return
             }
@@ -380,6 +393,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             applyFollowState(to: map)
             applyInitialFramingIfNeeded(map: map)
             fitMapToCityIfNeeded(map: map)
+            fitSavedRouteIfNeeded(map: map)
             updateWeather()
         }
 
@@ -404,6 +418,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             applyFollowState(to: mapView)
             applyInitialFramingIfNeeded(map: mapView)
             fitMapToCityIfNeeded(map: mapView)
+            fitSavedRouteIfNeeded(map: mapView)
             updateWeather()
         }
 
@@ -542,6 +557,24 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                     bounds(for: framingPoints),
                     edgePadding: UIEdgeInsets(top: 80, left: 40, bottom: 180, right: 40),
                     animated: false
+                )
+            }
+            session.captureCamera(from: map)
+        }
+
+        private func fitSavedRouteIfNeeded(map: MLNMapView) {
+            guard pendingRouteFit, map.bounds.width > 1, map.bounds.height > 1,
+                  let first = latestPoints.first else { return }
+            pendingRouteFit = false
+            isApplyingCamera = true
+            defer { isApplyingCamera = false }
+            if latestPoints.count == 1 {
+                map.setCenter(coordinate(for: first), zoomLevel: 15, animated: false)
+            } else {
+                map.setVisibleCoordinateBounds(
+                    bounds(for: latestPoints),
+                    edgePadding: UIEdgeInsets(top: map.safeAreaInsets.top + 80, left: 48, bottom: map.safeAreaInsets.bottom + 120, right: 48),
+                    animated: !UIAccessibility.isReduceMotionEnabled
                 )
             }
             session.captureCamera(from: map)

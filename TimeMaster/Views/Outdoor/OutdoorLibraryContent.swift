@@ -5,34 +5,25 @@ import TimeMasterCore
 struct OutdoorLibraryContent: View {
     @ObservedObject var store: OutdoorActivityStore
     @ObservedObject var preferences: OutdoorRecordingPreferencesStore
-    let initialActivityID: UUID?
+    @Binding var selectedActivityID: UUID?
+    @Binding var isEditing: Bool
     let onClose: () -> Void
-    let onSelectedActivityIDChange: (UUID?) -> Void
+    let onShowMap: () -> Void
+    let onModalStateChange: (Bool) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var selectedActivityID: UUID?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var typeFilter: OutdoorLibraryTypeFilter = .all
     @State private var sortOrder: OutdoorLibrarySortOrder = .recent
     @State private var searchText = ""
+    @State private var searchPresented = false
     @State private var routePoints: [UUID: [OutdoorTrackPoint]] = [:]
-    @State private var starredExpanded = true
     @State private var errorMessage: String?
-
-    init(store: OutdoorActivityStore, preferences: OutdoorRecordingPreferencesStore, initialActivityID: UUID? = nil, onClose: @escaping () -> Void, onSelectedActivityIDChange: @escaping (UUID?) -> Void) {
-        self.store = store
-        self.preferences = preferences
-        self.initialActivityID = initialActivityID
-        self.onClose = onClose
-        self.onSelectedActivityIDChange = onSelectedActivityIDChange
-        _selectedActivityID = State(initialValue: initialActivityID)
-    }
-
-    private var established: [OutdoorActivity] { store.establishedActivities }
-    private var starred: [OutdoorActivity] { established.filter(\.starred) }
+    @ScaledMetric(relativeTo: .body) private var starredMinimumWidth: CGFloat = 112
 
     private var filteredActivities: [OutdoorActivity] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matching = established.filter { activity in
+        let matching = store.establishedActivities.filter { activity in
             typeFilter.matches(activity.kind)
                 && (query.isEmpty || activity.title.localizedCaseInsensitiveContains(query) || activity.tags.contains { $0.localizedCaseInsensitiveContains(query) })
         }
@@ -52,115 +43,125 @@ struct OutdoorLibraryContent: View {
                     preferences: preferences,
                     activityID: selectedActivityID,
                     points: routePoints[selectedActivityID] ?? [],
-                    onBack: { self.selectedActivityID = nil },
-                    onDeleted: { self.selectedActivityID = nil }
+                    isEditing: $isEditing,
+                    onShowMap: onShowMap,
+                    onDeleted: { self.selectedActivityID = nil },
+                    onModalStateChange: onModalStateChange
                 )
                 .transition(.opacity)
             } else {
-                libraryList.transition(.opacity)
+                GeometryReader { proxy in
+                    let activities = filteredActivities
+                    let starred = activities.filter(\.starred)
+                    libraryList(activities: activities, starred: starred, width: proxy.size.width)
+                }
+                .transition(.opacity)
             }
         }
         .animation(reduceMotion ? .none : .easeOut(duration: 0.18), value: selectedActivityID)
-        .onAppear {
-            if selectedActivityID == nil, let initialActivityID, established.contains(where: { $0.id == initialActivityID }) {
-                selectedActivityID = initialActivityID
-            }
-            loadRoutePoints()
-            onSelectedActivityIDChange(selectedActivityID)
-        }
+        .onAppear { loadRoutePoints() }
         .onChange(of: store.activities) { _ in
             loadRoutePoints()
-            if let selectedActivityID, !established.contains(where: { $0.id == selectedActivityID }) {
+            if let selectedActivityID, !store.establishedActivities.contains(where: { $0.id == selectedActivityID }) {
                 self.selectedActivityID = nil
             }
         }
-        .onChange(of: selectedActivityID, perform: onSelectedActivityIDChange)
+        .onChange(of: searchPresented) { if !$0 { typeFilter = .all } }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(selectedActivityID == nil ? "Outdoor workout library" : "Outdoor workout details")
     }
 
-    private var libraryList: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Button(action: onClose) {
-                    Image(systemName: "chevron.left")
-                        .frame(minWidth: 44, minHeight: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Exit workout library")
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Recent rides")
+    private func libraryList(activities: [OutdoorActivity], starred: [OutdoorActivity], width: CGFloat) -> some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 8) {
+                if !searchPresented {
+                    Button(action: onClose) { Image(systemName: "chevron.left").font(.body.weight(.semibold)) }
+                        .buttonStyle(SpotlightCircleButtonStyle())
+                        .accessibilityLabel("Exit workout library")
+                    Text(starred.isEmpty ? "Recent" : "Starred")
                         .font(.title2.weight(.bold))
-                    Text("\(established.count) saved workouts")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .accessibilityAddTraits(.isHeader)
                 }
-                Spacer(minLength: 0)
-                OutdoorChoicePicker(
-                    title: "Sort workout library",
-                    selection: $sortOrder,
-                    options: OutdoorLibrarySortOrder.allCases.map {
-                        OutdoorChoiceOption(id: $0, title: $0.title, systemImage: "arrow.up.arrow.down")
-                    },
-                    compact: true
-                )
+                SpotlightSearchBar(text: $searchText, isPresented: $searchPresented, placeholder: "Search routes") {
+                    OutdoorChoicePicker(
+                        title: "Filter workout type",
+                        selection: $typeFilter,
+                        options: OutdoorLibraryTypeFilter.allCases.map {
+                            OutdoorChoiceOption(id: $0, title: $0.title, systemImage: $0.systemImage)
+                        },
+                        compact: true
+                    )
+                }
+                if !searchPresented {
+                    OutdoorChoicePicker(
+                        title: "Sort workout library",
+                        selection: $sortOrder,
+                        options: OutdoorLibrarySortOrder.allCases.map {
+                            OutdoorChoiceOption(id: $0, title: $0.title, systemImage: "arrow.up.arrow.down")
+                        },
+                        compact: true
+                    )
+                }
             }
-            OutdoorSearchBar(text: $searchText, placeholder: "Search routes and tags") {
-                OutdoorChoicePicker(
-                    title: "Filter workout type",
-                    selection: $typeFilter,
-                    options: OutdoorLibraryTypeFilter.allCases.map {
-                        OutdoorChoiceOption(id: $0, title: $0.title, systemImage: $0.systemImage)
-                    }
-                )
-            }
-            if let errorMessage { OutdoorInlineError(message: errorMessage) }
+            .padding(.horizontal, 12)
+            .animation(reduceMotion ? .none : .spring(response: 0.38, dampingFraction: 0.84), value: searchPresented)
+            if let errorMessage { OutdoorInlineError(message: errorMessage).padding(.horizontal, 16) }
             ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: 12) {
+                LazyVStack(spacing: 20) {
                     if !starred.isEmpty {
-                        DisclosureGroup(isExpanded: $starredExpanded) {
-                            VStack(spacing: 10) {
-                                ForEach(starred) { activity in card(activity) }
+                        VStack(spacing: 12) {
+                            if searchPresented { sectionTitle("Starred") }
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                LazyHStack(spacing: 12) {
+                                    ForEach(starred) { activity in
+                                        card(activity, showsDistance: false)
+                                            .frame(width: min(width - 32, max(starredMinimumWidth, (width - 32) / 3)))
+                                    }
+                                }
+                                .padding(.horizontal, 16)
                             }
-                            .padding(.top, 8)
-                        } label: {
-                            Label("Starred · \(starred.count)", systemImage: "star.fill")
-                                .font(.subheadline.weight(.semibold))
                         }
-                        .tint(Theme.restAccent)
-                        .padding(.bottom, 6)
+                        .transition(.opacity)
                     }
-                    if filteredActivities.isEmpty {
+                    if activities.isEmpty {
                         OutdoorLibraryEmptyState(
-                            title: established.isEmpty ? "Your next ride starts here" : "No matching workouts",
-                            message: established.isEmpty ? "Saved workouts will appear here with their route, time, and distance." : "Try another name, tag, or activity type.",
-                            systemImage: established.isEmpty ? "map" : "magnifyingglass"
+                            title: store.establishedActivities.isEmpty ? "Your next ride starts here" : "No matching workouts",
+                            message: store.establishedActivities.isEmpty ? "Saved workouts will appear here with their recorded routes." : "Try another name, tag, or activity type.",
+                            systemImage: store.establishedActivities.isEmpty ? "map" : "magnifyingglass"
                         )
+                        .padding(.horizontal, 20)
                     } else {
-                        Text(searchText.isEmpty && typeFilter == .all ? "All workouts" : "Results · \(filteredActivities.count)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.textSecondary)
-                        ForEach(filteredActivities) { activity in card(activity) }
+                        if !starred.isEmpty || searchPresented { sectionTitle("Recent") }
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2), spacing: 16) {
+                            ForEach(activities) { activity in card(activity, showsDistance: true) }
+                        }
+                        .padding(.horizontal, 16)
                     }
                 }
                 .padding(.bottom, 16)
             }
             .scrollDismissesKeyboard(.interactively)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 4)
+        .padding(.top, 2)
     }
 
-    private func card(_ activity: OutdoorActivity) -> some View {
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.title2.weight(.bold))
+            .frame(maxWidth: .infinity)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func card(_ activity: OutdoorActivity, showsDistance: Bool) -> some View {
         OutdoorLibraryCard(
             activity: activity,
             points: routePoints[activity.id] ?? [],
             units: preferences.preferences.unitSystem,
-            onSelect: { selectedActivityID = activity.id },
-            onVisibilityChange: { value in
-                do { try store.setVisibility(value, for: activity) }
-                catch { errorMessage = error.localizedDescription }
-            }
+            showsDistance: showsDistance,
+            onSelect: { selectedActivityID = activity.id }
         )
         .contextMenu {
             Button {
@@ -169,11 +170,17 @@ struct OutdoorLibraryContent: View {
             } label: {
                 Label(activity.starred ? "Remove star" : "Star workout", systemImage: activity.starred ? "star.slash" : "star")
             }
-            Button("View and rename workout") { selectedActivityID = activity.id }
+            Button {
+                selectedActivityID = activity.id
+                isEditing = true
+            } label: {
+                Label("Edit workout", systemImage: "pencil")
+            }
         }
     }
 
     private func loadRoutePoints() {
+        let established = store.establishedActivities
         let identifiers = Set(established.map(\.id))
         var next = routePoints.filter { identifiers.contains($0.key) }
         for activity in established where next[activity.id] == nil {
@@ -225,67 +232,31 @@ struct OutdoorLibraryCard: View {
     let activity: OutdoorActivity
     let points: [OutdoorTrackPoint]
     let units: TimeMasterCore.OutdoorUnitSystem
+    let showsDistance: Bool
     let onSelect: () -> Void
-    let onVisibilityChange: (OutdoorActivityVisibility) -> Void
-    @ScaledMetric(relativeTo: .body) private var previewWidth: CGFloat = 76
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button(action: onSelect) {
-                HStack(alignment: .center, spacing: 12) {
-                    if !dynamicTypeSize.isAccessibilitySize {
-                        OutdoorRouteThumbnailView(points: points, compact: true, cacheKey: activity.id.uuidString)
-                            .frame(width: previewWidth)
-                            .accessibilityHidden(true)
-                    }
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(activity.title)
-                                .font(.headline)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            if activity.starred {
-                                Image(systemName: "star.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.restAccent)
-                            }
-                        }
-                        Text(activity.startedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
-                            .font(.caption)
-                            .foregroundStyle(Theme.textSecondary)
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 12) { distanceAndTime }
-                            VStack(alignment: .leading, spacing: 4) { distanceAndTime }
-                        }
-                    }
+        Button(action: onSelect) {
+            ZStack(alignment: .bottom) {
+                OutdoorRouteThumbnailView(points: points, compact: true, cacheKey: activity.id.uuidString, aspectRatio: 1)
+                    .accessibilityHidden(true)
+                if showsDistance {
+                    let distance = outdoorRouteDistanceParts(activity.distanceMeters, units: units)
+                    Text("\(distance.value) \(distance.unit)")
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(Theme.textPrimary)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(.regularMaterial)
+                        .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(0.15)) }
                 }
-                .foregroundStyle(Theme.textPrimary)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(activity.title), \(activity.kind.displayName), \(outdoorDistanceText(activity.distanceMeters, unitSystem: units)), duration \(outdoorDurationText(activity.elapsedSeconds))")
-            HStack {
-                Label(activity.kind.displayName, systemImage: activity.kind.iconName)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.restAccent)
-                Spacer(minLength: 4)
-                OutdoorVisibilityPicker(visibility: Binding(get: { activity.visibility }, set: onVisibilityChange))
-            }
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
-        .padding(12)
-        .background(Color.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
-    }
-
-    private var distanceAndTime: some View {
-        Group {
-            Text(outdoorDistanceText(activity.distanceMeters, unitSystem: units))
-                .font(.subheadline.weight(.semibold).monospacedDigit())
-            Label(outdoorDurationText(activity.elapsedSeconds), systemImage: "clock")
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(Theme.textSecondary)
-        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(activity.title), \(activity.kind.displayName), \(outdoorDistanceText(activity.distanceMeters, unitSystem: units))\(activity.starred ? ", starred" : "")")
+        .accessibilityHint("View workout details. More actions are available in the context menu.")
     }
 }
 
@@ -296,195 +267,13 @@ struct OutdoorLibraryEmptyState: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: systemImage)
-                .font(.title2)
-                .foregroundStyle(Theme.restAccent)
+            Image(systemName: systemImage).font(.title2).foregroundStyle(Theme.restAccent)
             Text(title).font(.headline)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(Theme.textSecondary)
-                .multilineTextAlignment(.center)
+            Text(message).font(.subheadline).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
         .accessibilityElement(children: .combine)
-    }
-}
-
-struct OutdoorActivityDetailPineContent: View {
-    @ObservedObject var store: OutdoorActivityStore
-    @ObservedObject var preferences: OutdoorRecordingPreferencesStore
-    let activityID: UUID
-    let points: [OutdoorTrackPoint]
-    let onBack: () -> Void
-    let onDeleted: () -> Void
-
-    @State private var title = ""
-    @State private var description = ""
-    @State private var tagText = ""
-    @State private var allowComments = true
-    @State private var hideStartFinish = true
-    @State private var endpointPrivacyMeters = 200
-    @State private var showPlayerTracks = true
-    @State private var showingRename = false
-    @State private var showingDelete = false
-    @State private var showingDetails = false
-    @State private var errorMessage: String?
-    @AccessibilityFocusState private var deleteButtonFocused: Bool
-
-    private var activity: OutdoorActivity? {
-        store.activities.first { $0.id == activityID }
-    }
-
-    var body: some View {
-        Group {
-            if let activity {
-                VStack(spacing: 0) {
-                    HStack {
-                        Button(action: onBack) {
-                            Label("Recent rides", systemImage: "chevron.left")
-                                .frame(minHeight: 44)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Back to workout library")
-                        Spacer()
-                        Button {
-                            perform { try store.toggleStarred(for: activity) }
-                        } label: {
-                            Image(systemName: activity.starred ? "star.fill" : "star")
-                                .foregroundStyle(activity.starred ? Theme.restAccent : Theme.textPrimary)
-                                .frame(minWidth: 44, minHeight: 44)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(activity.starred ? "Remove star" : "Star workout")
-                    }
-                    .padding(.horizontal, 16)
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 22) {
-                            Button {
-                                title = activity.title
-                                showingRename = true
-                            } label: {
-                                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                                    Text(activity.title)
-                                        .font(.title2.weight(.bold))
-                                        .multilineTextAlignment(.leading)
-                                    Image(systemName: "pencil")
-                                        .font(.body)
-                                        .foregroundStyle(Theme.restAccent)
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Rename \(activity.title)")
-                            Text(outdoorDateText(activity.startedAt))
-                                .font(.caption)
-                                .foregroundStyle(Theme.textSecondary)
-                            ViewThatFits(in: .horizontal) {
-                                HStack(spacing: 10) { selectors(activity) }
-                                VStack(alignment: .leading, spacing: 8) { selectors(activity) }
-                            }
-                            OutdoorWorkoutSummary(activity: activity, units: preferences.preferences.unitSystem)
-                            OutdoorRouteThumbnailView(points: points, cacheKey: activity.id.uuidString)
-                            DisclosureGroup("Notes & privacy", isExpanded: $showingDetails) {
-                                OutdoorPublicDetailsFields(description: $description, tagText: $tagText, allowComments: $allowComments, hideStartFinish: $hideStartFinish, endpointPrivacyMeters: $endpointPrivacyMeters, showPlayerTracks: $showPlayerTracks)
-                                    .padding(.vertical, 16)
-                                Button("Save details") { saveDetails(activity) }
-                                    .buttonStyle(OutdoorAccessoryButtonStyle())
-                            }
-                            .tint(Theme.restAccent)
-                            if !activity.playedTracks.isEmpty {
-                                OutdoorPlayedTrackSummary(tracks: activity.playedTracks)
-                            }
-                            if let errorMessage { OutdoorInlineError(message: errorMessage) }
-                            HStack(spacing: 12) {
-                                OutdoorExportShareControl(activity: activity, points: points, preferences: preferences)
-                                Button(role: .destructive) { showingDelete = true } label: {
-                                    Image(systemName: "trash")
-                                        .foregroundStyle(.red)
-                                        .frame(minWidth: 44, minHeight: 44)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityFocused($deleteButtonFocused)
-                                .accessibilityLabel("Delete workout")
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        .padding(.bottom, 20)
-                    }
-                    .scrollDismissesKeyboard(.interactively)
-                }
-            } else {
-                VStack(spacing: 12) {
-                    OutdoorInlineError(message: "This route is no longer available.")
-                    Button("Back to Recent rides", action: onBack).buttonStyle(OutdoorAccessoryButtonStyle())
-                }
-                .padding(18)
-            }
-        }
-        .accessibilityHidden(showingDelete)
-        .onAppear { syncFromActivity() }
-        .onChange(of: showingDelete) { if !$0 { deleteButtonFocused = true } }
-        .alert("Rename workout", isPresented: $showingRename) {
-            TextField("Workout name", text: $title)
-            Button("Cancel", role: .cancel) {}
-            Button("Save") {
-                guard let activity else { return }
-                perform { try store.updateTitle(title, for: activity) }
-            }
-        }
-        .overlay {
-            if showingDelete, let activity {
-                OutdoorDeletionConfirmation(activity: activity, isPresented: $showingDelete) {
-                    perform {
-                        try store.delete(activity)
-                        onDeleted()
-                    }
-                }
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Workout details")
-    }
-
-    private func selectors(_ activity: OutdoorActivity) -> some View {
-        Group {
-            OutdoorActivityTypePicker(kind: Binding(get: { activity.kind }, set: { kind in
-                perform { try store.setKind(kind, for: activity) }
-            }))
-            OutdoorVisibilityPicker(visibility: Binding(get: { activity.visibility }, set: { visibility in
-                perform { try store.setVisibility(visibility, for: activity) }
-            }))
-        }
-    }
-
-    private func syncFromActivity() {
-        guard let activity else { return }
-        title = activity.title
-        description = activity.publicDescription
-        tagText = activity.tags.joined(separator: ", ")
-        allowComments = activity.allowComments
-        hideStartFinish = activity.hideStartFinish
-        endpointPrivacyMeters = activity.endpointPrivacyMeters
-        showPlayerTracks = activity.showPlayerTracks
-    }
-
-    private func saveDetails(_ activity: OutdoorActivity) {
-        perform {
-            try store.updateDetails(for: activity, description: description, tags: outdoorParsedTags(tagText), allowComments: allowComments, hideStartFinish: hideStartFinish, endpointPrivacyMeters: endpointPrivacyMeters, showPlayerTracks: showPlayerTracks)
-            showingDetails = false
-        }
-    }
-
-    private func perform(_ action: () throws -> Void) {
-        do {
-            try action()
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
     }
 }
 #endif

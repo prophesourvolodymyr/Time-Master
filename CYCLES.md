@@ -852,7 +852,16 @@ F27 Home ───────────────┘
     - [x] Suppress confirmed mode prompts until the app has been away for one hour
     - [x] Allow changing a saved workout's type without changing recorded data
     - [x] Pass 19 app-hosted non-UI regressions and package the updated unsigned iPhone Release app; no automated UI tests run
-    - [ ] Human review of the revised interface on a physical device
+    - [x] User reviewed the revised interface and reported search, grid, detail, and resizing mismatches
+
+  - [x] Diagram-based outdoor UI corrections — implemented, ready for human review
+    - [x] Match the library diagram, filter Starred during search, and omit an empty Starred row
+    - [x] Build a reusable Spotlight-style search that expands from its button only when opened
+    - [x] Use route-thumbnail grid cards with distance-only captions
+    - [x] Match the route detail diagram with pencil editing and route-map preview/return
+    - [x] Respect bottom boundaries and adapt action size and placement as panes resize
+    - [x] Pass 20 app-hosted non-UI regressions and launch the updated iOS 18.6 iPhone 16 simulator app; no automated UI tests or interactions run
+    - [ ] User reviews the diagram-based UI and motion
 
 ## Cycle 24 — Video Editor UX & Platform Parity
 

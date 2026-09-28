@@ -21,48 +21,39 @@ struct OutdoorLiveContent: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
-            GeometryReader { proxy in
-                let actionHeight = min(58, max(48, proxy.size.height * 0.13))
-                let actionReserve = actionHeight + 7
-
-                Group {
-                    if let message = recorder.errorMessage, recorder.state == .failed {
-                        ScrollView {
-                            recoveryMessage(message)
-                                .padding(.top, 8)
-                                .padding(.bottom, 12)
+            if let message = recorder.errorMessage, recorder.state == .failed {
+                ScrollView { recoveryMessage(message).padding(.vertical, 8) }
+            } else {
+                OutdoorAdaptivePane { _ in
+                    VStack(spacing: 8) {
+                        if let status = statusText {
+                            statusPill(status).frame(maxWidth: .infinity)
                         }
-                    } else {
-                        VStack(spacing: 0) {
-                            VStack(spacing: 8) {
-                                if let status = statusText {
-                                    statusPill(status)
-                                        .frame(maxWidth: .infinity)
-                                }
-                                GeometryReader { metricsProxy in
-                                    metrics(at: context.date, in: metricsProxy.size)
-                                }
-                            }
-                            .padding(.top, 4)
-                            .padding(.bottom, 8)
-
-                            actionBar(height: actionHeight)
-                                .padding(.horizontal, 7)
-                                .padding(.bottom, 7)
-                                .frame(height: actionReserve)
+                        GeometryReader { proxy in
+                            metrics(at: context.date, in: proxy.size)
                         }
                     }
+                    .padding(.top, 4)
+                } actions: { compact in
+                    if compact {
+                        LazyVGrid(columns: [GridItem(.fixed(44)), GridItem(.fixed(44))], spacing: 8) {
+                            actionButtons(compact: true)
+                        }
+                    } else if dynamicTypeSize.isAccessibilitySize {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) { actionButtons(compact: false) }
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        HStack(spacing: 8) { actionButtons(compact: false) }
+                    }
                 }
-                .padding(.horizontal, 12)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Live \(recorder.kind.displayName) workout")
-        .transaction { transaction in
-            if isDragging {
-                transaction.animation = nil
-            }
-        }
+        .transaction { if isDragging { $0.animation = nil; $0.disablesAnimations = true } }
     }
 
     @ViewBuilder
@@ -243,63 +234,32 @@ struct OutdoorLiveContent: View {
         }
     }
     @ViewBuilder
-    private func actionBar(height: CGFloat) -> some View {
-        if dynamicTypeSize.isAccessibilitySize || dynamicTypeSize == .xxLarge || dynamicTypeSize == .xxxLarge {
-            ScrollView(.horizontal, showsIndicators: false) {
-                actionButtons(height: height, fillsWidth: false)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-        } else {
-            actionButtons(height: height, fillsWidth: true)
+    private func actionButtons(compact: Bool) -> some View {
+        Button(action: onMusic) {
+            OutdoorPaneActionLabel(title: "Music", systemImage: "music.note", compact: compact)
         }
-    }
+        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
+        .accessibilityLabel("Music")
 
-    private func actionButtons(height: CGFloat, fillsWidth: Bool) -> some View {
-        HStack(spacing: 6) {
-            Button(action: onMusic) {
-                Image(systemName: "music.note")
-                    .font(.system(size: interpolate(21, 26, expansion), weight: .semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(minWidth: 44, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
-            .buttonStyle(OutdoorPineButtonStyle())
-            .accessibilityLabel("Music")
-            .accessibilityHint("Open the shared Music editor")
-
-            Button(action: onFinish) {
-                Text("Finish")
-                    .font(.system(size: interpolate(12, 14, expansion), weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(minWidth: 58, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
-            .buttonStyle(OutdoorPineButtonStyle(prominent: true))
-            .accessibilityLabel("Finish workout")
-
-            Button(action: onTogglePause) {
-                Text(isPaused ? "Resume" : "Stop")
-                    .font(.system(size: interpolate(12, 14, expansion), weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(minWidth: 62, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
-            .buttonStyle(OutdoorPineButtonStyle())
-            .accessibilityLabel(isPaused ? "Resume workout" : "Stop workout")
-            .accessibilityValue(isPaused ? "Stopped" : "Recording")
-
-            Button(action: onHeart) {
-                Image(systemName: "heart")
-                    .font(.system(size: interpolate(21, 26, expansion), weight: .semibold))
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(minWidth: 44, maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
-            .buttonStyle(OutdoorPineButtonStyle())
-            .accessibilityLabel("Heart rate")
-            .accessibilityHint("Heart rate action is not available yet")
+        Button(action: onFinish) {
+            OutdoorPaneActionLabel(title: "Finish", systemImage: "stop.fill", compact: compact)
         }
-        .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: height)
+        .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: compact))
+        .accessibilityLabel("Finish workout")
+
+        Button(action: onTogglePause) {
+            OutdoorPaneActionLabel(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", compact: compact)
+        }
+        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
+        .accessibilityLabel(isPaused ? "Resume workout" : "Stop workout")
+
+        Button(action: onHeart) {
+            OutdoorPaneActionLabel(title: "Heart", systemImage: "heart", compact: compact)
+        }
+        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
+        .disabled(true)
+        .accessibilityLabel("Heart rate")
+        .accessibilityHint("Heart rate action is not available yet")
     }
 
     private func recoveryMessage(_ message: String) -> some View {

@@ -9,45 +9,35 @@ struct OutdoorTypePicker: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                Picker("Workout type", selection: $previewKind) {
-                    ForEach(OutdoorActivityKind.newRecordingChoices) { kind in
-                        HStack(spacing: 10) {
-                            Image(systemName: kind.iconName)
-                                .frame(width: 30)
-                            Text(kind.displayName)
+        OutdoorAdaptivePane { compact in
+            VStack(spacing: 8) {
+                if compact {
+                    OutdoorActivityTypePicker(kind: $previewKind)
+                } else {
+                    Picker("Workout type", selection: $previewKind) {
+                        ForEach(OutdoorActivityKind.newRecordingChoices) { kind in
+                            Label(kind.displayName, systemImage: kind.iconName)
+                                .tag(kind)
                         }
-                        .tag(kind)
-                        .accessibilityLabel(kind.displayName)
                     }
+                    .pickerStyle(.wheel)
+                    .frame(maxHeight: .infinity)
+                    .clipped()
+                    .accessibilityLabel("Workout type preview")
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 190)
-                .clipped()
-                .accessibilityLabel("Workout type preview")
-                .accessibilityValue("\(previewKind.displayName), not committed")
                 Text("Preview \(previewKind.displayName)")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(Theme.textPrimary.opacity(0.60))
-                    .padding(.top, 2)
-                    .accessibilityHidden(true)
+                    .foregroundStyle(Theme.textSecondary)
             }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 28)
-
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } actions: { compact in
             Button(action: onCommit) {
-                Image(systemName: "checkmark")
-                    .font(.headline.weight(.bold))
+                OutdoorPaneActionLabel(title: "Use \(previewKind.displayName)", systemImage: "checkmark", compact: compact)
             }
-            .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: true))
-            .frame(width: 48, height: 48)
-            .padding(.trailing, 12)
-            .padding(.bottom, 82)
+            .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: compact))
             .accessibilityLabel("Commit \(previewKind.displayName)")
             .accessibilityValue("Current Start type: \(committedKind.displayName)")
-            .accessibilityHint("Accept the centered preview")
+            .accessibilityHint("Accept the selected preview")
             .symbolEffectIfAvailable(reduceMotion: reduceMotion, value: previewKind)
         }
     }

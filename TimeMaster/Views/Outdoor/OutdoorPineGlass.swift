@@ -181,7 +181,8 @@ struct OutdoorPineButtonStyle: ButtonStyle {
     }
 }
 
-struct OutdoorPaneHeader<Handle: View, Accessory: View>: View {
+struct OutdoorPaneHeader<Leading: View, Handle: View, Accessory: View>: View {
+    @ViewBuilder let leading: () -> Leading
     @ViewBuilder let handle: () -> Handle
     @ViewBuilder let accessory: () -> Accessory
 
@@ -189,6 +190,7 @@ struct OutdoorPaneHeader<Handle: View, Accessory: View>: View {
         ZStack {
             handle()
             HStack {
+                leading()
                 Spacer(minLength: 0)
                 accessory()
             }

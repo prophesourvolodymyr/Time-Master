@@ -14,19 +14,16 @@ struct OutdoorMusicEditorView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @ScaledMetric(relativeTo: .caption2) private var compactTitleSize: CGFloat = 9
-    @FocusState private var searchFocused: Bool
 
     @State private var destinationID = ""
     @State private var destinationPreviewID = ""
     @State private var searchSourceID = ""
-    @State private var searchSourcePreviewID = ""
     @State private var expandedItems = Set<UUID>()
     @State private var collectionDetailID: UUID?
     @State private var searchOpen = false
     @State private var query = ""
     @State private var searchResults: [MusicLibrarySearchResult] = []
     @State private var showingMainPicker = false
-    @State private var showingSearchPicker = false
     @State private var searchTrayOffset: CGFloat = 0
     @State private var pendingRemovalItem: MusicLibraryItem?
     @State private var pendingRemovalDestination: MusicDestination?
@@ -101,15 +98,19 @@ struct OutdoorMusicEditorView: View {
             onMeasuredHeight(min(720, max(188, height)), showingMainPicker || searchOpen)
         }
         .animation(reduceMotion ? .none : .easeOut(duration: 0.24), value: showingMainPicker)
-        .animation(reduceMotion ? .none : .easeOut(duration: 0.24), value: showingSearchPicker)
         .animation(reduceMotion ? .none : .easeOut(duration: 0.24), value: searchOpen)
         .onAppear(perform: configureInitialState)
+        .onChange(of: query) { _ in executeSearch() }
+        .onChange(of: searchSourceID) { _ in executeSearch() }
+        .onChange(of: searchOpen) { open in
+            showingMainPicker = false
+            searchTrayOffset = 0
+            if !open { query = ""; searchResults = [] }
+        }
         .onChange(of: resetToken) { _ in
-            searchFocused = false
             searchOpen = false
             searchTrayOffset = 0
             showingMainPicker = false
-            showingSearchPicker = false
         }
         .onDisappear { dwellWorkItem?.cancel() }
         .alert(
@@ -147,61 +148,47 @@ struct OutdoorMusicEditorView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 7) {
-            Button {
-                destinationPreviewID = activeDestination.id
-                showingMainPicker.toggle()
-                showingSearchPicker = false
-                if searchOpen {
-                    closeSearchTray()
-                }
-                searchFocused = false
-            } label: {
-                Text(library.destinationName(activeDestination).uppercased())
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                    .frame(minWidth: 60, maxWidth: 118, minHeight: 36)
-            }
-            .buttonStyle(OutdoorPineButtonStyle())
-            .accessibilityLabel("Choose music section")
-            .accessibilityValue(library.destinationName(activeDestination))
-            .accessibilityHint("Choose a section from Music Settings.")
-
-            Spacer(minLength: 0)
-
-            if musicManager.currentTrack != nil {
-                Button { musicManager.stopPlayback() } label: {
-                    Image(systemName: "stop.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .frame(width: 36, height: 36)
+        HStack(spacing: 8) {
+            if !searchOpen {
+                Button {
+                    destinationPreviewID = activeDestination.id
+                    showingMainPicker.toggle()
+                } label: {
+                    Text(library.destinationName(activeDestination).uppercased())
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .frame(minWidth: 60, maxWidth: 118, minHeight: 44)
                 }
                 .buttonStyle(OutdoorPineButtonStyle())
-                .accessibilityLabel("Stop playback")
-                .accessibilityHint("Stops playback and removes the compact player")
-            }
-
-            Button {
-                showingMainPicker = false
-                showingSearchPicker = false
-                if searchOpen {
-                    closeSearchTray()
-                } else {
-                    withAnimation(reduceMotion ? .none : .easeOut(duration: 0.2)) {
-                        searchOpen = true
-                        searchTrayOffset = 0
+                .accessibilityLabel("Choose music section")
+                .accessibilityValue(library.destinationName(activeDestination))
+                Spacer(minLength: 0)
+                if musicManager.currentTrack != nil {
+                    Button { musicManager.stopPlayback() } label: {
+                        Image(systemName: "stop.fill").font(.body.weight(.semibold))
                     }
-                    searchFocused = true
+                    .buttonStyle(SpotlightCircleButtonStyle())
+                    .accessibilityLabel("Stop playback")
                 }
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 36, height: 36)
             }
-            .buttonStyle(OutdoorPineButtonStyle())
-            .accessibilityLabel(searchOpen ? "Close music search tray" : "Search music")
-            .accessibilityHint("Opens inline search in the music editor.")
+            SpotlightSearchBar(text: $query, isPresented: $searchOpen, placeholder: "Search music") {
+                Menu {
+                    Picker("Music import source", selection: $searchSourceID) {
+                        ForEach(importSourceDestinations) { destination in
+                            Text(library.destinationName(destination)).tag(destination.id)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease")
+                }
+                .buttonStyle(SpotlightCircleButtonStyle())
+                .disabled(importSourceDestinations.isEmpty)
+                .accessibilityLabel("Choose music import source")
+                .accessibilityValue(library.destinationName(searchSourceDestination))
+            }
         }
+        .animation(reduceMotion ? .none : .spring(response: 0.38, dampingFraction: 0.84), value: searchOpen)
         .accessibilityElement(children: .contain)
     }
     private var mainDestinationPicker: some View {
@@ -500,79 +487,6 @@ struct OutdoorMusicEditorView: View {
                 .frame(maxWidth: .infinity)
                 .accessibilityHidden(true)
 
-            HStack(spacing: 6) {
-                TextField("Search music", text: $query)
-                    .textFieldStyle(.plain)
-                    .padding(.horizontal, 9)
-                    .frame(height: 32)
-                    .background(
-                        reduceTransparency ? Theme.surface : Color.black.opacity(0.24),
-                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    )
-                    .focused($searchFocused)
-                    .submitLabel(.search)
-                    .onSubmit(executeSearch)
-                    .accessibilityLabel("Search music library")
-
-                Button(action: executeSearch) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(width: 32, height: 32)
-                }
-                .buttonStyle(OutdoorPineButtonStyle(prominent: true))
-                .accessibilityLabel("Search")
-
-                if importSourceDestinations.isEmpty {
-                    Text("No sections")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(1)
-                        .frame(minWidth: 54, maxWidth: 92, minHeight: 32)
-                } else {
-                    Button {
-                        searchSourcePreviewID = searchSourceID
-                        showingSearchPicker.toggle()
-                        showingMainPicker = false
-                    } label: {
-                        Text(library.destinationName(searchSourceDestination).uppercased())
-                            .font(.caption2.weight(.semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.68)
-                            .frame(minWidth: 54, maxWidth: 92, minHeight: 32)
-                    }
-                    .buttonStyle(OutdoorPineButtonStyle())
-                    .accessibilityLabel("Choose music import source")
-                    .accessibilityValue(library.destinationName(searchSourceDestination))
-                }
-            }
-
-            if showingSearchPicker, !importSourceDestinations.isEmpty {
-                VStack(spacing: 4) {
-                    Picker("Music import source", selection: $searchSourcePreviewID) {
-                        ForEach(importSourceDestinations) { destination in
-                            Text(library.destinationName(destination)).tag(destination.id)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(height: 118)
-                    .accessibilityLabel("Music import source wheel")
-                    .accessibilityValue(destinationChoiceName(searchSourcePreviewID, in: importSourceDestinations))
-
-                    Button("Use \(destinationChoiceName(searchSourcePreviewID, in: importSourceDestinations))") {
-                        searchSourceID = searchSourcePreviewID
-                        showingSearchPicker = false
-                        searchResults = []
-                    }
-                    .buttonStyle(OutdoorPineButtonStyle(prominent: true))
-                    .frame(maxWidth: .infinity)
-                }
-                .padding(6)
-                .background(
-                    reduceTransparency ? Theme.surface2 : Color.white.opacity(0.04),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                )
-            }
-
             if searchResults.isEmpty {
                 Text(
                     importSourceDestinations.isEmpty
@@ -634,8 +548,6 @@ struct OutdoorMusicEditorView: View {
     private func closeSearchTray() {
         withAnimation(reduceMotion ? .none : .easeOut(duration: 0.2)) {
             searchOpen = false
-            searchFocused = false
-            showingSearchPicker = false
             searchTrayOffset = 0
         }
     }
@@ -690,12 +602,12 @@ struct OutdoorMusicEditorView: View {
             : 280
         let trayHeight: CGFloat
         if searchOpen {
-            trayHeight = showingSearchPicker && !importSourceDestinations.isEmpty ? 280 : 112
+            trayHeight = 112
         } else {
             trayHeight = 0
         }
         let transferHeight: CGFloat = pendingTransfer == nil ? 0 : 112
-        let contentHeight: CGFloat = 48 + 44 + 8 + libraryHeight + trayHeight + transferHeight + 20
+        let contentHeight: CGFloat = 48 + 48 + 8 + libraryHeight + trayHeight + transferHeight + 20
         return showingMainPicker ? max(contentHeight, 48 + 40 + 240 + 10) : contentHeight
     }
 
@@ -775,7 +687,6 @@ struct OutdoorMusicEditorView: View {
         let source = importSourceDestinations.first(where: { $0.id == section?.id })
             ?? importSourceDestinations.first
         searchSourceID = source?.id ?? ""
-        searchSourcePreviewID = source?.id ?? ""
     }
 
     private func commitDestination(_ id: String) {

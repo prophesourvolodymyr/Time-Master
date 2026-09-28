@@ -19,6 +19,19 @@ struct OutdoorChoicePicker<Value: Hashable>: View {
     }
 
     var body: some View {
+        Group {
+            if compact {
+                menu.buttonStyle(SpotlightCircleButtonStyle())
+            } else {
+                menu.buttonStyle(OutdoorAccessoryButtonStyle())
+            }
+        }
+        .accessibilityLabel(title)
+        .accessibilityValue(selected?.title ?? "")
+        .accessibilityHint("Open choices")
+    }
+
+    private var menu: some View {
         Menu {
             Picker(title, selection: $selection) {
                 ForEach(options) { option in
@@ -36,16 +49,14 @@ struct OutdoorChoicePicker<Value: Hashable>: View {
                             .minimumScaleFactor(0.8)
                     }
                 }
-                Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(Theme.textSecondary)
+                if !compact {
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Theme.textSecondary)
+                }
             }
             .font(.subheadline.weight(.semibold))
         }
-        .buttonStyle(OutdoorAccessoryButtonStyle())
-        .accessibilityLabel(title)
-        .accessibilityValue(selected?.title ?? "")
-        .accessibilityHint("Open choices")
     }
 }
 
@@ -57,53 +68,13 @@ struct OutdoorAccessoryButtonStyle: ButtonStyle {
         configuration.label
             .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 12)
-            .frame(minHeight: 44)
+            .frame(minWidth: 44, minHeight: 44)
             .background(reduceTransparency ? Theme.surface2 : Color.white.opacity(0.07), in: Capsule())
             .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
             .contentShape(Capsule())
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.95 : 1)
             .opacity(configuration.isPressed ? 0.75 : 1)
             .animation(reduceMotion ? .none : .spring(response: 0.24, dampingFraction: 0.82), value: configuration.isPressed)
-    }
-}
-
-struct OutdoorSearchBar<Accessory: View>: View {
-    @Binding var text: String
-    let placeholder: String
-    @ViewBuilder var accessory: () -> Accessory
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(Theme.textSecondary)
-                .accessibilityHidden(true)
-            TextField(placeholder, text: $text)
-                .textFieldStyle(.plain)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-                .accessibilityLabel(placeholder)
-                .layoutPriority(1)
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(minWidth: 44, minHeight: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
-            }
-            accessory()
-        }
-        .font(.body)
-        .padding(.leading, 14)
-        .padding(.trailing, 5)
-        .padding(.vertical, 5)
-        .background(reduceTransparency ? Theme.surface2 : Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
     }
 }
 
@@ -123,6 +94,7 @@ struct OutdoorActivityTypePicker: View {
 
 struct OutdoorVisibilityPicker: View {
     @Binding var visibility: OutdoorActivityVisibility
+    var prominent = false
 
     var body: some View {
         OutdoorChoicePicker(
@@ -133,6 +105,7 @@ struct OutdoorVisibilityPicker: View {
                 OutdoorChoiceOption(id: .publicVisibility, title: "Public", systemImage: "globe")
             ]
         )
+        .background(prominent ? Theme.restAccent.opacity(0.85) : .clear, in: Capsule())
     }
 }
 #endif

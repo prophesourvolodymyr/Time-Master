@@ -307,4 +307,24 @@ final class OutdoorRideSafetyTests: XCTestCase {
         let reopened = OutdoorModeReminder(defaults: defaults, at: start.addingTimeInterval(14_400), observesLifecycle: false)
         XCTAssertEqual(reopened.requestPrompt(at: start.addingTimeInterval(14_400)), .choose)
     }
+
+    func testPanesStayAboveSafeAreaAndPlayerWhenViewportShrinks() {
+        for viewportHeight: CGFloat in [852, 420] {
+            for playerHeight: CGFloat in [0, 94] {
+                let layout = OutdoorPineGeometry(size: CGSize(width: 393, height: viewportHeight),
+                                                 safeAreaTop: 59, safeAreaBottom: 34, playerReserve: playerHeight)
+                let safeBottom = viewportHeight - 34 - playerHeight
+                let mainTop = layout.mainTop(mainHeight: layout.mainFullHeight, featureHeight: nil)
+                XCTAssertGreaterThanOrEqual(mainTop, layout.safeAreaTop)
+                XCTAssertLessThan(mainTop + layout.mainFullHeight, safeBottom)
+
+                let featureHeight = layout.maximumFeatureHeight(music: true)
+                let featureTop = viewportHeight - layout.lowerInset - featureHeight
+                let stackedTop = layout.mainTop(mainHeight: layout.mainMinimumWithFeature, featureHeight: featureHeight)
+                XCTAssertGreaterThanOrEqual(stackedTop, layout.safeAreaTop)
+                XCTAssertLessThanOrEqual(stackedTop + layout.mainMinimumWithFeature + 8, featureTop)
+                XCTAssertLessThan(featureTop + featureHeight, safeBottom)
+            }
+        }
+    }
 }

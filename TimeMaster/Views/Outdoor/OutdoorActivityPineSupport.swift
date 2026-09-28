@@ -7,15 +7,17 @@ struct OutdoorRouteThumbnailView: View {
     let points: [OutdoorTrackPoint]
     var compact: Bool
     private let cacheKey: String
+    private let previewAspectRatio: CGFloat?
 
     @State private var snapshotImage: UIImage?
     @State private var snapshotError: String?
     @State private var requestedSignature: String?
 
-    init(points: [OutdoorTrackPoint], compact: Bool = false, cacheKey: String? = nil) {
+    init(points: [OutdoorTrackPoint], compact: Bool = false, cacheKey: String? = nil, aspectRatio: CGFloat? = nil) {
         self.points = points
         self.compact = compact
         self.cacheKey = [cacheKey ?? "route", Self.fallbackCacheKey(for: points)].joined(separator: "|")
+        self.previewAspectRatio = aspectRatio
     }
 
     var body: some View {
@@ -51,7 +53,7 @@ struct OutdoorRouteThumbnailView: View {
                 requestSnapshot(size: proxy.size)
             }
         }
-        .aspectRatio(compact ? 1.35 : 1.55, contentMode: .fit)
+        .aspectRatio(previewAspectRatio ?? (compact ? 1.35 : 1.55), contentMode: .fit)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(points.count > 1 ? "Recorded route map preview" : "Recorded route unavailable")
     }
@@ -220,6 +222,87 @@ struct OutdoorWorkoutSummary: View {
     }
 }
 
+struct OutdoorRouteSummary: View {
+    let activity: OutdoorActivity
+    let units: TimeMasterCore.OutdoorUnitSystem
+    var compact = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .largeTitle) private var distanceSize: CGFloat = 72
+
+    var body: some View {
+        VStack(spacing: compact ? 12 : 18) {
+            if compact || dynamicTypeSize.isAccessibilitySize {
+                distance
+                duration
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                    elevationMetrics
+                    speedMetrics
+                }
+            } else {
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 20) { elevationMetrics }
+                        .frame(maxWidth: .infinity)
+                    distance.layoutPriority(1)
+                    VStack(alignment: .trailing, spacing: 20) { speedMetrics }
+                        .frame(maxWidth: .infinity)
+                }
+                duration
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var distance: some View {
+        let value = outdoorRouteDistanceParts(activity.distanceMeters, units: units)
+        return HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text(value.value)
+                .font(.system(size: compact ? distanceSize * 0.7 : distanceSize, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.45)
+            Text(value.unit)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Distance \(value.value) \(value.unit)")
+    }
+
+    private var duration: some View {
+        let seconds = max(0, activity.elapsedSeconds)
+        let value = seconds >= 3_600 ? "\(seconds / 3_600)h \(seconds % 3_600 / 60)min"
+            : seconds >= 60 ? "\(seconds / 60) min" : "\(seconds) sec"
+        return Text(value)
+            .font(.title.weight(.medium).monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
+            .accessibilityLabel("Duration \(outdoorDurationText(seconds))")
+    }
+
+    private var elevationMetrics: some View {
+        Group {
+            OutdoorMetricTile(label: "Total elevation gain", value: outdoorElevationText(activity.elevationGainMeters, unitSystem: units))
+            OutdoorMetricTile(label: "Highest elevation", value: outdoorElevationText(activity.highestElevationMeters, unitSystem: units))
+        }
+    }
+
+    private var speedMetrics: some View {
+        Group {
+            OutdoorMetricTile(label: "Highest speed", value: outdoorSpeedText(activity.maxSpeedMetersPerSecond, unitSystem: units), alignment: .trailing)
+            if activity.kind == .bike {
+                OutdoorMetricTile(label: "Average speed", value: outdoorSpeedText(activity.averageSpeedMetersPerSecond, unitSystem: units), alignment: .trailing)
+            } else {
+                OutdoorMetricTile(label: "Average pace", value: outdoorPaceText(activity.averagePaceSecondsPerKilometer, unitSystem: units), alignment: .trailing)
+            }
+        }
+    }
+}
+
+func outdoorRouteDistanceParts(_ meters: Double, units: TimeMasterCore.OutdoorUnitSystem) -> (value: String, unit: String) {
+    let distance = max(0, meters) / (units == .metric ? 1_000 : 1_609.344)
+    return (distance.formatted(.number.precision(.fractionLength(0...2))), units == .metric ? "km" : "mi")
+}
+
 struct OutdoorPublicDetailsFields: View {
     @Binding var description: String
     @Binding var tagText: String
@@ -228,6 +311,7 @@ struct OutdoorPublicDetailsFields: View {
     @Binding var endpointPrivacyMeters: Int
     @Binding var showPlayerTracks: Bool
     var recentTags: [String] = []
+    var showsPublicOptions = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -271,8 +355,10 @@ struct OutdoorPublicDetailsFields: View {
                     )
                 }
             }
-            Toggle("Allow comments", isOn: $allowComments)
-            Toggle("Show played tracks", isOn: $showPlayerTracks)
+            if showsPublicOptions {
+                Toggle("Allow comments", isOn: $allowComments)
+                Toggle("Show played tracks", isOn: $showPlayerTracks)
+            }
         }
         .font(.subheadline)
         .tint(Theme.restAccent)
