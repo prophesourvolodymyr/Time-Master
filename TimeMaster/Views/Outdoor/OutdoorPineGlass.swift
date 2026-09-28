@@ -200,24 +200,115 @@ struct OutdoorPaneHeader<Leading: View, Handle: View, Accessory: View>: View {
     }
 }
 
-struct OutdoorPineHandle<Drag: Gesture>: View {
-    let label: String
-    let value: String
-    let onAdjust: (AccessibilityAdjustmentDirection) -> Void
-    let onDrag: Drag
+@MainActor
+final class OutdoorPanePresentation: ObservableObject {
+    weak var view: UIView?
 
-    var body: some View {
-        Capsule()
-            .fill(Color.white.opacity(0.74))
-            .frame(width: 54, height: 5)
-            .frame(width: 132, height: 48)
-            .contentShape(Rectangle())
-            .gesture(onDrag)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(label)
-            .accessibilityValue(value)
-            .accessibilityAdjustableAction(onAdjust)
+    var height: CGFloat? {
+        guard let view, view.window != nil else { return nil }
+        let height = (view.layer.presentation() ?? view.layer).bounds.height
+        return height > 0 ? height : nil
     }
 }
+
+struct OutdoorPanePresentationProbe: UIViewRepresentable {
+    let presentation: OutdoorPanePresentation
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        presentation.view = view
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {}
+}
+
+struct OutdoorElasticHandle: View {
+    let drag: OutdoorPineDragState
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        OutdoorHandleCurve(
+            bend: reduceMotion ? 0 : drag.handleBend,
+            bias: reduceMotion ? 0 : drag.handleBias
+        )
+        .stroke(Color.white.opacity(drag.isDragging ? 1 : 0.74), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+        .frame(width: 54, height: 18)
+        .scaleEffect(x: !reduceMotion && drag.isDragging ? 1.08 : 1, y: 1)
+        .shadow(color: .white.opacity(drag.isDragging ? 0.32 : 0), radius: 4)
+        .animation(
+            reduceMotion ? .easeOut(duration: 0.12) : .spring(response: 0.24, dampingFraction: 0.76),
+            value: drag.isDragging
+        )
+        .accessibilityHidden(true)
+    }
+}
+
+private struct OutdoorHandleCurve: Shape {
+    var bend: CGFloat
+    var bias: CGFloat
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(bend, bias) }
+        set { bend = newValue.first; bias = newValue.second }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.midY),
+            control: CGPoint(x: rect.midX + bias, y: rect.midY + bend * 2)
+        )
+        return path
+    }
+}
+
+struct OutdoorCornerResizeHandle: View {
+    let drag: OutdoorPineDragState
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+
+    var body: some View {
+        OutdoorCornerGrip()
+            .stroke(Color.white.opacity(drag.isDragging ? 1 : 0.78), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            .frame(width: 20, height: 20)
+            .rotationEffect(.degrees(reduceMotion ? 0 : Double(drag.handleBend)))
+            .offset(
+                x: reduceMotion ? 0 : drag.handleBias * 0.35,
+                y: reduceMotion ? 0 : drag.handleBend * 0.35
+            )
+            .scaleEffect(reduceMotion ? 1 : appeared ? (drag.isDragging ? 1.08 : 1) : 0.7, anchor: .topTrailing)
+            .shadow(color: .white.opacity(drag.isDragging ? 0.36 : 0), radius: 4)
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+            .animation(
+                reduceMotion ? .easeOut(duration: 0.12) : .spring(response: 0.3, dampingFraction: 0.72),
+                value: drag.isDragging
+            )
+            .onAppear {
+                withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.66)) {
+                    appeared = true
+                }
+            }
+    }
+}
+
+private struct OutdoorCornerGrip: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: rect.maxY),
+            control: CGPoint(x: rect.maxX, y: rect.minY)
+        )
+        return path
+    }
+}
+
 
 #endif

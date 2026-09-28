@@ -29,15 +29,27 @@ struct OutdoorRouteRecordingView: View {
     @State private var mainDetent: OutdoorPineDetent = .compact
     @State private var mainHeight: CGFloat = 0
     @State private var feature: OutdoorRouteFeature?
-    @State private var rememberedFeature: OutdoorRouteFeature = .music
+    @State private var presentedFeature: OutdoorRouteFeature?
+    @State private var featureIsVisible = false
+    @State private var featurePresentationGeneration = 0
+    @State private var presentedModePrompt: OutdoorModeReminder.Prompt?
+    @State private var presentedFeatureUsesDrawer = false
     @State private var featureHeight: CGFloat = 0
     @State private var mainHeightBeforeFeature: CGFloat?
+    @State private var mainDetentBeforeFeature: OutdoorPineDetent?
     @State private var rememberedFeatureHeights: [OutdoorRouteFeature: CGFloat] = [:]
     @State private var musicHeightManuallyAdjusted = false
     @State private var musicEditorResetToken = 0
     @State private var mainDrag = OutdoorPineDragState()
     @State private var featureDrag = OutdoorPineDragState()
-    @State private var maxDrawerOffset: CGFloat = 0
+    @State private var fullscreenDrag = OutdoorPineDragState()
+    @State private var fullscreenDragProgress: CGFloat = 0
+    @GestureState private var mainGestureActive = false
+    @GestureState private var featureGestureActive = false
+    @GestureState private var fullscreenGestureActive = false
+    @StateObject private var mainPresentation = OutdoorPanePresentation()
+    @StateObject private var featurePresentation = OutdoorPanePresentation()
+    @State private var featureOffset: CGFloat = 0
     @State private var paneModalPresented = false
     @State private var shortSessionReason: String?
     @State private var mapMode: OutdoorMapMode = .explore
@@ -110,7 +122,13 @@ struct OutdoorRouteRecordingView: View {
                 size: CGSize(width: proxy.size.width, height: visibleHeight),
                 safeAreaTop: proxy.safeAreaInsets.top,
                 safeAreaBottom: max(0, proxy.safeAreaInsets.bottom - obscuredHeight),
-                playerReserve: showsCompactPlayer ? 94 : 0
+                playerReserve: showsCompactPlayer ? 94 : 0,
+                fullscreenBounds: CGRect(
+                    x: 0,
+                    y: -proxy.safeAreaInsets.top,
+                    width: proxy.size.width,
+                    height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+                )
             )
             let offlineCapabilities = (OutdoorMapMode.baseModes + OutdoorMapMode.overlayModes).map {
                 OutdoorMapProviderConfiguration.main.capability(for: $0)
@@ -246,11 +264,16 @@ struct OutdoorRouteRecordingView: View {
                     .zIndex(40)
                 }
 
-                featurePine(layout)
-                    .opacity(feature == nil ? 0 : 1)
-                    .offset(y: feature == nil ? layout.size.height : 0)
-                    .allowsHitTesting(feature != nil)
-                    .accessibilityHidden(feature == nil)
+                if let presentedFeature {
+                    featurePine(presentedFeature, layout: layout)
+                        .allowsHitTesting(feature != nil && featureIsVisible)
+                        .accessibilityHidden(feature == nil)
+                        .onAppear {
+                            guard feature != nil else { return }
+                            animate { featureIsVisible = true }
+                        }
+                        .zIndex(30)
+                }
                 if showsCompactPlayer {
                     OutdoorCompactPlayerView(
                         musicManager: musicManager,
@@ -268,6 +291,7 @@ struct OutdoorRouteRecordingView: View {
 
             }
             .frame(width: layout.size.width, height: layout.size.height, alignment: .topLeading)
+            .animation(feature == nil ? paneDismissalAnimation : paneAnimation, value: feature)
             .animation(
                 reduceMotion ? .none : .spring(response: 0.28, dampingFraction: 0.9),
                 value: mapOfflineMessage != nil || shortSessionReason != nil
@@ -299,6 +323,30 @@ struct OutdoorRouteRecordingView: View {
             .onChange(of: feature) { next in
                 DispatchQueue.main.async {
                     focusedFeature = next
+                }
+            }
+            .onChange(of: mainGestureActive) { active in
+                guard !active else { return }
+                if mainDrag.isDragging {
+                    mainDrag.end()
+                    settleMain(to: displayedMainHeight(layout), layout: layout)
+                }
+                if fullscreenDrag.isDragging, !fullscreenGestureActive {
+                    animate { fullscreenDrag.end() }
+                }
+            }
+            .onChange(of: featureGestureActive) { active in
+                guard !active, featureDrag.isDragging else { return }
+                featureDrag.end()
+                if mainDetent == .max {
+                    animate { featureOffset = 0 }
+                } else {
+                    settleFeature(to: stackedFeatureHeight, layout: layout)
+                }
+            }
+            .onChange(of: fullscreenGestureActive) { active in
+                if !active, fullscreenDrag.isDragging, !mainGestureActive {
+                    animate { fullscreenDrag.end() }
                 }
             }
             .onChange(of: preferences.preferences) { _ in
@@ -407,9 +455,17 @@ struct OutdoorRouteRecordingView: View {
             mainHeight = min(mainHeight, layout.mainFullHeight)
         }
         if let feature {
+            if mainHeightBeforeFeature == nil {
+                mainHeightBeforeFeature = mainHeight
+                mainDetentBeforeFeature = mainDetent
+            }
             let preferred = preferredFeatureHeight(for: feature, layout: layout)
             let desired = rememberedFeatureHeights[feature] ?? max(featureHeight, preferred)
             featureHeight = min(layout.maximumFeatureHeight(music: feature == .music), max(1, desired))
+            if presentedFeature == nil {
+                presentedFeature = feature
+                presentedFeatureUsesDrawer = mainDetent == .max
+            }
         }
     }
     private var canDismissRoute: Bool {
@@ -442,7 +498,7 @@ struct OutdoorRouteRecordingView: View {
         let mainFrame = displayedMainHeight(layout)
         let mainTop = libraryMapReturnHeight != nil ? layout.size.height - layout.lowerInset - 56 : layout.mainTop(
             mainHeight: mainFrame,
-            featureHeight: feature != nil && mainDetent != .max ? featureHeight : nil
+            featureHeight: feature != nil && mainDetent != .max ? stackedFeatureHeight : nil
         )
         let controlsHeight = max(134, mapControlsHeight)
         let hasRoom = mainTop - layout.safeAreaTop >= controlsHeight + 18
@@ -559,7 +615,7 @@ struct OutdoorRouteRecordingView: View {
         let mainFrame = displayedMainHeight(layout)
         let mainTop = libraryMapReturnHeight != nil ? layout.size.height - layout.lowerInset : layout.mainTop(
             mainHeight: mainFrame,
-            featureHeight: feature != nil && mainDetent != .max ? featureHeight : nil
+            featureHeight: feature != nil && mainDetent != .max ? stackedFeatureHeight : nil
         )
         return OutdoorUpperQuickGeometry(
             top: layout.quickStackTop(mainTop: mainTop),
@@ -569,19 +625,21 @@ struct OutdoorRouteRecordingView: View {
 
     private func mainPine(_ layout: OutdoorPineGeometry) -> some View {
         let isMax = mainDetent == .max
-        let height = displayedMainHeight(layout)
-        let top = isMax ? -layout.safeAreaTop : layout.mainTop(
-            mainHeight: height,
-            featureHeight: feature != nil && !isMax ? featureHeight : nil
+        let fullscreenAmount = fullscreenDrag.isDragging ? fullscreenDragProgress : isMax ? 1.0 : 0.0
+        let normalHeight = isMax ? layout.mainFullHeight : displayedMainHeight(layout)
+        let frame = layout.mainFrame(
+            mainHeight: normalHeight,
+            featureHeight: feature != nil && !isMax ? stackedFeatureHeight : nil,
+            fullscreenProgress: fullscreenAmount
         )
-        let expansion = mainExpansion(height, layout: layout)
-        let cornerRadius: CGFloat = isMax ? 0 : 26
+        let expansion = mainExpansion(frame.height, layout: layout)
+        let cornerRadius = 26 * (1 - fullscreenAmount)
 
         return OutdoorPineGlassSurface(
             identity: "route-main-pine",
             namespace: glassNamespace,
             cornerRadius: cornerRadius,
-            flat: isMax,
+            flat: false,
             interactive: true
         ) {
             VStack(spacing: 0) {
@@ -619,47 +677,49 @@ struct OutdoorRouteRecordingView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
                     .transaction {
-                        if mainDrag.isDragging || featureDrag.isDragging {
+                        if mainDrag.isDragging || featureDrag.isDragging || fullscreenDrag.isDragging {
                             $0.animation = nil
                             $0.disablesAnimations = true
                         }
                     }
-                if mainContent == .library || mainContent == .routes || mainDetent == .expanded || isMax {
-                    HStack {
-                        Spacer(minLength: 0)
-                        Button { toggleMax(layout) } label: {
-                            Image(systemName: isMax ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                                .font(.body.weight(.semibold))
-                                .frame(width: 44, height: 44)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(isMax ? "Exit maximum route view" : mainDetent == .expanded ? "Enter maximum route view" : "Expand route view")
-                    }
-                    .padding(.trailing, 12)
-                    .padding(.bottom, 4)
-                    .allowsHitTesting(!paneModalPresented)
-                    .accessibilityHidden(paneModalPresented)
-                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.top, isMax ? layout.safeAreaTop : 0)
-            .padding(.bottom, isMax ? layout.safeAreaBottom * 2 + layout.playerReserve + 10 : 0)
+            .padding(.top, layout.safeAreaTop * fullscreenAmount)
+            .padding(.bottom, layout.mainMaximumBottomPadding * fullscreenAmount)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
-        .padding(.horizontal, isMax ? 0 : 10)
-        .offset(y: top)
-        .zIndex(isMax ? 20 : 8)
+        .frame(width: frame.width, height: frame.height)
+        .background(OutdoorPanePresentationProbe(presentation: mainPresentation))
+        .overlay(alignment: .topTrailing) {
+            if isMax || fullscreenDrag.isDragging || (feature == nil && expansion >= 0.999) {
+                OutdoorCornerResizeHandle(drag: fullscreenDrag)
+                    .gesture(fullscreenDragGesture(layout))
+                    .onTapGesture { toggleMax(layout) }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Fullscreen resize handle")
+                    .accessibilityValue(isMax ? "Fullscreen" : "Expanded")
+                    .accessibilityHint(isMax ? "Drag down to restore the floating pane" : "Drag up to fill the screen")
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction { toggleMax(layout) }
+                    .padding(.top, layout.safeAreaTop * fullscreenAmount + 4)
+                    .padding(.trailing, 4)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.7, anchor: .topTrailing)))
+                    .allowsHitTesting(!paneModalPresented)
+                    .accessibilityHidden(paneModalPresented)
+            }
+        }
+        .offset(x: frame.minX, y: frame.minY)
+        .zIndex(isMax || fullscreenDrag.isDragging ? 20 : 8)
     }
 
-    private func featurePine(_ layout: OutdoorPineGeometry) -> some View {
-        let selectedFeature = feature ?? rememberedFeature
-        let isMaxDrawer = mainDetent == .max
+    private func featurePine(_ selectedFeature: OutdoorRouteFeature, layout: OutdoorPineGeometry) -> some View {
+        let isMaxDrawer = presentedFeatureUsesDrawer
         let maxFeatureHeight = selectedFeature == .music
             ? layout.musicMaximumHeight
             : selectedFeature == .type ? layout.featureMediumHeight : layout.usableHeight * 0.31
         let height = isMaxDrawer ? min(featureHeight, maxFeatureHeight) : max(1, featureHeight)
-        let top = layout.size.height - layout.lowerInset - height
+        let top = reduceMotion || featureIsVisible
+            ? layout.size.height - layout.lowerInset - height + featureOffset
+            : layout.size.height
         let cornerRadius: CGFloat = isMaxDrawer ? 28 : 25
 
         return OutdoorPineGlassSurface(
@@ -687,7 +747,7 @@ struct OutdoorRouteRecordingView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985, anchor: .bottom)))
-                    .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.88), value: feature)
+                    .animation(paneAnimation, value: selectedFeature)
                     .accessibilityFocused($focusedFeature, equals: selectedFeature)
             }
             .frame(maxWidth: .infinity)
@@ -697,10 +757,10 @@ struct OutdoorRouteRecordingView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        .offset(y: top + (isMaxDrawer ? maxDrawerOffset : 0))
-        .opacity(min(1, max(0, (height - 1) / 44)))
+        .background(OutdoorPanePresentationProbe(presentation: featurePresentation))
+        .offset(y: top)
+        .opacity(reduceMotion && !featureIsVisible ? 0 : 1)
         .padding(.horizontal, isMaxDrawer ? 0 : 10)
-        .zIndex(30)
     }
 
     @ViewBuilder
@@ -708,6 +768,7 @@ struct OutdoorRouteRecordingView: View {
         switch mainContent {
         case .start:
             OutdoorStartContent(
+                store: store,
                 isDragging: mainDrag.isDragging,
                 committedKind: committedKind,
                 activeFeature: feature,
@@ -773,7 +834,7 @@ struct OutdoorRouteRecordingView: View {
                 onShowMap: { showLibraryMap(layout) },
                 onModalStateChange: { paneModalPresented = $0 }
             ) {
-                mainHandle(layout, compact: true)
+                mainHandle(layout, compact: true, expansion: expansion)
             }
         case .routes:
             featureContent(.route, layout: layout)
@@ -787,7 +848,7 @@ struct OutdoorRouteRecordingView: View {
             OutdoorTypePicker(
                 previewKind: $previewKind,
                 committedKind: committedKind,
-                prompt: modePrompt,
+                prompt: presentedModePrompt,
                 onCommit: commitType
             )
         case .music:
@@ -818,15 +879,16 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
-    private func mainHandle(_ layout: OutdoorPineGeometry, compact: Bool = false) -> some View {
+    private func mainHandle(_ layout: OutdoorPineGeometry, compact: Bool = false, expansion: CGFloat = 0) -> some View {
         Group {
             if mainContent == .library, libraryActivityID != nil {
                 Image(systemName: "chevron.down").font(.body.weight(.semibold))
             } else {
-                Capsule().fill(Color.white.opacity(0.76)).frame(width: 56, height: 5)
+                OutdoorElasticHandle(drag: fullscreenDrag.isDragging ? fullscreenDrag : mainDrag)
             }
         }
         .frame(width: 132, height: compact ? 20 : 48)
+        .padding(.bottom, compact ? 28 * expansion : 0)
         .contentShape(Rectangle())
         .gesture(mainDragGesture(layout))
         .onTapGesture {
@@ -841,9 +903,7 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func featureHandle(_ layout: OutdoorPineGeometry, isMaxDrawer: Bool) -> some View {
-        Capsule()
-            .fill(Color.white.opacity(0.72))
-            .frame(width: 54, height: 5)
+        OutdoorElasticHandle(drag: featureDrag)
             .frame(width: 132, height: 48)
             .contentShape(Rectangle())
             .gesture(featureDragGesture(layout, isMaxDrawer: isMaxDrawer))
@@ -860,17 +920,34 @@ struct OutdoorRouteRecordingView: View {
 
     private func mainDragGesture(_ layout: OutdoorPineGeometry) -> some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .global)
+            .updating($mainGestureActive) { _, active, _ in active = true }
             .onChanged { value in
-                guard mainDetent != .max || (mainContent == .library && libraryActivityID != nil) else { return }
-                if !mainDrag.isDragging {
-                    mainDrag.begin(at: displayedMainHeight(layout))
+                if mainDetent == .max, !(mainContent == .library && libraryActivityID != nil) {
+                    updateFullscreenDrag(value, layout: layout)
+                    return
                 }
-                mainDrag.update(translation: value.translation.height)
-                if mainDetent != .max {
-                    updateMainHeight(mainDrag.startValue - value.translation.height, layout: layout, animated: false)
+                if !mainDrag.isDragging {
+                    mainDrag.begin(at: mainPresentation.height ?? displayedMainHeight(layout))
+                }
+                mainDrag.update(translation: value.translation.height, horizontal: value.translation.width)
+                guard mainDetent != .max else { return }
+                let proposed = mainDrag.startValue - value.translation.height
+                updateMainHeight(proposed, layout: layout, animated: false)
+                withoutAnimation {
+                    if feature == nil, proposed > layout.mainFullHeight {
+                        if !fullscreenDrag.isDragging { fullscreenDrag.begin(at: 0) }
+                        fullscreenDrag.update(translation: value.translation.height, horizontal: value.translation.width)
+                        fullscreenDragProgress = layout.fullscreenProgress(forProposedHeight: proposed)
+                    } else {
+                        fullscreenDrag.end()
+                    }
                 }
             }
             .onEnded { value in
+                if fullscreenDrag.isDragging, !mainDrag.isDragging {
+                    settleFullscreenDrag(value, layout: layout)
+                    return
+                }
                 guard mainDrag.isDragging else { return }
                 if mainContent == .library, libraryActivityID != nil,
                    value.translation.height > 44 || value.predictedEndTranslation.height > 90 {
@@ -880,24 +957,28 @@ struct OutdoorRouteRecordingView: View {
                     return
                 }
                 if mainDetent == .max { mainDrag.end(); return }
-                let projected = displayedMainHeight(layout) - (value.predictedEndTranslation.height - value.translation.height)
+                let projected = mainDrag.startValue - value.predictedEndTranslation.height
                 mainDrag.end()
+                if feature != nil, stackedFeatureHeight <= layout.featureCloseThreshold {
+                    closeFeature(restoreMainHeight: false)
+                }
                 settleMain(to: projected, layout: layout)
             }
     }
 
     private func featureDragGesture(_ layout: OutdoorPineGeometry, isMaxDrawer: Bool) -> some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .global)
+            .updating($featureGestureActive) { _, active, _ in active = true }
             .onChanged { value in
                 if !featureDrag.isDragging {
-                    featureDrag.begin(at: featureHeight)
+                    featureDrag.begin(at: featurePresentation.height ?? featureHeight)
                 }
                 if feature == .music, !isMaxDrawer {
                     musicHeightManuallyAdjusted = true
                 }
-                featureDrag.update(translation: value.translation.height)
+                featureDrag.update(translation: value.translation.height, horizontal: value.translation.width)
                 if isMaxDrawer {
-                    maxDrawerOffset = max(0, value.translation.height)
+                    withoutAnimation { featureOffset = max(0, value.translation.height) }
                 } else {
                     updateFeatureHeight(featureDrag.startValue - value.translation.height, layout: layout, animated: false)
                 }
@@ -905,22 +986,18 @@ struct OutdoorRouteRecordingView: View {
             .onEnded { value in
                 guard featureDrag.isDragging else { return }
                 if isMaxDrawer {
-                    let projected = maxDrawerOffset + (value.predictedEndTranslation.height - value.translation.height)
+                    let projected = featureOffset + (value.predictedEndTranslation.height - value.translation.height)
                     featureDrag.end()
                     if projected > 72 {
                         closeFeature()
                     } else {
-                        animate { maxDrawerOffset = 0 }
+                        animate { featureOffset = 0 }
                     }
                     return
                 }
-                let projected = featureHeight - (value.predictedEndTranslation.height - value.translation.height)
+                let projected = featureDrag.startValue - value.predictedEndTranslation.height
                 featureDrag.end()
-                if featureHeight <= layout.featureCloseThreshold {
-                    closeFeature()
-                } else {
-                    settleFeature(to: projected, layout: layout)
-                }
+                settleFeature(to: projected, layout: layout)
             }
     }
 
@@ -928,17 +1005,22 @@ struct OutdoorRouteRecordingView: View {
         let minimum = feature != nil && mainDetent != .max ? layout.mainMinimumWithFeature : layout.mainCompactHeight
         var maximum: CGFloat
         if feature != nil, mainDetent != .max {
-            let featureTop = layout.size.height - layout.lowerInset - featureHeight
+            let featureTop = layout.size.height - layout.lowerInset - stackedFeatureHeight
             let siblingMaximum = max(minimum, featureTop - layout.safeAreaTop - 8)
             maximum = min(layout.mainFullHeight, siblingMaximum)
             if proposed > siblingMaximum {
                 let newFeatureHeight = layout.size.height - layout.lowerInset - layout.safeAreaTop - 8 - proposed
                 updateFeatureHeight(newFeatureHeight, layout: layout, animated: false)
-                let adjustedFeatureTop = layout.size.height - layout.lowerInset - featureHeight
-                maximum = min(
-                    layout.mainFullHeight,
-                    max(minimum, adjustedFeatureTop - layout.safeAreaTop - 8)
-                )
+                if stackedFeatureHeight <= layout.featureCloseThreshold {
+                    closeFeature(restoreMainHeight: false)
+                    maximum = layout.mainFullHeight
+                } else {
+                    let adjustedFeatureTop = layout.size.height - layout.lowerInset - stackedFeatureHeight
+                    maximum = min(
+                        layout.mainFullHeight,
+                        max(minimum, adjustedFeatureTop - layout.safeAreaTop - 8)
+                    )
+                }
             }
         } else {
             maximum = layout.mainFullHeight
@@ -953,14 +1035,19 @@ struct OutdoorRouteRecordingView: View {
 
     private func updateFeatureHeight(_ proposed: CGFloat, layout: OutdoorPineGeometry, animated: Bool) {
         guard let selectedFeature = feature else { return }
-        let minimum: CGFloat = 1
-        let lowerBottom = layout.size.height - layout.lowerInset
-        let maximum = layout.maximumFeatureHeight(music: selectedFeature == .music)
-        let value = min(maximum, max(minimum, proposed))
-        let featureTop = lowerBottom - value
+        let dragLayout = layout.featureDragLayout(
+            proposedHeight: proposed,
+            music: selectedFeature == .music,
+            allowsDismissal: !animated
+        )
+        let value = dragLayout.height
+        let offset = dragLayout.offset
+        let visibleHeight = max(0, value - offset)
+        let featureTop = layout.size.height - layout.lowerInset - visibleHeight
         let maximumMain = max(layout.mainMinimumWithFeature, featureTop - layout.safeAreaTop - 8)
         let updates = {
             featureHeight = value
+            featureOffset = offset
             if mainDetent != .max, mainHeight > maximumMain {
                 mainHeight = maximumMain
             }
@@ -976,9 +1063,18 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func settleMain(to projected: CGFloat, layout: OutdoorPineGeometry) {
+        if feature == nil, projected >= layout.mainFullHeight + layout.fullscreenDragTravel * 0.5 {
+            selectionHaptic()
+            animate {
+                mainHeight = layout.mainMaximumHeight
+                mainDetent = .max
+                fullscreenDrag.end()
+            }
+            return
+        }
         let minimum = feature != nil && mainDetent != .max ? layout.mainMinimumWithFeature : layout.mainCompactHeight
         let maximum = feature != nil && mainDetent != .max
-            ? min(layout.mainFullHeight, layout.size.height - layout.lowerInset - featureHeight - layout.safeAreaTop - 8)
+            ? min(layout.mainFullHeight, layout.size.height - layout.lowerInset - stackedFeatureHeight - layout.safeAreaTop - 8)
             : layout.mainFullHeight
         let points = [layout.mainCompactHeight, layout.mainMediumHeight, maximum]
             .filter { $0 >= minimum && $0 <= maximum }
@@ -987,6 +1083,7 @@ struct OutdoorRouteRecordingView: View {
         animate {
             mainHeight = target
             mainDetent = detent
+            fullscreenDrag.end()
         }
     }
 
@@ -1007,7 +1104,8 @@ struct OutdoorRouteRecordingView: View {
             ]
         }
         let valid = points.filter { $0 > layout.featureCloseThreshold }
-        if projected <= layout.featureCloseThreshold {
+        let minimum = feature == .music ? layout.musicCompactHeight : layout.featureCompactHeight
+        if projected < minimum * 0.7 {
             closeFeature()
             return
         }
@@ -1015,11 +1113,15 @@ struct OutdoorRouteRecordingView: View {
         updateFeatureHeight(target, layout: layout, animated: true)
     }
 
+    private var stackedFeatureHeight: CGFloat {
+        max(0, featureHeight - featureOffset)
+    }
+
     private func displayedMainHeight(_ layout: OutdoorPineGeometry) -> CGFloat {
         if mainDetent == .max { return layout.mainMaximumHeight }
         let base = mainHeight > 0 ? mainHeight : layout.mainHeight(for: mainDetent)
         guard feature != nil else { return min(layout.mainFullHeight, base) }
-        let top = layout.size.height - layout.lowerInset - featureHeight
+        let top = layout.size.height - layout.lowerInset - stackedFeatureHeight
         let maximum = max(layout.mainMinimumWithFeature, top - layout.safeAreaTop - 8)
         return min(maximum, base)
     }
@@ -1067,16 +1169,31 @@ struct OutdoorRouteRecordingView: View {
             }
         } else {
             mainHeightBeforeFeature = mainHeight
+            mainDetentBeforeFeature = mainDetent
         }
         if feature == nil, next == .music {
             musicHeightManuallyAdjusted = false
         }
-        rememberedFeature = next
 
         let targetHeight = preferredFeatureHeight(for: next, layout: layout)
+        rememberedFeatureHeights[next] = targetHeight
+        featurePresentationGeneration &+= 1
+        presentedModePrompt = next == .type ? modePrompt : nil
+        presentedFeatureUsesDrawer = mainDetent == .max
+        let wasMounted = presentedFeature != nil
+        if !wasMounted {
+            withoutAnimation {
+                featureHeight = targetHeight
+                featureOffset = 0
+                featureIsVisible = false
+                presentedFeature = next
+            }
+        }
         animate {
             feature = next
-            maxDrawerOffset = 0
+            presentedFeature = next
+            if wasMounted { featureIsVisible = true }
+            featureOffset = 0
             if mainDetent != .max {
                 mainDetent = .compact
                 mainHeight = min(layout.mainCompactHeight, mainHeight)
@@ -1085,26 +1202,42 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
-    private func closeFeature() {
+    private func closeFeature(restoreMainHeight: Bool = true) {
         guard let current = feature else { return }
-        if current == .type {
-            modePrompt = nil
-            previewKind = committedKind
-        }
+        featurePresentationGeneration &+= 1
+        let generation = featurePresentationGeneration
+        if current == .type { modePrompt = nil }
         if current == .music {
-            musicEditorResetToken += 1
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
-        if featureHeight > 2 { rememberedFeatureHeights[current] = featureHeight }
         let restoredMainHeight = mainHeightBeforeFeature
-        animate {
+        let restoredDetent = mainDetentBeforeFeature
+        let updates = {
             feature = nil
-            maxDrawerOffset = 0
-            featureHeight = 0
-            if mainDetent != .max, let restoredMainHeight {
+            featureIsVisible = false
+            featureOffset = 0
+            featureDrag.end()
+            if restoreMainHeight, mainDetent != .max, let restoredMainHeight {
                 mainHeight = restoredMainHeight
+                if let restoredDetent { mainDetent = restoredDetent }
             }
         }
+        let completed = {
+            guard feature == nil, featurePresentationGeneration == generation else { return }
+            withoutAnimation {
+                presentedFeature = nil
+                presentedModePrompt = nil
+                if current == .music { musicEditorResetToken += 1 }
+            }
+        }
+        if #available(iOS 17.0, *) {
+            withAnimation(paneDismissalAnimation, completionCriteria: .removed, updates, completion: completed)
+        } else {
+            withAnimation(paneDismissalAnimation, updates)
+            DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0.18 : 0.3), execute: completed)
+        }
         mainHeightBeforeFeature = nil
+        mainDetentBeforeFeature = nil
     }
     private var displayedMapPoints: [OutdoorTrackPoint] {
         if mainContent == .finish {
@@ -1167,6 +1300,7 @@ struct OutdoorRouteRecordingView: View {
         guard modePrompt == nil else { return }
         if recorder.activeActivity == nil, let prompt = modeReminder.requestPrompt() {
             modePrompt = prompt
+            presentedModePrompt = prompt
             if feature != .type {
                 toggleFeature(.type, layout: layout)
             }
@@ -1210,13 +1344,7 @@ struct OutdoorRouteRecordingView: View {
             } catch {
                 shortSessionReason = "The route was saved, but its played-track history could not be saved: \(error.localizedDescription)"
             }
-            if feature == .music {
-                musicEditorResetToken += 1
-            }
-            feature = nil
-            featureHeight = 0
-            maxDrawerOffset = 0
-            mainHeightBeforeFeature = nil
+            closeFeature(restoreMainHeight: false)
             pineFinishedActivity = finalizedActivity
             exposedFinishedActivity = finalizedActivity
             mainContent = .finish
@@ -1254,39 +1382,50 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private func toggleMax(_ layout: OutdoorPineGeometry) {
-        if mainDetent == .max {
-            animate {
-                mainDetent = .expanded
-                mainHeight = layout.mainFullHeight
-            }
-        } else if mainDetent == .expanded && !mainDrag.isDragging {
-            closeFeatureForMax()
-            animate {
-                mainDetent = .max
-                mainHeight = layout.mainMaximumHeight
-            }
-        } else {
-            closeFeatureForMax()
-            animate {
-                mainDetent = .expanded
-                mainHeight = layout.mainFullHeight
-            }
+        let enteringFullscreen = mainDetent != .max
+        closeFeature(restoreMainHeight: false)
+        selectionHaptic()
+        animate {
+            mainDetent = enteringFullscreen ? .max : .expanded
+            mainHeight = enteringFullscreen ? layout.mainMaximumHeight : layout.mainFullHeight
         }
     }
 
-    private func closeFeatureForMax() {
-        guard let current = feature else { return }
-        rememberedFeatureHeights[current] = featureHeight
-        if current == .music {
-            musicEditorResetToken += 1
+    private func fullscreenDragGesture(_ layout: OutdoorPineGeometry) -> some Gesture {
+        DragGesture(minimumDistance: 3, coordinateSpace: .global)
+            .updating($fullscreenGestureActive) { _, active, _ in active = true }
+            .onChanged { updateFullscreenDrag($0, layout: layout) }
+            .onEnded { settleFullscreenDrag($0, layout: layout) }
+    }
+
+    private func updateFullscreenDrag(_ value: DragGesture.Value, layout: OutdoorPineGeometry) {
+        if !fullscreenDrag.isDragging {
+            let height = mainPresentation.height ?? displayedMainHeight(layout)
+            let span = max(1, layout.mainMaximumHeight - layout.mainFullHeight)
+            let progress = min(1, max(0, (height - layout.mainFullHeight) / span))
+            fullscreenDrag.begin(at: progress)
+            closeFeature(restoreMainHeight: false)
         }
-        feature = nil
-        featureHeight = 0
-        maxDrawerOffset = 0
+        withoutAnimation {
+            fullscreenDrag.update(translation: value.translation.height, horizontal: value.translation.width)
+            fullscreenDragProgress = min(1, max(0, fullscreenDrag.startValue - value.translation.height / layout.fullscreenDragTravel))
+        }
+    }
+
+    private func settleFullscreenDrag(_ value: DragGesture.Value, layout: OutdoorPineGeometry) {
+        guard fullscreenDrag.isDragging else { return }
+        let projected = fullscreenDrag.startValue - value.predictedEndTranslation.height / layout.fullscreenDragTravel
+        let enteringFullscreen = projected >= 0.5
+        if enteringFullscreen != (mainDetent == .max) { selectionHaptic() }
+        animate {
+            mainDetent = enteringFullscreen ? .max : .expanded
+            mainHeight = enteringFullscreen ? layout.mainMaximumHeight : layout.mainFullHeight
+            fullscreenDrag.end()
+        }
     }
 
     private func adjustMainDetent(_ direction: AccessibilityAdjustmentDirection, layout: OutdoorPineGeometry) {
-        let points: [OutdoorPineDetent] = [.compact, .medium, .expanded]
+        let points: [OutdoorPineDetent] = [.compact, .medium, .expanded, .max]
         guard let current = points.firstIndex(of: mainDetent) else { return }
         let next: Int
         switch direction {
@@ -1294,7 +1433,12 @@ struct OutdoorRouteRecordingView: View {
         case .decrement: next = max(0, current - 1)
         @unknown default: next = current
         }
+        guard next != current else { return }
         let detent = points[next]
+        if detent == .max || mainDetent == .max {
+            toggleMax(layout)
+            return
+        }
         mainDetent = detent
         updateMainHeight(layout.mainHeight(for: detent), layout: layout, animated: true)
         let actualHeight = nearest(
@@ -1354,7 +1498,7 @@ struct OutdoorRouteRecordingView: View {
                 updateFeatureHeight(preferred, layout: layout, animated: true)
             }
         } else if !musicHeightManuallyAdjusted, featureHeight == 0 || abs(featureHeight - preferred) > 12 {
-            updateFeatureHeight(preferred, layout: layout, animated: false)
+            updateFeatureHeight(preferred, layout: layout, animated: true)
         }
     }
 
@@ -1362,8 +1506,16 @@ struct OutdoorRouteRecordingView: View {
         points.min(by: { abs($0 - value) < abs($1 - value) }) ?? value
     }
 
+    private var paneAnimation: Animation {
+        reduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.42, dampingFraction: 1, blendDuration: 0.12)
+    }
+
+    private var paneDismissalAnimation: Animation {
+        reduceMotion ? .easeOut(duration: 0.18) : .timingCurve(0.22, 0.78, 0.26, 1, duration: 0.26)
+    }
+
     private func animate(_ updates: () -> Void) {
-        withAnimation(reduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.36, dampingFraction: 0.86), updates)
+        withAnimation(paneAnimation, updates)
     }
 
     private func withoutAnimation(_ updates: () -> Void) {

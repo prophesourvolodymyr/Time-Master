@@ -874,6 +874,19 @@ F27 Home ───────────────┘
     - [x] Pass 20 focused non-UI regressions, build the synchronized sources, and launch the corrected iOS 18.6 iPhone 16 app; no automated UI interactions run
     - [ ] User reviews the corrected layout, carousel, and pane navigation
 
+  - [x] Outdoor route previews and pane motion — implemented, ready for human review
+    - [x] Show the most recent recorded route in the Library button, with the grid icon as its empty fallback
+    - [x] Replace the right-hand Route symbol with the licensed Lucide route icon
+    - [x] Replace the expansion button with an animated top-right resize grip
+    - [x] Extend the Home pane to the physical viewport edges while preserving safe content insets
+    - [x] Keep secondary pane content stable during opening and closing
+    - [x] Add directional handle flex, drag highlighting, and Reduce Motion behavior
+    - [x] User reported that the first candidate still closed poorly and stopped short of the viewport edges
+    - [x] Continue the main drag directly through normal expansion into fullscreen
+    - [x] Slide below the lower pane's minimum height and retain its content until dismissal finishes
+    - [x] Pass 24 focused non-UI regressions and launch on iPhone 16 with iOS 18.6 without automated UI interactions
+    - [ ] Human review of route previews, fullscreen dragging, and pane motion
+
   - [ ] Trip planning and bus-transfer accounting — implementation prepared; human review pending
     - [x] Add Make a Trip, nearby suggestions, custom suggestions, saved trips, and drafts
     - [x] Add editable ordered stops, current-location starts, place search, map picking, trip and leg preferences

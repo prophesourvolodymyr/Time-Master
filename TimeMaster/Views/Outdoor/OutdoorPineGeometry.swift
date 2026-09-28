@@ -46,6 +46,7 @@ struct OutdoorPineGeometry: Equatable {
     var safeAreaTop: CGFloat
     var safeAreaBottom: CGFloat
     var playerReserve: CGFloat
+    var fullscreenBounds: CGRect? = nil
     static let quickStackHeight: CGFloat = 148
     private var minimumInteractivePaneHeight: CGFloat { 48 + 44 * 2 + 8 + 12 }
 
@@ -69,8 +70,29 @@ struct OutdoorPineGeometry: Equatable {
         max(1, size.height - safeAreaTop - lowerInset - 8)
     }
 
+    var mainMaximumFrame: CGRect {
+        fullscreenBounds ?? CGRect(
+            x: 0,
+            y: -safeAreaTop,
+            width: size.width,
+            height: size.height + safeAreaTop + safeAreaBottom
+        )
+    }
+
     var mainMaximumHeight: CGFloat {
-        size.height + safeAreaTop + safeAreaBottom
+        mainMaximumFrame.height
+    }
+
+    var mainMaximumBottomPadding: CGFloat {
+        max(0, mainMaximumFrame.maxY - size.height) + lowerInset
+    }
+
+    var fullscreenDragTravel: CGFloat {
+        max(44, mainTop(mainHeight: mainFullHeight, featureHeight: nil) - mainMaximumFrame.minY)
+    }
+
+    func fullscreenProgress(forProposedHeight height: CGFloat) -> CGFloat {
+        min(1, max(0, (height - mainFullHeight) / fullscreenDragTravel))
     }
 
     var featureCompactHeight: CGFloat {
@@ -117,6 +139,15 @@ struct OutdoorPineGeometry: Equatable {
         max(1, min(music ? musicMaximumHeight : featureExpandedHeight, mainFullHeight - mainMinimumWithFeature))
     }
 
+    func featureDragLayout(proposedHeight: CGFloat, music: Bool, allowsDismissal: Bool) -> (height: CGFloat, offset: CGFloat) {
+        let maximum = maximumFeatureHeight(music: music)
+        let minimum = min(maximum, music ? musicCompactHeight : featureCompactHeight)
+        return (
+            height: min(maximum, max(minimum, proposedHeight)),
+            offset: allowsDismissal ? max(0, minimum - proposedHeight) : 0
+        )
+    }
+
     func mainHeight(for detent: OutdoorPineDetent) -> CGFloat {
         switch detent {
         case .compact: mainCompactHeight
@@ -144,6 +175,19 @@ struct OutdoorPineGeometry: Equatable {
         return max(safeAreaTop, bottom - mainHeight)
     }
 
+    func mainFrame(mainHeight: CGFloat, featureHeight: CGFloat?, fullscreenProgress: CGFloat) -> CGRect {
+        let progress = min(1, max(0, fullscreenProgress))
+        let inset: CGFloat = 10
+        let top = mainTop(mainHeight: mainHeight, featureHeight: featureHeight)
+        let maximum = mainMaximumFrame
+        return CGRect(
+            x: inset + (maximum.minX - inset) * progress,
+            y: top + (maximum.minY - top) * progress,
+            width: size.width - inset * 2 + (maximum.width - size.width + inset * 2) * progress,
+            height: mainHeight + (maximum.height - mainHeight) * progress
+        )
+    }
+
     func quickStackTop(mainTop: CGFloat, preferred: CGFloat = 112, stackHeight: CGFloat = Self.quickStackHeight) -> CGFloat {
         return max(safeAreaTop + 8, min(preferred, mainTop - 12 - stackHeight))
     }
@@ -158,20 +202,34 @@ struct OutdoorPineDragState: Equatable {
     var isDragging = false
     var startValue: CGFloat = 0
     var lastTranslation: CGFloat = 0
+    var horizontalTranslation: CGFloat = 0
+
+    var handleBend: CGFloat {
+        guard isDragging else { return 0 }
+        return 6 * lastTranslation / (abs(lastTranslation) + 48)
+    }
+
+    var handleBias: CGFloat {
+        guard isDragging else { return 0 }
+        return 8 * horizontalTranslation / (abs(horizontalTranslation) + 48)
+    }
 
     mutating func begin(at value: CGFloat) {
         isDragging = true
         startValue = value
         lastTranslation = 0
+        horizontalTranslation = 0
     }
 
-    mutating func update(translation: CGFloat) {
+    mutating func update(translation: CGFloat, horizontal: CGFloat = 0) {
         lastTranslation = translation
+        horizontalTranslation = horizontal
     }
 
     mutating func end() {
         isDragging = false
         lastTranslation = 0
+        horizontalTranslation = 0
     }
 }
 

@@ -327,4 +327,90 @@ final class OutdoorRideSafetyTests: XCTestCase {
             }
         }
     }
+
+    func testFullscreenPaneFillsPhysicalViewportWithoutCoveringReservedControls() {
+        let physicalHeight: CGFloat = 852
+        let topInset: CGFloat = 59
+        let bottomInset: CGFloat = 34
+        let contentHeight = physicalHeight - topInset - bottomInset
+        for navigationReserve: CGFloat in [0, 146] {
+            let layout = OutdoorPineGeometry(
+                size: CGSize(width: 393, height: contentHeight - navigationReserve),
+                safeAreaTop: topInset,
+                safeAreaBottom: max(0, bottomInset - navigationReserve),
+                playerReserve: 94,
+                fullscreenBounds: CGRect(x: 0, y: -topInset, width: 393, height: physicalHeight)
+            )
+            let expanded = layout.mainFrame(mainHeight: layout.mainFullHeight, featureHeight: nil, fullscreenProgress: 0)
+            let halfway = layout.mainFrame(mainHeight: layout.mainFullHeight, featureHeight: nil, fullscreenProgress: 0.5)
+            let fullscreen = layout.mainFrame(mainHeight: layout.mainFullHeight, featureHeight: nil, fullscreenProgress: 1)
+            XCTAssertEqual(fullscreen.minY + topInset, 0, accuracy: 0.01)
+            XCTAssertEqual(fullscreen.maxY + topInset, physicalHeight, accuracy: 0.01)
+            XCTAssertEqual(fullscreen.minX, 0, accuracy: 0.01)
+            XCTAssertEqual(fullscreen.maxX, 393, accuracy: 0.01)
+            XCTAssertGreaterThan(expanded.minY, halfway.minY)
+            XCTAssertGreaterThan(halfway.minY, fullscreen.minY)
+            XCTAssertLessThan(expanded.maxY, halfway.maxY)
+            XCTAssertLessThan(halfway.maxY, fullscreen.maxY)
+            XCTAssertEqual(
+                fullscreen.maxY - layout.mainMaximumBottomPadding,
+                layout.size.height - layout.lowerInset,
+                accuracy: 0.01
+            )
+        }
+    }
+
+    func testHandleFlexRemainsBoundedAndReversesWithTheDrag() {
+        var drag = OutdoorPineDragState()
+        drag.begin(at: 300)
+        drag.update(translation: 10_000, horizontal: 10_000)
+        XCTAssertGreaterThan(drag.handleBend, 0)
+        XCTAssertLessThan(drag.handleBend, 6)
+        XCTAssertGreaterThan(drag.handleBias, 0)
+        XCTAssertLessThan(drag.handleBias, 8)
+        drag.update(translation: -10_000, horizontal: -10_000)
+        XCTAssertLessThan(drag.handleBend, 0)
+        XCTAssertGreaterThan(drag.handleBend, -6)
+        XCTAssertLessThan(drag.handleBias, 0)
+        XCTAssertGreaterThan(drag.handleBias, -8)
+        drag.end()
+        XCTAssertEqual(drag.handleBend, 0)
+        XCTAssertEqual(drag.handleBias, 0)
+    }
+
+    func testMainDragContinuesPastFloatingLimitToScreenEdges() {
+        let layout = OutdoorPineGeometry(
+            size: CGSize(width: 393, height: 759),
+            safeAreaTop: 59,
+            safeAreaBottom: 34,
+            playerReserve: 0
+        )
+        let proposedHeight = layout.mainFullHeight + layout.fullscreenDragTravel
+        let progress = layout.fullscreenProgress(forProposedHeight: proposedHeight)
+        let frame = layout.mainFrame(mainHeight: layout.mainFullHeight, featureHeight: nil, fullscreenProgress: progress)
+        XCTAssertEqual(frame.minY + 59, 0, accuracy: 0.01)
+        XCTAssertEqual(frame.maxY + 59, 852, accuracy: 0.01)
+        XCTAssertEqual(frame.width, 393, accuracy: 0.01)
+        let reversed = layout.fullscreenProgress(forProposedHeight: layout.mainFullHeight - 20)
+        XCTAssertEqual(reversed, 0)
+    }
+
+    func testDismissingFeatureSlidesWithoutCompressingItsContent() {
+        let layout = OutdoorPineGeometry(
+            size: CGSize(width: 393, height: 759),
+            safeAreaTop: 59,
+            safeAreaBottom: 34,
+            playerReserve: 94
+        )
+        let minimum = layout.musicCompactHeight
+        let dragged = layout.featureDragLayout(proposedHeight: minimum - 80, music: true, allowsDismissal: true)
+        XCTAssertEqual(dragged.height, minimum, accuracy: 0.01)
+        XCTAssertEqual(dragged.offset, 80, accuracy: 0.01)
+        let minimumTop = layout.size.height - layout.lowerInset - minimum
+        let draggedTop = layout.size.height - layout.lowerInset - dragged.height + dragged.offset
+        XCTAssertEqual(draggedTop - minimumTop, 80, accuracy: 0.01)
+        let settled = layout.featureDragLayout(proposedHeight: minimum - 80, music: true, allowsDismissal: false)
+        XCTAssertEqual(settled.height, dragged.height, accuracy: 0.01)
+        XCTAssertEqual(settled.offset, 0)
+    }
 }

@@ -2,6 +2,7 @@
 import SwiftUI
 
 struct OutdoorStartContent: View {
+    @ObservedObject var store: OutdoorActivityStore
     let isDragging: Bool
     let committedKind: OutdoorActivityKind
     let activeFeature: OutdoorRouteFeature?
@@ -10,6 +11,8 @@ struct OutdoorStartContent: View {
     let onFeature: (OutdoorRouteFeature) -> Void
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var recentRouteID: UUID?
+    @State private var recentRoutePoints: [OutdoorTrackPoint] = []
 
     var body: some View {
         VStack(spacing: 8) {
@@ -17,13 +20,26 @@ struct OutdoorStartContent: View {
                 let diameter = max(44, min(136, proxy.size.width * 0.42, proxy.size.height * 0.9))
                 HStack(spacing: 16) {
                     Button(action: onLibrary) {
-                        Image(systemName: "square.grid.2x2")
-                            .font(.title3)
+                        Group {
+                            if let recentRouteID, recentRoutePoints.count > 1 {
+                                OutdoorRouteThumbnailView(
+                                    points: recentRoutePoints,
+                                    compact: true,
+                                    cacheKey: recentRouteID.uuidString,
+                                    aspectRatio: 1
+                                )
+                                .accessibilityHidden(true)
+                            } else {
+                                Image(systemName: "square.grid.2x2")
+                                    .font(.title3)
+                            }
+                        }
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
                     .background(Theme.surface2.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .accessibilityLabel("Library")
+                    .accessibilityHint(recentRouteID == nil ? "Opens your recorded workouts" : "Shows your latest recorded route. Opens your workout library")
 
                     Button(action: onStart) {
                         VStack(spacing: 4) {
@@ -39,8 +55,10 @@ struct OutdoorStartContent: View {
                     .accessibilityLabel("Start \(committedKind.displayName) recording")
 
                     Button { onFeature(.route) } label: {
-                        Image(systemName: OutdoorRouteFeature.route.systemImage)
-                            .font(.title3.weight(.semibold))
+                        Image("LucideRoute")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
@@ -63,6 +81,23 @@ struct OutdoorStartContent: View {
         .padding(.bottom, 12)
         .foregroundStyle(Theme.textPrimary)
         .transaction { if isDragging { $0.animation = nil; $0.disablesAnimations = true } }
+        .onAppear(perform: loadRecentRoute)
+        .onChange(of: store.activities) { _ in loadRecentRoute() }
+    }
+
+    private func loadRecentRoute() {
+        for activity in store.establishedActivities.sorted(by: {
+            ($0.establishedAt ?? $0.startedAt) > ($1.establishedAt ?? $1.startedAt)
+        }) {
+            let points = store.trackPoints(for: activity)
+            if points.count > 1 {
+                recentRouteID = activity.id
+                recentRoutePoints = points
+                return
+            }
+        }
+        recentRouteID = nil
+        recentRoutePoints = []
     }
 
     private func featureButton(_ feature: OutdoorRouteFeature) -> some View {
