@@ -305,8 +305,9 @@ final class BackupManager {
             guard !fm.fileExists(atPath: routeURL.path), pendingRouteIDs.insert(route.id).inserted else {
                 continue
             }
-            guard route.points.count > 1,
-                  route.points.allSatisfy({ OutdoorMetricsCalculator.isValidLocationPoint($0) }) else {
+            guard (route.isDraft || route.points.count > 1),
+                  route.points.allSatisfy({ OutdoorMetricsCalculator.isValidLocationPoint($0) }),
+                  route.trip?.stops.allSatisfy({ $0.coordinate.isValid && $0.shapingPoints.allSatisfy(\.isValid) }) ?? true else {
                 throw BackupError.invalidBackup
             }
             _ = try routeEncoder.encode(route)

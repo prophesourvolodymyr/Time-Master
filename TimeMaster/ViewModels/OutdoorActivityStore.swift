@@ -74,6 +74,7 @@ final class OutdoorActivityStore: ObservableObject {
                 let correctedHighest = [activity.highestElevationMeters, metrics.highestElevationMeters].compactMap { $0 }.max()
                 if activity.trackPointCount != points.count
                     || abs(activity.distanceMeters - metrics.distanceMeters) > 1
+                    || abs(activity.tripDistanceMeters - metrics.totalDistanceMeters) > 1
                     || activity.elapsedSeconds != correctedElapsed
                     || activity.movingSeconds != correctedMoving
                     || activity.elevationGainMeters != correctedGain
@@ -81,6 +82,7 @@ final class OutdoorActivityStore: ObservableObject {
                     || requiresMigration {
                     activity.trackPointCount = points.count
                     activity.distanceMeters = metrics.distanceMeters
+                    activity.totalDistanceMeters = metrics.totalDistanceMeters
                     activity.elapsedSeconds = correctedElapsed
                     activity.movingSeconds = correctedMoving
                     activity.averageSpeedMetersPerSecond = correctedMoving > 0 ? metrics.distanceMeters / Double(correctedMoving) : nil
@@ -116,6 +118,11 @@ final class OutdoorActivityStore: ObservableObject {
             activity.showPlayerTracks = preferences.showPlayerTracks
         }
         activity.plannedRouteID = plannedRoute?.id.uuidString
+        if let plannedRoute {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            activity.plannedRouteSnapshot = try encoder.encode(plannedRoute)
+        }
         try database.createOutdoorActivity(id: activity.id.uuidString, manifest: activity.coreValue)
         activeActivity = activity
         activePoints = []
@@ -138,6 +145,7 @@ final class OutdoorActivityStore: ObservableObject {
         activity.trackPointCount = activePoints.count
         let metrics = OutdoorMetricsCalculator.aggregate(points: activePoints, pauses: activity.pauseIntervals)
         activity.distanceMeters = metrics.distanceMeters
+        activity.totalDistanceMeters = metrics.totalDistanceMeters
         activity.elapsedSeconds = max(activity.elapsedSeconds, max(0, Int(point.timestamp.timeIntervalSince(activity.startedAt).rounded())))
         activity.movingSeconds = metrics.movingSeconds
         activity.averageSpeedMetersPerSecond = metrics.averageSpeedMetersPerSecond
@@ -197,7 +205,7 @@ final class OutdoorActivityStore: ObservableObject {
     @discardableResult
     func finish(at date: Date = Date()) throws -> OutdoorActivity? {
         guard var activity = activeActivity else { return nil }
-        if activity.distanceMeters < 3 {
+        if activity.tripDistanceMeters < 3 {
             try database.deleteOutdoorActivity(id: activity.id.uuidString)
             activeActivity = nil
             activePoints = []
@@ -284,6 +292,41 @@ final class OutdoorActivityStore: ObservableObject {
         let url = routesDirectory.appendingPathComponent("\(route.id.uuidString).json")
         try FileManager.default.removeItem(at: url)
         plannedRoutes.removeAll { $0.id == route.id }
+    }
+
+    func recordedPlan(for activity: OutdoorActivity) -> PlannedRoute? {
+        if let data = activity.plannedRouteSnapshot {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try? decoder.decode(PlannedRoute.self, from: data)
+        }
+        return activity.plannedRouteID.flatMap { plannedRoute(withID: $0) }
+    }
+
+    func setTravelMode(_ mode: OutdoorTravelMode) throws {
+        guard var activity = activeActivity, !activity.finished else { return }
+        activity.currentTravelMode = mode
+        try saveActive(activity)
+    }
+
+    func saveTripRecovery(_ route: PlannedRoute?) throws {
+        try database.bootstrapIfNeeded()
+        let url = routesDirectory.appendingPathComponent(".trip-recovery.json")
+        if let route {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            try encoder.encode(route).write(to: url, options: .atomic)
+        } else if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+    }
+
+    func loadTripRecovery() throws -> PlannedRoute? {
+        let url = routesDirectory.appendingPathComponent(".trip-recovery.json")
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(PlannedRoute.self, from: Data(contentsOf: url))
     }
 
 

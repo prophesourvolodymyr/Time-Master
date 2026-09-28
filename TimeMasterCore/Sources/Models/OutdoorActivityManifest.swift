@@ -28,6 +28,10 @@ public enum OutdoorActivityVisibility: String, Codable, Equatable {
     case publicVisibility = "public"
 }
 
+public enum OutdoorTravelMode: String, Codable, Equatable {
+    case active, bus
+}
+
 public struct OutdoorTrackPoint: Codable, Equatable {
     public var timestamp: Date
     public var latitude: Double
@@ -38,6 +42,8 @@ public struct OutdoorTrackPoint: Codable, Equatable {
     public var barometricRelativeAltitudeMeters: Double?
     public var speedMetersPerSecond: Double?
     public var state: OutdoorRecordingState
+    public var travelMode: OutdoorTravelMode?
+    public var effectiveTravelMode: OutdoorTravelMode { travelMode ?? .active }
 
     public init(
         timestamp: Date,
@@ -48,7 +54,8 @@ public struct OutdoorTrackPoint: Codable, Equatable {
         speedMetersPerSecond: Double? = nil,
         state: OutdoorRecordingState,
         verticalAccuracyMeters: Double? = nil,
-        barometricRelativeAltitudeMeters: Double? = nil
+        barometricRelativeAltitudeMeters: Double? = nil,
+        travelMode: OutdoorTravelMode? = nil
     ) {
         self.timestamp = timestamp
         self.latitude = latitude
@@ -59,6 +66,7 @@ public struct OutdoorTrackPoint: Codable, Equatable {
         self.barometricRelativeAltitudeMeters = barometricRelativeAltitudeMeters
         self.speedMetersPerSecond = speedMetersPerSecond
         self.state = state
+        self.travelMode = travelMode
     }
 
     public static func makeJSONEncoder() -> JSONEncoder {
@@ -141,7 +149,7 @@ public struct OutdoorPlayedTrackEvent: Codable, Equatable, Identifiable {
 
 
 public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
-    public static let currentSchemaVersion = 3
+    public static let currentSchemaVersion = 4
 
     public var id: String
     public var schemaVersion: Int
@@ -175,6 +183,10 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
     public var showPlayerTracks: Bool
     public var hasPublicMetadata: Bool
     public var playedTracks: [OutdoorPlayedTrackEvent]
+    public var totalDistanceMeters: Double?
+    public var currentTravelMode: OutdoorTravelMode?
+    public var plannedRouteSnapshot: Data?
+    public var tripDistanceMeters: Double { max(distanceMeters, totalDistanceMeters ?? distanceMeters) }
 
     public init(
         id: String = UUID().uuidString,
@@ -208,7 +220,10 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         endpointPrivacyMeters: Int = 200,
         showPlayerTracks: Bool = true,
         hasPublicMetadata: Bool = false,
-        playedTracks: [OutdoorPlayedTrackEvent] = []
+        playedTracks: [OutdoorPlayedTrackEvent] = [],
+        totalDistanceMeters: Double? = nil,
+        currentTravelMode: OutdoorTravelMode? = nil,
+        plannedRouteSnapshot: Data? = nil
     ) {
         self.id = id
         self.schemaVersion = schemaVersion
@@ -242,6 +257,9 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         self.showPlayerTracks = showPlayerTracks
         self.hasPublicMetadata = hasPublicMetadata
         self.playedTracks = playedTracks
+        self.totalDistanceMeters = totalDistanceMeters
+        self.currentTravelMode = currentTravelMode
+        self.plannedRouteSnapshot = plannedRouteSnapshot
     }
 
     public static func clampedEndpointPrivacyMeters(_ value: Int) -> Int {
@@ -263,12 +281,13 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         case averagePaceSecondsPerKilometer, establishedAt, visibility, starred, publicDescription, tags
         case allowComments, hideStartFinish, endpointPrivacyMeters, showPlayerTracks, hasPublicMetadata
         case playedTracks
+        case totalDistanceMeters, currentTravelMode, plannedRouteSnapshot
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let decodedSchemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
-        let isLegacy = decodedSchemaVersion < Self.currentSchemaVersion
+        let isLegacy = decodedSchemaVersion < 3
         let finished = try c.decodeIfPresent(Bool.self, forKey: .finished) ?? false
         let endedAt = try c.decodeIfPresent(Date.self, forKey: .endedAt)
         let startedAt = try c.decode(Date.self, forKey: .startedAt)
@@ -311,7 +330,10 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
             endpointPrivacyMeters: try c.decodeIfPresent(Int.self, forKey: .endpointPrivacyMeters) ?? 200,
             showPlayerTracks: try c.decodeIfPresent(Bool.self, forKey: .showPlayerTracks) ?? true,
             hasPublicMetadata: try c.decodeIfPresent(Bool.self, forKey: .hasPublicMetadata) ?? false,
-            playedTracks: try c.decodeIfPresent([OutdoorPlayedTrackEvent].self, forKey: .playedTracks) ?? []
+            playedTracks: try c.decodeIfPresent([OutdoorPlayedTrackEvent].self, forKey: .playedTracks) ?? [],
+            totalDistanceMeters: try c.decodeIfPresent(Double.self, forKey: .totalDistanceMeters),
+            currentTravelMode: try c.decodeIfPresent(OutdoorTravelMode.self, forKey: .currentTravelMode),
+            plannedRouteSnapshot: try c.decodeIfPresent(Data.self, forKey: .plannedRouteSnapshot)
         )
     }
 
@@ -349,5 +371,8 @@ public struct OutdoorActivityManifest: Codable, Equatable, Identifiable {
         try c.encode(showPlayerTracks, forKey: .showPlayerTracks)
         try c.encode(hasPublicMetadata, forKey: .hasPublicMetadata)
         try c.encode(playedTracks, forKey: .playedTracks)
+        try c.encodeIfPresent(totalDistanceMeters, forKey: .totalDistanceMeters)
+        try c.encodeIfPresent(currentTravelMode, forKey: .currentTravelMode)
+        try c.encodeIfPresent(plannedRouteSnapshot, forKey: .plannedRouteSnapshot)
     }
 }

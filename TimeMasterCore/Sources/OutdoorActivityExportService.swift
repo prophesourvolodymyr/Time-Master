@@ -17,27 +17,48 @@ public enum OutdoorActivityExportService {
     ]
 
     public static func gpxURL(for manifest: OutdoorActivityManifest, points: [OutdoorTrackPoint]) throws -> URL {
-        let trackPoints = points.map { point in
-            let elevation = point.elevationMeters.map { "<ele>\($0)</ele>" } ?? ""
-            return "<trkpt lat=\"\(xml(point.latitude))\" lon=\"\(xml(point.longitude))\">\(elevation)<time>\(xml(iso8601.string(from: point.timestamp)))</time></trkpt>"
+        var segments: [(OutdoorTravelMode, [OutdoorTrackPoint])] = []
+        var previous: OutdoorTrackPoint?
+        for point in points {
+            defer { previous = point }
+            guard point.state == .recording else { continue }
+            if let previous, previous.state == .recording,
+               previous.effectiveTravelMode == point.effectiveTravelMode,
+               !manifest.pauseIntervals.contains(where: { $0.startedAt < point.timestamp && ($0.endedAt ?? point.timestamp) > previous.timestamp }),
+               !segments.isEmpty {
+                segments[segments.count - 1].1.append(point)
+            } else {
+                segments.append((point.effectiveTravelMode, [point]))
+            }
+        }
+        let tracks = segments.map { mode, segment in
+            let trackPoints = segment.map { point in
+                let elevation = point.elevationMeters.map { "<ele>\($0)</ele>" } ?? ""
+                return "<trkpt lat=\"\(xml(point.latitude))\" lon=\"\(xml(point.longitude))\">\(elevation)<time>\(xml(iso8601.string(from: point.timestamp)))</time></trkpt>"
+            }.joined()
+            let type = mode == .bus ? "bus" : manifest.kind.rawValue
+            return "<trk><name>\(xml(manifest.title)) · \(type)</name><type>\(type)</type><trkseg>\(trackPoints)</trkseg></trk>"
         }.joined()
         let content = """
         <?xml version="1.0" encoding="UTF-8"?>
         <gpx version="1.1" creator="TimeMaster" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">
           <metadata><name>\(xml(manifest.title))</name><time>\(xml(iso8601.string(from: manifest.startedAt)))</time></metadata>
-          <trk><name>\(xml(manifest.title))</name><type>\(xml(manifest.kind.rawValue))</type><trkseg>\(trackPoints)</trkseg></trk>
+          \(tracks)
         </gpx>
         """
         return try temporaryFile(extension: "gpx", content: content)
     }
 
     public static func csvURL(for manifest: OutdoorActivityManifest, points: [OutdoorTrackPoint]) throws -> URL {
-        var rows = ["timestamp,latitude,longitude,elevationMeters,horizontalAccuracyMeters,speedMetersPerSecond,state,cumulativeDistanceMeters"]
+        var rows = ["timestamp,latitude,longitude,elevationMeters,horizontalAccuracyMeters,speedMetersPerSecond,state,cumulativeDistanceMeters,travelMode,totalDistanceMeters"]
         var cumulativeDistance = 0.0
+        var totalDistance = 0.0
         var previous: OutdoorTrackPoint?
         for point in points {
             if let previous {
-                cumulativeDistance += distanceMeters(from: previous, to: point)
+                let distance = recordedSegmentDistance(from: previous, to: point, manifest: manifest)
+                totalDistance += distance
+                if previous.effectiveTravelMode == .active && point.effectiveTravelMode == .active { cumulativeDistance += distance }
             }
             let values: [String] = [
                 iso8601.string(from: point.timestamp),
@@ -48,6 +69,8 @@ public enum OutdoorActivityExportService {
                 point.speedMetersPerSecond.map { String($0) } ?? "",
                 point.state.rawValue,
                 String(cumulativeDistance),
+                point.effectiveTravelMode.rawValue,
+                String(totalDistance),
             ]
             rows.append(values.map(csvEscape).joined(separator: ","))
             previous = point
@@ -104,6 +127,7 @@ public enum OutdoorActivityExportService {
             FITField(number: 4, size: 4, baseType: 0x86),
             FITField(number: 5, size: 2, baseType: 0x84)
         ], to: &body)
+        appendUInt8(0, to: &body)
         appendUInt8(4, to: &body)
         appendUInt16(1, to: &body)
         appendUInt16(0, to: &body)
@@ -118,6 +142,7 @@ public enum OutdoorActivityExportService {
         ], to: &body)
         appendUInt8(0x00 | 1, to: &body)
         appendUInt8(0, to: &body)
+        appendUInt8(0, to: &body)
         appendUInt32(fitTimestamp(sortedPoints.first?.timestamp ?? manifest.startedAt), to: &body)
 
         appendFITDefinition(local: 2, global: 20, fields: [
@@ -131,16 +156,26 @@ public enum OutdoorActivityExportService {
         var cumulativeDistance = 0.0
         var derivedSpeeds: [Double] = []
         var previous: OutdoorTrackPoint?
+        var timerRunning = true
         for point in sortedPoints {
-            let segmentDistance = previous.map { distanceMeters(from: $0, to: point) } ?? 0
+            let isActive = point.state == .recording && point.effectiveTravelMode == .active
+            if isActive != timerRunning {
+                appendUInt8(0x01, to: &body)
+                appendUInt8(0, to: &body)
+                appendUInt8(isActive ? 0 : 1, to: &body)
+                appendUInt32(fitTimestamp(point.timestamp), to: &body)
+                timerRunning = isActive
+            }
+            guard isActive else { previous = nil; continue }
+            let segmentDistance = previous.map { recordedSegmentDistance(from: $0, to: point, manifest: manifest) } ?? 0
             cumulativeDistance += segmentDistance
             appendUInt8(0x02, to: &body)
             appendUInt32(fitTimestamp(point.timestamp), to: &body)
             appendInt32(semicircles(point.latitude), to: &body)
             appendInt32(semicircles(point.longitude), to: &body)
             appendUInt16(fitAltitude(point.elevationMeters), to: &body)
-            appendUInt32(fitDistance(cumulativeDistance, fallback: manifest.distanceMeters), to: &body)
-            let derivedSpeed = point.speedMetersPerSecond ?? derivedSpeed(from: previous, to: point, distance: segmentDistance)
+            appendUInt32(fitDistance(cumulativeDistance, fallback: 0), to: &body)
+            let derivedSpeed: Double? = segmentDistance > 0 ? (point.speedMetersPerSecond ?? derivedSpeed(from: previous, to: point, distance: segmentDistance)) : nil
             if let derivedSpeed, derivedSpeed.isFinite, derivedSpeed >= 0 {
                 derivedSpeeds.append(derivedSpeed)
             }
@@ -158,7 +193,7 @@ public enum OutdoorActivityExportService {
         let manifestElapsedMilliseconds = manifest.elapsedSeconds > 0 ? Double(manifest.elapsedSeconds) * 1000 : 0
         let elapsedMilliseconds = UInt32(min(Double(UInt32.max), max(manifestElapsedMilliseconds, elapsed * 1000)))
         let movingMilliseconds = UInt32(min(Double(UInt32.max), max(0, Double(movingSeconds) * 1000)))
-        let maxSpeed = manifest.maxSpeedMetersPerSecond ?? (derivedSpeeds + sortedPoints.compactMap(\.speedMetersPerSecond)).max()
+        let maxSpeed = manifest.maxSpeedMetersPerSecond ?? derivedSpeeds.max()
         let averageSpeed = manifest.averageSpeedMetersPerSecond ?? (elapsed > 0 ? totalDistance / elapsed : nil)
 
         appendFITDefinition(local: 3, global: 18, fields: [
@@ -183,7 +218,7 @@ public enum OutdoorActivityExportService {
         appendUInt32(fitTimestamp(startDate), to: &body)
         appendUInt8(sportValue(manifest.kind), to: &body)
         appendUInt32(elapsedMilliseconds, to: &body)
-        appendUInt32(movingMilliseconds > 0 ? movingMilliseconds : elapsedMilliseconds, to: &body)
+        appendUInt32(movingMilliseconds, to: &body)
         appendUInt32(fitDistance(totalDistance, fallback: 0), to: &body)
         appendUInt16(fitSpeed(averageSpeed), to: &body)
         appendUInt16(fitSpeed(maxSpeed), to: &body)
@@ -197,6 +232,7 @@ public enum OutdoorActivityExportService {
             FITField(number: 253, size: 4, baseType: 0x86)
         ], to: &body)
         appendUInt8(0x00 | 1, to: &body)
+        appendUInt8(0, to: &body)
         appendUInt8(1, to: &body)
         appendUInt32(fitTimestamp(endDate), to: &body)
 
@@ -210,7 +246,7 @@ public enum OutdoorActivityExportService {
         ], to: &body)
         appendUInt8(0x04, to: &body)
         appendUInt32(fitTimestamp(endDate), to: &body)
-        appendUInt32(movingMilliseconds > 0 ? movingMilliseconds : elapsedMilliseconds, to: &body)
+        appendUInt32(movingMilliseconds, to: &body)
         appendUInt16(1, to: &body)
         appendUInt8(0, to: &body)
         appendUInt8(26, to: &body)
@@ -297,6 +333,7 @@ public enum OutdoorActivityExportService {
         var descent = 0.0
         var previous: Double?
         for point in points {
+            guard point.state == .recording, point.effectiveTravelMode == .active else { previous = nil; continue }
             guard let elevation = point.elevationMeters, elevation.isFinite else { continue }
             if let previous {
                 let delta = elevation - previous
@@ -347,8 +384,18 @@ public enum OutdoorActivityExportService {
             speedMetersPerSecond: blend(first.speedMetersPerSecond, second.speedMetersPerSecond),
             state: f < 0.5 ? first.state : second.state,
             verticalAccuracyMeters: blend(first.verticalAccuracyMeters, second.verticalAccuracyMeters),
-            barometricRelativeAltitudeMeters: blend(first.barometricRelativeAltitudeMeters, second.barometricRelativeAltitudeMeters)
+            barometricRelativeAltitudeMeters: blend(first.barometricRelativeAltitudeMeters, second.barometricRelativeAltitudeMeters),
+            travelMode: f < 0.5 ? first.travelMode : second.travelMode
         )
+    }
+
+    private static func recordedSegmentDistance(from first: OutdoorTrackPoint, to second: OutdoorTrackPoint, manifest: OutdoorActivityManifest) -> Double {
+        guard first.state == .recording, second.state == .recording,
+              !manifest.pauseIntervals.contains(where: { $0.startedAt < second.timestamp && ($0.endedAt ?? second.timestamp) > first.timestamp }) else { return 0 }
+        let elapsed = second.timestamp.timeIntervalSince(first.timestamp)
+        let distance = distanceMeters(from: first, to: second)
+        guard elapsed > 0, distance.isFinite, distance >= 3, distance / elapsed <= 70 else { return 0 }
+        return distance
     }
 
     private static func temporaryFile(extension: String, content: String) throws -> URL {

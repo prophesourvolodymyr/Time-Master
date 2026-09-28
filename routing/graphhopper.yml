@@ -1,0 +1,112 @@
+graphhopper:
+  datareader.file: region.osm.pbf
+  graph.location: graph-cache
+  graph.encoded_values: bike_access,bike_average_speed,bike_priority,get_off_bike,bike_road_access,foot_access,foot_average_speed,foot_priority,foot_road_access,bus_access,car_average_speed,road_access,road_class,road_environment,surface,smoothness,average_slope,max_slope,hike_rating,mtb_rating,max_weight,max_width,max_height
+  graph.elevation.provider: srtm
+  graph.elevation.cache_dir: elevation-cache
+  graph.elevation.interpolate: bilinear
+  import.osm.ignored_highways: construction
+  prepare.min_network_size: 200
+  routing.max_visited_nodes: 1000000
+  routing.timeout_ms: 15000
+  routing.non_ch.max_waypoint_distance: 300000
+  profiles_ch: []
+  profiles_lm: []
+  profiles:
+    - name: bike_fastest
+      turn_costs:
+        vehicle_types: [bicycle]
+        u_turn_costs: 10
+      custom_model:
+        distance_influence: 0
+        priority:
+          - if: "!bike_access || get_off_bike || bike_road_access == PRIVATE || road_class == MOTORWAY || road_class == TRUNK || mtb_rating > 2 || hike_rating > 1"
+            multiply_by: 0
+        speed:
+          - if: "true"
+            limit_to: bike_average_speed
+    - name: bike_mixed
+      turn_costs:
+        vehicle_types: [bicycle]
+        u_turn_costs: 10
+      custom_model:
+        distance_influence: 30
+        priority:
+          - if: "!bike_access || get_off_bike || bike_road_access == PRIVATE || road_class == MOTORWAY || road_class == TRUNK || mtb_rating > 2 || hike_rating > 1"
+            multiply_by: 0
+          - if: "true"
+            multiply_by: bike_priority
+        speed:
+          - if: "true"
+            limit_to: bike_average_speed
+    - name: bike_paths
+      turn_costs:
+        vehicle_types: [bicycle]
+        u_turn_costs: 10
+      custom_model:
+        distance_influence: 10
+        priority:
+          - if: "!bike_access || get_off_bike || bike_road_access == PRIVATE || road_class == MOTORWAY || road_class == TRUNK || mtb_rating > 2 || hike_rating > 1"
+            multiply_by: 0
+          - if: "true"
+            multiply_by: bike_priority
+          - if: "road_class == PRIMARY || road_class == SECONDARY"
+            multiply_by: 0.2
+          - if: "road_class == TERTIARY"
+            multiply_by: 0.5
+        speed:
+          - if: "true"
+            limit_to: bike_average_speed
+    - name: foot_fastest
+      custom_model:
+        distance_influence: 0
+        priority:
+          - if: "!foot_access || foot_road_access == PRIVATE || hike_rating >= 2 || road_class == MOTORWAY || road_class == TRUNK"
+            multiply_by: 0
+        speed:
+          - if: "true"
+            limit_to: foot_average_speed
+    - name: foot_mixed
+      custom_model:
+        distance_influence: 20
+        priority:
+          - if: "!foot_access || foot_road_access == PRIVATE || hike_rating >= 2 || road_class == MOTORWAY || road_class == TRUNK"
+            multiply_by: 0
+          - if: "true"
+            multiply_by: foot_priority
+        speed:
+          - if: "true"
+            limit_to: foot_average_speed
+    - name: foot_paths
+      custom_model:
+        distance_influence: 10
+        priority:
+          - if: "!foot_access || foot_road_access == PRIVATE || hike_rating >= 2 || road_class == MOTORWAY || road_class == TRUNK"
+            multiply_by: 0
+          - if: "true"
+            multiply_by: foot_priority
+          - if: "road_class == PRIMARY || road_class == SECONDARY || road_class == TERTIARY"
+            multiply_by: 0.3
+        speed:
+          - if: "true"
+            limit_to: foot_average_speed
+    - name: bus
+      turn_costs:
+        vehicle_types: [bus, motor_vehicle]
+        u_turn_costs: 60
+      custom_model_files: [bus.json]
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 127.0.0.1
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: 127.0.0.1
+  request_log:
+    appenders: []
+logging:
+  level: INFO
+  appenders:
+    - type: console

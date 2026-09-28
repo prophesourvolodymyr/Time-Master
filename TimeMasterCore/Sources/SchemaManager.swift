@@ -98,20 +98,23 @@ public final class SchemaManager {
                 ]
             ),
             "outdoorActivity": ObjectSchema(
-                description: "A GPS-backed Run, Walk, legacy Run & Walk, or Bike activity. Schema version 2 adds publication metadata, elevation summaries, optional vertical/barometric track accuracy fields, played-track history, and an optional weather snapshot while preserving the complete private JSONL route.",
+                description: "A GPS-backed outdoor activity. Version 4 separates active distance from total distance including user-marked bus transfers, preserves transport mode on track points, and stores an immutable planned-trip snapshot.",
                 folderPath: "Activities/{id}",
                 manifestName: "manifest.json",
                 required: ["id", "schemaVersion", "kind", "title", "startedAt", "elapsedSeconds", "movingSeconds", "distanceMeters", "trackPointCount", "recordingState", "finished", "visibility", "starred", "publicDescription", "tags", "allowComments", "hideStartFinish", "endpointPrivacyMeters", "showPlayerTracks", "hasPublicMetadata", "playedTracks"],
                 properties: [
                     "id": PropertySchema(type: "string", description: "Stable UUID string — also used as folder name; migration never rewrites it"),
-                    "schemaVersion": PropertySchema(type: "integer", description: "Activity manifest schema version; current version is 2 and a missing value is interpreted as legacy version 1"),
+                    "schemaVersion": PropertySchema(type: "integer", description: "Current version is 4; absent values are legacy version 1"),
                     "kind": PropertySchema(type: "string", description: "run, walk, bike, or legacy runWalk; legacy runWalk is never silently reclassified"),
                     "title": PropertySchema(type: "string", description: "Display name"),
                     "startedAt": PropertySchema(type: "string", description: "ISO 8601 start timestamp", format: "date-time"),
                     "endedAt": PropertySchema(type: "string", description: "ISO 8601 finish timestamp", format: "date-time", optional: true),
                     "elapsedSeconds": PropertySchema(type: "integer", description: "Elapsed seconds"),
                     "movingSeconds": PropertySchema(type: "integer", description: "Moving seconds"),
-                    "distanceMeters": PropertySchema(type: "number", description: "Distance in meters"),
+                    "distanceMeters": PropertySchema(type: "number", description: "Active riding or on-foot distance in meters, excluding bus transfers"),
+                    "totalDistanceMeters": PropertySchema(type: "number", description: "Total recorded travel including bus; absent legacy value equals distanceMeters", optional: true),
+                    "currentTravelMode": PropertySchema(type: "string", description: "active or bus; absent legacy value means active", optional: true),
+                    "plannedRouteSnapshot": PropertySchema(type: "string", description: "Base64 encoded immutable planned route JSON captured at workout start", optional: true),
                     "averageSpeedMetersPerSecond": PropertySchema(type: "number", description: "Average moving speed", optional: true),
                     "maxSpeedMetersPerSecond": PropertySchema(type: "number", description: "Maximum speed", optional: true),
                     "timeTargetSeconds": PropertySchema(type: "integer", description: "Optional target", optional: true),
@@ -124,7 +127,7 @@ public final class SchemaManager {
                     "elevationGainMeters": PropertySchema(type: "number", description: "Accepted positive elevation gain in meters", optional: true),
                     "highestElevationMeters": PropertySchema(type: "number", description: "Highest accepted absolute elevation in meters", optional: true),
                     "averagePaceSecondsPerKilometer": PropertySchema(type: "number", description: "Average moving pace in seconds per kilometre", optional: true),
-                    "establishedAt": PropertySchema(type: "string", description: "ISO 8601 time the activity became established; legacy finished records derive this from endedAt or startedAt, while version 2 preserves nil", format: "date-time", optional: true),
+                    "establishedAt": PropertySchema(type: "string", description: "Time the activity became established; finished records before version 3 derive this from endedAt or startedAt; version 3 and later preserve nil", format: "date-time", optional: true),
                     "visibility": PropertySchema(type: "string", description: "Publication state: private or public; legacy activities decode as private"),
                     "starred": PropertySchema(type: "boolean", description: "Whether the activity is starred; legacy activities decode unstarred"),
                     "publicDescription": PropertySchema(type: "string", description: "Retained local public description; legacy activities decode empty"),
@@ -140,8 +143,8 @@ public final class SchemaManager {
             ),
             "plannedRoute": ObjectSchema(
                 description: "A reusable route selected before an outdoor activity.",
-                folderPath: "Routes/{id}",
-                manifestName: "manifest.json",
+                folderPath: "Routes/",
+                manifestName: "{id}.json",
                 required: ["id", "title", "points", "source", "createdAt"],
                 properties: [
                     "id": PropertySchema(type: "string", description: "UUID string"),
@@ -149,6 +152,7 @@ public final class SchemaManager {
                     "points": PropertySchema(type: "array<object>", description: "Ordered route coordinates"),
                     "source": PropertySchema(type: "string", description: "gpxImport, manual, or databasePage"),
                     "createdAt": PropertySchema(type: "string", description: "ISO 8601 creation timestamp", format: "date-time"),
+                    "trip": PropertySchema(type: "object", description: "Optional structured trip with ordered stops, hidden shaping points, per-leg routing and bus modes, road geometry, draft state, and routing fingerprint; legacy imported geometry remains unchanged", optional: true),
                 ]
             ),
             "config": ObjectSchema(

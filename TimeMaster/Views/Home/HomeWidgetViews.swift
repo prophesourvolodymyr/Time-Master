@@ -431,15 +431,16 @@ struct HomeWidgetContent: View {
 
     private var savedRoutes: some View {
         HomeWidgetChrome(title: "Saved routes") {
-            if outdoorStore.plannedRoutes.isEmpty {
+            let saved = outdoorStore.plannedRoutes.filter { !$0.isDraft }
+            if saved.isEmpty {
                 quietEmpty("No saved routes.")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array(outdoorStore.plannedRoutes.prefix(visibleRowCount))) { route in
+                    ForEach(Array(saved.prefix(visibleRowCount))) { route in
                         #if os(iOS)
                         if UIDevice.current.userInterfaceIdiom == .phone {
                             Button {
-                                onStartOutdoor(.run, route, nil)
+                                onStartOutdoor(route.trip?.kind ?? .run, route, nil)
                             } label: {
                                 routeRow(route)
                             }

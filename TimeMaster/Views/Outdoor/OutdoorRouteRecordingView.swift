@@ -726,7 +726,6 @@ struct OutdoorRouteRecordingView: View {
                 onMusic: { toggleFeature(.music, layout: layout) },
                 onFinish: { finishRecording(layout) },
                 onTogglePause: togglePause,
-                onHeart: {},
                 onRetry: { startRecording(layout) },
                 onOpenSettings: openLocationSettings
             )
@@ -803,7 +802,16 @@ struct OutdoorRouteRecordingView: View {
                     applyMusicContentFit(height, requiresSpace: requiresSpace, layout: layout)
                 }
             )
-        case .rate, .route:
+        case .route:
+            OutdoorTripsMenu(store: store, kind: committedKind, units: preferences.preferences.unitSystem, canSelect: recorder.state == .idle) { route in
+                recorder.selectPlannedRoute(route)
+                if let kind = route.trip?.kind {
+                    committedKind = kind
+                    previewKind = kind
+                }
+                mapRouteFitRequestID += 1
+            }
+        case .rate:
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityHidden(true)

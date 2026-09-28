@@ -12,6 +12,8 @@ struct PlannedRoute: Identifiable, Codable, Equatable {
     var points: [OutdoorTrackPoint]
     var source: RouteSource
     var createdAt: Date
+    var trip: OutdoorTrip?
+    var isDraft: Bool { trip?.isDraft ?? false }
 
     init(id: UUID = UUID(), title: String, points: [OutdoorTrackPoint], source: RouteSource = .manual, createdAt: Date = Date()) {
         self.id = id

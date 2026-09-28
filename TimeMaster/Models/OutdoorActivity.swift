@@ -49,6 +49,7 @@ enum OutdoorActivityKind: String, Codable, CaseIterable, Identifiable {
 
 typealias OutdoorActivityVisibility = TimeMasterCore.OutdoorActivityVisibility
 typealias OutdoorPlayedTrackEvent = TimeMasterCore.OutdoorPlayedTrackEvent
+typealias OutdoorTravelMode = TimeMasterCore.OutdoorTravelMode
 
 enum OutdoorRecordingState: String, Codable, Equatable {
     case recording
@@ -76,6 +77,8 @@ struct OutdoorTrackPoint: Codable, Equatable, Identifiable {
     var barometricRelativeAltitudeMeters: Double?
     var speedMetersPerSecond: Double?
     var state: OutdoorRecordingState
+    var travelMode: OutdoorTravelMode?
+    var effectiveTravelMode: OutdoorTravelMode { travelMode ?? .active }
 
     init(
         timestamp: Date,
@@ -86,7 +89,8 @@ struct OutdoorTrackPoint: Codable, Equatable, Identifiable {
         speedMetersPerSecond: Double? = nil,
         state: OutdoorRecordingState,
         verticalAccuracyMeters: Double? = nil,
-        barometricRelativeAltitudeMeters: Double? = nil
+        barometricRelativeAltitudeMeters: Double? = nil,
+        travelMode: OutdoorTravelMode? = nil
     ) {
         self.timestamp = timestamp
         self.latitude = latitude
@@ -97,6 +101,7 @@ struct OutdoorTrackPoint: Codable, Equatable, Identifiable {
         self.barometricRelativeAltitudeMeters = barometricRelativeAltitudeMeters
         self.speedMetersPerSecond = speedMetersPerSecond
         self.state = state
+        self.travelMode = travelMode
     }
 
     init(core: TimeMasterCore.OutdoorTrackPoint) {
@@ -109,7 +114,8 @@ struct OutdoorTrackPoint: Codable, Equatable, Identifiable {
             speedMetersPerSecond: core.speedMetersPerSecond,
             state: OutdoorRecordingState(core: core.state),
             verticalAccuracyMeters: core.verticalAccuracyMeters,
-            barometricRelativeAltitudeMeters: core.barometricRelativeAltitudeMeters
+            barometricRelativeAltitudeMeters: core.barometricRelativeAltitudeMeters,
+            travelMode: core.travelMode
         )
     }
 
@@ -123,7 +129,8 @@ struct OutdoorTrackPoint: Codable, Equatable, Identifiable {
             speedMetersPerSecond: speedMetersPerSecond,
             state: state.coreValue,
             verticalAccuracyMeters: verticalAccuracyMeters,
-            barometricRelativeAltitudeMeters: barometricRelativeAltitudeMeters
+            barometricRelativeAltitudeMeters: barometricRelativeAltitudeMeters,
+            travelMode: travelMode
         )
     }
 }
@@ -214,6 +221,10 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
     var showPlayerTracks: Bool
     var hasPublicMetadata: Bool
     var playedTracks: [OutdoorPlayedTrackEvent]
+    var totalDistanceMeters: Double?
+    var currentTravelMode: OutdoorTravelMode?
+    var plannedRouteSnapshot: Data?
+    var tripDistanceMeters: Double { max(distanceMeters, totalDistanceMeters ?? distanceMeters) }
 
     private enum CodingKeys: String, CodingKey {
         case id, schemaVersion, kind, title, startedAt, endedAt, elapsedSeconds, movingSeconds, distanceMeters
@@ -222,6 +233,7 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
         case averagePaceSecondsPerKilometer, establishedAt, visibility, starred, publicDescription, tags
         case allowComments, hideStartFinish, endpointPrivacyMeters, showPlayerTracks, hasPublicMetadata
         case playedTracks
+        case totalDistanceMeters, currentTravelMode, plannedRouteSnapshot
     }
 
     init(core: TimeMasterCore.OutdoorActivityManifest) throws {
@@ -258,7 +270,10 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
             endpointPrivacyMeters: core.endpointPrivacyMeters,
             showPlayerTracks: core.showPlayerTracks,
             hasPublicMetadata: core.hasPublicMetadata,
-            playedTracks: core.playedTracks
+            playedTracks: core.playedTracks,
+            totalDistanceMeters: core.totalDistanceMeters,
+            currentTravelMode: core.currentTravelMode,
+            plannedRouteSnapshot: core.plannedRouteSnapshot
         )
     }
 
@@ -294,7 +309,10 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
         endpointPrivacyMeters: Int = 200,
         showPlayerTracks: Bool = true,
         hasPublicMetadata: Bool = false,
-        playedTracks: [OutdoorPlayedTrackEvent] = []
+        playedTracks: [OutdoorPlayedTrackEvent] = [],
+        totalDistanceMeters: Double? = nil,
+        currentTravelMode: OutdoorTravelMode? = nil,
+        plannedRouteSnapshot: Data? = nil
     ) {
         self.id = id
         self.schemaVersion = schemaVersion
@@ -328,6 +346,9 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
         self.showPlayerTracks = showPlayerTracks
         self.hasPublicMetadata = hasPublicMetadata
         self.playedTracks = playedTracks
+        self.totalDistanceMeters = totalDistanceMeters
+        self.currentTravelMode = currentTravelMode
+        self.plannedRouteSnapshot = plannedRouteSnapshot
     }
 
     init(from decoder: Decoder) throws {
@@ -337,7 +358,7 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
         let endedAt = try c.decodeIfPresent(Date.self, forKey: .endedAt)
         let finished = try c.decodeIfPresent(Bool.self, forKey: .finished) ?? false
         let establishedAt: Date?
-        if version < TimeMasterCore.OutdoorActivityManifest.currentSchemaVersion && finished {
+        if version < 3 && finished {
             establishedAt = endedAt ?? startedAt
         } else {
             establishedAt = try c.decodeIfPresent(Date.self, forKey: .establishedAt)
@@ -374,7 +395,10 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
             endpointPrivacyMeters: try c.decodeIfPresent(Int.self, forKey: .endpointPrivacyMeters) ?? 200,
             showPlayerTracks: try c.decodeIfPresent(Bool.self, forKey: .showPlayerTracks) ?? true,
             hasPublicMetadata: try c.decodeIfPresent(Bool.self, forKey: .hasPublicMetadata) ?? false,
-            playedTracks: try c.decodeIfPresent([OutdoorPlayedTrackEvent].self, forKey: .playedTracks) ?? []
+            playedTracks: try c.decodeIfPresent([OutdoorPlayedTrackEvent].self, forKey: .playedTracks) ?? [],
+            totalDistanceMeters: try c.decodeIfPresent(Double.self, forKey: .totalDistanceMeters),
+            currentTravelMode: try c.decodeIfPresent(OutdoorTravelMode.self, forKey: .currentTravelMode),
+            plannedRouteSnapshot: try c.decodeIfPresent(Data.self, forKey: .plannedRouteSnapshot)
         )
     }
 
@@ -412,6 +436,9 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
         try c.encode(showPlayerTracks, forKey: .showPlayerTracks)
         try c.encode(hasPublicMetadata, forKey: .hasPublicMetadata)
         try c.encode(playedTracks, forKey: .playedTracks)
+        try c.encodeIfPresent(totalDistanceMeters, forKey: .totalDistanceMeters)
+        try c.encodeIfPresent(currentTravelMode, forKey: .currentTravelMode)
+        try c.encodeIfPresent(plannedRouteSnapshot, forKey: .plannedRouteSnapshot)
     }
 
     var coreValue: TimeMasterCore.OutdoorActivityManifest {
@@ -447,7 +474,10 @@ struct OutdoorActivity: Identifiable, Codable, Equatable {
             endpointPrivacyMeters: endpointPrivacyMeters,
             showPlayerTracks: showPlayerTracks,
             hasPublicMetadata: hasPublicMetadata,
-            playedTracks: playedTracks
+            playedTracks: playedTracks,
+            totalDistanceMeters: totalDistanceMeters,
+            currentTravelMode: currentTravelMode,
+            plannedRouteSnapshot: plannedRouteSnapshot
         )
     }
 }

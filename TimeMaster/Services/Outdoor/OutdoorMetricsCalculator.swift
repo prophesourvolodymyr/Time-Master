@@ -2,6 +2,7 @@ import Foundation
 
 struct OutdoorMetrics: Equatable {
     var distanceMeters: Double
+    var totalDistanceMeters: Double
     var elapsedSeconds: Int
     var movingSeconds: Int
     var averageSpeedMetersPerSecond: Double?
@@ -20,9 +21,11 @@ struct OutdoorMetrics: Equatable {
         maxSpeedMetersPerSecond: Double?,
         paceSecondsPerKilometer: Double? = nil,
         elevationGainMeters: Double? = nil,
-        highestElevationMeters: Double? = nil
+        highestElevationMeters: Double? = nil,
+        totalDistanceMeters: Double? = nil
     ) {
         self.distanceMeters = max(0, distanceMeters)
+        self.totalDistanceMeters = max(self.distanceMeters, totalDistanceMeters ?? self.distanceMeters)
         self.elapsedSeconds = max(0, elapsedSeconds)
         self.movingSeconds = max(0, min(self.elapsedSeconds, movingSeconds))
         self.averageSpeedMetersPerSecond = averageSpeedMetersPerSecond
@@ -116,6 +119,7 @@ enum OutdoorMetricsCalculator {
         var previousTimelinePoint: OutdoorTrackPoint?
         var previousRecordingPoint: OutdoorTrackPoint?
         var distance = 0.0
+        var totalDistance = 0.0
         var moving = 0.0
         var maxSpeed: Double?
         var elevationGain = 0.0
@@ -136,12 +140,12 @@ enum OutdoorMetricsCalculator {
                 previousTimelinePoint = point
                 if point.state == .recording {
                     previousRecordingPoint = point
-                    if let elevation = point.elevationMeters {
+                    if let elevation = point.elevationMeters, point.effectiveTravelMode == .active {
                         highestElevation = elevation
                         hasElevation = true
                         elevationAnchor = elevation
                     }
-                    relativeElevationAnchor = point.barometricRelativeAltitudeMeters
+                    relativeElevationAnchor = point.effectiveTravelMode == .active ? point.barometricRelativeAltitudeMeters : nil
                 }
                 continue
             }
@@ -183,6 +187,14 @@ enum OutdoorMetricsCalculator {
                 relativeElevationAnchor = point.barometricRelativeAltitudeMeters
                 continue
             }
+            totalDistance += segmentDistance
+            guard previousRecording.effectiveTravelMode == .active, point.effectiveTravelMode == .active else {
+                previousRecordingPoint = point
+                elevationAnchor = point.effectiveTravelMode == .active ? point.elevationMeters : nil
+                relativeElevationAnchor = point.effectiveTravelMode == .active ? point.barometricRelativeAltitudeMeters : nil
+                selfUpdateHighest(&highestElevation, point: point, hasElevation: &hasElevation)
+                continue
+            }
             distance += segmentDistance
             moving += delta
             maxSpeed = max(maxSpeed ?? 0, max(derivedSpeed, reportedSpeed))
@@ -220,7 +232,8 @@ enum OutdoorMetricsCalculator {
             maxSpeedMetersPerSecond: maxSpeed,
             paceSecondsPerKilometer: pace,
             elevationGainMeters: hasElevation ? elevationGain : nil,
-            highestElevationMeters: highestElevation
+            highestElevationMeters: highestElevation,
+            totalDistanceMeters: totalDistance
         )
     }
 
@@ -260,7 +273,7 @@ enum OutdoorMetricsCalculator {
         point: OutdoorTrackPoint,
         hasElevation: inout Bool
     ) {
-        guard let elevation = point.elevationMeters, elevation.isFinite else { return }
+        guard point.effectiveTravelMode == .active, let elevation = point.elevationMeters, elevation.isFinite else { return }
         hasElevation = true
         highest = max(highest ?? elevation, elevation)
     }

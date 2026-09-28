@@ -74,7 +74,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
            existing.kind == kind || (existing.kind == .runWalk && kind == .run) {
             activeActivity = existing
             route = store.activeRoute
-            let recoveredRoute = plannedRoute ?? existing.plannedRouteID.flatMap(store.plannedRoute(withID:))
+            let recoveredRoute = store.recordedPlan(for: existing)
             self.plannedRoute = recoveredRoute
             plannedPoints = recoveredRoute?.points ?? []
             state = Self.state(for: existing.recordingState)
@@ -160,6 +160,37 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         updateIdleTimer()
     }
 
+    var isOnBus: Bool { activeActivity?.currentTravelMode == .bus }
+    var selectedPlan: PlannedRoute? { plannedRoute }
+
+    func selectPlannedRoute(_ route: PlannedRoute?) {
+        guard !isStarted, activeActivity == nil, state == .idle else { return }
+        plannedRoute = route
+        plannedPoints = route?.points ?? []
+        if let kind = route?.trip?.kind { updateKind(kind) }
+    }
+
+    func toggleBusTransfer() {
+        guard isLiveSession else { return }
+        if state == .autoPaused { resumeManually() }
+        do {
+            try store.setTravelMode(isOnBus ? .active : .bus)
+            activeActivity = store.active
+            previousAcceptedLocation = nil
+            stationarySince = nil
+            resumeSamples = 0
+            liveSpeedMetersPerSecond = nil
+            smoothedLiveSpeedMetersPerSecond = nil
+            elevationBaseGainMeters = activeActivity?.elevationGainMeters ?? 0
+            elevationProcessor.reset()
+            if isOnBus { elevationProcessor.stop() } else { elevationProcessor.start() }
+            haptic()
+            speak(isOnBus ? "Bus transfer. Riding distance paused." : "Riding distance resumed.")
+        } catch {
+            fail(error.localizedDescription)
+        }
+    }
+
     func start(timeTargetSeconds: Int? = nil) {
         if let timeTargetSeconds { self.timeTargetSeconds = timeTargetSeconds > 0 ? timeTargetSeconds : nil }
         refreshPreferences()
@@ -241,7 +272,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
 
     @discardableResult
     func finishWithOutcome(at date: Date = Date()) -> FinishOutcome {
-        let distance = activeActivity?.distanceMeters ?? 0
+        let distance = activeActivity?.tripDistanceMeters ?? 0
         guard distance >= 3 else {
             do {
                 locationManager.stopUpdatingLocation()
@@ -305,7 +336,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             configureLocationManager()
             activeActivity = store.active ?? candidate
             route = store.activeRoute
-            plannedRoute = candidate.plannedRouteID.flatMap(store.plannedRoute(withID:))
+            plannedRoute = store.recordedPlan(for: candidate)
             plannedPoints = plannedRoute?.points ?? []
             state = Self.state(for: activeActivity?.recordingState ?? .recording)
             isStarted = true
@@ -473,7 +504,8 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             speedMetersPerSecond: location.speed.isFinite && location.speed >= 0 ? location.speed : nil,
             state: state == .recording ? .recording : .autoPaused,
             verticalAccuracyMeters: location.verticalAccuracy.isFinite && location.verticalAccuracy >= 0 ? location.verticalAccuracy : nil,
-            barometricRelativeAltitudeMeters: elevationProcessor.latestBarometricRelativeAltitudeMeters
+            barometricRelativeAltitudeMeters: isOnBus ? nil : elevationProcessor.latestBarometricRelativeAltitudeMeters,
+            travelMode: isOnBus ? .bus : .active
         )
 
         if state == .autoPaused {
@@ -525,6 +557,17 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
 
     @discardableResult
     private func appendAccepted(_ point: OutdoorTrackPoint, location: CLLocation) -> Bool {
+        if point.effectiveTravelMode == .bus {
+            do {
+                try store.append(point: point)
+                route.append(point)
+                activeActivity = store.active
+                return true
+            } catch {
+                fail(error.localizedDescription)
+                return false
+            }
+        }
         let elevation = elevationProcessor.process(location: location)
         var acceptedPoint = point
         acceptedPoint.elevationMeters = elevation.elevationMeters
@@ -547,7 +590,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
     }
 
     private func updatePauseState(date: Date, speed: CLLocationSpeed, movement: CLLocationDistance) {
-        guard state == .recording else { return }
+        guard state == .recording, !isOnBus else { return }
         guard preferences.autoPause else {
             stationarySince = nil
             return
@@ -583,6 +626,11 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
     }
 
     private func updateLiveSpeed(location: CLLocation) {
+        guard !isOnBus else {
+            liveSpeedMetersPerSecond = nil
+            smoothedLiveSpeedMetersPerSecond = nil
+            return
+        }
         let raw: Double
         if location.speed.isFinite, location.speed >= 0 {
             raw = location.speed

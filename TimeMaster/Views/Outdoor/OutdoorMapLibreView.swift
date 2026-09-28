@@ -79,6 +79,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var onFollowStateChange: ((Bool) -> Void)? = nil
     var onHeadingChange: ((CLLocationDirection) -> Void)? = nil
     var onFocusFailure: ((String) -> Void)? = nil
+    var tripEditing: TripMapEditing? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -104,6 +105,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         return map
     }
     func updateUIView(_ map: MLNMapView, context: Context) {
+        context.coordinator.updateTripEditing(tripEditing)
         context.coordinator.render(
             map: map,
             points: points,
@@ -130,6 +132,13 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private let locationManager = CLLocationManager()
 
         private weak var map: MLNMapView?
+        private var tripInteraction: OutdoorTripMapInteraction?
+        private var tripEditing: TripMapEditing?
+
+        func updateTripEditing(_ input: TripMapEditing?) {
+            tripEditing = input
+            tripInteraction?.update(input)
+        }
         private var latestPoints: [OutdoorTrackPoint] = []
         private var latestPlannedPoints: [OutdoorTrackPoint] = []
         private var latestState: OutdoorLocationRecorder.State = .idle
@@ -210,6 +219,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         func attach(to map: MLNMapView) {
             self.map = map
             map.delegate = self
+            tripInteraction = OutdoorTripMapInteraction(map: map)
             map.showsUserLocation = true
             map.userTrackingMode = .none
             map.tintColor = OutdoorMinimalMapPalette.routeAccent
@@ -441,6 +451,11 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         func mapView(_ mapView: MLNMapView, didUpdate userLocation: MLNUserLocation?) {
             guard let coordinate = userLocation?.location?.coordinate else { return }
             latestUserCoordinate = coordinate
+            if let location = userLocation?.location, location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 100,
+               abs(location.timestamp.timeIntervalSinceNow) < 30 {
+                let value = TripCoordinate(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                DispatchQueue.main.async { [weak self] in self?.tripEditing?.onLocation(value) }
+            }
             updateWeather()
             if session.followsUser {
                 applyFollowState(to: mapView)
@@ -479,6 +494,23 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
 
         func mapView(_ mapView: MLNMapView, viewFor annotation: MLNAnnotation) -> MLNAnnotationView? {
+            if let stop = annotation as? TripStopAnnotation {
+                let marker = MLNAnnotationView(reuseIdentifier: "trip-stop")
+                let label = UILabel()
+                label.text = stop.number == 0 ? "S" : String(stop.number)
+                label.textColor = .white
+                label.textAlignment = .center
+                label.font = .preferredFont(forTextStyle: .caption1).withSize(14)
+                marker.bounds = CGRect(x: 0, y: 0, width: 30, height: 30)
+                label.frame = marker.bounds
+                marker.backgroundColor = .systemBlue
+                marker.layer.cornerRadius = 15
+                marker.layer.borderColor = UIColor.white.cgColor
+                marker.layer.borderWidth = 2
+                marker.addSubview(label)
+                marker.accessibilityLabel = stop.title
+                return marker
+            }
             guard let point = annotation as? MLNPointAnnotation else { return nil }
             let isStart = point.title == "Start"
             let reuseIdentifier = isStart ? "outdoor-start-marker" : "outdoor-end-marker"
@@ -563,17 +595,18 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         }
 
         private func fitSavedRouteIfNeeded(map: MLNMapView) {
+            let fitPoints = latestPoints.isEmpty ? latestPlannedPoints : latestPoints
             guard pendingRouteFit, map.bounds.width > 1, map.bounds.height > 1,
-                  let first = latestPoints.first else { return }
+                  let first = fitPoints.first else { return }
             pendingRouteFit = false
             isApplyingCamera = true
             defer { isApplyingCamera = false }
-            if latestPoints.count == 1 {
+            if fitPoints.count == 1 {
                 map.setCenter(coordinate(for: first), zoomLevel: 15, animated: false)
             } else {
                 map.setVisibleCoordinateBounds(
-                    bounds(for: latestPoints),
-                    edgePadding: UIEdgeInsets(top: map.safeAreaInsets.top + 80, left: 48, bottom: map.safeAreaInsets.bottom + 120, right: 48),
+                    bounds(for: fitPoints),
+                    edgePadding: UIEdgeInsets(top: map.safeAreaInsets.top + (tripEditing?.topInset ?? 0) + 80, left: 48, bottom: map.safeAreaInsets.bottom + (tripEditing == nil ? 120 : 190), right: 48),
                     animated: !UIAccessibility.isReduceMotionEnabled
                 )
             }
@@ -928,7 +961,13 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
         private func renderRouteOverlays(map: MLNMapView, style: MLNStyle) {
             updateLiveRoute(style: style, points: latestPoints)
-            updatePlannedRoute(style: style, points: latestPlannedPoints)
+            if tripEditing == nil {
+                updatePlannedRoute(style: style, points: latestPlannedPoints)
+            } else {
+                remove(style: style, sourceID: "planned-route-source", layerIDs: ["planned-route-line"])
+                plannedRouteSignature = nil
+                tripInteraction?.render()
+            }
             updateAnnotations(map: map, points: latestPoints, state: latestState)
         }
 

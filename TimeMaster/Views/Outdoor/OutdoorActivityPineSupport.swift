@@ -187,8 +187,13 @@ struct OutdoorWorkoutSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top, spacing: 20) {
-                headlineMetric("Distance", outdoorDistanceText(activity.distanceMeters, unitSystem: units, precision: true))
+                headlineMetric(activity.kind == .bike ? "Riding" : "On foot", outdoorDistanceText(activity.distanceMeters, unitSystem: units, precision: true))
                 headlineMetric("Duration", outdoorDurationText(activity.elapsedSeconds))
+            }
+            if activity.tripDistanceMeters > activity.distanceMeters + 1 {
+                Text("Total including bus · \(outdoorDistanceText(activity.tripDistanceMeters, unitSystem: units, precision: true))")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
             }
             if expanded {
                 Divider().overlay(Color.white.opacity(0.08))

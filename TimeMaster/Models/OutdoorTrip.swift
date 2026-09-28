@@ -1,0 +1,153 @@
+import Foundation
+
+struct TripCoordinate: Codable, Equatable, Hashable {
+    var latitude: Double
+    var longitude: Double
+
+    var isValid: Bool {
+        latitude.isFinite && longitude.isFinite && (-90...90).contains(latitude) && (-180...180).contains(longitude)
+    }
+
+    func trackPoint(at date: Date = Date(timeIntervalSince1970: 0)) -> OutdoorTrackPoint {
+        OutdoorTrackPoint(timestamp: date, latitude: latitude, longitude: longitude, horizontalAccuracyMeters: 0, state: .recording)
+    }
+
+    func distance(to other: TripCoordinate) -> Double {
+        OutdoorMetricsCalculator.distanceMeters(from: trackPoint(), to: other.trackPoint())
+    }
+}
+
+enum TripRoutingPreference: String, Codable, CaseIterable, Identifiable {
+    case bikeRoads, mixed, fastest
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .bikeRoads: return "Bike Roads Preferred"
+        case .mixed: return "Mixed"
+        case .fastest: return "Fastest"
+        }
+    }
+    func title(for kind: OutdoorActivityKind) -> String {
+        kind == .bike ? title : (self == .bikeRoads ? "Paths Preferred" : self == .fastest ? "Direct" : "Mixed")
+    }
+    func profile(for kind: OutdoorActivityKind) -> String {
+        (kind == .bike ? "bike_" : "foot_") + (self == .bikeRoads ? "paths" : rawValue)
+    }
+}
+
+enum TripLegMode: String, Codable, CaseIterable, Identifiable {
+    case active, bus
+    var id: String { rawValue }
+}
+
+enum TripRunningGoal: String, Codable, CaseIterable, Identifiable {
+    case balanced, paved, gentle, hills
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .balanced: return "Balanced"
+        case .paved: return "Paved & steady"
+        case .gentle: return "Gentle terrain"
+        case .hills: return "Hill training"
+        }
+    }
+}
+
+struct TripStop: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var name: String
+    var coordinate: TripCoordinate
+    var incomingMode: TripLegMode = .active
+    var incomingPreference: TripRoutingPreference?
+    var shapingPoints: [TripCoordinate] = []
+}
+
+struct TripRouteLeg: Identifiable, Codable, Equatable {
+    var id: UUID
+    var mode: TripLegMode
+    var coordinates: [TripCoordinate]
+    var controlPointIndices: [Int]
+    var distanceMeters: Double
+    var durationSeconds: Double
+    var ascentMeters: Double?
+    var unpavedFraction: Double?
+    var majorRoadFraction: Double?
+    var instructions: [String]
+}
+
+struct OutdoorTrip: Codable, Equatable {
+    var version = 1
+    var kind: OutdoorActivityKind = .bike
+    var preference: TripRoutingPreference = .bikeRoads
+    var runningGoal: TripRunningGoal = .balanced
+    var isDraft = true
+    var stops: [TripStop] = []
+    var legs: [TripRouteLeg] = []
+    var updatedAt = Date()
+    var routedAt: Date?
+    var routingFingerprint: String?
+
+    var fingerprint: String {
+        ([kind.rawValue, preference.rawValue, runningGoal.rawValue] + stops.map {
+            "\($0.id):\($0.coordinate.latitude),\($0.coordinate.longitude):\($0.incomingMode.rawValue):\($0.incomingPreference?.rawValue ?? "default"):" + $0.shapingPoints.map { "\($0.latitude),\($0.longitude)" }.joined(separator: ";")
+        }).joined(separator: "|")
+    }
+    var isRouted: Bool { stops.count >= 2 && legs.count == stops.count - 1 && routingFingerprint == fingerprint }
+    var ridingDistanceMeters: Double { legs.filter { $0.mode == .active }.reduce(0) { $0 + $1.distanceMeters } }
+    var totalDistanceMeters: Double { legs.reduce(0) { $0 + $1.distanceMeters } }
+    var durationSeconds: Double { legs.reduce(0) { $0 + $1.durationSeconds } }
+    var hasBus: Bool { stops.dropFirst().contains { $0.incomingMode == .bus } }
+    var ascentMeters: Double? {
+        let active = legs.filter { $0.mode == .active }
+        guard !active.isEmpty, active.allSatisfy({ $0.ascentMeters != nil }) else { return nil }
+        return active.reduce(0) { $0 + ($1.ascentMeters ?? 0) }
+    }
+    var effortScore: Double {
+        ridingDistanceMeters / (kind == .bike ? 20_000 : 5_000) + (ascentMeters ?? 0) / (kind == .bike ? 300 : 150)
+    }
+    var effortTitle: String { effortScore < 1 ? "Easy" : effortScore < 2.5 ? "Moderate" : "Demanding" }
+    var explanation: String {
+        let active = legs.filter { $0.mode == .active }
+        let terrain = ascentMeters.map { "\(Int($0)) m climbing" } ?? "Elevation unknown"
+        let surface = active.allSatisfy { $0.unpavedFraction != nil }
+            ? "\(Int(active.reduce(0) { $0 + ($1.unpavedFraction ?? 0) * $1.distanceMeters } / max(1, ridingDistanceMeters) * 100))% unpaved"
+            : "Surface coverage incomplete"
+        let traffic = active.allSatisfy { $0.majorRoadFraction != nil }
+            ? "\(Int(active.reduce(0) { $0 + ($1.majorRoadFraction ?? 0) * $1.distanceMeters } / max(1, ridingDistanceMeters) * 100))% major roads"
+            : "Road exposure unknown"
+        return "\(terrain) · \(surface) · \(traffic). Road class is not live traffic or a safety rating."
+    }
+    var points: [OutdoorTrackPoint] {
+        legs.flatMap(\.coordinates).enumerated().map { index, coordinate in
+            coordinate.trackPoint(at: Date(timeIntervalSince1970: Double(index)))
+        }
+    }
+}
+
+enum TripPlaceCategory: String, CaseIterable, Identifiable {
+    case parks, cafes, water, viewpoints
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .parks: return "Parks"
+        case .cafes: return "Cafés"
+        case .water: return "Drinking water"
+        case .viewpoints: return "Viewpoints"
+        }
+    }
+    var osmFilter: String {
+        switch self {
+        case .parks: return "[leisure=park]"
+        case .cafes: return "[amenity=cafe]"
+        case .water: return "[amenity=drinking_water]"
+        case .viewpoints: return "[tourism=viewpoint]"
+        }
+    }
+}
+
+struct TripPlace: Identifiable, Equatable {
+    var id: String
+    var name: String
+    var detail: String
+    var coordinate: TripCoordinate
+}

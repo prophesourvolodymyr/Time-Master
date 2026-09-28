@@ -9,7 +9,6 @@ struct OutdoorLiveContent: View {
     let onMusic: () -> Void
     let onFinish: () -> Void
     let onTogglePause: () -> Void
-    let onHeart: () -> Void
     let onRetry: () -> Void
     let onOpenSettings: () -> Void
 
@@ -31,6 +30,13 @@ struct OutdoorLiveContent: View {
                         }
                         GeometryReader { proxy in
                             metrics(at: context.date, in: proxy.size)
+                        }
+                        if let activity = recorder.activeActivity,
+                           activity.tripDistanceMeters > activity.distanceMeters + 1 || recorder.isOnBus {
+                            Text("Total incl. bus · \(outdoorDistanceText(activity.tripDistanceMeters, unitSystem: preferences.preferences.unitSystem, precision: true))")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                                .accessibilityIdentifier("trip.totalDistance")
                         }
                     }
                     .padding(.top, 4)
@@ -80,7 +86,7 @@ struct OutdoorLiveContent: View {
                 VStack(spacing: 12) {
                     accessibleMetric(title: "Speed", value: speed.value, unit: speed.unit, prominent: true)
                     accessibleMetric(title: "Time", value: time, unit: nil, prominent: false)
-                    accessibleMetric(title: "Total", value: distance.value, unit: distance.unit, prominent: false)
+                    accessibleMetric(title: activeDistanceTitle, value: distance.value, unit: distance.unit, prominent: false)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
@@ -108,7 +114,7 @@ struct OutdoorLiveContent: View {
             .frame(maxWidth: .infinity)
             .accessibilityLabel("Speed \(speed.value) \(speed.unit)")
             let totalMetric = liveMetric(
-                title: "Total",
+                title: activeDistanceTitle,
                 value: distance.value,
                 unit: distance.unit,
                 valueSize: secondarySize,
@@ -116,7 +122,7 @@ struct OutdoorLiveContent: View {
                 alignment: .center
             )
             .frame(maxWidth: .infinity)
-            .accessibilityLabel("Total \(distance.value) \(distance.unit)")
+            .accessibilityLabel("\(activeDistanceTitle) \(distance.value) \(distance.unit)")
 
             Group {
                 if stacked {
@@ -253,13 +259,12 @@ struct OutdoorLiveContent: View {
         .buttonStyle(OutdoorPineButtonStyle(circular: compact))
         .accessibilityLabel(isPaused ? "Resume workout" : "Stop workout")
 
-        Button(action: onHeart) {
-            OutdoorPaneActionLabel(title: "Heart", systemImage: "heart", compact: compact)
+        Button(action: recorder.toggleBusTransfer) {
+            OutdoorPaneActionLabel(title: recorder.isOnBus ? "Resume riding" : "Board bus", systemImage: recorder.isOnBus ? recorder.kind.iconName : "bus", compact: compact)
         }
         .buttonStyle(OutdoorPineButtonStyle(circular: compact))
-        .disabled(true)
-        .accessibilityLabel("Heart rate")
-        .accessibilityHint("Heart rate action is not available yet")
+        .accessibilityLabel(recorder.isOnBus ? "End bus transfer and resume active distance" : "Board bus and pause active distance")
+        .accessibilityIdentifier("trip.busToggle")
     }
 
     private func recoveryMessage(_ message: String) -> some View {
@@ -292,7 +297,8 @@ struct OutdoorLiveContent: View {
     }
 
     private var statusText: String? {
-        switch recorder.state {
+        if recorder.isOnBus, recorder.state == .recording { return "On bus · riding metrics paused" }
+        return switch recorder.state {
         case .requestingAuthorization: "Waiting for location access"
         case .manualPaused: "Stopped"
         case .autoPaused: "Auto-paused"
@@ -313,6 +319,8 @@ struct OutdoorLiveContent: View {
         return String(format: "%02d:%02d", seconds / 3600, (seconds % 3600) / 60)
     }
 
+    private var activeDistanceTitle: String { recorder.kind == .bike ? "Riding" : "On foot" }
+
     private var formattedDistance: (value: String, unit: String) {
         let meters = max(0, recorder.activeActivity?.distanceMeters ?? 0)
         switch preferences.preferences.unitSystem {
@@ -326,6 +334,11 @@ struct OutdoorLiveContent: View {
 
     private var formattedSpeed: (value: String, unit: String) {
         let metersPerSecond = max(0, recorder.smoothedLiveSpeedMetersPerSecond ?? recorder.liveSpeedMetersPerSecond ?? 0)
+        if recorder.kind != .bike {
+            guard metersPerSecond > 0.2 else { return ("—", preferences.preferences.unitSystem == .metric ? "min/km" : "min/mi") }
+            let seconds = Int((preferences.preferences.unitSystem == .metric ? 1_000.0 : 1_609.344) / metersPerSecond)
+            return (String(format: "%d:%02d", seconds / 60, seconds % 60), preferences.preferences.unitSystem == .metric ? "min/km" : "min/mi")
+        }
         switch preferences.preferences.unitSystem {
         case .metric: return (String(format: "%.1f", metersPerSecond * 3.6), "km/h")
         case .imperial: return (String(format: "%.1f", metersPerSecond * 2.23694), "mph")

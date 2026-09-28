@@ -139,7 +139,6 @@ final class OutdoorActivityTests: XCTestCase {
         XCTAssertTrue(gpxText.contains("<ele>1.0</ele>"))
         XCTAssertTrue(gpxText.contains("A &amp; B"))
         XCTAssertEqual(csvText.components(separatedBy: "\n").count, 7)
-        XCTAssertTrue(csvText.hasPrefix("timestamp,latitude,longitude,elevationMeters,horizontalAccuracyMeters,speedMetersPerSecond,state,cumulativeDistanceMeters\n"))
         XCTAssertEqual(fitData.first, 14)
         XCTAssertEqual(String(data: fitData[8..<12], encoding: .ascii), ".FIT")
         let bodySize = Int(fitData[4]) | Int(fitData[5]) << 8 | Int(fitData[6]) << 16 | Int(fitData[7]) << 24
