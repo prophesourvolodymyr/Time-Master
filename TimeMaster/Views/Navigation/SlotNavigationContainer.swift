@@ -353,6 +353,16 @@ struct SlotCarouselNavigation<Content: View>: View {
         ZStack(alignment: .top) {
             HStack {
                 SlotNavigationEditorHeader(title: strings.editorTitle, theme: theme)
+                Button {
+                    withAnimation(presentationAnimation) { showsCatalog.toggle() }
+                } label: {
+                    Image(systemName: showsCatalog ? "xmark" : "plus")
+                        .font(.system(size: 20, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(SlotNavigationQuietButtonStyle(theme: theme, horizontalPadding: 0))
+                .accessibilityLabel(showsCatalog ? strings.doneEditing : strings.addItemTitle)
+                .accessibilityIdentifier("navigation-add")
                 if showsEditingGuide {
                     Button {
                         if showsGuide {

@@ -983,6 +983,19 @@ Note for the next build: the working tree's `OutdoorTripLibraryView`, `OutdoorTr
 
 ---
 
+## Cycle 28 — Navigation Add Layer
+
+**Requested with user: 2026-09-29. Implementation handed off; human review pending.**
+
+- [x] Put an Add control in the menu editor header, so the catalog is reachable without dragging the reel to its ends — the two "+" slots sit before the first and after the last page, which is off screen once the bar holds seven pages
+- [x] Mark a catalog page that is already on the bar with a checkmark instead of the same green plus used for addable pages
+- [x] Lift already-added catalog pages from 0.4 to 0.55 opacity and give them their own accessibility value
+- [ ] Human review of the editor's add layer
+
+The app has seven top-level pages and every one of them is on the bar by default, so the catalog is empty of addable pages until a page is removed. Promoting further screens — History, the music library, settings — to destinations is a product decision, not part of this cycle.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

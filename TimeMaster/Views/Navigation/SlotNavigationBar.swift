@@ -375,9 +375,9 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 .frame(height: iconFrameHeight)
                 .overlay(alignment: .topTrailing) {
                     if catalog {
-                        Image(systemName: "plus.circle.fill")
+                        Image(systemName: item.isPending ? "checkmark.circle.fill" : "plus.circle.fill")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(theme.success)
+                            .foregroundStyle(item.isPending ? theme.textSecondary : theme.success)
                             .background(Circle().fill(theme.surface))
                             .offset(x: 9, y: -2)
                     } else if isEditing, item.isConfigurable {
@@ -410,7 +410,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         }
         .frame(width: slotWidth, height: itemHeight, alignment: .bottom)
         .scaleEffect(itemScale, anchor: .bottom)
-        .opacity(liftedItem?.item.id == item.id ? 0 : (item.isPending ? 0.4 : itemOpacity))
+        .opacity(liftedItem?.item.id == item.id ? 0 : (item.isPending ? (catalog ? 0.55 : 0.4) : itemOpacity))
         .contentShape(Rectangle())
         .onTapGesture {
             guard liftedItem == nil, !item.isPending else { return }
@@ -444,7 +444,9 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .accessibilityElement(children: .ignore)
         .accessibilityIdentifier(catalog ? "navigation-catalog-\(item.id)" : "navigation-item-\(item.id)")
         .accessibilityLabel(catalog ? strings.addToNavigation(item.title) : (add ? (role == .prepend ? strings.addItemAtStart : strings.addItemAtEnd) : item.title))
-        .accessibilityValue(selected ? strings.selectedValue : strings.notSelectedValue)
+        .accessibilityValue(catalog
+            ? (item.isPending ? strings.alreadyAddedValue : strings.notSelectedValue)
+            : (selected ? strings.selectedValue : strings.notSelectedValue))
         .accessibilityHint(isEditing && item.isConfigurable ? strings.configurableHint : item.accessibilityHint)
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : [.isButton])
         .accessibilityAdjustableAction { direction in

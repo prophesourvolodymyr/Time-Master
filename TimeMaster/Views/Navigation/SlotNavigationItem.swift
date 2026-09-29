@@ -253,6 +253,8 @@ struct SlotNavigationStrings {
     var selectedValue: String
     /// Accessibility value for an unselected item.
     var notSelectedValue: String
+    /// Accessibility value for a catalog page that is already on the bar.
+    var alreadyAddedValue: String
     /// Accessibility value while the bar is expanded and editable.
     var editingValue: String
     /// Accessibility value while the bar is expanded and not editable.
@@ -278,6 +280,7 @@ struct SlotNavigationStrings {
         changeSource: String,
         selectedValue: String,
         notSelectedValue: String,
+        alreadyAddedValue: String,
         editingValue: String,
         expandedValue: String,
         compactValue: String,
@@ -298,6 +301,7 @@ struct SlotNavigationStrings {
         self.changeSource = changeSource
         self.selectedValue = selectedValue
         self.notSelectedValue = notSelectedValue
+        self.alreadyAddedValue = alreadyAddedValue
         self.editingValue = editingValue
         self.expandedValue = expandedValue
         self.compactValue = compactValue
@@ -325,6 +329,7 @@ struct SlotNavigationStrings {
         changeSource: "Change page",
         selectedValue: "Selected",
         notSelectedValue: "Not selected",
+        alreadyAddedValue: "Already on the menu",
         editingValue: "Editing navigation",
         expandedValue: "Expanded",
         compactValue: "Compact",
