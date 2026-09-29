@@ -163,6 +163,9 @@ struct WorkoutListView: View {
     private static let trackingControlMaxHeight: CGFloat = 148
     /// Reserved height of the slim weekly goal row inside the pinned chrome.
     private static let weeklyGoalRowHeight: CGFloat = 36
+    /// Reserved height of the stats row: a collapsed tile plus its vertical padding.
+    private static let statsTileHeight: CGFloat = 48
+    private static let statsRowHeight: CGFloat = statsTileHeight + 12
     /// Widest the page content and chrome grow on large screens.
     private static let contentMaxWidth: CGFloat = 980
 
@@ -173,7 +176,9 @@ struct WorkoutListView: View {
                 collapsedRowHeight: 48,
                 expandedControlWidthCap: .infinity,
                 expandedControlHeightCap: Self.trackingControlMaxHeight,
-                pinnedFooterHeight: 49 + (store.hasWeeklyGoal ? Self.weeklyGoalRowHeight : 0)
+                pinnedFooterHeight: 49
+                    + Self.statsRowHeight
+                    + (store.hasWeeklyGoal ? Self.weeklyGoalRowHeight : 0)
             )
         }) { metrics in
             workoutsScrollContent(metrics: metrics)
@@ -187,8 +192,6 @@ struct WorkoutListView: View {
             if showingSearch {
                 searchField
             }
-
-            trackingTiles(metrics: metrics)
 
             resumeBanner
 
@@ -244,45 +247,55 @@ struct WorkoutListView: View {
         let controlWidth = metrics.controlWidth(morph)
         let controlHeight = metrics.controlHeight(morph)
         let groupWidth = controlWidth * 3 + metrics.controlSpacing * 2
-        let rowHeight = controlHeight + metrics.expandedControlPadding * 2 * (1 - progress)
+        let titleBlockHeight = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
+        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
+            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
 
         return VStack(spacing: 0) {
-            HStack(spacing: metrics.controlSpacing) {
-                chromeButton(
-                    systemImage: showingSearch ? "xmark" : "magnifyingglass",
-                    title: showingSearch ? "Close" : "Search",
-                    progress: morph,
-                    width: controlWidth,
-                    height: controlHeight
-                ) {
-                    withAnimation(.smooth(duration: 0.2)) {
-                        showingSearch.toggle()
+            ZStack(alignment: .top) {
+                WorkoutChromeTitle(progress: morph, metrics: metrics)
+                    .frame(height: metrics.collapsedRowHeight)
+
+                HStack(spacing: metrics.controlSpacing) {
+                    chromeButton(
+                        systemImage: showingSearch ? "xmark" : "magnifyingglass",
+                        title: showingSearch ? "Close" : "Search",
+                        progress: morph,
+                        width: controlWidth,
+                        height: controlHeight
+                    ) {
+                        withAnimation(.smooth(duration: 0.2)) {
+                            showingSearch.toggle()
+                        }
+                    }
+                    chromeButton(
+                        systemImage: "gearshape",
+                        title: "Settings",
+                        progress: morph,
+                        width: controlWidth,
+                        height: controlHeight
+                    ) {
+                        showingSettings = true
+                    }
+                    chromeButton(
+                        systemImage: "plus",
+                        title: "Add",
+                        progress: morph,
+                        width: controlWidth,
+                        height: controlHeight
+                    ) {
+                        showingAddWorkout = true
                     }
                 }
-                chromeButton(
-                    systemImage: "gearshape",
-                    title: "Settings",
-                    progress: morph,
-                    width: controlWidth,
-                    height: controlHeight
-                ) {
-                    showingSettings = true
-                }
-                chromeButton(
-                    systemImage: "plus",
-                    title: "Add",
-                    progress: morph,
-                    width: controlWidth,
-                    height: controlHeight
-                ) {
-                    showingAddWorkout = true
-                }
+                .frame(width: groupWidth)
+                .offset(x: metrics.groupLeading(morph))
+                .frame(width: metrics.contentWidth, alignment: .leading)
+                .padding(.horizontal, metrics.horizontalPadding)
+                .offset(y: titleBlockHeight - controlHeight - bottomPadding)
             }
-            .frame(width: groupWidth)
-            .offset(x: metrics.groupLeading(morph))
-            .frame(width: metrics.contentWidth, alignment: .leading)
-            .frame(height: rowHeight)
-            .padding(.horizontal, metrics.horizontalPadding)
+            .frame(height: titleBlockHeight, alignment: .top)
+
+            trackingTiles(metrics: metrics)
 
             if store.hasWeeklyGoal {
                 weeklyGoalRow(metrics: metrics)
@@ -340,6 +353,7 @@ struct WorkoutListView: View {
             )
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
     }
 
     private func trackingTile(
@@ -348,15 +362,17 @@ struct WorkoutListView: View {
         label: String,
         metrics: ScrollingChromeMetrics
     ) -> some View {
-        VStack(spacing: 8) {
+        HStack(spacing: 8) {
             Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.textPrimary)
             Text(value)
-                .font(.title3.weight(.semibold).monospacedDigit())
+                .font(.system(size: 19, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .frame(width: metrics.expandedControlWidth, height: metrics.expandedControlHeight)
+        .frame(width: metrics.expandedControlWidth, height: Self.statsTileHeight)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -762,6 +778,33 @@ struct WorkoutListView: View {
         defaults?.set(workout.id.uuidString,  forKey: "pinned_workout_id")
         defaults?.set(workout.colorHex,       forKey: "pinned_workout_color")
         WidgetCenter.shared.reloadAllTimelines()
+    }
+}
+
+/// The page title: centred while the chrome is expanded, then travelling to the leading edge
+/// and shrinking as the controls collapse, the same way the Database page behaves.
+private struct WorkoutChromeTitle: View {
+    let progress: CGFloat
+    let metrics: ScrollingChromeMetrics
+    @State private var textSize: CGSize = .zero
+
+    var body: some View {
+        let available = max(1, metrics.contentWidth - metrics.compactGroupWidth - metrics.controlSpacing)
+        let compactScale = min(22 / 36, available / max(1, textSize.width))
+        let scale = 1 + (compactScale - 1) * progress
+        let leading = max(0, (metrics.contentWidth - textSize.width) / 2)
+
+        Text("Workouts")
+            .font(.system(size: 36, weight: .bold))
+            .foregroundStyle(Theme.textPrimary)
+            .lineLimit(1)
+            .fixedSize()
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { textSize = $0 }
+            .scaleEffect(scale, anchor: .leading)
+            .offset(x: -leading * progress)
+            .frame(width: metrics.contentWidth)
+            .padding(.horizontal, metrics.horizontalPadding)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

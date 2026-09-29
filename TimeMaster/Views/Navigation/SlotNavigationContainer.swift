@@ -1,142 +1,273 @@
+// SlotNavigationContainer.swift
+//
+// Hosts a destination, the carousel bar and the three navigation presentations. Part of the
+// CarouselNavigation component from the SwiftComponentLibrary, copied into the app, with the
+// app's content-bounds hook and Home's page-swipe gate.
+
 import SwiftUI
 
-struct SlotNavigationContainer<Content: View>: View {
-    @Binding private var selection: Int
-    let items: [SlotNavigationItem]
-    @ViewBuilder let content: () -> Content
+struct SlotCarouselNavigation<Content: View>: View {
+    @Binding private var selection: String?
+    private let items: [SlotNavigationItem]
+    private let availableItems: [SlotNavigationItem]
+    private let configuration: SlotNavigationConfiguration?
+    private let onInsert: (String, Int) -> Void
+    private let onMove: (String, Int) -> Void
+    private let onRemove: (String) -> Void
+    private let onConfigure: (String) -> Void
+    private let onEditingEnded: () -> Void
     private let barHeight: CGFloat
+    private let interactionEnabled: Bool
+    private let allowsEditing: Bool
+    private let showsEditingGuide: Bool
+    private let guideDefaultsKey: String
+    private let theme: SlotNavigationTheme
+    private let strings: SlotNavigationStrings
+    private let content: () -> Content
+    private let onPageDrag: (CGFloat) -> Void
+    private let onPageDragEnded: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-#if os(macOS)
-    @FocusState private var keyboardFocused: Bool
-#endif
-    @State private var transitionDirection: PageTransitionDirection = .forward
-    @State private var lastSelection = 0
-    @State private var navigationPresentation: SlotNavigationPresentation = .full
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+    @State private var requestedPresentation: SlotNavigationPresentation?
+    @State private var contentDisablesInteraction = false
     @State private var hiddenNavigationIsRevealed = false
     @State private var hiddenNavigationDismissTask: Task<Void, Never>?
+    @State private var isEditing = false
+    @State private var showsCatalog = false
+    @State private var hasSeenGuide: Bool
+    @State private var showsGuide = false
+    @State private var pageIsDragging = false
     @State private var pageSwipesDisabled = false
 
-    private var arcCurveOffset: CGFloat {
-#if os(iOS)
-        8
-#else
-        54
-#endif
-    }
-
     init(
-        selection: Binding<Int>,
-        items: [SlotNavigationItem] = SlotNavigationItem.timeMaster,
-        barHeight: CGFloat = 126,
+        selection: Binding<String?>,
+        items: [SlotNavigationItem],
+        availableItems: [SlotNavigationItem] = [],
+        configuration: SlotNavigationConfiguration? = nil,
+        onInsert: @escaping (String, Int) -> Void = { _, _ in },
+        onMove: @escaping (String, Int) -> Void = { _, _ in },
+        onRemove: @escaping (String) -> Void = { _ in },
+        onConfigure: @escaping (String) -> Void = { _ in },
+        onEditingEnded: @escaping () -> Void = {},
+        barHeight: CGFloat = SlotCarouselNavigationBar.fullHeight,
+        interactionEnabled: Bool = true,
+        allowsEditing: Bool = true,
+        showsEditingGuide: Bool = true,
+        guideDefaultsKey: String = "tm.navigation.editorGuideSeen",
+        theme: SlotNavigationTheme = .timeMaster,
+        strings: SlotNavigationStrings = .timeMaster,
+        onPageDrag: @escaping (CGFloat) -> Void = { _ in },
+        onPageDragEnded: @escaping () -> Void = {},
         @ViewBuilder content: @escaping () -> Content
     ) {
         _selection = selection
         self.items = items
-        self.barHeight = max(126, barHeight)
+        self.availableItems = availableItems
+        self.configuration = configuration
+        self.onInsert = onInsert
+        self.onMove = onMove
+        self.onRemove = onRemove
+        self.onConfigure = onConfigure
+        self.onEditingEnded = onEditingEnded
+        self.barHeight = max(SlotCarouselNavigationBar.fullHeight, barHeight)
+        self.interactionEnabled = interactionEnabled
+        self.allowsEditing = allowsEditing
+        self.showsEditingGuide = showsEditingGuide
+        self.guideDefaultsKey = guideDefaultsKey
+        self.theme = theme
+        self.strings = strings
+        _hasSeenGuide = State(initialValue: UserDefaults.standard.bool(forKey: guideDefaultsKey))
         self.content = content
+        self.onPageDrag = onPageDrag
+        self.onPageDragEnded = onPageDragEnded
     }
 
     var body: some View {
         GeometryReader { proxy in
-            let layout = barLayout(for: effectiveNavigationPresentation)
-            let reservedHeight = effectiveNavigationPresentation == .hidden ? 0
-                : (layout == .full ? barHeight : SlotNavigationBar.inlineHeight) + navigationContentClearance(for: layout)
+            let presentation = effectivePresentation
+            let layout = barLayout(for: presentation)
+            let normalHeight = layout == .full ? barHeight + SlotCarouselNavigationBar.fullBottomExtension : SlotCarouselNavigationBar.inlineHeight
             let frame = proxy.frame(in: .global)
-            let contentBounds = CGRect(x: frame.minX, y: frame.minY, width: frame.width, height: max(1, frame.height - reservedHeight))
-            VStack(spacing: 0) {
+            let reservedHeight = presentation == .hidden ? 0 : normalHeight
+            let contentBounds = CGRect(
+                x: frame.minX,
+                y: frame.minY,
+                width: frame.width,
+                height: max(1, frame.height - reservedHeight)
+            )
+
+            ZStack {
                 content()
                     .environment(\.slotNavigationContentBounds, contentBounds)
-                    .id(selection)
-                    .transition(pageTransition)
+                    .environment(\.slotNavigationArcLensFrame, presentation == .full
+                        && !isEditing && !reduceMotion && !reduceTransparency && !lowPower && scenePhase == .active
+                        ? CGRect(
+                            x: proxy.frame(in: .global).minX,
+                            y: proxy.frame(in: .global).maxY - barHeight,
+                            width: proxy.size.width,
+                            height: barHeight
+                        ) : .zero)
+                    .animation(nil, value: selection)
+                    .blur(radius: isEditing && !reduceTransparency ? 11 : 0)
+                    .opacity(isEditing ? 0.48 : 1)
+                    .allowsHitTesting(!isEditing)
+                    .accessibilityHidden(isEditing)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: pageSwipesDisabled ? .subviews : .all)
-                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: effectiveNavigationPresentation == .hidden ? .all : .subviews)
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if effectiveNavigationPresentation != .hidden {
-                    let layout = barLayout(for: effectiveNavigationPresentation)
-                    let visibleBarHeight = layout == .full ? barHeight : SlotNavigationBar.inlineHeight
-                    ZStack(alignment: .bottom) {
-                        Color.clear
-                        navigationBar(
-                            bottomSafeArea: proxy.safeAreaInsets.bottom,
-                            layout: layout
-                        )
-                    }
-                    .frame(height: visibleBarHeight + navigationContentClearance(for: layout))
+                    .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled ? .all : .subviews)
+                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled ? .all : .subviews)
+
+                if isEditing {
+                    theme.scrim.opacity(reduceTransparency ? 1 : theme.scrimOpacity)
+                        .ignoresSafeArea()
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: finishEditing)
+                        .accessibilityHidden(true)
                 }
             }
-#if os(iOS)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if presentation != .hidden {
+                    Color.clear.frame(height: normalHeight)
+                        .allowsHitTesting(false)
+                }
+            }
             .overlay(alignment: .bottom) {
-                if effectiveNavigationPresentation == .hidden, hiddenNavigationIsRevealed {
-                    navigationBar(
+                if presentation != .hidden {
+                    SlotCarouselNavigationBar(
+                        selection: normalSelection,
+                        items: items,
                         bottomSafeArea: proxy.safeAreaInsets.bottom,
-                        layout: .inline
+                        theme: theme,
+                        strings: strings,
+                        barHeight: barHeight,
+                        layout: layout,
+                        isEditing: $isEditing,
+                        showsCatalog: $showsCatalog,
+                        availableItems: availableItems,
+                        configuration: configuration,
+                        onInsert: onInsert,
+                        onMove: onMove,
+                        onRemove: onRemove,
+                        onConfigure: onConfigure,
+                        onEditingEnded: finishEditing,
+                        onPageDrag: onPageDrag,
+                        onPageDragEnded: onPageDragEnded
+                    )
+                    .simultaneousGesture(
+                        LongPressGesture(minimumDuration: 0.56, maximumDistance: 18)
+                            .onEnded { _ in beginEditing() },
+                        including: allowsEditing && layout == .full && !isEditing ? .all : .subviews
+                    )
+                    .background(SlotNavigationBarFrameReader())
+                    .transition(navigationPresentationTransition)
+                } else if navigationInteractionEnabled, hiddenNavigationIsRevealed {
+                    SlotCarouselNavigationBar(
+                        selection: normalSelection, items: items,
+                        bottomSafeArea: proxy.safeAreaInsets.bottom,
+                        theme: theme,
+                        strings: strings,
+                        barHeight: barHeight,
+                        layout: .inline,
+                        onPageDrag: onPageDrag, onPageDragEnded: onPageDragEnded
                     )
                     .padding(.bottom, proxy.safeAreaInsets.bottom)
+                    .background(SlotNavigationBarFrameReader())
                     .transition(navigationPresentationTransition)
                 }
             }
-#endif
-#if os(macOS)
-            .overlay(alignment: .bottom) {
-                SlotNavigationArcLineShape(curveOffset: arcCurveOffset)
-                    .stroke(Color.black.opacity(0.72), lineWidth: 8)
-                    .frame(height: barHeight)
-                    .blur(radius: 9)
-                    .allowsHitTesting(false)
+            .overlay {
+                if isEditing {
+                    editingGuideOverlay(size: proxy.size)
+                        .transition(.opacity)
+                }
             }
-#endif
-            .background(Theme.background.ignoresSafeArea())
-            .onAppear {
-                navigationPresentation = defaultNavigationPresentation(for: selection)
-                lastSelection = selection
-#if os(macOS)
-                keyboardFocused = true
-#endif
+            .background(theme.background.ignoresSafeArea())
+            .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
+                lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
             }
             .onDisappear {
                 hiddenNavigationDismissTask?.cancel()
+                onPageDragEnded()
+                finishEditing()
             }
-            .onChange(of: selection) { newSelection in
-                updateTransitionDirection(for: newSelection)
-                applyNavigationPresentation(defaultNavigationPresentation(for: newSelection))
-                lastSelection = newSelection
-                if effectiveNavigationPresentation == .hidden, hiddenNavigationIsRevealed {
+            .onChange(of: isEditing) { editing in
+                if editing {
+                    showsGuide = showsEditingGuide && !hasSeenGuide
+                } else {
+                    markGuideSeen()
+                    showsGuide = false
+                }
+            }
+            .onChange(of: selection) { _ in
+                if effectivePresentation == .hidden, hiddenNavigationIsRevealed {
                     scheduleHiddenNavigationDismissal()
                 }
             }
-            .onPreferenceChange(SlotNavigationPresentationPreferenceKey.self) { requestedPresentation in
-                applyNavigationPresentation(resolvedNavigationPresentation(requestedPresentation))
+            .onChange(of: navigationInteractionEnabled) { enabled in
+                if !enabled {
+                    finishEditing()
+                    hiddenNavigationDismissTask?.cancel()
+                    hiddenNavigationIsRevealed = false
+                    pageIsDragging = false
+                    onPageDragEnded()
+                }
             }
+            .onPreferenceChange(SlotNavigationInteractionDisabledPreferenceKey.self) { contentDisablesInteraction = $0 }
             .onPreferenceChange(SlotNavigationEditingPreferenceKey.self) { pageSwipesDisabled = $0 }
-            .animation(pageAnimation, value: selection)
-            .animation(navigationPresentationAnimation, value: effectiveNavigationPresentation)
-            .accessibilityElement(children: .contain)
-            .accessibilityAction(named: "Show navigation") {
-                revealHiddenNavigation()
+            .onPreferenceChange(SlotNavigationPresentationPreferenceKey.self) { requested in
+                applyPresentation(requested)
             }
-            #if os(macOS)
-            .focusable()
-            .focusEffectDisabled()
-            .focused($keyboardFocused)
-            .onKeyPress(phases: [.down, .repeat], action: handleKeyPress)
-            #endif
+            .animation(presentationAnimation, value: effectivePresentation)
+            .animation(presentationAnimation, value: isEditing)
+            .accessibilityElement(children: .contain)
+            .accessibilityAction(named: strings.showNavigation) {
+                if navigationInteractionEnabled { revealHiddenNavigation() }
+            }
         }
     }
 
-    private var effectiveNavigationPresentation: SlotNavigationPresentation {
+    private var normalSelection: Binding<Int> {
+        Binding(
+            get: { items.firstIndex(where: { $0.id == selection }) ?? 0 },
+            set: { index in
+                guard !isEditing, items.indices.contains(index) else { return }
+                selection = items[index].id
+            }
+        )
+    }
+
+    private func beginEditing() {
+        guard navigationInteractionEnabled, allowsEditing, effectivePresentation == .full, !isEditing else { return }
+        withAnimation(presentationAnimation) { isEditing = true }
+    }
+
+    private var navigationInteractionEnabled: Bool {
+        interactionEnabled && !contentDisablesInteraction
+    }
+
+    private var effectivePresentation: SlotNavigationPresentation {
+        guard navigationInteractionEnabled else { return .hidden }
+        if items.isEmpty { return .full }
 #if os(iOS)
-        navigationPresentation
+        return requestedPresentation ?? defaultPresentation
 #else
-        .full
+        return .full
 #endif
     }
 
-    private var navigationPresentationAnimation: Animation {
-        reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.42, dampingFraction: 0.9)
+    private var defaultPresentation: SlotNavigationPresentation {
+        guard let selected = selection,
+              let item = items.first(where: { $0.id == selected }) else {
+            return .full
+        }
+        return item.presentation
+    }
+
+    private var presentationAnimation: Animation? {
+        reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.9)
     }
 
     private var navigationPresentationTransition: AnyTransition {
@@ -146,85 +277,37 @@ struct SlotNavigationContainer<Content: View>: View {
     private func barLayout(for presentation: SlotNavigationPresentation) -> SlotNavigationBarLayout {
         presentation == .full ? .full : .inline
     }
-    private func navigationContentClearance(for layout: SlotNavigationBarLayout) -> CGFloat {
-        layout == .full ? 56 : 28
-    }
-    private func defaultNavigationPresentation(for index: Int) -> SlotNavigationPresentation {
-        guard items.indices.contains(index) else { return .full }
-        return items[index].presentation
-    }
-    private func resolvedNavigationPresentation(
-        _ requestedPresentation: SlotNavigationPresentation?
-    ) -> SlotNavigationPresentation {
-        let destinationPresentation = defaultNavigationPresentation(for: selection)
-        guard let requestedPresentation else { return destinationPresentation }
 
-        if destinationPresentation == .full, requestedPresentation != .full {
-            return .full
-        }
-        if destinationPresentation == .inline, requestedPresentation == .full {
-            return .inline
-        }
-        if destinationPresentation == .hidden {
-            return .hidden
-        }
-        return requestedPresentation
-    }
-
-    private func navigationBar(
-        bottomSafeArea: CGFloat,
-        layout: SlotNavigationBarLayout
-    ) -> some View {
-        SlotNavigationBar(
-            selection: $selection,
-            items: items,
-            bottomSafeArea: bottomSafeArea,
-            barHeight: barHeight,
-            layout: layout,
-            onSelectionChanged: handleNavigationSelection(_:))
-        .transition(navigationPresentationTransition)
-    }
-
-    private func applyNavigationPresentation(_ requestedPresentation: SlotNavigationPresentation) {
-        guard navigationPresentation != requestedPresentation else { return }
-
+    private func applyPresentation(_ requested: SlotNavigationPresentation?) {
+        guard requestedPresentation != requested else { return }
+        if let requested, requested != .full { finishEditing() }
         hiddenNavigationDismissTask?.cancel()
-        withAnimation(navigationPresentationAnimation) {
-            navigationPresentation = requestedPresentation
-            if requestedPresentation != .hidden {
+        withAnimation(presentationAnimation) {
+            requestedPresentation = requested
+            if requested != .hidden {
                 hiddenNavigationIsRevealed = false
             }
-        }
-    }
-
-    private func handleNavigationSelection(_ index: Int) {
-        updateTransitionDirection(for: index)
-        applyNavigationPresentation(defaultNavigationPresentation(for: index))
-        if effectiveNavigationPresentation == .hidden, hiddenNavigationIsRevealed {
-            scheduleHiddenNavigationDismissal()
         }
     }
 
     private func hiddenNavigationRevealGesture(in size: CGSize) -> some Gesture {
         DragGesture(minimumDistance: 12, coordinateSpace: .local)
             .onEnded { value in
-                guard effectiveNavigationPresentation == .hidden,
+                guard effectivePresentation == .hidden,
                       !hiddenNavigationIsRevealed,
                       value.startLocation.y >= size.height - 112,
                       value.translation.height <= -48,
                       abs(value.translation.height) > abs(value.translation.width) * 1.25 else {
                     return
                 }
-
                 revealHiddenNavigation()
             }
     }
 
     private func revealHiddenNavigation() {
-        guard effectiveNavigationPresentation == .hidden else { return }
-
+        guard navigationInteractionEnabled, effectivePresentation == .hidden else { return }
         hiddenNavigationDismissTask?.cancel()
-        withAnimation(navigationPresentationAnimation) {
+        withAnimation(presentationAnimation) {
             hiddenNavigationIsRevealed = true
         }
         scheduleHiddenNavigationDismissal()
@@ -235,104 +318,121 @@ struct SlotNavigationContainer<Content: View>: View {
         hiddenNavigationDismissTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(navigationPresentationAnimation) {
+            withAnimation(presentationAnimation) {
                 hiddenNavigationIsRevealed = false
             }
         }
     }
 
-    private var pageAnimation: Animation {
-        if reduceMotion {
-            return .easeOut(duration: 0.16)
-        }
-        return .easeOut(duration: 0.28)
-    }
-
-    private var pageTransition: AnyTransition {
-        guard !reduceMotion else { return .opacity }
-
-        let insertionEdge: Edge = transitionDirection == .forward ? .trailing : .leading
-        let removalEdge: Edge = transitionDirection == .forward ? .leading : .trailing
-        return .asymmetric(
-            insertion: .move(edge: insertionEdge).combined(with: .opacity),
-            removal: .move(edge: removalEdge).combined(with: .opacity)
-        )
-    }
-
     private func pageSwipeGesture(in size: CGSize) -> some Gesture {
-        DragGesture(minimumDistance: 44, coordinateSpace: .local)
+        DragGesture(minimumDistance: 20, coordinateSpace: .local)
+            .onChanged { value in
+                guard !isEditing, let selected = selection,
+                      let index = items.firstIndex(where: { $0.id == selected }),
+                      value.startLocation.x <= 28 || value.startLocation.x >= size.width - 28,
+                      abs(value.translation.width) > abs(value.translation.height) * 1.7 else { return }
+                pageIsDragging = true
+                onPageDrag(CGFloat(index) - value.translation.width / max(size.width, 1))
+            }
             .onEnded { value in
-                let horizontalDistance = value.translation.width
-                let verticalDistance = abs(value.translation.height)
-                let startedAtAbsoluteEdge = value.startLocation.x <= 28
-                    || value.startLocation.x >= size.width - 28
-                guard startedAtAbsoluteEdge,
-                      abs(horizontalDistance) >= 110,
-                      abs(horizontalDistance) > verticalDistance * 1.7 else { return }
-
-                let direction = horizontalDistance < 0 ? 1 : -1
-                let nextSelection = min(
-                    max(selection + direction, 0),
-                    items.count - 1
-                )
-                guard nextSelection != selection else { return }
-
-                handleNavigationSelection(nextSelection)
-                withAnimation(pageAnimation) {
-                    selection = nextSelection
+                guard pageIsDragging else { return }
+                pageIsDragging = false
+                if let selected = selection,
+                   let index = items.firstIndex(where: { $0.id == selected }) {
+                    let projected = value.predictedEndTranslation.width
+                    if abs(projected) > size.width * 0.25 {
+                        let next = min(max(index + (projected < 0 ? 1 : -1), 0), items.count - 1)
+                        selection = items[next].id
+                    }
                 }
+                onPageDragEnded()
             }
     }
 
-#if os(macOS)
-    private func handleKeyPress(_ keyPress: KeyPress) -> KeyPress.Result {
-        switch keyPress.key {
-        case .leftArrow:
-            moveKeyboardSelection(by: -1)
-            return .handled
-        case .rightArrow:
-            moveKeyboardSelection(by: 1)
-            return .handled
-        default:
-            break
-        }
+    private func editingGuideOverlay(size: CGSize) -> some View {
+        ZStack(alignment: .top) {
+            HStack {
+                SlotNavigationEditorHeader(title: strings.editorTitle, theme: theme)
+                if showsEditingGuide {
+                    Button {
+                        if showsGuide {
+                            dismissGuide()
+                        } else {
+                            withAnimation(presentationAnimation) { showsGuide = true }
+                        }
+                    } label: {
+                        Image(systemName: "questionmark")
+                            .font(.system(size: 20, weight: .semibold))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(SlotNavigationQuietButtonStyle(theme: theme, horizontalPadding: 0))
+                    .accessibilityLabel(strings.guideAccessibilityLabel)
+                    .accessibilityIdentifier("navigation-help")
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
 
-        guard let character = keyPress.characters.first,
-              let number = Int(String(character)),
-              number > 0 else {
-            return .ignored
+            if showsGuide, configuration == nil {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        ForEach(Array(strings.guideSteps.enumerated()), id: \.offset) { _, step in
+                            guideStep(step)
+                        }
+                        Button(strings.guideDismissTitle, action: dismissGuide)
+                            .buttonStyle(SlotNavigationProminentButtonStyle(theme: theme))
+                            .accessibilityIdentifier("navigation-guide-dismiss")
+                    }
+                    .padding(.vertical, 8)
+                }
+                .frame(width: min(size.width - 20 * 2, 720),
+                       height: size.height * 0.54)
+                .position(x: size.width / 2, y: size.height * 0.49)
+                .transition(.opacity)
+            }
         }
-
-        let destinationID = number - 1
-        guard let index = items.firstIndex(where: { $0.id == destinationID }) else { return .ignored }
-        selectFromKeyboard(index)
-        return .handled
+        .foregroundStyle(theme.textPrimary)
+        .frame(width: size.width, height: size.height, alignment: .top)
     }
 
-    private func moveKeyboardSelection(by delta: Int) {
-        let nextSelection = min(max(selection + delta, 0), items.count - 1)
-        guard nextSelection != selection else { return }
-        selectFromKeyboard(nextSelection)
+    private func guideStep(_ step: SlotNavigationGuideStep) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(step.symbol)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            Text(step.text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(theme.typography.body)
+        .foregroundStyle(theme.textSecondary)
+        .lineSpacing(3)
     }
 
-    private func selectFromKeyboard(_ index: Int) {
-        guard items.indices.contains(index), index != selection else { return }
-        handleNavigationSelection(index)
-        withAnimation(pageAnimation) {
-            selection = index
-        }
+    private func dismissGuide() {
+        markGuideSeen()
+        withAnimation(presentationAnimation) { showsGuide = false }
     }
-#endif
-    private func updateTransitionDirection(for newSelection: Int) {
-        transitionDirection = newSelection >= lastSelection ? .forward : .backward
+
+    private func markGuideSeen() {
+        hasSeenGuide = true
+        UserDefaults.standard.set(true, forKey: guideDefaultsKey)
+    }
+
+    private func finishEditing() {
+        guard isEditing || configuration != nil else { return }
+        if configuration != nil {
+            configuration?.onCancel()
+        }
+        withAnimation(presentationAnimation) {
+            isEditing = false
+            showsCatalog = false
+        }
+        onEditingEnded()
     }
 }
 
-private enum PageTransitionDirection {
-    case forward
-    case backward
-}
-
+/// Set by a destination that owns its own drag gestures — the Home canvas while its widgets
+/// are being edited. Page swipes stand down until the flag clears.
 struct SlotNavigationEditingPreferenceKey: PreferenceKey {
     static var defaultValue = false
 
@@ -341,6 +441,8 @@ struct SlotNavigationEditingPreferenceKey: PreferenceKey {
     }
 }
 
+/// The rectangle a destination can safely occupy, in the global coordinate space: the
+/// container's frame minus the space the bar reserves at the bottom.
 private struct SlotNavigationContentBoundsKey: EnvironmentKey {
     static let defaultValue: CGRect? = nil
 }

@@ -13,7 +13,9 @@ struct MainTabView: View {
     @StateObject private var outdoorStore = OutdoorActivityStore()
     @StateObject private var musicLibraryStore = MusicLibraryStore()
     @StateObject private var outdoorPreferencesStore = OutdoorRecordingPreferencesStore()
-    @State private var selectedTab = SlotNavigationItem.index(for: 0)
+    @StateObject private var navigationLayout = SlotNavigationLayoutStore()
+    @State private var selectedDestination: String? = SlotNavigationDestination.home.rawValue
+    @State private var lastPageDestination = SlotNavigationDestination.home.rawValue
     @State private var showingSettings = false
     @State private var requestedWorkoutID: UUID?
     #if os(iOS)
@@ -23,7 +25,7 @@ struct MainTabView: View {
     @StateObject private var outdoorRecorder: OutdoorLocationRecorder
     #endif
 #if os(macOS)
-    private let macSlotBarHeight: CGFloat = 196
+    @FocusState private var keyboardFocused: Bool
 #endif
 #if os(iOS)
     init() {
@@ -41,72 +43,94 @@ struct MainTabView: View {
     }
 #endif
 
+    /// The bar is taller on macOS, where the arc has always carried more of the surface.
+    private static var barHeight: CGFloat {
+#if os(macOS)
+        196
+#else
+        SlotCarouselNavigationBar.fullHeight
+#endif
+    }
 
     var body: some View {
         Group {
-        #if os(macOS)
-        SlotNavigationContainer(
-            selection: $selectedTab,
-            barHeight: macSlotBarHeight
-        ) {
-            detailView
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
-            routeToWorkoutDetail(notification)
-        }
-        #else
-        SlotNavigationContainer(selection: $selectedTab) {
-            detailView
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
-            routeToWorkoutDetail(notification)
-        }
-        .overlay(alignment: .topTrailing) {
-            if selectedDestinationID != 6, outdoorRecorder.isLiveSession {
-                OutdoorLiveWorkoutStatusWidget(
-                    recorder: outdoorRecorder,
+            SlotCarouselNavigation(
+                selection: $selectedDestination,
+                items: navigationLayout.items,
+                availableItems: navigationLayout.catalog,
+                onInsert: { id, index in navigationLayout.insert(id: id, at: index) },
+                onMove: { id, index in navigationLayout.move(id: id, to: index) },
+                onRemove: removeDestination,
+                onEditingEnded: ensureSelection,
+                barHeight: Self.barHeight,
+                guideDefaultsKey: "tm.navigation.editorGuideSeen",
+                theme: .timeMaster,
+                strings: .timeMaster
+            ) {
+                detailView
+            }
+            #if os(iOS)
+            .overlay(alignment: .topTrailing) {
+                if selectedPage != .map, outdoorRecorder.isLiveSession {
+                    OutdoorLiveWorkoutStatusWidget(
+                        recorder: outdoorRecorder,
+                        preferences: outdoorPreferencesStore,
+                        onOpenMap: openActiveOutdoorMap
+                    )
+                    .padding(.top, 8)
+                    .padding(.trailing, 12)
+                    .zIndex(100)
+                }
+            }
+            .fullScreenCover(
+                item: Binding(
+                    get: { UIDevice.current.userInterfaceIdiom == .phone ? activeOutdoorKind : nil },
+                    set: { activeOutdoorKind = $0 }
+                ),
+                onDismiss: {
+                    activeOutdoorPlannedRoute = nil
+                    activeOutdoorActivityID = nil
+                }
+            ) { kind in
+                OutdoorRouteRecordingView(
+                    kind: kind,
+                    store: outdoorStore,
+                    plannedRoute: activeOutdoorPlannedRoute,
                     preferences: outdoorPreferencesStore,
-                    onOpenMap: openActiveOutdoorMap
+                    musicLibrary: musicLibraryStore,
+                    initialActivityID: activeOutdoorActivityID,
+                    recordingSession: outdoorRecorder
                 )
-                .padding(.top, 8)
-                .padding(.trailing, 12)
-                .zIndex(100)
             }
-        }
-        .fullScreenCover(
-            item: Binding(
-                get: { UIDevice.current.userInterfaceIdiom == .phone ? activeOutdoorKind : nil },
-                set: { activeOutdoorKind = $0 }
-            ),
-            onDismiss: {
-                activeOutdoorPlannedRoute = nil
-                activeOutdoorActivityID = nil
-            }
-        ) { kind in
-            OutdoorRouteRecordingView(
-                kind: kind,
-                store: outdoorStore,
-                plannedRoute: activeOutdoorPlannedRoute,
-                preferences: outdoorPreferencesStore,
-                musicLibrary: musicLibraryStore,
-                initialActivityID: activeOutdoorActivityID,
-                recordingSession: outdoorRecorder
-            )
-        }
-        #endif
+            #endif
         }
         .environmentObject(musicLibraryStore)
         .environmentObject(outdoorPreferencesStore)
         .environmentObject(databaseNavigationState)
 #if os(macOS)
         .buttonStyle(.plain)
+        .focusable()
+        .focusEffectDisabled()
+        .focused($keyboardFocused)
+        .onKeyPress(phases: [.down, .repeat], action: handleKeyPress)
 #endif
+        .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
+            routeToWorkoutDetail(notification)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsCommand)) { _ in
             showingSettings = true
+        }
+        .onChange(of: selectedDestination) { destination in
+            guard let destination, destination != SlotNavigationDestination.map.rawValue else { return }
+            lastPageDestination = destination
         }
         .onAppear {
             musicLibraryStore.setCustomTypes(workoutStore.customWorkoutTypes)
             musicLibraryStore.setWorkouts(workoutStore.workouts)
+            ensureSelection()
+#if os(macOS)
+            keyboardFocused = true
+#endif
         }
         .onReceive(workoutStore.$workouts.dropFirst()) { musicLibraryStore.setWorkouts($0) }
         .onReceive(workoutStore.$customWorkoutTypes.dropFirst()) { musicLibraryStore.setCustomTypes($0) }
@@ -120,61 +144,57 @@ struct MainTabView: View {
         }
     }
 
-    private var selectedDestinationID: Int {
-        guard SlotNavigationItem.timeMaster.indices.contains(selectedTab) else { return 0 }
-        return SlotNavigationItem.timeMaster[selectedTab].id
+    private var selectedPage: SlotNavigationDestination {
+        selectedDestination.flatMap(SlotNavigationDestination.init(rawValue:)) ?? .home
     }
 
     @ViewBuilder
     private var detailView: some View {
-        switch selectedDestinationID {
-        case 0:
+        switch selectedPage {
+        case .home:
             homeDestination
-        case 1:
+        case .workouts:
             WorkoutListView(requestedWorkoutID: $requestedWorkoutID)
                 .environmentObject(outdoorStore)
                 .environmentObject(workoutStore)
-        case 2:
+        case .database:
             DatabaseView()
                 .environmentObject(databaseStore)
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
-        case 3:
+        case .analytics:
             AnalyticsView()
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
-        case 4:
+        case .coach:
             AICoachView()
                 .environmentObject(aiStore)
-        case 5:
+        case .profile:
             ProfileView()
                 .environmentObject(outdoorStore)
-        #if os(iOS)
-        case 6:
+        case .map:
+            #if os(iOS)
             mapDestination
-        #endif
-        default:
+            #else
             homeDestination
+            #endif
         }
     }
-#if os(iOS)
+
     @ViewBuilder
     private var homeDestination: some View {
         HomeDashboardView(
-            onBrowseWorkouts: { selectedTab = SlotNavigationItem.index(for: 1) },
-            onBrowseDatabase: { selectedTab = SlotNavigationItem.index(for: 2) },
+            onBrowseWorkouts: { selectedDestination = SlotNavigationDestination.workouts.rawValue },
+            onBrowseDatabase: { selectedDestination = SlotNavigationDestination.database.rawValue },
             onCreateWorkout: openWorkoutCreator,
-            onStartOutdoor: { kind, route, activityID in
-                guard UIDevice.current.userInterfaceIdiom == .phone else { return }
-                activeOutdoorPlannedRoute = route
-                activeOutdoorActivityID = activityID
-                activeOutdoorKind = kind
-            }
+            onStartOutdoor: startOutdoor
         )
         .environmentObject(outdoorStore)
         .environmentObject(workoutStore)
         .environmentObject(databaseStore)
     }
+
+#if os(iOS)
     @ViewBuilder
     private var mapDestination: some View {
         OutdoorRouteRecordingView(
@@ -184,20 +204,8 @@ struct MainTabView: View {
             musicLibrary: musicLibraryStore,
             initialActivityID: outdoorRecorder.activeActivity?.id,
             recordingSession: outdoorRecorder,
-            onExit: { selectedTab = max(0, selectedTab - 1) }
+            onExit: { selectedDestination = lastPageDestination }
         )
-    }
-#else
-    @ViewBuilder
-    private var homeDestination: some View {
-        HomeDashboardView(
-            onBrowseWorkouts: { selectedTab = SlotNavigationItem.index(for: 1) },
-            onBrowseDatabase: { selectedTab = SlotNavigationItem.index(for: 2) },
-            onCreateWorkout: openWorkoutCreator
-        )
-        .environmentObject(outdoorStore)
-        .environmentObject(workoutStore)
-        .environmentObject(databaseStore)
     }
 #endif
 
@@ -210,8 +218,18 @@ struct MainTabView: View {
         activeOutdoorActivityID = activity.id
     }
 #endif
+
+    private func startOutdoor(_ kind: OutdoorActivityKind, _ route: PlannedRoute?, _ activityID: UUID?) {
+#if os(iOS)
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return }
+        activeOutdoorPlannedRoute = route
+        activeOutdoorActivityID = activityID
+        activeOutdoorKind = kind
+#endif
+    }
+
     private func openWorkoutCreator() {
-        selectedTab = SlotNavigationItem.index(for: 1)
+        selectedDestination = SlotNavigationDestination.workouts.rawValue
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .newWorkoutCommand, object: nil)
         }
@@ -219,9 +237,54 @@ struct MainTabView: View {
 
     private func routeToWorkoutDetail(_ notification: Notification) {
         guard let workoutID = notification.userInfo?["workoutID"] as? UUID else { return }
-        selectedTab = SlotNavigationItem.index(for: 1)
+        selectedDestination = SlotNavigationDestination.workouts.rawValue
         requestedWorkoutID = workoutID
     }
+
+    /// A page can be removed while it is the visible one. Land on the first remaining page
+    /// instead of leaving the bar pointing at nothing.
+    private func ensureSelection() {
+        guard !navigationLayout.contains(id: selectedDestination) else { return }
+        selectedDestination = navigationLayout.firstID ?? SlotNavigationDestination.home.rawValue
+        lastPageDestination = selectedDestination ?? lastPageDestination
+    }
+
+    private func removeDestination(_ id: String) {
+        navigationLayout.remove(id: id)
+        ensureSelection()
+    }
+
+#if os(macOS)
+    private func handleKeyPress(_ keyPress: KeyPress) -> KeyPress.Result {
+        switch keyPress.key {
+        case .leftArrow:
+            moveSelection(by: -1)
+            return .handled
+        case .rightArrow:
+            moveSelection(by: 1)
+            return .handled
+        default:
+            break
+        }
+
+        guard let character = keyPress.characters.first,
+              let number = Int(String(character)),
+              number > 0,
+              navigationLayout.order.indices.contains(number - 1) else {
+            return .ignored
+        }
+        selectedDestination = navigationLayout.order[number - 1].rawValue
+        return .handled
+    }
+
+    private func moveSelection(by delta: Int) {
+        guard let current = selectedDestination,
+              let index = navigationLayout.order.firstIndex(where: { $0.rawValue == current }) else { return }
+        let next = min(max(index + delta, 0), navigationLayout.order.count - 1)
+        guard next != index else { return }
+        selectedDestination = navigationLayout.order[next].rawValue
+    }
+#endif
 }
 
 #Preview {

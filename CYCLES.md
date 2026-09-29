@@ -962,6 +962,27 @@ F27 Home ───────────────┘
 
 ---
 
+## Cycle 27 — Carousel Navigation and Workouts Title
+
+**Requested with user: 2026-09-28. Implementation handed off; human review pending.**
+
+- [x] Adopt the SwiftComponentLibrary CarouselNavigation component as the app's navigation, keeping its geometry, gestures, editor and accessibility with TimeMaster's palette, copy and destinations
+- [x] Give the arc one plain hairline rim; the glass, specular gradient and sweep treatment is gone
+- [x] Long-press the arc to edit: the page dims and blurs, "+" slots appear at both ends, and the catalog offers all seven app pages, with pages already on the bar drawn dimmed
+- [x] Drag icons to reorder, drag one above the bar to remove it, and tap the dimmed background to finish
+- [x] Persist the arrangement per device under `tm.navigation.order.v1`, keeping destination ids stable
+- [x] Keep AI Coach inline, Map hidden behind its upward-swipe reveal, and macOS arrow and number selection
+- [x] Fix editor item taps — the catalog and configurable items — by lowering the item drag gesture below the tap
+- [x] Investigate the page-switch stutter: the bar alone holds 60 fps with no dropped frames; the remaining hitch is the destination page's own first render
+- [x] Workouts chrome: title centred while the actions are expanded and travelling to the leading edge as they collapse, with the stats row pinned under the title, above the weekly goal and the filter tabs
+- [ ] Human review of the navigation bar, its editor, and the Workouts chrome
+
+Cycle 26 removed the Workouts page title; the user asked for it back, so the title returns as described above.
+
+Note for the next build: the working tree's `OutdoorTripLibraryView`, `OutdoorTripPlannerView` and `OutdoorRouteRecordingView` do not compile as they stand (a missing `TimeMasterCore` import and a changed call site); the throwaway build workspace used their committed versions.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
