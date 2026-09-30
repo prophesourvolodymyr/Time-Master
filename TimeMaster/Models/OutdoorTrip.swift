@@ -30,9 +30,6 @@ enum TripRoutingPreference: String, Codable, CaseIterable, Identifiable {
     func title(for kind: OutdoorActivityKind) -> String {
         kind == .bike ? title : (self == .bikeRoads ? "Paths Preferred" : self == .fastest ? "Direct" : "Mixed")
     }
-    func profile(for kind: OutdoorActivityKind) -> String {
-        (kind == .bike ? "bike_" : "foot_") + (self == .bikeRoads ? "paths" : rawValue)
-    }
 }
 
 enum TripLegMode: String, Codable, CaseIterable, Identifiable {
@@ -86,6 +83,7 @@ struct OutdoorTrip: Codable, Equatable {
     var updatedAt = Date()
     var routedAt: Date?
     var routingFingerprint: String?
+    var routingDataID: String?
 
     var fingerprint: String {
         ([kind.rawValue, preference.rawValue, runningGoal.rawValue] + stops.map {
@@ -93,34 +91,39 @@ struct OutdoorTrip: Codable, Equatable {
         }).joined(separator: "|")
     }
     var isRouted: Bool { stops.count >= 2 && legs.count == stops.count - 1 && routingFingerprint == fingerprint }
-    var ridingDistanceMeters: Double { legs.filter { $0.mode == .active }.reduce(0) { $0 + $1.distanceMeters } }
+    var activeDistanceMeters: Double { legs.lazy.filter { $0.mode == .active }.reduce(0) { $0 + $1.distanceMeters } }
     var totalDistanceMeters: Double { legs.reduce(0) { $0 + $1.distanceMeters } }
     var durationSeconds: Double { legs.reduce(0) { $0 + $1.durationSeconds } }
     var hasBus: Bool { stops.dropFirst().contains { $0.incomingMode == .bus } }
     var ascentMeters: Double? {
-        let active = legs.filter { $0.mode == .active }
+        let active = legs.lazy.filter { $0.mode == .active }
         guard !active.isEmpty, active.allSatisfy({ $0.ascentMeters != nil }) else { return nil }
         return active.reduce(0) { $0 + ($1.ascentMeters ?? 0) }
     }
     var effortScore: Double {
-        ridingDistanceMeters / (kind == .bike ? 20_000 : 5_000) + (ascentMeters ?? 0) / (kind == .bike ? 300 : 150)
+        activeDistanceMeters / (kind == .bike ? 20_000 : 5_000) + (ascentMeters ?? 0) / (kind == .bike ? 300 : 150)
     }
-    var effortTitle: String { effortScore < 1 ? "Easy" : effortScore < 2.5 ? "Moderate" : "Demanding" }
+    var effortTitle: String { ascentMeters == nil ? "Effort unknown" : effortScore < 1 ? "Easy" : effortScore < 2.5 ? "Moderate" : "Demanding" }
     var explanation: String {
-        let active = legs.filter { $0.mode == .active }
+        let active = legs.lazy.filter { $0.mode == .active }
         let terrain = ascentMeters.map { "\(Int($0)) m climbing" } ?? "Elevation unknown"
-        let surface = active.allSatisfy { $0.unpavedFraction != nil }
-            ? "\(Int(active.reduce(0) { $0 + ($1.unpavedFraction ?? 0) * $1.distanceMeters } / max(1, ridingDistanceMeters) * 100))% unpaved"
+        let surface = !active.isEmpty && active.allSatisfy { $0.unpavedFraction != nil }
+            ? "\(Int(active.reduce(0) { $0 + ($1.unpavedFraction ?? 0) * $1.distanceMeters } / max(1, activeDistanceMeters) * 100))% unpaved"
             : "Surface coverage incomplete"
-        let traffic = active.allSatisfy { $0.majorRoadFraction != nil }
-            ? "\(Int(active.reduce(0) { $0 + ($1.majorRoadFraction ?? 0) * $1.distanceMeters } / max(1, ridingDistanceMeters) * 100))% major roads"
+        let traffic = !active.isEmpty && active.allSatisfy { $0.majorRoadFraction != nil }
+            ? "\(Int(active.reduce(0) { $0 + ($1.majorRoadFraction ?? 0) * $1.distanceMeters } / max(1, activeDistanceMeters) * 100))% major roads"
             : "Road exposure unknown"
         return "\(terrain) · \(surface) · \(traffic). Road class is not live traffic or a safety rating."
     }
     var points: [OutdoorTrackPoint] {
-        legs.flatMap(\.coordinates).enumerated().map { index, coordinate in
-            coordinate.trackPoint(at: Date(timeIntervalSince1970: Double(index)))
+        var result: [OutdoorTrackPoint] = []
+        result.reserveCapacity(legs.reduce(0) { $0 + $1.coordinates.count })
+        for leg in legs {
+            for coordinate in leg.coordinates {
+                result.append(coordinate.trackPoint(at: Date(timeIntervalSince1970: Double(result.count))))
+            }
         }
+        return result
     }
 }
 
@@ -133,14 +136,6 @@ enum TripPlaceCategory: String, CaseIterable, Identifiable {
         case .cafes: return "Cafés"
         case .water: return "Drinking water"
         case .viewpoints: return "Viewpoints"
-        }
-    }
-    var osmFilter: String {
-        switch self {
-        case .parks: return "[leisure=park]"
-        case .cafes: return "[amenity=cafe]"
-        case .water: return "[amenity=drinking_water]"
-        case .viewpoints: return "[tourism=viewpoint]"
         }
     }
 }

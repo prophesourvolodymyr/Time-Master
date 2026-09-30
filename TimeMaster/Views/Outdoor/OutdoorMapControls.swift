@@ -8,6 +8,8 @@ struct OutdoorMapControls: View {
     let mapAttribution: OutdoorMapAttribution
     let onDownload: () -> Void
     let onFocusLocation: () -> Void
+    var onFitRoute: (() -> Void)?
+    var onNorth: (() -> Void)?
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
@@ -18,7 +20,19 @@ struct OutdoorMapControls: View {
             }
             .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
             .accessibilityLabel("Offline map area")
-            .accessibilityHint("Shows a city-scale map view for offline area planning.")
+            .accessibilityHint("Manages installed maps, routing, and places for offline use.")
+
+            if let onFitRoute {
+                Menu {
+                    Button("Fit trip", systemImage: "arrow.up.left.and.arrow.down.right", action: onFitRoute)
+                    if let onNorth { Button("North up", systemImage: "location.north.line", action: onNorth) }
+                } label: {
+                    Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+                .accessibilityLabel("Trip map controls")
+            }
 
             Button(action: onFocusLocation) {
                 Image(systemName: followsUser ? "location.fill" : "location")

@@ -1,0 +1,5 @@
+framework module TimeMasterRouting {
+  umbrella header "TMOfflineRouter.h"
+  export *
+  module * { export * }
+}

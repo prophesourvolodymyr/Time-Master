@@ -28,6 +28,8 @@ packages:
     revision: 51ef8d187a466345882b90d281865ceec7bad3b0
   TimeMasterCore:
     path: TimeMasterCore
+  TimeMasterRouting:
+    path: routing/TimeMasterRouting
 targets:
   TimeMaster:
     type: application
@@ -37,9 +39,12 @@ targets:
         excludes:
           - "**/.DS_Store"
           - "Resources/MapGlyphs"
+          - "Resources/OfflineRouting"
           - "Info-macOS.plist"
           - "junk"
       - path: TimeMaster/Resources/MapGlyphs
+        type: folder
+      - path: TimeMaster/Resources/OfflineRouting
         type: folder
     dependencies:
       - package: ZIPFoundation
@@ -47,6 +52,8 @@ targets:
       - package: MapLibre
       - package: LiquidGlassKit
       - package: TimeMasterCore
+      - package: TimeMasterRouting
+      - sdk: libsqlite3.tbd
       - target: TimeMasterWidget
     settings:
       base:
@@ -143,6 +150,7 @@ targets:
         excludes:
           - "**/.DS_Store"
           - "Resources/MapGlyphs"
+          - "Resources/OfflineRouting"
           - "Info.plist"
           - "junk"
     dependencies:

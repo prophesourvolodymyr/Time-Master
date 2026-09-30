@@ -1,5 +1,10 @@
+#if os(iOS)
 import Foundation
 import Combine
+
+enum TripPlannerEntry: Equatable {
+    case build, nearby, custom
+}
 
 @MainActor
 final class OutdoorTripEditor: ObservableObject {
@@ -9,6 +14,10 @@ final class OutdoorTripEditor: ObservableObject {
     @Published private(set) var revision = 0
     @Published private(set) var canUndo = false
     @Published private(set) var mapPoints: [OutdoorTrackPoint]
+    @Published var picking = false
+    @Published var replacingStopID: UUID?
+    @Published var isGenerating = false
+    @Published private(set) var currentLocation: TripCoordinate?
     private let store: OutdoorActivityStore
     private var routeTask: Task<Void, Never>?
     private var generation = 0
@@ -19,7 +28,7 @@ final class OutdoorTripEditor: ObservableObject {
     private var dragControlIndex: Int?
 
     var trip: OutdoorTrip { route.trip ?? OutdoorTrip() }
-    var canSave: Bool { trip.isRouted && !isRouting && dragOriginal == nil }
+    var canSave: Bool { trip.isRouted && !isRouting && !isGenerating && dragOriginal == nil }
     var isDragging: Bool { dragOriginal != nil }
 
     init(route: PlannedRoute?, kind: OutdoorActivityKind, store: OutdoorActivityStore) {
@@ -33,7 +42,49 @@ final class OutdoorTripEditor: ObservableObject {
 
     deinit { routeTask?.cancel() }
 
+    func open(_ saved: PlannedRoute?, kind: OutdoorActivityKind) {
+        generation += 1
+        routeTask?.cancel()
+        finishDragState()
+        undoStack.removeAll(keepingCapacity: true)
+        canUndo = false
+        isRouting = false
+        isGenerating = false
+        errorMessage = nil
+        picking = false
+        replacingStopID = nil
+        var value = saved ?? PlannedRoute(title: "New trip", points: [])
+        if value.trip == nil, value.points.isEmpty { value.trip = OutdoorTrip(kind: kind) }
+        route = value
+        mapPoints = value.points
+        lastRoutedTrip = value.trip?.isRouted == true ? value.trip : nil
+        revision += 1
+    }
+
+    func useSuggestion(_ suggestion: PlannedRoute) {
+        generation += 1
+        routeTask?.cancel()
+        rememberUndo()
+        route.trip = suggestion.trip
+        route.points = suggestion.points
+        if route.title == "New trip" { route.title = suggestion.title }
+        mapPoints = route.points
+        lastRoutedTrip = route.trip
+        isRouting = false
+        errorMessage = nil
+        revision += 1
+        persistRecovery()
+    }
+
+    func pick(_ coordinate: TripCoordinate) {
+        putStop(TripPlace(id: UUID().uuidString, name: "Map point", detail: "", coordinate: coordinate), replacing: replacingStopID)
+        picking = false
+        replacingStopID = nil
+    }
+
     func setCurrentLocation(_ coordinate: TripCoordinate) {
+        guard coordinate.isValid else { return }
+        currentLocation = coordinate
         guard trip.stops.isEmpty, route.points.isEmpty, coordinate.isValid else { return }
         change { $0.stops = [TripStop(name: "Current location", coordinate: coordinate)] }
     }
@@ -100,7 +151,7 @@ final class OutdoorTripEditor: ObservableObject {
     }
 
     func beginDrag(legID: UUID, coordinateIndex: Int) {
-        guard !isRouting, !isDragging, trip.isRouted,
+        guard !isRouting, !isGenerating, !isDragging, trip.isRouted,
               let leg = trip.legs.first(where: { $0.id == legID && $0.mode == .active }),
               let stopIndex = trip.stops.firstIndex(where: { $0.id == legID }),
               coordinateIndex >= 0, coordinateIndex < leg.coordinates.count else { return }
@@ -226,6 +277,14 @@ final class OutdoorTripEditor: ObservableObject {
         persistRecovery()
     }
 
+    func suspend() {
+        cancelDrag()
+        generation += 1
+        routeTask?.cancel()
+        isRouting = false
+        picking = false
+    }
+
     private func rememberUndo() {
         undoStack.append(route)
         if undoStack.count > 30 { undoStack.removeFirst() }
@@ -243,3 +302,4 @@ final class OutdoorTripEditor: ObservableObject {
         catch { errorMessage = "Could not protect this edit: \(error.localizedDescription)" }
     }
 }
+#endif

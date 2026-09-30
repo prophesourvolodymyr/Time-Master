@@ -900,8 +900,20 @@ F27 Home ───────────────┘
     - [x] Keep legacy GPX routes, unfinished workouts, trip drafts, and backup imports compatible
     - [x] Pass 26 focused app-hosted checks and 18 core checks; independently decode FIT, GPX, and CSV exports
     - [x] Build the latest planner and relaunch it on the iOS 18.6 iPhone 16 at the user's request
-    - [ ] Complete interactive trip-editor and route-drag verification; paused at the user's request to leave the relaunched app untouched
-    - [ ] Configure an operator-hosted HTTPS routing endpoint for production phone use
+    - [x] Complete inline trip-editor and road-drag verification on the existing map
+    - [x] Native offline cutover and icon-first Pine editor — implementation handed off; human review pending
+      - [x] Embed the pinned Valhalla engine for iOS 16+ with HTTP and remote time-zone downloads disabled
+      - [x] Prepare and bundle Vancouver Core with routing, local vector maps, places, addresses, road surfaces, and elevation
+      - [x] Import, cancel, replace, and remove versioned area ZIPs without losing saved trips or drafts
+      - [x] Replace Photon and Overpass runtime queries with the installed local place index
+      - [x] Generate connected nearby and custom loops with per-trip and per-leg preferences and real terrain goals
+      - [x] Retire GraphHopper launchers, service URL fields, localhost workarounds, and network fallback
+      - [x] Keep custom-trip editing on the existing map while sliding out the lower pane and repositioning controls
+      - [x] Reuse Pine glass actions with icon-first controls, concise primary labels, and accessible touch targets
+      - [x] Preserve shaping, undo, cancellation, recovery, saved trips, drafts, and active-versus-total bus accounting
+      - [x] Exercise real offline routes, search, suggestions, area installation, and draft recovery
+      - [x] Build, run focused regressions, publish the complete cutover, and hand it to the human
+      - [ ] Human review of offline coverage, route choices, planner transitions, and icon-first controls
     - [ ] Human review of trip planning, suggestion quality, route editing, and bus recording
 
 ## Cycle 24 — Video Editor UX & Platform Parity

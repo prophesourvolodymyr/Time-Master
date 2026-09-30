@@ -181,6 +181,105 @@ struct OutdoorPineButtonStyle: ButtonStyle {
     }
 }
 
+struct OutdoorPineIconAction: View {
+    let symbol: String
+    let label: String
+    var role: ButtonRole?
+    var prominent = false
+    var size: CGFloat = 44
+    var disabled = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(role: role, action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: max(15, size * 0.36), weight: .semibold))
+        }
+        .buttonStyle(OutdoorPineButtonStyle(prominent: prominent, circular: true, minimumSize: max(44, size)))
+        .disabled(disabled)
+        .accessibilityLabel(label)
+    }
+}
+
+struct OutdoorPineTileAction: View {
+    let symbol: String
+    let title: String
+    var badge: String?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: symbol)
+                        .font(.system(size: 23, weight: .semibold))
+                        .frame(width: 32, height: 30)
+                    if let badge {
+                        Text(badge)
+                            .font(.caption2.weight(.bold))
+                            .monospacedDigit()
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Theme.surface, in: Capsule())
+                            .offset(x: 12, y: -6)
+                    }
+                }
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, minHeight: 82)
+        }
+        .buttonStyle(OutdoorPineButtonStyle())
+        .accessibilityLabel(title)
+    }
+}
+
+struct OutdoorPinePrimaryAction: View {
+    let title: String
+    let symbol: String
+    var loading = false
+    var disabled = false
+    let identifier: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if loading {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: symbol)
+                        .font(.headline)
+                }
+                Text(title)
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity, minHeight: 52)
+        }
+        .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+        .disabled(disabled)
+        .accessibilityIdentifier(identifier)
+    }
+}
+
+struct OutdoorPineConnectedActions<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        if #available(iOS 26, *), !reduceTransparency {
+            GlassEffectContainer(spacing: 16) {
+                HStack(spacing: 8, content: content)
+            }
+        } else {
+            HStack(spacing: 8, content: content)
+        }
+    }
+}
+
 struct OutdoorPaneHeader<Leading: View, Handle: View, Accessory: View>: View {
     @ViewBuilder let leading: () -> Leading
     @ViewBuilder let handle: () -> Handle

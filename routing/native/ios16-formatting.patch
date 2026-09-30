@@ -1,0 +1,73 @@
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -26,6 +26,7 @@
+   set(oneValueArgs NAME)
+   set(multiValueArgs SOURCES SOURCES_WITH_WARNINGS HEADERS DEPENDS INCLUDE_DIRECTORIES SYSTEM_INCLUDE_DIRECTORIES)
+   cmake_parse_arguments(MODULE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
++  list(APPEND MODULE_DEPENDS fmt::fmt)
+ 
+   if (UNIX AND ENABLE_SINGLE_FILES_WERROR)
+     set_source_files_properties(
+--- a/valhalla/midgard/logging.h
++++ b/valhalla/midgard/logging.h
+@@ -1,7 +1,7 @@
+ #ifndef VALHALLA_MIDGARD_LOGGING_H_
+ #define VALHALLA_MIDGARD_LOGGING_H_
+ 
+-#include <format>
++#include <fmt/format.h>
+ #include <mutex>
+ #include <string>
+ #include <type_traits>
+@@ -19,10 +19,9 @@
+ inline std::string format_or_pass(const std::string& msg) {
+   return msg;
+ }
+-// If additional arguments exist, use std::format
+ template <typename... Args>
+-inline std::string format_or_pass(std::format_string<Args...> fmt_str, Args&&... args) {
+-  return std::format(fmt_str, std::forward<Args>(args)...);
++inline std::string format_or_pass(fmt::format_string<Args...> fmt_str, Args&&... args) {
++  return fmt::format(fmt_str, std::forward<Args>(args)...);
+ }
+ } // namespace detail
+ 
+--- a/src/midgard/logging.cc
++++ b/src/midgard/logging.cc
+@@ -2,6 +2,7 @@
+ #include "midgard/util.h"
+ 
+ #include <chrono>
++#include <fmt/chrono.h>
+ #include <filesystem>
+ #include <fstream>
+ #include <iostream>
+@@ -17,7 +18,7 @@
+ 
+ // append current timestamp formatted as: "year-mo-dy hr:mn:sc.xxxxxxxxx"
+ void append_timestamp(std::string& buffer) {
+-  std::format_to(std::back_inserter(buffer), "{0:%F} {0:%T}", std::chrono::system_clock::now());
++  fmt::format_to(std::back_inserter(buffer), "{0:%F} {0:%T}", std::chrono::system_clock::now());
+ }
+ 
+ // the Log levels we support
+--- a/src/loki/worker.cc
++++ b/src/loki/worker.cc
+@@ -7,7 +7,7 @@
+ #include <boost/property_tree/ptree.hpp>
+ 
+ #include <cstdint>
+-#include <format>
++#include <fmt/format.h>
+ #include <functional>
+ #include <stdexcept>
+ #include <string>
+@@ -231,7 +231,7 @@
+   }
+   if (i != max_road_classes) {
+     throw std::runtime_error(
+-        std::format("mvt_min_zoom_road_class out of bounds, expected {} elements but got {}",
++        fmt::format("mvt_min_zoom_road_class out of bounds, expected {} elements but got {}",
+                     max_road_classes, i));
+   }
+ 

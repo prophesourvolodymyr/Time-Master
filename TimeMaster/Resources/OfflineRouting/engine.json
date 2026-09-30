@@ -1,0 +1,7 @@
+{
+  "name": "Valhalla",
+  "version": "3.6.3",
+  "sourceRevision": "e2f017b16080f49203de245a211b09efab09cf72",
+  "revision": "e2f017b16080f49203de245a211b09efab09cf72-terrain1",
+  "minimumIOS": "16.0"
+}

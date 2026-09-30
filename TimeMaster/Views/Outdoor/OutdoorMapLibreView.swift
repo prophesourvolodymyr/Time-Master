@@ -80,6 +80,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var onHeadingChange: ((CLLocationDirection) -> Void)? = nil
     var onFocusFailure: ((String) -> Void)? = nil
     var tripEditing: TripMapEditing? = nil
+    var offlineStyleURL: URL? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
@@ -93,7 +94,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     }
     func makeUIView(context: Context) -> MLNMapView {
         let map: MLNMapView
-        if let styleURL = configuration.exploreStyleURL {
+        if let styleURL = offlineStyleURL ?? configuration.exploreStyleURL {
             map = MLNMapView(frame: .zero, styleURL: styleURL)
         } else {
             map = MLNMapView(
@@ -101,10 +102,12 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 styleJSON: ##"{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#F4F4F0"}}]}"##
             )
         }
+        context.coordinator.updateOfflineStyle(offlineStyleURL)
         context.coordinator.attach(to: map)
         return map
     }
     func updateUIView(_ map: MLNMapView, context: Context) {
+        context.coordinator.updateOfflineStyle(offlineStyleURL)
         context.coordinator.updateTripEditing(tripEditing)
         context.coordinator.render(
             map: map,
@@ -134,10 +137,26 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private weak var map: MLNMapView?
         private var tripInteraction: OutdoorTripMapInteraction?
         private var tripEditing: TripMapEditing?
+        private var offlineStyleURL: URL?
+        private var restoresOnlineStyle = false
+
+        func updateOfflineStyle(_ url: URL?) {
+            guard offlineStyleURL != url else { return }
+            restoresOnlineStyle = url == nil
+            offlineStyleURL = url
+            didRenderInputs = false
+        }
 
         func updateTripEditing(_ input: TripMapEditing?) {
+            let entering = tripEditing == nil && input != nil
             tripEditing = input
             tripInteraction?.update(input)
+            if entering, let location = map?.userLocation?.location,
+               location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 100,
+               abs(location.timestamp.timeIntervalSinceNow) < 30 {
+                let coordinate = TripCoordinate(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+                DispatchQueue.main.async { [weak self] in self?.tripEditing?.onLocation(coordinate) }
+            }
         }
         private var latestPoints: [OutdoorTrackPoint] = []
         private var latestPlannedPoints: [OutdoorTrackPoint] = []
@@ -371,6 +390,35 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 requestFocus(on: map)
             }
 
+            if let offlineStyleURL {
+                latestWeatherInfoEnabled = false
+                latestOverlayModes = overlayModes.intersection([.dark])
+                reportCapability(OutdoorMapCapability(
+                    mode: .explore, provider: .device,
+                    status: offlineStyleURL == OfflineTripResources.emptyStyle ? .limitedCoverage : .available,
+                    reason: "Planning uses only the installed offline street map.",
+                    attribution: OutdoorMapAttribution(providerName: "OpenStreetMap", notices: ["© OpenStreetMap contributors · ODbL 1.0"], URLs: ["https://www.openstreetmap.org/copyright"].compactMap(URL.init(string:))),
+                    cacheRights: OutdoorMapCacheRights(networkRequired: false, cachePermission: .allowed, offlineInstallationAllowed: true, explanation: "Imported area stored on this device."),
+                    freshness: .init(maximumAge: nil, lastUpdated: nil), coverage: .configuredRegions
+                ))
+                fallbackModeForPendingStyle = nil
+                if map.styleURL != offlineStyleURL {
+                    loadedStyleURL = offlineStyleURL
+                    map.styleURL = offlineStyleURL
+                    updateWeather()
+                    return
+                }
+                if let style = map.style {
+                    configureProviderLayers(style: style, overlays: latestOverlayModes)
+                    renderRouteOverlays(map: map, style: style)
+                }
+                applyFollowState(to: map)
+                applyInitialFramingIfNeeded(map: map)
+                fitSavedRouteIfNeeded(map: map)
+                updateWeather()
+                return
+            }
+
             let selection = session.requestMode(mode)
             reportCapability(selection.capability)
             OutdoorMapMode.overlayModes.forEach { reportCapability(session.capability(for: $0)) }
@@ -385,7 +433,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 return
             }
 
-            if selection.shouldReloadStyle, let styleURL = selection.style?.styleURL {
+            if selection.shouldReloadStyle || restoresOnlineStyle, let styleURL = selection.style?.styleURL {
+                restoresOnlineStyle = false
                 fallbackModeForPendingStyle = lastUsableMode
                 session.captureCamera(from: map)
                 loadedStyleURL = styleURL
@@ -434,6 +483,10 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
 
         func mapViewDidFailLoadingMap(_ mapView: MLNMapView, withError error: Error) {
+            if offlineStyleURL != nil {
+                onFocusFailure?("The offline map could not be loaded. Reimport this area. \(error.localizedDescription)")
+                return
+            }
             let failedMode = session.requestedMode
             let message = "\(failedMode.displayName) provider failed to load: \(error.localizedDescription)"
             session.markProviderFailure(failedMode, reason: message)
@@ -829,6 +882,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             liveRouteSignature = nil
             plannedRouteSignature = nil
 
+            guard offlineStyleURL == nil else { return }
             guard let baseDefinition = session.configuration.style(for: baseMode) else { return }
 
             if let template = baseDefinition.rasterTileURLTemplate, !template.isEmpty {

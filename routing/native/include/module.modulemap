@@ -1,0 +1,7 @@
+module TimeMasterRouting {
+    header "TMOfflineRouter.h"
+    export *
+    link framework "Foundation"
+    link "c++"
+    link "z"
+}

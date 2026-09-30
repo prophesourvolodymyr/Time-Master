@@ -32,10 +32,14 @@
 		0C94492B3B3533561C778E60 /* OutdoorMusicEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A402A87F17623E5F1811044F /* OutdoorMusicEditorView.swift */; };
 		0CDC4792225536EFC094DD99 /* OutdoorMapRouteSnapshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB320CC1772F9D622DDC5BB /* OutdoorMapRouteSnapshotService.swift */; };
 		0E3D6F53D5FD08241E20CD03 /* OutdoorMapOfflineManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B58013D8E786ACE5E076ADF7 /* OutdoorMapOfflineManager.swift */; };
+		0E5940ACD38E6CF25D495239 /* ScrollingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98723CC88843CFE43FCD13CF /* ScrollingChrome.swift */; };
 		0FB34F5C91091CEECFC8D331 /* WorkoutPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */; };
 		11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
 		12F7AAFA24A3982C9CBEEC87 /* OutdoorLiveContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7B32138339076BA55E2078 /* OutdoorLiveContent.swift */; };
 		131D0631E4E8284C9D89FE5F /* VideoEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD51B28A67F20C1A78F03397 /* VideoEditorViewModel.swift */; };
+		13AF47E60C939D1F963D6F9E /* OutdoorOfflinePlaceIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 493236A1A0E36022EFED0F2E /* OutdoorOfflinePlaceIndexTests.swift */; };
+		14A9A6B4074B29F3C763D2F9 /* OutdoorOfflinePlaceIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC1B5D451A1C70EE24C65C10 /* OutdoorOfflinePlaceIndex.swift */; };
+		1558E754036592B4167EBD04 /* OutdoorOfflineAreasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E4AFB73EE943A20594B5A9 /* OutdoorOfflineAreasView.swift */; };
 		163AA4E32C4E8BD3F77A991F /* PrivateLiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */; };
 		1721B0FEDD18A9A1C6044358 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08AAEB576B7DB134E5212C54 /* AIStore.swift */; };
 		178D5EA64B0BB4B4288F96E5 /* WorkoutResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */; };
@@ -60,6 +64,7 @@
 		25242B20BC34E28123ADD290 /* OutdoorMapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B252752B4743B22C413C4047 /* OutdoorMapModels.swift */; };
 		2543624AAD36591073E219EA /* PageMediaGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D163AA4744C0E86692930FB6 /* PageMediaGallery.swift */; };
 		254ED2D6C17987A085008F01 /* OutdoorMapControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A363D438D9412A12C138327 /* OutdoorMapControls.swift */; };
+		25886880839A7EE718451D32 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B6AC89B8CC65850CBE2F490 /* libsqlite3.tbd */; };
 		25AE8340C3DD506C78A63CE2 /* PageCreationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A3A1CAF77CA030B8E930D9 /* PageCreationSheet.swift */; };
 		25E34D23EE935B2891E166FE /* OutdoorAdaptivePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88745C0EC6D88CDB1EAB1BF /* OutdoorAdaptivePane.swift */; };
 		2681C7964176B8B24E7E591B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F807BCDB518D68ED40746740 /* Theme.swift */; };
@@ -144,6 +149,7 @@
 		635364FD2E822E1DD4AD6895 /* ServerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED4B2AA73E974BE8B8FBA55 /* ServerSettingsView.swift */; };
 		64343BE5E9F5DA35397089FD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7C3D82BCDAF71304D5E180 /* SettingsView.swift */; };
 		665A7A181116B00B4845C8E1 /* VideoTrimService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D84B5A5EA777C4BE497FC8C1 /* VideoTrimService.swift */; };
+		66D40FB2416122372D5F9A57 /* OutdoorOfflinePlaceIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC1B5D451A1C70EE24C65C10 /* OutdoorOfflinePlaceIndex.swift */; };
 		68A5CE3F374D4FDB07671FEA /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F596DD500BCC620B6E3318 /* MusicManager.swift */; };
 		69CA6E3FFE91CDC1C036390A /* WorkoutPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */; };
 		6AF2F0DA33DF607E3BA97D9E /* WorkoutResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */; };
@@ -153,6 +159,7 @@
 		72ACD7CBC2D5A50B47D0681D /* OutdoorTrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED34D6AA29BFFF933FDE19E8 /* OutdoorTrip.swift */; };
 		72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */; };
 		772385FE936467AA631F28E3 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C /* Workout.swift */; };
+		775E242445971E281003555A /* OfflineRouting in Resources */ = {isa = PBXBuildFile; fileRef = 4B6B0BD5A1BD2D8379BD1A20 /* OfflineRouting */; };
 		77C75331D5DFAC32DCD06E1C /* OutdoorSelectionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */; };
 		782B9D5AB04A08739419EA34 /* HomeWidgetCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */; };
 		799EFBBC8EC17CA89623F013 /* VideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */; };
@@ -169,7 +176,6 @@
 		82DB6A336E75B5E7CB4FC3F6 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */; };
 		83419122FA9E99BB94FE884E /* MapGlyphs in Resources */ = {isa = PBXBuildFile; fileRef = 8B0BA674EDC86792635987F6 /* MapGlyphs */; };
 		85AE3363E097F4F926BFF257 /* SpotlightSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */; };
-		7A2F0C41D9E84B3AA1F5C8E2 /* ScrollingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */; };
 		85BEF18C3FEC934D85DBED4B /* OutdoorTrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED34D6AA29BFFF933FDE19E8 /* OutdoorTrip.swift */; };
 		86B5AEF3ACE4323FE1957C86 /* TimeMasterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6597294304852DBC80D29D90 /* TimeMasterCore */; };
 		8738B5C840599628FD8BD930 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADDE983BD98A183CACB5A0A /* NotificationManager.swift */; };
@@ -186,7 +192,6 @@
 		8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
 		8E2B0A26DC9A0E3B11BE05B6 /* TimeMasterWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFEB284497317ED4F6F95B5 /* TimeMasterWidget.swift */; };
 		90289B99B307C695C36631B0 /* SpotlightSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */; };
-		B93D7E60C1A24F5E8D0B3A74 /* ScrollingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */; };
 		90F67F23C5E12ED3F7D9E680 /* MacVideoDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */; };
 		915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66B50B0364426A1FB53608A /* PhotoManager.swift */; };
 		928B4C3DBABA2523A7978779 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = E71A7098B60A6725751FAE2A /* ThirdPartyNotices.txt */; };
@@ -218,6 +223,7 @@
 		A6F55114B692E1DA0A558CC4 /* OutdoorMapQuickStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42789063925993436C4FC1F5 /* OutdoorMapQuickStack.swift */; };
 		A8022935A822FAA99CBA4EFA /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */; };
 		A802AB1D0131F16F5807566D /* HomeWidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A1602CC55687977DCBEBCB6 /* HomeWidgetStore.swift */; };
+		A8622CA92C8CEAB09A8660F1 /* OutdoorOfflineTripPacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952643798AD323DCA10B8FB5 /* OutdoorOfflineTripPacks.swift */; };
 		A8E33311034B7C801C07CDAB /* MacFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6C47C92F10694708275E65 /* MacFilePicker.swift */; };
 		A914ED0F4CEBF37A0F126AB9 /* PlannedRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8B651EB5E182B829EAB5F72 /* PlannedRoute.swift */; };
 		A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C588F8747756505B157DFC /* SectionEditorView.swift */; };
@@ -236,6 +242,7 @@
 		BAFFF55FD1388086FEC622F9 /* TimeMasterCore in Frameworks */ = {isa = PBXBuildFile; productRef = 252C84030B2F7B9008ABFAF3 /* TimeMasterCore */; };
 		BB4F39D0883462DD08776419 /* TrayCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47FC162E9FB73397A81F0F44 /* TrayCardView.swift */; };
 		BC268E0D78881E52B0CD40BD /* MacFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6C47C92F10694708275E65 /* MacFilePicker.swift */; };
+		BC594E8577F5A8AE04A5CE7E /* ScrollingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98723CC88843CFE43FCD13CF /* ScrollingChrome.swift */; };
 		C0A3DF2E1C1A7D06EC0EB6CC /* WorkoutPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901825E1313282F9A698669C /* WorkoutPickerSheet.swift */; };
 		C0E4AB415E71B8C541477980 /* DatabaseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */; };
 		C0F8874E24C547F42DACA009 /* ImportSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */; };
@@ -258,6 +265,7 @@
 		C8F6639DE95AB713C35850EF /* SlotNavigationContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754B28C30A321F0E407FC8FA /* SlotNavigationContainer.swift */; };
 		CA97DEF5C771E2935280AD67 /* AsyncCoverImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */; };
 		CB4A98461337E7955D8EAC6B /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08AAEB576B7DB134E5212C54 /* AIStore.swift */; };
+		CC131FFE3A214BC42CCA7D62 /* OutdoorOfflineTripPacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952643798AD323DCA10B8FB5 /* OutdoorOfflineTripPacks.swift */; };
 		CC14E5BDBA7DC83A5A069174 /* OutdoorFinishContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6B5B3175ED2D319B7424F /* OutdoorFinishContent.swift */; };
 		CD3549ECE4347BD8DDF0A91C /* SectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C588F8747756505B157DFC /* SectionEditorView.swift */; };
 		CDE9BF594977D371446C3290 /* WorkoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */; };
@@ -292,6 +300,7 @@
 		E73352D93E3783385F9CD7EE /* ExercisePageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */; };
 		E75326F96D128BE8DA17278D /* OutdoorRouteRecordingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD4F62BFC9951F32AD71E3B9 /* OutdoorRouteRecordingView.swift */; };
 		E813EC740EF6CDB8788BA959 /* SwiftMP3 in Frameworks */ = {isa = PBXBuildFile; productRef = 318EF0BBBA22FEF901B5BD35 /* SwiftMP3 */; };
+		E97EB77BDB49B45553D3CF47 /* OutdoorOfflineAreasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E4AFB73EE943A20594B5A9 /* OutdoorOfflineAreasView.swift */; };
 		EA493E92D3B5470AF58DABDB /* WorkoutHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */; };
 		EBE639AA663B35B414DACED6 /* PageTreeBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2175E25BF275E3B9D91DDA /* PageTreeBuilder.swift */; };
 		EC5386B83DE92454605914BD /* ToolRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E89B236DA27477DE058ABD6 /* ToolRouter.swift */; };
@@ -301,6 +310,7 @@
 		EE55D8663B84E09794EBB4AD /* OutdoorMapControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A363D438D9412A12C138327 /* OutdoorMapControls.swift */; };
 		EE9D03A82A73B61EF7A6056E /* OutdoorCompactPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C26F385E634A4382548D776 /* OutdoorCompactPlayerView.swift */; };
 		F060D024E3A24D475C7B6CD4 /* DurationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044840F8C2EAA06CD43381D5 /* DurationPickerView.swift */; };
+		F25D55AB2F0170A3CD2135B4 /* TimeMasterRouting in Frameworks */ = {isa = PBXBuildFile; productRef = E42E87AE1754A57B981C7CB4 /* TimeMasterRouting */; };
 		F34EA105281073DAA9565762 /* MusicPlayerPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B131AC7DD63D608E6C3CB3 /* MusicPlayerPane.swift */; };
 		F50E9255146C52CF69E82427 /* TrayItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */; };
 		F545A726C5187E6B3F704EE9 /* MacVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FAA1EDC1D9F05C4B0B3716 /* MacVideoPlayerView.swift */; };
@@ -365,6 +375,7 @@
 		066DA8112F0CED117EACE9C7 /* TimeMasterWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidgetBundle.swift; sourceTree = "<group>"; };
 		08AAEB576B7DB134E5212C54 /* AIStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIStore.swift; sourceTree = "<group>"; };
 		0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseDatabase.swift; sourceTree = "<group>"; };
+		0B6AC89B8CC65850CBE2F490 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRideEndToEndTests.swift; sourceTree = "<group>"; };
 		0C26F385E634A4382548D776 /* OutdoorCompactPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorCompactPlayerView.swift; sourceTree = "<group>"; };
 		0CFE4033315C9DD766463155 /* MusicLibraryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryScreen.swift; sourceTree = "<group>"; };
@@ -384,6 +395,7 @@
 		21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSectionPickerView.swift; sourceTree = "<group>"; };
 		2174535363CFC988D190B790 /* VideoEmbedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEmbedCard.swift; sourceTree = "<group>"; };
 		22FAA1EDC1D9F05C4B0B3716 /* MacVideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoPlayerView.swift; sourceTree = "<group>"; };
+		238714465002E938BF6A9B1E /* TimeMasterRouting */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TimeMasterRouting; path = routing/TimeMasterRouting; sourceTree = SOURCE_ROOT; };
 		23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoEditorModel.swift; sourceTree = "<group>"; };
 		262C63F71236516065104666 /* MotivationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotivationSettingsView.swift; sourceTree = "<group>"; };
 		282193241415BB7A32B3786C /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
@@ -401,7 +413,9 @@
 		42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistory.swift; sourceTree = "<group>"; };
 		449515AADD3620C6E8397EFD /* OutdoorRecordingPreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRecordingPreferencesStore.swift; sourceTree = "<group>"; };
 		47FC162E9FB73397A81F0F44 /* TrayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayCardView.swift; sourceTree = "<group>"; };
+		493236A1A0E36022EFED0F2E /* OutdoorOfflinePlaceIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorOfflinePlaceIndexTests.swift; sourceTree = "<group>"; };
 		4AC4254083D4B211E205DD95 /* OutdoorActivityDetailPineContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorActivityDetailPineContent.swift; sourceTree = "<group>"; };
+		4B6B0BD5A1BD2D8379BD1A20 /* OfflineRouting */ = {isa = PBXFileReference; lastKnownFileType = folder; name = OfflineRouting; path = TimeMaster/Resources/OfflineRouting; sourceTree = SOURCE_ROOT; };
 		4C6FF36A9DF857B888B29855 /* TimeMaster.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TimeMaster.entitlements; sourceTree = "<group>"; };
 		4CF0096279C5C397D6B69421 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4DCD77E9F42424355F9374FE /* OutdoorTypePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTypePicker.swift; sourceTree = "<group>"; };
@@ -434,7 +448,6 @@
 		8733B7850E54109F06C8240F /* OutdoorModeReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorModeReminder.swift; sourceTree = "<group>"; };
 		87B516D04CC0A21078FB5193 /* MacVideoImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoImportSheet.swift; sourceTree = "<group>"; };
 		87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightSearchBar.swift; sourceTree = "<group>"; };
-		5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingChrome.swift; sourceTree = "<group>"; };
 		8880F70DC5DDC88AD96D653B /* MusicGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGuideOverlay.swift; sourceTree = "<group>"; };
 		8A1602CC55687977DCBEBCB6 /* HomeWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetStore.swift; sourceTree = "<group>"; };
 		8B0BA674EDC86792635987F6 /* MapGlyphs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MapGlyphs; path = TimeMaster/Resources/MapGlyphs; sourceTree = SOURCE_ROOT; };
@@ -444,8 +457,10 @@
 		9230F02AB8D6DD1D8D9C8133 /* OutdoorTripPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripPlannerView.swift; sourceTree = "<group>"; };
 		9307001A6FC7FD76022967AE /* SlotNavigationArc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlotNavigationArc.swift; sourceTree = "<group>"; };
 		93C91983F7949FD5F87F9C1B /* MacVideoDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDraft.swift; sourceTree = "<group>"; };
+		952643798AD323DCA10B8FB5 /* OutdoorOfflineTripPacks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorOfflineTripPacks.swift; sourceTree = "<group>"; };
 		974234249F4F5FE01C287372 /* ServerDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDiscovery.swift; sourceTree = "<group>"; };
 		97F588DC9A67F4FD4B9F4232 /* OutdoorRouteSnapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRouteSnapper.swift; sourceTree = "<group>"; };
+		98723CC88843CFE43FCD13CF /* ScrollingChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollingChrome.swift; sourceTree = "<group>"; };
 		9991CAB36F9339458080C09D /* Info-macOS.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Info-macOS.plist"; sourceTree = "<group>"; };
 		99980AE3FE3003D51B9296C3 /* HomeWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetViews.swift; sourceTree = "<group>"; };
 		9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPlayerView.swift; sourceTree = "<group>"; };
@@ -454,6 +469,7 @@
 		A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDatabaseImporter.swift; sourceTree = "<group>"; };
 		A1982E564F4214D2342CB79D /* HomeDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDashboardView.swift; sourceTree = "<group>"; };
 		A1CCEB17200A24DBE2751D49 /* TimeMaster-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "TimeMaster-macOS.entitlements"; sourceTree = "<group>"; };
+		A2E4AFB73EE943A20594B5A9 /* OutdoorOfflineAreasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorOfflineAreasView.swift; sourceTree = "<group>"; };
 		A402A87F17623E5F1811044F /* OutdoorMusicEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorMusicEditorView.swift; sourceTree = "<group>"; };
 		A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetCanvas.swift; sourceTree = "<group>"; };
 		A694D8D9DD60CCD872FB8C2D /* MusicLibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryModels.swift; sourceTree = "<group>"; };
@@ -501,6 +517,7 @@
 		E71A7098B60A6725751FAE2A /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
 		E7B131AC7DD63D608E6C3CB3 /* MusicPlayerPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayerPane.swift; sourceTree = "<group>"; };
 		E8B651EB5E182B829EAB5F72 /* PlannedRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedRoute.swift; sourceTree = "<group>"; };
+		EC1B5D451A1C70EE24C65C10 /* OutdoorOfflinePlaceIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorOfflinePlaceIndex.swift; sourceTree = "<group>"; };
 		EC7F0EFE2A38785AFA71B55A /* MusicLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryStore.swift; sourceTree = "<group>"; };
 		ED34D6AA29BFFF933FDE19E8 /* OutdoorTrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTrip.swift; sourceTree = "<group>"; };
 		EEFEB284497317ED4F6F95B5 /* TimeMasterWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidget.swift; sourceTree = "<group>"; };
@@ -549,6 +566,8 @@
 				AAD684B85FF8425C89AC4A5E /* MapLibre in Frameworks */,
 				02CF516ECBF0AD6AF038DEF8 /* LiquidGlassKit in Frameworks */,
 				BAFFF55FD1388086FEC622F9 /* TimeMasterCore in Frameworks */,
+				F25D55AB2F0170A3CD2135B4 /* TimeMasterRouting in Frameworks */,
+				25886880839A7EE718451D32 /* libsqlite3.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -606,6 +625,7 @@
 				6E2663673BC39C65E6A1A361 /* OutdoorMapModePicker.swift */,
 				42789063925993436C4FC1F5 /* OutdoorMapQuickStack.swift */,
 				A402A87F17623E5F1811044F /* OutdoorMusicEditorView.swift */,
+				A2E4AFB73EE943A20594B5A9 /* OutdoorOfflineAreasView.swift */,
 				746E0E8210EFD993244CDD40 /* OutdoorPineGeometry.swift */,
 				8EAE79631040FBF42F00924E /* OutdoorPineGlass.swift */,
 				D142A4D421FFD74BB77ADBCE /* OutdoorQuickSettingsPine.swift */,
@@ -690,6 +710,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		2D8042FE298B2DAAF9A6D8B7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0B6AC89B8CC65850CBE2F490 /* libsqlite3.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		35A54AE4B141791F78BE29C4 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
@@ -721,8 +749,8 @@
 			children = (
 				31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */,
 				E3323F148BE5A75196E090AC /* MainTabView.swift */,
+				98723CC88843CFE43FCD13CF /* ScrollingChrome.swift */,
 				87D6EC1DBCFFFFF93CA1DD5F /* SpotlightSearchBar.swift */,
-				5C41E9A7B2D34F10AE6B7C21 /* ScrollingChrome.swift */,
 				25940776DFB474B5E84C5344 /* AICoach */,
 				36739A7D9D5BF1203FCD3C10 /* Analytics */,
 				D484AE590F5911664457F560 /* Database */,
@@ -752,6 +780,7 @@
 		4FD4626F2266EE951B2BCA3D /* TimeMasterTests */ = {
 			isa = PBXGroup;
 			children = (
+				493236A1A0E36022EFED0F2E /* OutdoorOfflinePlaceIndexTests.swift */,
 				F3EBE0E3B5F2BD49A8C6C802 /* OutdoorRideSafetyTests.swift */,
 				AAC8FDFE63C6662440B3E0A5 /* OutdoorTripTests.swift */,
 			);
@@ -803,6 +832,7 @@
 			isa = PBXGroup;
 			children = (
 				C2FF5FDE2B0B8061303B3861 /* TimeMasterCore */,
+				238714465002E938BF6A9B1E /* TimeMasterRouting */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -849,11 +879,13 @@
 			isa = PBXGroup;
 			children = (
 				8B0BA674EDC86792635987F6 /* MapGlyphs */,
+				4B6B0BD5A1BD2D8379BD1A20 /* OfflineRouting */,
 				876B42657ED58460E1C4E3E1 /* Packages */,
 				9D2F50228B8AAEC8E808D0AA /* TimeMaster */,
 				4FD4626F2266EE951B2BCA3D /* TimeMasterTests */,
 				039FCDF3858D9BE9A8C105BE /* TimeMasterUITests */,
 				D1395437EBEAEBD23FFE151E /* TimeMasterWidget */,
+				2D8042FE298B2DAAF9A6D8B7 /* Frameworks */,
 				26FA13129B845B5C3499F3CB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -933,6 +965,8 @@
 				7ECAE1538C37CD13C46947A9 /* OutdoorMapSession.swift */,
 				B332BC1DDB6BB0093965A456 /* OutdoorMetricsCalculator.swift */,
 				F9F4EEF51AEB091900E9C2D3 /* OutdoorMusicSession.swift */,
+				EC1B5D451A1C70EE24C65C10 /* OutdoorOfflinePlaceIndex.swift */,
+				952643798AD323DCA10B8FB5 /* OutdoorOfflineTripPacks.swift */,
 				D0E979AE3B62E51D54E10AB4 /* OutdoorPrivacyService.swift */,
 				97F588DC9A67F4FD4B9F4232 /* OutdoorRouteSnapper.swift */,
 				60B34E5635E729208DA51B19 /* OutdoorTripService.swift */,
@@ -1042,6 +1076,7 @@
 				9657EC7E161B4E4B7E8855A2 /* MapLibre */,
 				E1F2E895BBE5E9609E17ECAA /* LiquidGlassKit */,
 				252C84030B2F7B9008ABFAF3 /* TimeMasterCore */,
+				E42E87AE1754A57B981C7CB4 /* TimeMasterRouting */,
 			);
 			productName = TimeMaster;
 			productReference = 69344764F8B3AC313FF4CBC5 /* TimeMaster.app */;
@@ -1085,6 +1120,7 @@
 				C73D7CF2D7D649BC79CEB2B6 /* XCRemoteSwiftPackageReference "swift-mp3" */,
 				D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				40475490E401564EE84E502D /* XCLocalSwiftPackageReference "TimeMasterCore" */,
+				91C0746F95BCD5D8897C368C /* XCLocalSwiftPackageReference "routing/TimeMasterRouting" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 26FA13129B845B5C3499F3CB /* Products */;
@@ -1116,6 +1152,7 @@
 			files = (
 				C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */,
 				83419122FA9E99BB94FE884E /* MapGlyphs in Resources */,
+				775E242445971E281003555A /* OfflineRouting in Resources */,
 				1F274F3E8959E47F959214B8 /* ThirdPartyNotices.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1210,6 +1247,9 @@
 				ADD7C0DF1CE0C71E0EA8A45A /* OutdoorModeReminder.swift in Sources */,
 				9ABD0A0B167BB5A812296795 /* OutdoorMusicEditorView.swift in Sources */,
 				C418DB1DB2414D4CE155E742 /* OutdoorMusicSession.swift in Sources */,
+				E97EB77BDB49B45553D3CF47 /* OutdoorOfflineAreasView.swift in Sources */,
+				14A9A6B4074B29F3C763D2F9 /* OutdoorOfflinePlaceIndex.swift in Sources */,
+				A8622CA92C8CEAB09A8660F1 /* OutdoorOfflineTripPacks.swift in Sources */,
 				37B45B1AF694C7BDAB12A472 /* OutdoorPineGeometry.swift in Sources */,
 				DCAC8A1DEFC515EA16E5619B /* OutdoorPineGlass.swift in Sources */,
 				B22120765D2981114065BDE8 /* OutdoorPrivacyService.swift in Sources */,
@@ -1237,6 +1277,7 @@
 				C86E9068EFDC9ACF3D897A0E /* PlannedRoute.swift in Sources */,
 				9CE5F2326BA858138E1E243C /* PrivateLiquidGlass.swift in Sources */,
 				D876BBF5D66A951F5E3066F4 /* ProfileView.swift in Sources */,
+				0E5940ACD38E6CF25D495239 /* ScrollingChrome.swift in Sources */,
 				A9C93D7F18FE11AD0DCDE0DF /* SectionEditorView.swift in Sources */,
 				72D7C68C05374223CD37BFB9 /* SectionRow.swift in Sources */,
 				5246CEED03110373718500FB /* ServerDiscovery.swift in Sources */,
@@ -1247,7 +1288,6 @@
 				4CFDD4F767F087E04B3C554E /* SlotNavigationContainer.swift in Sources */,
 				8A1EE260FFAB26D2EB3A245C /* SlotNavigationItem.swift in Sources */,
 				90289B99B307C695C36631B0 /* SpotlightSearchBar.swift in Sources */,
-				B93D7E60C1A24F5E8D0B3A74 /* ScrollingChrome.swift in Sources */,
 				355D53015A74800EB1032FB4 /* Theme.swift in Sources */,
 				26E7AE1E2D900122B5023DB1 /* TimeMasterApp.swift in Sources */,
 				1A09605C35CFF03E5621A168 /* ToolRouter.swift in Sources */,
@@ -1369,6 +1409,9 @@
 				DD3692E698B0CDDCFFD51EE5 /* OutdoorModeReminder.swift in Sources */,
 				0C94492B3B3533561C778E60 /* OutdoorMusicEditorView.swift in Sources */,
 				D7962C2DEC8B15DD06078634 /* OutdoorMusicSession.swift in Sources */,
+				1558E754036592B4167EBD04 /* OutdoorOfflineAreasView.swift in Sources */,
+				66D40FB2416122372D5F9A57 /* OutdoorOfflinePlaceIndex.swift in Sources */,
+				CC131FFE3A214BC42CCA7D62 /* OutdoorOfflineTripPacks.swift in Sources */,
 				50DA339EE8C7EF070D76D618 /* OutdoorPineGeometry.swift in Sources */,
 				476D159498934D73D376006D /* OutdoorPineGlass.swift in Sources */,
 				C3055F4F04A8E450F67A14C5 /* OutdoorPrivacyService.swift in Sources */,
@@ -1396,6 +1439,7 @@
 				A914ED0F4CEBF37A0F126AB9 /* PlannedRoute.swift in Sources */,
 				163AA4E32C4E8BD3F77A991F /* PrivateLiquidGlass.swift in Sources */,
 				478C04B1C47C61C1017A2323 /* ProfileView.swift in Sources */,
+				BC594E8577F5A8AE04A5CE7E /* ScrollingChrome.swift in Sources */,
 				CD3549ECE4347BD8DDF0A91C /* SectionEditorView.swift in Sources */,
 				5C5E3913C7E0AEBF4C6B7227 /* SectionRow.swift in Sources */,
 				2F25651905E1A1B333D99DF1 /* ServerDiscovery.swift in Sources */,
@@ -1406,7 +1450,6 @@
 				C8F6639DE95AB713C35850EF /* SlotNavigationContainer.swift in Sources */,
 				A248D30E44101EBE3E5878D8 /* SlotNavigationItem.swift in Sources */,
 				85AE3363E097F4F926BFF257 /* SpotlightSearchBar.swift in Sources */,
-				7A2F0C41D9E84B3AA1F5C8E2 /* ScrollingChrome.swift in Sources */,
 				2681C7964176B8B24E7E591B /* Theme.swift in Sources */,
 				298AD304188737C7C50AFBD4 /* TimeMasterApp.swift in Sources */,
 				EC5386B83DE92454605914BD /* ToolRouter.swift in Sources */,
@@ -1445,6 +1488,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				13AF47E60C939D1F963D6F9E /* OutdoorOfflinePlaceIndexTests.swift in Sources */,
 				9DBC3465A8A4F651A166770E /* OutdoorRideSafetyTests.swift in Sources */,
 				01A5B56ACC5F477E667066E6 /* OutdoorTripTests.swift in Sources */,
 			);
@@ -1930,6 +1974,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = TimeMasterCore;
 		};
+		91C0746F95BCD5D8897C368C /* XCLocalSwiftPackageReference "routing/TimeMasterRouting" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = routing/TimeMasterRouting;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -2009,6 +2057,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9E5451DFC05F1DB9FFA97E90 /* XCRemoteSwiftPackageReference "LiquidGlassKit" */;
 			productName = LiquidGlassKit;
+		};
+		E42E87AE1754A57B981C7CB4 /* TimeMasterRouting */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TimeMasterRouting;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

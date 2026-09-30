@@ -1,0 +1,10 @@
+{
+  "name": "timemaster-offline-routing",
+  "version-string": "3.6.3",
+  "builtin-baseline": "84bab45d415d22042bd0b9081aea57f362da3f35",
+  "dependencies": [
+    "protobuf", "boost-algorithm", "boost-foreach", "boost-format",
+    "boost-geometry", "boost-heap", "boost-optional", "boost-property-tree",
+    "boost-range", "boost-tokenizer", "lz4", "zlib", "fmt"
+  ]
+}

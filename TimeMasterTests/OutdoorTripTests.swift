@@ -76,6 +76,22 @@ final class OutdoorTripTests: XCTestCase {
         XCTAssertEqual(reopened.plannedRoutes.first?.title, "Draft name")
     }
 
+    func testPlannedBusDistanceAndClimbingRemainSeparateFromActiveEffort() throws {
+        let coordinate = TripCoordinate(latitude: 49.27, longitude: -123.13)
+        let active = TripRouteLeg(id: UUID(), mode: .active, coordinates: [coordinate, coordinate], controlPointIndices: [0, 1], distanceMeters: 2_000, durationSeconds: 400, ascentMeters: 20, instructions: [])
+        let bus = TripRouteLeg(id: UUID(), mode: .bus, coordinates: [coordinate, coordinate], controlPointIndices: [0, 1], distanceMeters: 100_000, durationSeconds: 3_600, ascentMeters: 1_000, instructions: [])
+        var trip = OutdoorTrip(legs: [active, bus])
+        XCTAssertEqual(trip.activeDistanceMeters, 2_000)
+        XCTAssertEqual(trip.totalDistanceMeters, 102_000)
+        XCTAssertEqual(try XCTUnwrap(trip.ascentMeters), 20)
+        trip.legs = [bus]
+        XCTAssertEqual(trip.activeDistanceMeters, 0)
+        XCTAssertEqual(trip.totalDistanceMeters, 100_000)
+        XCTAssertNil(trip.ascentMeters)
+        trip.legs = [TripRouteLeg(id: UUID(), mode: .active, coordinates: [], controlPointIndices: [], distanceMeters: 1_000, durationSeconds: 200, instructions: []), bus]
+        XCTAssertNil(trip.ascentMeters)
+    }
+
     func testCancelledRouteDragRestoresStopsAndRoadGeometry() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
