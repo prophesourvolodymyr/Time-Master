@@ -288,6 +288,13 @@ final class OutdoorActivityStore: ObservableObject {
         plannedRoutes = loadPlannedRoutes()
     }
 
+    func setStarred(_ starred: Bool, for route: PlannedRoute) throws {
+        var updated = plannedRoutes.first { $0.id == route.id } ?? route
+        updated.starred = starred
+        if updated.trip?.isRouted == true { updated.trip?.isDraft = false }
+        try savePlannedRoute(updated)
+    }
+
     func deletePlannedRoute(_ route: PlannedRoute) throws {
         let url = routesDirectory.appendingPathComponent("\(route.id.uuidString).json")
         try FileManager.default.removeItem(at: url)

@@ -914,6 +914,21 @@ F27 Home ───────────────┘
       - [x] Exercise real offline routes, search, suggestions, area installation, and draft recovery
       - [x] Build, run focused regressions, publish the complete cutover, and hand it to the human
       - [ ] Human review of offline coverage, route choices, planner transitions, and icon-first controls
+    - [x] Routes sketch and planned-trip corrections — implementation prepared; human review pending
+      - [x] Recreate Make trip, Nearby, Custom, Saved, and centered Drafts shortcuts from the user's sketch
+      - [x] Generate automatic native offline road recommendations from the current location
+      - [x] Show Nearby and Starred as horizontal map cards and Yours as a vertical two-column grid
+      - [x] Show each route's actual map, estimated time, prominent distance, and activity
+      - [x] Reuse the workout Library search and ordering controls; search hides the shortcuts and covers Nearby, Yours, and Starred
+      - [x] Persist route stars without promoting incomplete drafts or breaking existing saved-route files
+      - [x] Open selected roads in a draggable, resizable Pine preview over the same map and clear the preview when returning to Routes
+      - [x] Show the road name, activity circle, large distance, estimated time, and elevation gain in the preview
+      - [x] Retain editable stop fields, dotted destination markers, the full-width dashed Add destination action, and adjacent routing controls
+      - [x] Show richer road, elevation, and effort details; render bus legs yellow on the map
+      - [x] Generate a branded Planned Trip image with the actual map and support native sharing and Photos saving
+      - [x] Connect preview Start to the existing recorder and Delete to persisted route removal
+      - [x] Exercise the complete Routes, preview, editing, sharing, Photos, and recording flow and run focused regressions
+      - [ ] Human review of the Routes sketch layout, nearby road quality, preview resizing, trip actions, and image export
     - [ ] Human review of trip planning, suggestion quality, route editing, and bus recording
 
 ## Cycle 24 — Video Editor UX & Platform Parity

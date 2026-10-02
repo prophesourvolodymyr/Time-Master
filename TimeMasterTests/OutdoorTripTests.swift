@@ -92,6 +92,31 @@ final class OutdoorTripTests: XCTestCase {
         XCTAssertNil(trip.ascentMeters)
     }
 
+    func testRoadAssessmentWeightsActiveDistanceAndKeepsMissingCoverageUnknown() throws {
+        let coordinate = TripCoordinate(latitude: 49.27, longitude: -123.13)
+        let short = TripRouteLeg(id: UUID(), mode: .active, coordinates: [coordinate, coordinate], controlPointIndices: [0, 1],
+            distanceMeters: 1_000, durationSeconds: 100, unpavedFraction: 0.1, majorRoadFraction: 0.2, instructions: [])
+        let long = TripRouteLeg(id: UUID(), mode: .active, coordinates: [coordinate, coordinate], controlPointIndices: [0, 1],
+            distanceMeters: 9_000, durationSeconds: 900, unpavedFraction: 0.5, majorRoadFraction: 0.6, instructions: [])
+        let bus = TripRouteLeg(id: UUID(), mode: .bus, coordinates: [coordinate, coordinate], controlPointIndices: [0, 1],
+            distanceMeters: 100_000, durationSeconds: 5_000, unpavedFraction: 1, majorRoadFraction: 1, instructions: [])
+        var trip = OutdoorTrip(legs: [short, long, bus])
+        XCTAssertEqual(try XCTUnwrap(trip.unpavedFraction), 0.46, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(trip.majorRoadFraction), 0.56, accuracy: 0.0001)
+        XCTAssertEqual(trip.activeDurationSeconds, 1_000)
+        trip.legs[1].unpavedFraction = nil
+        XCTAssertNil(trip.unpavedFraction)
+        XCTAssertEqual(try XCTUnwrap(trip.majorRoadFraction), 0.56, accuracy: 0.0001)
+        trip.legs = [bus]
+        XCTAssertNil(trip.unpavedFraction)
+        XCTAssertNil(trip.majorRoadFraction)
+        XCTAssertEqual(trip.activeDurationSeconds, 0)
+        trip.legs = [TripRouteLeg(id: UUID(), mode: .active, coordinates: [], controlPointIndices: [], distanceMeters: 0,
+            durationSeconds: 0, unpavedFraction: 0, majorRoadFraction: 0, instructions: [])]
+        XCTAssertNil(trip.unpavedFraction)
+        XCTAssertNil(trip.majorRoadFraction)
+    }
+
     func testCancelledRouteDragRestoresStopsAndRoadGeometry() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -110,5 +135,60 @@ final class OutdoorTripTests: XCTestCase {
         XCTAssertTrue(editor.canSave)
         XCTAssertEqual(editor.trip.stops.count, 2)
         XCTAssertTrue(editor.trip.stops.last?.shapingPoints.isEmpty == true)
+    }
+
+    func testExistingRouteFilesRemainAvailableWithoutStarMetadata() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let database = DatabaseManager(fs: FileSystemHelper(dataRoot: root))
+        try database.bootstrapIfNeeded()
+        let route = PlannedRoute(title: "Existing imported route", points: [point(0, 0), point(100, 20)], source: .gpxImport)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        var oldFile = try XCTUnwrap(JSONSerialization.jsonObject(with: encoder.encode(route)) as? [String: Any])
+        oldFile.removeValue(forKey: "starred")
+        try JSONSerialization.data(withJSONObject: oldFile).write(to: database.routesDirectory.appendingPathComponent("\(route.id).json"))
+        let reopened = OutdoorActivityStore(database: database)
+        let loaded = try XCTUnwrap(reopened.plannedRoute(withID: route.id.uuidString))
+        XCTAssertEqual(loaded.points, route.points)
+        XCTAssertEqual(loaded.source, .gpxImport)
+        XCTAssertFalse(loaded.starred)
+        XCTAssertEqual(loaded.distanceMeters, 100, accuracy: 0.1)
+    }
+
+    func testStarPersistenceDoesNotPromoteAnUnfinishedDraft() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let database = DatabaseManager(fs: FileSystemHelper(dataRoot: root))
+        let store = OutdoorActivityStore(database: database)
+        var draft = PlannedRoute(title: "Unfinished route", points: [])
+        draft.trip = OutdoorTrip(stops: [TripStop(name: "Start", coordinate: .init(latitude: 49.27, longitude: -123.13))])
+        try store.savePlannedRoute(draft)
+        try store.setStarred(true, for: draft)
+        let reopened = OutdoorActivityStore(database: database)
+        let starred = try XCTUnwrap(reopened.plannedRoute(withID: draft.id.uuidString))
+        XCTAssertTrue(starred.starred)
+        XCTAssertTrue(starred.isDraft)
+        XCTAssertFalse(try XCTUnwrap(starred.trip).isRouted)
+        try reopened.setStarred(false, for: starred)
+        let unstarred = try XCTUnwrap(OutdoorActivityStore(database: database).plannedRoute(withID: draft.id.uuidString))
+        XCTAssertFalse(unstarred.starred)
+        XCTAssertTrue(unstarred.isDraft)
+    }
+
+    func testImportedPreviewPreservesOriginalGeometryUntilAnEdit() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = OutdoorActivityStore(database: DatabaseManager(fs: FileSystemHelper(dataRoot: root)))
+        let original = PlannedRoute(title: "Imported road", points: [point(0, 0), point(100, 20), point(300, 60)], source: .gpxImport)
+        let editor = OutdoorTripEditor(route: original, kind: .run, store: store)
+        XCTAssertTrue(editor.canSave)
+        XCTAssertEqual(editor.trip.kind, .run)
+        XCTAssertEqual(editor.trip.stops.first?.coordinate.latitude, original.points.first?.latitude)
+        editor.suspend()
+        let saved = try editor.save(draft: false)
+        XCTAssertNil(saved.trip)
+        XCTAssertEqual(saved.points, original.points)
+        XCTAssertEqual(try XCTUnwrap(store.plannedRoute(withID: original.id.uuidString)).points, original.points)
     }
 }

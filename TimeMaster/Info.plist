@@ -39,6 +39,8 @@
 	<string>Time-Master needs camera access to take photos of your exercises</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Time-Master needs photo library access to add photos of your exercises</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Time-Master saves your Planned Trip map image to Photos so you can share it.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Time-Master needs local network access to discover the companion server automatically</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

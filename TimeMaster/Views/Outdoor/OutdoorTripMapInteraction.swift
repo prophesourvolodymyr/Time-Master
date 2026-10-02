@@ -7,6 +7,7 @@ struct TripMapEditing {
     var revision: Int
     var picking: Bool
     var topInset: CGFloat
+    var bottomInset: CGFloat = 0
     var onPick: (TripCoordinate) -> Void
     var onBeginDrag: (UUID, Int) -> Void
     var onDrag: (TripCoordinate, Bool) -> Void
@@ -23,6 +24,9 @@ final class OutdoorTripMapInteraction: NSObject, UIGestureRecognizerDelegate {
     private weak var map: MLNMapView?
     private var input: TripMapEditing?
     private var renderedRevision: Int?
+    private var plannedTrip: OutdoorTrip?
+    private var renderedFingerprint: String?
+    private var renderedRoutedAt: Date?
     private var renderedStyle: ObjectIdentifier?
     private var annotations: [TripStopAnnotation] = []
     private var hit: (UUID, Int)?
@@ -43,8 +47,9 @@ final class OutdoorTripMapInteraction: NSObject, UIGestureRecognizerDelegate {
         map.addGestureRecognizer(tap)
     }
 
-    func update(_ input: TripMapEditing?) {
+    func update(_ input: TripMapEditing?, plannedTrip: OutdoorTrip? = nil) {
         self.input = input
+        self.plannedTrip = plannedTrip
         hold.isEnabled = input != nil && input?.picking == false
         tap.isEnabled = input?.picking == true
         render()
@@ -52,10 +57,15 @@ final class OutdoorTripMapInteraction: NSObject, UIGestureRecognizerDelegate {
 
     func render() {
         guard let map, let style = map.style else { return }
-        guard renderedRevision != input?.revision || renderedStyle != ObjectIdentifier(style) else { return }
+        let trip = input?.trip ?? plannedTrip
+        let fingerprint = trip?.routingFingerprint
+        guard renderedRevision != input?.revision || renderedStyle != ObjectIdentifier(style)
+            || renderedFingerprint != fingerprint || renderedRoutedAt != trip?.routedAt else { return }
         renderedRevision = input?.revision
         renderedStyle = ObjectIdentifier(style)
-        let features = (input?.trip.legs ?? []).filter { $0.coordinates.count > 1 }.map { leg -> MLNPolylineFeature in
+        renderedFingerprint = fingerprint
+        renderedRoutedAt = trip?.routedAt
+        let features = (trip?.legs ?? []).filter { $0.coordinates.count > 1 }.map { leg -> MLNPolylineFeature in
             var coordinates = leg.coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
             let line = MLNPolylineFeature(coordinates: &coordinates, count: UInt(coordinates.count))
             line.attributes = ["mode": leg.mode.rawValue]
@@ -78,7 +88,7 @@ final class OutdoorTripMapInteraction: NSObject, UIGestureRecognizerDelegate {
                 layer.predicate = NSPredicate(format: "mode == %@", mode.rawValue)
                 style.addLayer(layer)
             }
-            layer.lineColor = NSExpression(forConstantValue: mode == .bus ? UIColor.systemPurple : UIColor.systemBlue)
+            layer.lineColor = NSExpression(forConstantValue: OutdoorTripMapStyle.color(for: mode))
             layer.lineWidth = NSExpression(forConstantValue: 5)
             layer.lineJoin = NSExpression(forConstantValue: "round")
             layer.lineCap = NSExpression(forConstantValue: "round")

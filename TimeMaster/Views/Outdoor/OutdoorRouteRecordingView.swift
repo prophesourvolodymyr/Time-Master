@@ -16,6 +16,7 @@ struct OutdoorRouteRecordingView: View {
     @StateObject private var recorder: OutdoorLocationRecorder
     @StateObject private var tripEditor: OutdoorTripEditor
     @StateObject private var tripAreas = OutdoorOfflineAreas()
+    @StateObject private var nearbyRoutes = OutdoorNearbyRoutes()
     @StateObject private var musicSession: OutdoorMusicSession
     @ObservedObject private var musicManager: MusicManager
     private let musicLibrary: MusicLibraryStore
@@ -83,6 +84,8 @@ struct OutdoorRouteRecordingView: View {
     @State private var tripPanelHeight: CGFloat = 0
     @State private var tripBottomHeight: CGFloat = 0
     @State private var tripMenuRevision = 0
+    @State private var tripFitPoints: [OutdoorTrackPoint]?
+    @State private var tripPreviewFitPending = false
     @State private var offlineAreasPresented = false
     @State private var mapModeBeforeTrip: OutdoorMapMode?
 
@@ -130,7 +133,7 @@ struct OutdoorRouteRecordingView: View {
             let layout = OutdoorPineGeometry(
                 size: CGSize(width: proxy.size.width, height: visibleHeight),
                 safeAreaTop: proxy.safeAreaInsets.top,
-                safeAreaBottom: max(0, proxy.safeAreaInsets.bottom - obscuredHeight),
+                safeAreaBottom: max(0, min(proxy.safeAreaInsets.bottom, containerBottomInset) - obscuredHeight),
                 playerReserve: showsCompactPlayer ? 94 : 0,
                 fullscreenBounds: CGRect(
                     x: 0,
@@ -148,7 +151,7 @@ struct OutdoorRouteRecordingView: View {
                     points: tripEntry == nil ? displayedMapPoints : [],
                     followsUser: mapFollowsUser,
                     state: recorder.state,
-                    plannedPoints: tripEntry != nil ? tripEditor.mapPoints : mainContent == .library ? nil : recorder.plannedPoints,
+                    plannedPoints: tripEntry != nil ? tripEditor.mapPoints : mainContent == .library || feature == .route ? nil : recorder.plannedPoints,
                     mode: mapMode,
                     overlayModes: mapOverlayModes,
                     focusRequestID: mapFocusRequestID,
@@ -176,7 +179,11 @@ struct OutdoorRouteRecordingView: View {
                         mapOfflineMessage = message
                     },
                     tripEditing: tripMapEditing,
-                    offlineStyleURL: tripEntry != nil ? tripAreas.styleURL : nil
+                    offlineStyleURL: tripEntry != nil || feature == .route ? tripAreas.styleURL : nil,
+                    offlineBounds: tripEntry != nil || feature == .route ? tripAreas.displayedRegion?.manifest.bounds : nil,
+                    plannedTrip: tripEntry != nil ? tripEditor.route.trip : mainContent == .library || feature == .route ? nil : recorder.selectedPlan?.trip,
+                    routeFitPoints: tripFitPoints,
+                    onLocationChange: nearbyRoutes.updateLocation
                 )
                 .ignoresSafeArea()
                 if let mapOfflineMessage {
@@ -305,15 +312,35 @@ struct OutdoorRouteRecordingView: View {
                         editor: tripEditor, entry: tripEntry, units: preferences.preferences.unitSystem,
                         namespace: glassNamespace,
                         onPanelHeight: { tripPanelHeight = $0 },
-                        onBottomHeight: { tripBottomHeight = $0 },
-                        onFit: { mapRouteFitRequestID += 1 },
+                        onBottomHeight: { height in
+                            tripBottomHeight = height
+                            if tripPreviewFitPending, height > 0 {
+                                tripPreviewFitPending = false
+                                mapRouteFitRequestID += 1
+                            }
+                        },
+                        onFit: { tripFitPoints = nil; mapRouteFitRequestID += 1 },
+                        onFitLeg: { leg in
+                            tripFitPoints = leg.coordinates.map { $0.trackPoint() }
+                            mapRouteFitRequestID += 1
+                        },
                         onManageAreas: { offlineAreasPresented = true },
                         onSaved: { route in
                             if !route.isDraft, recorder.state == .idle {
                                 selectTrip(route)
                             }
                         },
-                        onClose: closeTrip
+                        onClose: closeTrip,
+                        onStart: { route in
+                            guard recorder.state == .idle else { return }
+                            selectTrip(route)
+                            closeTrip()
+                            closeFeature()
+                            mainDetent = .compact
+                            animate { mainHeight = layout.mainCompactHeight }
+                            startRecording(layout)
+                        },
+                        canStart: recorder.state == .idle
                     )
                     .opacity(upperQuickFeature == nil ? 1 : 0)
                     .allowsHitTesting(upperQuickFeature == nil)
@@ -392,13 +419,16 @@ struct OutdoorRouteRecordingView: View {
                 recorder.checkpoint(at: Date())
             }
             .onDisappear {
-                if tripEntry != nil { tripEditor.preserve() }
+                if tripEntry != nil, tripEntry != .preview || tripEditor.hasChanges { tripEditor.preserve() }
                 musicLibrary.resetRouteSession()
                 musicSession.stop()
             }
         }
         .task { await tripAreas.reload() }
-        .sheet(isPresented: $offlineAreasPresented) { OutdoorOfflineAreasView(model: tripAreas) }
+        .sheet(isPresented: $offlineAreasPresented, onDismiss: {
+            nearbyRoutes.refresh(kind: committedKind)
+            tripMenuRevision += 1
+        }) { OutdoorOfflineAreasView(model: tripAreas) }
         .onChange(of: tripEditor.revision) { _ in
             if tripEntry != nil { tripAreas.displayCovering(tripEditor.trip.stops.map(\.coordinate)) }
         }
@@ -535,11 +565,20 @@ struct OutdoorRouteRecordingView: View {
         }
     }
 
+    private var containerBottomInset: CGFloat {
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene,
+                  let window = windowScene.windows.first(where: \.isKeyWindow) else { continue }
+            return window.safeAreaInsets.bottom
+        }
+        return 0
+    }
+
     private var tripMapEditing: TripMapEditing? {
         guard tripEntry != nil else { return nil }
         return TripMapEditing(
             trip: tripEditor.trip, revision: tripEditor.revision, picking: tripEditor.picking && !tripEditor.isGenerating,
-            topInset: tripPanelHeight,
+            topInset: tripPanelHeight, bottomInset: tripBottomHeight,
             onPick: tripEditor.pick, onBeginDrag: tripEditor.beginDrag,
             onDrag: tripEditor.updateDrag, onCancelDrag: tripEditor.cancelDrag,
             onLocation: tripEditor.setCurrentLocation
@@ -548,6 +587,11 @@ struct OutdoorRouteRecordingView: View {
 
     private func openTrip(_ entry: TripPlannerEntry, route: PlannedRoute?) {
         tripEditor.open(route, kind: committedKind)
+        if let location = nearbyRoutes.location { tripEditor.setCurrentLocation(location) }
+        tripPanelHeight = 0
+        tripBottomHeight = 0
+        tripPreviewFitPending = entry == .preview
+        tripFitPoints = nil
         mapFollowsUser = false
         mapModeBeforeTrip = mapMode
         mapMode = .explore
@@ -560,6 +604,10 @@ struct OutdoorRouteRecordingView: View {
 
     private func closeTrip() {
         tripEditor.suspend()
+        tripFitPoints = nil
+        tripPanelHeight = 0
+        tripBottomHeight = 0
+        tripPreviewFitPending = false
         if let mapModeBeforeTrip { mapMode = mapModeBeforeTrip }
         mapModeBeforeTrip = nil
         animate { tripEntry = nil }
@@ -603,7 +651,7 @@ struct OutdoorRouteRecordingView: View {
                 mapAttribution: mapAttribution,
                 onDownload: { offlineAreasPresented = true },
                 onFocusLocation: focusMapLocation,
-                onFitRoute: tripEntry == nil ? nil : { mapRouteFitRequestID += 1 },
+                onFitRoute: tripEntry == nil ? nil : { tripFitPoints = nil; mapRouteFitRequestID += 1 },
                 onNorth: tripEntry == nil ? nil : { mapNorthRequestID += 1 }
             )
             .background {
@@ -951,8 +999,9 @@ struct OutdoorRouteRecordingView: View {
             )
         case .route:
             OutdoorTripsMenu(
-                store: store, units: preferences.preferences.unitSystem,
-                canSelect: recorder.state == .idle, onOpen: openTrip, onSelect: selectTrip
+                store: store, nearby: nearbyRoutes, kind: committedKind, units: preferences.preferences.unitSystem,
+                canSelect: recorder.state == .idle, onOpen: openTrip,
+                onManageAreas: { offlineAreasPresented = true }
             )
             .id(tripMenuRevision)
         case .rate:
@@ -979,7 +1028,7 @@ struct OutdoorRouteRecordingView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Route pane handle")
-        .accessibilityValue(mainDetent.accessibilityName)
+        .accessibilityValue("\(Int(displayedMainHeight(layout) / max(1, layout.mainMaximumHeight) * 100)) percent")
         .accessibilityAdjustableAction { direction in
             adjustMainDetent(direction, layout: layout)
         }

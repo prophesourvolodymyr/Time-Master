@@ -13,6 +13,10 @@ final class OutdoorOfflineAreas: ObservableObject {
     private var coordinates: [TripCoordinate] = []
     private var cancellation: TMRoutingCancellation?
 
+    var displayedRegion: OfflineTripRegion? {
+        regions.first { $0.compatible && $0.styleURL == styleURL }
+    }
+
     func reload() async {
         isLoading = true
         defer { isLoading = false }
@@ -25,8 +29,14 @@ final class OutdoorOfflineAreas: ObservableObject {
 
     func displayCovering(_ coordinates: [TripCoordinate]) {
         self.coordinates = coordinates
-        let matching = regions.filter { region in region.compatible && coordinates.allSatisfy(region.manifest.bounds.contains) }
-        styleURL = matching.min(by: { $0.byteCount < $1.byteCount })?.styleURL ?? OfflineTripResources.emptyStyle
+        let available = regions.lazy.filter(\.compatible)
+        let covering = available.filter { region in coordinates.allSatisfy(region.manifest.bounds.contains) }
+        let origin = coordinates.first.flatMap { point in
+            available.filter { $0.manifest.bounds.contains(point) }.min { $0.byteCount < $1.byteCount }
+        }
+        let selected = covering.min { $0.byteCount < $1.byteCount }
+            ?? origin ?? displayedRegion ?? available.min { $0.byteCount < $1.byteCount }
+        styleURL = selected?.styleURL ?? OfflineTripResources.emptyStyle
     }
 
     func install(_ url: URL) async {

@@ -3,7 +3,7 @@ import Foundation
 import Combine
 
 enum TripPlannerEntry: Equatable {
-    case build, nearby, custom
+    case build, custom, preview
 }
 
 @MainActor
@@ -26,9 +26,12 @@ final class OutdoorTripEditor: ObservableObject {
     private var dragOriginal: PlannedRoute?
     private var dragStopID: UUID?
     private var dragControlIndex: Int?
+    private var importedTrip: OutdoorTrip
+    private var openedTitle: String
 
-    var trip: OutdoorTrip { route.trip ?? OutdoorTrip() }
-    var canSave: Bool { trip.isRouted && !isRouting && !isGenerating && dragOriginal == nil }
+    var trip: OutdoorTrip { route.trip ?? importedTrip }
+    var canSave: Bool { (route.trip == nil ? route.points.count > 1 : trip.isRouted) && !isRouting && !isGenerating && dragOriginal == nil }
+    var hasChanges: Bool { canUndo || route.title != openedTitle }
     var isDragging: Bool { dragOriginal != nil }
 
     init(route: PlannedRoute?, kind: OutdoorActivityKind, store: OutdoorActivityStore) {
@@ -37,6 +40,8 @@ final class OutdoorTripEditor: ObservableObject {
         if value.trip == nil, value.points.isEmpty { value.trip = OutdoorTrip(kind: kind) }
         self.route = value
         mapPoints = value.points
+        importedTrip = OutdoorTrip(kind: kind, stops: Self.stops(for: value))
+        openedTitle = value.title
         lastRoutedTrip = value.trip?.isRouted == true ? value.trip : nil
     }
 
@@ -57,6 +62,8 @@ final class OutdoorTripEditor: ObservableObject {
         if value.trip == nil, value.points.isEmpty { value.trip = OutdoorTrip(kind: kind) }
         route = value
         mapPoints = value.points
+        importedTrip = OutdoorTrip(kind: kind, stops: Self.stops(for: value))
+        openedTitle = value.title
         lastRoutedTrip = value.trip?.isRouted == true ? value.trip : nil
         revision += 1
     }
@@ -295,6 +302,18 @@ final class OutdoorTripEditor: ObservableObject {
         dragOriginal = nil
         dragStopID = nil
         dragControlIndex = nil
+    }
+
+    private static func stops(for route: PlannedRoute) -> [TripStop] {
+        guard route.trip == nil, let first = route.points.first, let last = route.points.last, route.points.count > 1 else { return [] }
+        let start = TripStop(name: "Imported start", coordinate: TripCoordinate(latitude: first.latitude, longitude: first.longitude))
+        var finish = TripStop(name: "Imported finish", coordinate: TripCoordinate(latitude: last.latitude, longitude: last.longitude))
+        let step = max(1, route.points.count / 12)
+        for index in stride(from: step, to: route.points.count - 1, by: step) {
+            let point = route.points[index]
+            finish.shapingPoints.append(TripCoordinate(latitude: point.latitude, longitude: point.longitude))
+        }
+        return [start, finish]
     }
 
     private func persistRecovery() {

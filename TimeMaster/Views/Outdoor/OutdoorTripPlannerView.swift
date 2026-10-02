@@ -10,19 +10,35 @@ struct OutdoorTripPlannerView: View {
     let onPanelHeight: (CGFloat) -> Void
     let onBottomHeight: (CGFloat) -> Void
     let onFit: () -> Void
+    let onFitLeg: (TripRouteLeg) -> Void
     let onManageAreas: () -> Void
     let onSaved: (PlannedRoute) -> Void
     let onClose: () -> Void
+    let onStart: (PlannedRoute) -> Void
+    let canStart: Bool
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expanded = true
     @State private var searching = false
+    @State private var query = ""
+    @State private var addingDestination = false
+    @FocusState private var focusedField: StopField?
+
+    private enum StopField: Hashable {
+        case start, stop(UUID), destination
+    }
     @State private var configuring = true
     @State private var contentHeight: CGFloat = 44
     @State private var deletePresented = false
     @State private var detailsPresented = false
     @State private var closePresented = false
     @State private var error: String?
+    @State private var previewFraction: CGFloat = 0.78
+    @GestureState private var previewDrag: CGFloat = 0
+    @State private var shareImage: UIImage?
+    @State private var sharePresented = false
+    @State private var preparingShare = false
+    @State private var shareTask: Task<Void, Never>?
     @State private var distance = 20.0
     @State private var stopCount = 0
     @State private var categories: Set<TripPlaceCategory> = [.parks]
@@ -36,50 +52,92 @@ struct OutdoorTripPlannerView: View {
     @State private var suggestionTask: Task<Void, Never>?
     @State private var suggestionError: String?
 
-    private var showsConfiguration: Bool { entry != .build && configuring }
+    private var showsConfiguration: Bool { entry == .custom && configuring }
 
     var body: some View {
         GeometryReader { proxy in
+            if entry == .preview {
+                previewPane(in: proxy.size)
+            } else {
             VStack(spacing: 10) {
-                destinationPanel(maximumHeight: proxy.size.height * 0.30)
-                    .background(GeometryReader { geometry in Color.clear.preference(key: TripPanelHeightKey.self, value: geometry.size.height) })
-                if editor.picking {
-                    OutdoorPineGlassSurface(identity: "trip-pick", namespace: namespace, cornerRadius: 22) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "hand.tap")
-                                .foregroundStyle(Theme.toolbarOrange)
-                                .accessibilityHidden(true)
-                            Text("Tap a road or path")
-                                .font(.subheadline.weight(.semibold))
-                            Spacer(minLength: 8)
-                            OutdoorPineIconAction(symbol: "xmark", label: "Cancel map selection", size: 38) {
-                                editor.picking = false
+                VStack(spacing: 10) {
+                    destinationPanel(maximumHeight: proxy.size.height * (searching ? 0.70 : 0.36))
+                    if editor.picking {
+                        OutdoorPineGlassSurface(identity: "trip-pick", namespace: namespace, cornerRadius: 22) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "hand.tap")
+                                    .foregroundStyle(Theme.toolbarOrange)
+                                    .accessibilityHidden(true)
+                                Text("Tap a road or path")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer(minLength: 8)
+                                OutdoorPineIconAction(symbol: "xmark", label: "Cancel map selection", size: 38) {
+                                    editor.picking = false
+                                }
                             }
+                            .padding(.leading, 14)
+                            .padding(.trailing, 4)
+                            .padding(.vertical, 4)
                         }
-                        .padding(.leading, 14)
-                        .padding(.trailing, 4)
-                        .padding(.vertical, 4)
                     }
                 }
-                Spacer(minLength: 0)
-                bottomBar
-                    .background(GeometryReader { geometry in Color.clear.preference(key: TripBottomHeightKey.self, value: geometry.size.height) })
+                .background(GeometryReader { geometry in
+                    Color.clear.preference(key: TripPanelHeightKey.self, value: geometry.size.height)
+                        .allowsHitTesting(false)
+                })
+                Spacer(minLength: 0).allowsHitTesting(false)
+                if !searching {
+                    bottomBar
+                        .background(GeometryReader { geometry in
+                            Color.clear.preference(key: TripBottomHeightKey.self, value: geometry.size.height)
+                                .allowsHitTesting(false)
+                        })
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+            }
         }
         .foregroundStyle(Theme.textPrimary)
         .tint(Theme.toolbarOrange)
         .onPreferenceChange(TripPanelHeightKey.self, perform: onPanelHeight)
         .onPreferenceChange(TripBottomHeightKey.self, perform: onBottomHeight)
+        .onChange(of: focusedField) { field in
+            guard let field else { searching = false; return }
+            switch field {
+            case .start:
+                query = ""
+                editor.replacingStopID = editor.trip.stops.first?.id
+            case .stop(let id):
+                query = editor.trip.stops.first { $0.id == id }?.name ?? ""
+                editor.replacingStopID = id
+            case .destination:
+                query = ""
+                editor.replacingStopID = nil
+            }
+            searching = true
+            editor.picking = false
+            expanded = true
+        }
         .onPreferenceChange(TripContentHeightKey.self) { contentHeight = $0 }
-        .sheet(isPresented: $detailsPresented) { details }
+        .sheet(isPresented: $detailsPresented) {
+            OutdoorTripDetailsView(
+                route: editor.route, units: units,
+                onShowLeg: { leg in detailsPresented = false; onFitLeg(leg) }
+            )
+        }
+        .sheet(isPresented: $sharePresented) {
+            if let shareImage { ShareSheet(activityItems: [shareImage]) }
+        }
         .confirmationDialog("Delete this trip?", isPresented: $deletePresented, titleVisibility: .visible) {
             Button("Delete trip", role: .destructive) {
                 do { try editor.delete(); onClose() } catch { self.error = error.localizedDescription }
             }
         } message: { Text("This removes the saved trip or draft, not any recorded workout.") }
         .confirmationDialog("Keep your trip?", isPresented: $closePresented, titleVisibility: .visible) {
+            if entry == .preview, editor.canSave {
+                Button("Save changes") { save(draft: false) }
+            }
             Button("Keep as draft") { save(draft: true) }
             Button("Discard editing recovery", role: .destructive) {
                 do { try editor.discardEdits(); onClose() } catch { self.error = error.localizedDescription }
@@ -90,19 +148,35 @@ struct OutdoorTripPlannerView: View {
         } message: { Text(error ?? "") }
         .onAppear { if editor.trip.kind != .bike { distance = units == .metric ? 5 : 3 } else if units != .metric { distance = 12 } }
         .onChange(of: scenePhase) {
-            if $0 != .active { editor.preserve(); cancelSuggestions(); editor.suspend() }
-            else if !editor.trip.isRouted, editor.trip.stops.count >= 2 { editor.recalculate() }
+            if $0 != .active {
+                if entry != .preview || editor.hasChanges { editor.preserve() }
+                cancelSuggestions()
+                editor.suspend()
+            }
+            else if editor.route.trip != nil, !editor.trip.isRouted, editor.trip.stops.count >= 2 { editor.recalculate() }
         }
-        .onDisappear { cancelSuggestions(); editor.suspend() }
+        .onDisappear { cancelSuggestions(); shareTask?.cancel(); editor.suspend() }
     }
 
-    private func destinationPanel(maximumHeight: CGFloat) -> some View {
-        OutdoorPineGlassSurface(identity: "trip-stops", namespace: namespace, cornerRadius: 26) {
+    private func destinationPanel(maximumHeight: CGFloat, compact: Bool = false) -> some View {
+        Group {
+            if entry == .preview { destinationContent(maximumHeight: maximumHeight, compact: compact) }
+            else {
+                OutdoorPineGlassSurface(identity: "trip-stops", namespace: namespace, cornerRadius: 26) {
+                    destinationContent(maximumHeight: maximumHeight)
+                }
+            }
+        }
+    }
+
+    private func destinationContent(maximumHeight: CGFloat, compact: Bool = false) -> some View {
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
-                    OutdoorPineIconAction(symbol: "xmark", label: "Close trip editor", size: 40) {
-                        if editor.trip.stops.isEmpty { onClose() } else { closePresented = true }
+                    OutdoorPineIconAction(symbol: "chevron.left", label: entry == .preview ? "Back to Routes" : "Close trip editor", size: 44) {
+                        if editor.trip.stops.isEmpty || (entry == .preview && !editor.hasChanges) { onClose() }
+                        else { closePresented = true }
                     }
+                    routingPreferences
                     TextField("Trip name", text: Binding(get: { editor.route.title }, set: editor.rename))
                         .font(.headline)
                         .submitLabel(.done)
@@ -118,65 +192,80 @@ struct OutdoorTripPlannerView: View {
                         label: expanded ? "Collapse destinations" : "Expand destinations",
                         size: 40
                     ) {
+                        focusedField = nil
+                        searching = false
+                        addingDestination = false
+                        query = ""
                         withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.88)) {
                             expanded.toggle()
                         }
                     }
                 }
-                if expanded {
-                    ScrollView {
-                        VStack(spacing: 8) {
-                            if searching {
-                                OutdoorTripSearchView(near: editor.trip.stops.first?.coordinate, currentLocation: editor.currentLocation,
-                                    onSelect: { place in
-                                        editor.putStop(place, replacing: editor.replacingStopID)
-                                        editor.replacingStopID = nil
-                                        searching = false
-                                    }, onMap: { searching = false; editor.picking = true }, onCancel: { searching = false })
-                            } else {
+                if entry == .preview, !searching {
+                    OutdoorTripPreviewSummary(route: editor.route, kind: editor.trip.kind, units: units, isRouting: editor.isRouting, compact: compact)
+                    if !compact {
+                    HStack(spacing: 12) {
+                        Button { detailsPresented = true } label: {
+                            Label("Road details", systemImage: "road.lanes")
+                        }
+                        .frame(minHeight: 44)
+                        Spacer(minLength: 0)
+                        Button(action: onFit) { Image(systemName: "map").frame(width: 44, height: 44) }
+                            .accessibilityLabel("Fit road on map")
+                    }
+                    .font(.caption.weight(.semibold)).padding(.horizontal, 14)
+                    }
+                }
+                if expanded, !compact {
+                    ScrollViewReader { scroll in
+                        ScrollView {
+                            VStack(spacing: 8) {
                                 if editor.trip.stops.isEmpty {
-                                    HStack(spacing: 12) {
-                                        OutdoorPineIconAction(symbol: "location.magnifyingglass", label: "Choose starting place", prominent: true) {
-                                            search(replacing: nil)
-                                        }
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text("Choose a start")
-                                                .font(.subheadline.weight(.semibold))
-                                            Text("Search, current location, or map")
-                                                .font(.caption)
-                                                .foregroundStyle(Theme.textSecondary)
-                                        }
-                                        Spacer(minLength: 0)
-                                    }
-                                    .padding(.horizontal, 14)
+                                    pendingField(.start, index: 0, placeholder: "Starting location")
+                                    if searching, focusedField == .start { searchResults }
                                 }
                                 let stops = showsConfiguration ? Array(editor.trip.stops.prefix(1)) : editor.trip.stops
-                                ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in stopRow(stop, index: index) }
-                                if showsConfiguration { suggestionConfiguration }
-                                HStack(spacing: 8) {
-                                    if !showsConfiguration {
-                                        OutdoorPineIconAction(symbol: "plus", label: "Add destination") {
-                                            search(replacing: nil)
-                                        }
-                                        .accessibilityIdentifier("trip.addStop")
-                                    }
-                                    Spacer(minLength: 4)
-                                    routingPreferences
+                                ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
+                                    stopRow(stop, index: index).id(StopField.stop(stop.id))
+                                    if searching, focusedField == .stop(stop.id) { searchResults }
                                 }
-                                .frame(minHeight: 44)
-                                .padding(.horizontal, 8)
+                                if showsConfiguration {
+                                    suggestionConfiguration
+                                } else {
+                                    if addingDestination {
+                                        pendingField(.destination, index: editor.trip.stops.count, placeholder: "Destination")
+                                        if searching, focusedField == .destination { searchResults }
+                                    }
+                                    OutdoorTripAddDestination {
+                                        addingDestination = true
+                                        focusedField = .destination
+                                    }
+                                    .disabled(addingDestination)
+                                    .opacity(addingDestination ? 0.45 : 1)
+                                }
                             }
+                            .padding(.horizontal, 12)
+                            .disabled(busy)
+                            .background(GeometryReader { geometry in
+                                Color.clear.preference(key: TripContentHeightKey.self, value: geometry.size.height)
+                                    .allowsHitTesting(false)
+                            })
                         }
-                        .disabled(busy)
-                        .background(GeometryReader { geometry in Color.clear.preference(key: TripContentHeightKey.self, value: geometry.size.height) })
+                        .scrollDismissesKeyboard(.interactively)
+                        .frame(height: entry == .preview ? nil : min(maximumHeight, contentHeight))
+                        .frame(maxHeight: entry == .preview ? maximumHeight : nil)
+                        .onChange(of: focusedField) { field in
+                            if let field { scroll.scrollTo(field, anchor: .top) }
+                        }
+                        .onChange(of: maximumHeight) { _ in
+                            if let focusedField { scroll.scrollTo(focusedField, anchor: .top) }
+                        }
                     }
-                    .frame(height: min(maximumHeight, contentHeight))
-                } else {
+                } else if !compact {
                     Text(editor.trip.stops.isEmpty ? "Choose a start" : editor.trip.stops.map(\.name).joined(separator: " → "))
                         .font(.subheadline).lineLimit(1).padding(.horizontal, 16)
                 }
             }.padding(.bottom, 10)
-        }
     }
 
     private var suggestionConfiguration: some View {
@@ -237,7 +326,7 @@ struct OutdoorTripPlannerView: View {
                     ForEach(TripRunningGoal.allCases) { Text($0.title).tag($0) }
                 }
             }
-            if entry != .build, !configuring { Button("Adjust suggestions", systemImage: "slider.horizontal.3") { configuring = true; expanded = true } }
+            if entry == .custom, !configuring { Button("Adjust suggestions", systemImage: "slider.horizontal.3") { configuring = true; expanded = true } }
         } label: {
             Image(systemName: editor.trip.kind.iconName)
                 .font(.system(size: 17, weight: .semibold))
@@ -248,29 +337,28 @@ struct OutdoorTripPlannerView: View {
     }
 
     private func stopRow(_ stop: TripStop, index: Int) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: index == 0 ? "location.fill" : index == editor.trip.stops.count - 1 ? "flag.checkered" : "mappin")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.toolbarOrange)
-                .frame(width: 28, height: 28)
-                .accessibilityHidden(true)
-            Button { search(replacing: stop.id) } label: {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(stop.name)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(2)
-                    if index > 0 {
-                        Label(
-                            stop.incomingMode == .bus ? "Bus road estimate" : (stop.incomingPreference ?? editor.trip.preference).title(for: editor.trip.kind),
-                            systemImage: stop.incomingMode == .bus ? "bus" : editor.trip.kind.iconName
-                        )
-                        .font(.caption)
-                        .foregroundStyle(Theme.textSecondary)
-                    }
+        OutdoorTripStopField(index: index, isBus: index > 0 && stop.incomingMode == .bus, connectsBelow: !showsConfiguration) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(index == 0 ? "Start" : "Destination \(index)")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.textSecondary)
+                TextField(index == 0 ? "Starting location" : "Destination", text: Binding(
+                    get: { focusedField == .stop(stop.id) ? query : stop.name },
+                    set: { query = $0 }
+                ))
+                .focused($focusedField, equals: .stop(stop.id))
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .accessibilityLabel(index == 0 ? "Starting location" : "Destination \(index)")
+                .accessibilityIdentifier(focusedField == .stop(stop.id) ? "trip.search" : "trip.stop.\(index)")
+                if index > 0, focusedField != .stop(stop.id) {
+                    Text(stop.incomingMode == .bus ? "Bus road estimate" : (stop.incomingPreference ?? editor.trip.preference).title(for: editor.trip.kind))
+                        .font(.caption2)
+                        .foregroundStyle(stop.incomingMode == .bus ? Color.yellow : Theme.textSecondary)
                 }
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
-            .buttonStyle(.plain)
+            .padding(.vertical, 8)
+        } accessory: {
             if !showsConfiguration {
                 Menu {
                     if index > 0 {
@@ -298,10 +386,10 @@ struct OutdoorTripPlannerView: View {
                     Image(systemName: "ellipsis")
                         .frame(width: 44, height: 44)
                 }
-                .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+                .buttonStyle(.plain)
                 .accessibilityLabel("Options for \(stop.name)")
             }
-        }.padding(.leading, 14).padding(.trailing, 4)
+        }
     }
 
     private var bottomBar: some View {
@@ -328,29 +416,20 @@ struct OutdoorTripPlannerView: View {
             }
             if !showsConfiguration || busy {
                 OutdoorPineGlassSurface(identity: "trip-summary", namespace: namespace, cornerRadius: 22) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(outdoorDistanceText(editor.trip.activeDistanceMeters, unitSystem: units, precision: true)) \(editor.trip.kind == .bike ? "riding" : "on foot")")
-                                .font(.title3.weight(.bold)).monospacedDigit()
-                            if editor.trip.hasBus {
-                                Text("\(outdoorDistanceText(editor.trip.totalDistanceMeters, unitSystem: units, precision: true)) total incl. bus")
-                                    .font(.caption).foregroundStyle(Theme.textSecondary)
-                            }
-                            Text(busy ? "Finding offline routes…" : editor.isRouting ? "Snapping to accessible roads…" : editor.trip.isRouted ? "\(editor.trip.effortTitle) · Hold and drag the blue route" : "Add destinations to build your trip")
-                                .font(.caption).foregroundStyle(Theme.textSecondary)
-                        }
-                        Spacer(minLength: 8)
+                    OutdoorTripSummaryView(trip: editor.trip, units: units) {
                         if busy || editor.isRouting {
-                            ProgressView()
-                                .accessibilityLabel("Calculating route")
+                            ProgressView().accessibilityLabel("Calculating route")
                         } else {
                             OutdoorPineIconAction(
-                                symbol: "list.bullet",
-                                label: "Route details and directions",
-                                disabled: editor.trip.legs.isEmpty
-                            ) { detailsPresented = true }
+                                symbol: "chart.xyaxis.line", label: "Route details and directions",
+                                disabled: !editor.trip.isRouted
+                            ) { focusedField = nil; detailsPresented = true }
                         }
-                    }.padding(14)
+                    } footer: {
+                        Text(busy ? "Finding offline routes…" : editor.isRouting ? "Snapping to accessible roads…" : editor.trip.isRouted ? "Hold and drag the blue route" : "Add destinations to build your trip")
+                            .font(.caption).foregroundStyle(Theme.textSecondary)
+                    }
+                    .padding(14)
                 }
             }
             if !showsConfiguration, suggestions.count > 1 {
@@ -395,7 +474,7 @@ struct OutdoorTripPlannerView: View {
                     OutdoorPinePrimaryAction(
                         title: "Save",
                         symbol: "checkmark",
-                        disabled: !editor.canSave || busy,
+                        disabled: !editor.canSave || busy || searching || addingDestination || editor.picking,
                         identifier: "trip.save"
                     ) { save(draft: false) }
                 }
@@ -407,27 +486,134 @@ struct OutdoorTripPlannerView: View {
         }
     }
 
-    private var details: some View {
-        NavigationStack {
-            List {
-                SwiftUI.Section("Route assessment") { Text(editor.trip.explanation) }
-                if entry != .build {
-                    SwiftUI.Section("Suggestions") { Text("Connected road loops ranked for the selected distance and terrain goal. Distance tolerance is 25%, or 1 km for short trips. Unknown terrain is never assumed flat or safe.") }
+    private func pendingField(_ field: StopField, index: Int, placeholder: String) -> some View {
+        OutdoorTripStopField(index: index, isBus: false, connectsBelow: !showsConfiguration) {
+            TextField(placeholder, text: $query)
+                .focused($focusedField, equals: field)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .accessibilityLabel(placeholder)
+                .accessibilityIdentifier(focusedField == field ? "trip.search" : "trip.pendingStop")
+        } accessory: {
+            if field == .destination {
+                Button {
+                    focusedField = nil
+                    searching = false
+                    addingDestination = false
+                } label: {
+                    Image(systemName: "xmark").frame(width: 44, height: 44)
                 }
-                if editor.trip.hasBus {
-                    SwiftUI.Section("Bus transfers") { Text("Dashed purple legs are road estimates, not timetabled bus services. Confirm stops, service, and bike carriage with the operator. During recording, tap Board bus, then Resume riding when you leave the bus.") }
-                }
-                ForEach(editor.trip.legs) { leg in
-                    SwiftUI.Section(leg.mode == .bus ? "Bus transfer estimate" : "\(editor.trip.kind.displayName) leg") {
-                        ForEach(Array(leg.instructions.enumerated()), id: \.offset) { _, text in Text(text) }
-                    }
-                }
-            }.navigationTitle("Trip details")
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { detailsPresented = false } } }
-        }.tint(Theme.toolbarOrange)
+                .buttonStyle(.plain)
+                .accessibilityLabel("Cancel new destination")
+            } else {
+                Image(systemName: "magnifyingglass").foregroundStyle(Theme.textSecondary).padding(12)
+            }
+        }
+        .id(field)
     }
 
-    private func search(replacing id: UUID?) { editor.replacingStopID = id; editor.picking = false; searching = true; expanded = true }
+    private var searchResults: some View {
+        OutdoorTripSearchView(
+            near: editor.trip.stops.first?.coordinate, currentLocation: editor.currentLocation,
+            onSelect: { place in
+                let replacement = focusedField == .start ? editor.trip.stops.first?.id : editor.replacingStopID
+                editor.putStop(place, replacing: replacement)
+                editor.replacingStopID = nil
+                focusedField = nil
+                searching = false
+                addingDestination = false
+                query = ""
+            },
+            onMap: {
+                focusedField = nil
+                searching = false
+                addingDestination = false
+                editor.picking = true
+            },
+            onCancel: {
+                focusedField = nil
+                searching = false
+                editor.replacingStopID = nil
+                addingDestination = false
+                query = ""
+            }, query: $query
+        )
+    }
+
+    private func previewPane(in size: CGSize) -> some View {
+        let fraction = searching ? 0.95 : max(0.32, min(0.95, previewFraction - previewDrag / max(1, size.height)))
+        let height = max(1, size.height * fraction - 16)
+        return VStack(spacing: 0) {
+            Spacer(minLength: 0).allowsHitTesting(false)
+            OutdoorPineGlassSurface(identity: "trip-road-preview", namespace: namespace, cornerRadius: 28) {
+                VStack(spacing: 8) {
+                    Capsule().fill(Theme.textSecondary.opacity(0.55)).frame(width: 44, height: 5)
+                        .frame(maxWidth: .infinity, minHeight: 32)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 4, coordinateSpace: .global)
+                            .updating($previewDrag) { value, state, _ in state = value.translation.height }
+                            .onEnded { value in
+                                previewFraction = max(0.32, min(0.95, previewFraction - value.translation.height / max(1, size.height)))
+                            })
+                        .accessibilityElement()
+                        .accessibilityLabel("Road preview pane handle")
+                        .accessibilityIdentifier("trip.preview.handle")
+                        .accessibilityValue("\(Int(fraction * 100)) percent")
+                        .accessibilityAdjustableAction { direction in
+                            previewFraction = max(0.32, min(0.95, previewFraction + (direction == .increment ? 0.1 : -0.1)))
+                        }
+                    destinationPanel(maximumHeight: max(44, height * (searching ? 0.72 : 0.38)), compact: fraction < 0.55)
+                    Spacer(minLength: 0)
+                    if let message = editor.errorMessage {
+                        Text(message).font(.caption).foregroundStyle(.red).padding(.horizontal, 14)
+                    }
+                    if !searching {
+                        OutdoorPineConnectedActions {
+                            OutdoorPineIconAction(symbol: preparingShare ? "hourglass" : "square.and.arrow.up", label: "Share planned trip", size: 52, disabled: !editor.canSave || preparingShare || addingDestination || editor.picking) {
+                                share()
+                            }
+                            .accessibilityIdentifier("trip.share")
+                            OutdoorPinePrimaryAction(title: "Start", symbol: "play.fill", disabled: !canStart || !editor.canSave || addingDestination || editor.picking, identifier: "trip.start") {
+                                do { let route = try editor.save(draft: false); onStart(route) }
+                                catch { self.error = error.localizedDescription }
+                            }
+                            OutdoorPineIconAction(symbol: "trash", label: "Delete trip", role: .destructive, size: 52) {
+                                deletePresented = true
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                    }
+                }
+                .padding(.bottom, 12)
+                .frame(height: height)
+            }
+            .background(GeometryReader { geometry in
+                Color.clear.preference(key: TripBottomHeightKey.self, value: geometry.size.height + 8)
+                    .allowsHitTesting(false)
+            })
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+        .onAppear { onPanelHeight(0) }
+    }
+
+    private func share() {
+        preparingShare = true
+        focusedField = nil
+        shareTask = Task {
+            do {
+                let image = try await OutdoorTripImageExportService().image(for: editor.route, units: units)
+                try Task.checkCancellation()
+                shareImage = image
+                preparingShare = false
+                sharePresented = true
+            } catch {
+                guard !Task.isCancelled else { return }
+                preparingShare = false
+                self.error = error.localizedDescription
+            }
+        }
+    }
     private func setPreference(_ value: TripRoutingPreference?, stop: TripStop) {
         editor.change { trip in if let i = trip.stops.firstIndex(where: { $0.id == stop.id }) { trip.stops[i].incomingPreference = value } }
     }

@@ -94,6 +94,20 @@ struct OutdoorTrip: Codable, Equatable {
     var activeDistanceMeters: Double { legs.lazy.filter { $0.mode == .active }.reduce(0) { $0 + $1.distanceMeters } }
     var totalDistanceMeters: Double { legs.reduce(0) { $0 + $1.distanceMeters } }
     var durationSeconds: Double { legs.reduce(0) { $0 + $1.durationSeconds } }
+    var activeDurationSeconds: Double { legs.lazy.filter { $0.mode == .active }.reduce(0) { $0 + $1.durationSeconds } }
+    var unpavedFraction: Double? { weightedFraction(\.unpavedFraction) }
+    var majorRoadFraction: Double? { weightedFraction(\.majorRoadFraction) }
+
+    private func weightedFraction(_ keyPath: KeyPath<TripRouteLeg, Double?>) -> Double? {
+        var distance = 0.0
+        var weighted = 0.0
+        for leg in legs where leg.mode == .active {
+            guard let fraction = leg[keyPath: keyPath] else { return nil }
+            distance += leg.distanceMeters
+            weighted += fraction * leg.distanceMeters
+        }
+        return distance > 0 ? weighted / distance : nil
+    }
     var hasBus: Bool { stops.dropFirst().contains { $0.incomingMode == .bus } }
     var ascentMeters: Double? {
         let active = legs.lazy.filter { $0.mode == .active }
@@ -104,17 +118,6 @@ struct OutdoorTrip: Codable, Equatable {
         activeDistanceMeters / (kind == .bike ? 20_000 : 5_000) + (ascentMeters ?? 0) / (kind == .bike ? 300 : 150)
     }
     var effortTitle: String { ascentMeters == nil ? "Effort unknown" : effortScore < 1 ? "Easy" : effortScore < 2.5 ? "Moderate" : "Demanding" }
-    var explanation: String {
-        let active = legs.lazy.filter { $0.mode == .active }
-        let terrain = ascentMeters.map { "\(Int($0)) m climbing" } ?? "Elevation unknown"
-        let surface = !active.isEmpty && active.allSatisfy { $0.unpavedFraction != nil }
-            ? "\(Int(active.reduce(0) { $0 + ($1.unpavedFraction ?? 0) * $1.distanceMeters } / max(1, activeDistanceMeters) * 100))% unpaved"
-            : "Surface coverage incomplete"
-        let traffic = !active.isEmpty && active.allSatisfy { $0.majorRoadFraction != nil }
-            ? "\(Int(active.reduce(0) { $0 + ($1.majorRoadFraction ?? 0) * $1.distanceMeters } / max(1, activeDistanceMeters) * 100))% major roads"
-            : "Road exposure unknown"
-        return "\(terrain) · \(surface) · \(traffic). Road class is not live traffic or a safety rating."
-    }
     var points: [OutdoorTrackPoint] {
         var result: [OutdoorTrackPoint] = []
         result.reserveCapacity(legs.reduce(0) { $0 + $1.coordinates.count })

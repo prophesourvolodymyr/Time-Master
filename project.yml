@@ -64,6 +64,7 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSCameraUsageDescription: "Time-Master needs camera access to take photos of your exercises"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Time-Master needs photo library access to add photos of your exercises"
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Time-Master saves your Planned Trip map image to Photos so you can share it."
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

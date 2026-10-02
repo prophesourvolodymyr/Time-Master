@@ -105,7 +105,7 @@ struct OutdoorRouteThumbnailView: View {
     }
 }
 
-private struct OutdoorRoutePolylineFallback: View {
+struct OutdoorRoutePolylineFallback: View {
     let points: [OutdoorTrackPoint]
 
     var body: some View {
