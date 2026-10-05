@@ -77,14 +77,7 @@ struct WorkoutDetailView: View {
                 Theme.background.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    editorActionChrome(metrics: ScrollingChromeMetrics(width: proxy.size.width))
-
-                    if !workout.sections.isEmpty {
-                        workoutSummary(isCompact: summaryIsCompact)
-                            .zIndex(1)
-                    }
-
-                    sectionList
+                    sectionList(width: proxy.size.width)
                     if !workout.sections.isEmpty {
                         startButton
                     }
@@ -92,9 +85,10 @@ struct WorkoutDetailView: View {
                 .frame(height: visibleHeight, alignment: .top)
             }
         }
-        .navigationTitle(workout.name)
+        .navigationTitle("")
+        .slotNavigationPresentation(.inline)
         #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
         .onAppear {
             sectionIDs = workout.sections.map(\.id)
@@ -404,9 +398,9 @@ struct WorkoutDetailView: View {
             Label("Delete Workout", systemImage: "trash")
         }
     }
-    private var sectionList: some View {
+    private func sectionList(width: CGFloat) -> some View {
         ScrollViewReader { proxy in
-            trackedSectionList
+            trackedSectionList(width: width)
                 .task(id: pendingScrollTargetID) {
                     guard let targetID = pendingScrollTargetID else { return }
                     await Task.yield()
@@ -422,107 +416,124 @@ struct WorkoutDetailView: View {
     }
 
     @ViewBuilder
-    private var trackedSectionList: some View {
+    private func trackedSectionList(width: CGFloat) -> some View {
         if #available(iOS 18.0, macOS 15.0, *) {
-            sectionListContent
+            sectionListContent(width: width)
                 .onScrollGeometryChange(for: CGFloat.self) { geometry in
                     geometry.contentOffset.y + geometry.contentInsets.top
                 } action: { _, offset in
                     updateScrollState(offset)
                 }
         } else {
-            sectionListContent
+            sectionListContent(width: width)
                 .onPreferenceChange(WorkoutEditorScrollOffsetPreferenceKey.self) { minY in
                     updateScrollState(-minY)
                 }
         }
     }
 
-    private var sectionListContent: some View {
+    private func sectionListContent(width: CGFloat) -> some View {
         List {
-            Color.clear
-                .frame(height: 0)
-                .background {
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: WorkoutEditorScrollOffsetPreferenceKey.self,
-                            value: proxy.frame(in: .named("workout-detail-scroll")).minY
+            VStack(alignment: .leading, spacing: 8) {
+                Text(workout.name)
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Theme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .padding(.horizontal, 20)
+                editorActionChrome(metrics: ScrollingChromeMetrics(width: width))
+            }
+            .padding(.top, 8)
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: WorkoutEditorScrollOffsetPreferenceKey.self,
+                        value: proxy.frame(in: .named("workout-detail-scroll")).minY
+                    )
+                }
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
+            SwiftUI.Section {
+                if workout.sections.isEmpty && pendingSection == nil {
+                    builderListRow(
+                        emptySectionsView,
+                        insets: EdgeInsets(top: 32, leading: 20, bottom: 32, trailing: 20)
+                    )
+                }
+
+                if let pending = pendingSection {
+                    builderListRow(
+                        pendingConfigCard(pending),
+                        insets: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
+                    )
+                    .id(RowID.pending)
+                }
+
+                ForEach(sectionIDs, id: \.self) { id in
+                    if let section = workout.sections.first(where: { $0.id == id }) {
+                        let bigRest = section.bigRestRow ?? RestRow(
+                            id: section.id,
+                            kind: .big,
+                            duration: section.customRestAfter ?? workout.restBetweenSections
+                        )
+
+                        builderListRow(
+                            sectionHeader(section, isExpanded: expandedSectionIDs.contains(section.id)),
+                            insets: EdgeInsets(top: 6, leading: 12, bottom: 2, trailing: 12)
+                        )
+                        .id(RowID.section(section.id))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                sectionToDelete = section
+                                showingDeleteAlert = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
+
+                        if expandedSectionIDs.contains(section.id) {
+                            expandedSectionRows(section)
+                        }
+
+                        builderListRow(
+                            restRowView(
+                                bigRest,
+                                target: RestTarget(sectionID: section.id, slotID: nil, isBig: true)
+                            ),
+                            insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
+                            depth: 1
+                        )
+                        .id(RowID.bigRest(section.id))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                removeRestRow(RestTarget(sectionID: section.id, slotID: nil, isBig: true))
+                            } label: {
+                                Label("Clear", systemImage: "trash")
+                            }
+                            .tint(.red)
+                        }
+
+                        restDetailRows(
+                            row: bigRest,
+                            target: RestTarget(sectionID: section.id, slotID: nil, isBig: true),
+                            depth: 2
                         )
                     }
                 }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
-
-            if workout.sections.isEmpty && pendingSection == nil {
-                builderListRow(
-                    emptySectionsView,
-                    insets: EdgeInsets(top: 32, leading: 20, bottom: 32, trailing: 20)
-                )
-            }
-
-            if let pending = pendingSection {
-                builderListRow(
-                    pendingConfigCard(pending),
-                    insets: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
-                )
-                .id(RowID.pending)
-            }
-
-            ForEach(sectionIDs, id: \.self) { id in
-                if let section = workout.sections.first(where: { $0.id == id }) {
-                    let bigRest = section.bigRestRow ?? RestRow(
-                        id: section.id,
-                        kind: .big,
-                        duration: section.customRestAfter ?? workout.restBetweenSections
-                    )
-
-                    builderListRow(
-                        sectionHeader(section, isExpanded: expandedSectionIDs.contains(section.id)),
-                        insets: EdgeInsets(top: 6, leading: 12, bottom: 2, trailing: 12)
-                    )
-                    .id(RowID.section(section.id))
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            sectionToDelete = section
-                            showingDeleteAlert = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .tint(.red)
-                    }
-
-                    if expandedSectionIDs.contains(section.id) {
-                        expandedSectionRows(section)
-                    }
-
-                    builderListRow(
-                        restRowView(
-                            bigRest,
-                            target: RestTarget(sectionID: section.id, slotID: nil, isBig: true)
-                        ),
-                        insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
-                        depth: 1
-                    )
-                    .id(RowID.bigRest(section.id))
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            removeRestRow(RestTarget(sectionID: section.id, slotID: nil, isBig: true))
-                        } label: {
-                            Label("Clear", systemImage: "trash")
-                        }
-                        .tint(.red)
-                    }
-
-                    restDetailRows(
-                        row: bigRest,
-                        target: RestTarget(sectionID: section.id, slotID: nil, isBig: true),
-                        depth: 2
-                    )
+                .onMove(perform: moveSections)
+            } header: {
+                if !workout.sections.isEmpty {
+                    workoutSummary(isCompact: summaryIsCompact)
+                        .textCase(nil)
+                        .background(Theme.background)
+                        .listRowInsets(EdgeInsets())
                 }
             }
-            .onMove(perform: moveSections)
+            .listSectionSeparator(.hidden)
         }
         .coordinateSpace(name: "workout-detail-scroll")
         .listStyle(.plain)
@@ -1476,7 +1487,7 @@ struct WorkoutDetailView: View {
                 .cornerRadius(16)
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
         }
     }
 

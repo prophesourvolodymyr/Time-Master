@@ -41,6 +41,8 @@ struct SlotCarouselNavigation<Content: View>: View {
     @State private var showsGuide = false
     @State private var pageIsDragging = false
     @State private var pageSwipesDisabled = false
+    @State private var navigationIsExpanded = false
+    @State private var navigationIsInteracting = false
 
     init(
         selection: Binding<String?>,
@@ -89,7 +91,8 @@ struct SlotCarouselNavigation<Content: View>: View {
         GeometryReader { proxy in
             let presentation = effectivePresentation
             let layout = barLayout(for: presentation)
-            let normalHeight = layout == .full ? barHeight + SlotCarouselNavigationBar.fullBottomExtension : SlotCarouselNavigationBar.inlineHeight
+            let normalHeight = layout == .full ? barHeight : SlotCarouselNavigationBar.inlineHeight
+            let showsNavigation = presentation != .hidden || hiddenNavigationIsRevealed
             let frame = proxy.frame(in: .global)
             let reservedHeight = presentation == .hidden ? 0 : normalHeight
             let contentBounds = CGRect(
@@ -102,7 +105,7 @@ struct SlotCarouselNavigation<Content: View>: View {
             ZStack {
                 content()
                     .environment(\.slotNavigationContentBounds, contentBounds)
-                    .environment(\.slotNavigationArcLensFrame, presentation == .full
+                    .environment(\.slotNavigationArcLensFrame, layout == .full && showsNavigation
                         && !isEditing && !reduceMotion && !reduceTransparency && !lowPower && scenePhase == .active
                         ? CGRect(
                             x: proxy.frame(in: .global).minX,
@@ -119,6 +122,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .contentShape(Rectangle())
                     .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled ? .all : .subviews)
                     .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled ? .all : .subviews)
+                    .simultaneousGesture(contentNavigationDismissGesture)
 
                 if isEditing {
                     theme.scrim.opacity(reduceTransparency ? 1 : theme.scrimOpacity)
@@ -135,7 +139,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                if presentation != .hidden {
+                if showsNavigation {
                     SlotCarouselNavigationBar(
                         selection: normalSelection,
                         items: items,
@@ -154,26 +158,14 @@ struct SlotCarouselNavigation<Content: View>: View {
                         onConfigure: onConfigure,
                         onEditingEnded: finishEditing,
                         onPageDrag: onPageDrag,
-                        onPageDragEnded: onPageDragEnded
+                        onPageDragEnded: onPageDragEnded,
+                        onInteractionChanged: navigationInteractionChanged
                     )
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.56, maximumDistance: 18)
                             .onEnded { _ in beginEditing() },
-                        including: allowsEditing && layout == .full && !isEditing ? .all : .subviews
+                        including: allowsEditing && !isEditing ? .all : .subviews
                     )
-                    .background(SlotNavigationBarFrameReader())
-                    .transition(navigationPresentationTransition)
-                } else if navigationInteractionEnabled, hiddenNavigationIsRevealed {
-                    SlotCarouselNavigationBar(
-                        selection: normalSelection, items: items,
-                        bottomSafeArea: proxy.safeAreaInsets.bottom,
-                        theme: theme,
-                        strings: strings,
-                        barHeight: barHeight,
-                        layout: .inline,
-                        onPageDrag: onPageDrag, onPageDragEnded: onPageDragEnded
-                    )
-                    .padding(.bottom, proxy.safeAreaInsets.bottom)
                     .background(SlotNavigationBarFrameReader())
                     .transition(navigationPresentationTransition)
                 }
@@ -202,8 +194,9 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
             }
             .onChange(of: selection) { _ in
+                withAnimation(presentationAnimation) { navigationIsExpanded = false }
                 if effectivePresentation == .hidden, hiddenNavigationIsRevealed {
-                    scheduleHiddenNavigationDismissal()
+                    if !navigationIsInteracting { scheduleHiddenNavigationDismissal() }
                 }
             }
             .onChange(of: navigationInteractionEnabled) { enabled in
@@ -212,6 +205,8 @@ struct SlotCarouselNavigation<Content: View>: View {
                     hiddenNavigationDismissTask?.cancel()
                     hiddenNavigationIsRevealed = false
                     pageIsDragging = false
+                    navigationIsExpanded = false
+                    navigationIsInteracting = false
                     onPageDragEnded()
                 }
             }
@@ -222,9 +217,15 @@ struct SlotCarouselNavigation<Content: View>: View {
             }
             .animation(presentationAnimation, value: effectivePresentation)
             .animation(presentationAnimation, value: isEditing)
+            .animation(presentationAnimation, value: navigationIsExpanded)
             .accessibilityElement(children: .contain)
             .accessibilityAction(named: strings.showNavigation) {
-                if navigationInteractionEnabled { revealHiddenNavigation() }
+                guard navigationInteractionEnabled else { return }
+                if effectivePresentation == .hidden {
+                    revealHiddenNavigation()
+                } else if effectivePresentation == .inline {
+                    withAnimation(presentationAnimation) { navigationIsExpanded = true }
+                }
             }
         }
     }
@@ -240,7 +241,8 @@ struct SlotCarouselNavigation<Content: View>: View {
     }
 
     private func beginEditing() {
-        guard navigationInteractionEnabled, allowsEditing, effectivePresentation == .full, !isEditing else { return }
+        guard navigationInteractionEnabled, allowsEditing,
+              barLayout(for: effectivePresentation) == .full, !isEditing else { return }
         withAnimation(presentationAnimation) { isEditing = true }
     }
 
@@ -251,11 +253,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     private var effectivePresentation: SlotNavigationPresentation {
         guard navigationInteractionEnabled else { return .hidden }
         if items.isEmpty { return .full }
-#if os(iOS)
         return requestedPresentation ?? defaultPresentation
-#else
-        return .full
-#endif
     }
 
     private var defaultPresentation: SlotNavigationPresentation {
@@ -275,7 +273,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     }
 
     private func barLayout(for presentation: SlotNavigationPresentation) -> SlotNavigationBarLayout {
-        presentation == .full ? .full : .inline
+        presentation == .full || navigationIsExpanded || navigationIsInteracting || isEditing ? .full : .inline
     }
 
     private func applyPresentation(_ requested: SlotNavigationPresentation?) {
@@ -284,9 +282,39 @@ struct SlotCarouselNavigation<Content: View>: View {
         hiddenNavigationDismissTask?.cancel()
         withAnimation(presentationAnimation) {
             requestedPresentation = requested
+            navigationIsExpanded = false
             if requested != .hidden {
                 hiddenNavigationIsRevealed = false
             }
+        }
+    }
+
+    private var contentNavigationDismissGesture: some Gesture {
+        TapGesture()
+            .onEnded { collapseNavigation() }
+            .simultaneously(with:
+                DragGesture(minimumDistance: 12)
+                    .onChanged { _ in collapseNavigation() }
+            )
+    }
+
+    private func collapseNavigation() {
+        guard effectivePresentation == .inline, navigationIsExpanded,
+              !navigationIsInteracting, !isEditing else { return }
+        withAnimation(presentationAnimation) { navigationIsExpanded = false }
+    }
+
+    private func navigationInteractionChanged(_ active: Bool) {
+        withAnimation(presentationAnimation) {
+            navigationIsInteracting = active
+            if active, navigationInteractionEnabled, effectivePresentation != .full {
+                navigationIsExpanded = true
+            }
+        }
+        if active {
+            hiddenNavigationDismissTask?.cancel()
+        } else if effectivePresentation == .hidden, hiddenNavigationIsRevealed {
+            scheduleHiddenNavigationDismissal()
         }
     }
 
@@ -309,6 +337,7 @@ struct SlotCarouselNavigation<Content: View>: View {
         hiddenNavigationDismissTask?.cancel()
         withAnimation(presentationAnimation) {
             hiddenNavigationIsRevealed = true
+            navigationIsExpanded = false
         }
         scheduleHiddenNavigationDismissal()
     }
@@ -436,6 +465,7 @@ struct SlotCarouselNavigation<Content: View>: View {
         withAnimation(presentationAnimation) {
             isEditing = false
             showsCatalog = false
+            navigationIsExpanded = false
         }
         onEditingEnded()
     }

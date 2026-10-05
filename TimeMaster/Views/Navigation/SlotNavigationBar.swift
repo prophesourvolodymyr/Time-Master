@@ -66,7 +66,6 @@ struct SlotNavigationProminentButtonStyle: ButtonStyle {
 struct SlotCarouselNavigationBar: View, Animatable {
     static let inlineHeight: CGFloat = 60
     static let fullHeight: CGFloat = 96
-    static let fullBottomExtension: CGFloat = 32
 
     @Binding private var selection: Int
     @Binding private var isEditing: Bool
@@ -88,6 +87,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private let onSelectionChanged: (Int) -> Void
     private let onPageDrag: (CGFloat) -> Void
     private let onPageDragEnded: () -> Void
+    private let onInteractionChanged: (Bool) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -105,6 +105,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
     @State private var edgeScrollTask: Task<Void, Never>?
     @State private var edgeDirection = 0
     @GestureState private var itemGestureActive = false
+    @GestureState private var touchIsActive = false
     @State private var notificationDismissalToken = 0
 
     private static let coordinateSpace = "navigation-arc-editor"
@@ -140,7 +141,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
         onEditingEnded: @escaping () -> Void = {},
         onSelectionChanged: @escaping (Int) -> Void = { _ in },
         onPageDrag: @escaping (CGFloat) -> Void = { _ in },
-        onPageDragEnded: @escaping () -> Void = {}
+        onPageDragEnded: @escaping () -> Void = {},
+        onInteractionChanged: @escaping (Bool) -> Void
     ) {
         _selection = selection
         _isEditing = isEditing
@@ -162,6 +164,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         self.onSelectionChanged = onSelectionChanged
         self.onPageDrag = onPageDrag
         self.onPageDragEnded = onPageDragEnded
+        self.onInteractionChanged = onInteractionChanged
     }
 
     var animatableData: AnimatablePair<CGFloat, CGFloat> {
@@ -204,6 +207,11 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 .frame(height: mainHeight)
         }
         .coordinateSpace(name: Self.coordinateSpace)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .updating($touchIsActive) { _, active, _ in active = true }
+        )
+        .onChange(of: touchIsActive, perform: onInteractionChanged)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("carousel-navigation")
         .accessibilityValue(isEditing ? strings.editingValue : (expandedAmount < 0.5 ? strings.compactValue : strings.expandedValue))
@@ -223,7 +231,10 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .onChange(of: scenePhase) { phase in
             if phase != .active { cancelLift() }
         }
-        .onDisappear { cancelLift() }
+        .onDisappear {
+            cancelLift()
+            onInteractionChanged(false)
+        }
     }
 
     private var mainArc: some View {
@@ -351,7 +362,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let baseLabelOpacity = focus * focus
         let expandedLabelOpacity = max(0, bubbleFactor * 2 - 0.6)
         let normalLabelOpacity = baseLabelOpacity + intensity * (expandedLabelOpacity - baseLabelOpacity)
-        let labelOpacity = normalLabelOpacity + styleEdit * (1 - normalLabelOpacity)
+        let labelOpacity = (normalLabelOpacity + styleEdit * (1 - normalLabelOpacity)) * amount
         let verticalOffset = intensity * max(-40, -40 + norm * 34)
         let arcY = catalog
             ? SlotArcGeometry.curveY(at: itemX, in: arcRect, curveOffset: curveOffset, expansion: 1)
@@ -359,14 +370,16 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let itemHeight = Self.inlineHeight + 30 * amount + intensity * 24
         let iconFrameHeight = 28 + 14 * amount + intensity * max(0, expandedIconSize - 42)
         let zIndex = max(0, focus + intensity * (1 - min(norm, 10) - focus))
-        let compactY = Self.inlineHeight / 2 - 4
-        let expandedY = arcY + 56 - itemHeight / 2 + verticalOffset
+        let labelHeight = 15 * amount
+        let labelSpacing = 4 * amount
+        let compactY = Self.inlineHeight / 2
+        let expandedY = arcY + 56 - (iconFrameHeight + labelHeight + labelSpacing) / 2 + verticalOffset
         let itemY = compactY + (expandedY - compactY) * amount
         let rootY = catalog ? accessoryHeight - barHeight - 12 + itemY : accessoryHeight + itemY
         let selected = role == .page && selection == index
         let manipulable = isEditing && configuration == nil && !item.isPending && !add
 
-        return VStack(spacing: 4) {
+        return VStack(spacing: labelSpacing) {
             Image(systemName: add ? "plus.circle" : item.symbolName)
                 .font(.system(size: 31, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
@@ -404,11 +417,12 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 .foregroundStyle(theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-                .frame(height: 15)
+                .frame(height: labelHeight)
+                .clipped()
                 .opacity(labelOpacity)
                 .accessibilityHidden(true)
         }
-        .frame(width: slotWidth, height: itemHeight, alignment: .bottom)
+        .frame(width: slotWidth, height: itemHeight)
         .scaleEffect(itemScale, anchor: .bottom)
         .opacity(liftedItem?.item.id == item.id ? 0 : (item.isPending ? (catalog ? 0.55 : 0.4) : itemOpacity))
         .contentShape(Rectangle())

@@ -66,7 +66,7 @@ struct ExercisePageDetailView: View {
         .navigationBarBackButtonHidden(true)
         #endif
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .cancellationAction) {
                 TimeMasterBackButton()
             }
             if page?.isWorkoutAddable == true {
@@ -1451,7 +1451,7 @@ struct ContainerCategoryPage: View {
         .navigationBarBackButtonHidden(true)
         #endif
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
+            ToolbarItem(placement: .cancellationAction) {
                 TimeMasterBackButton()
             }
             if destination.tab == .skills {

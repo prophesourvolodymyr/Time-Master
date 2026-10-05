@@ -1025,7 +1025,7 @@ The app has seven top-level pages and every one of them is on the bar by default
 
 ## Cycle 29 — Database and Workout Editor Polish
 
-**Requested by user: 2026-10-04. Implementation ready for human review.**
+**Requested by user: 2026-10-04. Initial handoff; the fixed workout title/actions were rejected and corrected in Cycle 30. Human review remains pending.**
 
 - [x] Put database attachments in a horizontal thumbnail strip below the cover, retaining the full-screen media viewer
 - [x] Keep the cover below the navigation bar and remove the overlapping top fade
@@ -1035,12 +1035,29 @@ The app has seven top-level pages and every one of them is on the bar by default
 - [x] Apply the same top-pull controls to the workout editor's More, Add, and Browse actions
 - [x] Keep workout sections collapsed initially; adding a set expands its section and requests scrolling to that set
 - [x] Animate section and rest disclosure, row insertion, and removal with stable row identities and Reduce Motion support
-- [x] Keep the workout summary outside the scrolling list, compact it while scrolling, and restore its expanded layout at the top
+- [x] Keep only the workout summary pinned while the title and actions scroll away; compact it while scrolling and restore its expanded layout at the top (corrected in Cycle 30)
 - [x] Keep Start Workout inside the existing carousel navigation content bounds
 - [x] Build the task-only iOS Simulator snapshot and render Database, attachment detail, Workouts, and the workout editor on the already-running iPhone 16
 - [ ] Human review of the changed code, attachment browsing, pull-to-expand/collapse, set insertion, pinned-summary motion, and Reduce Motion behavior
 
 Checks used the committed app with only this task's source changes in an isolated workspace because the main working tree already contained unrelated edits and deleted app entry points. No UI tests, automated taps or swipes, new simulator, or fixture data were used in the completed checks. The existing database contains one attachment, so multi-attachment scrolling and interaction timing remain for human review. Product DOCKS.md files remain unchanged pending acceptance.
+
+---
+
+## Cycle 30 — Scrolling Workout Header and Morphing Navigation
+
+**Requested by user: 2026-10-04. Implementation handed off for human review; not human-verified.**
+
+- [x] Move the workout title and action controls into the normal scrolling list instead of a fixed top panel
+- [x] Use a native sticky section header for the workout summary, compact while scrolled and expanded at the top
+- [x] Keep one global navigation surface and the same icons while morphing between the existing arc and a flat, icon-only slim row
+- [x] Expand slim navigation on touch and fold it when interacting with page content; preserve carousel interactions, long-press editing, and Reduce Motion support
+- [x] Request slim navigation in the workout editor and keep Start Workout directly above the navigation content boundary in both layouts
+- [x] Include the two portable database back-toolbar placements already present in the working copy so the committed app also builds for macOS
+- [x] Build the task-only production sources for iOS Simulator and macOS, and render the changed states on the already-running iPhone 16
+- [ ] Human review of the code, scrolling and return-to-top behavior, touch-driven morphing and interruption, navigation selection/editing, and Reduce Motion behavior
+
+The focused iPhone renders covered the editor at the top and scrolled down, its slim and expanded navigation layouts, and the normal Home arc. Builds passed with existing warnings. Temporary render hooks were removed before rebuilding and installing the clean app. No UI tests, automated taps or swipes, fixture data, or new simulator were used. Gesture timing remains for human review. Checks used an isolated task-only snapshot; unrelated working-tree edits and deletions were preserved. Product DOCKS.md files remain unchanged pending acceptance.
 
 ---
 
