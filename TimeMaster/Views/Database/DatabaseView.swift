@@ -397,6 +397,7 @@ struct DatabaseView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingNewFolderSheet     = false
     @State private var showingImport             = false
     @State private var showingDatabaseImport     = false
@@ -1009,12 +1010,10 @@ struct DatabaseView: View {
                     }
                     .buttonStyle(.plain)
 
-                    if page.isContainer {
-                        HStack(spacing: 6) {
-                            disclosureButton(page)
-                            openContainerButton(page)
-                        }
-                        .padding(7)
+                    if !page.children.isEmpty {
+                        disclosureButton(page)
+                            .background(Theme.surface, in: Circle())
+                            .padding(7)
                     }
                 }
                 .padding(.leading, CGFloat(entry.depth * 12))
@@ -1073,23 +1072,29 @@ struct DatabaseView: View {
 
     private func pageRow(_ entry: DatabasePageEntry) -> some View {
         let page = entry.page
-        return HStack(spacing: 10) {
-            NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
-                pageCard(page, isGridMode: false)
-            }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if page.isContainer {
+        return HStack(spacing: 4) {
+            if !page.children.isEmpty {
                 disclosureButton(page)
-                openContainerButton(page)
             }
+            NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
+                HStack(spacing: 12) {
+                    pageCard(page, isGridMode: false)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityHint("Opens this page")
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.leading, CGFloat(min(entry.depth, 4) * 12))
         .padding(.horizontal, 16)
-        .padding(.leading, CGFloat(entry.depth * 14))
     }
 
     private func pageCard(_ page: ExercisePage, isGridMode: Bool) -> some View {
@@ -1113,7 +1118,7 @@ struct DatabaseView: View {
 
     private func disclosureButton(_ page: ExercisePage) -> some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
                 if expandedPageIDs.contains(page.manifest.id) {
                     expandedPageIDs.remove(page.manifest.id)
                 } else {
@@ -1121,33 +1126,16 @@ struct DatabaseView: View {
                 }
             }
         } label: {
-            Image(systemName: expandedPageIDs.contains(page.manifest.id) ? "chevron.down" : "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Theme.primary)
-                .frame(width: 30, height: 30)
-                .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Theme.primary.opacity(0.65), lineWidth: 1)
-                }
+            Image(systemName: "chevron.right")
+                .font(.subheadline.weight(.semibold))
+                .rotationEffect(.degrees(expandedPageIDs.contains(page.manifest.id) ? 90 : 0))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.borderless)
         .accessibilityLabel(expandedPageIDs.contains(page.manifest.id) ? "Collapse \(page.title)" : "Expand \(page.title)")
-    }
-    private func openContainerButton(_ page: ExercisePage) -> some View {
-        NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
-            Image(systemName: "arrow.up.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Theme.primary)
-                .frame(width: 30, height: 30)
-                .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Theme.primary.opacity(0.65), lineWidth: 1)
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Open \(page.title)")
+        .accessibilityValue(expandedPageIDs.contains(page.manifest.id) ? "Expanded" : "Collapsed")
     }
 
     private var v2EmptyState: some View {

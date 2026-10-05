@@ -1023,6 +1023,27 @@ The app has seven top-level pages and every one of them is on the bar by default
 
 ---
 
+## Cycle 29 — Database and Workout Editor Polish
+
+**Requested by user: 2026-10-04. Implementation ready for human review.**
+
+- [x] Put database attachments in a horizontal thumbnail strip below the cover, retaining the full-screen media viewer
+- [x] Keep the cover below the navigation bar and remove the overlapping top fade
+- [x] Rework database rows into a thumbnail, readable title and metadata, one navigation target, and a separate hierarchy disclosure
+- [x] Start Database controls compact, reveal them with a top pull, and collapse them when scrolling down
+- [x] Apply the same compact-first controls to Workouts
+- [x] Apply the same top-pull controls to the workout editor's More, Add, and Browse actions
+- [x] Keep workout sections collapsed initially; adding a set expands its section and requests scrolling to that set
+- [x] Animate section and rest disclosure, row insertion, and removal with stable row identities and Reduce Motion support
+- [x] Keep the workout summary outside the scrolling list, compact it while scrolling, and restore its expanded layout at the top
+- [x] Keep Start Workout inside the existing carousel navigation content bounds
+- [x] Build the task-only iOS Simulator snapshot and render Database, attachment detail, Workouts, and the workout editor on the already-running iPhone 16
+- [ ] Human review of the changed code, attachment browsing, pull-to-expand/collapse, set insertion, pinned-summary motion, and Reduce Motion behavior
+
+Checks used the committed app with only this task's source changes in an isolated workspace because the main working tree already contained unrelated edits and deleted app entry points. No UI tests, automated taps or swipes, new simulator, or fixture data were used in the completed checks. The existing database contains one attachment, so multi-attachment scrolling and interaction timing remain for human review. Product DOCKS.md files remain unchanged pending acceptance.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

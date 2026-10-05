@@ -228,6 +228,7 @@ struct PageMediaGalleryGrid: View {
     var title: String = "Media"
     let urls: [URL]
     let onTapMedia: (Int) -> Void
+    @ScaledMetric(relativeTo: .caption) private var thumbnailHeight: CGFloat = 108
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -237,73 +238,71 @@ struct PageMediaGalleryGrid: View {
                         .font(.headline)
                         .foregroundStyle(Theme.textPrimary)
                     Spacer()
-                    if urls.count > 1 {
-                        Text("Swipe to browse")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textSecondary)
-                    }
+                    Text("\(urls.count)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 12) {
-                    ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
-                        mediaThumbnail(url: url, index: index)
-                            .onTapGesture { onTapMedia(index) }
+                LazyHStack(spacing: 12) {
+                    ForEach(urls.indices, id: \.self) { index in
+                        mediaThumbnail(index: index)
+                            .id(urls[index])
                     }
                 }
                 .padding(.vertical, 2)
             }
+            .frame(height: thumbnailHeight + 4)
         }
     }
 
-    @ViewBuilder
-    private func mediaThumbnail(url: URL, index: Int) -> some View {
+    private func mediaThumbnail(index: Int) -> some View {
+        let url = urls[index]
         let isCover = index == 0
-        let width: CGFloat = isCover ? 184 : 154
-        let aspectRatio: CGFloat = isCover ? 1 : 1080.0 / 1480.0
-        let height = width / aspectRatio
-        let ext = url.pathExtension.lowercased()
-        let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext)
+        let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased())
+        let width = thumbnailHeight * 4 / 3
 
-        ZStack(alignment: .topTrailing) {
+        return Button {
+            onTapMedia(index)
+        } label: {
             AsyncCoverImage(
                 url: url,
                 fallbackIcon: isVideo ? "play.rectangle.fill" : "photo",
                 fallbackColor: isVideo ? Theme.primary : nil,
-                height: height,
+                height: thumbnailHeight,
                 contentMode: .fill,
                 overlayGradient: false
             )
-            .frame(width: width, height: height)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .frame(width: width, height: thumbnailHeight)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(
-                        isCover ? Theme.primary : Color.white.opacity(0.1),
-                        lineWidth: isCover ? 2 : 1
-                    )
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(isCover ? Theme.primary : Theme.separator, lineWidth: isCover ? 2 : 1)
             }
-
-            if isCover {
-                Label("Cover", systemImage: "pin.fill")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(Theme.primary, in: Capsule())
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .topLeading) {
+                if isCover {
+                    Label("Cover", systemImage: "pin.fill")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 4)
+                        .background(.black.opacity(0.7), in: Capsule())
+                        .padding(8)
+                }
             }
-
-            if isVideo {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .shadow(color: .black.opacity(0.5), radius: 2)
-                    .frame(width: width, height: height)
+            .overlay {
+                if isVideo {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title)
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 2)
+                }
             }
         }
+        .buttonStyle(.borderless)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(isCover ? "Cover, " : "")\(isVideo ? "Video" : "Photo") \(index + 1) of \(urls.count)")
+        .accessibilityHint("Opens the media viewer")
     }
 }

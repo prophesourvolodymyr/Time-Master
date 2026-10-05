@@ -11,6 +11,7 @@ struct ExercisePageDetailView: View {
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
     let pageID: UUID
+    @ScaledMetric(relativeTo: .largeTitle) private var coverMinimumHeight: CGFloat = 220
 
     @State private var isEditing = false
     @State private var mediaGalleryPresented = false
@@ -46,34 +47,21 @@ struct ExercisePageDetailView: View {
 
             if let page {
                 ScrollView {
-                    coverHero(page: page)
-                    detailContent(page: page)
+                    VStack(spacing: 0) {
+                        coverHero(page: page)
+                        detailContent(page: page)
+                    }
                 }
-                .ignoresSafeArea(edges: .top)
             } else {
                 emptyPageView
-            }
-        }
-        .overlay(alignment: .top) {
-            if page != nil {
-                LinearGradient(
-                    colors: [
-                        Theme.background.opacity(0.86),
-                        Theme.background.opacity(0.36),
-                        .clear
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 108)
-                .allowsHitTesting(false)
             }
         }
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarBackground(Theme.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         #else
         .navigationBarBackButtonHidden(true)
         #endif
@@ -211,61 +199,46 @@ struct ExercisePageDetailView: View {
     }
 
     private func coverHero(page: ExercisePage) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            if let coverURL = page.coverImageURL {
-                AsyncCoverImage(url: coverURL, height: 220, overlayGradient: true)
-            } else {
-                LinearGradient(
-                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.03)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .overlay(
+        VStack(alignment: .leading, spacing: 8) {
+            Spacer(minLength: coverMinimumHeight * 0.35)
+            if breadcrumbs.count > 1 {
+                breadcrumbRow
+            }
+            Text(page.title)
+                .font(.largeTitle.weight(.bold))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.4), radius: 3)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                Text(pageTypeLabel(page))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+                if let type = page.effectiveWorkoutType {
+                    Label(type.name, systemImage: type.iconName)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white)
+                }
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: coverMinimumHeight, alignment: .bottomLeading)
+        .background {
+            GeometryReader { proxy in
+                ZStack {
+                    if let coverURL = page.coverImageURL {
+                        AsyncCoverImage(url: coverURL, height: proxy.size.height, overlayGradient: false)
+                    } else {
+                        Theme.surface
+                    }
                     LinearGradient(
-                        colors: [.clear, .black.opacity(0.55)],
+                        colors: [.clear, .black.opacity(0.75)],
                         startPoint: .center,
                         endPoint: .bottom
                     )
-                )
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                if !breadcrumbs.isEmpty {
-                    breadcrumbRow
-                }
-                Text(page.title)
-                    .font(.largeTitle.weight(.bold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.4), radius: 3)
-                    .lineLimit(2)
-                HStack(spacing: 6) {
-                    Text(pageTypeLabel(page))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(page.isSkillLike ? Theme.primary : Theme.textSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(
-                            page.isSkillLike ? Theme.primary.opacity(0.16) : Color.black.opacity(0.18),
-                            in: RoundedRectangle(cornerRadius: 5)
-                        )
-                    if let type = page.effectiveWorkoutType {
-                        HStack(spacing: 4) {
-                            Image(systemName: type.iconName)
-                                .font(.caption)
-                            Text(type.name)
-                                .font(.caption.weight(.medium))
-                        }
-                        .foregroundStyle(Color(hex: type.colorHex))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color(hex: type.colorHex).opacity(0.2), in: RoundedRectangle(cornerRadius: 5))
-                    }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 16)
         }
-        .frame(height: 220)
         .clipped()
     }
 
@@ -299,10 +272,14 @@ struct ExercisePageDetailView: View {
 
     private func detailContent(page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            if page.isSkill || page.isTutorial {
-                if page.hasMedia {
-                    attachmentsSection(page: page)
+            if page.hasMedia {
+                PageMediaGalleryGrid(title: "Attachments", urls: page.mediaURLs) { index in
+                    selectedMediaIndex = index
+                    mediaGalleryPresented = true
                 }
+            }
+
+            if page.isSkill || page.isTutorial {
                 if page.hasMarkdown {
                     markdownSection(page: page, title: "Notes")
                 }
@@ -322,12 +299,6 @@ struct ExercisePageDetailView: View {
                 if page.hasMarkdown {
                     markdownSection(page: page, title: "Notes")
                 }
-                if page.hasMedia {
-                    PageMediaGalleryGrid(title: "Attachments", urls: page.mediaURLs) { index in
-                        selectedMediaIndex = index
-                        mediaGalleryPresented = true
-                    }
-                }
                 if page.hasLinks {
                     linksSection(page: page)
                 }
@@ -337,12 +308,6 @@ struct ExercisePageDetailView: View {
                 }
                 if page.hasWorkoutConfig {
                     workoutConfigSection(page: page)
-                }
-                if page.hasMedia {
-                    PageMediaGalleryGrid(title: "Media", urls: page.mediaURLs) { index in
-                        selectedMediaIndex = index
-                        mediaGalleryPresented = true
-                    }
                 }
                 if page.hasLinks {
                     linksSection(page: page)
@@ -362,6 +327,7 @@ struct ExercisePageDetailView: View {
         .padding(.bottom, 40)
     }
 
+
     private func markdownSection(page: ExercisePage, title: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
@@ -371,26 +337,6 @@ struct ExercisePageDetailView: View {
         }
     }
 
-    private func attachmentsSection(page: ExercisePage) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Attachments")
-                .font(.headline)
-                .foregroundStyle(Theme.textPrimary)
-            if page.hasMedia {
-                PageMediaGalleryGrid(title: "", urls: page.mediaURLs) { index in
-                    selectedMediaIndex = index
-                    mediaGalleryPresented = true
-                }
-            } else {
-                Text("No attachments yet.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-            }
-        }
-    }
 
     private func linksSection(page: ExercisePage) -> some View {
         VideoEmbedListView(

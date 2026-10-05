@@ -9,6 +9,8 @@ import AppKit
 struct WorkoutDetailView: View {
     @EnvironmentObject var store: WorkoutStore
     @EnvironmentObject var databaseStore: DatabaseStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @State private var showingDeleteAlert = false
     @State private var sectionToDelete: Section?
     @State private var showPlayer = false
@@ -22,15 +24,41 @@ struct WorkoutDetailView: View {
     @State private var showingAddOptions = false
     @State private var showingSavedWorkoutPicker = false
     @State private var browserStartsInBundleMode = false
-    @State private var workoutSummaryFrame = CGRect.zero
-
-    let workoutID: UUID
+    @State private var summaryIsCompact = false
+    @State private var summaryCompletedSessionCount = 0
+    @State private var editorControlsExpanded = false
+    @State private var pendingScrollTargetID: RowID?
     @State private var sectionIDs: [UUID] = []
 
+    let workoutID: UUID
     @State private var pendingSection: PendingSectionConfig?
     @State private var expandedSectionIDs: Set<UUID> = []
     @State private var draggedSlotID: UUID?
     @State private var browserTarget: BuilderBrowserTarget = .newSection
+    @ScaledMetric(relativeTo: .body) private var expandedSummaryCover: CGFloat = 64
+    @ScaledMetric(relativeTo: .body) private var compactSummaryCover: CGFloat = 42
+
+    private enum RowID: Hashable {
+        case pending
+        case section(UUID)
+        case preparation(UUID)
+        case set(UUID)
+        case drop(UUID)
+        case dropRest(UUID)
+        case slotRest(UUID)
+        case bigRest(UUID)
+        case restExercise(UUID)
+        case restEmpty(UUID)
+        case restContent(UUID, UUID)
+    }
+
+    private var editorAnimation: Animation? {
+        reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.9)
+    }
+
+    private func animateEditor(_ changes: () -> Void) {
+        withAnimation(editorAnimation, changes)
+    }
 
     private var workout: Workout {
         store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
@@ -41,46 +69,59 @@ struct WorkoutDetailView: View {
     }
 
     var body: some View {
-        ZStack {
-            Theme.background.ignoresSafeArea()
+        GeometryReader { proxy in
+            let visibleHeight = navigationBounds.map {
+                min(proxy.size.height, max(0, $0.maxY - proxy.frame(in: .global).minY))
+            } ?? proxy.size.height
+            ZStack(alignment: .top) {
+                Theme.background.ignoresSafeArea()
 
-            if workout.sections.isEmpty && pendingSection == nil {
-                emptySectionsView
-            } else {
                 VStack(spacing: 0) {
-                    ZStack(alignment: .top) {
-                        sectionList
+                    editorActionChrome(metrics: ScrollingChromeMetrics(width: proxy.size.width))
 
-                        if !workout.sections.isEmpty {
-                            compactWorkoutSummary
-                                .opacity(Double(workoutSummaryCollapseProgress))
-                                .allowsHitTesting(workoutSummaryCollapseProgress > 0.85)
-                                .accessibilityHidden(workoutSummaryCollapseProgress < 0.85)
-                                .zIndex(1)
-                        }
+                    if !workout.sections.isEmpty {
+                        workoutSummary(isCompact: summaryIsCompact)
+                            .zIndex(1)
                     }
-                    startButton
+
+                    sectionList
+                    if !workout.sections.isEmpty {
+                        startButton
+                    }
                 }
+                .frame(height: visibleHeight, alignment: .top)
             }
         }
         .navigationTitle(workout.name)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.large)
         #endif
-        .onAppear { sectionIDs = workout.sections.map(\.id) }
-        .onChange(of: workout.sections.count) { _ in sectionIDs = workout.sections.map(\.id) }
+        .onAppear {
+            sectionIDs = workout.sections.map(\.id)
+        }
+        .onChange(of: workout.sections.count) { _ in
+            sectionIDs = workout.sections.map(\.id)
+        }
+        .onReceive(store.$historyEntries) { entries in
+            summaryCompletedSessionCount = entries.reduce(into: 0) { count, entry in
+                if entry.workoutId == workoutID { count += 1 }
+            }
+        }
         .sheet(isPresented: $showPlayer) {
             WorkoutPlayerView(workout: workout)
                 .environmentObject(store)
                 .environmentObject(DatabaseStore.shared)
         }
-        .toolbar { toolbarItems }
+
         .alert("Delete Section", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { sectionToDelete = nil }
             Button("Delete", role: .destructive) {
                 if let section = sectionToDelete {
-                    store.deleteSection(in: workout, section: section)
-                    sectionIDs = workout.sections.map(\.id)
+                    animateEditor {
+                        store.deleteSection(in: workout, section: section)
+                        sectionIDs = workout.sections.map(\.id)
+                        expandedSectionIDs.remove(section.id)
+                    }
                 }
                 sectionToDelete = nil
             }
@@ -144,7 +185,8 @@ struct WorkoutDetailView: View {
                 onAddBundle: { sources, dur, sets, reps, restAfter, restBetween, prepareTime in
                     guard case .newSection = browserTarget, !sources.isEmpty else { return }
                     showBrowserSheet = false
-                    pendingSection = PendingSectionConfig(
+                    animateEditor {
+                        pendingSection = PendingSectionConfig(
                         name: "Bundle: \(sources.map(\.title).joined(separator: ", "))",
                         pageID: sources.first?.pageID,
                         sourcePages: sources.compactMap { source in
@@ -160,6 +202,7 @@ struct WorkoutDetailView: View {
                         prepareTime: prepareTime,
                         mode: .bundle
                     )
+                    }
                 },
                 onNewExercise: nil,
                 initialBundleMode: browserStartsInBundleMode
@@ -230,41 +273,65 @@ struct WorkoutDetailView: View {
         }
     }
 
-    private var workoutSummary: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
+    private func workoutSummary(isCompact: Bool) -> some View {
+        let current = workout
+        let sectionCount = current.sectionCount
+        let setCount = current.sections.reduce(0) { $0 + $1.slotCount }
+        let duration = formatCompactDuration(current.totalDuration)
+        let completed = summaryCompletedSessionCount
+
+        return VStack(alignment: .leading, spacing: isCompact ? 0 : 12) {
+            HStack(spacing: 12) {
                 WorkoutCoverMosaic(
-                    workout: workout,
-                    size: 64,
+                    workout: current,
+                    size: isCompact ? compactSummaryCover : expandedSummaryCover,
                     styleOverride: .exerciseThumbnails
                 )
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(workout.type.name)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                    Text(workout.name)
-                        .font(.headline.weight(.semibold))
+                VStack(alignment: .leading, spacing: 4) {
+                    if !isCompact {
+                        Text(current.type.name)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                            .transition(.opacity)
+                    }
+                    Text(current.name)
+                        .font(isCompact ? .subheadline.weight(.semibold) : .headline)
                         .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                    if isCompact {
+                        Text("\(sectionCount) sections · \(setCount) sets · \(duration) · \(completed) completed")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .transition(.opacity)
+                    }
                 }
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            HStack(spacing: 0) {
-                detailMetric(value: "\(workout.sectionCount)", label: "sections")
-                detailMetric(value: "\(workoutSetCount)", label: "sets")
-                detailMetric(value: formatCompactDuration(workout.totalDuration), label: "duration")
-                detailMetric(value: "\(completedSessionCount)", label: "completed")
+            if !isCompact {
+                HStack(spacing: 8) {
+                    detailMetric(value: "\(sectionCount)", label: "sections")
+                    detailMetric(value: "\(setCount)", label: "sets")
+                    detailMetric(value: duration, label: "duration")
+                    detailMetric(value: "\(completed)", label: "completed")
+                }
+                .transition(.opacity)
             }
         }
         .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .stroke(Theme.separator, lineWidth: 1)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(current.type.name), \(current.name), \(sectionCount) sections, " +
+            "\(setCount) sets, \(duration) duration, \(completed) completed"
+        )
     }
 
     private func detailMetric(value: String, label: String) -> some View {
@@ -278,97 +345,121 @@ struct WorkoutDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-    private var compactWorkoutSummary: some View {
-        HStack(spacing: 8) {
-            WorkoutCoverMosaic(
-                workout: workout,
-                size: 42,
-                styleOverride: .exerciseThumbnails
+
+
+
+    private func editorActionChrome(metrics: ScrollingChromeMetrics) -> some View {
+        let progress: CGFloat = editorControlsExpanded ? 0 : 1
+        let buttonWidth = metrics.controlWidth(progress)
+        let buttonHeight = metrics.controlHeight(progress)
+        let groupWidth = buttonWidth * 3 + metrics.controlSpacing * 2
+        let padding = metrics.expandedControlPadding * (1 - progress)
+            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
+
+        return HStack(spacing: metrics.controlSpacing) {
+            editorActionMenuButton(
+                systemImage: "ellipsis.circle",
+                title: "More",
+                progress: progress,
+                width: buttonWidth
             )
-
-            Text(workout.name)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .layoutPriority(1)
-
-            HStack(spacing: 8) {
-                compactDetailMetric(
-                    value: "\(workout.sectionCount)",
-                    icon: "square.stack.3d.up",
-                    label: "Sections"
-                )
-                compactDetailMetric(
-                    value: "\(workoutSetCount)",
-                    icon: "square.grid.2x2",
-                    label: "Sets"
-                )
-                compactDetailMetric(
-                    value: formatCompactDuration(workout.totalDuration),
-                    icon: "clock",
-                    label: "Duration"
-                )
-                compactDetailMetric(
-                    value: "\(completedSessionCount)",
-                    icon: "checkmark.circle",
-                    label: "Completed"
-                )
+            .accessibilityLabel("Workout actions")
+            editorActionButton(
+                systemImage: "plus",
+                title: "Add",
+                progress: progress,
+                width: buttonWidth
+            ) {
+                showingAddOptions = true
             }
+            .accessibilityLabel("Add to workout")
+            editorActionButton(
+                systemImage: "folder.fill.badge.plus",
+                title: "Browse",
+                progress: progress,
+                width: buttonWidth
+            ) {
+                openBrowser(.newSection)
+            }
+            .accessibilityLabel("Browse exercises")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .frame(width: groupWidth)
+        .offset(x: metrics.groupLeading(progress))
+        .frame(width: metrics.contentWidth, alignment: .leading)
+        .padding(.horizontal, metrics.horizontalPadding)
+        .frame(height: buttonHeight + padding * 2)
         .background(Theme.background)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(height: 1)
+        .zIndex(2)
+    }
+
+    @ViewBuilder
+    private var editorActionMenuItems: some View {
+        Button { showingWorkoutSettings = true } label: {
+            Label("Workout Settings", systemImage: "slider.horizontal.3")
+        }
+        Button { store.cloneWorkout(workout) } label: {
+            Label("Clone Workout", systemImage: "doc.on.doc")
+        }
+        Button(role: .destructive) { store.deleteWorkout(workout) } label: {
+            Label("Delete Workout", systemImage: "trash")
         }
     }
-
-    private func compactDetailMetric(value: String, icon: String, label: String) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: icon)
-                .font(.system(size: 9, weight: .semibold))
-            Text(value)
-                .font(.caption2.monospacedDigit())
-        }
-        .foregroundStyle(Theme.textSecondary)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label)
-        .accessibilityValue(value)
-    }
-
-    private var workoutSummaryCollapseProgress: CGFloat {
-        guard workoutSummaryFrame.height > 0 else { return 0 }
-        let collapseDistance = max(workoutSummaryFrame.height * 0.65, 1)
-        return min(1, max(0, -workoutSummaryFrame.minY / collapseDistance))
-    }
-
-    private var workoutSetCount: Int {
-        workout.sections.reduce(0) { $0 + $1.slotCount }
-    }
-
-    private var completedSessionCount: Int {
-        store.historyEntries.filter { $0.workoutId == workout.id }.count
-    }
-
-
     private var sectionList: some View {
-        List {
-            if !workout.sections.isEmpty {
-                workoutSummary
-                    .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 8, trailing: 12))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .background {
-                        GeometryReader { proxy in
-                            Color.clear.preference(
-                                key: WorkoutSummaryFramePreferenceKey.self,
-                                value: proxy.frame(in: .named("workout-detail-scroll"))
-                            )
-                        }
+        ScrollViewReader { proxy in
+            trackedSectionList
+                .task(id: pendingScrollTargetID) {
+                    guard let targetID = pendingScrollTargetID else { return }
+                    await Task.yield()
+                    guard !Task.isCancelled else { return }
+                    withAnimation(editorAnimation) {
+                        proxy.scrollTo(targetID, anchor: .bottom)
                     }
+                    if pendingScrollTargetID == targetID {
+                        pendingScrollTargetID = nil
+                    }
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var trackedSectionList: some View {
+        if #available(iOS 18.0, macOS 15.0, *) {
+            sectionListContent
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top
+                } action: { _, offset in
+                    updateScrollState(offset)
+                }
+        } else {
+            sectionListContent
+                .onPreferenceChange(WorkoutEditorScrollOffsetPreferenceKey.self) { minY in
+                    updateScrollState(-minY)
+                }
+        }
+    }
+
+    private var sectionListContent: some View {
+        List {
+            Color.clear
+                .frame(height: 0)
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: WorkoutEditorScrollOffsetPreferenceKey.self,
+                            value: proxy.frame(in: .named("workout-detail-scroll")).minY
+                        )
+                    }
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+
+            if workout.sections.isEmpty && pendingSection == nil {
+                builderListRow(
+                    emptySectionsView,
+                    insets: EdgeInsets(top: 32, leading: 20, bottom: 32, trailing: 20)
+                )
             }
 
             if let pending = pendingSection {
@@ -376,6 +467,7 @@ struct WorkoutDetailView: View {
                     pendingConfigCard(pending),
                     insets: EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
                 )
+                .id(RowID.pending)
             }
 
             ForEach(sectionIDs, id: \.self) { id in
@@ -390,6 +482,7 @@ struct WorkoutDetailView: View {
                         sectionHeader(section, isExpanded: expandedSectionIDs.contains(section.id)),
                         insets: EdgeInsets(top: 6, leading: 12, bottom: 2, trailing: 12)
                     )
+                    .id(RowID.section(section.id))
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             sectionToDelete = section
@@ -412,6 +505,7 @@ struct WorkoutDetailView: View {
                         insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                         depth: 1
                     )
+                    .id(RowID.bigRest(section.id))
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             removeRestRow(RestTarget(sectionID: section.id, slotID: nil, isBig: true))
@@ -432,11 +526,49 @@ struct WorkoutDetailView: View {
         }
         .coordinateSpace(name: "workout-detail-scroll")
         .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
-        .animation(.smooth(duration: 0.28), value: workout.sections.map(\.id))
-        .onPreferenceChange(WorkoutSummaryFramePreferenceKey.self) { frame in
-            workoutSummaryFrame = frame
+    }
+
+    private func editorActionButton(
+        systemImage: String,
+        title: String,
+        progress: CGFloat,
+        width: CGFloat,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            ScrollingChromeControl(
+                systemImage: systemImage,
+                title: title,
+                progress: progress,
+                width: width,
+                height: width
+            )
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+
+    private func editorActionMenuButton(
+        systemImage: String,
+        title: String,
+        progress: CGFloat,
+        width: CGFloat
+    ) -> some View {
+        Menu {
+            editorActionMenuItems
+        } label: {
+            ScrollingChromeControl(
+                systemImage: systemImage,
+                title: title,
+                progress: progress,
+                width: width,
+                height: width
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 
     private func builderListRow<Content: View>(
@@ -461,6 +593,7 @@ struct WorkoutDetailView: View {
                     insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                     depth: 1
                 )
+                .id(RowID.preparation(slot.id))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         disablePreparation(in: section.id, slotID: slot.id)
@@ -476,6 +609,7 @@ struct WorkoutDetailView: View {
                 insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                 depth: 1
             )
+            .id(RowID.set(slot.id))
             .onDrag {
                 draggedSlotID = slot.id
                 return NSItemProvider(object: slot.id.uuidString as NSString)
@@ -505,6 +639,7 @@ struct WorkoutDetailView: View {
                     insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                     depth: 2
                 )
+                .id(RowID.drop(drop.id))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         removeDrop(sectionID: section.id, slotID: slot.id, dropID: drop.id)
@@ -528,6 +663,7 @@ struct WorkoutDetailView: View {
                         insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                         depth: 3
                     )
+                    .id(RowID.dropRest(drop.id))
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             removeRestRow(target)
@@ -541,7 +677,9 @@ struct WorkoutDetailView: View {
                 }
             }
 
-            if (slot.restRow?.duration ?? slot.restAfter) > 0 {
+            if (slot.restRow?.duration ?? slot.restAfter) > 0
+                || slot.restExercisePageID != nil
+                || slot.restRow?.contents.isEmpty == false {
                 let rest = slot.restRow ?? RestRow(
                     id: slot.id,
                     kind: .normal,
@@ -554,6 +692,7 @@ struct WorkoutDetailView: View {
                     insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                     depth: 2
                 )
+                .id(RowID.slotRest(slot.id))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         removeRestRow(target)
@@ -650,9 +789,10 @@ struct WorkoutDetailView: View {
                             bigRest.id = copy.id
                             copy.bigRestRow = bigRest
                         }
-                        store.addSection(to: workout, section: copy)
-                        sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
-                        expandedSectionIDs.insert(copy.id)
+                        animateEditor {
+                            store.addSection(to: workout, section: copy)
+                            sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+                        }
                     } label: {
                         Label("Duplicate Section", systemImage: "plus.square.on.square")
                     }
@@ -674,13 +814,15 @@ struct WorkoutDetailView: View {
                 Button {
                     toggleSection(section.id)
                 } label: {
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: "chevron.down")
+                        .rotationEffect(.degrees(isExpanded ? -180 : 0))
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(Theme.textSecondary)
                         .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isExpanded ? "Collapse \(section.name)" : "Expand \(section.name)")
+                .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
@@ -954,19 +1096,24 @@ struct WorkoutDetailView: View {
                 restActionMenu(target: target)
 
                 Button {
-                    if isExpanded {
-                        expandedRestRowIDs.remove(row.id)
-                    } else {
-                        expandedRestRowIDs.insert(row.id)
+                    animateEditor {
+                        if isExpanded {
+                            expandedRestRowIDs.remove(row.id)
+                        } else {
+                            expandedRestRowIDs.insert(row.id)
+                        }
                     }
                 } label: {
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: "chevron.down")
+                        .rotationEffect(.degrees(isExpanded ? -180 : 0))
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.black)
                         .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isExpanded ? "Collapse rest contents" : "Expand rest contents")
+                .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+ 
 
                 Button(role: .destructive) {
                     removeRestRow(target)
@@ -1056,6 +1203,7 @@ struct WorkoutDetailView: View {
                     insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                     depth: depth
                 )
+                .id(RowID.restExercise(row.id))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         clearRestExercise(sectionID: target.sectionID, slotID: target.slotID)
@@ -1072,6 +1220,7 @@ struct WorkoutDetailView: View {
                     insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                     depth: depth
                 )
+                .id(RowID.restEmpty(row.id))
             } else {
                 ForEach(row.contents) { content in
                     builderListRow(
@@ -1079,6 +1228,7 @@ struct WorkoutDetailView: View {
                         insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
                         depth: depth
                     )
+                    .id(RowID.restContent(row.id, content.id))
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             removeRestContent(target, contentID: content.id)
@@ -1140,10 +1290,12 @@ struct WorkoutDetailView: View {
     }
 
     private func toggleSection(_ id: UUID) {
-        if expandedSectionIDs.contains(id) {
-            expandedSectionIDs.remove(id)
-        } else {
-            expandedSectionIDs.insert(id)
+        animateEditor {
+            if expandedSectionIDs.contains(id) {
+                expandedSectionIDs.remove(id)
+            } else {
+                expandedSectionIDs.insert(id)
+            }
         }
     }
 
@@ -1196,7 +1348,9 @@ struct WorkoutDetailView: View {
 
             HStack(spacing: 10) {
                 Button {
-                    pendingSection = nil
+                    animateEditor {
+                        pendingSection = nil
+                    }
                 } label: {
                     Text("Cancel")
                         .font(.subheadline.weight(.medium))
@@ -1295,12 +1449,13 @@ struct WorkoutDetailView: View {
                 configuration: configuration
             )
         }
-
         guard let section else { return }
-        store.addSection(to: workout, section: section)
-        sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
-        expandedSectionIDs.insert(section.id)
-        pendingSection = nil
+
+        animateEditor {
+            store.addSection(to: workout, section: section)
+            sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+            pendingSection = nil
+        }
     }
 
 
@@ -1325,44 +1480,6 @@ struct WorkoutDetailView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbarItems: some ToolbarContent {
-        AppToolbar.iconItem(placement: .primaryAction) {
-            Menu {
-                Button { showingWorkoutSettings = true } label: {
-                    Label("Workout Settings", systemImage: "slider.horizontal.3")
-                }
-                Button { store.cloneWorkout(workout) } label: {
-                    Label("Clone Workout", systemImage: "doc.on.doc")
-                }
-                Button(role: .destructive) { store.deleteWorkout(workout) } label: {
-                    Label("Delete Workout", systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(.white)
-            }
-            .accessibilityLabel("Workout actions")
-        }
-        AppToolbar.iconItem(placement: .primaryAction) {
-            Button {
-                showingAddOptions = true
-            } label: {
-                Image(systemName: "plus")
-                    .foregroundStyle(.white)
-            }
-            .accessibilityLabel("Add to workout")
-        }
-        AppToolbar.iconItem(placement: .primaryAction) {
-            Button {
-                openBrowser(.newSection)
-            } label: {
-                Image(systemName: "folder.fill.badge.plus")
-                    .foregroundStyle(.white)
-            }
-            .accessibilityLabel("Browse exercises")
-        }
-    }
 
     // MARK: - Helpers
 
@@ -1389,7 +1506,8 @@ struct WorkoutDetailView: View {
 
     private func addSavedWorkoutSection(_ savedWorkout: Workout) {
         showingSavedWorkoutPicker = false
-        pendingSection = PendingSectionConfig(
+        animateEditor {
+            pendingSection = PendingSectionConfig(
             name: "Workout: \(savedWorkout.name)",
             pageID: nil,
             bundleSources: [.workout(savedWorkout)],
@@ -1401,6 +1519,7 @@ struct WorkoutDetailView: View {
             prepareTime: 0,
             mode: .bundle
         )
+        }
     }
 
     private func addOutdoorSection(kind: OutdoorActivityKind) {
@@ -1422,15 +1541,19 @@ struct WorkoutDetailView: View {
                 )
             ]
         )
-        store.addSection(to: workout, section: section)
-        sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+        animateEditor {
+            store.addSection(to: workout, section: section)
+            sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+        }
     }
 
     private func moveSections(from source: IndexSet, to destination: Int) {
-        sectionIDs.move(fromOffsets: source, toOffset: destination)
-        var w = workout
-        w.sections = sectionIDs.compactMap { id in w.sections.first(where: { $0.id == id }) }
-        store.updateWorkout(w)
+        animateEditor {
+            sectionIDs.move(fromOffsets: source, toOffset: destination)
+            var w = workout
+            w.sections = sectionIDs.compactMap { id in w.sections.first(where: { $0.id == id }) }
+            store.updateWorkout(w)
+        }
     }
 
     private func handlePageSelection(
@@ -1444,7 +1567,8 @@ struct WorkoutDetailView: View {
     ) {
         switch browserTarget {
         case .newSection:
-            pendingSection = PendingSectionConfig(
+            animateEditor {
+                pendingSection = PendingSectionConfig(
                 name: page.title,
                 pageID: page.id,
                 sourcePages: [page],
@@ -1454,40 +1578,64 @@ struct WorkoutDetailView: View {
                 restAfter: restAfter,
                 restBetweenSets: restBetween,
                 prepareTime: prepareTime
-            )
-        case .addDrop(let sectionID, let slotID):
-            mutateSection(id: sectionID) { section in
-                var slots = section.effectiveSlots
-                guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }),
-                      page.id != section.pageID,
-                      !slots[slotIndex].drops.contains(where: { $0.exercisePageID == page.id }) else { return }
-                slots[slotIndex].drops.append(
-                    DropSet(
-                        exercisePageID: page.id,
-                        name: page.title,
-                        duration: duration,
-                        restAfter: restAfter
-                    )
                 )
-                section.slots = slots
+            }
+        case .addDrop(let sectionID, let slotID):
+            var didAdd = false
+            animateEditor {
+                mutateSection(id: sectionID) { section in
+                    var slots = section.effectiveSlots
+                    guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }),
+                          page.id != section.pageID,
+                          !slots[slotIndex].drops.contains(where: { $0.exercisePageID == page.id }) else { return }
+                    slots[slotIndex].drops.append(
+                        DropSet(
+                            exercisePageID: page.id,
+                            name: page.title,
+                            duration: duration,
+                            restAfter: restAfter
+                        )
+                    )
+                    section.slots = slots
+                    didAdd = true
+                }
+                if didAdd {
+                    expandedSectionIDs.insert(sectionID)
+                }
             }
         case .setRestExercise(let sectionID, let slotID):
-            mutateSection(id: sectionID) { section in
-                var slots = section.effectiveSlots
-                if let index = slots.firstIndex(where: { $0.id == slotID }) {
-                    slots[index].restExercisePageID = page.id
-                    section.slots = slots
+            var didSet = false
+            animateEditor {
+                mutateSection(id: sectionID) { section in
+                    var slots = section.effectiveSlots
+                    if let index = slots.firstIndex(where: { $0.id == slotID }) {
+                        slots[index].restExercisePageID = page.id
+                        section.slots = slots
+                        didSet = true
+                    }
+                }
+                if didSet {
+                    expandedSectionIDs.insert(sectionID)
+                    if let restID = restRowID(for: RestTarget(sectionID: sectionID, slotID: slotID, isBig: false)) {
+                        expandedRestRowIDs.insert(restID)
+                    }
                 }
             }
         case .restStretch(let target):
-            mutateRestRow(target) { row in
-                row.contents.append(
-                    RestContent(
-                        kind: .stretch,
-                        pageID: page.id,
-                        text: page.title
+            animateEditor {
+                mutateRestRow(target) { row in
+                    row.contents.append(
+                        RestContent(
+                            kind: .stretch,
+                            pageID: page.id,
+                            text: page.title
+                        )
                     )
-                )
+                }
+                expandedSectionIDs.insert(target.sectionID)
+                if let restID = restRowID(for: target) {
+                    expandedRestRowIDs.insert(restID)
+                }
             }
         }
         showBrowserSheet = false
@@ -1514,12 +1662,14 @@ struct WorkoutDetailView: View {
     }
 
     private func removeSlot(in sectionID: UUID, at index: Int) {
-        mutateSection(id: sectionID) { section in
-            var slots = section.effectiveSlots
-            guard slots.count > 1, slots.indices.contains(index) else { return }
-            slots.remove(at: index)
-            section.slots = slots
-            section.sets = slots.count
+        animateEditor {
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard slots.count > 1, slots.indices.contains(index) else { return }
+                slots.remove(at: index)
+                section.slots = slots
+                section.sets = slots.count
+            }
         }
     }
 
@@ -1546,6 +1696,17 @@ struct WorkoutDetailView: View {
         browserStartsInBundleMode = bundleMode
         databaseStore.reload()
         showBrowserSheet = true
+    }
+
+    private func updateScrollState(_ offset: CGFloat) {
+        guard offset.isFinite else { return }
+        let expanded = ScrollingChromeReveal.expanded(current: editorControlsExpanded, offset: offset)
+        let compactSummary = offset > 24 ? true : (offset <= 1 ? false : summaryIsCompact)
+        guard expanded != editorControlsExpanded || compactSummary != summaryIsCompact else { return }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
+            editorControlsExpanded = expanded
+            summaryIsCompact = compactSummary
+        }
     }
 
     private func formatCompactDuration(_ seconds: Int) -> String {
@@ -1616,48 +1777,75 @@ struct WorkoutDetailView: View {
         }
     }
 
+    private func restRowID(for target: RestTarget) -> UUID? {
+        guard let section = workout.sections.first(where: { $0.id == target.sectionID }) else { return nil }
+        if target.isBig {
+            return section.bigRestRow?.id ?? section.id
+        }
+        if let dropID = target.dropID { return dropID }
+        guard let slot = section.effectiveSlots.first(where: { $0.id == target.slotID }) else { return nil }
+        return slot.restRow?.id ?? slot.id
+    }
+
     private func updateRestContent(_ target: RestNoteTarget, content: RestContent) {
-        mutateRestRow(target.target) { row in
-            if let index = row.contents.firstIndex(where: { $0.id == content.id }) {
-                row.contents[index] = content
-            } else {
-                row.contents.append(content)
+        animateEditor {
+            mutateRestRow(target.target) { row in
+                if let index = row.contents.firstIndex(where: { $0.id == content.id }) {
+                    row.contents[index] = content
+                } else {
+                    row.contents.append(content)
+                }
+            }
+            expandedSectionIDs.insert(target.target.sectionID)
+            if let restID = restRowID(for: target.target) {
+                expandedRestRowIDs.insert(restID)
             }
         }
     }
 
     private func removeRestContent(_ target: RestTarget, contentID: UUID) {
-        mutateRestRow(target) { row in
-            row.contents.removeAll { $0.id == contentID }
+        animateEditor {
+            mutateRestRow(target) { row in
+                row.contents.removeAll { $0.id == contentID }
+            }
         }
     }
 
     private func addSlot(in sectionID: UUID) {
-        mutateSection(id: sectionID) { section in
-            var slots = section.effectiveSlots
-            guard let source = slots.last else { return }
+        var insertedSlotID: UUID?
+        animateEditor {
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let source = slots.last else { return }
 
-            if let previousIndex = slots.indices.last {
-                let previousID = slots[previousIndex].id
-                slots[previousIndex].restAfter = max(0, section.restBetweenSets)
-                slots[previousIndex].restRow = RestRow(
-                    id: previousID,
-                    kind: .normal,
-                    duration: max(0, section.restBetweenSets)
-                )
+                if let previousIndex = slots.indices.last {
+                    let previousID = slots[previousIndex].id
+                    var rest = slots[previousIndex].restRow ?? RestRow(
+                        id: previousID,
+                        kind: .normal
+                    )
+                    rest.duration = max(0, section.restBetweenSets)
+                    slots[previousIndex].restAfter = rest.duration
+                    slots[previousIndex].restRow = rest
+                }
+
+                var newSlot = source
+                newSlot.id = UUID()
+                newSlot.prepareTime = nil
+                newSlot.drops = []
+                newSlot.children = []
+                newSlot.restExercisePageID = nil
+                newSlot.restAfter = 0
+                newSlot.restRow = nil
+                slots.append(newSlot)
+                insertedSlotID = newSlot.id
+                section.slots = slots
+                section.sets = slots.count
             }
-
-            var newSlot = source
-            newSlot.id = UUID()
-            newSlot.prepareTime = nil
-            newSlot.drops = []
-            newSlot.children = []
-            newSlot.restExercisePageID = nil
-            newSlot.restAfter = 0
-            newSlot.restRow = nil
-            slots.append(newSlot)
-            section.slots = slots
-            section.sets = slots.count
+            expandedSectionIDs.insert(sectionID)
+            if let insertedSlotID {
+                pendingScrollTargetID = .set(insertedSlotID)
+            }
         }
     }
 
@@ -1673,70 +1861,84 @@ struct WorkoutDetailView: View {
     }
 
     private func removeDrop(sectionID: UUID, slotID: UUID, dropID: UUID) {
-        mutateSection(id: sectionID) { section in
-            var slots = section.effectiveSlots
-            guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }) else { return }
-            slots[slotIndex].drops.removeAll { $0.id == dropID }
-            section.slots = slots
+        animateEditor {
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let slotIndex = slots.firstIndex(where: { $0.id == slotID }) else { return }
+                slots[slotIndex].drops.removeAll { $0.id == dropID }
+                section.slots = slots
+            }
         }
     }
 
     private func removeRestRow(_ target: RestTarget) {
-        mutateSection(id: target.sectionID) { section in
-            if target.isBig {
-                var row = section.bigRestRow ?? RestRow(
-                    id: section.id,
-                    kind: .big,
-                    duration: section.customRestAfter ?? workout.restBetweenSections
-                )
-                row.duration = 0
-                row.contents.removeAll()
-                section.bigRestRow = row
-                section.customRestAfter = 0
-                return
-            }
+        let restID = restRowID(for: target)
+        animateEditor {
+            mutateSection(id: target.sectionID) { section in
+                if target.isBig {
+                    var row = section.bigRestRow ?? RestRow(
+                        id: section.id,
+                        kind: .big,
+                        duration: section.customRestAfter ?? workout.restBetweenSections
+                    )
+                    row.duration = 0
+                    row.contents.removeAll()
+                    section.bigRestRow = row
+                    section.customRestAfter = 0
+                    return
+                }
 
-            var slots = section.effectiveSlots
-            guard let slotID = target.slotID,
-                  let slotIndex = slots.firstIndex(where: { $0.id == slotID }) else { return }
+                var slots = section.effectiveSlots
+                guard let slotID = target.slotID,
+                      let slotIndex = slots.firstIndex(where: { $0.id == slotID }) else { return }
 
-            if let dropID = target.dropID,
-               let dropIndex = slots[slotIndex].drops.firstIndex(where: { $0.id == dropID }) {
-                slots[slotIndex].drops[dropIndex].restAfter = 0
-            } else {
-                slots[slotIndex].restAfter = 0
-                slots[slotIndex].restRow = nil
-                slots[slotIndex].restExercisePageID = nil
+                if let dropID = target.dropID,
+                   let dropIndex = slots[slotIndex].drops.firstIndex(where: { $0.id == dropID }) {
+                    slots[slotIndex].drops[dropIndex].restAfter = 0
+                } else {
+                    slots[slotIndex].restAfter = 0
+                    slots[slotIndex].restRow = nil
+                    slots[slotIndex].restExercisePageID = nil
+                }
+                section.slots = slots
             }
-            section.slots = slots
+            if let restID {
+                expandedRestRowIDs.remove(restID)
+            }
         }
     }
 
     private func disablePreparation(in sectionID: UUID, slotID: UUID) {
-        mutateSection(id: sectionID) { section in
-            var slots = section.effectiveSlots
-            guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
-            slots[index].prepareTime = 0
-            section.slots = slots
+        animateEditor {
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
+                slots[index].prepareTime = 0
+                section.slots = slots
+            }
         }
     }
 
     private func enablePreparation(in sectionID: UUID, slotID: UUID) {
-        mutateSection(id: sectionID) { section in
-            var slots = section.effectiveSlots
-            guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
-            slots[index].prepareTime = nil
-            section.slots = slots
+        animateEditor {
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
+                slots[index].prepareTime = nil
+                section.slots = slots
+            }
         }
     }
 
     private func clearRestExercise(sectionID: UUID, slotID: UUID?) {
         guard let slotID else { return }
-        mutateSection(id: sectionID) { section in
-            var slots = section.effectiveSlots
-            guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
-            slots[index].restExercisePageID = nil
-            section.slots = slots
+        animateEditor {
+            mutateSection(id: sectionID) { section in
+                var slots = section.effectiveSlots
+                guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
+                slots[index].restExercisePageID = nil
+                section.slots = slots
+            }
         }
     }
 
@@ -1751,10 +1953,10 @@ struct WorkoutDetailView: View {
 
 }
 
-private struct WorkoutSummaryFramePreferenceKey: PreferenceKey {
-    static var defaultValue = CGRect.zero
+private struct WorkoutEditorScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = .infinity
 
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
 }

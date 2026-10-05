@@ -11,6 +11,7 @@ struct PageCardView: View {
     var onDelete: (() -> Void)? = nil
     var onMoveIntoContainer: ((String) -> Void)? = nil
     @State private var isDropTargeted = false
+    @ScaledMetric(relativeTo: .body) private var listThumbnailSize: CGFloat = 56
 
     var body: some View {
         Group {
@@ -48,12 +49,14 @@ struct PageCardView: View {
     }
 
     private var listRow: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             coverArea
+                .accessibilityHidden(true)
             infoArea
-            Spacer(minLength: 4)
         }
-        .padding(.vertical, 4)
+        .frame(minHeight: listThumbnailSize)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
         .contextMenu { contextMenuContent }
     }
 
@@ -186,16 +189,16 @@ struct PageCardView: View {
     @ViewBuilder
     private var coverArea: some View {
         if let coverURL = page.coverImageURL {
-            AsyncCoverImage(url: coverURL, height: 48, overlayGradient: false)
-                .frame(width: 48, height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            AsyncCoverImage(url: coverURL, height: listThumbnailSize, overlayGradient: false)
+                .frame(width: listThumbnailSize, height: listThumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         } else {
             gradientFallback
         }
     }
 
     private var gradientFallback: some View {
-        RoundedRectangle(cornerRadius: 10)
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
             .fill(
                 LinearGradient(
                     colors: [Color.white.opacity(0.08), Color.white.opacity(0.04)],
@@ -203,35 +206,45 @@ struct PageCardView: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .frame(width: 48, height: 48)
+            .overlay {
+                Image(systemName: page.isContainer ? "folder" : "doc.text")
+                    .font(.title3)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            .frame(width: listThumbnailSize, height: listThumbnailSize)
     }
 
     private var infoArea: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(page.title)
-                .font(.subheadline.weight(.medium))
+                .font(.body.weight(.semibold))
                 .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
+                .lineLimit(2)
 
-            HStack(spacing: 6) {
-                if page.isContainer {
-                    childCountBadge
-                }
-                if let type = page.effectiveWorkoutType {
-                    workoutTypeTag(name: type.name, iconName: type.iconName, colorHex: type.colorHex)
-                }
-                if page.hasMedia {
-                    Text("\(page.mediaURLs.count) media")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Theme.textSecondary.opacity(0.7))
-                }
-                if let pageTypeLabel {
-                    Text(pageTypeLabel)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Theme.textSecondary.opacity(0.6))
-                }
+            if !listMetadata.isEmpty {
+                Text(listMetadata)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(2)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var listMetadata: String {
+        var text = page.effectiveWorkoutType?.name ?? pageTypeLabel ?? "Container"
+        if page.isContainer {
+            let count = page.totalChildCount
+            text += " · \(count) \(count == 1 ? "page" : "pages")"
+        }
+        if page.hasWorkoutConfig, let duration = page.manifest.duration {
+            text += " · \(duration)s"
+        }
+        if page.hasMedia {
+            let count = page.mediaURLs.count
+            text += " · \(count) \(count == 1 ? "attachment" : "attachments")"
+        }
+        return text
     }
 
     private var pageTypeLabel: String? {
@@ -243,30 +256,5 @@ struct PageCardView: View {
         }
     }
 
-    private var childCountBadge: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "rectangle.stack")
-                .font(.system(size: 8))
-            Text("\(page.totalChildCount)")
-        }
-        .font(.system(size: 9, weight: .medium))
-        .foregroundStyle(Theme.textSecondary.opacity(0.7))
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 4))
-    }
-
-    private func workoutTypeTag(name: String, iconName: String, colorHex: String) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: iconName)
-                .font(.system(size: 8))
-            Text(name)
-        }
-        .font(.system(size: 9, weight: .medium))
-        .foregroundStyle(Color(hex: colorHex))
-        .padding(.horizontal, 6)
-        .padding(.vertical, 2)
-        .background(Color(hex: colorHex).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
-    }
 
 }
