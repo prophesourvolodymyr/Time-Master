@@ -65,6 +65,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var points: [OutdoorTrackPoint]
     var followsUser: Bool
     var state: OutdoorLocationRecorder.State
+    var isVisible = true
     var plannedPoints: [OutdoorTrackPoint]? = nil
     var mode: OutdoorMapMode = .explore
     var overlayModes: Set<OutdoorMapMode> = []
@@ -96,25 +97,21 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             onFocusFailure: onFocusFailure
         )
     }
-    func makeUIView(context: Context) -> MLNMapView {
-        let map: MLNMapView
-        if let styleURL = offlineStyleURL ?? configuration.exploreStyleURL {
-            map = MLNMapView(frame: .zero, styleURL: styleURL)
-        } else {
-            map = MLNMapView(
-                frame: .zero,
-                styleJSON: ##"{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#F4F4F0"}}]}"##
-            )
-        }
-        context.coordinator.updateOfflineStyle(offlineStyleURL, bounds: offlineBounds)
-        context.coordinator.onLocationChange = onLocationChange
-        context.coordinator.attach(to: map)
-        return map
+    func makeUIView(context: Context) -> UIView {
+        UIView(frame: .zero)
     }
-    func updateUIView(_ map: MLNMapView, context: Context) {
+    func updateUIView(_ view: UIView, context: Context) {
         context.coordinator.onLocationChange = onLocationChange
         context.coordinator.updateOfflineStyle(offlineStyleURL, bounds: offlineBounds)
         context.coordinator.updateTripEditing(tripEditing, plannedTrip: plannedTrip)
+        guard isVisible || tripEditing != nil else {
+            context.coordinator.detach()
+            return
+        }
+        let map = context.coordinator.mount(
+            in: view,
+            styleURL: offlineStyleURL ?? context.coordinator.preferredStyleURL
+        )
         context.coordinator.render(
             map: map,
             points: points,
@@ -130,6 +127,10 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             weatherInfoEnabled: weatherInfoEnabled,
             routeFitPoints: routeFitPoints
         )
+    }
+
+    static func dismantleUIView(_ view: UIView, coordinator: Coordinator) {
+        coordinator.detach()
     }
 
     @MainActor final class Coordinator: NSObject, MLNMapViewDelegate, CLLocationManagerDelegate {
@@ -254,8 +255,51 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             locationManager.headingFilter = 5
         }
 
+        var preferredStyleURL: URL? {
+            session.lastUsableStyleURL ?? session.configuration.exploreStyleURL
+        }
+
+        func mount(in view: UIView, styleURL: URL?) -> MLNMapView {
+            if let map { return map }
+            let map: MLNMapView
+            if let styleURL {
+                map = MLNMapView(frame: view.bounds, styleURL: styleURL)
+            } else {
+                map = MLNMapView(
+                    frame: view.bounds,
+                    styleJSON: ##"{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#F4F4F0"}}]}"##
+                )
+            }
+            map.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            attach(to: map)
+            view.addSubview(map)
+            return map
+        }
+
+        func detach() {
+            guard let map else { return }
+            session.captureCamera(from: map)
+            isApplyingCamera = true
+            map.userTrackingMode = .none
+            map.showsUserLocation = false
+            map.delegate = nil
+            map.isHidden = true
+            map.removeFromSuperview()
+            self.map = nil
+            tripInteraction = nil
+            startAnnotation = nil
+            endAnnotation = nil
+            latestPoints = []
+            latestPlannedPoints = []
+            stopWeatherLocationUpdates()
+            latestWeatherInfoEnabled = false
+            weatherAdapter?.update(location: nil, enabled: false)
+            isApplyingCamera = false
+        }
+
         func attach(to map: MLNMapView) {
             self.map = map
+            isApplyingCamera = true
             map.delegate = self
             tripInteraction = OutdoorTripMapInteraction(map: map)
             tripInteraction?.update(tripEditing, plannedTrip: plannedTrip)
@@ -284,15 +328,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             lastRenderedFollowsUser = nil
             lastRenderedMode = nil
             lastRenderedOverlayModes = nil
-            lastRenderedCityFitRequestID = nil
-            pendingCityFit = false
-            lastRouteFitRequestID = 0
-            pendingRouteFit = false
             lastRenderedWeatherInfoEnabled = nil
             didRenderInputs = false
             liveRouteSignature = nil
             plannedRouteSignature = nil
             didApplyThreeDCamera = false
+            hasCenteredOnUser = hasCenteredOnUser || session.cameraState != nil
+            session.restoreCamera(on: map)
+            isApplyingCamera = false
             latestHeading = map.camera.heading
             loadedStyleURL = map.styleURL
         }

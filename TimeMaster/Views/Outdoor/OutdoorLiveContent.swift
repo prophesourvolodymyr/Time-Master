@@ -1,11 +1,13 @@
 #if os(iOS)
 import SwiftUI
 
-struct OutdoorLiveContent: View {
+struct OutdoorLiveContent: View, Animatable {
     @ObservedObject var recorder: OutdoorLocationRecorder
     @ObservedObject var preferences: OutdoorRecordingPreferencesStore
-    let expansion: CGFloat
+    var expansion: CGFloat
     let isDragging: Bool
+    let isFullscreen: Bool
+    var labelProgress: CGFloat
     let onMusic: () -> Void
     let onFinish: () -> Void
     let onTogglePause: () -> Void
@@ -17,13 +19,22 @@ struct OutdoorLiveContent: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .largeTitle) private var liveValueScale: CGFloat = 1
     @ScaledMetric(relativeTo: .caption) private var liveLabelScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .caption) private var actionLabelHeight: CGFloat = 32
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(expansion, labelProgress) }
+        set {
+            expansion = newValue.first
+            labelProgress = newValue.second
+        }
+    }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             if let message = recorder.errorMessage, recorder.state == .failed {
                 ScrollView { recoveryMessage(message).padding(.vertical, 8) }
             } else {
-                OutdoorAdaptivePane { _ in
+                OutdoorAdaptivePane(prefersBottomActions: true) { _ in
                     VStack(spacing: 8) {
                         if let status = statusText {
                             statusPill(status).frame(maxWidth: .infinity)
@@ -40,20 +51,21 @@ struct OutdoorLiveContent: View {
                         }
                     }
                     .padding(.top, 4)
-                } actions: { compact in
-                    if compact {
-                        LazyVGrid(columns: [GridItem(.fixed(44)), GridItem(.fixed(44))], spacing: 8) {
-                            actionButtons(compact: true)
+                } actions: { _ in
+                    GeometryReader { proxy in
+                        let expandedWidth = max(44, (proxy.size.width - 24) / 4)
+                        let width = 44 + (expandedWidth - 44) * labelProgress
+                        if dynamicTypeSize.isAccessibilitySize {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) { actionButtons(width: max(width, width * liveLabelScale)) }
+                                    .frame(minWidth: proxy.size.width)
+                            }
+                        } else {
+                            HStack(spacing: 8) { actionButtons(width: width) }
+                                .frame(width: proxy.size.width)
                         }
-                    } else if dynamicTypeSize.isAccessibilitySize {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) { actionButtons(compact: false) }
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
-                        .fixedSize(horizontal: false, vertical: true)
-                    } else {
-                        HStack(spacing: 8) { actionButtons(compact: false) }
                     }
+                    .frame(height: 44 + (actionLabelHeight + 8) * labelProgress)
                 }
             }
         }
@@ -68,18 +80,23 @@ struct OutdoorLiveContent: View {
         let time = progress < 0.55 ? formattedCompactTime(at: date) : formattedTime(at: date)
         let speed = formattedSpeed
         let distance = formattedDistance
-        let stacked = progress >= 0.74
+        let stacking = min(1, max(0, (size.height / max(1, size.width) - 0.52) / 0.65))
         let labelSize = interpolate(10, 13, progress)
         let secondarySize = min(
             interpolate(16, 27, progress),
-            max(1, (size.height / (stacked ? 5 : 1) - 1.25 * labelSize * liveLabelScale - 4) / (1.25 * liveValueScale))
+            max(1, (size.height / (1 + 4 * stacking) - 1.25 * labelSize * liveLabelScale - 4) / (1.25 * liveValueScale))
         )
         let secondaryHeight = 1.25 * (labelSize * liveLabelScale + secondarySize * liveValueScale) + 4
-        let speedHeight = stacked ? size.height - 2 * secondaryHeight - 32 : size.height
+        let speedHeight = size.height - (2 * secondaryHeight + 32) * stacking
         let speedSize = min(
-            interpolate(42, 92, progress),
+            interpolate(42, 92, progress * stacking * stacking),
             max(1, (speedHeight - 12.5 * liveLabelScale - 4) / (1.25 * liveValueScale + 0.375 * liveLabelScale))
         )
+        let width = max(1, size.width - (isFullscreen ? 44 : 0) * (1 - stacking))
+        let sideways = stacking * stacking * (3 - 2 * stacking)
+        let vertical = 1 - pow(1 - stacking, 3)
+        let secondaryWidth = width / 3 + width * 2 / 3 * max(0, (stacking - 0.8) / 0.2)
+        let secondaryFrameHeight = size.height + (secondaryHeight - size.height) * vertical
 
         if dynamicTypeSize.isAccessibilitySize {
             ScrollView(.vertical, showsIndicators: false) {
@@ -92,55 +109,49 @@ struct OutdoorLiveContent: View {
                 .padding(.vertical, 8)
             }
         } else {
-            let timeMetric = liveMetric(
-                title: "Time",
-                value: time,
-                unit: nil,
-                valueSize: secondarySize,
-                labelSize: labelSize,
-                alignment: .center
-            )
-            .frame(maxWidth: .infinity)
-            .accessibilityLabel("Time \(time)")
-            let speedMetric = liveMetric(
-                title: nil,
-                value: speed.value,
-                unit: speed.unit,
-                valueSize: speedSize,
-                labelSize: labelSize,
-                alignment: .center,
-                unitBelow: true
-            )
-            .frame(maxWidth: .infinity)
-            .accessibilityLabel("Speed \(speed.value) \(speed.unit)")
-            let totalMetric = liveMetric(
-                title: activeDistanceTitle,
-                value: distance.value,
-                unit: distance.unit,
-                valueSize: secondarySize,
-                labelSize: labelSize,
-                alignment: .center
-            )
-            .frame(maxWidth: .infinity)
-            .accessibilityLabel("\(activeDistanceTitle) \(distance.value) \(distance.unit)")
-
-            Group {
-                if stacked {
-                    VStack(spacing: 8) {
-                        timeMetric
-                        Spacer(minLength: 0)
-                        speedMetric
-                        Spacer(minLength: 0)
-                        totalMetric
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        totalMetric
-                        speedMetric
-                        timeMetric
-                    }
-                }
+            ZStack {
+                liveMetric(
+                    title: "Time",
+                    value: time,
+                    unit: nil,
+                    valueSize: secondarySize,
+                    labelSize: labelSize,
+                    alignment: .center
+                )
+                .frame(width: secondaryWidth, height: secondaryFrameHeight)
+                .position(
+                    x: width * (5.0 / 6.0 - sideways / 3),
+                    y: size.height / 2 + (secondaryHeight / 2 - size.height / 2) * vertical
+                )
+                .accessibilityLabel("Time \(time)")
+                liveMetric(
+                    title: nil,
+                    value: speed.value,
+                    unit: speed.unit,
+                    valueSize: speedSize,
+                    labelSize: labelSize,
+                    alignment: .center,
+                    unitBelow: true
+                )
+                .frame(width: width / 3 + width * 2 / 3 * sideways, height: max(1, speedHeight))
+                .position(x: width / 2, y: size.height / 2)
+                .accessibilityLabel("Speed \(speed.value) \(speed.unit)")
+                liveMetric(
+                    title: activeDistanceTitle,
+                    value: distance.value,
+                    unit: distance.unit,
+                    valueSize: secondarySize,
+                    labelSize: labelSize,
+                    alignment: .center
+                )
+                .frame(width: secondaryWidth, height: secondaryFrameHeight)
+                .position(
+                    x: width * (1.0 / 6.0 + sideways / 3),
+                    y: size.height / 2 + (size.height / 2 - secondaryHeight / 2) * vertical
+                )
+                .accessibilityLabel("\(activeDistanceTitle) \(distance.value) \(distance.unit)")
             }
+            .frame(width: width, height: size.height)
             .frame(width: size.width, height: size.height)
             .transaction { $0.animation = nil }
         }
@@ -240,29 +251,33 @@ struct OutdoorLiveContent: View {
         }
     }
     @ViewBuilder
-    private func actionButtons(compact: Bool) -> some View {
+    private func actionButtons(width: CGFloat) -> some View {
         Button(action: onMusic) {
-            OutdoorPaneActionLabel(title: "Music", systemImage: "music.note", compact: compact)
+            OutdoorPaneActionLabel(title: "Music", systemImage: "music.note", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
+        .buttonStyle(OutdoorPineButtonStyle(expansion: labelProgress))
+        .frame(width: width)
         .accessibilityLabel("Music")
 
         Button(action: onFinish) {
-            OutdoorPaneActionLabel(title: "Finish", systemImage: "stop.fill", compact: compact)
+            OutdoorPaneActionLabel(title: "Finish", systemImage: "stop.fill", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: compact))
+        .buttonStyle(OutdoorPineButtonStyle(prominent: true, expansion: labelProgress))
+        .frame(width: width)
         .accessibilityLabel("Finish workout")
 
         Button(action: onTogglePause) {
-            OutdoorPaneActionLabel(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", compact: compact)
+            OutdoorPaneActionLabel(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
-        .accessibilityLabel(isPaused ? "Resume workout" : "Stop workout")
+        .buttonStyle(OutdoorPineButtonStyle(expansion: labelProgress))
+        .frame(width: width)
+        .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
 
         Button(action: recorder.toggleBusTransfer) {
-            OutdoorPaneActionLabel(title: recorder.isOnBus ? "Resume riding" : "Board bus", systemImage: recorder.isOnBus ? recorder.kind.iconName : "bus", compact: compact)
+            OutdoorPaneActionLabel(title: recorder.isOnBus ? "Resume riding" : "Board bus", systemImage: recorder.isOnBus ? recorder.kind.iconName : "bus", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
+        .buttonStyle(OutdoorPineButtonStyle(expansion: labelProgress))
+        .frame(width: width)
         .accessibilityLabel(recorder.isOnBus ? "End bus transfer and resume active distance" : "Board bus and pause active distance")
         .accessibilityIdentifier("trip.busToggle")
     }

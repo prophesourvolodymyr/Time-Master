@@ -4,26 +4,71 @@ import Combine
 import CoreLocation
 
 @MainActor
-final class OutdoorNearbyRoutes: ObservableObject {
+final class OutdoorNearbyRoutes: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var location: TripCoordinate?
     @Published private(set) var routes: [PlannedRoute] = []
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
+    @Published private var authorizationStatus: CLAuthorizationStatus?
     private var kind: OutdoorActivityKind?
     private var generatedOrigin: TripCoordinate?
     private var generatedKind: OutdoorActivityKind?
     private var generation = UUID()
     private var task: Task<Void, Never>?
-    private lazy var permissionManager = CLLocationManager()
+    private var isRequestingLocation = false
+    private lazy var permissionManager: CLLocationManager = {
+        let manager = CLLocationManager()
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.delegate = self
+        return manager
+    }()
 
     deinit { task?.cancel() }
 
     var locationDenied: Bool {
-        let status = CLLocationManager.authorizationStatus()
+        let status = authorizationStatus ?? permissionManager.authorizationStatus
         return status == .denied || status == .restricted || !CLLocationManager.locationServicesEnabled()
     }
 
-    func requestLocation() { permissionManager.requestWhenInUseAuthorization() }
+    func requestLocation() {
+        errorMessage = nil
+        let manager = permissionManager
+        if manager.authorizationStatus == .notDetermined {
+            manager.requestWhenInUseAuthorization()
+        } else {
+            requestAuthorizedLocation(manager)
+        }
+    }
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        MainActor.assumeIsolated {
+            authorizationStatus = manager.authorizationStatus
+            guard kind != nil, location == nil else { return }
+            requestAuthorizedLocation(manager)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        MainActor.assumeIsolated {
+            isRequestingLocation = false
+            guard let coordinate = locations.last?.coordinate else { return }
+            updateLocation(TripCoordinate(latitude: coordinate.latitude, longitude: coordinate.longitude))
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        MainActor.assumeIsolated {
+            isRequestingLocation = false
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func requestAuthorizedLocation(_ manager: CLLocationManager) {
+        guard !isRequestingLocation,
+              manager.authorizationStatus == .authorizedAlways || manager.authorizationStatus == .authorizedWhenInUse else { return }
+        isRequestingLocation = true
+        manager.requestLocation()
+    }
 
     func updateLocation(_ value: TripCoordinate) {
         guard value.isValid else { return }
@@ -35,6 +80,7 @@ final class OutdoorNearbyRoutes: ObservableObject {
 
     func activate(kind: OutdoorActivityKind) {
         self.kind = kind
+        if location == nil { requestAuthorizedLocation(permissionManager) }
         let moved = location.flatMap { location in generatedOrigin.map { $0.distance(to: location) >= 500 } } ?? false
         guard generatedKind != kind || generatedOrigin == nil || moved else { return }
         refresh(kind: kind)
@@ -42,6 +88,10 @@ final class OutdoorNearbyRoutes: ObservableObject {
 
     func deactivate() {
         kind = nil
+        if isRequestingLocation {
+            permissionManager.stopUpdatingLocation()
+            isRequestingLocation = false
+        }
         generation = UUID()
         task?.cancel()
         if isLoading { generatedOrigin = nil }

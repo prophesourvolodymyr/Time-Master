@@ -178,6 +178,9 @@ struct OutdoorTripsMenu: View {
                 ProgressView("Finding roads near you…").tint(Theme.toolbarOrange)
             } else if nearby.location == nil {
                 Label(nearby.locationDenied ? "Location access is unavailable" : "Waiting for your current location", systemImage: "location")
+                if let message = nearby.errorMessage {
+                    Text(message).font(.caption).foregroundStyle(Theme.textSecondary)
+                }
                 Button(nearby.locationDenied ? "Location settings" : "Use current location") {
                     if nearby.locationDenied, let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                     else { nearby.requestLocation() }

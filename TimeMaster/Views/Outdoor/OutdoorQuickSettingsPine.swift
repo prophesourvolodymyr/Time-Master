@@ -182,6 +182,23 @@ struct OutdoorQuickSettingsPine: View {
                     )
                 }
 
+                settingsSection("Map Credits") {
+                    ForEach(offlineCapabilities, id: \.mode) { capability in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(capability.mode.displayName)
+                                .font(.caption.weight(.semibold))
+                            Text(([capability.attribution.providerName] + capability.attribution.notices).joined(separator: " · "))
+                                .font(.caption2)
+                                .foregroundStyle(Theme.textSecondary)
+                            ForEach(capability.attribution.URLs, id: \.absoluteString) { url in
+                                Link(url.host ?? url.absoluteString, destination: url)
+                                    .font(.caption2)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.caption2)

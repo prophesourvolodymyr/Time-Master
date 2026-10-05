@@ -1,7 +1,7 @@
 #if os(iOS)
 import SwiftUI
 
-struct OutdoorMapControls: View {
+struct OutdoorMapControls: View, Animatable {
     let weatherState: OutdoorWeatherState
     let weatherInfoEnabled: Bool
     let followsUser: Bool
@@ -10,17 +10,40 @@ struct OutdoorMapControls: View {
     let onFocusLocation: () -> Void
     var onFitRoute: (() -> Void)?
     var onNorth: (() -> Void)?
+    var geometry: OutdoorMapUtilityGeometry?
+    var attributionOpacity: CGFloat = 1
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(geometry?.rowProgress ?? 0, geometry?.columnTop ?? 0) }
+        set {
+            geometry?.rowProgress = newValue.first
+            geometry?.columnTop = newValue.second
+        }
+    }
+
     var body: some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            Button(action: onDownload) {
-                Image(systemName: "arrow.down.circle")
-                    .font(.system(size: 17, weight: .semibold))
+        if let geometry {
+            ZStack(alignment: .topLeading) {
+                downloadButton.position(geometry.position(at: 0, trailing: true))
+                focusButton.position(geometry.position(at: 1, trailing: true))
+                if weatherInfoEnabled {
+                    weatherInformation
+                        .position(geometry.position(at: 2, trailing: true))
+                }
+                mapAttributionView
+                    .frame(width: 182)
+                    .position(
+                        x: geometry.width - 99,
+                        y: geometry.position(at: weatherInfoEnabled ? 2 : 1, trailing: true).y + 42 + (weatherInfoEnabled ? 20 : 0)
+                    )
+                    .opacity(attributionOpacity)
+                    .allowsHitTesting(attributionOpacity > 0.05)
+                    .accessibilityHidden(attributionOpacity <= 0.05)
             }
-            .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
-            .accessibilityLabel("Offline map area")
-            .accessibilityHint("Manages installed maps, routing, and places for offline use.")
+        } else {
+        VStack(alignment: .trailing, spacing: 8) {
+            downloadButton
 
             if let onFitRoute {
                 Menu {
@@ -34,26 +57,43 @@ struct OutdoorMapControls: View {
                 .accessibilityLabel("Trip map controls")
             }
 
-            Button(action: onFocusLocation) {
-                Image(systemName: followsUser ? "location.fill" : "location")
-                    .font(.system(size: 17, weight: .semibold))
-            }
-            .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
-            .accessibilityLabel("Focus current location")
-            .accessibilityValue(followsUser ? "Following" : "Not following")
-            .accessibilityHint("Centers the map on your current position and follows it.")
-
-            if weatherInfoEnabled {
-                VStack(alignment: .trailing, spacing: 4) {
-                    weatherView
-                    if let presentation = weatherState.presentation {
-                        weatherAttributionView(presentation.attribution)
-                    }
-                }
-            }
+            focusButton
+            if weatherInfoEnabled { weatherInformation }
 
             mapAttributionView
         }
+        }
+    }
+
+    private var downloadButton: some View {
+        Button(action: onDownload) {
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 17, weight: .semibold))
+        }
+        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+        .accessibilityLabel("Offline map area")
+        .accessibilityHint("Manages installed maps, routing, and places for offline use.")
+    }
+
+    private var focusButton: some View {
+        Button(action: onFocusLocation) {
+            Image(systemName: followsUser ? "location.fill" : "location")
+                .font(.system(size: 17, weight: .semibold))
+        }
+        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+        .accessibilityLabel("Focus current location")
+        .accessibilityValue(followsUser ? "Following" : "Not following")
+        .accessibilityHint("Centers the map on your current position and follows it.")
+    }
+
+    private var weatherInformation: some View {
+        weatherView
+            .overlay(alignment: .bottomTrailing) {
+                if let presentation = weatherState.presentation {
+                    weatherAttributionView(presentation.attribution)
+                        .offset(y: 20)
+                }
+            }
     }
 
     private var mapAttributionView: some View {

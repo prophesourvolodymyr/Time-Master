@@ -25,6 +25,7 @@ struct OutdoorPineGlassSurface<Content: View>: View {
     let cornerRadius: CGFloat
     let flat: Bool
     let interactive: Bool
+    let solid: Bool
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -35,6 +36,7 @@ struct OutdoorPineGlassSurface<Content: View>: View {
         cornerRadius: CGFloat,
         flat: Bool = false,
         interactive: Bool = true,
+        solid: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.identity = identity
@@ -42,6 +44,7 @@ struct OutdoorPineGlassSurface<Content: View>: View {
         self.cornerRadius = cornerRadius
         self.flat = flat
         self.interactive = interactive
+        self.solid = solid
         self.content = content
     }
 
@@ -75,6 +78,7 @@ struct OutdoorPineGlassSurface<Content: View>: View {
                 .glassEffectID(identity, in: namespace)
         }
         .clipShape(RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous))
+        .background(solid ? Theme.surface : .clear)
     }
 
     @available(iOS 26.0, *)
@@ -98,14 +102,14 @@ struct OutdoorPineGlassSurface<Content: View>: View {
     private var fallbackSurface: some View {
         content()
             .background {
-                OutdoorFrostedGlassBackground()
+                if !solid { OutdoorFrostedGlassBackground() }
                 RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
-                    .fill(Theme.surface.opacity(0.20))
+                    .fill(Theme.surface.opacity(solid ? 1 : 0.20))
             }
             .clipShape(RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                    .strokeBorder(Color.white.opacity(solid ? 0 : 0.14), lineWidth: 1)
             }
     }
 
@@ -114,21 +118,23 @@ struct OutdoorPineButtonStyle: ButtonStyle {
     let prominent: Bool
     let circular: Bool
     let minimumSize: CGFloat
+    let expansion: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    init(prominent: Bool = false, circular: Bool = false, minimumSize: CGFloat = 44) {
+    init(prominent: Bool = false, circular: Bool = false, minimumSize: CGFloat = 44, expansion: CGFloat = 1) {
         self.prominent = prominent
         self.circular = circular
         self.minimumSize = minimumSize
+        self.expansion = min(1, max(0, expansion))
     }
 
     func makeBody(configuration: Configuration) -> some View {
         let tintOpacity = prominent ? 0.58 : 0.46
         return material(
             configuration.label
-                .padding(.horizontal, circular ? 0 : 8)
+                .padding(.horizontal, circular ? 0 : 8 * expansion)
                 .frame(width: circular ? minimumSize : nil, height: circular ? minimumSize : nil)
                 .frame(minWidth: minimumSize, minHeight: minimumSize)
                 .foregroundStyle(Theme.textPrimary)
@@ -177,7 +183,7 @@ struct OutdoorPineButtonStyle: ButtonStyle {
     }
 
     private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: circular ? minimumSize / 2 : 14, style: .continuous)
+        RoundedRectangle(cornerRadius: circular ? minimumSize / 2 : minimumSize / 2 + (14 - minimumSize / 2) * expansion, style: .continuous)
     }
 }
 
@@ -368,46 +374,35 @@ private struct OutdoorHandleCurve: Shape {
 
 struct OutdoorCornerResizeHandle: View {
     let drag: OutdoorPineDragState
+    let collapseProgress: CGFloat
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
 
     var body: some View {
-        OutdoorCornerGrip()
-            .stroke(Color.white.opacity(drag.isDragging ? 1 : 0.78), style: StrokeStyle(lineWidth: 4, lineCap: .round))
-            .frame(width: 20, height: 20)
-            .rotationEffect(.degrees(reduceMotion ? 0 : Double(drag.handleBend)))
-            .offset(
-                x: reduceMotion ? 0 : drag.handleBias * 0.35,
-                y: reduceMotion ? 0 : drag.handleBend * 0.35
-            )
-            .scaleEffect(reduceMotion ? 1 : appeared ? (drag.isDragging ? 1.08 : 1) : 0.7, anchor: .topTrailing)
-            .shadow(color: .white.opacity(drag.isDragging ? 0.36 : 0), radius: 4)
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
-            .animation(
-                reduceMotion ? .easeOut(duration: 0.12) : .spring(response: 0.3, dampingFraction: 0.72),
-                value: drag.isDragging
-            )
-            .onAppear {
-                withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.66)) {
-                    appeared = true
-                }
-            }
+        let progress = min(1, max(0, collapseProgress))
+        ZStack {
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                .opacity(1 - progress)
+                .scaleEffect(1 - progress * 0.12)
+            Image(systemName: "arrow.down.right.and.arrow.up.left")
+                .opacity(progress)
+                .scaleEffect(0.88 + progress * 0.12)
+        }
+        .font(.system(size: 18, weight: .semibold))
+        .foregroundStyle(Theme.textPrimary)
+        .rotationEffect(.degrees(reduceMotion ? 0 : Double(drag.handleBend) * 0.5))
+        .scaleEffect(reduceMotion || !drag.isDragging ? 1 : 1.06)
+        .frame(width: 44, height: 44)
+        .background(Theme.surface2.opacity(drag.isDragging ? 0.92 : 0.76), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.white.opacity(drag.isDragging ? 0.30 : 0.14), lineWidth: 1)
+        }
+        .contentShape(Rectangle())
+        .animation(reduceMotion ? .none : .spring(response: 0.24, dampingFraction: 0.9), value: drag.isDragging)
     }
 }
 
-private struct OutdoorCornerGrip: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX, y: rect.maxY),
-            control: CGPoint(x: rect.maxX, y: rect.minY)
-        )
-        return path
-    }
-}
 
 
 #endif

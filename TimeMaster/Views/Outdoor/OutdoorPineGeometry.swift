@@ -6,11 +6,16 @@ enum OutdoorRouteFeature: String, CaseIterable, Identifiable {
     case music
     case rate
     case route
+    case library
 
     var id: String { rawValue }
 
     var title: String {
-        rawValue.capitalized
+        switch self {
+        case .rate: "Heart"
+        case .route: "Routes"
+        default: rawValue.capitalized
+        }
     }
 
     var systemImage: String {
@@ -19,6 +24,7 @@ enum OutdoorRouteFeature: String, CaseIterable, Identifiable {
         case .music: "music.note"
         case .rate: "heart"
         case .route: "point.topleft.down.curvedto.point.bottomright.up"
+        case .library: "square.grid.2x2"
         }
     }
 }
@@ -48,7 +54,7 @@ struct OutdoorPineGeometry: Equatable {
     var playerReserve: CGFloat
     var fullscreenBounds: CGRect? = nil
     static let quickStackHeight: CGFloat = 148
-    private var minimumInteractivePaneHeight: CGFloat { 48 + 44 * 2 + 8 + 12 }
+    private var minimumInteractivePaneHeight: CGFloat { 48 + 44 * 2 + 8 + 12 + 6 }
 
     var usableHeight: CGFloat {
         max(1, size.height - safeAreaTop - safeAreaBottom)
@@ -67,7 +73,7 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var mainFullHeight: CGFloat {
-        max(1, size.height - safeAreaTop - lowerInset - 8)
+        mainMaximumHeight * 0.95
     }
 
     var mainMaximumFrame: CGRect {
@@ -87,12 +93,43 @@ struct OutdoorPineGeometry: Equatable {
         max(0, mainMaximumFrame.maxY - size.height) + lowerInset
     }
 
-    var fullscreenDragTravel: CGFloat {
-        max(44, mainTop(mainHeight: mainFullHeight, featureHeight: nil) - mainMaximumFrame.minY)
+    var fullscreenPrimaryHeight: CGFloat {
+        mainMaximumHeight * 0.30
     }
 
-    func fullscreenProgress(forProposedHeight height: CGFloat) -> CGFloat {
-        min(1, max(0, (height - mainFullHeight) / fullscreenDragTravel))
+    var fullscreenFeatureFrame: CGRect {
+        CGRect(
+            x: mainMaximumFrame.minX,
+            y: mainMaximumFrame.minY + fullscreenPrimaryHeight,
+            width: mainMaximumFrame.width,
+            height: mainMaximumHeight - fullscreenPrimaryHeight
+        )
+    }
+
+    var fullscreenDragTravel: CGFloat {
+        max(44, mainMaximumHeight - mainFullHeight)
+    }
+
+    func clampedMainHeight(_ proposed: CGFloat, featureHeight: CGFloat? = nil) -> CGFloat {
+        let minimum = featureHeight == nil ? mainCompactHeight : mainMinimumWithFeature
+        let maximum = featureHeight.map {
+            max(minimum, min(mainFullHeight, size.height - lowerInset - $0 - safeAreaTop - 8))
+        } ?? mainFullHeight
+        return min(maximum, max(minimum, proposed))
+    }
+
+    func actionLabelProgress(for height: CGFloat) -> CGFloat {
+        let value = min(1, max(0, (height / mainMaximumHeight - 0.60) / 0.08))
+        return value * value * (3 - 2 * value)
+    }
+
+    func utilityOpacity(for height: CGFloat) -> CGFloat {
+        min(1, max(0, (mainMaximumHeight - height) / (mainMaximumHeight * 0.05)))
+    }
+
+    func utilityRowProgress(for height: CGFloat) -> CGFloat {
+        let value = min(1, max(0, (height / mainMaximumHeight - 0.50) / 0.30))
+        return value * value * (3 - 2 * value)
     }
 
     var featureCompactHeight: CGFloat {
@@ -136,7 +173,8 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     func maximumFeatureHeight(music: Bool) -> CGFloat {
-        max(1, min(music ? musicMaximumHeight : featureExpandedHeight, mainFullHeight - mainMinimumWithFeature))
+        let available = size.height - safeAreaTop - lowerInset - 8 - mainMinimumWithFeature
+        return max(1, min(music ? musicMaximumHeight : featureExpandedHeight, available))
     }
 
     func featureDragLayout(proposedHeight: CGFloat, music: Bool, allowsDismissal: Bool) -> (height: CGFloat, offset: CGFloat) {
@@ -165,14 +203,19 @@ struct OutdoorPineGeometry: Equatable {
         case .compact: music ? musicCompactHeight : featureCompactHeight
         case .medium: music ? musicMediumHeight : featureMediumHeight
         case .expanded: music ? musicFitHeight : featureExpandedHeight
-        case .max: music ? musicMaximumHeight : usableHeight * 0.31
+        case .max: fullscreenFeatureFrame.height
         }
     }
 
     func mainTop(mainHeight: CGFloat, featureHeight: CGFloat?, gap: CGFloat = 8) -> CGFloat {
-        let featureTop = featureHeight.map { size.height - lowerInset - $0 } ?? (size.height - lowerInset)
-        let bottom = featureHeight == nil ? size.height - lowerInset : featureTop - gap
-        return max(safeAreaTop, bottom - mainHeight)
+        if let featureHeight {
+            return max(safeAreaTop, size.height - lowerInset - featureHeight - gap - mainHeight)
+        }
+        let progress = min(1, max(0, (mainHeight - mainMediumHeight) / max(1, mainFullHeight - mainMediumHeight)))
+        let normalBottom = size.height - lowerInset
+        let expandedBottom = mainMaximumFrame.maxY - 10
+        let bottom = normalBottom + (expandedBottom - normalBottom) * progress
+        return max(mainMaximumFrame.minY, bottom - mainHeight)
     }
 
     func mainFrame(mainHeight: CGFloat, featureHeight: CGFloat?, fullscreenProgress: CGFloat) -> CGRect {
@@ -188,13 +231,33 @@ struct OutdoorPineGeometry: Equatable {
         )
     }
 
-    func quickStackTop(mainTop: CGFloat, preferred: CGFloat = 112, stackHeight: CGFloat = Self.quickStackHeight) -> CGFloat {
-        return max(safeAreaTop + 8, min(preferred, mainTop - 12 - stackHeight))
-    }
+}
 
-    func quickStackOpacity(mainTop: CGFloat, stackHeight: CGFloat = Self.quickStackHeight) -> CGFloat {
-        let available = mainTop - 12 - safeAreaTop
-        return max(0, min(1, (available - stackHeight + 34) / 34))
+struct OutdoorMapUtilityGeometry: Equatable {
+    var width: CGFloat
+    var columnTop: CGFloat
+    var rowTop: CGFloat
+    var rowProgress: CGFloat
+    var opacity: CGFloat
+
+    func position(at index: Int, trailing: Bool = false) -> CGPoint {
+        let edge: CGFloat = 33
+        let spacing: CGFloat = 52
+        let columnX = trailing ? width - edge : edge
+        let rowY = rowTop + 22
+        let p = min(1, max(0, rowProgress))
+        let inverse = 1 - p
+        let horizontal = sin(p * .pi / 2)
+        let vertical = cos(p * .pi / 2)
+        let h2 = horizontal * horizontal
+        let v2 = vertical * vertical
+        let h4 = h2 * h2
+        let v4 = v2 * v2
+        let stride = spacing / sqrt(sqrt(sqrt(h4 * h4 + v4 * v4)))
+        return CGPoint(
+            x: columnX + CGFloat(index) * stride * horizontal * (trailing ? -1 : 1),
+            y: rowY + (columnTop - rowTop) * inverse * inverse * inverse + CGFloat(index) * stride * vertical
+        )
     }
 }
 

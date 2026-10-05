@@ -887,6 +887,31 @@ F27 Home ───────────────┘
     - [x] Pass 24 focused non-UI regressions and launch on iPhone 16 with iOS 18.6 without automated UI interactions
     - [ ] Human review of route previews, fullscreen dragging, and pane motion
 
+  - [x] Outdoor fullscreen mode and free-height controls — implemented, ready for human review
+    - [x] Replace the corner grip with stable expand/collapse symbols and reserve fullscreen entry for that corner control
+    - [x] Keep fullscreen collapse taps enabled while disabling the corner resize gesture
+    - [x] Remove the central drag handles from fullscreen
+    - [x] Enlarge Home controls and fade labels in from sixty to sixty-eight percent of physical screen height, in floating and fullscreen layouts
+    - [x] Apply the same height-based label rule to workout controls while retaining pause, finish, music, and bus-transfer behavior
+    - [x] Integrate Library, Routes, Type, Heart, and Music into the lower seventy percent of fullscreen; preserve Heart's approved empty interior
+    - [x] Reflow Home controls and live metrics into the upper region while a secondary section is open
+    - [x] Keep the upper thirty-percent controls icon-only while a fullscreen secondary section is open
+    - [x] Release the covered background map renderer and retain camera state without interrupting GPS recording or adding energy-saving copy
+    - [x] Keep workout action buttons along the bottom at every pane height, with horizontal scrolling at accessibility text sizes
+    - [x] Limit the central line handle to floating expansion without entering fullscreen
+    - [x] Expand the floating background to ninety-five percent of the physical screen while preserving navigation and player space for content
+    - [x] Preserve arbitrary released floating heights without snapping to preset detents
+    - [x] Resize component geometry, metric placement, fonts, and labels continuously using the older stable layout as reference
+    - [x] Keep Start and activity text attached to and contained inside the Start circle throughout resizing
+    - [x] Fit Library and Routes captions at accessibility text sizes
+    - [x] Move map utilities from vertical columns into non-overlapping horizontal rows below the notch along a smooth curved path
+    - [x] Keep map utilities fully visible through ninety-five percent and fade them only between ninety-five percent and fullscreen
+    - [x] Hide the large map attribution pill from ninety-percent expansion while retaining map credits and licence links in Settings
+    - [x] Include eight existing Outdoor route files in the app and macOS Sources phases so current main builds
+    - [x] Keep Nearby Routes location requests, permission changes, and location-error feedback working while the map is detached
+    - [x] Pass thirty focused app-hosted checks per device and inspect eighteen read-only pane renders per device on iPhone 16 and SE with iOS 18.6, without automated UI interactions
+    - [ ] Human review of free-height dragging, corner fullscreen/collapse, resizing, labels, integrated pages, large-text scrolling, and map return
+
   - [ ] Trip planning and bus-transfer accounting — implementation prepared; human review pending
     - [x] Add Make a Trip, nearby suggestions, custom suggestions, saved trips, and drafts
     - [x] Add editable ordered stops, current-location starts, place search, map picking, trip and leg preferences

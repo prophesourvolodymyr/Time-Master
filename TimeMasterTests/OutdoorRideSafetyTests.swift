@@ -1,5 +1,6 @@
 import XCTest
 import CoreLocation
+import UIKit
 import TimeMasterCore
 @testable import TimeMaster
 
@@ -314,9 +315,9 @@ final class OutdoorRideSafetyTests: XCTestCase {
                 let layout = OutdoorPineGeometry(size: CGSize(width: 393, height: viewportHeight),
                                                  safeAreaTop: 59, safeAreaBottom: 34, playerReserve: playerHeight)
                 let safeBottom = viewportHeight - 34 - playerHeight
-                let mainTop = layout.mainTop(mainHeight: layout.mainFullHeight, featureHeight: nil)
+                let mainTop = layout.mainTop(mainHeight: layout.mainCompactHeight, featureHeight: nil)
                 XCTAssertGreaterThanOrEqual(mainTop, layout.safeAreaTop)
-                XCTAssertLessThan(mainTop + layout.mainFullHeight, safeBottom)
+                XCTAssertLessThan(mainTop + layout.mainCompactHeight, safeBottom)
 
                 let featureHeight = layout.maximumFeatureHeight(music: true)
                 let featureTop = viewportHeight - layout.lowerInset - featureHeight
@@ -360,6 +361,73 @@ final class OutdoorRideSafetyTests: XCTestCase {
         }
     }
 
+    func testFullscreenSecondarySectionKeepsItsSplitAboveReservedControls() {
+        for navigationReserve: CGFloat in [0, 146] {
+            for playerReserve: CGFloat in [0, 94] {
+                let layout = OutdoorPineGeometry(
+                    size: CGSize(width: 393, height: 759 - navigationReserve),
+                    safeAreaTop: 59,
+                    safeAreaBottom: max(0, 34 - navigationReserve),
+                    playerReserve: playerReserve,
+                    fullscreenBounds: CGRect(x: 0, y: -59, width: 393, height: 852)
+                )
+                let section = layout.fullscreenFeatureFrame
+                XCTAssertEqual(section.minY + 59, 852 * 0.30, accuracy: 0.01)
+                XCTAssertEqual(section.height, 852 * 0.70, accuracy: 0.01)
+                XCTAssertEqual(section.minX, 0)
+                XCTAssertEqual(section.width, 393)
+                XCTAssertEqual(section.maxY, layout.mainMaximumFrame.maxY)
+                XCTAssertEqual(
+                    section.maxY - layout.mainMaximumBottomPadding,
+                    layout.size.height - layout.lowerInset,
+                    accuracy: 0.01
+                )
+            }
+        }
+    }
+
+    func testCoveredMapCanRemountItsCameraWhileRecordingContinues() throws {
+        let preferences = OutdoorRecordingPreferencesStore(database: database)
+        try preferences.update { $0.autoPause = false }
+        let recorder = OutdoorLocationRecorder(kind: .bike, store: store, preferences: preferences)
+        XCTAssertTrue(recorder.resumeAfterFinish(try store.begin(kind: .bike)))
+        defer { recorder.cancel() }
+        let coordinator = OutdoorMapLibreView.Coordinator(
+            configuration: .main,
+            onCapabilityChange: nil,
+            onWeatherStateChange: nil,
+            onFollowStateChange: nil,
+            onHeadingChange: nil,
+            onFocusFailure: nil
+        )
+        let host = UIView(frame: CGRect(x: 0, y: 0, width: 393, height: 852))
+        let map = coordinator.mount(in: host, styleURL: nil)
+        map.setCenter(CLLocationCoordinate2D(latitude: 45, longitude: 7), zoomLevel: 14, animated: false)
+        coordinator.detach()
+        XCTAssertNil(map.superview)
+        XCTAssertFalse(map.showsUserLocation)
+
+        let now = Date()
+        recorder.locationManager(CLLocationManager(), didUpdateLocations: [
+            CLLocation(coordinate: .init(latitude: 45, longitude: 7), altitude: 100,
+                       horizontalAccuracy: 4, verticalAccuracy: 3,
+                       course: 0, speed: 5, timestamp: now.addingTimeInterval(-4)),
+            CLLocation(coordinate: .init(latitude: 45 + 10 / 6_371_000 * 180 / .pi, longitude: 7), altitude: 100,
+                       horizontalAccuracy: 4, verticalAccuracy: 3,
+                       course: 0, speed: 5, timestamp: now.addingTimeInterval(-2))
+        ])
+        XCTAssertEqual(recorder.state, .recording)
+        XCTAssertEqual(recorder.route.count, 2)
+        XCTAssertEqual(try XCTUnwrap(recorder.activeActivity).distanceMeters, 10, accuracy: 0.1)
+
+        let restored = coordinator.mount(in: host, styleURL: nil)
+        defer { coordinator.detach() }
+        XCTAssertFalse(restored === map)
+        XCTAssertEqual(restored.centerCoordinate.latitude, 45, accuracy: 0.000_001)
+        XCTAssertEqual(restored.centerCoordinate.longitude, 7, accuracy: 0.000_001)
+        XCTAssertEqual(restored.zoomLevel, 14, accuracy: 0.01)
+    }
+
     func testHandleFlexRemainsBoundedAndReversesWithTheDrag() {
         var drag = OutdoorPineDragState()
         drag.begin(at: 300)
@@ -378,21 +446,49 @@ final class OutdoorRideSafetyTests: XCTestCase {
         XCTAssertEqual(drag.handleBias, 0)
     }
 
-    func testMainDragContinuesPastFloatingLimitToScreenEdges() {
+    func testFloatingPanePreservesReleasedHeightAndStopsAtNinetyFivePercent() {
         let layout = OutdoorPineGeometry(
-            size: CGSize(width: 393, height: 759),
+            size: CGSize(width: 393, height: 613),
             safeAreaTop: 59,
-            safeAreaBottom: 34,
-            playerReserve: 0
+            safeAreaBottom: 0,
+            playerReserve: 94,
+            fullscreenBounds: CGRect(x: 0, y: -59, width: 393, height: 852)
         )
-        let proposedHeight = layout.mainFullHeight + layout.fullscreenDragTravel
-        let progress = layout.fullscreenProgress(forProposedHeight: proposedHeight)
-        let frame = layout.mainFrame(mainHeight: layout.mainFullHeight, featureHeight: nil, fullscreenProgress: progress)
-        XCTAssertEqual(frame.minY + 59, 0, accuracy: 0.01)
-        XCTAssertEqual(frame.maxY + 59, 852, accuracy: 0.01)
-        XCTAssertEqual(frame.width, 393, accuracy: 0.01)
-        let reversed = layout.fullscreenProgress(forProposedHeight: layout.mainFullHeight - 20)
-        XCTAssertEqual(reversed, 0)
+        let releasedHeight: CGFloat = 852 * 0.73
+        XCTAssertEqual(layout.clampedMainHeight(releasedHeight), releasedHeight, accuracy: 0.01)
+        let capped = layout.clampedMainHeight(852 * 1.4)
+        XCTAssertEqual(capped, 852 * 0.95, accuracy: 0.01)
+        let floating = layout.mainFrame(mainHeight: capped, featureHeight: nil, fullscreenProgress: 0)
+        XCTAssertEqual(floating.height / 852, 0.95, accuracy: 0.0001)
+        XCTAssertGreaterThan(floating.minY, layout.mainMaximumFrame.minY)
+        XCTAssertLessThan(floating.width, layout.mainMaximumFrame.width)
+        XCTAssertEqual(layout.clampedMainHeight(-100), layout.mainCompactHeight)
+    }
+
+    func testMapUtilitiesStayVisibleUntilFloatingLimitThenFadeToFullscreen() {
+        let layout = OutdoorPineGeometry(size: CGSize(width: 393, height: 759),
+                                         safeAreaTop: 59, safeAreaBottom: 34, playerReserve: 94)
+        XCTAssertEqual(layout.utilityOpacity(for: layout.mainMaximumHeight * 0.80), 1)
+        XCTAssertEqual(layout.utilityOpacity(for: layout.mainFullHeight), 1, accuracy: 0.0001)
+        XCTAssertEqual(layout.utilityOpacity(for: layout.mainMaximumHeight * 0.975), 0.5, accuracy: 0.0001)
+        XCTAssertEqual(layout.utilityOpacity(for: layout.mainMaximumHeight), 0)
+    }
+
+    func testMapUtilityTouchTargetsStaySeparateThroughoutCurvedReflow() {
+        for step in 0...20 {
+            let progress = CGFloat(step) / 20
+            let leading = OutdoorMapUtilityGeometry(width: 320, columnTop: 112, rowTop: 8, rowProgress: progress, opacity: 1)
+            let trailing = OutdoorMapUtilityGeometry(width: 320, columnTop: 250, rowTop: 8, rowProgress: progress, opacity: 1)
+            let points = (0..<3).map { leading.position(at: $0) } + (0..<3).map { trailing.position(at: $0, trailing: true) }
+            let targets = points.map { CGRect(x: $0.x - 22, y: $0.y - 22, width: 44, height: 44) }
+            for index in targets.indices {
+                XCTAssertGreaterThanOrEqual(targets[index].minX, 0)
+                XCTAssertLessThanOrEqual(targets[index].maxX, 320)
+                for other in targets.indices where other > index {
+                    XCTAssertFalse(targets[index].intersects(targets[other]), "Touch targets overlap at \(progress)")
+                }
+            }
+        }
     }
 
     func testDismissingFeatureSlidesWithoutCompressingItsContent() {
