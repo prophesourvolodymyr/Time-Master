@@ -186,6 +186,7 @@ public struct ConfigManifest: Codable, Equatable {
     public var trainingDurationMonths: Int
     public var typeSchedules: [TypeScheduleManifest]
     public var outdoorRecording: OutdoorRecordingPreferences?
+    public var workoutSchedule: WeeklyWorkoutSchedule?
 
     public var kind: String { "config" }
 
@@ -197,7 +198,8 @@ public struct ConfigManifest: Codable, Equatable {
         trainingStartDate: Date = Date(),
         trainingDurationMonths: Int = 3,
         typeSchedules: [TypeScheduleManifest] = [],
-        outdoorRecording: OutdoorRecordingPreferences? = nil
+        outdoorRecording: OutdoorRecordingPreferences? = nil,
+        workoutSchedule: WeeklyWorkoutSchedule? = nil
     ) {
         self.customWorkoutTypes = customWorkoutTypes
         self.weeklyGoal = max(1, min(7, weeklyGoal))
@@ -207,11 +209,12 @@ public struct ConfigManifest: Codable, Equatable {
         self.trainingDurationMonths = trainingDurationMonths
         self.typeSchedules = typeSchedules
         self.outdoorRecording = outdoorRecording
+        self.workoutSchedule = workoutSchedule
     }
  
     private enum CodingKeys: String, CodingKey {
         case customWorkoutTypes, weeklyGoal, restDays, trainingDays, trainingStartDate
-        case trainingDurationMonths, typeSchedules, outdoorRecording
+        case trainingDurationMonths, typeSchedules, outdoorRecording, workoutSchedule
     }
 
     public init(from decoder: Decoder) throws {
@@ -224,7 +227,8 @@ public struct ConfigManifest: Codable, Equatable {
             trainingStartDate: try c.decodeIfPresent(Date.self, forKey: .trainingStartDate) ?? Date(),
             trainingDurationMonths: try c.decodeIfPresent(Int.self, forKey: .trainingDurationMonths) ?? 3,
             typeSchedules: try c.decodeIfPresent([TypeScheduleManifest].self, forKey: .typeSchedules) ?? [],
-            outdoorRecording: try c.decodeIfPresent(OutdoorRecordingPreferences.self, forKey: .outdoorRecording)
+            outdoorRecording: try c.decodeIfPresent(OutdoorRecordingPreferences.self, forKey: .outdoorRecording),
+            workoutSchedule: try c.decodeIfPresent(WeeklyWorkoutSchedule.self, forKey: .workoutSchedule)
         )
     }
 
@@ -238,5 +242,6 @@ public struct ConfigManifest: Codable, Equatable {
         try c.encode(trainingDurationMonths, forKey: .trainingDurationMonths)
         try c.encode(typeSchedules, forKey: .typeSchedules)
         try c.encodeIfPresent(outdoorRecording, forKey: .outdoorRecording)
+        try c.encodeIfPresent(workoutSchedule, forKey: .workoutSchedule)
     }
 }

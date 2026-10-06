@@ -168,6 +168,7 @@ public final class SchemaManager {
                     "trainingStartDate": PropertySchema(type: "string", description: "Start date of training schedule", format: "date-time"),
                     "trainingDurationMonths": PropertySchema(type: "integer", description: "Training schedule duration"),
                     "typeSchedules": PropertySchema(type: "array<object>", description: "Per-type workout schedules"),
+                    "workoutSchedule": PropertySchema(type: "object", description: "Saved weekly Plans, dated Plan snapshots or Vacation selections, date-only workouts and removals, manual completion overrides, selected streak weekdays, and the first scheduled date. Weeks use Monday-based local calendar dates; Vacation freezes the weekly streak.", optional: true),
                     "outdoorRecording": PropertySchema(type: "object", description: "Optional persisted route preferences: metric/imperial units, auto-pause, keep-awake, precise/balanced GPS, hybrid/GPS/barometer elevation, speed smoothing, route-area download, weather, off/quiet/normal cues (quiet default), private/public default visibility, endpoint hiding clamped to 100/200/500 metres (200 default), comments, played-track visibility, haptics, and GPX/FIT export (GPX default)", optional: true),
                 ]
             ),

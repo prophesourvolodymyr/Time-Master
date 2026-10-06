@@ -21,7 +21,6 @@ struct WorkoutListView: View {
     @State private var searchText = ""
     @State private var showingSearch = false
     @FocusState private var searchFieldFocused: Bool
-    @State private var showingSettings = false
     @State private var playerWorkout: Workout?
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
@@ -73,11 +72,6 @@ struct WorkoutListView: View {
                 )
             }
             #endif
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-                    .environmentObject(store)
-                    .environmentObject(outdoorStore)
-            }
             .onAppear {
                 openRequestedWorkout(requestedWorkoutID)
             }
@@ -275,7 +269,7 @@ struct WorkoutListView: View {
                         width: controlWidth,
                         height: controlHeight
                     ) {
-                        showingSettings = true
+                        NotificationCenter.default.post(name: .openSettingsCommand, object: nil)
                     }
                     chromeButton(
                         systemImage: "plus",

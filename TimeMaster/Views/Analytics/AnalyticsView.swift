@@ -1,4 +1,5 @@
 import SwiftUI
+import TimeMasterCore
 
 // MARK: - GoalsManager
 
@@ -593,10 +594,7 @@ struct ActivityHeatmap: View {
     }
 
     private func workoutCount(on date: Date) -> Int {
-        let cal = Calendar.current
-        let start = cal.startOfDay(for: date)
-        guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return 0 }
-        return entries.filter { $0.completedAt >= start && $0.completedAt < end }.count
+        store.scheduleActivityCount(on: date)
     }
 
     private func outdoorCount(on date: Date) -> Int {
@@ -620,10 +618,20 @@ struct ActivityHeatmap: View {
 
 // MARK: - Calendar Page
 
-private struct CalendarPage: View {
+struct CalendarPage: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var store: WorkoutStore
     let entries: [WorkoutHistoryEntry]
+    let selectedWeek: Date?
+    let onSelectWeek: ((Date) -> Void)?
+
+    init(entries: [WorkoutHistoryEntry], selectedWeek: Date? = nil, onSelectWeek: ((Date) -> Void)? = nil) {
+        self.entries = entries
+        self.selectedWeek = selectedWeek
+        self.onSelectWeek = onSelectWeek
+        _currentMonth = State(initialValue: selectedWeek ?? Date())
+        _showYearView = State(initialValue: selectedWeek == nil)
+    }
 
     @State private var currentMonth: Date = Date()
     @State private var selectedDate: Date?
@@ -663,6 +671,13 @@ private struct CalendarPage: View {
 
                 VStack(spacing: 0) {
                     yearNav
+                    if onSelectWeek != nil {
+                        Text("Tap a day to open its week. Outlined days are your selected week.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                    }
 
                     if showYearView {
                         yearOverview
@@ -674,7 +689,7 @@ private struct CalendarPage: View {
                         .padding(.top, 10)
                 }
             }
-            .navigationTitle("Activity")
+            .navigationTitle(onSelectWeek == nil ? "Activity" : "Schedule calendar")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -692,11 +707,13 @@ private struct CalendarPage: View {
                         .foregroundColor(.white)
                 }
                                  }
+                if onSelectWeek == nil {
                 AppToolbar.iconItem(placement: .primaryAction) { Button {
                     showVacationSheet = true
                 } label: {
                     Image(systemName: "moon.zzz.fill")
                         .foregroundColor(.white)
+                }
                 }
                 }
                 AppToolbar.item(placement: .primaryAction) { Button("Done") { dismiss() }.foregroundColor(.white)
@@ -857,6 +874,10 @@ private struct CalendarPage: View {
                                 RoundedRectangle(cornerRadius: 1)
                                     .fill(fill)
                                     .frame(width: 7, height: 7)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .stroke(isHighlighted(dayDate) ? Color.white : .clear, lineWidth: 1)
+                                    }
                             } else {
                                 Color.clear.frame(width: 7, height: 7)
                             }
@@ -921,7 +942,7 @@ private struct CalendarPage: View {
             let workoutDays = workoutDaysInMonth(month: calendar.component(.month, from: currentMonth), year: currentYear)
             if workoutDays > 0 {
                 HStack {
-                    Text("\(workoutDays) workout\(workoutDays == 1 ? "" : "s") this month")
+                    Text("\(workoutDays) workout day\(workoutDays == 1 ? "" : "s") this month")
                         .font(.caption)
                         .foregroundColor(Theme.textSecondary)
                     Spacer()
@@ -955,7 +976,10 @@ private struct CalendarPage: View {
         }()
 
         return Button {
-            if !isFuture {
+            if let onSelectWeek {
+                onSelectWeek(date)
+                dismiss()
+            } else if !isFuture {
                 selectedDate = date
                 showDayInfo = true
             }
@@ -965,16 +989,22 @@ private struct CalendarPage: View {
                     .fill(bg)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(isToday ? Color.white.opacity(0.7) : Color.clear, lineWidth: 1.5)
+                            .stroke(isHighlighted(date) ? Color.white : isToday ? Color.white.opacity(0.7) : Color.clear, lineWidth: isHighlighted(date) ? 2 : 1.5)
                     )
                 Text("\(calendar.component(.day, from: date))")
                     .font(.system(size: 14, weight: isToday ? .bold : .regular))
-                    .foregroundColor(isFuture ? Theme.textSecondary.opacity(0.25) : .white)
+                    .foregroundColor(isFuture && onSelectWeek == nil ? Theme.textSecondary.opacity(0.25) : .white)
             }
             .frame(height: 48)
             .frame(maxWidth: .infinity)
         }
-        .disabled(isFuture)
+        .disabled(isFuture && onSelectWeek == nil)
+        .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts\(isHighlighted(date) ? ", selected week" : "")")
+    }
+
+    private func isHighlighted(_ date: Date) -> Bool {
+        guard let selectedWeek, let end = calendar.date(byAdding: .day, value: 7, to: selectedWeek) else { return false }
+        return date >= selectedWeek && date < end
     }
 
     // MARK: - Legend
@@ -1000,10 +1030,7 @@ private struct CalendarPage: View {
     // MARK: - Stats helpers
 
     private func workoutCount(on date: Date) -> Int {
-        let cal = Calendar.current
-        let start = cal.startOfDay(for: date)
-        guard let end = cal.date(byAdding: .day, value: 1, to: start) else { return 0 }
-        return entries.filter { $0.completedAt >= start && $0.completedAt < end }.count
+        store.scheduleActivityCount(on: date)
     }
 
     private func workoutDaysInMonth(month: Int, year: Int) -> Int {
@@ -1067,8 +1094,13 @@ private struct DayInfoSheet: View {
         return entries.filter { $0.completedAt >= start && $0.completedAt < end }
     }
 
+    private var manualEntries: [WeeklyWorkoutSchedule.Occurrence] {
+        store.scheduleOccurrences(on: date).filter { $0.isComplete && $0.matchedSessionID == nil }
+    }
+
     private var totalMinutes: Int {
-        dayEntries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) } / 60
+        (dayEntries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) }
+            + manualEntries.reduce(0) { $0 + ($1.entry.durationSeconds ?? 0) }) / 60
     }
 
     private var isRest: Bool { store.isRestDay(date) }
@@ -1086,7 +1118,7 @@ private struct DayInfoSheet: View {
                             .foregroundColor(Theme.textPrimary)
 
                         HStack(spacing: 20) {
-                            statChip(value: "\(dayEntries.count)", label: "workouts")
+                            statChip(value: "\(dayEntries.count + manualEntries.count)", label: "workouts")
                             statChip(value: "\(totalMinutes)m", label: "total time")
                         }
 
@@ -1107,7 +1139,7 @@ private struct DayInfoSheet: View {
                                     .background(Color.white.opacity(0.1))
                                     .cornerRadius(6)
                             }
-                            if !isRest && isScheduled && dayEntries.isEmpty {
+                            if !isRest && isScheduled && dayEntries.isEmpty && manualEntries.isEmpty {
                                 Label("Missed", systemImage: "xmark.circle")
                                     .font(.caption.weight(.semibold))
                                     .foregroundColor(.red)
@@ -1122,7 +1154,7 @@ private struct DayInfoSheet: View {
                     .frame(maxWidth: .infinity)
                     .background(Theme.surface)
 
-                    if dayEntries.isEmpty {
+                    if dayEntries.isEmpty && manualEntries.isEmpty {
                         Spacer()
                         VStack(spacing: 8) {
                             Image(systemName: isRest ? "moon.zzz" : (isScheduled ? "calendar.badge.exclamationmark" : "figure.walk"))
@@ -1140,6 +1172,21 @@ private struct DayInfoSheet: View {
                             ForEach(dayEntries) { entry in
                                 HistoryRow(entry: entry)
                                     .listRowBackground(Theme.surface)
+                            }
+                            ForEach(manualEntries) { item in
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Label(item.entry.title, systemImage: item.entry.icon)
+                                        .font(.headline)
+                                    Text(item.entry.workoutID == nil ? "Custom workout" : "Completed manually")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                    if let seconds = item.entry.durationSeconds {
+                                        Text("\(seconds / 60) min").font(.caption.monospacedDigit())
+                                    }
+                                    if !item.entry.notes.isEmpty {
+                                        Text(item.entry.notes).font(.subheadline).foregroundStyle(.secondary)
+                                    }
+                                }
+                                .listRowBackground(Theme.surface)
                             }
                         }
                         .listStyle(.plain)

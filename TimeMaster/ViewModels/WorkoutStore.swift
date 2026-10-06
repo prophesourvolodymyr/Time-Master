@@ -6,7 +6,17 @@ import TimeMasterCore
 
 class WorkoutStore: ObservableObject {
     @Published var workouts: [Workout] = []
-    @Published var historyEntries: [WorkoutHistoryEntry] = []
+    @Published var historyEntries: [WorkoutHistoryEntry] = [] {
+        didSet {
+            scheduleActivity = WeeklyWorkoutSchedule.Activity(sessions: historyEntries.filter { !$0.isPartial }.map {
+                WeeklyWorkoutSchedule.Session(id: $0.id, workoutID: $0.workoutId, date: $0.completedAt)
+            })
+        }
+    }
+    @Published var weeklySchedule = WeeklyWorkoutSchedule()
+    @Published var scheduleActivity = WeeklyWorkoutSchedule.Activity()
+    @Published var scheduleError: String?
+    @Published var scheduleIsLoaded = false
 
     private let workoutsKey = "workouts"
     private let historyKey = "workout_history"
@@ -44,6 +54,7 @@ class WorkoutStore: ObservableObject {
                 saveWorkouts()
             }
         }
+        loadWeeklySchedule()
     }
 
     // MARK: - File System Loading
@@ -355,6 +366,7 @@ class WorkoutStore: ObservableObject {
             loadHistory()
             saveWorkouts()
         }
+        loadWeeklySchedule()
     }
 
     private func saveWorkouts() {
@@ -372,6 +384,10 @@ class WorkoutStore: ObservableObject {
         if let data = try? JSONEncoder().encode(workouts) {
             userDefaults.set(data, forKey: workoutsKey)
         }
+        refreshWidgetData()
+    }
+
+    func refreshWidgetData() {
         let sharedDefaults = UserDefaults(suiteName: "group.com.timemaster.shared")
         let calendar = Calendar.current
         let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
@@ -439,6 +455,7 @@ class WorkoutStore: ObservableObject {
     }
 
     private func saveHistory() {
+        defer { refreshWidgetData() }
         if isMigrated {
             let history = historyEntries.map { entry in
                 HistoryEntry(
@@ -518,10 +535,13 @@ class WorkoutStore: ObservableObject {
     }
 
     func isRestDay(_ date: Date) -> Bool {
-        restDays.contains(dateKey(from: date))
+        weeklySchedule.selection(for: date)?.isVacation == true || restDays.contains(dateKey(from: date))
     }
 
     func isScheduledDay(_ date: Date) -> Bool {
+        if weeklySchedule.selection(for: date) != nil {
+            return !weeklySchedule.entries(on: date).isEmpty
+        }
         let cal = Calendar.current
         let weekday = cal.component(.weekday, from: date)
         let monBased = (weekday + 5) % 7 + 1
@@ -545,6 +565,10 @@ class WorkoutStore: ObservableObject {
     }
 
     func scheduledTypes(for date: Date) -> [WorkoutType] {
+        if weeklySchedule.selection(for: date) != nil {
+            let ids = Set(weeklySchedule.entries(on: date).compactMap(\.workoutID))
+            return Array(Set(workouts.filter { ids.contains($0.id) }.map(\.type)))
+        }
         let cal = Calendar.current
         let weekday = cal.component(.weekday, from: date)
         let monBased = (weekday + 5) % 7 + 1
@@ -554,6 +578,16 @@ class WorkoutStore: ObservableObject {
             .map { $0.type }
     }
     func scheduledWorkouts(for date: Date, now: Date = Date()) -> [ScheduledWorkout] {
+        if weeklySchedule.selection(for: date) != nil || weeklySchedule.additions[WeeklyWorkoutSchedule.dayKey(date)] != nil {
+            return scheduleOccurrences(on: date).compactMap { occurrence in
+                guard let id = occurrence.entry.workoutID, let workout = workout(id: id) else { return nil }
+                let start = occurrence.start ?? Calendar.current.startOfDay(for: date)
+                let status: ScheduledWorkoutStatus = occurrence.isComplete ? .completed
+                    : (Calendar.current.startOfDay(for: date) < Calendar.current.startOfDay(for: now) ? .missed : .pending)
+                return ScheduledWorkout(id: occurrence.id, workout: workout, scheduledStart: start,
+                                        scheduledFinish: occurrence.finish ?? start, status: status)
+            }
+        }
         let calendar = Calendar.current
         let dayStart = calendar.startOfDay(for: date)
         let weekday = calendar.component(.weekday, from: date)
@@ -619,6 +653,7 @@ class WorkoutStore: ObservableObject {
         let cal = Calendar.current
         let start = cal.startOfDay(for: date)
         return historyEntries.contains { cal.isDate($0.completedAt, inSameDayAs: start) }
+            || weeklySchedule.activityCount(on: date, activity: scheduleActivity) > 0
     }
 
     func dateKey(from date: Date) -> String {

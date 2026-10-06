@@ -1086,6 +1086,33 @@ The focused iPhone renders covered the editor at the top and scrolled down, its 
 
 ---
 
+## Cycle 31 — Weekly Schedule and Settings Destinations
+
+**Implementation handoff: 2026-10-05. Requested by the user; human review pending.**
+
+- [x] Add Schedule to the navigation bar and preserve each existing custom navigation order
+- [x] Make Settings a navigation destination and route the existing Home, Workouts, and settings-command shortcuts to it instead of separate sheets
+- [x] Build the Monday–Sunday timeline with an outlined Today, daily workout and minute totals, connected library workouts, and the shared duration picker
+- [x] Save reusable Plans with names and icons, equip them from a chosen week onward, and preserve previous weeks when the current Plan changes
+- [x] Put Vacation in the Plans chooser, empty vacation weeks, freeze streak progression, and resume by choosing a Plan
+- [x] Offer a remembered 1–7-day streak challenge on every Schedule entry without an onboarding flow
+- [x] Share animated difficulty-specific flames between the challenge chooser and weekly header, including the dark seven-day treatment
+- [x] Match completed in-app workouts to scheduled occurrences without counting partial sessions or reusing one session for duplicate occurrences
+- [x] Allow manual completion and correction for current and past workouts without allowing future completion
+- [x] Log outside-app workouts from Today with only a required title and optional start time, duration, description, and exercise count
+- [x] Reuse the analytics calendar with selected-week outlines, daily activity counts, and navigation back to the chosen week
+- [x] Navigate weeks with accessible buttons and pull-and-hold; cancel short pulls and early releases, move once per hold, and rearm after release
+- [x] Keep the bottom of the timeline reachable above the navigation bar and adapt the week header at large accessibility text sizes
+- [x] Persist Plans, weekly selections, challenges, custom logs, and completion overrides through the existing configuration store
+- [x] Run 11 focused scheduling model checks and the real-store completion/reload scenario; exercise the connected Schedule and Settings flow in an isolated iOS Simulator app and build iOS and macOS
+- [ ] Human review of Schedule layout, Plan editing and recurrence, Vacation/resume, challenge choices, flame styling and motion, and calendar navigation
+- [ ] Human review of automatic/manual completion, custom logging, persistence, large text, and pull-and-hold behavior
+- [ ] Human review of Settings as a destination and the migrated Home, Workouts, and settings-command shortcuts
+
+Native checks used a task-only snapshot with committed app-entry files because the working tree contains unrelated edits and deleted app entry points. The final native flow covered Plan creation, title-only and optional-field custom logs, completion correction, next-week recurrence, calendar selection, Vacation/resume, Settings, challenge re-entry, and relaunch persistence. Separate native checks covered pull cancellation, one-week-per-hold behavior, repeated pulls, and large-text navigation. macOS was build-checked; macOS interaction review remains with the human. Product DOCKS.md files remain unchanged pending acceptance.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

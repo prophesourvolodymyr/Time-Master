@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import UniformTypeIdentifiers
+import TimeMasterCore
 #if os(iOS)
 import UIKit
 #endif
@@ -16,7 +17,7 @@ struct MainTabView: View {
     @StateObject private var navigationLayout = SlotNavigationLayoutStore()
     @State private var selectedDestination: String? = SlotNavigationDestination.home.rawValue
     @State private var lastPageDestination = SlotNavigationDestination.home.rawValue
-    @State private var showingSettings = false
+    @State private var scheduleWeek = WeeklyWorkoutSchedule.weekStart(Date())
     @State private var requestedWorkoutID: UUID?
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
@@ -118,7 +119,10 @@ struct MainTabView: View {
             routeToWorkoutDetail(notification)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsCommand)) { _ in
-            showingSettings = true
+            if !navigationLayout.contains(id: SlotNavigationDestination.settings.rawValue) {
+                navigationLayout.insert(id: SlotNavigationDestination.settings.rawValue, at: navigationLayout.order.count)
+            }
+            selectedDestination = SlotNavigationDestination.settings.rawValue
         }
         .onChange(of: selectedDestination) { destination in
             guard let destination, destination != SlotNavigationDestination.map.rawValue else { return }
@@ -134,14 +138,6 @@ struct MainTabView: View {
         }
         .onReceive(workoutStore.$workouts.dropFirst()) { musicLibraryStore.setWorkouts($0) }
         .onReceive(workoutStore.$customWorkoutTypes.dropFirst()) { musicLibraryStore.setCustomTypes($0) }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-                .environmentObject(workoutStore)
-                .environmentObject(outdoorStore)
-                #if os(macOS)
-                .frame(minWidth: 520, minHeight: 520)
-                #endif
-        }
     }
 
     private var selectedPage: SlotNavigationDestination {
@@ -164,6 +160,13 @@ struct MainTabView: View {
                 .environmentObject(outdoorStore)
         case .analytics:
             AnalyticsView()
+                .environmentObject(workoutStore)
+                .environmentObject(outdoorStore)
+        case .schedule:
+            ScheduleView(week: $scheduleWeek)
+                .environmentObject(workoutStore)
+        case .settings:
+            SettingsView()
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
         case .coach:

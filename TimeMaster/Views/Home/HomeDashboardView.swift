@@ -14,7 +14,6 @@ struct HomeDashboardView: View {
 
     @StateObject private var widgetStore = HomeWidgetStore()
     @State private var playerWorkout: Workout?
-    @State private var showingSettings = false
     @State private var showingWidgetPicker = false
     @State private var isEditing = false
     @State private var pendingWidget: HomeWidgetInstance?
@@ -66,11 +65,6 @@ struct HomeDashboardView: View {
                     .environmentObject(store)
                     .environmentObject(databaseStore)
             }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-                    .environmentObject(store)
-                    .environmentObject(outdoorStore)
-            }
             .sheet(isPresented: $showingWidgetPicker, onDismiss: insertPendingWidget) {
                 HomeWidgetPicker(widgetStore: widgetStore) { kind, footprint in
                     pendingWidget = HomeWidgetInstance(kind: kind, footprint: footprint)
@@ -113,7 +107,7 @@ struct HomeDashboardView: View {
             }
             AppToolbar.iconItem(placement: .primaryAction) {
                 Button {
-                    showingSettings = true
+                    NotificationCenter.default.post(name: .openSettingsCommand, object: nil)
                 } label: {
                     Image(systemName: "gearshape")
                         .foregroundStyle(.white)
