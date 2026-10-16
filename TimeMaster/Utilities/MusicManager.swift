@@ -100,16 +100,14 @@ final class MusicManager: ObservableObject {
     // MARK: - Import / Delete
 
     /// Copies a file into Documents/Music/ and registers it.
-    func importTrack(from url: URL) {
+    func importTrack(from url: URL) throws {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
         let filename = UUID().uuidString + "_" + url.lastPathComponent
         let dest = musicDir.appendingPathComponent(filename)
-        do {
-            try FileManager.default.copyItem(at: url, to: dest)
-            trackFilenames.append(filename)
-            UserDefaults.standard.set(trackFilenames, forKey: filenamesKey)
-        } catch {}
+        try FileManager.default.copyItem(at: url, to: dest)
+        trackFilenames.append(filename)
+        UserDefaults.standard.set(trackFilenames, forKey: filenamesKey)
     }
 
     func importTrackAsync(from url: URL) async throws {

@@ -33,10 +33,11 @@ struct MusicSettingsView: View {
                                 if isVideo {
                                     try await manager.importTrackAsync(from: url)
                                 } else {
-                                    manager.importTrack(from: url)
+                                    try manager.importTrack(from: url)
                                 }
                             }
                             library.adoptMusicManagerTracks()
+                            await library.refreshLocalDurations()
                         } catch {
                             importError = error.localizedDescription
                         }

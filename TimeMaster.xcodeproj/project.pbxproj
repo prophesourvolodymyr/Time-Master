@@ -55,6 +55,14 @@
 		1F014AA42226639BBE471F24 /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E287CB0142E9444C0E8CE06 /* BackupManager.swift */; };
 		1F274F3E8959E47F959214B8 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = E71A7098B60A6725751FAE2A /* ThirdPartyNotices.txt */; };
 		1F38F1E5BDA6E33ABCFF446E /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F596DD500BCC620B6E3318 /* MusicManager.swift */; };
+		BA510001AA00000000000001 /* WorkoutMusicSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000001 /* WorkoutMusicSupport.swift */; };
+		BA510001AA00000000000002 /* WorkoutMusicSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000002 /* WorkoutMusicSession.swift */; };
+		BA510001AA00000000000003 /* WorkoutMusicTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000003 /* WorkoutMusicTimelineView.swift */; };
+		BA510001AA00000000000004 /* WorkoutMusicPlaybackSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000004 /* WorkoutMusicPlaybackSheet.swift */; };
+		BA510002AA00000000000001 /* WorkoutMusicSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000001 /* WorkoutMusicSupport.swift */; };
+		BA510002AA00000000000002 /* WorkoutMusicSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000002 /* WorkoutMusicSession.swift */; };
+		BA510002AA00000000000003 /* WorkoutMusicTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000003 /* WorkoutMusicTimelineView.swift */; };
+		BA510002AA00000000000004 /* WorkoutMusicPlaybackSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000004 /* WorkoutMusicPlaybackSheet.swift */; };
 		1FB477637AC9EC02C7CB82AE /* WorkoutTypesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CA3D35330EB704FCDFB8B2 /* WorkoutTypesSettingsView.swift */; };
 		20A75B2A698DC7E5010B4CC5 /* OutdoorActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */; };
 		20DE70D5B08F45B91DFE946E /* MacVideoEditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */; };
@@ -517,6 +525,10 @@
 		A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetCanvas.swift; sourceTree = "<group>"; };
 		A694D8D9DD60CCD872FB8C2D /* MusicLibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryModels.swift; sourceTree = "<group>"; };
 		A9F596DD500BCC620B6E3318 /* MusicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicManager.swift; sourceTree = "<group>"; };
+		BA510000AA00000000000001 /* WorkoutMusicSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicSupport.swift; sourceTree = "<group>"; };
+		BA510000AA00000000000002 /* WorkoutMusicSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicSession.swift; sourceTree = "<group>"; };
+		BA510000AA00000000000003 /* WorkoutMusicTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicTimelineView.swift; sourceTree = "<group>"; };
+		BA510000AA00000000000004 /* WorkoutMusicPlaybackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicPlaybackSheet.swift; sourceTree = "<group>"; };
 		AAC8FDFE63C6662440B3E0A5 /* OutdoorTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripTests.swift; sourceTree = "<group>"; };
 		AADDE983BD98A183CACB5A0A /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		ABC6B5B3175ED2D319B7424F /* OutdoorFinishContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFinishContent.swift; sourceTree = "<group>"; };
@@ -711,6 +723,7 @@
 				E8B651EB5E182B829EAB5F72 /* PlannedRoute.swift */,
 				F2D865D276E5E4E8F8A3F260 /* TrayItem.swift */,
 				282193241415BB7A32B3786C /* Workout.swift */,
+				BA510000AA00000000000001 /* WorkoutMusicSupport.swift */,
 				42FDBEB5643249D2AE210599 /* WorkoutHistory.swift */,
 				DBE151E4B99B53638232D2DB /* WorkoutSectionBuilder.swift */,
 			);
@@ -782,6 +795,7 @@
 				6A6C47C92F10694708275E65 /* MacFilePicker.swift */,
 				108D87DB2422C2B7434532CE /* MotivationManager.swift */,
 				A9F596DD500BCC620B6E3318 /* MusicManager.swift */,
+				BA510000AA00000000000002 /* WorkoutMusicSession.swift */,
 				AADDE983BD98A183CACB5A0A /* NotificationManager.swift */,
 				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
 				2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */,
@@ -869,6 +883,7 @@
 				50C588F8747756505B157DFC /* SectionEditorView.swift */,
 				B7EEE9EC6D1BCA35970E2AA0 /* SectionRow.swift */,
 				CC960EC12B1CFF9CD3AA7AC1 /* WorkoutDetailView.swift */,
+				BA510000AA00000000000003 /* WorkoutMusicTimelineView.swift */,
 			);
 			path = WorkoutDetail;
 			sourceTree = "<group>";
@@ -893,6 +908,7 @@
 				7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */,
 				6E38BC78673EC52C30C37CFB /* FloatingControlsBar.swift */,
 				9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */,
+				BA510000AA00000000000004 /* WorkoutMusicPlaybackSheet.swift */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -1290,6 +1306,10 @@
 				93E9185010BEC8FBEDB66240 /* MusicLibraryScreen.swift in Sources */,
 				C23D08EFE61D318AEC977B24 /* MusicLibraryStore.swift in Sources */,
 				68A5CE3F374D4FDB07671FEA /* MusicManager.swift in Sources */,
+				BA510001AA00000000000001 /* WorkoutMusicSupport.swift in Sources */,
+				BA510001AA00000000000002 /* WorkoutMusicSession.swift in Sources */,
+				BA510001AA00000000000003 /* WorkoutMusicTimelineView.swift in Sources */,
+				BA510001AA00000000000004 /* WorkoutMusicPlaybackSheet.swift in Sources */,
 				F34EA105281073DAA9565762 /* MusicPlayerPane.swift in Sources */,
 				C43D10FDE5B09428BB1E9A33 /* MusicProviderAdapters.swift in Sources */,
 				3157B85C810E38C457FC1C7E /* MusicSettingsView.swift in Sources */,
@@ -1468,6 +1488,10 @@
 				70A8938D4FADD29277FBC7EC /* MusicLibraryScreen.swift in Sources */,
 				ED8FA1DEC41EBE1DBE23A2DE /* MusicLibraryStore.swift in Sources */,
 				1F38F1E5BDA6E33ABCFF446E /* MusicManager.swift in Sources */,
+				BA510002AA00000000000001 /* WorkoutMusicSupport.swift in Sources */,
+				BA510002AA00000000000002 /* WorkoutMusicSession.swift in Sources */,
+				BA510002AA00000000000003 /* WorkoutMusicTimelineView.swift in Sources */,
+				BA510002AA00000000000004 /* WorkoutMusicPlaybackSheet.swift in Sources */,
 				080D41A92088ED6AD64BD1A9 /* MusicPlayerPane.swift in Sources */,
 				4F827B5F7BFAB9ECD9CCF4D2 /* MusicProviderAdapters.swift in Sources */,
 				4D34183ADD9043FD3D2457EE /* MusicSettingsView.swift in Sources */,

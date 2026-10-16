@@ -9,6 +9,7 @@ import AppKit
 struct WorkoutDetailView: View {
     @EnvironmentObject var store: WorkoutStore
     @EnvironmentObject var databaseStore: DatabaseStore
+    @EnvironmentObject private var musicLibrary: MusicLibraryStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @State private var showingDeleteAlert = false
@@ -29,6 +30,8 @@ struct WorkoutDetailView: View {
     @State private var editorControlsExpanded = false
     @State private var pendingScrollTargetID: RowID?
     @State private var sectionIDs: [UUID] = []
+    @State private var musicConfigurationOpen = false
+    @GestureState private var musicRevealDrag: CGFloat = 0
 
     let workoutID: UUID
     @State private var pendingSection: PendingSectionConfig?
@@ -73,8 +76,27 @@ struct WorkoutDetailView: View {
             let visibleHeight = navigationBounds.map {
                 min(proxy.size.height, max(0, $0.maxY - proxy.frame(in: .global).minY))
             } ?? proxy.size.height
-            ZStack(alignment: .top) {
+            let reveal = min(1, max(0, (musicConfigurationOpen ? 1 : 0) + musicRevealDrag))
+            let editorPeek = proxy.size.width * 0.18
+            let slideDistance = proxy.size.width - editorPeek
+            ZStack(alignment: .topLeading) {
                 Theme.background.ignoresSafeArea()
+                if reveal > 0 {
+                    WorkoutMusicTimelineView(
+                        workout: workout,
+                        library: musicLibrary,
+                        otherWorkouts: store.workouts,
+                        onChange: { configuration in
+                            var updated = workout
+                            updated.musicTimeline = configuration
+                            store.updateWorkout(updated)
+                        },
+                        onClose: { setMusicConfigurationOpen(false) }
+                    )
+                    .padding(.leading, editorPeek + 6)
+                    .frame(height: visibleHeight)
+                    .accessibilityHidden(!musicConfigurationOpen)
+                }
 
                 VStack(spacing: 0) {
                     sectionList(width: proxy.size.width)
@@ -83,10 +105,39 @@ struct WorkoutDetailView: View {
                     }
                 }
                 .frame(height: visibleHeight, alignment: .top)
+                .frame(width: proxy.size.width)
+                .background(Theme.background)
+                .overlay(alignment: .trailing) {
+                    if musicConfigurationOpen {
+                        Color.clear
+                            .frame(width: editorPeek)
+                            .contentShape(Rectangle())
+                            .onTapGesture { setMusicConfigurationOpen(false) }
+                            .gesture(musicRevealGesture(distance: slideDistance))
+                            .accessibilityLabel("Return to workout editor")
+                            .accessibilityAddTraits(.isButton)
+                    }
+                }
+                .offset(x: -slideDistance * reveal)
+                .zIndex(1)
+                .accessibilityHidden(musicConfigurationOpen)
+
+                if !musicConfigurationOpen {
+                    Color.clear
+                        .frame(width: min(24, proxy.size.width * 0.06), height: visibleHeight)
+                        .contentShape(Rectangle())
+                        .gesture(musicRevealGesture(distance: slideDistance))
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .zIndex(2)
+                        .accessibilityHidden(true)
+                }
             }
+            .clipped()
+            .animation(editorAnimation, value: musicConfigurationOpen)
         }
         .navigationTitle("")
         .slotNavigationPresentation(.inline)
+        .preference(key: SlotNavigationEditingPreferenceKey.self, value: true)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -218,6 +269,25 @@ struct WorkoutDetailView: View {
             }
             .environmentObject(store)
         }
+    }
+
+    private func setMusicConfigurationOpen(_ open: Bool) {
+        guard musicConfigurationOpen != open else { return }
+        musicEditorHaptic()
+        animateEditor { musicConfigurationOpen = open }
+    }
+
+    private func musicRevealGesture(distance: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 12)
+            .updating($musicRevealDrag) { value, state, _ in
+                guard abs(value.translation.width) > abs(value.translation.height) * 1.4 else { return }
+                state = -value.translation.width / max(1, distance)
+            }
+            .onEnded { value in
+                guard abs(value.translation.width) > abs(value.translation.height) * 1.4 else { return }
+                let projected = -value.predictedEndTranslation.width / max(1, distance)
+                setMusicConfigurationOpen(musicConfigurationOpen ? projected > -0.3 : projected > 0.3)
+            }
     }
 
     // MARK: - Sub-views
@@ -435,12 +505,20 @@ struct WorkoutDetailView: View {
     private func sectionListContent(width: CGFloat) -> some View {
         List {
             VStack(alignment: .leading, spacing: 8) {
-                Text(workout.name)
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(Theme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.horizontal, 20)
+                HStack {
+                    Text(workout.name)
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(Theme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    Spacer(minLength: 8)
+                    Button { setMusicConfigurationOpen(true) } label: {
+                        Image(systemName: "music.note.list")
+                    }
+                    .buttonStyle(SpotlightCircleButtonStyle())
+                    .accessibilityLabel("Configure workout music")
+                }
+                .padding(.horizontal, 20)
                 editorActionChrome(metrics: ScrollingChromeMetrics(width: width))
             }
             .padding(.top, 8)

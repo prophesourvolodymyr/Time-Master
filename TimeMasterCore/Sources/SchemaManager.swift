@@ -74,6 +74,7 @@ public final class SchemaManager {
                     "type": PropertySchema(type: "object", description: "WorkoutType { id, name, iconName, colorHex }"),
                     "sections": PropertySchema(type: "array<object>", description: "Ordered list of WorkoutSectionManifest"),
                     "musicTrackFilenames": PropertySchema(type: "array<string>", description: "Music files in Music/", optional: true),
+                    "musicTimeline": PropertySchema(type: "object", description: "Optional free-positioned music configuration. Clips contain id, sourceItemID, title, primary/background lane, start and duration in seconds, and ordered tracks with stable ids, titles, durations, local filenames or provider references. An empty configuration means silence; an omitted configuration retains playlist playback.", optional: true),
                     "colorHex": PropertySchema(type: "string", description: "Display color", optional: true),
                     "createdAt": PropertySchema(type: "string", description: "ISO 8601 creation timestamp", format: "date-time"),
                     "restBetweenSections": PropertySchema(type: "integer", description: "Rest between sections in seconds"),

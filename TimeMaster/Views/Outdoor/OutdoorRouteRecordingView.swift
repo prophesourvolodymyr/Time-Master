@@ -458,7 +458,7 @@ struct OutdoorRouteRecordingView: View {
                         if isVideo {
                             try await musicManager.importTrackAsync(from: URL)
                         } else {
-                            musicManager.importTrack(from: URL)
+                            try musicManager.importTrack(from: URL)
                         }
                     }
                     musicLibrary.adoptMusicManagerTracks()

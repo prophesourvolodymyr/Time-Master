@@ -913,7 +913,8 @@ extension WorkoutManifest {
             colorHex: colorHex,
             imageFilename: imageFilename,
             coverStyle: WorkoutCoverStyle(rawValue: coverStyle.rawValue) ?? .exerciseThumbnails,
-            musicTrackFilenames: musicTrackFilenames
+            musicTrackFilenames: musicTrackFilenames,
+            musicTimeline: musicTimeline
         )
     }
 }
@@ -1003,6 +1004,7 @@ extension Workout {
             type: type.core,
             sections: sections.map(\.coreManifest),
             musicTrackFilenames: musicTrackFilenames,
+            musicTimeline: musicTimeline,
             colorHex: colorHex,
             createdAt: createdAt,
             prepareTime: prepareTime,

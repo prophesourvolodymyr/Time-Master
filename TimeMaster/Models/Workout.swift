@@ -1,4 +1,5 @@
 import Foundation
+import TimeMasterCore
 
 struct WorkoutType: Identifiable, Codable, Hashable {
     var id: String
@@ -445,6 +446,7 @@ struct Workout: Identifiable, Codable, Equatable {
     var imageFilename: String?
     var coverStyle: WorkoutCoverStyle
     var musicTrackFilenames: [String]
+    var musicTimeline: WorkoutMusicTimeline?
 
     init(
         id: UUID = UUID(),
@@ -457,7 +459,8 @@ struct Workout: Identifiable, Codable, Equatable {
         colorHex: String = "FFFFFF",
         imageFilename: String? = nil,
         coverStyle: WorkoutCoverStyle = .exerciseThumbnails,
-        musicTrackFilenames: [String] = []
+        musicTrackFilenames: [String] = [],
+        musicTimeline: WorkoutMusicTimeline? = nil
     ) {
         self.id = id
         self.name = name
@@ -470,11 +473,13 @@ struct Workout: Identifiable, Codable, Equatable {
         self.imageFilename = imageFilename
         self.coverStyle = coverStyle
         self.musicTrackFilenames = musicTrackFilenames
+        self.musicTimeline = musicTimeline
     }
 
     enum CodingKeys: String, CodingKey {
         case id, name, type, sections, createdAt, prepareTime, restBetweenSections
         case colorHex, imageFilename, coverStyle, musicTrackFilenames
+        case musicTimeline
     }
 
     init(from decoder: Decoder) throws {
@@ -490,6 +495,7 @@ struct Workout: Identifiable, Codable, Equatable {
         imageFilename = try c.decodeIfPresent(String.self, forKey: .imageFilename)
         coverStyle = try c.decodeIfPresent(WorkoutCoverStyle.self, forKey: .coverStyle) ?? .exerciseThumbnails
         musicTrackFilenames = try c.decodeIfPresent([String].self, forKey: .musicTrackFilenames) ?? []
+        musicTimeline = try c.decodeIfPresent(WorkoutMusicTimeline.self, forKey: .musicTimeline)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -505,6 +511,7 @@ struct Workout: Identifiable, Codable, Equatable {
         try c.encodeIfPresent(imageFilename, forKey: .imageFilename)
         try c.encode(coverStyle, forKey: .coverStyle)
         try c.encode(musicTrackFilenames, forKey: .musicTrackFilenames)
+        try c.encodeIfPresent(musicTimeline, forKey: .musicTimeline)
     }
 
     var totalDuration: Int {

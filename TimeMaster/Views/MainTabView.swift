@@ -12,7 +12,7 @@ struct MainTabView: View {
     @StateObject private var databaseNavigationState = DatabaseNavigationState()
     @StateObject private var aiStore = AIStore.shared
     @StateObject private var outdoorStore = OutdoorActivityStore()
-    @StateObject private var musicLibraryStore = MusicLibraryStore()
+    @StateObject private var musicLibraryStore = MusicLibraryStore.shared
     @StateObject private var outdoorPreferencesStore = OutdoorRecordingPreferencesStore()
     @StateObject private var navigationLayout = SlotNavigationLayoutStore()
     @State private var selectedDestination: String? = SlotNavigationDestination.home.rawValue

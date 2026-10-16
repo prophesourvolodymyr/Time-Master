@@ -20,6 +20,7 @@ extension Image {
 struct WorkoutPlayerView: View {
     @EnvironmentObject var store: WorkoutStore
     @EnvironmentObject var databaseStore: DatabaseStore
+    @ObservedObject private var musicLibrary = MusicLibraryStore.shared
     @Environment(\.dismiss) var dismiss
 
     @State private var workout: Workout
@@ -51,7 +52,11 @@ struct WorkoutPlayerView: View {
     #endif
 
     // Music
-    @ObservedObject private var musicManager = MusicManager.shared
+    @StateObject private var musicSession = WorkoutMusicSession()
+    @State private var showMusicChooser = false
+    @State private var musicChooserIsAutomatic = false
+    @State private var offeredMusicContinuation = false
+    @State private var musicStarted = false
 
     // Settings
     @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
@@ -172,6 +177,8 @@ struct WorkoutPlayerView: View {
                 timer?.invalidate()
                 stopVideo()
                 endBackgroundTask()
+                musicSession.stop()
+                musicStarted = false
             }
             #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -206,7 +213,7 @@ struct WorkoutPlayerView: View {
                         isPaused: isPaused,
                         isTimerEnabled: isPreparation || (section.mode == .timed && section.isTimerEnabled),
                          isRest: isPreparation || isSetRest || isSectionRest,
-                         isMusicPlaying: musicManager.isPlaying,
+                         isMusicPlaying: musicSession.isPlaying,
                          nextExerciseName: nextExerciseName,
                          onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
                         onMusicToggle: toggleOverlayMusic,
@@ -243,6 +250,25 @@ struct WorkoutPlayerView: View {
                     )
                 }
             }
+            .sheet(isPresented: $showMusicChooser) {
+                WorkoutMusicPlaybackSheet(
+                    workout: workout,
+                    isContinuationPrompt: musicChooserIsAutomatic,
+                    library: musicLibrary,
+                    session: musicSession
+                )
+            }
+            .onChange(of: musicSession.exhausted) { _ in offerMusicContinuation() }
+            .onChange(of: isMusicContinuationRest) { eligible in
+                if eligible { offerMusicContinuation() }
+                else if musicChooserIsAutomatic { showMusicChooser = false }
+            }
+            .alert("Music Unavailable", isPresented: Binding(
+                get: { musicSession.error != nil },
+                set: { if !$0 { musicSession.error = nil } }
+            )) {
+                Button("OK", role: .cancel) { musicSession.error = nil }
+            } message: { Text(musicSession.error ?? "") }
     }
 
     // MARK: - Content routing
@@ -1092,37 +1118,27 @@ struct WorkoutPlayerView: View {
     }
 
     private var musicButton: some View {
-        let tracks = selectedMusicTracks
-        let hasTracks = !tracks.isEmpty
-        return Button {
-            guard hasTracks else { return }
-            if musicManager.isPlaying {
-                MusicManager.shared.stopPlayback()
-            } else {
-                MusicManager.shared.startPlayback(tracks: tracks)
-            }
-        } label: {
-            Image(systemName: musicManager.repeatOne ? "repeat.1" : (musicManager.isPlaying ? "music.note" : "music.note.list"))
+        Button(action: toggleOverlayMusic) {
+            Image(systemName: musicSession.isPlaying ? "music.note" : "music.note.list")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(hasTracks ? .white : .white.opacity(0.25))
-                .frame(width: 40, height: 40)
-                .background(Color.white.opacity(
-                    hasTracks ? (musicManager.isPlaying ? 0.25 : 0.12) : 0.06
-                ))
-                .clipShape(Circle())
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(Color.white.opacity(musicSession.isPlaying ? 0.25 : 0.12), in: Circle())
         }
-        .contextMenu {
-            if hasTracks {
-                Button {
-                    musicManager.toggleRepeatOne()
-                } label: {
-                    Label(
-                        musicManager.repeatOne ? "Play Playlist" : "Repeat Current Track",
-                        systemImage: musicManager.repeatOne ? "repeat" : "repeat.1"
-                    )
-                }
-            }
-        }
+        .accessibilityLabel("Choose workout music")
+        .accessibilityValue(musicSession.title ?? "Silence")
+    }
+
+    private var isMusicContinuationRest: Bool {
+        isSectionRest || (isSetRest && (restSlot?.restRow?.kind == .big || (restSlot?.restAfter ?? 0) >= 60))
+    }
+
+    private func offerMusicContinuation() {
+        guard musicSession.exhausted, !musicSession.isManual, isMusicContinuationRest,
+              !offeredMusicContinuation, !showMusicChooser, !workoutCompleted else { return }
+        offeredMusicContinuation = true
+        musicChooserIsAutomatic = true
+        showMusicChooser = true
     }
 
     // MARK: - Timer Logic
@@ -1136,9 +1152,9 @@ struct WorkoutPlayerView: View {
         isWarmUp = false
         isPreparation = false
         resetMotivationTimer()
-        if !selectedMusicTracks.isEmpty {
-            MusicManager.shared.startPlayback(tracks: selectedMusicTracks)
-        }
+        musicStarted = true
+        offeredMusicContinuation = false
+        Task { await musicSession.start(workout: workout, library: musicLibrary, paused: isPaused) }
         beginCurrentSet()
     }
 
@@ -1277,7 +1293,8 @@ struct WorkoutPlayerView: View {
             timeRemaining: timeRemaining,
             elapsedSeconds: elapsedSeconds,
             phase: phase,
-            isPaused: isPaused
+            isPaused: isPaused,
+            musicCheckpoint: musicSession.checkpoint
         )
     }
 
@@ -1332,6 +1349,17 @@ struct WorkoutPlayerView: View {
         }
         loadCurrentMedia()
         resetMotivationTimer()
+        if !musicStarted && !isWarmUp {
+            musicStarted = true
+            let musicElapsed = checkpoint.musicCheckpoint.map {
+                $0.cursor.elapsed + Double(max(0, state.elapsedSeconds - checkpoint.elapsedSeconds))
+            } ?? Double(state.elapsedSeconds)
+            Task {
+                await musicSession.start(workout: workout, library: musicLibrary,
+                                         checkpoint: checkpoint.musicCheckpoint, paused: state.isPaused,
+                                         elapsed: musicElapsed)
+            }
+        }
         if !isPaused {
             startTimer()
         }
@@ -1529,7 +1557,7 @@ struct WorkoutPlayerView: View {
     private func completeWorkout() {
         timer?.invalidate()
         stopVideo()
-        MusicManager.shared.stopPlayback()
+        musicSession.stop()
         workoutCompleted = true
         WorkoutResumeManager.shared.clearResumeState()
         AudioManager.shared.speak("Congratulations! Incredible work!")
@@ -1545,23 +1573,17 @@ struct WorkoutPlayerView: View {
     private func pauseTimer()  {
         isPaused = true
         videoPlayer?.pause()
+        musicSession.setPaused(true)
     }
 
     private func toggleOverlayMusic() {
-        if musicManager.isPlaying {
-            musicManager.stopPlayback()
-        } else {
-            musicManager.startPlayback(tracks: selectedMusicTracks)
-        }
+        musicChooserIsAutomatic = false
+        showMusicChooser = true
     }
 
-    private var selectedMusicTracks: [String] {
-        workout.musicTrackFilenames.isEmpty
-            ? musicManager.trackFilenames
-            : workout.musicTrackFilenames
-    }
     private func resumeTimer() {
         isPaused = false
+        musicSession.setPaused(false)
         if let item = loadedMedia[safe: currentMediaIndex], item.type == .video {
             videoPlayer?.play()
         }
@@ -1570,7 +1592,7 @@ struct WorkoutPlayerView: View {
     private func stopWorkout() {
         timer?.invalidate()
         stopVideo()
-        MusicManager.shared.stopPlayback()
+        musicSession.stop()
         AudioManager.shared.stopSpeaking()
         if elapsedSeconds >= 180 {
             let entry = WorkoutHistoryEntry(

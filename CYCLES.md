@@ -1113,6 +1113,31 @@ Native checks used a task-only snapshot with committed app-entry files because t
 
 ---
 
+## Cycle 32 — Advanced Workout Music Configuration
+
+**Requested by the user; implementation ready for human review, not human-verified.**
+
+- [x] Open music configuration from the workout header or an intentional right-edge swipe, slide the existing editor above it with a visible edge, and prevent the global page swipe from stealing that gesture
+- [x] Add free-timed primary and background lanes, duration-sized drop previews, movable placements, zoom, and the fallback region beyond the planned workout end
+- [x] Resize only from the bottom, restore trimmed duration up to the source length, and snap to exercise boundaries only after repeated nearby resize corrections
+- [x] Share the Settings library and persisted imports with the tray, retain local-file duration metadata, create folders in Settings, and group music through track-on-track drops
+- [x] Edit folder track order independently for each timeline placement without changing the shared folder
+- [x] Give primary music priority, pause the interrupted background playhead, resume it within its remaining placement window, and fade playback transitions
+- [x] Connect live music selection, repeat, shared volume, return to the workout timeline, and explicit silence to the actual player
+- [x] Leave exhausted fallback music silent and offer assigned music or repeat during a long or between-section rest without automatically starting it
+- [x] Persist the optional timeline through workout files, app mappings, CLI input/output, and resume checkpoints while preserving legacy playlists when no timeline is configured
+- [x] Copy another workout's configuration with independent placement identities and confirmation before replacement
+- [x] Add long-press replacement that preserves lane, start, and trim, plus removal and timing/order editing
+- [x] Pass ten focused timeline regressions and a real CLI persistence roundtrip; exercise native audio interruption, pause/restore, manual override, and fallback exhaustion
+- [x] Exercise editor reveal and cancellation, drag grouping and placement, trimming, replacement, independent copy/order, Settings folder creation, removal, and explicit repeat/silence on the already-running iPhone 16 with iOS 18.6
+- [x] Build the final production iOS and macOS targets, remove the isolated smoke app, and install and launch the final production app on that same simulator
+- [ ] Human review of editor layering and gesture feel, timeline placement/trimming/snapping, folders, copying, replacement, and imports
+- [ ] Human review of audible fade quality, primary/background transitions, live choices, continuation prompts, resume behavior, and macOS interaction
+
+Checks used an isolated task-only snapshot with committed app-entry files because the working tree contains unrelated edits and deleted entry points. The native fixture used real production views, stores, local audio files, and playback; its app and data were removed afterward. No new simulator was created, and unrelated working-tree changes were preserved. External-provider items still require their existing provider integration or local playable audio; this work does not bypass unavailable provider credentials. Product DOCKS.md files remain unchanged pending acceptance.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

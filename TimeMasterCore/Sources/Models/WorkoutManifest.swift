@@ -274,6 +274,7 @@ public struct WorkoutManifest: Codable {
     public var type: WorkoutType
     public var sections: [WorkoutSectionManifest]
     public var musicTrackFilenames: [String]
+    public var musicTimeline: WorkoutMusicTimeline?
     public var colorHex: String
     public var createdAt: Date
     public var prepareTime: Int
@@ -286,6 +287,7 @@ public struct WorkoutManifest: Codable {
     enum CodingKeys: String, CodingKey {
         case id, name, type, sections, musicTrackFilenames, colorHex
         case createdAt, prepareTime, restBetweenSections, imageFilename, coverStyle
+        case musicTimeline
     }
 
     public init(
@@ -294,6 +296,7 @@ public struct WorkoutManifest: Codable {
         type: WorkoutType = .strength,
         sections: [WorkoutSectionManifest] = [],
         musicTrackFilenames: [String] = [],
+        musicTimeline: WorkoutMusicTimeline? = nil,
         colorHex: String = "FFFFFF",
         createdAt: Date = Date(),
         prepareTime: Int = 4,
@@ -306,6 +309,7 @@ public struct WorkoutManifest: Codable {
         self.type = type
         self.sections = sections
         self.musicTrackFilenames = musicTrackFilenames
+        self.musicTimeline = musicTimeline
         self.colorHex = colorHex
         self.createdAt = createdAt
         self.prepareTime = max(0, prepareTime)
@@ -321,6 +325,7 @@ public struct WorkoutManifest: Codable {
         type = try c.decodeIfPresent(WorkoutType.self, forKey: .type) ?? .strength
         sections = try c.decodeIfPresent([WorkoutSectionManifest].self, forKey: .sections) ?? []
         musicTrackFilenames = try c.decodeIfPresent([String].self, forKey: .musicTrackFilenames) ?? []
+        musicTimeline = try c.decodeIfPresent(WorkoutMusicTimeline.self, forKey: .musicTimeline)
         colorHex = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? "FFFFFF"
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         prepareTime = max(0, try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4)
@@ -336,6 +341,7 @@ public struct WorkoutManifest: Codable {
         try c.encode(type, forKey: .type)
         try c.encode(sections, forKey: .sections)
         try c.encode(musicTrackFilenames, forKey: .musicTrackFilenames)
+        try c.encodeIfPresent(musicTimeline, forKey: .musicTimeline)
         try c.encode(colorHex, forKey: .colorHex)
         try c.encode(createdAt, forKey: .createdAt)
         try c.encode(prepareTime, forKey: .prepareTime)

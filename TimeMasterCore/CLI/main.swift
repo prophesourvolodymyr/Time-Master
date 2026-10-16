@@ -119,6 +119,7 @@ struct WorkoutManifestInput: Decodable {
     let type: WorkoutType?
     let sections: [WorkoutSectionManifest]?
     let musicTrackFilenames: [String]?
+    let musicTimeline: WorkoutMusicTimeline?
     let colorHex: String?
     let restBetweenSections: Int?
     let imageFilename: String?
@@ -150,6 +151,7 @@ func decodeWorkoutManifest(from data: Data) throws -> WorkoutManifest {
         type: input.type ?? .strength,
         sections: input.sections ?? [],
         musicTrackFilenames: input.musicTrackFilenames ?? [],
+        musicTimeline: input.musicTimeline,
         colorHex: input.colorHex ?? "FFFFFF",
         createdAt: Date(),
         restBetweenSections: input.restBetweenSections ?? 30,

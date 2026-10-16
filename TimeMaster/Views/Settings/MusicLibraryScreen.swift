@@ -25,6 +25,8 @@ struct MusicLibraryScreen: View {
     @State private var dropTarget: MusicDestination?
     @State private var scrollStartedAt: Date?
     @State private var searchCycleIndex = 0
+    @State private var showingNewFolder = false
+    @State private var newFolderName = ""
 
     private let orange = Color(red: 1, green: 0.48, blue: 0)
 
@@ -87,6 +89,20 @@ struct MusicLibraryScreen: View {
         .onAppear { _ = MusicGuidePersistence.scheduleFirstRunIfNeeded { guidePresented = true } }
         .onChange(of: player.currentFilename) { _ in synchronizePlayingItem() }
         .task(id: reduceMotion) { await runSearchIconCycle() }
+        .task { await library.refreshLocalDurations() }
+        .alert("New Music Folder", isPresented: $showingNewFolder) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Cancel", role: .cancel) {}
+            Button("Create") {
+                _ = library.createFolder(
+                    named: newFolderName.trimmingCharacters(in: .whitespacesAndNewlines),
+                    in: isWorkoutFocused ? selectedWorkoutDestination ?? .general : .general
+                )
+            }
+            .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } message: {
+            Text("Add music using a track’s Add to Folder menu, or group tracks in the workout music tray.")
+        }
     }
 
     private var title: some View {
@@ -111,6 +127,10 @@ struct MusicLibraryScreen: View {
 
     private var floatingControls: some View {
         HStack(spacing: 8) {
+            MusicGlassCircleButton(systemImage: "folder.badge.plus", accessibilityLabel: "Create music folder") {
+                newFolderName = ""
+                showingNewFolder = true
+            }
             MusicGlassCircleButton(systemImage: "info", accessibilityLabel: "Replay Music guide") { guidePresented = true }
             MusicGlassCircleButton(accessibilityLabel: "Search music", action: {
                 enabledProviders.removeAll()
@@ -348,6 +368,16 @@ struct MusicLibraryScreen: View {
         }
         .onDrop(of: [UTType.text.identifier], isTargeted: dropTargetBinding(for: destination)) { _ in
             drop(dragged, into: destination, at: library.itemIDs(for: destination).firstIndex(of: item.id))
+        }
+        .contextMenu {
+            Menu("Add to Folder", systemImage: "folder.badge.plus") {
+                ForEach(library.items.filter { $0.isCollection && $0.id != item.id }) { folder in
+                    Button(folder.title) { _ = library.add(itemID: item.id, toCollection: folder.id) }
+                }
+            }
+            Button("Create Folder with This Music", systemImage: "folder") {
+                _ = library.createFolder(named: item.title, in: destination, containing: [item.id])
+            }
         }
     }
 

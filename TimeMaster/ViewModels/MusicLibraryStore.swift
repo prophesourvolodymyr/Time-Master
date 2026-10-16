@@ -1,8 +1,10 @@
 import Foundation
 import Combine
+import AVFoundation
 
 @MainActor
 final class MusicLibraryStore: ObservableObject {
+    static let shared = MusicLibraryStore()
     @Published private(set) var items: [MusicLibraryItem] = []
     @Published private(set) var generalItemIDs: [UUID] = []
     @Published private(set) var typeItemIDs: [String: [UUID]] = [:]
@@ -237,10 +239,9 @@ final class MusicLibraryStore: ObservableObject {
     @discardableResult
     func createCollection(name: String, in destination: MusicDestination, kind: MusicCollectionKind = .playlist, itemIDs: [UUID] = [], at position: Int? = nil) -> MusicLibraryItem? {
         let tracks = itemIDs.compactMap(item(id:)).flatMap { item -> [MusicCollectionTrack] in
-            if let local = item.localReference {
-                return [MusicCollectionTrack(id: item.id, name: item.name, duration: item.totalDuration, source: .local, localReference: local, artwork: item.artwork)]
-            }
-            return item.tracks
+            if item.isCollection { return item.tracks }
+            return [MusicCollectionTrack(id: item.id, name: item.name, duration: item.totalDuration,
+                                         source: item.source, localReference: item.localReference, artwork: item.artwork)]
         }
         let collection = MusicLibraryItem(name: name, kind: kind == .track ? .playlist : kind, source: .none, duration: tracks.reduce(0) { $0 + $1.duration }, tracks: tracks)
         return add(collection, to: destination, at: position) ? collection : nil
@@ -250,11 +251,18 @@ final class MusicLibraryStore: ObservableObject {
     }
     @discardableResult
     func add(itemID: UUID, toCollection collectionID: UUID, at position: Int? = nil) -> Bool {
-        guard let item = item(id: itemID), let collectionIndex = items.firstIndex(where: { $0.id == collectionID }), items[collectionIndex].isCollection else { return false }
-        let track = MusicCollectionTrack(id: item.id, name: item.name, duration: item.totalDuration, source: item.source, localReference: item.localReference, artwork: item.artwork)
-        guard !items[collectionIndex].tracks.contains(where: { $0.id == track.id }) else { return false }
+        guard itemID != collectionID, let item = item(id: itemID),
+              let collectionIndex = items.firstIndex(where: { $0.id == collectionID }),
+              items[collectionIndex].isCollection else { return false }
+        let existing = Set(items[collectionIndex].tracks.map(\.id))
+        let candidates = item.isCollection ? item.tracks : [
+            MusicCollectionTrack(id: item.id, name: item.name, duration: item.totalDuration,
+                                 source: item.source, localReference: item.localReference, artwork: item.artwork)
+        ]
+        let additions = candidates.filter { !existing.contains($0.id) }
+        guard !additions.isEmpty else { return false }
         let index = max(0, min(position ?? items[collectionIndex].tracks.count, items[collectionIndex].tracks.count))
-        items[collectionIndex].tracks.insert(track, at: index)
+        items[collectionIndex].tracks.insert(contentsOf: additions, at: index)
         items[collectionIndex].duration = items[collectionIndex].tracks.reduce(0) { $0 + $1.duration }
         persist()
         return true
@@ -368,6 +376,41 @@ final class MusicLibraryStore: ObservableObject {
     }
     func adoptLocalMusicReferences(_ filenames: [String]) { adoptLocalMusicReferences(filenames, persist: true) }
     func adoptMusicManagerTracks() { adoptLocalMusicReferences(MusicManager.shared.trackFilenames) }
+
+    func refreshLocalDurations() async {
+        var filenames = Set<String>()
+        for item in items {
+            if item.duration <= 0, let filename = item.localReference?.filename { filenames.insert(filename) }
+            for track in item.tracks where track.duration <= 0 {
+                if let filename = track.localReference?.filename { filenames.insert(filename) }
+            }
+        }
+        guard !filenames.isEmpty else { return }
+        var durations: [String: Double] = [:]
+        for filename in filenames {
+            let url = MusicManager.shared.localMusicDirectoryURL.appendingPathComponent(filename)
+            if let duration = try? await AVURLAsset(url: url).load(.duration),
+               duration.seconds.isFinite, duration.seconds > 0 {
+                durations[filename] = duration.seconds
+            }
+        }
+        guard !durations.isEmpty else { return }
+        for index in items.indices {
+            if let filename = items[index].localReference?.filename, let duration = durations[filename] {
+                items[index].duration = duration
+            }
+            for trackIndex in items[index].tracks.indices {
+                if let filename = items[index].tracks[trackIndex].localReference?.filename,
+                   let duration = durations[filename] {
+                    items[index].tracks[trackIndex].duration = duration
+                }
+            }
+            if items[index].isCollection {
+                items[index].duration = items[index].tracks.reduce(0) { $0 + $1.duration }
+            }
+        }
+        persist()
+    }
     private func adoptLocalMusicReferences(_ filenames: [String], persist shouldPersist: Bool) {
         var changed = false
         var seen = Set<String>()
