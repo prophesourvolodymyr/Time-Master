@@ -104,16 +104,6 @@ final class WorkoutMusicTimelineTests: XCTestCase {
         XCTAssertEqual(restored.selection?.offset, 13)
     }
 
-    func testCopiedConfigurationIsIndependentAndRegeneratesPlacementIdentity() {
-        let original = WorkoutMusicTimeline(clips: [clip("Source", start: 12, duration: 24)])
-        var copy = original.independentCopy()
-        XCTAssertNotEqual(copy.clips[0].id, original.clips[0].id)
-        copy.clips[0].start = 30
-        copy.clips[0].tracks[0].title = "Edited"
-        XCTAssertEqual(original.clips[0].start, 12)
-        XCTAssertEqual(original.clips[0].tracks[0].title, "Source")
-    }
-
     func testLegacyPlaylistAndExplicitSilentTimelineRemainDistinct() throws {
         let legacy = try JSONDecoder().decode(WorkoutManifest.self, from: Data("{\"id\":\"legacy\"}".utf8))
         XCTAssertNil(legacy.musicTimeline)

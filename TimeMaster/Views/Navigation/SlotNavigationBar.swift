@@ -740,6 +740,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     return
                 }
                 if !isDragging {
+                    guard abs(value.translation.width) > abs(value.translation.height) * 1.3 else { return }
                     isDragging = true
                     dragStartOffset = hasMeasured ? reelOffset : fallbackOffset
                     withAnimation(dragExpansionAnimation) {
@@ -762,6 +763,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     finishEditorScroll(size: size)
                     return
                 }
+                guard isDragging else { return }
                 let projectedOffset = dragStartOffset + value.predictedEndTranslation.width
                 let targetIndex = index(
                     for: projectedOffset,

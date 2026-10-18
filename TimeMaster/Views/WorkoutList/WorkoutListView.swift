@@ -25,7 +25,6 @@ struct WorkoutListView: View {
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     #endif
-    @Namespace private var workoutTransitionNamespace
 
     init(requestedWorkoutID: Binding<UUID?> = .constant(nil)) {
         _requestedWorkoutID = requestedWorkoutID
@@ -103,26 +102,6 @@ struct WorkoutListView: View {
         let historyEntries = entries(for: workout)
         let schedule = scheduleByWorkoutID[workout.id]
 
-        #if os(iOS)
-        if #available(iOS 18.0, *) {
-            WorkoutCard(
-                workout: workout,
-                schedule: schedule,
-                sessionsThisWeek: sessionsThisWeek(for: historyEntries),
-                lastCompletedAt: historyEntries.max(by: { $0.completedAt < $1.completedAt })?.completedAt,
-                isResumable: resumeManager.resumeState?.workoutId == workout.id
-            )
-            .matchedTransitionSource(id: workout.id, in: workoutTransitionNamespace)
-        } else {
-            WorkoutCard(
-                workout: workout,
-                schedule: schedule,
-                sessionsThisWeek: sessionsThisWeek(for: historyEntries),
-                lastCompletedAt: historyEntries.max(by: { $0.completedAt < $1.completedAt })?.completedAt,
-                isResumable: resumeManager.resumeState?.workoutId == workout.id
-            )
-        }
-        #else
         WorkoutCard(
             workout: workout,
             schedule: schedule,
@@ -130,7 +109,6 @@ struct WorkoutListView: View {
             lastCompletedAt: historyEntries.max(by: { $0.completedAt < $1.completedAt })?.completedAt,
             isResumable: resumeManager.resumeState?.workoutId == workout.id
         )
-        #endif
     }
     private var todaySchedules: [ScheduledWorkout] {
         store.scheduledWorkouts(for: Date())
@@ -594,18 +572,8 @@ struct WorkoutListView: View {
     }
 
 
-    @ViewBuilder
     private func workoutDestination(for workout: Workout) -> some View {
-        #if os(iOS)
-        if #available(iOS 18.0, *) {
-            WorkoutDetailView(workout: workout)
-                .navigationTransition(.zoom(sourceID: workout.id, in: workoutTransitionNamespace))
-        } else {
-            WorkoutDetailView(workout: workout)
-        }
-        #else
         WorkoutDetailView(workout: workout)
-        #endif
     }
 
     // MARK: - Sub-views

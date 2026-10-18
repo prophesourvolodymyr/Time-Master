@@ -43,6 +43,8 @@ struct SlotCarouselNavigation<Content: View>: View {
     @State private var pageSwipesDisabled = false
     @State private var navigationIsExpanded = false
     @State private var navigationIsInteracting = false
+    @State private var navigationManuallyHidden = false
+    @GestureState private var navigationDismissDrag: CGFloat = 0
 
     init(
         selection: Binding<String?>,
@@ -94,7 +96,8 @@ struct SlotCarouselNavigation<Content: View>: View {
             let normalHeight = layout == .full ? barHeight : SlotCarouselNavigationBar.inlineHeight
             let showsNavigation = presentation != .hidden || hiddenNavigationIsRevealed
             let frame = proxy.frame(in: .global)
-            let reservedHeight = presentation == .hidden ? 0 : normalHeight
+            let restoreHeight: CGFloat = navigationManuallyHidden && navigationInteractionEnabled ? 24 : 0
+            let reservedHeight = presentation == .hidden ? restoreHeight : normalHeight
             let contentBounds = CGRect(
                 x: frame.minX,
                 y: frame.minY,
@@ -121,7 +124,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                     .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled ? .all : .subviews)
-                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled ? .all : .subviews)
+                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !navigationManuallyHidden ? .all : .subviews)
                     .simultaneousGesture(contentNavigationDismissGesture)
 
                 if isEditing {
@@ -133,8 +136,8 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if presentation != .hidden {
-                    Color.clear.frame(height: normalHeight)
+                if reservedHeight > 0 {
+                    Color.clear.frame(height: reservedHeight)
                         .allowsHitTesting(false)
                 }
             }
@@ -166,8 +169,32 @@ struct SlotCarouselNavigation<Content: View>: View {
                             .onEnded { _ in beginEditing() },
                         including: allowsEditing && !isEditing ? .all : .subviews
                     )
+                    .simultaneousGesture(navigationDismissGesture)
+                    .offset(y: navigationDismissDrag)
+                    .accessibilityAction(named: "Hide navigation", hideNavigation)
                     .background(SlotNavigationBarFrameReader())
                     .transition(navigationPresentationTransition)
+                }
+                else if navigationManuallyHidden && navigationInteractionEnabled {
+                    Button(action: revealHiddenNavigation) {
+                        Image(systemName: "chevron.up")
+                            .font(.caption.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: restoreHeight)
+                            .background(theme.background)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.textSecondary)
+                    .accessibilityLabel("Show navigation")
+                    .highPriorityGesture(
+                        DragGesture(minimumDistance: 12)
+                            .onEnded { value in
+                                guard value.translation.height < -40,
+                                      abs(value.translation.height) > abs(value.translation.width) * 1.3 else { return }
+                                revealHiddenNavigation()
+                            }
+                    )
                 }
             }
             .overlay {
@@ -194,7 +221,10 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
             }
             .onChange(of: selection) { _ in
-                withAnimation(presentationAnimation) { navigationIsExpanded = false }
+                withAnimation(presentationAnimation) {
+                    navigationIsExpanded = false
+                    navigationManuallyHidden = false
+                }
                 if effectivePresentation == .hidden, hiddenNavigationIsRevealed {
                     if !navigationIsInteracting { scheduleHiddenNavigationDismissal() }
                 }
@@ -204,6 +234,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                     finishEditing()
                     hiddenNavigationDismissTask?.cancel()
                     hiddenNavigationIsRevealed = false
+                    navigationManuallyHidden = false
                     pageIsDragging = false
                     navigationIsExpanded = false
                     navigationIsInteracting = false
@@ -253,6 +284,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     private var effectivePresentation: SlotNavigationPresentation {
         guard navigationInteractionEnabled else { return .hidden }
         if items.isEmpty { return .full }
+        if navigationManuallyHidden { return .hidden }
         return requestedPresentation ?? defaultPresentation
     }
 
@@ -282,6 +314,7 @@ struct SlotCarouselNavigation<Content: View>: View {
         hiddenNavigationDismissTask?.cancel()
         withAnimation(presentationAnimation) {
             requestedPresentation = requested
+            navigationManuallyHidden = false
             navigationIsExpanded = false
             if requested != .hidden {
                 hiddenNavigationIsRevealed = false
@@ -318,6 +351,30 @@ struct SlotCarouselNavigation<Content: View>: View {
         }
     }
 
+    private var navigationDismissGesture: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .updating($navigationDismissDrag) { value, offset, _ in
+                guard !isEditing, value.translation.height > abs(value.translation.width) * 1.3 else { return }
+                offset = value.translation.height
+            }
+            .onEnded { value in
+                guard !isEditing, value.translation.height > abs(value.translation.width) * 1.3,
+                      value.translation.height > 40 || value.predictedEndTranslation.height > 80 else { return }
+                hideNavigation()
+            }
+    }
+
+    private func hideNavigation() {
+        hiddenNavigationDismissTask?.cancel()
+        withAnimation(presentationAnimation) {
+            navigationManuallyHidden = true
+            hiddenNavigationIsRevealed = false
+            navigationIsExpanded = false
+            navigationIsInteracting = false
+        }
+        onPageDragEnded()
+    }
+
     private func hiddenNavigationRevealGesture(in size: CGSize) -> some Gesture {
         DragGesture(minimumDistance: 12, coordinateSpace: .local)
             .onEnded { value in
@@ -335,6 +392,10 @@ struct SlotCarouselNavigation<Content: View>: View {
     private func revealHiddenNavigation() {
         guard navigationInteractionEnabled, effectivePresentation == .hidden else { return }
         hiddenNavigationDismissTask?.cancel()
+        if navigationManuallyHidden {
+            withAnimation(presentationAnimation) { navigationManuallyHidden = false }
+            return
+        }
         withAnimation(presentationAnimation) {
             hiddenNavigationIsRevealed = true
             navigationIsExpanded = false

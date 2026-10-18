@@ -61,11 +61,6 @@ public struct WorkoutMusicTimeline: Codable, Equatable, Sendable {
 
     public init(clips: [WorkoutMusicClip] = []) { self.clips = clips }
 
-    public func independentCopy() -> Self {
-        var result = self
-        for index in result.clips.indices { result.clips[index].id = UUID() }
-        return result
-    }
 }
 
 public struct WorkoutMusicCursor: Codable, Equatable, Sendable {

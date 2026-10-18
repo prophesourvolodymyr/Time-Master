@@ -5,13 +5,11 @@ import TimeMasterCore
 struct WorkoutMusicTimelineView: View {
     let workout: Workout
     @ObservedObject var library: MusicLibraryStore
-    let otherWorkouts: [Workout]
     let onChange: (WorkoutMusicTimeline) -> Void
     let onClose: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var controlSize: CGFloat = 44
-    @State private var zoom: Double = 2
+    private let zoom: Double = 2
     @State private var source: MusicDestination = .general
     @State private var draggedClip: WorkoutMusicClip?
     @State private var draggedItemID: UUID?
@@ -25,16 +23,39 @@ struct WorkoutMusicTimelineView: View {
     @State private var importPresented = false
     @State private var importing = false
     @State private var message: String?
-    @State private var copyCandidate: Workout?
+    @State private var searching = false
+    @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
 
     private var timeline: WorkoutMusicTimeline { workout.musicTimeline ?? .init() }
-    private var items: [MusicLibraryItem] { library.items(for: source) }
+    private var items: [MusicLibraryItem] {
+        let group = library.items(for: source)
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return query.isEmpty ? group : group.filter {
+            $0.title.localizedStandardContains(query)
+                || $0.tracks.contains { $0.title.localizedStandardContains(query) }
+        }
+    }
     private var plannedEnd: Double { Double(workout.totalDuration) }
     private var canvasEnd: Double { max(plannedEnd, timeline.end) + max(120, plannedEnd * 0.2) }
 
     var body: some View {
         VStack(spacing: 8) {
-            header
+            if searching {
+                HStack {
+                    TextField("Search music", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .focused($searchFocused)
+                        .submitLabel(.search)
+                    Button {
+                        searching = false
+                        searchText = ""
+                    } label: { Image(systemName: "xmark.circle.fill") }
+                    .accessibilityLabel("Close music search")
+                }
+                .padding(.horizontal, 12)
+                .frame(minHeight: controlSize)
+            }
             GeometryReader { geometry in
                 let trayWidth = max(controlSize, geometry.size.width * 0.23)
                 HStack(alignment: .top, spacing: 8) {
@@ -53,6 +74,8 @@ struct WorkoutMusicTimelineView: View {
             library.adoptMusicManagerTracks()
             await library.refreshLocalDurations()
         }
+        .onChange(of: searching) { searchFocused = $0 }
+        .accessibilityAction(named: "Return to workout editor") { onClose() }
         .sheet(item: $sheet) { destination in editorSheet(destination) }
         .fileImporter(isPresented: $importPresented, allowedContentTypes: [.audio, .movie], allowsMultipleSelection: true) { result in
             importMusic(result)
@@ -60,36 +83,8 @@ struct WorkoutMusicTimelineView: View {
         .alert("Music", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("OK", role: .cancel) { message = nil }
         } message: { Text(message ?? "") }
-        .confirmationDialog("Replace this timeline with a copy?", isPresented: Binding(
-            get: { copyCandidate != nil }, set: { if !$0 { copyCandidate = nil } }
-        ), titleVisibility: .visible) {
-            Button("Copy configuration") {
-                if let configuration = copyCandidate?.musicTimeline { onChange(configuration.independentCopy()) }
-                copyCandidate = nil
-            }
-        } message: {
-            Text("The source workout stays unchanged. You can freely edit the copy here.")
-        }
     }
 
-    private var header: some View {
-        HStack(spacing: 4) {
-            Button(action: onClose) { Image(systemName: "chevron.right") }
-                .buttonStyle(SpotlightCircleButtonStyle())
-                .accessibilityLabel("Close music configuration")
-            Text("Music").font(.headline).lineLimit(1).minimumScaleFactor(0.8)
-            Spacer(minLength: 0)
-            Menu {
-                Button("Zoom in", systemImage: "plus.magnifyingglass") { zoom = min(8, zoom * 1.5) }
-                Button("Zoom out", systemImage: "minus.magnifyingglass") { zoom = max(0.5, zoom / 1.5) }
-            } label: { Image(systemName: "magnifyingglass") }
-                .buttonStyle(SpotlightCircleButtonStyle())
-                .accessibilityLabel("Timeline zoom")
-            Button { sheet = .copy } label: { Image(systemName: "doc.on.doc") }
-                .buttonStyle(SpotlightCircleButtonStyle())
-                .accessibilityLabel("Copy music configuration from another workout")
-        }
-    }
 
     private func timelineCanvas(viewport: CGFloat) -> some View {
         VStack(spacing: 4) {
@@ -134,8 +129,7 @@ struct WorkoutMusicTimelineView: View {
                                 .fill(Theme.textPrimary.opacity(0.12))
                                 .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.textPrimary.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4])))
                                 .overlay(alignment: .top) {
-                                    Text("\(musicTimestamp(ghost.start)) · \(musicTimestamp(ghost.duration))")
-                                        .font(.caption2.monospacedDigit()).padding(4)
+                                    clipIdentity(ghost, height: ghost.duration * zoom)
                                 }
                                 .frame(width: max(0, laneWidth - 4), height: max(2, ghost.duration * zoom))
                                 .offset(x: ghost.lane == .primary ? 2 : laneWidth + 2, y: ghost.start * zoom)
@@ -168,18 +162,7 @@ struct WorkoutMusicTimelineView: View {
         let duration = resizeID == clip.id ? resizeDuration ?? clip.duration : clip.duration
         let height = max(2, duration * zoom)
         return VStack(spacing: 0) {
-            if height > controlSize {
-                VStack(spacing: 4) {
-                    Image(systemName: clip.tracks.count > 1 ? "square.grid.2x2" : "opticaldisc")
-                        .font(.title3)
-                    Text(clip.title).font(.caption2.weight(.medium)).lineLimit(2)
-                    if height > controlSize * 2 {
-                        Text(musicTimestamp(duration)).font(.caption2.monospacedDigit())
-                            .foregroundStyle(Theme.textSecondary)
-                    }
-                }
-                .padding(6)
-            }
+            clipIdentity(clip, height: height)
             Spacer(minLength: 0)
         }
         .frame(width: max(0, laneWidth - 6), height: height)
@@ -213,7 +196,8 @@ struct WorkoutMusicTimelineView: View {
         }
         .overlay(alignment: .bottom) {
             Capsule().fill(Theme.textSecondary).frame(width: laneWidth * 0.3, height: 3)
-                .frame(width: max(0, laneWidth - 6), height: min(controlSize * 0.6, height))
+                .frame(width: max(0, laneWidth - 6), height: min(controlSize * 0.6, height), alignment: .bottom)
+                .padding(.bottom, min(3, height * 0.1))
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global).onChanged { value in
                     resizeID = clip.id
@@ -254,29 +238,26 @@ struct WorkoutMusicTimelineView: View {
                 }
                 Button("Open Music Settings", systemImage: "gearshape") { sheet = .library }
             } label: {
-                VStack(spacing: 4) {
-                    Text("Library").font(.caption2.weight(.semibold))
-                    Text(library.destinationName(source)).font(.caption2).lineLimit(2)
-                    Image(systemName: "chevron.down").font(.caption2)
-                }
-                .frame(maxWidth: .infinity, minHeight: controlSize)
+                sidebarIcon("music.note.list")
             }
             .accessibilityLabel("Music tray source: \(library.destinationName(source))")
+            Button {
+                searching.toggle()
+                if !searching { searchText = "" }
+            } label: { sidebarIcon("magnifyingglass") }
+            .accessibilityLabel("Search music")
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if items.isEmpty {
-                        Text("No music").font(.caption2).foregroundStyle(Theme.textSecondary)
+                        Text(searchText.isEmpty ? "No music" : "No matches").font(.caption2).foregroundStyle(Theme.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     ForEach(items) { item in
-                        Button { addFromTray(item) } label: {
+                        Button { sheet = .preview(item) } label: {
                             VStack(spacing: 4) {
-                                trayArtwork(item)
-                                Text(item.title).font(.caption2).lineLimit(2)
-                                if item.totalDuration > 0 {
-                                    Text(musicTimestamp(item.totalDuration)).font(.caption2.monospacedDigit())
-                                        .foregroundStyle(Theme.textSecondary)
-                                }
+                                WorkoutMusicCover(artwork: item.artwork ?? item.tracks.first?.artwork,
+                                                  isCollection: item.isCollection, size: controlSize)
+                                Text(item.title).font(.caption2).lineLimit(1)
                             }.frame(maxWidth: .infinity).contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -302,19 +283,23 @@ struct WorkoutMusicTimelineView: View {
                             musicEditorHaptic()
                             return true
                         }
-                        .accessibilityHint("Add to the timeline. Drag onto another track to create a folder.")
+                        .accessibilityHint("Preview music. Hold and drag to place it on the timeline or group it with another track.")
+                        .accessibilityAction(named: "Add to timeline") { sheet = .edit(item.musicClip()) }
                     }
                 }.padding(.vertical, 4)
             }
             Button { importPresented = true } label: {
-                if importing { ProgressView() } else { Image(systemName: "square.and.arrow.down") }
+                if importing { ProgressView().frame(width: controlSize, height: controlSize) }
+                else { sidebarIcon("square.and.arrow.down") }
             }
             .frame(minWidth: controlSize, minHeight: controlSize)
             .disabled(importing)
             .accessibilityLabel("Import music into Settings and this tray")
         }
         .padding(.horizontal, 4)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(alignment: .leading) {
+            Rectangle().fill(Theme.separator).frame(width: 1)
+        }
     }
 
     private func sourceChoices(_ family: MusicDestinationFamily) -> some View {
@@ -327,20 +312,34 @@ struct WorkoutMusicTimelineView: View {
         }
     }
 
+    private func sidebarIcon(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(.body.weight(.medium))
+            .frame(width: controlSize, height: controlSize)
+            .background(Theme.surface, in: Circle())
+            .overlay(Circle().strokeBorder(Theme.textSecondary.opacity(0.4), lineWidth: 1))
+            .contentShape(Circle())
+    }
+
     @ViewBuilder
-    private func trayArtwork(_ item: MusicLibraryItem) -> some View {
-        let icon = item.artwork?.placeholderSystemImage ?? (item.isCollection ? "square.grid.2x2" : "opticaldisc")
-        let localURL = item.artwork?.localFilename.map {
-            $0.hasPrefix("/") ? URL(fileURLWithPath: $0)
-                : MusicManager.shared.localMusicDirectoryURL.appendingPathComponent($0)
-        }
-        if let url = localURL ?? item.artwork?.remoteURL {
-            AsyncCoverImage(url: url, fallbackIcon: icon, height: controlSize, overlayGradient: false)
-                .frame(width: controlSize, height: controlSize)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        } else {
-            Image(systemName: icon).font(.title2)
-                .frame(width: controlSize, height: controlSize)
+    private func clipIdentity(_ clip: WorkoutMusicClip, height: CGFloat) -> some View {
+        if height > 24 {
+            let item = clip.sourceItemID.flatMap { library.item(id: $0) }
+            let compact = height < controlSize * 1.5
+            let cover = WorkoutMusicCover(
+                artwork: item?.artwork ?? item?.tracks.first?.artwork,
+                isCollection: clip.tracks.count > 1,
+                size: compact ? min(controlSize * 0.5, height - 12) : min(controlSize, height - 36)
+            )
+            let layout = compact ? AnyLayout(HStackLayout(spacing: 4)) : AnyLayout(VStackLayout(spacing: 4))
+            layout {
+                cover
+                Text(clip.title).font(.caption2.weight(.medium)).lineLimit(1)
+            }
+            .padding(4)
+            .frame(maxWidth: .infinity)
+            .frame(height: max(0, height - 8), alignment: .top)
+            .clipped()
         }
     }
 
@@ -361,50 +360,17 @@ struct WorkoutMusicTimelineView: View {
                 save(item.musicClip(lane: lane, start: start))
                 sheet = nil
             }
-        case .copy:
-            NavigationStack {
-                List(otherWorkouts.filter { $0.id != workout.id && $0.musicTimeline != nil }) { candidate in
-                    Button {
-                        sheet = nil
-                        if timeline.clips.isEmpty {
-                            if let configuration = candidate.musicTimeline { onChange(configuration.independentCopy()) }
-                        } else {
-                            copyCandidate = candidate
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "music.note.list")
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(candidate.name).foregroundStyle(Theme.textPrimary)
-                                Text("\(candidate.musicTimeline?.clips.count ?? 0) clips · \(musicTimestamp(candidate.musicTimeline?.end ?? 0))")
-                                    .font(.caption).foregroundStyle(Theme.textSecondary)
-                            }
-                        }.padding(.vertical, 6)
-                    }.listRowBackground(Theme.surface)
-                }
-                .overlay {
-                    if !otherWorkouts.contains(where: { $0.id != workout.id && $0.musicTimeline != nil }) {
-                        Text("Configurations from your other workouts appear here.")
-                            .foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center).padding()
-                    }
-                }
-                .scrollContentBackground(.hidden).background(Theme.background)
-                .navigationTitle("Copy Configuration")
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Cancel") { sheet = nil } } }
-            }
-            .preferredColorScheme(.dark)
+        case .preview(let item):
+            WorkoutMusicPreviewSheet(item: item)
+                #if os(iOS)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                #endif
         case .library:
             MusicSettingsView(library: library)
         }
     }
 
-    private func addFromTray(_ item: MusicLibraryItem) {
-        guard item.totalDuration > 0 else {
-            message = "This item has no available audio duration. Import its audio in Music Settings first."
-            return
-        }
-        sheet = .edit(item.musicClip())
-    }
 
     private func save(_ clip: WorkoutMusicClip) {
         var updated = timeline
@@ -457,13 +423,13 @@ struct WorkoutMusicTimelineView: View {
     }
 
     private enum EditorSheet: Identifiable {
-        case edit(WorkoutMusicClip), replace(UUID), add(WorkoutMusicLane, Double), copy, library
+        case edit(WorkoutMusicClip), replace(UUID), add(WorkoutMusicLane, Double), preview(MusicLibraryItem), library
         var id: String {
             switch self {
             case .edit(let clip): return "edit-\(clip.id)"
             case .replace(let id): return "replace-\(id)"
             case .add(let lane, let time): return "add-\(lane)-\(time)"
-            case .copy: return "copy"
+            case .preview(let item): return "preview-\(item.id)"
             case .library: return "library"
             }
         }

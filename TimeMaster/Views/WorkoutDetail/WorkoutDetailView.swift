@@ -12,6 +12,7 @@ struct WorkoutDetailView: View {
     @EnvironmentObject private var musicLibrary: MusicLibraryStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
+    @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteAlert = false
     @State private var sectionToDelete: Section?
     @State private var showPlayer = false
@@ -27,7 +28,6 @@ struct WorkoutDetailView: View {
     @State private var browserStartsInBundleMode = false
     @State private var summaryIsCompact = false
     @State private var summaryCompletedSessionCount = 0
-    @State private var editorControlsExpanded = false
     @State private var pendingScrollTargetID: RowID?
     @State private var sectionIDs: [UUID] = []
     @State private var musicConfigurationOpen = false
@@ -85,7 +85,6 @@ struct WorkoutDetailView: View {
                     WorkoutMusicTimelineView(
                         workout: workout,
                         library: musicLibrary,
-                        otherWorkouts: store.workouts,
                         onChange: { configuration in
                             var updated = workout
                             updated.musicTimeline = configuration
@@ -107,20 +106,20 @@ struct WorkoutDetailView: View {
                 .frame(height: visibleHeight, alignment: .top)
                 .frame(width: proxy.size.width)
                 .background(Theme.background)
-                .overlay(alignment: .trailing) {
-                    if musicConfigurationOpen {
-                        Color.clear
-                            .frame(width: editorPeek)
-                            .contentShape(Rectangle())
-                            .onTapGesture { setMusicConfigurationOpen(false) }
-                            .gesture(musicRevealGesture(distance: slideDistance))
-                            .accessibilityLabel("Return to workout editor")
-                            .accessibilityAddTraits(.isButton)
-                    }
-                }
+                .allowsHitTesting(!musicConfigurationOpen)
                 .offset(x: -slideDistance * reveal)
                 .zIndex(1)
                 .accessibilityHidden(musicConfigurationOpen)
+                if musicConfigurationOpen {
+                    Color.clear
+                        .frame(width: editorPeek, height: visibleHeight)
+                        .contentShape(Rectangle())
+                        .onTapGesture { setMusicConfigurationOpen(false) }
+                        .gesture(musicRevealGesture(distance: slideDistance))
+                        .accessibilityLabel("Return to workout editor")
+                        .accessibilityAddTraits(.isButton)
+                        .zIndex(2)
+                }
 
                 if !musicConfigurationOpen {
                     Color.clear
@@ -137,9 +136,12 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle("")
         .slotNavigationPresentation(.inline)
+        .slotNavigationInteractionDisabled(musicConfigurationOpen || musicRevealDrag > 0.02)
         .preference(key: SlotNavigationEditingPreferenceKey.self, value: true)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         #endif
         .onAppear {
             sectionIDs = workout.sections.map(\.id)
@@ -412,48 +414,47 @@ struct WorkoutDetailView: View {
 
 
 
-    private func editorActionChrome(metrics: ScrollingChromeMetrics) -> some View {
-        let progress: CGFloat = editorControlsExpanded ? 0 : 1
-        let buttonWidth = metrics.controlWidth(progress)
-        let buttonHeight = metrics.controlHeight(progress)
-        let groupWidth = buttonWidth * 3 + metrics.controlSpacing * 2
-        let padding = metrics.expandedControlPadding * (1 - progress)
-            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
-
-        return HStack(spacing: metrics.controlSpacing) {
-            editorActionMenuButton(
-                systemImage: "ellipsis.circle",
-                title: "More",
-                progress: progress,
-                width: buttonWidth
-            )
+    private func editorHeader(width: CGFloat) -> some View {
+        let diameter = min(44, max(32, (width - 24) * 0.095))
+        return HStack(spacing: 4) {
+            Button { dismiss() } label: { editorHeaderIcon("chevron.left", diameter: diameter) }
+                .accessibilityLabel("Back to workouts")
+            Text(workout.name)
+                .font(.title2.bold())
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+            Button { setMusicConfigurationOpen(true) } label: {
+                editorHeaderIcon("music.note.list", diameter: diameter)
+            }
+            .accessibilityLabel("Configure workout music")
+            Menu { editorActionMenuItems } label: {
+                editorHeaderIcon("ellipsis", diameter: diameter)
+            }
             .accessibilityLabel("Workout actions")
-            editorActionButton(
-                systemImage: "plus",
-                title: "Add",
-                progress: progress,
-                width: buttonWidth
-            ) {
-                showingAddOptions = true
+            Button { showingAddOptions = true } label: {
+                editorHeaderIcon("plus", diameter: diameter)
             }
             .accessibilityLabel("Add to workout")
-            editorActionButton(
-                systemImage: "folder.fill.badge.plus",
-                title: "Browse",
-                progress: progress,
-                width: buttonWidth
-            ) {
-                openBrowser(.newSection)
+            Button { openBrowser(.newSection) } label: {
+                editorHeaderIcon("folder.badge.plus", diameter: diameter)
             }
             .accessibilityLabel("Browse exercises")
         }
-        .frame(width: groupWidth)
-        .offset(x: metrics.groupLeading(progress))
-        .frame(width: metrics.contentWidth, alignment: .leading)
-        .padding(.horizontal, metrics.horizontalPadding)
-        .frame(height: buttonHeight + padding * 2)
-        .background(Theme.background)
-        .zIndex(2)
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.textPrimary)
+        .padding(.horizontal, 12)
+    }
+
+    private func editorHeaderIcon(_ name: String, diameter: CGFloat) -> some View {
+        Image(systemName: name)
+            .font(.system(size: diameter * 0.43, weight: .medium))
+            .frame(width: diameter, height: diameter)
+            .background(Theme.surface, in: Circle())
+            .overlay(Circle().strokeBorder(Theme.separator, lineWidth: 1))
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -504,23 +505,7 @@ struct WorkoutDetailView: View {
 
     private func sectionListContent(width: CGFloat) -> some View {
         List {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(workout.name)
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(Theme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                    Spacer(minLength: 8)
-                    Button { setMusicConfigurationOpen(true) } label: {
-                        Image(systemName: "music.note.list")
-                    }
-                    .buttonStyle(SpotlightCircleButtonStyle())
-                    .accessibilityLabel("Configure workout music")
-                }
-                .padding(.horizontal, 20)
-                editorActionChrome(metrics: ScrollingChromeMetrics(width: width))
-            }
+            editorHeader(width: width)
             .padding(.top, 8)
             .background {
                 GeometryReader { proxy in
@@ -619,46 +604,6 @@ struct WorkoutDetailView: View {
         .scrollContentBackground(.hidden)
     }
 
-    private func editorActionButton(
-        systemImage: String,
-        title: String,
-        progress: CGFloat,
-        width: CGFloat,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            ScrollingChromeControl(
-                systemImage: systemImage,
-                title: title,
-                progress: progress,
-                width: width,
-                height: width
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-    }
-
-    private func editorActionMenuButton(
-        systemImage: String,
-        title: String,
-        progress: CGFloat,
-        width: CGFloat
-    ) -> some View {
-        Menu {
-            editorActionMenuItems
-        } label: {
-            ScrollingChromeControl(
-                systemImage: systemImage,
-                title: title,
-                progress: progress,
-                width: width,
-                height: width
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-    }
 
     private func builderListRow<Content: View>(
         _ content: Content,
@@ -1789,11 +1734,9 @@ struct WorkoutDetailView: View {
 
     private func updateScrollState(_ offset: CGFloat) {
         guard offset.isFinite else { return }
-        let expanded = ScrollingChromeReveal.expanded(current: editorControlsExpanded, offset: offset)
         let compactSummary = offset > 24 ? true : (offset <= 1 ? false : summaryIsCompact)
-        guard expanded != editorControlsExpanded || compactSummary != summaryIsCompact else { return }
+        guard compactSummary != summaryIsCompact else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
-            editorControlsExpanded = expanded
             summaryIsCompact = compactSummary
         }
     }
