@@ -9,7 +9,9 @@ struct WorkoutMusicTimelineView: View {
     let onClose: () -> Void
 
     @ScaledMetric(relativeTo: .body) private var controlSize: CGFloat = 44
-    private let zoom: Double = 2
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var zoom: Double = 2
     @State private var source: MusicDestination = .general
     @State private var draggedClip: WorkoutMusicClip?
     @State private var draggedItemID: UUID?
@@ -19,6 +21,7 @@ struct WorkoutMusicTimelineView: View {
     @State private var resizeDuration: Double?
     @State private var resizeIntent = WorkoutMusicResizeIntent()
     @State private var snapped = false
+    @State private var duplicateSuggestionID: UUID?
     @State private var sheet: EditorSheet?
     @State private var importPresented = false
     @State private var importing = false
@@ -38,6 +41,9 @@ struct WorkoutMusicTimelineView: View {
     }
     private var plannedEnd: Double { Double(workout.totalDuration) }
     private var canvasEnd: Double { max(plannedEnd, timeline.end) + max(120, plannedEnd * 0.2) }
+    private var editorMotion: Animation? {
+        reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.9)
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -86,6 +92,62 @@ struct WorkoutMusicTimelineView: View {
     }
 
 
+    private var timelineToolbar: some View {
+        floatingSurface(
+            ViewThatFits(in: .horizontal) {
+                timelineToolbarContent(showScale: true)
+                timelineToolbarContent(showScale: false)
+            }
+            .padding(4)
+        )
+        .padding(8)
+    }
+
+    private func timelineToolbarContent(showScale: Bool) -> some View {
+        HStack(spacing: 0) {
+            Button(action: onClose) { sidebarIcon("chevron.left") }
+                .accessibilityLabel("Return to workout editor")
+            Rectangle().fill(Theme.textSecondary.opacity(0.5))
+                .frame(width: 1, height: controlSize * 0.45)
+                .padding(.horizontal, 3)
+            Button { changeZoom(by: 0.5) } label: { sidebarIcon("minus.magnifyingglass") }
+                .disabled(zoom <= 0.5 || resizeID != nil || ghost != nil)
+                .accessibilityLabel("Zoom out timeline")
+            if showScale {
+                Text("\(Int(zoom / 2 * 100))%")
+                    .font(.caption2.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize()
+                    .accessibilityLabel("Timeline zoom")
+            }
+            Button { changeZoom(by: 2) } label: { sidebarIcon("plus.magnifyingglass") }
+                .disabled(zoom >= 8 || resizeID != nil || ghost != nil)
+                .accessibilityLabel("Zoom in timeline")
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func floatingSurface<Content: View>(_ content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: controlSize * 0.6, style: .continuous)
+        if reduceTransparency {
+            content.background(Theme.surface2, in: shape)
+                .overlay(shape.strokeBorder(Theme.textSecondary.opacity(0.4), lineWidth: 1))
+        } else if #available(iOS 26.0, macOS 26.0, *) {
+            content.glassEffect(.regular, in: shape)
+        } else {
+            content.background(.ultraThinMaterial, in: shape)
+                .overlay(shape.strokeBorder(Theme.textSecondary.opacity(0.4), lineWidth: 1))
+                .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
+        }
+    }
+
+    private func changeZoom(by factor: Double) {
+        withAnimation(editorMotion) {
+            zoom = min(8, max(0.5, zoom * factor))
+        }
+    }
+
     private func timelineCanvas(viewport: CGFloat) -> some View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
@@ -100,11 +162,13 @@ struct WorkoutMusicTimelineView: View {
                     ZStack(alignment: .topLeading) {
                         Canvas { context, size in
                             var lines = Path()
-                            for minute in 0...Int(canvasEnd / 60) {
-                                let y = Double(minute * 60) * zoom
+                            let interval = zoom >= 4 ? 15 : (zoom >= 2 ? 30 : 60)
+                            for tick in 0...Int(canvasEnd / Double(interval)) {
+                                let seconds = Double(tick * interval)
+                                let y = seconds * zoom
                                 lines.move(to: CGPoint(x: 0, y: y))
                                 lines.addLine(to: CGPoint(x: size.width, y: y))
-                                context.draw(Text(musicTimestamp(Double(minute * 60)))
+                                context.draw(Text(musicTimestamp(seconds))
                                     .font(.caption2.monospacedDigit()).foregroundColor(.gray),
                                     at: CGPoint(x: 3, y: y + 2), anchor: .topLeading)
                             }
@@ -117,7 +181,11 @@ struct WorkoutMusicTimelineView: View {
                                 .frame(width: laneWidth, height: max(viewport, canvasEnd * zoom))
                                 .contentShape(Rectangle())
                                 .gesture(SpatialTapGesture().onEnded { value in
-                                    sheet = .add(lane, max(0, value.location.y / zoom))
+                                    if duplicateSuggestionID != nil {
+                                        showDuplicateSuggestion(nil)
+                                    } else {
+                                        sheet = .add(lane, max(0, value.location.y / zoom))
+                                    }
                                 })
                                 .offset(x: lane == .primary ? 0 : laneWidth)
                         }
@@ -126,13 +194,15 @@ struct WorkoutMusicTimelineView: View {
                         }
                         if let ghost {
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(Theme.textPrimary.opacity(0.12))
-                                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.textPrimary.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4])))
+                                .fill(Theme.toolbarOrange.opacity(0.14))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(Theme.toolbarOrange.opacity(0.7), lineWidth: 1))
                                 .overlay(alignment: .top) {
                                     clipIdentity(ghost, height: ghost.duration * zoom)
                                 }
                                 .frame(width: max(0, laneWidth - 4), height: max(2, ghost.duration * zoom))
                                 .offset(x: ghost.lane == .primary ? 2 : laneWidth + 2, y: ghost.start * zoom)
+                                .animation(editorMotion, value: ghost.lane)
                                 .allowsHitTesting(false)
                         }
                         VStack(spacing: 3) {
@@ -143,18 +213,42 @@ struct WorkoutMusicTimelineView: View {
                         }
                         .offset(y: plannedEnd * zoom)
                         .allowsHitTesting(false)
+                        if let duplicateSuggestionID,
+                           let clip = timeline.clips.first(where: { $0.id == duplicateSuggestionID }) {
+                            let duration = resizeID == clip.id ? resizeDuration ?? clip.duration : clip.duration
+                            Button { duplicateBelow(clip) } label: {
+                                Label("Duplicate below", systemImage: "plus.square.on.square")
+                                    .font(.caption2.weight(.semibold))
+                                    .multilineTextAlignment(.center)
+                                    .padding(6)
+                                    .frame(width: max(0, laneWidth - 6))
+                                    .frame(minHeight: controlSize)
+                                    .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 10))
+                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Theme.toolbarOrange.opacity(0.6), lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Theme.toolbarOrange)
+                            .offset(x: clip.lane == .primary ? 3 : laneWidth + 3,
+                                    y: (clip.start + duration) * zoom + 6)
+                            .transition(.opacity)
+                            .accessibilityLabel("Duplicate \(clip.title) below")
+                        }
                     }
                     .onDrop(of: [workoutMusicDragType], delegate: TimelineMusicDrop(
                         laneWidth: laneWidth, zoom: zoom,
                         clip: draggedClip, isMoving: movingClipID != nil,
                         preview: { ghost = $0 },
-                        commit: { place($0); clearDrag() }
+                        commit: { clip in
+                            withAnimation(editorMotion) { place(clip); clearDrag() }
+                        }
                     ))
                 }
                 .frame(height: max(viewport, canvasEnd * zoom))
             }
             .background(Theme.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
             .accessibilityLabel("Free-positioned music timeline")
+            .overlay(alignment: .bottomLeading) { timelineToolbar }
         }
     }
 
@@ -162,7 +256,7 @@ struct WorkoutMusicTimelineView: View {
         let duration = resizeID == clip.id ? resizeDuration ?? clip.duration : clip.duration
         let height = max(2, duration * zoom)
         return VStack(spacing: 0) {
-            clipIdentity(clip, height: height)
+            clipIdentity(clip, height: height, duration: duration)
             Spacer(minLength: 0)
         }
         .frame(width: max(0, laneWidth - 6), height: height)
@@ -171,7 +265,7 @@ struct WorkoutMusicTimelineView: View {
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(
             resizeID == clip.id && snapped ? Theme.restAccent : Theme.textPrimary.opacity(clip.lane == .primary ? 0.4 : 0.18), lineWidth: 1))
         .contentShape(Rectangle())
-        .onTapGesture { sheet = .edit(clip) }
+        .onTapGesture { showDuplicateSuggestion(nil); sheet = .edit(clip) }
         .contextMenu {
             Button("Edit timing and order", systemImage: "slider.horizontal.3") { sheet = .edit(clip) }
             Button("Replace music", systemImage: "arrow.triangle.2.circlepath") { sheet = .replace(clip.id) }
@@ -180,20 +274,20 @@ struct WorkoutMusicTimelineView: View {
                 moved.lane = clip.lane == .primary ? .background : .primary
                 save(moved)
             }
-            Button("Duplicate", systemImage: "plus.square.on.square") {
-                var copy = clip
-                copy.id = UUID()
-                copy.start = clip.end
-                save(copy)
-            }
+            Button("Duplicate", systemImage: "plus.square.on.square") { duplicateBelow(clip) }
             Button("Remove", systemImage: "trash", role: .destructive) { remove(clip.id) }
         }
         .onDrag {
+            duplicateSuggestionID = nil
             draggedClip = clip
             movingClipID = clip.id
             draggedItemID = nil
             return workoutMusicDragProvider(clip.id)
+        } preview: {
+            musicDragPreview(clip)
         }
+        .opacity(movingClipID == clip.id && ghost != nil ? 0.35 : 1)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: movingClipID == clip.id && ghost != nil)
         .overlay(alignment: .bottom) {
             Capsule().fill(Theme.textSecondary).frame(width: laneWidth * 0.3, height: 3)
                 .frame(width: max(0, laneWidth - 6), height: min(controlSize * 0.6, height), alignment: .bottom)
@@ -201,7 +295,10 @@ struct WorkoutMusicTimelineView: View {
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global).onChanged { value in
                     resizeID = clip.id
-                    let proposed = clip.start + min(clip.sourceDuration, max(1, clip.duration + value.translation.height / zoom))
+                    let requestedDuration = clip.duration + value.translation.height / zoom
+                    let maximum = clip.sourceDuration
+                    showDuplicateSuggestion(maximum > 0 && requestedDuration > maximum + 10 / zoom ? clip.id : nil)
+                    let proposed = clip.start + min(maximum, max(1, requestedDuration))
                     let adjusted = resizeIntent.adjustedEnd(proposed, boundaries: workout.musicBoundaries, tolerance: 8 / zoom)
                     let isSnapped = adjusted != proposed
                     if isSnapped && !snapped { musicEditorHaptic() }
@@ -218,6 +315,16 @@ struct WorkoutMusicTimelineView: View {
                 })
                 .accessibilityHidden(true)
         }
+        .overlay(alignment: .top) {
+            if resizeID == clip.id && height < controlSize {
+                Text(musicTimestamp(duration))
+                    .font(.caption2.weight(.semibold).monospacedDigit())
+                    .padding(4)
+                    .background(Theme.surface2, in: Capsule())
+                    .offset(y: -controlSize * 0.6)
+                    .allowsHitTesting(false)
+            }
+        }
         .offset(x: clip.lane == .primary ? 3 : laneWidth + 3, y: clip.start * zoom)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(clip.title), \(clip.lane.rawValue), starts \(musicTimestamp(clip.start)), duration \(musicTimestamp(duration))")
@@ -225,6 +332,7 @@ struct WorkoutMusicTimelineView: View {
         .accessibilityAction { sheet = .edit(clip) }
         .accessibilityAction(named: "Replace music") { sheet = .replace(clip.id) }
         .accessibilityAction(named: "Remove") { remove(clip.id) }
+        .accessibilityAction(named: "Duplicate below") { duplicateBelow(clip) }
     }
 
     private var tray: some View {
@@ -246,6 +354,7 @@ struct WorkoutMusicTimelineView: View {
                 if !searching { searchText = "" }
             } label: { sidebarIcon("magnifyingglass") }
             .accessibilityLabel("Search music")
+            sidebarDivider
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if items.isEmpty {
@@ -262,6 +371,7 @@ struct WorkoutMusicTimelineView: View {
                         }
                         .buttonStyle(.plain)
                         .onDrag {
+                            duplicateSuggestionID = nil
                             guard item.totalDuration > 0 else {
                                 message = "Import audio with a known duration before adding it to the timeline."
                                 return NSItemProvider()
@@ -270,6 +380,8 @@ struct WorkoutMusicTimelineView: View {
                             draggedItemID = item.id
                             movingClipID = nil
                             return workoutMusicDragProvider(item.id)
+                        } preview: {
+                            musicDragPreview(draggedClip ?? item.musicClip())
                         }
                         .onDrop(of: [workoutMusicDragType], isTargeted: nil) { _ in
                             guard let draggedItemID, draggedItemID != item.id else { return false }
@@ -288,6 +400,7 @@ struct WorkoutMusicTimelineView: View {
                     }
                 }.padding(.vertical, 4)
             }
+            sidebarDivider
             Button { importPresented = true } label: {
                 if importing { ProgressView().frame(width: controlSize, height: controlSize) }
                 else { sidebarIcon("square.and.arrow.down") }
@@ -296,6 +409,7 @@ struct WorkoutMusicTimelineView: View {
             .disabled(importing)
             .accessibilityLabel("Import music into Settings and this tray")
         }
+        .buttonStyle(.plain)
         .padding(.horizontal, 4)
         .overlay(alignment: .leading) {
             Rectangle().fill(Theme.separator).frame(width: 1)
@@ -316,30 +430,64 @@ struct WorkoutMusicTimelineView: View {
         Image(systemName: name)
             .font(.body.weight(.medium))
             .frame(width: controlSize, height: controlSize)
-            .background(Theme.surface, in: Circle())
-            .overlay(Circle().strokeBorder(Theme.textSecondary.opacity(0.4), lineWidth: 1))
-            .contentShape(Circle())
+            .contentShape(Rectangle())
+    }
+
+    private var sidebarDivider: some View {
+        Rectangle().fill(Theme.textSecondary.opacity(0.5))
+            .frame(height: 1)
+            .padding(.horizontal, 6)
+            .accessibilityHidden(true)
+    }
+
+    private func musicDragPreview(_ clip: WorkoutMusicClip) -> some View {
+        let item = clip.sourceItemID.flatMap { library.item(id: $0) }
+        return HStack(spacing: 8) {
+            WorkoutMusicCover(artwork: item?.artwork ?? item?.tracks.first?.artwork,
+                              isCollection: clip.tracks.count > 1, size: controlSize)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(clip.title).font(.caption.weight(.semibold)).lineLimit(1)
+                Text(musicTimestamp(clip.duration)).font(.caption2.monospacedDigit())
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .padding(10)
+        .frame(width: controlSize * 4, alignment: .leading)
+        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.toolbarOrange.opacity(0.5), lineWidth: 1))
     }
 
     @ViewBuilder
-    private func clipIdentity(_ clip: WorkoutMusicClip, height: CGFloat) -> some View {
-        if height > 24 {
+    private func clipIdentity(_ clip: WorkoutMusicClip, height: CGFloat, duration: Double? = nil) -> some View {
+        let duration = duration ?? clip.duration
+        if height > 36 {
             let item = clip.sourceItemID.flatMap { library.item(id: $0) }
             let compact = height < controlSize * 1.5
             let cover = WorkoutMusicCover(
                 artwork: item?.artwork ?? item?.tracks.first?.artwork,
                 isCollection: clip.tracks.count > 1,
-                size: compact ? min(controlSize * 0.5, height - 12) : min(controlSize, height - 36)
+                size: compact ? min(controlSize * 0.5, height - 20) : min(controlSize, max(12, height - 54))
             )
             let layout = compact ? AnyLayout(HStackLayout(spacing: 4)) : AnyLayout(VStackLayout(spacing: 4))
             layout {
                 cover
-                Text(clip.title).font(.caption2.weight(.medium)).lineLimit(1)
+                VStack(spacing: 2) {
+                    Text(clip.title).font(.caption2.weight(.medium)).lineLimit(1)
+                    Text(musicTimestamp(duration)).font(.caption2.monospacedDigit())
+                        .foregroundStyle(Theme.textSecondary)
+                }
             }
             .padding(4)
             .frame(maxWidth: .infinity)
             .frame(height: max(0, height - 8), alignment: .top)
             .clipped()
+        } else {
+            Text(musicTimestamp(duration)).font(.caption2.monospacedDigit())
+                .foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
+                .frame(height: max(0, height - 8), alignment: .top)
+                .clipped()
         }
     }
 
@@ -386,7 +534,25 @@ struct WorkoutMusicTimelineView: View {
         musicEditorHaptic()
     }
 
+    private func showDuplicateSuggestion(_ id: UUID?) {
+        guard duplicateSuggestionID != id else { return }
+        withAnimation(editorMotion) { duplicateSuggestionID = id }
+        if id != nil { musicEditorHaptic() }
+    }
+
+    private func duplicateBelow(_ clip: WorkoutMusicClip) {
+        var copy = clip
+        copy.id = UUID()
+        copy.start = clip.end
+        withAnimation(editorMotion) {
+            save(copy)
+            duplicateSuggestionID = nil
+        }
+        musicEditorHaptic()
+    }
+
     private func remove(_ id: UUID) {
+        if duplicateSuggestionID == id { duplicateSuggestionID = nil }
         var updated = timeline
         updated.clips.removeAll { $0.id == id }
         onChange(updated)
@@ -447,7 +613,7 @@ private struct TimelineMusicDrop: DropDelegate {
     func validateDrop(info: DropInfo) -> Bool { clip != nil }
     func dropUpdated(info: DropInfo) -> DropProposal? {
         if var proposed = clip {
-            proposed.start = max(0, (info.location.y / zoom).rounded())
+            proposed.start = max(0, info.location.y / zoom)
             proposed.lane = info.location.x < laneWidth ? .primary : .background
             preview(proposed)
         }

@@ -59,10 +59,10 @@ struct WorkoutCard: View {
         .frame(maxWidth: .infinity, minHeight: 94, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(hex: workout.type.colorHex).opacity(0.12))
+                .fill(Theme.surface)
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color(hex: workout.type.colorHex).opacity(0.55), lineWidth: 1)
+                        .stroke(Theme.separator, lineWidth: 1)
                 }
         }
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -80,7 +80,7 @@ struct WorkoutCard: View {
         .foregroundStyle(Theme.textPrimary)
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
-        .background(Color(hex: workout.type.colorHex).opacity(0.28), in: Capsule())
+        .background(Theme.surface2, in: Capsule())
     }
 
     private var durationBadge: some View {
@@ -194,14 +194,13 @@ struct WorkoutCoverMosaic: View {
                 if let section = workout.sections[safe: index] {
                     sectionCover(section, size: tileSize)
                 } else {
-                    Color(hex: workout.type.colorHex)
-                        .opacity(0.18)
+                    Theme.surface2
                         .frame(width: tileSize, height: tileSize)
                 }
             }
         }
         .frame(width: size, height: size)
-        .background(Color(hex: workout.type.colorHex).opacity(0.22))
+        .background(Theme.surface2)
     }
 
     @ViewBuilder
@@ -213,15 +212,14 @@ struct WorkoutCoverMosaic: View {
             AsyncCoverImage(
                 url: url,
                 fallbackIcon: page.effectiveWorkoutType?.iconName ?? workout.type.iconName,
-                fallbackColor: Color(hex: workout.type.colorHex),
+                fallbackColor: Theme.surface2,
                 height: size,
                 contentMode: .fill,
                 overlayGradient: false
             )
             .frame(width: size, height: size)
         } else {
-            Color(hex: workout.type.colorHex)
-                .opacity(0.18)
+            Theme.surface2
                 .frame(width: size, height: size)
                 .overlay {
                     Image(systemName: workout.type.iconName)

@@ -27,6 +27,7 @@ struct WorkoutDetailView: View {
     @State private var showingSavedWorkoutPicker = false
     @State private var browserStartsInBundleMode = false
     @State private var summaryIsCompact = false
+    @State private var editorControlsExpanded = false
     @State private var summaryCompletedSessionCount = 0
     @State private var pendingScrollTargetID: RowID?
     @State private var sectionIDs: [UUID] = []
@@ -415,14 +416,19 @@ struct WorkoutDetailView: View {
 
 
     private func editorHeader(width: CGFloat) -> some View {
-        let diameter = min(44, max(32, (width - 24) * 0.095))
+        let metrics = ScrollingChromeMetrics(
+            width: width, horizontalPadding: 12, compactControlSize: 32,
+            controlSpacing: 4, expandedControlWidthCap: 60, expandedControlHeightCap: 60
+        )
+        let progress: CGFloat = editorControlsExpanded ? 0 : 1
+        let diameter = metrics.compactControlSize
         return HStack(spacing: 4) {
             Button { dismiss() } label: { editorHeaderIcon("chevron.left", diameter: diameter) }
                 .accessibilityLabel("Back to workouts")
             Text(workout.name)
-                .font(.title2.bold())
+                .font(.title.bold())
                 .lineLimit(1)
-                .minimumScaleFactor(0.55)
+                .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.isHeader)
             Button { setMusicConfigurationOpen(true) } label: {
@@ -430,15 +436,15 @@ struct WorkoutDetailView: View {
             }
             .accessibilityLabel("Configure workout music")
             Menu { editorActionMenuItems } label: {
-                editorHeaderIcon("ellipsis", diameter: diameter)
+                editorHeaderIcon("ellipsis", diameter: metrics.controlWidth(progress), title: "More", progress: progress)
             }
             .accessibilityLabel("Workout actions")
             Button { showingAddOptions = true } label: {
-                editorHeaderIcon("plus", diameter: diameter)
+                editorHeaderIcon("plus", diameter: metrics.controlWidth(progress), title: "Add", progress: progress)
             }
             .accessibilityLabel("Add to workout")
             Button { openBrowser(.newSection) } label: {
-                editorHeaderIcon("folder.badge.plus", diameter: diameter)
+                editorHeaderIcon("folder.fill.badge.plus", diameter: metrics.controlWidth(progress), title: "Browse", progress: progress)
             }
             .accessibilityLabel("Browse exercises")
         }
@@ -447,14 +453,15 @@ struct WorkoutDetailView: View {
         .padding(.horizontal, 12)
     }
 
-    private func editorHeaderIcon(_ name: String, diameter: CGFloat) -> some View {
-        Image(systemName: name)
-            .font(.system(size: diameter * 0.43, weight: .medium))
-            .frame(width: diameter, height: diameter)
-            .background(Theme.surface, in: Circle())
-            .overlay(Circle().strokeBorder(Theme.separator, lineWidth: 1))
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
+    private func editorHeaderIcon(_ name: String, diameter: CGFloat, title: String = "", progress: CGFloat = 1) -> some View {
+        ScrollingChromeControl(
+            systemImage: name, title: title, progress: progress,
+            width: max(44, diameter), height: max(44, diameter)
+        )
+        .scaleEffect(diameter / max(44, diameter))
+        .frame(width: diameter, height: diameter)
+        .frame(minWidth: 44, minHeight: 44)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -1734,9 +1741,11 @@ struct WorkoutDetailView: View {
 
     private func updateScrollState(_ offset: CGFloat) {
         guard offset.isFinite else { return }
+        let expanded = ScrollingChromeReveal.expanded(current: editorControlsExpanded, offset: offset)
         let compactSummary = offset > 24 ? true : (offset <= 1 ? false : summaryIsCompact)
-        guard compactSummary != summaryIsCompact else { return }
+        guard expanded != editorControlsExpanded || compactSummary != summaryIsCompact else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
+            editorControlsExpanded = expanded
             summaryIsCompact = compactSummary
         }
     }

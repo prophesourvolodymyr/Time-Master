@@ -1134,8 +1134,8 @@ Native checks used a task-only snapshot with committed app-entry files because t
 - [x] Expose populated Settings groups beyond the current workout through the right-hand library selector, with an accessible current-group label and stored artwork or item-specific icons
 - [x] Import three generated playable test tracks and a playlist into the actual iPhone 16 iOS 18.6 Settings library; verify General/HIIT filtering and persistence after installing the clean production app
 - [x] Preserve the previously resolved SwiftMP3 revision explicitly after its upstream version tag changed, and build the sidebar changes for iOS and macOS
-- [x] Remove the Music heading, copy and zoom controls, and unused top space; extend the timeline while retaining an intentional return to the workout editor
-- [x] Use circular sidebar covers, an outlined icon-only library selector, search directly below it, and an import control at the bottom
+- [x] Remove the redundant Music heading, copy controls, and unused top space; extend the timeline while retaining an intentional return to the workout editor
+- [x] Use circular sidebar covers, a symbol-only library selector, search directly below it, and an import control at the bottom
 - [x] Open a native in-app player on a sidebar tap, with playback position, transport, volume, and unavailable-source feedback; do not add a timeline placement on tap
 - [x] Show cover artwork and one title on drag previews and timeline placements; adapt short clips so the bottom trim handle does not overlap the title
 - [x] Slide bottom navigation away during the music reveal, free its reserved space, and restore it when returning to the workout editor
@@ -1143,13 +1143,25 @@ Native checks used a task-only snapshot with committed app-entry files because t
 - [x] Replace the workout's gesture-dismissable zoom transition with normal navigation and an explicit back control so editing swipes do not exit the workout
 - [x] Keep the workout title and action controls in one adaptive horizontal row
 - [x] Build the corrected iOS and macOS targets, pass nine retained timeline regressions, and exercise native search, preview playback, navigation gestures, track and playlist drops, persistence after relaunch, and bottom trimming on the existing simulator
+- [x] Separate sidebar library/search actions and the bottom import action from music covers with visible dividers and distinct, unframed control symbols
+- [x] Place Back and zoom in a leading floating toolbar over the timeline, using Liquid Glass on iOS 26, translucent system material on older iOS, and an opaque surface with Reduce Transparency
+- [x] Use an artwork/title/duration drag preview, continuous-time drop feedback, and restrained lane and placement transitions that respect Reduce Motion
+- [x] Offer Duplicate below when extending beyond the full source length; create a separate placement in the same lane exactly at the preceding clip's end
+- [x] Display clip duration and update it live while trimming or restoring length, including floating duration feedback for short clips
+- [x] Restore timeline zoom-in and zoom-out with scale feedback and adaptive time-grid intervals without changing saved timing
+- [x] Restore the workout header's existing orange-glass controls and scroll-driven expansion behavior
+- [x] Replace workout-card and cover-mosaic type-color backgrounds with the app's neutral surfaces and separators
+- [x] Enlarge the workout header title and reduce compact visual controls proportionally while preserving their touch targets and single-row layout
+- [x] Build the repair changes for iOS and macOS; exercise native drag placement and lane movement, live trimming, full-length duplication, zoom, floating Back, and restored header expansion on the existing simulator
 - [ ] User drag test: move a test track and Test playlist from the populated right-hand sidebar into the two timeline lanes
-- [ ] Human review of the corrected sidebar, preview player, single-row workout header, navigation gestures, timeline placement/trimming/snapping, folders, replacement, and imports
+- [ ] Human review of the corrected sidebar, floating toolbar, drag feel, preview player, single-row expanding workout header, neutral workout cards, navigation gestures, timeline placement/trimming/snapping, live durations, duplication, folders, replacement, and imports
 - [ ] Human review of audible fade quality, primary/background transitions, live choices, continuation prompts, resume behavior, and macOS interaction
 
 Checks used an isolated task-only snapshot with committed app-entry files because the working tree contains unrelated edits and deleted entry points. The native fixture used real production views, stores, local audio files, and playback; its app and data were removed afterward. No new simulator was created, and unrelated working-tree changes were preserved. External-provider items still require their existing provider integration or local playable audio; this work does not bypass unavailable provider credentials. Product DOCKS.md files remain unchanged pending acceptance.
 
 The interface correction checks used the final production app with the existing shared sample library. Temporary drag placements were removed through the UI; the user's existing Recovery placement was preserved. The corrected music sidebar remains open for human review. No new simulator or permanent test fixture was added. macOS compiled; its native interactions still require human review.
+
+The styling-repair smoke used the same iPhone 16 with iOS 18.6. Temporary Flow placements and their duplicate were removed through the UI, restoring the user's Recovery timeline exactly. The corrected sidebar remains open for review. The native iOS 26 Liquid Glass appearance and macOS interactions were not exercised; both platform targets compiled.
 
 ---
 
