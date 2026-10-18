@@ -1131,6 +1131,10 @@ Native checks used a task-only snapshot with committed app-entry files because t
 - [x] Pass ten focused timeline regressions and a real CLI persistence roundtrip; exercise native audio interruption, pause/restore, manual override, and fallback exhaustion
 - [x] Exercise editor reveal and cancellation, drag grouping and placement, trimming, replacement, independent copy/order, Settings folder creation, removal, and explicit repeat/silence on the already-running iPhone 16 with iOS 18.6
 - [x] Build the final production iOS and macOS targets, remove the isolated smoke app, and install and launch the final production app on that same simulator
+- [x] Make the right-hand library selector visible by name, expose populated Settings groups beyond the current workout, and show stored artwork or item-specific icons
+- [x] Import three generated playable test tracks and a playlist into the actual iPhone 16 iOS 18.6 Settings library; verify General/HIIT filtering and persistence after installing the clean production app
+- [x] Preserve the previously resolved SwiftMP3 revision explicitly after its upstream version tag changed, and build the sidebar changes for iOS and macOS
+- [ ] User drag test: move a test track and Test playlist from the populated right-hand sidebar into the two timeline lanes
 - [ ] Human review of editor layering and gesture feel, timeline placement/trimming/snapping, folders, copying, replacement, and imports
 - [ ] Human review of audible fade quality, primary/background transitions, live choices, continuation prompts, resume behavior, and macOS interaction
 

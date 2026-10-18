@@ -22,8 +22,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mierau/swift-mp3.git",
       "state" : {
-        "revision" : "c33793f5e5725e941b12efd375691db7c98b86ec",
-        "version" : "1.0.0"
+        "revision" : "c33793f5e5725e941b12efd375691db7c98b86ec"
       }
     },
     {

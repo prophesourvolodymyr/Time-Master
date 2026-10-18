@@ -246,12 +246,20 @@ struct WorkoutMusicTimelineView: View {
     private var tray: some View {
         VStack(spacing: 8) {
             Menu {
-                Button("General") { source = .general }
-                Button("This workout") { source = .workout(id: workout.id) }
-                Button(workout.type.name) { source = .workoutType(id: workout.type.id) }
+                Picker("Music group", selection: $source) {
+                    Text("General").tag(MusicDestination.general)
+                    SwiftUI.Section("Workout types") { sourceChoices(.type) }
+                    SwiftUI.Section("Workouts") { sourceChoices(.mine) }
+                    SwiftUI.Section("Outdoor") { sourceChoices(.route) }
+                }
                 Button("Open Music Settings", systemImage: "gearshape") { sheet = .library }
             } label: {
-                Image(systemName: "music.note.list").frame(minHeight: controlSize)
+                VStack(spacing: 4) {
+                    Text("Library").font(.caption2.weight(.semibold))
+                    Text(library.destinationName(source)).font(.caption2).lineLimit(2)
+                    Image(systemName: "chevron.down").font(.caption2)
+                }
+                .frame(maxWidth: .infinity, minHeight: controlSize)
             }
             .accessibilityLabel("Music tray source: \(library.destinationName(source))")
             ScrollView {
@@ -263,8 +271,7 @@ struct WorkoutMusicTimelineView: View {
                     ForEach(items) { item in
                         Button { addFromTray(item) } label: {
                             VStack(spacing: 4) {
-                                Image(systemName: item.isCollection ? "square.grid.2x2" : "opticaldisc")
-                                    .font(.title2).frame(minHeight: controlSize)
+                                trayArtwork(item)
                                 Text(item.title).font(.caption2).lineLimit(2)
                                 if item.totalDuration > 0 {
                                     Text(musicTimestamp(item.totalDuration)).font(.caption2.monospacedDigit())
@@ -308,6 +315,33 @@ struct WorkoutMusicTimelineView: View {
         }
         .padding(.horizontal, 4)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func sourceChoices(_ family: MusicDestinationFamily) -> some View {
+        ForEach(library.destinations(for: family).filter {
+            !library.itemIDs(for: $0).isEmpty
+                || $0 == .workout(id: workout.id)
+                || $0 == .workoutType(id: workout.type.id)
+        }) { destination in
+            Text(library.destinationName(destination)).tag(destination)
+        }
+    }
+
+    @ViewBuilder
+    private func trayArtwork(_ item: MusicLibraryItem) -> some View {
+        let icon = item.artwork?.placeholderSystemImage ?? (item.isCollection ? "square.grid.2x2" : "opticaldisc")
+        let localURL = item.artwork?.localFilename.map {
+            $0.hasPrefix("/") ? URL(fileURLWithPath: $0)
+                : MusicManager.shared.localMusicDirectoryURL.appendingPathComponent($0)
+        }
+        if let url = localURL ?? item.artwork?.remoteURL {
+            AsyncCoverImage(url: url, fallbackIcon: icon, height: controlSize, overlayGradient: false)
+                .frame(width: controlSize, height: controlSize)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else {
+            Image(systemName: icon).font(.title2)
+                .frame(width: controlSize, height: controlSize)
+        }
     }
 
     @ViewBuilder

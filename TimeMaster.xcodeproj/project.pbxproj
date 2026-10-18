@@ -2131,8 +2131,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mierau/swift-mp3.git";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0;
+				kind = revision;
+				revision = c33793f5e5725e941b12efd375691db7c98b86ec;
 			};
 		};
 		D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
