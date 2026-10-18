@@ -55,9 +55,9 @@ struct ScheduleEntryEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 if configuring {
-                    ToolbarItem(placement: .confirmationAction) {
+                    AppToolbar.item(placement: .confirmationAction) {
                         Button(custom && original == nil ? "Log workout" : "Save", action: save)
                             .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             .accessibilityIdentifier("schedule.entry.save")

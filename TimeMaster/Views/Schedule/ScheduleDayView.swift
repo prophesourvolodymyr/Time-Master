@@ -3,6 +3,8 @@ import TimeMasterCore
 
 struct ScheduleDayView: View {
     @EnvironmentObject private var store: WorkoutStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let date: Date
     let now: Date
     let items: [WeeklyWorkoutSchedule.Occurrence]
@@ -12,8 +14,9 @@ struct ScheduleDayView: View {
     let onEdit: (WeeklyWorkoutSchedule.Entry) -> Void
     let onStart: (Workout) -> Void
     @State private var pendingRemoval: WeeklyWorkoutSchedule.Entry?
+    @State private var expanded: Bool?
     @ScaledMetric(relativeTo: .body) private var statusSize = 44.0
-    @ScaledMetric(relativeTo: .body) private var branchInset = 24.0
+    @ScaledMetric(relativeTo: .largeTitle) private var branchInset = 24.0
 
     private var isToday: Bool { Calendar.current.isDate(date, inSameDayAs: now) }
     private var isFuture: Bool { Calendar.current.startOfDay(for: date) > Calendar.current.startOfDay(for: now) }
@@ -21,30 +24,34 @@ struct ScheduleDayView: View {
     private var complete: Bool { !items.isEmpty && items.allSatisfy(\.isComplete) }
     private var missed: Bool { isPast && !items.isEmpty && !complete && !isVacation }
     private var minutes: Int { items.reduce(0) { $0 + ($1.entry.durationSeconds ?? 0) } / 60 }
+    private var isExpanded: Bool { expanded ?? isToday }
 
     var body: some View {
         VStack(spacing: 0) {
             dayHeader
-            if isVacation {
-                Label("Vacation", systemImage: "beach.umbrella")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, branchInset).padding(.vertical, 16)
-            } else {
+            if isExpanded {
                 VStack(spacing: 8) {
-                    ForEach(items) { item in
-                        branch { workoutRow(item) }
-                    }
-                    if !isPast {
-                        branch { addControl }
-                    } else if items.isEmpty {
-                        Text(isChallengeDay ? "No workout logged" : "Rest day")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 12)
+                    if isVacation {
+                        branch { Label("Vacation", systemImage: "beach.umbrella").padding(.vertical, 16) }
+                    } else {
+                        ForEach(items) { item in
+                            branch { workoutRow(item) }
+                        }
+                        if !isPast {
+                            branch { addControl }
+                        } else if items.isEmpty {
+                            branch {
+                                Text(isChallengeDay ? "No workouts" : "Rest day").padding(.vertical, 16)
+                            }
+                        }
                     }
                 }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, branchInset)
                 .padding(.top, 8)
+                .transition(.opacity)
             }
         }
         .accessibilityElement(children: .contain)
@@ -59,21 +66,40 @@ struct ScheduleDayView: View {
     }
 
     private var dayHeader: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { dayIdentity.fixedSize(horizontal: true, vertical: false); Spacer(minLength: 8); metrics }
-            VStack(alignment: .leading, spacing: 12) { dayIdentity; metrics }
+        Button {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
+                expanded = !isExpanded
+            }
+        } label: {
+            HStack(spacing: 12) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { dayIdentity.fixedSize(horizontal: true, vertical: false); Spacer(minLength: 8); metrics }
+                    VStack(alignment: .leading, spacing: 12) { dayIdentity; metrics }
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(isToday ? Color.white.opacity(0.8) : Color.white.opacity(0.22), lineWidth: isToday ? 1.5 : 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 16))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(isToday ? Color.white.opacity(0.8) : Theme.separator, lineWidth: isToday ? 1.5 : 1)
-        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(date.formatted(.dateTime.weekday(.wide).month().day()))\(isToday ? ", Today" : ""), \(items.count) workouts, \(minutes) minutes")
+        .accessibilityValue("\(isExpanded ? "Expanded" : "Collapsed"), \(isVacation ? "Vacation" : complete ? "Complete" : missed ? "Missed" : "Not completed")")
+        .accessibilityHint(isExpanded ? "Collapse workouts" : "Expand workouts")
+        .accessibilityIdentifier("schedule.day.\(WeeklyWorkoutSchedule.weekday(date))")
     }
 
     private var dayIdentity: some View {
-        HStack(spacing: 12) {
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
             Group {
                 if isVacation { Image(systemName: "pause.fill") }
                 else if complete { Image(systemName: "checkmark") }
@@ -84,33 +110,39 @@ struct ScheduleDayView: View {
             .foregroundStyle(complete ? .green : missed ? .red : .white)
             .frame(width: statusSize, height: statusSize)
             .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityLabel(complete ? "Day complete" : missed ? "Day missed" : isVacation ? "Paused" : "Not completed")
-            VStack(alignment: .leading, spacing: 4) {
-                Text(date.formatted(.dateTime.weekday(.wide))).font(.title3.weight(.semibold))
-                HStack(spacing: 6) {
-                    Text(isToday ? "TODAY" : date.formatted(.dateTime.month(.abbreviated).day()))
-                    if isChallengeDay && !isVacation { Text("· Streak day") }
-                }
-                .font(.caption.weight(isToday ? .bold : .regular)).foregroundStyle(.secondary)
-            }
-            .fixedSize(horizontal: false, vertical: true)
+            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.22)) }
+            Text(date.formatted(.dateTime.weekday(.wide)))
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
+    @ViewBuilder
     private var metrics: some View {
-        HStack(spacing: 8) {
-            metric("\(items.count)", label: "Workouts")
-            metric("\(minutes)", label: "Minutes")
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("\(items.count) Workouts")
+                Text("\(minutes) Minutes")
+            }
+            .font(.subheadline.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            HStack(spacing: 8) {
+                metric("\(items.count)", label: "Workouts")
+                metric("\(minutes)", label: "Minutes")
+            }
         }
     }
 
     private func metric(_ value: String, label: String) -> some View {
         VStack(spacing: 3) {
             Text(value).font(.headline.monospacedDigit())
+                .frame(minWidth: statusSize, minHeight: statusSize)
+                .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(Color.white.opacity(0.22)) }
             Text(label).font(.caption2).foregroundStyle(.secondary)
         }
-        .padding(8)
-        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .combine)
     }
 
@@ -131,7 +163,8 @@ struct ScheduleDayView: View {
     }
 
     private func workoutRow(_ item: WeeklyWorkoutSchedule.Occurrence) -> some View {
-        HStack(alignment: .center, spacing: 10) {
+        let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .center, spacing: 10))
+        return layout {
             Button {
                 store.changeWeeklySchedule { $0.setComplete(!item.isComplete, entryID: item.entry.id, on: date) }
             } label: {
@@ -139,6 +172,7 @@ struct ScheduleDayView: View {
                     .font(.title2)
                     .foregroundStyle(item.isComplete ? .green : .secondary)
                     .frame(minWidth: statusSize, minHeight: statusSize)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(isFuture || !store.scheduleIsLoaded)
@@ -152,32 +186,32 @@ struct ScheduleDayView: View {
                 }
             }
             Button { onEdit(item.entry) } label: {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(item.entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
-                        .multilineTextAlignment(.leading)
-                    Text(timeLabel(item)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                    if item.entry.workoutID == nil {
-                        Text("Custom workout\(item.entry.exerciseCount.map { " · \($0) exercises" } ?? "")")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    } else if item.isComplete {
-                        Text(item.isManual ? "Completed manually" : "Completed in app")
-                            .font(.caption2).foregroundStyle(.green)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        Text(item.entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                            .fixedSize()
+                        Spacer(minLength: 0)
+                        Text(timeLabel(item)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                            .fixedSize()
                     }
-                    if !item.entry.notes.isEmpty {
-                        Text(item.entry.notes).font(.caption).foregroundStyle(.secondary).lineLimit(3)
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(item.entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                            .multilineTextAlignment(.leading)
+                        Text(timeLabel(item)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
             }.buttonStyle(.plain)
             if isToday, !item.isComplete, let id = item.entry.workoutID, let workout = store.workout(id: id), !workout.sections.isEmpty {
                 Button { onStart(workout) } label: {
-                    Image(systemName: "play.fill").padding(12)
-                }.buttonStyle(.plain)
+                    Image(systemName: "play.fill")
+                }.buttonStyle(TimeMasterToolbarIconButtonStyle())
                     .accessibilityLabel("Start \(item.entry.title)")
             }
         }
         .padding(10)
-        .background(Color(hex: item.entry.colorHex).opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.separator) }
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.22)) }
         .contextMenu {
             Button("Edit time and details") { onEdit(item.entry) }
             Button("Remove from this date", role: .destructive) { pendingRemoval = item.entry }
@@ -191,22 +225,25 @@ struct ScheduleDayView: View {
                 Button { onAdd(false) } label: { Label("Schedule a workout", systemImage: "calendar.badge.plus") }
                 Button { onAdd(true) } label: { Label("Log custom workout", systemImage: "square.and.pencil") }
             } label: { addLabel }
+            .buttonStyle(.plain)
             .accessibilityLabel("Add workout for today")
             .accessibilityIdentifier("schedule.today.add")
         } else {
             Button { onAdd(false) } label: { addLabel }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Add workout for \(date.formatted(.dateTime.weekday(.wide)))")
+                .accessibilityIdentifier("schedule.add.\(WeeklyWorkoutSchedule.weekday(date))")
         }
     }
 
     private var addLabel: some View {
         Label("Add workout", systemImage: "plus")
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(Theme.textSecondary)
+            .labelStyle(.iconOnly)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity, minHeight: statusSize)
             .background {
-                RoundedRectangle(cornerRadius: 14).strokeBorder(Theme.separator, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
             }
     }
 

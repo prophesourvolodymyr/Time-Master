@@ -9,23 +9,23 @@ struct ScrollingChromeMetrics {
     var compactControlSize: CGFloat = 48
     var controlSpacing: CGFloat = 10
     var expandedControlPadding: CGFloat = 8
-    /// Widest an expanded control may grow; `.infinity` lets the three controls span the content width.
+    /// Widest an expanded control may grow; `.infinity` lets the controls span the content width.
     var expandedControlWidthCap: CGFloat = 108
     /// Tallest an expanded control may grow.
     var expandedControlHeightCap: CGFloat = 108
     /// Everything the pinned header keeps below the control row: divider, goal line, filter row.
     var pinnedFooterHeight: CGFloat = 49
+    var controlCount: Int = 3
 
     var contentWidth: CGFloat { max(0, width - horizontalPadding * 2) }
 
-    /// Three controls share the content width.
     var expandedControlWidth: CGFloat {
-        min(expandedControlWidthCap, max(compactControlSize, (contentWidth - controlSpacing * 2) / 3))
+        min(expandedControlWidthCap, max(compactControlSize, (contentWidth - controlSpacing * CGFloat(controlCount - 1)) / CGFloat(controlCount)))
     }
 
     var expandedControlHeight: CGFloat { min(expandedControlHeightCap, expandedControlWidth) }
-    var expandedGroupWidth: CGFloat { expandedControlWidth * 3 + controlSpacing * 2 }
-    var compactGroupWidth: CGFloat { compactControlSize * 3 + controlSpacing * 2 }
+    var expandedGroupWidth: CGFloat { expandedControlWidth * CGFloat(controlCount) + controlSpacing * CGFloat(controlCount - 1) }
+    var compactGroupWidth: CGFloat { compactControlSize * CGFloat(controlCount) + controlSpacing * CGFloat(controlCount - 1) }
     var collapseDistance: CGFloat { expandedControlHeight + expandedControlPadding * 2 }
     var pinnedHeight: CGFloat { collapsedRowHeight + pinnedFooterHeight }
 
@@ -59,10 +59,11 @@ struct ScrollingChromeControl: View {
     let width: CGFloat
     let height: CGFloat
     var isInteractive: Bool = true
+    var circular = false
 
     var body: some View {
         let labelProgress = min(1, progress / 0.65)
-        let cornerRadius = 14 + (min(width, height) / 2 - 14) * progress
+        let cornerRadius = circular ? min(width, height) / 2 : 14 + (min(width, height) / 2 - 14) * progress
 
         ZStack {
             Image(systemName: systemImage)
@@ -100,6 +101,7 @@ struct ScrollingChrome<Content: View, Header: View>: View {
     @State private var controlsExpanded = false
     @Namespace private var viewport
 
+    var onScrollOffset: ((CGFloat) -> Void)? = nil
     let metrics: (CGFloat) -> ScrollingChromeMetrics
     @ViewBuilder let content: (ScrollingChromeMetrics) -> Content
     @ViewBuilder let header: (CGFloat, ScrollingChromeMetrics) -> Header
@@ -158,6 +160,7 @@ struct ScrollingChrome<Content: View, Header: View>: View {
     }
 
     private func updateControls(offset: CGFloat) {
+        onScrollOffset?(offset)
         let expanded = ScrollingChromeReveal.expanded(current: controlsExpanded, offset: offset)
         guard expanded != controlsExpanded else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {

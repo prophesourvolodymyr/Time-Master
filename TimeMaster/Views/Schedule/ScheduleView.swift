@@ -6,6 +6,7 @@ struct ScheduleView: View {
     @EnvironmentObject private var store: WorkoutStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @Binding var week: Date
     @State private var sheet: Sheet?
@@ -14,6 +15,7 @@ struct ScheduleView: View {
     @State private var pullArmed = false
     @State private var pullFired = false
     @ScaledMetric(relativeTo: .largeTitle) private var flameSize = 56.0
+    @ScaledMetric(relativeTo: .title2) private var toolbarHeight = 56.0
 
     private enum Sheet: Identifiable {
         case challenge, calendar, plans
@@ -43,12 +45,11 @@ struct ScheduleView: View {
                 let visibleHeight = navigationBounds.map {
                     min(proxy.size.height, max(0, $0.maxY - proxy.frame(in: .global).minY))
                 } ?? proxy.size.height
-                VStack(spacing: 0) {
-                    pageToolbar
-                    if !store.scheduleIsLoaded {
-                        loadError
-                    } else {
+                Group {
+                    if store.scheduleIsLoaded {
                         timeline
+                    } else {
+                        loadError
                     }
                 }
                 .frame(height: visibleHeight, alignment: .top)
@@ -93,49 +94,72 @@ struct ScheduleView: View {
         .accessibilityIdentifier("schedule.page")
     }
 
-    private var pageToolbar: some View {
-        HStack(spacing: 12) {
-            Text("Schedule").font(.title2.bold())
-            Spacer()
-            Button { sheet = .calendar } label: { Image(systemName: "calendar") }
-                .buttonStyle(TimeMasterToolbarIconButtonStyle())
-                .accessibilityLabel("Open schedule calendar")
-                .accessibilityIdentifier("schedule.calendar")
-            Button { sheet = .plans } label: { Image(systemName: "square.stack.3d.up") }
-                .buttonStyle(TimeMasterToolbarIconButtonStyle())
-                .disabled(week < currentWeek || !store.scheduleIsLoaded)
-                .accessibilityLabel("Choose Plan or Vacation")
-                .accessibilityIdentifier("schedule.plans")
+    private func pageToolbar(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
+        let morph = metrics.morph(progress)
+        let height = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
+        let buttonWidth = metrics.controlWidth(morph)
+        let buttonHeight = metrics.controlHeight(morph)
+        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
+            + (dynamicTypeSize.isAccessibilitySize ? metrics.expandedControlPadding : (metrics.collapsedRowHeight - metrics.compactControlSize) / 2) * progress
+
+        return VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                Text("Schedule")
+                    .font(.title2.bold())
+                    .frame(width: metrics.contentWidth, height: toolbarHeight,
+                           alignment: progress == 0 || dynamicTypeSize.isAccessibilitySize ? .center : .leading)
+                HStack(spacing: metrics.controlSpacing) {
+                    pageControl("Calendar", icon: "calendar", destination: .calendar,
+                                progress: morph, width: buttonWidth, height: buttonHeight)
+                        .accessibilityIdentifier("schedule.calendar")
+                    pageControl("Plans", icon: "square.stack.3d.up", destination: .plans,
+                                progress: morph, width: buttonWidth, height: buttonHeight)
+                        .disabled(week < currentWeek || !store.scheduleIsLoaded)
+                        .opacity(week < currentWeek ? 0.4 : 1)
+                        .accessibilityValue(selection?.plan?.name ?? (isVacation ? "Vacation" : "No Plan"))
+                        .accessibilityIdentifier("schedule.plans")
+                    pageControl("Streak", icon: "flame", destination: .challenge,
+                                progress: morph, width: buttonWidth, height: buttonHeight)
+                        .accessibilityValue("\(challenge.weekdays.count)-day challenge")
+                        .accessibilityIdentifier("schedule.challenge")
+                }
+                .offset(x: dynamicTypeSize.isAccessibilitySize ? (metrics.contentWidth - buttonWidth * 3 - metrics.controlSpacing * 2) / 2 : metrics.groupLeading(morph),
+                        y: height - buttonHeight - bottomPadding)
+            }
+            .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
+            TimeMasterGlassDivider()
         }
-        .padding(.horizontal, 20).padding(.vertical, 12)
-        .frame(maxWidth: 980)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, metrics.horizontalPadding)
+        .background(Theme.background)
+    }
+
+    private func pageControl(_ title: String, icon: String, destination: Sheet,
+                             progress: CGFloat, width: CGFloat, height: CGFloat) -> some View {
+        Button { sheet = destination } label: {
+            ScrollingChromeControl(systemImage: icon, title: title, progress: progress, width: width, height: height)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .help(title)
     }
 
     private var timeline: some View {
         ScrollViewReader { scroll in
-            ScrollView {
+            ScrollingChrome(onScrollOffset: { offset in
+                pullArmed = offset < -88 && !pullFired
+            }, metrics: { width in
+                var metrics = ScrollingChromeMetrics(width: min(width, 980), collapsedRowHeight: toolbarHeight, pinnedFooterHeight: 1)
+                if dynamicTypeSize.isAccessibilitySize {
+                    metrics.collapsedRowHeight += metrics.compactControlSize + metrics.expandedControlPadding
+                }
+                return metrics
+            }) { _ in
                 VStack(spacing: 24) {
                     weekHeader.id("scheduleTop")
                     if let error = store.scheduleError {
                         Text(error).font(.footnote).foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    if isVacation {
-                        VStack(spacing: 8) {
-                            Label("Your streak is frozen", systemImage: "snowflake").font(.headline)
-                            Text("No workouts are scheduled. Choose a Plan to resume.")
-                                .font(.subheadline).foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity).padding(20)
-                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
-                    } else if selection == nil && week >= currentWeek {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Make room for your workouts").font(.headline)
-                            Text("Add a workout below to build a repeating week, or choose a saved Plan. Today also lets you log workouts done outside the app.")
-                                .font(.subheadline).foregroundStyle(.secondary)
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    LazyVStack(spacing: 24) {
+                    LazyVStack(spacing: 12) {
                         ForEach(days, id: \.self) { day in
                             ScheduleDayView(date: day, now: now, items: store.scheduleOccurrences(on: day),
                                             isVacation: isVacation, isChallengeDay: challenge.weekdays.contains(WeeklyWorkoutSchedule.weekday(day)),
@@ -145,16 +169,13 @@ struct ScheduleView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20).padding(.bottom, 24)
+                .padding(.horizontal, 20).padding(.top, 24).padding(.bottom, 24)
                 .frame(maxWidth: 980)
                 .frame(maxWidth: .infinity)
-                .onGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.frame(in: .named("scheduleScroll")).minY
-                } action: { offset in
-                    pullArmed = offset > 88 && !pullFired
-                }
+            } header: { progress, metrics in
+                pageToolbar(progress: progress, metrics: metrics)
+                    .frame(maxWidth: .infinity)
             }
-            .coordinateSpace(name: "scheduleScroll")
             .onChange(of: week) { _ in scroll.scrollTo("scheduleTop", anchor: .top) }
             .task(id: pullArmed) {
                 guard pullArmed else { return }
@@ -177,9 +198,12 @@ struct ScheduleView: View {
     private var weekHeader: some View {
         let progress = store.weeklySchedule.progress(through: week, now: now, activity: store.scheduleActivity)
         return VStack(spacing: 12) {
-            Text(pullArmed ? "Hold to open the previous week" : "Pull and hold for the previous week")
-                .font(.caption).foregroundStyle(.secondary)
-                .padding(.top, 8)
+            if pullArmed {
+                Image(systemName: "arrow.up")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Hold for previous week")
+            }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {
                     previousWeekButton
@@ -197,24 +221,11 @@ struct ScheduleView: View {
                     }
                 }
             }
-            .buttonStyle(.plain)
             Text(weekRange).font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
-            HStack(spacing: 8) {
-                Label(selection?.plan?.name ?? (isVacation ? "Vacation" : "No Plan"),
-                      systemImage: selection?.plan?.icon ?? (isVacation ? "beach.umbrella.fill" : "square.stack.3d.up"))
-                    .font(.caption.weight(.semibold))
-                Text("·").foregroundStyle(.secondary)
-                Button { sheet = .challenge } label: {
-                    Text("\(challenge.weekdays.count)-day challenge").font(.caption.weight(.semibold))
-                }.buttonStyle(.plain)
-            }
-            if week <= currentWeek && !isVacation {
-                Text(progress.isBroken ? "Streak reset · next week is a fresh start" : "\(progress.completedDays) of \(progress.requiredDays) streak days complete")
-                    .font(.caption).foregroundStyle(progress.isBroken ? .red : .secondary)
-            }
             if week != currentWeek {
-                Button("Back to this week") { move(to: currentWeek) }
-                    .font(.caption.weight(.semibold)).buttonStyle(.bordered)
+                Button("This week", systemImage: "arrow.uturn.backward") { move(to: currentWeek) }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
             }
         }
     }
@@ -237,13 +248,15 @@ struct ScheduleView: View {
     }
 
     private var previousWeekButton: some View {
-        Button { moveWeek(-1) } label: { Image(systemName: "chevron.left").padding(14) }
-            .accessibilityLabel("Previous week")
+        Button("Previous week", systemImage: "chevron.left") { moveWeek(-1) }
+            .labelStyle(.iconOnly)
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
     }
 
     private var nextWeekButton: some View {
-        Button { moveWeek(1) } label: { Image(systemName: "chevron.right").padding(14) }
-            .accessibilityLabel("Next week")
+        Button("Next week", systemImage: "chevron.right") { moveWeek(1) }
+            .labelStyle(.iconOnly)
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
     }
 
     private var weekRange: String {
@@ -263,7 +276,7 @@ struct ScheduleView: View {
                     askedForChallenge = true
                     sheet = .challenge
                 }
-            }.buttonStyle(.bordered)
+            }.buttonStyle(TimeMasterToolbarWideButtonStyle())
         }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 

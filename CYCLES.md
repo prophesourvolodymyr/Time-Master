@@ -1111,6 +1111,21 @@ The focused iPhone renders covered the editor at the top and scrolled down, its 
 
 Native checks used a task-only snapshot with committed app-entry files because the working tree contains unrelated edits and deleted app entry points. The final native flow covered Plan creation, title-only and optional-field custom logs, completion correction, next-week recurrence, calendar selection, Vacation/resume, Settings, challenge re-entry, and relaunch persistence. Separate native checks covered pull cancellation, one-week-per-hold behavior, repeated pulls, and large-text navigation. macOS was build-checked; macOS interaction review remains with the human. Product DOCKS.md files remain unchanged pending acceptance.
 
+### Schedule blueprint correction — 2026-10-18
+
+Requested by the user after reviewing the Schedule page. Implementation is ready for human review; this does not record human approval.
+
+- [x] Replace challenge slogans and explanatory paragraphs with the title, weekday choices, and concise icon-led rule points
+- [x] Use the shared orange-glass confirmation and sheet toolbar buttons
+- [x] Make every day header expand and collapse independently, including empty days; open Today by default
+- [x] Align the timeline with the supplied blueprint: compact week/date header, outlined day and metric boxes, connected workout rows, and an icon-only add row
+- [x] Reuse the Database and Workouts expanding header controls for Calendar, Plans, and Streak without removing pull-and-hold week navigation
+- [x] Adapt challenge choices and workout rows for accessibility text sizes and expose day expansion state to accessibility
+- [x] Populate an isolated Schedule QA simulator app with sample library workouts, without inserting sample records into the real app
+- [ ] Human review of the simplified challenge sheet, blueprint-aligned timeline, empty/populated day expansion, and shared button behavior
+
+Two native smoke scenarios passed on iPhone 16 with iOS 18.6, covering challenge acceptance and empty selection, day expansion/collapse, adding from an empty day, custom logging, relaunch persistence, header expansion/collapse, pull-and-hold week navigation, and accessibility-size layouts. iOS and macOS builds passed using a task-only snapshot with committed app-entry files, preserving unrelated working-tree edits and deletions. macOS interaction review remains pending. Sample workouts remain available in the isolated Schedule QA simulator app; no sample-data hooks or temporary smoke scripts are included in production sources.
+
 ---
 
 ## Cycle 32 — Advanced Workout Music Configuration

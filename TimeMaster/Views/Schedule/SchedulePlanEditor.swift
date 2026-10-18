@@ -64,8 +64,8 @@ struct SchedulePlanEditor: View {
             .background(Theme.background)
             .navigationTitle(plan.name.isEmpty ? "New Plan" : "Edit Plan")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .confirmationAction) {
                     Button("Save & use") {
                         plan.name = plan.name.trimmingCharacters(in: .whitespacesAndNewlines)
                         if store.changeWeeklySchedule({

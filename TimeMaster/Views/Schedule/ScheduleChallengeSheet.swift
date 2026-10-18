@@ -4,8 +4,10 @@ import TimeMasterCore
 struct ScheduleChallengeSheet: View {
     @EnvironmentObject private var store: WorkoutStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var weekdays: Set<Int>
     @ScaledMetric(relativeTo: .largeTitle) private var flameSize = 96.0
+    @ScaledMetric(relativeTo: .body) private var dayWidth = 76.0
     private let week: Date
 
     init(week: Date, weekdays: [Int]) {
@@ -19,52 +21,61 @@ struct ScheduleChallengeSheet: View {
                 VStack(spacing: 24) {
                     ScheduleFlame(difficulty: weekdays.count, isBurning: !weekdays.isEmpty)
                         .frame(width: flameSize, height: flameSize)
-                    VStack(spacing: 8) {
-                        Text("Your pace. Your streak.").font(.title2.bold())
-                        Text("Choose the days that count. Complete every planned workout on each chosen day to keep your weekly streak.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 76))], spacing: 10) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: dayWidth))], spacing: 10) {
                         ForEach(1...7, id: \.self) { day in
                             Button {
                                 if weekdays.contains(day) { weekdays.remove(day) }
                                 else { weekdays.insert(day) }
                             } label: {
-                                VStack(spacing: 8) {
+                                let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(HStackLayout(spacing: 16)) : AnyLayout(VStackLayout(spacing: 8))
+                                layout {
                                     Text(dayName(day)).font(.body.weight(.semibold))
                                     Image(systemName: weekdays.contains(day) ? "checkmark.circle.fill" : "circle")
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .foregroundStyle(weekdays.contains(day) ? ScheduleFlame.accent(for: weekdays.count) : .secondary)
-                                .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 14))
+                                .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 16 : 0)
+                                .foregroundStyle(weekdays.contains(day) ? .white : .secondary)
+                                .modifier(TimeMasterPrivateGlassSurface(
+                                    cornerRadius: 14,
+                                    isInteractive: true,
+                                    tint: weekdays.contains(day) ? Theme.toolbarOrange : Theme.surface2,
+                                    tintOpacity: 0.42
+                                ))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .strokeBorder(weekdays.contains(day) ? Theme.toolbarOrange.opacity(0.65) : Theme.separator)
+                                }
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel(dayName(day))
                             .accessibilityAddTraits(weekdays.contains(day) ? .isSelected : [])
                         }
                     }
-                    VStack(spacing: 6) {
-                        Text(weekdays.isEmpty ? "Choose at least one day" : "\(weekdays.count)-day challenge")
-                            .font(.headline)
-                        Text("A chosen day with nothing completed breaks the streak after midnight. Other days are flexible. Vacation freezes it.")
-                            .font(.footnote).foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                        Text("Applies this week onward. Previous weeks keep their challenge.")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label("Selected days: finish every workout", systemImage: "checkmark.circle")
+                        Label("Missed or empty day: reset at midnight", systemImage: "arrow.counterclockwise")
+                        Label("Other days are flexible", systemImage: "calendar")
+                        Label("Vacation freezes your streak", systemImage: "snowflake")
+                        Label("Starts this week; past weeks stay unchanged", systemImage: "arrow.right")
                     }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
                     if let error = store.scheduleError {
                         Text(error).font(.footnote).foregroundStyle(.red)
                     }
-                    Button("Use \(weekdays.count)-day challenge") {
+                    Button {
                         if store.changeWeeklySchedule({ $0.setChallenge(weekdays: weekdays, from: week) }) { dismiss() }
+                    } label: {
+                        Label(weekdays.isEmpty ? "Choose days" : "Accept \(weekdays.count)-day challenge", systemImage: "checkmark")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 48)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.white)
-                    .foregroundStyle(.black)
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
+                    .opacity(weekdays.isEmpty || !store.scheduleIsLoaded ? 0.45 : 1)
                     .disabled(weekdays.isEmpty || !store.scheduleIsLoaded)
                     .accessibilityIdentifier("schedule.challenge.confirm")
                 }
@@ -78,8 +89,8 @@ struct ScheduleChallengeSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Keep current") { dismiss() }
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
                 }
             }
         }

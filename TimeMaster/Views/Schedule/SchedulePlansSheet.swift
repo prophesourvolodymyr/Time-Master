@@ -74,7 +74,7 @@ struct SchedulePlansSheet: View {
             .scrollContentBackground(.hidden)
             .background(Theme.background)
             .navigationTitle("Plans")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(item: $editingPlan) { plan in
                 SchedulePlanEditor(plan: plan, week: week)
             }
