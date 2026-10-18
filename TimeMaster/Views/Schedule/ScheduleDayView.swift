@@ -29,6 +29,7 @@ struct ScheduleDayView: View {
     var body: some View {
         VStack(spacing: 0) {
             dayHeader
+                .zIndex(1)
             if isExpanded {
                 VStack(spacing: 8) {
                     if isVacation {
@@ -51,9 +52,13 @@ struct ScheduleDayView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, branchInset)
                 .padding(.top, 8)
-                .transition(.opacity)
+                .transition(reduceMotion ? .identity : .asymmetric(
+                    insertion: .offset(y: -8).combined(with: .opacity),
+                    removal: .opacity
+                ))
             }
         }
+        .clipped()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(date.formatted(.dateTime.weekday(.wide).month().day()))
         .confirmationDialog("Remove workout from this date?", isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }), titleVisibility: .visible) {
@@ -67,7 +72,7 @@ struct ScheduleDayView: View {
 
     private var dayHeader: some View {
         Button {
-            withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.88)) {
                 expanded = !isExpanded
             }
         } label: {
@@ -78,19 +83,15 @@ struct ScheduleDayView: View {
                 }
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isExpanded ? Theme.toolbarOrange : .secondary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(isToday ? Color.white.opacity(0.8) : Color.white.opacity(0.22), lineWidth: isToday ? 1.5 : 1)
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 16))
+            .modifier(TimeMasterCardSurface(emphasized: isToday || isExpanded))
+            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel("\(date.formatted(.dateTime.weekday(.wide).month().day()))\(isToday ? ", Today" : ""), \(items.count) workouts, \(minutes) minutes")
         .accessibilityValue("\(isExpanded ? "Expanded" : "Collapsed"), \(isVacation ? "Vacation" : complete ? "Complete" : missed ? "Missed" : "Not completed")")
         .accessibilityHint(isExpanded ? "Collapse workouts" : "Expand workouts")
@@ -107,10 +108,11 @@ struct ScheduleDayView: View {
                 else { Text(date.formatted(.dateTime.day())).monospacedDigit() }
             }
             .font(.title3.weight(.semibold))
-            .foregroundStyle(complete ? .green : missed ? .red : .white)
+            .foregroundStyle(complete ? .green : missed ? .red : isToday ? Theme.toolbarOrange : .white)
             .frame(width: statusSize, height: statusSize)
-            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
-            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.22)) }
+            .modifier(TimeMasterCardSurface(cornerRadius: 12,
+                                           accent: complete ? .green : missed ? .red : Theme.toolbarOrange,
+                                           emphasized: isToday || complete || missed))
             Text(date.formatted(.dateTime.weekday(.wide)))
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.white)
@@ -140,7 +142,8 @@ struct ScheduleDayView: View {
         VStack(spacing: 3) {
             Text(value).font(.headline.monospacedDigit())
                 .frame(minWidth: statusSize, minHeight: statusSize)
-                .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(Color.white.opacity(0.22)) }
+                .background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 10))
+                .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.separator) }
             Text(label).font(.caption2).foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
@@ -149,13 +152,13 @@ struct ScheduleDayView: View {
     private func branch<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
             .overlay(alignment: .leading) {
-                Rectangle().fill(Theme.separator)
+                Rectangle().fill(Theme.toolbarOrange.opacity(0.25))
                     .frame(width: branchInset / 2, height: 1)
                     .offset(x: -branchInset / 2)
                     .accessibilityHidden(true)
             }
             .background(alignment: .leading) {
-                Rectangle().fill(Theme.separator)
+                Rectangle().fill(Theme.toolbarOrange.opacity(0.25))
                     .frame(width: 1)
                     .padding(.vertical, -4)
                     .offset(x: -branchInset / 2)
@@ -210,8 +213,7 @@ struct ScheduleDayView: View {
             }
         }
         .padding(10)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.22)) }
+        .modifier(TimeMasterCardSurface(cornerRadius: 16, accent: .green, emphasized: item.isComplete))
         .contextMenu {
             Button("Edit time and details") { onEdit(item.entry) }
             Button("Remove from this date", role: .destructive) { pendingRemoval = item.entry }
@@ -240,10 +242,11 @@ struct ScheduleDayView: View {
         Label("Add workout", systemImage: "plus")
             .labelStyle(.iconOnly)
             .font(.title3.weight(.semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Theme.toolbarOrange)
             .frame(maxWidth: .infinity, minHeight: statusSize)
+            .background(Theme.surface.opacity(0.65), in: RoundedRectangle(cornerRadius: 16))
             .background {
-                RoundedRectangle(cornerRadius: 14).strokeBorder(Color.white.opacity(0.22), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.toolbarOrange.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
             }
     }
 

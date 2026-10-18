@@ -165,6 +165,7 @@ struct MainTabView: View {
         case .schedule:
             ScheduleView(week: $scheduleWeek)
                 .environmentObject(workoutStore)
+                .environmentObject(outdoorStore)
         case .settings:
             SettingsView()
                 .environmentObject(workoutStore)

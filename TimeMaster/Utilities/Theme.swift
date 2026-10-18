@@ -26,6 +26,51 @@ struct Theme {
         ("FF2D55", "Pink"),
     ]
 }
+
+struct TimeMasterCardSurface: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var contrast
+    var cornerRadius: CGFloat = 20
+    var accent: Color = Theme.toolbarOrange
+    var emphasized = false
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        content
+            .background {
+                shape.fill(
+                    LinearGradient(colors: [Theme.surface2, Theme.surface],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                shape.fill(
+                    LinearGradient(colors: [accent.opacity(emphasized ? 0.12 : 0), .clear],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+            }
+            .overlay {
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: [emphasized ? accent.opacity(0.65) : .white.opacity(contrast == .increased ? 0.5 : 0.2),
+                                 .white.opacity(contrast == .increased ? 0.3 : 0.06)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+                .allowsHitTesting(false)
+            }
+    }
+}
+
+struct TimeMasterCardButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9),
+                       value: configuration.isPressed)
+    }
+}
  
 enum AppToolbar {
     @ToolbarContentBuilder

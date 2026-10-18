@@ -499,44 +499,76 @@ struct ActivityHeatmap: View {
     @EnvironmentObject var store: WorkoutStore
     let entries: [WorkoutHistoryEntry]
     let outdoorActivities: [OutdoorActivity]
+    var onSelectDate: ((Date) -> Void)?
     @State private var showCalendar = false
 
     private let weeksCount = 24
     private let gap: CGFloat = 3
     private let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
     @State private var cellSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .caption2) private var monthLabelHeight = 16.0
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: gap), count: weeksCount)
+        Array(repeating: GridItem(onSelectDate == nil ? .flexible() : .fixed(44), spacing: gap), count: weeksCount)
     }
 
     var body: some View {
-        Button {
-            showCalendar = true
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Activity")
-                        .font(.headline)
-                        .foregroundColor(Theme.textPrimary)
-                    Spacer()
+        Group {
+            if onSelectDate != nil {
+                card
+            } else {
+                Button { showCalendar = true } label: { card }
+                    .buttonStyle(TimeMasterCardButtonStyle())
+            }
+        }
+        .sheet(isPresented: $showCalendar) {
+            CalendarPage(entries: entries, outdoorActivities: outdoorActivities)
+        }
+    }
+
+    private var card: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(onSelectDate == nil ? "Activity" : "Last 24 weeks")
+                    .font(.headline)
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                if onSelectDate == nil {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                HStack(alignment: .top, spacing: gap + 2) {
-                    dayLabelColumn
+            }
+            HStack(alignment: .top, spacing: gap + 2) {
+                dayLabelColumn
+                    .padding(.top, onSelectDate == nil ? 0 : monthLabelHeight + 8)
+                if onSelectDate != nil {
+                    ScrollViewReader { scroll in
+                        ScrollView(.horizontal) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: gap) {
+                                    ForEach(0..<weeksCount, id: \.self) { week in
+                                        let date = dateFor(week: week, day: 0)
+                                        let startsMonth = week == 0 || !Calendar.current.isDate(date, equalTo: dateFor(week: week - 1, day: 0), toGranularity: .month)
+                                        Text(startsMonth ? date.formatted(.dateTime.month(.abbreviated)) : "")
+                                            .font(.caption2)
+                                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 44, height: monthLabelHeight)
+                                    }
+                                }
+                                heatmapGrid
+                            }
+                        }
+                            .onAppear { scroll.scrollTo(7 * weeksCount - 1, anchor: .trailing) }
+                    }
+                } else {
                     heatmapGrid
                 }
             }
-            .padding(16)
-            .background(Theme.surface)
-            .cornerRadius(16)
         }
-        .buttonStyle(.plain)
-        .sheet(isPresented: $showCalendar) {
-            CalendarPage(entries: entries)
-        }
+        .padding(16)
+        .modifier(TimeMasterCardSurface())
     }
 
     private var dayLabelColumn: some View {
@@ -545,7 +577,7 @@ struct ActivityHeatmap: View {
                 Text(dayLabels[i])
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(Theme.textSecondary)
-                    .frame(width: 12, height: cellSize, alignment: .center)
+                    .frame(width: 12, height: onSelectDate == nil ? cellSize : 44, alignment: .center)
             }
         }
     }
@@ -558,15 +590,34 @@ struct ActivityHeatmap: View {
                 let date = dateFor(week: w, day: d)
                 let isFuture = date > Date()
                 let isRest = store.isRestDay(date)
-                let isScheduled = !store.scheduledTypes(for: date).isEmpty
-                let hasWorkout = store.hasWorkout(on: date)
-                let hasOutdoor = outdoorActivities.contains { Calendar.current.isDate($0.startedAt, inSameDayAs: date) }
-                let hasActivity = hasWorkout || hasOutdoor
+                let isScheduled = store.isScheduledDay(date)
                 let count = isFuture ? 0 : workoutCount(on: date) + outdoorCount(on: date)
+                let hasActivity = count > 0
 
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
-                    .aspectRatio(1, contentMode: .fit)
+                Group {
+                    if let onSelectDate {
+                        Button { onSelectDate(date) } label: {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
+                                .overlay {
+                                    Text(date.formatted(.dateTime.day()))
+                                        .font(.caption.monospacedDigit())
+                                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                                        .foregroundStyle(.white)
+                                }
+                                .frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(TimeMasterCardButtonStyle())
+                        .disabled(isFuture)
+                        .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts")
+                        .accessibilityIdentifier("activity.day.\(WeeklyWorkoutSchedule.dayKey(date))")
+                    } else {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
+                            .aspectRatio(1, contentMode: .fit)
+                    }
+                }
+                .id(idx)
             }
         }
         .background(
@@ -616,17 +667,75 @@ struct ActivityHeatmap: View {
     }
 }
 
+private struct CalendarDaySelection: Identifiable {
+    let date: Date
+    var id: Date { date }
+}
+
+private struct CalendarActivitySheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: WorkoutStore
+    let entries: [WorkoutHistoryEntry]
+    let outdoorActivities: [OutdoorActivity]
+    @State private var selectedDay: CalendarDaySelection?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    ActivityHeatmap(entries: entries, outdoorActivities: outdoorActivities) {
+                        selectedDay = CalendarDaySelection(date: $0)
+                    }
+                    if !outdoorActivities.isEmpty {
+                        OutdoorAnalyticsSummary(activities: outdoorActivities)
+                    }
+                    HistoryListSection(entries: entries, store: store)
+                }
+                .padding(20)
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Theme.background)
+            .navigationTitle("Activity")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                AppToolbar.item(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .accessibilityIdentifier("activity.close")
+                }
+            }
+            .sheet(item: $selectedDay) { selection in
+                DayInfoSheet(date: selection.date, entries: entries, outdoorActivities: outdoorActivities)
+            }
+        }
+        #if os(iOS)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        #else
+        .frame(minWidth: 480, idealWidth: 640, minHeight: 560, idealHeight: 720)
+        #endif
+        .preferredColorScheme(.dark)
+        .accessibilityIdentifier("calendar.activity.page")
+    }
+}
+
 // MARK: - Calendar Page
 
 struct CalendarPage: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var store: WorkoutStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let entries: [WorkoutHistoryEntry]
+    let outdoorActivities: [OutdoorActivity]
     let selectedWeek: Date?
     let onSelectWeek: ((Date) -> Void)?
 
-    init(entries: [WorkoutHistoryEntry], selectedWeek: Date? = nil, onSelectWeek: ((Date) -> Void)? = nil) {
+    init(entries: [WorkoutHistoryEntry], outdoorActivities: [OutdoorActivity], selectedWeek: Date? = nil, onSelectWeek: ((Date) -> Void)? = nil) {
         self.entries = entries
+        self.outdoorActivities = outdoorActivities
         self.selectedWeek = selectedWeek
         self.onSelectWeek = onSelectWeek
         _currentMonth = State(initialValue: selectedWeek ?? Date())
@@ -634,8 +743,8 @@ struct CalendarPage: View {
     }
 
     @State private var currentMonth: Date = Date()
-    @State private var selectedDate: Date?
-    @State private var showDayInfo = false
+    @State private var selectedDay: CalendarDaySelection?
+    @State private var showActivity = false
     @State private var showYearView = true
     @State private var showVacationSheet = false
 
@@ -659,129 +768,135 @@ struct CalendarPage: View {
     }
 
     private var monthTitle: String {
-        let f = DateFormatter()
-        f.dateFormat = "MMMM yyyy"
-        return f.string(from: currentMonth)
+        currentMonth.formatted(.dateTime.month(.wide).year())
     }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-
-                VStack(spacing: 0) {
-                    yearNav
-                    if onSelectWeek != nil {
-                        Text("Tap a day to open its week. Outlined days are your selected week.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
+            VStack(spacing: 0) {
+                calendarHeader
+                    .padding(20)
+                Divider().overlay(Theme.separator)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        periodNavigation
+                        if showYearView {
+                            yearOverview
+                        } else {
+                            monthDetail
+                        }
+                        legendRow
                     }
-
-                    if showYearView {
-                        yearOverview
-                    } else {
-                        monthDetail
-                    }
-
-                    legendRow
-                        .padding(.top, 10)
+                    .padding(20)
+                    .frame(maxWidth: 680)
+                    .frame(maxWidth: .infinity, alignment: .top)
                 }
             }
-            .navigationTitle(onSelectWeek == nil ? "Activity" : "Schedule calendar")
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Theme.background)
             #if os(iOS)
-#if os(iOS)
-#if os(iOS)
-.navigationBarTitleDisplayMode(.inline)
-#endif
-#endif
-#endif
-            .toolbar {
-                AppToolbar.iconItem(placement: .primaryAction) { Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        showYearView.toggle()
-                    }
-                } label: {
-                    Image(systemName: showYearView ? "calendar" : "square.grid.2x2")
-                        .foregroundColor(.white)
-                }
-                                 }
-                if onSelectWeek == nil {
-                AppToolbar.iconItem(placement: .primaryAction) { Button {
-                    showVacationSheet = true
-                } label: {
-                    Image(systemName: "moon.zzz.fill")
-                        .foregroundColor(.white)
-                }
-                }
-                }
-                AppToolbar.item(placement: .primaryAction) { Button("Done") { dismiss() }.foregroundColor(.white)
-                }
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
+            .sheet(isPresented: $showActivity) {
+                CalendarActivitySheet(entries: entries, outdoorActivities: outdoorActivities)
             }
             .sheet(isPresented: $showVacationSheet) {
                 VacationSheet()
             }
-            .sheet(isPresented: $showDayInfo) {
-                if let date = selectedDate {
-                    DayInfoSheet(date: date, entries: entries)
-                }
+            .sheet(item: $selectedDay) { selection in
+                DayInfoSheet(date: selection.date, entries: entries, outdoorActivities: outdoorActivities)
             }
+        }
+        #if os(iOS)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        #else
+        .frame(minWidth: 480, idealWidth: 640, minHeight: 560, idealHeight: 720)
+        #endif
+        .preferredColorScheme(.dark)
+        .accessibilityIdentifier("calendar.page")
+    }
+
+    private var calendarHeader: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                Text("Calendar").font(.title2.bold()).fixedSize()
+                Spacer(minLength: 0)
+                calendarControls
+            }
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Calendar").font(.title2.bold())
+                calendarControls
+            }.frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    // MARK: - Year nav
-
-    private var yearNav: some View {
-        HStack {
+    private var calendarControls: some View {
+        HStack(spacing: 12) {
+            Button { showActivity = true } label: {
+                Label("Activity", systemImage: "chart.bar.xaxis").labelStyle(.iconOnly)
+            }
+            .accessibilityIdentifier("calendar.activity")
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    currentMonth = calendar.date(byAdding: .year, value: -1, to: currentMonth) ?? currentMonth
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
+                    showYearView.toggle()
                 }
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
+                Label(showYearView ? "Show month" : "Show year",
+                      systemImage: showYearView ? "calendar" : "square.grid.2x2").labelStyle(.iconOnly)
             }
-
-            Spacer()
-            Text("\(currentYear)")
-                .font(.title2.bold())
-                .foregroundColor(Theme.textPrimary)
-            Spacer()
-
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    currentMonth = calendar.date(byAdding: .year, value: 1, to: currentMonth) ?? currentMonth
+            .accessibilityIdentifier("calendar.mode")
+            if onSelectWeek == nil {
+                Button { showVacationSheet = true } label: {
+                    Label("Vacation", systemImage: "moon.zzz.fill").labelStyle(.iconOnly)
                 }
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
             }
+            Button { dismiss() } label: {
+                Label("Close calendar", systemImage: "xmark").labelStyle(.iconOnly)
+            }
+            .accessibilityIdentifier("calendar.close")
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
+        .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        .font(.system(size: 17, weight: .semibold))
+    }
+
+    private var periodNavigation: some View {
+        HStack(spacing: 12) {
+            Button { movePeriod(-1) } label: {
+                Label(showYearView ? "Previous year" : "Previous month", systemImage: "chevron.left")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            .accessibilityIdentifier("calendar.previous")
+            Text(showYearView ? String(currentYear) : monthTitle)
+                .font(.title3.weight(.semibold))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("calendar.period")
+            Button { movePeriod(1) } label: {
+                Label(showYearView ? "Next year" : "Next month", systemImage: "chevron.right")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            .accessibilityIdentifier("calendar.next")
+        }
+        .font(.system(size: 17, weight: .semibold))
+    }
+
+    private func movePeriod(_ offset: Int) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
+            currentMonth = calendar.date(byAdding: showYearView ? .year : .month,
+                                        value: offset, to: currentMonth) ?? currentMonth
+        }
     }
 
     // MARK: - Year overview (12-month mini grids)
 
     private var yearOverview: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                ForEach(1...12, id: \.self) { month in
-                    monthRow(month: month)
-                }
+        LazyVStack(spacing: 12) {
+            ForEach(1...12, id: \.self) { month in
+                monthRow(month: month)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
         }
     }
 
@@ -798,7 +913,7 @@ struct CalendarPage: View {
         let missCount = missedDaysInMonth(month: month, year: currentYear)
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
                 currentMonth = date
                 showYearView = false
             }
@@ -835,12 +950,13 @@ struct CalendarPage: View {
                     .font(.caption2)
                     .foregroundColor(Theme.textSecondary.opacity(0.4))
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(Theme.surface)
-            .cornerRadius(12)
+            .padding(16)
+            .modifier(TimeMasterCardSurface())
+            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
+        .accessibilityLabel("\(monthName), \(workoutDays) workout days, \(restDaysCount) rest days, \(missCount) missed days")
+        .accessibilityIdentifier("calendar.month.\(month)")
     }
 
     private func miniMonthGrid(month: Int) -> some View {
@@ -863,7 +979,7 @@ struct CalendarPage: View {
                                 let isFuture = dayDate > Date()
                                 let isRest = store.isRestDay(dayDate)
                                 let isScheduled = store.isScheduledDay(dayDate)
-                                let hasWorkout = store.hasWorkout(on: dayDate)
+                                let hasWorkout = workoutCount(on: dayDate) > 0
                                 let fill: Color = {
                                     if isFuture { return Color.white.opacity(0.04) }
                                     if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.6) }
@@ -876,7 +992,7 @@ struct CalendarPage: View {
                                     .frame(width: 7, height: 7)
                                     .overlay {
                                         RoundedRectangle(cornerRadius: 1)
-                                            .stroke(isHighlighted(dayDate) ? Color.white : .clear, lineWidth: 1)
+                                            .stroke(isHighlighted(dayDate) ? Theme.toolbarOrange : .clear, lineWidth: 1)
                                     }
                             } else {
                                 Color.clear.frame(width: 7, height: 7)
@@ -891,64 +1007,36 @@ struct CalendarPage: View {
     // MARK: - Month detail view
 
     private var monthDetail: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button {
-                    currentMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
+        VStack(spacing: 16) {
+            VStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    ForEach(0..<7, id: \.self) { day in
+                        Text(calendar.veryShortStandaloneWeekdaySymbols[(day + 1) % 7])
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                    }
                 }
-                Spacer()
-                Text(monthTitle).font(.headline).foregroundColor(Theme.textPrimary)
-                Spacer()
-                Button {
-                    currentMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.body.weight(.semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 36, height: 36)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.top, 4)
-
-            HStack(spacing: 4) {
-                ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { label in
-                    Text(label)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Theme.textSecondary)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 12)
-            .padding(.bottom, 6)
-
-            LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
-                    if let date = date {
-                        dayCell(date)
-                    } else {
-                        Color.clear.frame(height: 48)
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(Array(monthDays.enumerated()), id: \.offset) { _, date in
+                        if let date {
+                            dayCell(date)
+                        } else {
+                            Color.clear.frame(minHeight: 52)
+                        }
                     }
                 }
             }
-            .padding(.horizontal, 8)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .padding(12)
+            .modifier(TimeMasterCardSurface())
 
             let workoutDays = workoutDaysInMonth(month: calendar.component(.month, from: currentMonth), year: currentYear)
             if workoutDays > 0 {
-                HStack {
-                    Text("\(workoutDays) workout day\(workoutDays == 1 ? "" : "s") this month")
-                        .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
-                    Spacer()
-                }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
+                Label("\(workoutDays) workout day\(workoutDays == 1 ? "" : "s")", systemImage: "figure.strengthtraining.traditional")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -957,7 +1045,7 @@ struct CalendarPage: View {
         let isFuture = date > Date()
         let isToday = calendar.isDate(date, inSameDayAs: Date())
         let isRest = store.isRestDay(date)
-        let hasWorkout = store.hasWorkout(on: date)
+        let hasWorkout = workoutCount(on: date) > 0
         let count = workoutCount(on: date)
 
         let isScheduled = store.isScheduledDay(date)
@@ -980,26 +1068,33 @@ struct CalendarPage: View {
                 onSelectWeek(date)
                 dismiss()
             } else if !isFuture {
-                selectedDate = date
-                showDayInfo = true
+                selectedDay = CalendarDaySelection(date: date)
             }
         } label: {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(bg)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isHighlighted(date) ? Color.white : isToday ? Color.white.opacity(0.7) : Color.clear, lineWidth: isHighlighted(date) ? 2 : 1.5)
-                    )
+            VStack(spacing: 3) {
                 Text("\(calendar.component(.day, from: date))")
-                    .font(.system(size: 14, weight: isToday ? .bold : .regular))
-                    .foregroundColor(isFuture && onSelectWeek == nil ? Theme.textSecondary.opacity(0.25) : .white)
+                    .font(.callout.weight(isToday ? .bold : .medium))
+                    .foregroundStyle(isFuture && onSelectWeek == nil ? Theme.textSecondary : .white)
+                Text(count > 0 ? "\(count)" : " ")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.8))
             }
-            .frame(height: 48)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(bg.opacity(0.65), in: RoundedRectangle(cornerRadius: 10))
+            .background(isHighlighted(date) ? Theme.toolbarOrange.opacity(0.12) : .clear,
+                        in: RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(isHighlighted(date) ? Theme.toolbarOrange : isToday ? .white.opacity(0.8) : .clear,
+                                  lineWidth: isHighlighted(date) ? 1.5 : 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 10))
         }
+        .buttonStyle(TimeMasterCardButtonStyle())
         .disabled(isFuture && onSelectWeek == nil)
         .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts\(isHighlighted(date) ? ", selected week" : "")")
+        .accessibilityHint(onSelectWeek == nil ? "Open day details" : "Open this week in Schedule")
+        .accessibilityIdentifier("calendar.day.\(WeeklyWorkoutSchedule.dayKey(date))")
     }
 
     private func isHighlighted(_ date: Date) -> Bool {
@@ -1010,12 +1105,15 @@ struct CalendarPage: View {
     // MARK: - Legend
 
     private var legendRow: some View {
-        HStack(spacing: 18) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 18))
+        return layout {
             legendItem(color: Color(red: 0.1, green: 0.6, blue: 0.25), label: "Workout")
             legendItem(color: Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5), label: "Rest day")
             legendItem(color: Color.red.opacity(0.35), label: "Missed")
         }
-        .font(.system(size: 10))
+        .font(.caption)
         .foregroundColor(Theme.textSecondary)
         .padding(.bottom, 8)
     }
@@ -1031,6 +1129,7 @@ struct CalendarPage: View {
 
     private func workoutCount(on date: Date) -> Int {
         store.scheduleActivityCount(on: date)
+            + outdoorActivities.filter { calendar.isDate($0.startedAt, inSameDayAs: date) }.count
     }
 
     private func workoutDaysInMonth(month: Int, year: Int) -> Int {
@@ -1040,7 +1139,7 @@ struct CalendarPage: View {
         var count = 0
         for d in 1...range.count {
             if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
-               store.hasWorkout(on: date) {
+               workoutCount(on: date) > 0 {
                 count += 1
             }
         }
@@ -1070,7 +1169,7 @@ struct CalendarPage: View {
             if let date = calendar.date(byAdding: .day, value: d - 1, to: first),
                date <= Date(),
                !store.isRestDay(date),
-               !store.hasWorkout(on: date),
+               workoutCount(on: date) == 0,
                store.isScheduledDay(date) {
                 count += 1
             }
@@ -1084,8 +1183,14 @@ struct CalendarPage: View {
 private struct DayInfoSheet: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var store: WorkoutStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let date: Date
     let entries: [WorkoutHistoryEntry]
+    let outdoorActivities: [OutdoorActivity]
+
+    private var dayOutdoorActivities: [OutdoorActivity] {
+        outdoorActivities.filter { Calendar.current.isDate($0.startedAt, inSameDayAs: date) }
+    }
 
     private var dayEntries: [WorkoutHistoryEntry] {
         let cal = Calendar.current
@@ -1100,7 +1205,8 @@ private struct DayInfoSheet: View {
 
     private var totalMinutes: Int {
         (dayEntries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) }
-            + manualEntries.reduce(0) { $0 + ($1.entry.durationSeconds ?? 0) }) / 60
+            + manualEntries.reduce(0) { $0 + ($1.entry.durationSeconds ?? 0) }
+            + dayOutdoorActivities.reduce(0) { $0 + $1.elapsedSeconds }) / 60
     }
 
     private var isRest: Bool { store.isRestDay(date) }
@@ -1109,72 +1215,53 @@ private struct DayInfoSheet: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                VStack(spacing: 0) {
-                    VStack(spacing: 10) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    VStack(spacing: 16) {
                         Text(formatFullDate(date))
                             .font(.title2.bold())
-                            .foregroundColor(Theme.textPrimary)
-
-                        HStack(spacing: 20) {
-                            statChip(value: "\(dayEntries.count + manualEntries.count)", label: "workouts")
+                            .multilineTextAlignment(.center)
+                        let statsLayout = dynamicTypeSize.isAccessibilitySize
+                            ? AnyLayout(VStackLayout(spacing: 16))
+                            : AnyLayout(HStackLayout(spacing: 24))
+                        statsLayout {
+                            statChip(value: "\(dayEntries.count + manualEntries.count + dayOutdoorActivities.count)", label: "workouts")
                             statChip(value: "\(totalMinutes)m", label: "total time")
                         }
-
-                        HStack(spacing: 10) {
+                        VStack(spacing: 8) {
                             if isRest {
-                                Label("Rest Day", systemImage: "moon.zzz.fill")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(Color(red: 0.3, green: 0.55, blue: 0.85))
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.15))
-                                    .cornerRadius(6)
+                                Label("Rest day", systemImage: "moon.zzz.fill")
+                                    .foregroundStyle(.blue)
                             }
                             ForEach(scheduledTypes, id: \.self) { type in
                                 Label(type.name, systemImage: type.icon)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(Color.white.opacity(0.1))
-                                    .cornerRadius(6)
                             }
-                            if !isRest && isScheduled && dayEntries.isEmpty && manualEntries.isEmpty {
+                            if !isRest && isScheduled && dayEntries.isEmpty && manualEntries.isEmpty && dayOutdoorActivities.isEmpty {
                                 Label("Missed", systemImage: "xmark.circle")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.red)
-                                    .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(Color.red.opacity(0.15))
-                                    .cornerRadius(6)
+                                    .foregroundStyle(.red)
                             }
                         }
+                        .font(.subheadline)
                     }
-                    .padding(.top, 24)
-                    .padding(.bottom, 16)
                     .frame(maxWidth: .infinity)
-                    .background(Theme.surface)
+                    .padding(20)
+                    .modifier(TimeMasterCardSurface())
 
-                    if dayEntries.isEmpty && manualEntries.isEmpty {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            Image(systemName: isRest ? "moon.zzz" : (isScheduled ? "calendar.badge.exclamationmark" : "figure.walk"))
-                                .font(.system(size: 40))
-                                .foregroundColor(Theme.textSecondary)
-                            Text(isRest ? "Rest day — no workout."
-                                 : isScheduled ? "Scheduled but no workout logged."
-                                 : "No workout logged.")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
-                        }
-                        Spacer()
+                    if dayEntries.isEmpty && manualEntries.isEmpty && dayOutdoorActivities.isEmpty {
+                        Label(isRest ? "Rest day" : "No workout logged",
+                              systemImage: isRest ? "moon.zzz" : "figure.walk")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 24)
                     } else {
-                        List {
+                        LazyVStack(spacing: 12) {
                             ForEach(dayEntries) { entry in
                                 HistoryRow(entry: entry)
-                                    .listRowBackground(Theme.surface)
+                                    .padding(16)
+                                    .modifier(TimeMasterCardSurface())
                             }
                             ForEach(manualEntries) { item in
-                                VStack(alignment: .leading, spacing: 5) {
+                                VStack(alignment: .leading, spacing: 8) {
                                     Label(item.entry.title, systemImage: item.entry.icon)
                                         .font(.headline)
                                     Text(item.entry.workoutID == nil ? "Custom workout" : "Completed manually")
@@ -1186,45 +1273,57 @@ private struct DayInfoSheet: View {
                                         Text(item.entry.notes).font(.subheadline).foregroundStyle(.secondary)
                                     }
                                 }
-                                .listRowBackground(Theme.surface)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .modifier(TimeMasterCardSurface())
+                            }
+                            ForEach(dayOutdoorActivities) { activity in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Label(activity.title, systemImage: activity.kind.iconName)
+                                        .font(.headline)
+                                    Text("\(activity.elapsedSeconds / 60) min")
+                                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                                    Text(Measurement(value: activity.distanceMeters, unit: UnitLength.meters)
+                                        .formatted(.measurement(width: .abbreviated, usage: .road)))
+                                        .font(.subheadline)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .modifier(TimeMasterCardSurface())
                             }
                         }
-                        .listStyle(.plain)
-                        .scrollContentBackground(.hidden)
                     }
-
-                    VStack(spacing: 10) {
-                        Button {
-                            store.toggleRestDay(for: date)
-                        } label: {
-                            Label(
-                                isRest ? "Remove Rest Day" : "Mark as Rest Day",
-                                systemImage: isRest ? "moon.zzz.fill" : "moon.zzz"
-                            )
-                            .font(.headline)
-                            .foregroundColor(.white)
+                    Button { store.toggleRestDay(for: date) } label: {
+                        Label(isRest ? "Remove rest day" : "Mark as rest day",
+                              systemImage: isRest ? "moon.zzz.fill" : "moon.zzz")
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(isRest ? Color.blue.opacity(0.2) : Color.white.opacity(0.1))
-                            .cornerRadius(14)
-                        }
+                            .padding(.vertical, 8)
                     }
-                    .padding(16)
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
+                }
+                .padding(20)
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Theme.background)
+            .navigationTitle("Day details")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                AppToolbar.item(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .accessibilityIdentifier("activity.day.close")
                 }
             }
-            .navigationTitle("Day Details")
-            #if os(iOS)
-#if os(iOS)
-#if os(iOS)
-.navigationBarTitleDisplayMode(.inline)
-#endif
-#endif
-#endif
-            .toolbar {
-                AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() }.foregroundColor(.white)
-                                 }
-            }
         }
+        #if os(iOS)
+        .presentationDetents([.large])
+        #else
+        .frame(minWidth: 480, idealWidth: 640, minHeight: 560, idealHeight: 720)
+        #endif
+        .preferredColorScheme(.dark)
+        .accessibilityIdentifier("activity.day.page")
     }
 
     private func statChip(value: String, label: String) -> some View {

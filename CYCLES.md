@@ -1126,6 +1126,21 @@ Requested by the user after reviewing the Schedule page. Implementation is ready
 
 Two native smoke scenarios passed on iPhone 16 with iOS 18.6, covering challenge acceptance and empty selection, day expansion/collapse, adding from an empty day, custom logging, relaunch persistence, header expansion/collapse, pull-and-hold week navigation, and accessibility-size layouts. iOS and macOS builds passed using a task-only snapshot with committed app-entry files, preserving unrelated working-tree edits and deletions. macOS interaction review remains pending. Sample workouts remain available in the isolated Schedule QA simulator app; no sample-data hooks or temporary smoke scripts are included in production sources.
 
+### Calendar and card polish — 2026-10-18
+
+Requested by the user; implementation is ready for human review, not human-verified.
+
+- [x] Keep the Analytics calendar shared with Schedule; align its content to the top, make both month and year views scrollable, and provide a usable macOS sheet size
+- [x] Replace duplicate period navigation and explanatory copy with one month/year navigation row, selected-week highlights, daily counts, and shared orange controls
+- [x] Open Activity from a calendar corner button using the existing Analytics heatmap and history; provide tappable dates with month markers and return to the same calendar position
+- [x] Include established outdoor activity in calendar counts and day details alongside recorded sessions and manually completed Schedule entries
+- [x] Apply layered charcoal surfaces, softer borders, warm open-day highlights, completion accents, inset metrics, and a restrained add control to Schedule cards
+- [x] Animate day opening and closing with a spring, fading rows, stable seven-day layout, and no spatial animation under Reduce Motion
+- [x] Bound Schedule toolbar hit regions and adapt calendar glyphs, date labels, and day-detail statistics for accessibility text sizes
+- [ ] Human review of calendar positioning, Activity navigation, card styling, and opening/closing motion on iOS and macOS
+
+Two focused native scenarios passed on iPhone 16 with iOS 18.6: month/year navigation, returning from Activity and day details, selecting a Schedule week, repeated populated-day expansion/collapse, empty-day adding, and maximum accessibility text with system Reduce Motion enabled. The existing custom sample log appeared in day details. The day-reveal frame sequence was inspected. Final iOS and macOS builds passed in an isolated snapshot with committed app-entry files; unrelated working-tree edits and deletions were preserved. macOS interaction review remains pending. The simulator's Reduce Motion preference was restored. Temporary verification sources are not part of production; the updated Schedule QA app retains its separate sample data.
+
 ---
 
 ## Cycle 32 — Advanced Workout Music Configuration

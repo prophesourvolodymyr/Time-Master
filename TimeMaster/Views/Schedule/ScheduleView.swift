@@ -4,6 +4,7 @@ import TimeMasterCore
 
 struct ScheduleView: View {
     @EnvironmentObject private var store: WorkoutStore
+    @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -66,7 +67,7 @@ struct ScheduleView: View {
                 case .plans:
                     SchedulePlansSheet(week: week)
                 case .calendar:
-                    CalendarPage(entries: store.historyEntries, selectedWeek: week) { selected in
+                    CalendarPage(entries: store.historyEntries, outdoorActivities: outdoorStore.establishedActivities, selectedWeek: week) { selected in
                         move(to: selected)
                     }
                 case .entry(let date, let entry, let custom):
@@ -137,6 +138,7 @@ struct ScheduleView: View {
                              progress: CGFloat, width: CGFloat, height: CGFloat) -> some View {
         Button { sheet = destination } label: {
             ScrollingChromeControl(systemImage: icon, title: title, progress: progress, width: width, height: height)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -159,7 +161,7 @@ struct ScheduleView: View {
                     if let error = store.scheduleError {
                         Text(error).font(.footnote).foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    LazyVStack(spacing: 12) {
+                    VStack(spacing: 12) {
                         ForEach(days, id: \.self) { day in
                             ScheduleDayView(date: day, now: now, items: store.scheduleOccurrences(on: day),
                                             isVacation: isVacation, isChallengeDay: challenge.weekdays.contains(WeeklyWorkoutSchedule.weekday(day)),
