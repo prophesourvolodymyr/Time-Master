@@ -1409,6 +1409,23 @@ The latest Profile correction is displayed with one side indicator on each side 
 
 ---
 
+## Cycle 38 — Resume Workout Page
+
+**Requested by the user on 2026-10-19; implementation ready for human review, not human-verified.**
+
+- [x] Replace the sparse full-height prompt with a compact, expandable native sheet using the shared typography, surfaces, and button styles
+- [x] Show the real workout name, saved elapsed time, section and set position, phase, exercise name, and checkpoint date
+- [x] Keep the checkpoint when closing the sheet or cancelling discard; require explicit confirmation before removing saved progress
+- [x] Preserve the checkpoint through sheet dismissal so Resume restores the actual player position and pause state instead of reopening the warm-up picker
+- [x] Keep the existing three-minute partial-history rule and explain and disable Resume when the workout is unavailable
+- [x] Build the integrated iOS Simulator and macOS targets and exercise exact paused restoration, close, cancellation, confirmed discard, the three-minute history boundary, larger-text scrolling, long titles, and unavailable workouts
+- [x] Reload the latest integrated main app with the original saved workout and preserve existing documents and checkpoint data
+- [ ] Human acceptance of the Resume Workout layout, shared controls, saved-session details, confirmation, and restored player state
+
+The native smoke used an isolated app-data copy to avoid consuming the original saved session. It reproduced the previous checkpoint-clearing race, then restored the saved section, set, remaining time, elapsed time, phase, and pause state after the fix. A 22-second discard did not create history; a 180-second discard created one partial entry and did not reappear on cold relaunch. The latest integrated main app is open on the new sheet with the original 22-second checkpoint and all 283 existing document files unchanged; the temporary smoke app and its data were removed. macOS received a build check, not an interactive UI check. Existing build warnings remain. Product DOCKS.md changes await human acceptance; no next implementation prompt is needed.
+
+---
+
 ## Ribbon Font Specimen — 2026-10-19
 
 **Standalone typography experiment requested by the user; ready for human review, not human-verified.**

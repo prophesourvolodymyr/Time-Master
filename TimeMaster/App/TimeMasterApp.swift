@@ -83,9 +83,7 @@ struct TimeMasterApp: App {
                     checkResumeState()
                 }
             }
-            .sheet(isPresented: $showResumePrompt, onDismiss: {
-                if resumePlayerWorkout != nil { resumeManager.clearResumeState() }
-            }) {
+            .sheet(isPresented: $showResumePrompt) {
                 resumePromptSheet
             }
             .workoutPlayerPage(item: $resumePlayerWorkout) { w in
@@ -108,86 +106,36 @@ struct TimeMasterApp: App {
 
     @ViewBuilder
     private var resumePromptSheet: some View {
-        VStack(spacing: 0) {
-            if let state = resumeManager.resumeState {
-                Spacer()
-                VStack(spacing: 20) {
-                    Image(systemName: "arrow.counterclockwise.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundColor(.white)
-
-                    Text("Resume Workout?")
-                        .font(.title2.bold())
-                        .foregroundColor(.white)
-
-                    Text(state.workoutName)
-                        .font(.headline)
-                        .foregroundColor(.white.opacity(0.7))
-
-                    VStack(spacing: 6) {
-                        Text("Elapsed: \(formatElapsed(state.elapsedSeconds))")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.5))
-                        Text("Section \(state.currentSectionIndex + 1)")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.5))
+        if let state = resumeManager.resumeState {
+            let workout = store.workouts.first(where: { $0.id == state.workoutId })
+            WorkoutResumeView(
+                state: state,
+                workout: workout,
+                onResume: {
+                    guard let workout else { return }
+                    resumePlayerWorkout = workout
+                    showResumePrompt = false
+                },
+                onDiscard: {
+                    if state.elapsedSeconds >= 180, let workout {
+                        let entry = WorkoutHistoryEntry(
+                            workoutId: workout.id,
+                            workoutName: workout.name,
+                            durationCompleted: workout.totalDuration,
+                            workoutType: workout.type,
+                            isPartial: true,
+                            elapsedSeconds: state.elapsedSeconds
+                        )
+                        store.addHistoryEntry(entry)
                     }
+                    resumeManager.clearResumeState()
+                    showResumePrompt = false
+                },
+                onClose: {
+                    showResumePrompt = false
                 }
-
-                Spacer()
-
-                VStack(spacing: 12) {
-                    Button {
-                        if let w = store.workouts.first(where: { $0.id == state.workoutId }) {
-                            resumePlayerWorkout = w
-                        }
-                        showResumePrompt = false
-                    } label: {
-                        Text("Resume")
-                            .font(.headline)
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.white)
-                            .cornerRadius(16)
-                    }
-
-                    Button {
-                        if state.elapsedSeconds >= 180, let w = store.workouts.first(where: { $0.id == state.workoutId }) {
-                            let entry = WorkoutHistoryEntry(
-                                workoutId: w.id,
-                                workoutName: w.name,
-                                durationCompleted: w.totalDuration,
-                                workoutType: w.type,
-                                isPartial: true,
-                                elapsedSeconds: state.elapsedSeconds
-                            )
-                            store.addHistoryEntry(entry)
-                        }
-                        resumeManager.clearResumeState()
-                        showResumePrompt = false
-                    } label: {
-                        Text("Discard")
-                            .font(.headline)
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(16)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
-            }
+            )
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.ignoresSafeArea())
-    }
-
-    private func formatElapsed(_ seconds: Int) -> String {
-        let m = seconds / 60, s = seconds % 60
-        return m > 0 ? "\(m)m \(s)s" : "\(s)s"
     }
 
     // MARK: - Deep Link Handler
