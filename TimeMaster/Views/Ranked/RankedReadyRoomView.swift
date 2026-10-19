@@ -11,6 +11,7 @@ struct RankedReadyRoomView: View {
         ViewThatFits(in: .vertical) {
             arena(scrolls: false)
             ScrollView { arena(scrolls: true) }
+                .scrollIndicators(.hidden)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background.ignoresSafeArea())
@@ -22,7 +23,8 @@ struct RankedReadyRoomView: View {
         VStack(spacing: ProfileStyle.inset) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("ARENA PREVIEW").font(TimeMasterFont.caption())
+                    Label("ARENA PREVIEW", systemImage: "viewfinder")
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.toolbarOrange)
                     Text(mode.title.uppercased()).font(TimeMasterFont.title())
                         .accessibilityAddTraits(.isHeader)
@@ -31,10 +33,8 @@ struct RankedReadyRoomView: View {
                 Button(action: { dismiss() }) {
                     Label("Close arena", systemImage: "xmark").labelStyle(.iconOnly)
                         .font(.headline)
-                        .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
-                        .background(Theme.surface2, in: Circle())
                 }
-                .buttonStyle(TimeMasterCardButtonStyle())
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
                 .accessibilityIdentifier("ranked-ready-close")
             }
             versusStage
@@ -55,18 +55,27 @@ struct RankedReadyRoomView: View {
             }
             .padding(ProfileStyle.spacing)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: ProfileStyle.inset))
+            .modifier(TimeMasterCardSurface(flat: true))
             HStack(alignment: .top, spacing: ProfileStyle.spacing) {
                 guide("iphone.gen3.radiowaves.left.and.right", title: "Phone steady")
                 guide("figure.stand", title: "Full body")
                 guide("sun.max", title: "Good lighting")
             }
-            Text("Preview only. Matchmaking and camera tracking are not connected; no Elo is awarded.")
-                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Back to lobby") { dismiss() }
-                .buttonStyle(RankedActionStyle())
-                .accessibilityIdentifier("ranked-back-to-lobby")
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle")
+                    .accessibilityHidden(true)
+                Text("Preview only. Matchmaking and camera tracking are not connected; no Elo is awarded.")
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(TimeMasterFont.caption())
+            .foregroundStyle(ProfileStyle.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Button { dismiss() } label: {
+                Text("Back to lobby")
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+            }
+            .buttonStyle(TimeMasterToolbarWideButtonStyle())
+            .accessibilityIdentifier("ranked-back-to-lobby")
         }
         .padding(ProfileStyle.inset)
         .frame(maxWidth: ProfileStyle.readableWidth, maxHeight: scrolls ? nil : .infinity)
@@ -76,45 +85,55 @@ struct RankedReadyRoomView: View {
     private var versusStage: some View {
         GeometryReader { geometry in
             ZStack {
-                Capsule().fill(Theme.toolbarOrange.opacity(0.10))
-                    .frame(width: geometry.size.width * 0.38, height: geometry.size.height * 0.85)
-                    .rotationEffect(.degrees(22))
+                Ellipse().fill(Theme.toolbarOrange.opacity(0.08))
+                    .frame(width: geometry.size.width * 0.8, height: geometry.size.height * 0.7)
                     .accessibilityHidden(true)
                 HStack(spacing: ProfileStyle.inset) {
-                    VStack(spacing: 4) {
-                        Image("RankedHero").resizable().scaledToFit()
+                    VStack(spacing: 8) {
+                        RankedMovementArt(variation: variation)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .accessibilityHidden(true)
                         Text(profileStore.profile.displayName).font(TimeMasterFont.rowTitle())
                             .lineLimit(2).multilineTextAlignment(.center)
                         HStack(spacing: 4) {
                             RankedBadgeView(elo: profileStore.rankedLevels[variation])
                             Text(profileStore.rankedLevels[variation].map { "\($0.formatted()) Elo" } ?? "Unplaced")
                                 .font(TimeMasterFont.caption().monospacedDigit())
+                                .foregroundStyle(ProfileStyle.secondary)
                         }
                     }
-                    .frame(maxWidth: .infinity)
+                    .padding(ProfileStyle.spacing)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .modifier(TimeMasterCardSurface(flat: true))
+                    .accessibilityElement(children: .combine)
                     if mode == .duel {
                         VStack(spacing: ProfileStyle.spacing) {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: geometry.size.width * 0.20, weight: .black))
-                                .foregroundStyle(.white.opacity(0.12))
+                            Image(systemName: "person.crop.circle.badge.questionmark")
+                                .font(.system(size: geometry.size.width * 0.16, weight: .light))
+                                .foregroundStyle(ProfileStyle.secondary)
                                 .frame(maxHeight: .infinity)
                                 .accessibilityHidden(true)
                             Text("OPPONENT").font(TimeMasterFont.rowTitle())
-                            Text("Not connected").font(TimeMasterFont.caption())
+                                .multilineTextAlignment(.center)
+                            Text("Not connected")
+                                .font(TimeMasterFont.caption())
                                 .foregroundStyle(ProfileStyle.secondary)
+                                .multilineTextAlignment(.center)
                         }
                         .padding(ProfileStyle.inset)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: ProfileStyle.corner))
+                        .modifier(TimeMasterCardSurface(flat: true))
+                        .accessibilityElement(children: .combine)
                     }
                 }
                 if mode == .duel {
-                    Text("VS").font(TimeMasterFont.title())
+                    Text("VS").font(TimeMasterFont.rowTitle())
                         .foregroundStyle(.black)
-                        .frame(width: badgeSize, height: badgeSize)
+                        .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
                         .background(Theme.toolbarOrange, in: Circle())
+                        .overlay {
+                            Circle().strokeBorder(Theme.background, lineWidth: 4)
+                                .allowsHitTesting(false)
+                        }
                         .accessibilityLabel("Versus")
                 }
             }
@@ -127,6 +146,9 @@ struct RankedReadyRoomView: View {
             Image(systemName: symbol).font(.title2).foregroundStyle(Theme.toolbarOrange).accessibilityHidden(true)
             Text(title).font(TimeMasterFont.caption()).multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity)
+        .padding(.vertical, ProfileStyle.spacing)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: ProfileStyle.spacing, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }

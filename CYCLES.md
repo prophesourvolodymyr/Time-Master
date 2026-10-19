@@ -1367,6 +1367,20 @@ The native interaction smoke used the production SwiftUI views and stores in an 
 
 This is the requested UI-only Ranked slice. Matchmaking, camera-based rep counting, plank validation, competitive rating calculation, and online leaderboards are not connected; the arena states that it is a preview and awards no Elo. The editable values are local display levels, not verified competitive ratings. Unrelated source edits, deleted app entry points, and concurrent Profile styling remain untouched in the working tree. Product DOCKS.md updates await human acceptance; no next implementation prompt is needed for this slice.
 
+### Ranked polish, shared buttons, and generated navigation icon — 2026-10-19
+
+- [x] Keep the lobby action and preview notice above the shared navigation, with a scrolling fallback for larger accessibility text
+- [x] Refine the lobby identity, movement loadout, selected mode and family feedback, and adaptive arena panels without changing the bald athlete artwork or preview-only battle scope
+- [x] Improve the rank collection hierarchy, overall-level summary, tier cards, and bottom edit action
+- [x] Keep all six Elo presets visible without horizontal scrolling and retain clear, fine-tune, unsaved-change, save-error, and read-only behavior
+- [x] Replace the Ranked-only action style and circular Settings/Close treatments with the existing shared action, toolbar, and selection styles; use Profile's rasterization-safe shared primary style inside its collapsing content
+- [x] Generate a new shield-and-double-chevron menu icon with Fgen, register its transparent template asset, and migrate normal, catalog, lifted, and source-choice rendering to typed system-or-asset icons
+- [x] Build the scoped iOS Simulator and macOS app targets and pass all five existing Ranked profile, backup, invalid-level, and navigation regressions
+- [x] Exercise native lobby, loadout, arena, collection, editor, Profile Ranked action, shared buttons, larger-text scrolling, and the new icon's selected, unselected, editing, and catalog states
+- [ ] Human acceptance of the polished Ranked layouts, shared button appearance, larger-text behavior, and generated menu icon
+
+Both app targets built from the scoped publication source, preserving unrelated edits and deleted app entry points. The five existing regression cases ran unchanged against the production profile/ranked models, persistence, and navigation model declarations in an isolated macOS fixture. Native iPhone 16 Pro review used an isolated app identity on iOS 18.6, leaving the production app's data untouched. Existing build warnings remain. The updated Ranked screen is open for human review; competitive scoring, camera tracking, matchmaking, and online leaderboards remain outside this UI-only slice. Product DOCKS.md updates await acceptance; no next implementation prompt is needed.
+
 ---
 
 ## Cycle 37 — Direct EverStore Profile, Collectibles, Verification, and Settings Import

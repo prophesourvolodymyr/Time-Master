@@ -26,24 +26,6 @@ struct RankedMovementArt: View {
     }
 }
 
-struct RankedActionStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(TimeMasterFont.label())
-            .foregroundStyle(.black)
-            .padding(ProfileStyle.inset)
-            .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-            .background(Theme.toolbarOrange, in: RoundedRectangle(cornerRadius: ProfileStyle.inset, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.inset, style: .continuous))
-            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: configuration.isPressed)
-    }
-}
-
 struct RankedMovementTile: View {
     let variation: RankedVariation
     let elo: Int?

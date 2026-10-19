@@ -25,8 +25,9 @@ struct RankedProfileSection: View {
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: ProfileStyle.corner))
             Button { showsEditor = true } label: {
                 Label("Edit Elo levels", systemImage: "slider.horizontal.3")
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
-            .buttonStyle(RankedActionStyle())
+            .buttonStyle(EverPrimaryButtonStyle())
             .disabled(profileStore.isReadOnly)
             .accessibilityIdentifier("profile-ranked-edit")
             Text("Manually set on this device. Not a verified competitive rating.")

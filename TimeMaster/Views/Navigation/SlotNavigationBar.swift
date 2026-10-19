@@ -258,10 +258,10 @@ struct SlotCarouselNavigationBar: View, Animatable {
                              size: size, arcRect: arcRect, slotWidth: slotWidth)
                 }
                 if isEditing {
-                    slotView(item: SlotNavigationItem(id: "navigation.add.begin", symbolName: "plus", title: strings.addItemTitle),
+                    slotView(item: SlotNavigationItem(id: "navigation.add.begin", icon: .system("plus"), title: strings.addItemTitle),
                              index: -1, offset: displayOffset, size: size, arcRect: arcRect,
                              slotWidth: slotWidth, role: .prepend)
-                    slotView(item: SlotNavigationItem(id: "navigation.add.end", symbolName: "plus", title: strings.addItemTitle),
+                    slotView(item: SlotNavigationItem(id: "navigation.add.end", icon: .system("plus"), title: strings.addItemTitle),
                              index: visibleItemCount, offset: displayOffset, size: size, arcRect: arcRect,
                              slotWidth: slotWidth, role: .append)
                 }
@@ -380,8 +380,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let manipulable = isEditing && configuration == nil && !item.isPending && !add
 
         return VStack(spacing: labelSpacing) {
-            Image(systemName: add ? "plus.circle" : item.symbolName)
-                .font(.system(size: 31, weight: .semibold))
+            iconImage(add ? .system("plus.circle") : item.icon, size: 31)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(add ? theme.success : theme.textPrimary)
                 .scaleEffect(iconSize / 31)
@@ -491,6 +490,21 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .zIndex(1 + zIndex)
         .animation(isEditing ? editorAnimation : nil, value: liftedItem?.insertion)
         .animation(isEditing ? editorAnimation : nil, value: liftedItem?.removes)
+    }
+
+    @ViewBuilder
+    private func iconImage(_ icon: SlotNavigationIcon, size: CGFloat) -> some View {
+        switch icon {
+        case let .system(name):
+            Image(systemName: name)
+                .font(.system(size: size, weight: .semibold))
+        case let .asset(name):
+            Image(name)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+        }
     }
 
     private var catalogView: some View {
@@ -652,8 +666,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
 
     private func liftedIcon(_ lifted: LiftedItem) -> some View {
         VStack(spacing: 4) {
-            Image(systemName: lifted.item.symbolName)
-                .font(.system(size: 33, weight: .semibold))
+            iconImage(lifted.item.icon, size: 33)
                 .frame(height: 42)
                 .overlay(alignment: .topTrailing) {
                     if lifted.removes {
@@ -694,7 +707,16 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 HStack(spacing: 12) {
                     ForEach(configuration.choices) { choice in
                         Button { configuration.onSelect(choice.id) } label: {
-                            Label(choice.title, systemImage: choice.symbolName)
+                            Label {
+                                Text(choice.title)
+                            } icon: {
+                                switch choice.icon {
+                                case let .system(name):
+                                    Image(systemName: name)
+                                case .asset:
+                                    iconImage(choice.icon, size: 17)
+                                }
+                            }
                                 .font(theme.typography.buttonLabel)
                                 .frame(minHeight: 44)
                         }

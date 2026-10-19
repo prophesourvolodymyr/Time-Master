@@ -8,6 +8,7 @@ private enum RankedLobbySheet: String, Identifiable {
 struct RankedView: View {
     @EnvironmentObject private var profileStore: LocalProfileStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @AppStorage("tm.ranked.mode") private var mode: RankedMode = .duel
     @AppStorage("tm.ranked.family") private var family: RankedFamily = .pushUps
     @AppStorage("tm.ranked.pushUp") private var pushUp: RankedVariation = .standardPushUp
@@ -30,11 +31,17 @@ struct RankedView: View {
 
     var body: some View {
         NavigationStack {
-            ViewThatFits(in: .vertical) {
-                lobby(scrolls: false)
-                ScrollView { lobby(scrolls: true) }
+            GeometryReader { viewport in
+                let frame = viewport.frame(in: .global)
+                let contentBounds = frame.intersection(navigationBounds ?? frame)
+                ViewThatFits(in: .vertical) {
+                    lobby(scrolls: false)
+                    ScrollView { lobby(scrolls: true) }
+                        .scrollIndicators(.hidden)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: max(1, contentBounds.height), alignment: .top)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background.ignoresSafeArea())
             .foregroundStyle(.white)
 #if os(iOS)
@@ -83,21 +90,22 @@ struct RankedView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(profileStore.profile.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
                         Text(profileStore.rankedLevels.overall.map { "\($0.formatted()) Elo · Profile level" } ?? "Your Ranked profile")
-                            .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+                            .font(TimeMasterFont.caption().monospacedDigit())
+                            .foregroundStyle(ProfileStyle.secondary)
+                            .lineLimit(1)
                     }
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(TimeMasterCardButtonStyle())
+            .layoutPriority(1)
             .accessibilityLabel("Open \(profileStore.profile.displayName)'s profile")
             .accessibilityIdentifier("ranked-profile")
             Spacer(minLength: 0)
             Button { sheet = .settings } label: {
                 Label("Settings", systemImage: "gearshape.fill").labelStyle(.iconOnly)
-                    .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
-                    .background(Theme.surface2, in: Circle())
             }
-            .buttonStyle(TimeMasterCardButtonStyle())
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
             .accessibilityIdentifier("ranked-settings")
         }
     }
@@ -110,7 +118,7 @@ struct RankedView: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 8) {
                         Image(option.assetName).resizable().scaledToFit()
-                            .clipShape(RoundedRectangle(cornerRadius: ProfileStyle.spacing))
+                            .clipShape(RoundedRectangle(cornerRadius: ProfileStyle.spacing, style: .continuous))
                             .accessibilityHidden(true)
                         HStack {
                             Label(option.title, systemImage: option.symbol)
@@ -122,18 +130,26 @@ struct RankedView: View {
                                     .foregroundStyle(Theme.toolbarOrange).accessibilityHidden(true)
                             }
                         }
+                        Text(option == .duel ? "Head-to-head preview" : "Train at your own pace")
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(ProfileStyle.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(ProfileStyle.spacing)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: ProfileStyle.corner))
+                    .modifier(TimeMasterCardSurface(flat: true))
                     .overlay {
-                        RoundedRectangle(cornerRadius: ProfileStyle.corner)
-                            .strokeBorder(mode == option ? Theme.toolbarOrange : Theme.separator, lineWidth: mode == option ? 2 : 1)
-                            .allowsHitTesting(false)
+                        if mode == option {
+                            RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous)
+                                .strokeBorder(Theme.toolbarOrange, lineWidth: 2)
+                                .allowsHitTesting(false)
+                        }
                     }
-                    .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.corner))
+                    .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous))
                 }
                 .buttonStyle(TimeMasterCardButtonStyle())
+                .accessibilityLabel(option.title)
+                .accessibilityValue(option == .duel ? "Head-to-head preview" : "Solo practice preview")
                 .accessibilityAddTraits(mode == option ? .isSelected : [])
                 .accessibilityIdentifier("ranked-mode-\(option.rawValue)")
             }
@@ -160,7 +176,7 @@ struct RankedView: View {
                     .offset(y: geometry.size.height * 0.37)
                     .accessibilityHidden(true)
                 Image("RankedHero").resizable().scaledToFit()
-                    .padding(.top, badgeSize * 0.7)
+                    .padding(.top, badgeSize * 1.6)
                     .padding(.bottom, ProfileStyle.spacing)
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .accessibilityHidden(true)
@@ -168,7 +184,8 @@ struct RankedView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(mode == .duel ? "RANKED\nARENA" : "TRAINING\nGROUND")
-                                .font(TimeMasterFont.title()).tracking(1)
+                                .font(TimeMasterFont.title())
+                                .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
                             Text(selection.isTimedHold ? (mode == .duel ? "1V1 · HOLD TIME" : "SOLO · HOLD TIME") : (mode == .duel ? "1V1 · 60 SECONDS" : "SOLO · YOUR PACE"))
                                 .font(TimeMasterFont.caption())
@@ -178,12 +195,18 @@ struct RankedView: View {
                         Button { sheet = .ranks } label: {
                             VStack(spacing: 2) {
                                 RankedBadgeView(elo: profileStore.rankedLevels[selection], size: badgeSize)
-                                Text(RankedTier.level(for: profileStore.rankedLevels[selection])?.title.uppercased() ?? "UNPLACED")
+                                Text(RankedTier.level(for: profileStore.rankedLevels[selection])?.title ?? "Unplaced")
                                     .font(TimeMasterFont.caption())
+                                    .foregroundStyle(ProfileStyle.secondary)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(ProfileStyle.secondary)
+                                    .accessibilityHidden(true)
                             }
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
                         .accessibilityLabel("View rank collection")
+                        .accessibilityValue(profileStore.rankedLevels[selection].map { "\(RankedTier.level(for: $0)?.title ?? "Unplaced"), \($0) Elo" } ?? "Unplaced")
                         .accessibilityIdentifier("ranked-ranks")
                     }
                     Spacer(minLength: 0)
@@ -207,11 +230,14 @@ struct RankedView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
-                    Image(systemName: "slider.horizontal.3").font(.title3.weight(.bold))
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(ProfileStyle.secondary)
+                        .accessibilityHidden(true)
                 }
                 .padding(ProfileStyle.spacing)
-                .background(Theme.surface2, in: RoundedRectangle(cornerRadius: ProfileStyle.inset))
-                .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.inset))
+                .modifier(TimeMasterCardSurface(flat: true))
+                .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous))
             }
             .buttonStyle(TimeMasterCardButtonStyle())
             .accessibilityLabel("Change battle mode and movement")
@@ -219,12 +245,15 @@ struct RankedView: View {
             .accessibilityIdentifier("ranked-loadout")
             Button { showsBattle = true } label: {
                 Label(mode == .duel ? "BATTLE" : "PRACTICE", systemImage: mode == .duel ? "bolt.fill" : "play.fill")
-                    .font(TimeMasterFont.title()).tracking(1)
-                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
-            .buttonStyle(RankedActionStyle())
+            .buttonStyle(TimeMasterToolbarWideButtonStyle())
             .accessibilityLabel(mode == .duel ? "Enter battle preview" : "Enter practice preview")
             .accessibilityIdentifier("ranked-battle")
+            Text("Preview only · No Elo change")
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(ProfileStyle.secondary)
+                .frame(maxWidth: .infinity)
         }
     }
 
@@ -232,21 +261,49 @@ struct RankedView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: ProfileStyle.inset) {
+                    Text("BATTLE MODE")
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(ProfileStyle.secondary)
+                        .accessibilityAddTraits(.isHeader)
                     modePicker
                     movementPicker
                 }
+                .animation(nil, value: family)
                 .padding(ProfileStyle.inset)
                 .frame(maxWidth: ProfileStyle.readableWidth)
                 .frame(maxWidth: .infinity)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                HStack(spacing: ProfileStyle.spacing) {
+                    RankedMovementArt(variation: selection)
+                        .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("SELECTED LOADOUT")
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(ProfileStyle.secondary)
+                        Text("\(mode.title) · \(selection.fullTitle)")
+                            .font(TimeMasterFont.rowTitle())
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Theme.toolbarOrange)
+                        .accessibilityHidden(true)
+                }
+                .padding(ProfileStyle.inset)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.surface2)
+                .accessibilityElement(children: .combine)
+            }
             .background(Theme.background.ignoresSafeArea())
+            .scrollIndicators(.hidden)
             .foregroundStyle(.white)
             .navigationTitle("Battle loadout")
 #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
 #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                AppToolbar.item(placement: .confirmationAction) {
                     Button("Done") { sheet = nil }
                         .accessibilityIdentifier("ranked-loadout-done")
                 }
@@ -262,15 +319,9 @@ struct RankedView: View {
                 Spacer()
                 Text("\(family.variations.count) movements").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
             }
-            HStack(spacing: 8) {
-                ForEach(RankedFamily.allCases) { option in
-                    Button { family = option } label: {
-                        Text(option.title).frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: family == option))
-                    .accessibilityAddTraits(family == option ? .isSelected : [])
-                    .accessibilityIdentifier("ranked-family-\(option.rawValue)")
-                }
+            ViewThatFits(in: .horizontal) {
+                familyPicker(vertical: false)
+                familyPicker(vertical: true)
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: tileWidth), spacing: ProfileStyle.spacing)], spacing: ProfileStyle.spacing) {
                 ForEach(family.variations) { variation in
@@ -278,6 +329,23 @@ struct RankedView: View {
                         select(variation)
                     }
                 }
+            }
+        }
+    }
+
+    private func familyPicker(vertical: Bool) -> some View {
+        let layout = vertical ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        return layout {
+            ForEach(RankedFamily.allCases) { option in
+                Button { family = option } label: {
+                    Text(option.title)
+                        .font(TimeMasterFont.rowTitle())
+                        .fixedSize()
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: family == option))
+                .accessibilityAddTraits(family == option ? .isSelected : [])
+                .accessibilityIdentifier("ranked-family-\(option.rawValue)")
             }
         }
     }

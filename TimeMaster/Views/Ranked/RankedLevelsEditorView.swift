@@ -28,8 +28,10 @@ struct RankedLevelsEditorView: View {
                                     RankedMovementArt(variation: variation).frame(width: artSize, height: artSize)
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(variation.title).font(TimeMasterFont.rowTitle())
+                                            .fixedSize(horizontal: false, vertical: true)
                                         Text(draft[variation].map { "\($0.formatted()) Elo" } ?? "Unplaced")
-                                            .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+                                            .font(TimeMasterFont.caption().monospacedDigit())
+                                            .foregroundStyle(ProfileStyle.secondary)
                                     }
                                     Spacer()
                                     RankedBadgeView(elo: draft[variation])
@@ -40,21 +42,32 @@ struct RankedLevelsEditorView: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(TimeMasterCardButtonStyle())
+                            .accessibilityLabel("Edit \(variation.fullTitle) level")
+                            .accessibilityValue(draft[variation].map { "\($0) Elo" } ?? "Unplaced")
                             .accessibilityIdentifier("ranked-edit-\(variation.rawValue)")
+                            if variation != family.variations.last {
+                                Divider()
+                                    .overlay(Theme.separator)
+                                    .padding(.leading, artSize + ProfileStyle.spacing * 2)
+                            }
                         }
                     }
                 }
             }
+            .disabled(profileStore.isReadOnly)
+#if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+#endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") {
                         if hasChanges { showsDiscard = true } else { dismiss() }
                     }
                     .accessibilityIdentifier("ranked-levels-cancel")
                 }
-                ToolbarItem(placement: .confirmationAction) {
+                AppToolbar.item(placement: .confirmationAction) {
                     Button("Save", action: save)
-                        .disabled(!hasLoaded || profileStore.isReadOnly)
+                        .disabled(!hasChanges || profileStore.isReadOnly)
                         .accessibilityIdentifier("ranked-levels-save")
                 }
             }
@@ -81,13 +94,14 @@ struct RankedLevelsEditorView: View {
                         .frame(maxWidth: ProfileStyle.readableWidth)
                         .frame(maxWidth: .infinity)
                     }
+                    .scrollIndicators(.hidden)
                     .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
                     .navigationTitle(variation.fullTitle)
 #if os(iOS)
                     .navigationBarTitleDisplayMode(.inline)
 #endif
                     .toolbar {
-                        ToolbarItem(placement: .confirmationAction) { Button("Done") { editing = nil } }
+                        AppToolbar.item(placement: .confirmationAction) { Button("Done") { editing = nil } }
                     }
                 }
                 .tint(Theme.toolbarOrange)
@@ -111,6 +125,7 @@ struct RankedLevelsEditorView: View {
 private struct RankedLevelPicker: View {
     @Binding var value: Int?
     @ScaledMetric(relativeTo: .title) private var badgeSize: CGFloat = 112
+    @ScaledMetric(relativeTo: .caption) private var tierWidth: CGFloat = 80
 
     private var sliderValue: Binding<Double> {
         Binding(get: { Double(value ?? 1_000) }, set: { value = Int($0.rounded()) })
@@ -128,38 +143,53 @@ private struct RankedLevelPicker: View {
             if value != nil {
                 Text(RankedTier.level(for: value)?.title ?? "Unplaced").font(TimeMasterFont.secondary())
                     .foregroundStyle(ProfileStyle.secondary)
+                    .accessibilityIdentifier("ranked-level-tier")
                 Slider(value: sliderValue, in: Double(RankedLevels.range.lowerBound)...Double(RankedLevels.range.upperBound), step: 1)
                     .accessibilityLabel("Elo level")
                     .accessibilityIdentifier("ranked-level-slider")
+                HStack {
+                    Text(RankedLevels.range.lowerBound.formatted())
+                    Spacer()
+                    Text(RankedLevels.range.upperBound.formatted())
+                }
+                .font(TimeMasterFont.caption().monospacedDigit())
+                .foregroundStyle(ProfileStyle.secondary)
+                .accessibilityHidden(true)
                 Stepper("Fine-tune Elo", value: stepperValue, in: RankedLevels.range)
                     .font(TimeMasterFont.secondary())
                     .accessibilityIdentifier("ranked-level-stepper")
+                    .accessibilityValue(value.map { "\($0) Elo" } ?? "Unplaced")
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(RankedTier.allCases) { tier in
-                        Button { value = tier.minimum } label: {
-                            VStack(spacing: 4) {
-                                Image(tier.assetName).resizable().scaledToFit()
-                                    .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
-                                    .accessibilityHidden(true)
-                                Text(tier.title).font(TimeMasterFont.caption())
-                            }
-                            .padding(8)
-                            .background(RankedTier.level(for: value) == tier ? Theme.surface2 : .clear, in: RoundedRectangle(cornerRadius: ProfileStyle.spacing))
+            if value == nil {
+                Text("Choose a league to set your level.")
+                    .font(TimeMasterFont.secondary())
+                    .foregroundStyle(ProfileStyle.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: tierWidth), spacing: 8)], spacing: 8) {
+                ForEach(RankedTier.allCases) { tier in
+                    Button { value = tier.minimum } label: {
+                        VStack(spacing: 8) {
+                            Image(tier.assetName).resizable().scaledToFit()
+                                .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
+                                .accessibilityHidden(true)
+                            Text(tier.title).font(TimeMasterFont.caption())
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .buttonStyle(TimeMasterCardButtonStyle())
-                        .accessibilityLabel("Set \(tier.title), \(tier.minimum) Elo")
-                        .accessibilityAddTraits(RankedTier.level(for: value) == tier ? .isSelected : [])
-                        .accessibilityIdentifier("ranked-level-tier-\(tier.rawValue)")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
+                    .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: RankedTier.level(for: value) == tier))
+                    .accessibilityLabel("Set \(tier.title), \(tier.minimum) Elo")
+                    .accessibilityAddTraits(RankedTier.level(for: value) == tier ? .isSelected : [])
+                    .accessibilityIdentifier("ranked-level-tier-\(tier.rawValue)")
                 }
             }
             if value != nil {
-                Button("Clear level") { value = nil }
-                    .font(TimeMasterFont.secondary()).frame(minHeight: ProfileStyle.touchTarget)
-                    .foregroundStyle(ProfileStyle.secondary)
-                    .accessibilityIdentifier("ranked-level-clear")
+                Button { value = nil } label: {
+                    Text("Clear level").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(TimeMasterSelectionButtonStyle())
+                .accessibilityIdentifier("ranked-level-clear")
             }
         }
     }

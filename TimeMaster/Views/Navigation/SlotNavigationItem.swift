@@ -339,9 +339,14 @@ struct SlotNavigationStrings {
 
 // MARK: - Item
 
+enum SlotNavigationIcon: Hashable {
+    case system(String)
+    case asset(String)
+}
+
 struct SlotNavigationItem: Identifiable, Hashable {
     let id: String
-    let symbolName: String
+    let icon: SlotNavigationIcon
     let title: String
     let accessibilityHint: String
     let presentation: SlotNavigationPresentation
@@ -351,7 +356,7 @@ struct SlotNavigationItem: Identifiable, Hashable {
 
     init(
         id: String,
-        symbolName: String,
+        icon: SlotNavigationIcon,
         title: String,
         accessibilityHint: String = "",
         presentation: SlotNavigationPresentation = .full,
@@ -360,7 +365,7 @@ struct SlotNavigationItem: Identifiable, Hashable {
         badgeCount: Int = 0
     ) {
         self.id = id
-        self.symbolName = symbolName
+        self.icon = icon
         self.title = title
         self.accessibilityHint = accessibilityHint
         self.presentation = presentation
@@ -372,7 +377,7 @@ struct SlotNavigationItem: Identifiable, Hashable {
     func withBadgeCount(_ badgeCount: Int) -> SlotNavigationItem {
         SlotNavigationItem(
             id: id,
-            symbolName: symbolName,
+            icon: icon,
             title: title,
             accessibilityHint: accessibilityHint,
             presentation: presentation,
@@ -444,18 +449,18 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         }
     }
 
-    var symbolName: String {
+    var icon: SlotNavigationIcon {
         switch self {
-        case .home: "house.fill"
-        case .workouts: "dumbbell.fill"
-        case .database: "books.vertical.fill"
-        case .analytics: "chart.bar.fill"
-        case .coach: "brain.head.profile"
-        case .profile: "person.crop.circle"
-        case .ranked: "bolt.shield.fill"
-        case .map: "map.fill"
-        case .schedule: "calendar"
-        case .settings: "gearshape.fill"
+        case .home: .system("house.fill")
+        case .workouts: .system("dumbbell.fill")
+        case .database: .system("books.vertical.fill")
+        case .analytics: .system("chart.bar.fill")
+        case .coach: .system("brain.head.profile")
+        case .profile: .system("person.crop.circle")
+        case .ranked: .asset("RankedMenuIcon")
+        case .map: .system("map.fill")
+        case .schedule: .system("calendar")
+        case .settings: .system("gearshape.fill")
         }
     }
 
@@ -498,7 +503,7 @@ extension SlotNavigationItem {
     init(destination: SlotNavigationDestination, isPending: Bool = false) {
         self.init(
             id: destination.rawValue,
-            symbolName: destination.symbolName,
+            icon: destination.icon,
             title: destination.title,
             accessibilityHint: destination.accessibilityHint,
             presentation: destination.presentation,
