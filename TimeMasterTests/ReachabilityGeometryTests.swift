@@ -88,4 +88,63 @@ final class ReachabilityGeometryTests: XCTestCase {
         XCTAssertNil(SlotPageSwipeGeometry.progress(index: 2, start: CGPoint(x: 10, y: 400),
                                                     translation: CGSize(width: 10, height: 120), width: 390))
     }
+
+    func testHiddenMenuRemainsVisibleForTwoIdleSeconds() {
+        let start = ContinuousClock.now
+        var overlay = SlotNavigationOverlayState()
+        overlay.reveal(at: start, interacting: false)
+        XCTAssertFalse(overlay.dismissIfExpired(at: start.advanced(by: .milliseconds(1999))))
+        XCTAssertTrue(overlay.isVisible)
+        XCTAssertTrue(overlay.dismissIfExpired(at: start.advanced(by: .seconds(2))))
+        XCTAssertFalse(overlay.isVisible)
+    }
+
+    func testMenuInteractionPausesDismissalAndRestartsGraceAfterRelease() {
+        let start = ContinuousClock.now
+        var overlay = SlotNavigationOverlayState()
+        overlay.reveal(at: start, interacting: false)
+        overlay.interactionChanged(true, at: start.advanced(by: .seconds(1)))
+        XCTAssertFalse(overlay.dismissIfExpired(at: start.advanced(by: .seconds(8))))
+        XCTAssertTrue(overlay.isVisible)
+        overlay.interactionChanged(false, at: start.advanced(by: .seconds(8)))
+        XCTAssertFalse(overlay.dismissIfExpired(at: start.advanced(by: .milliseconds(9999))))
+        XCTAssertTrue(overlay.dismissIfExpired(at: start.advanced(by: .seconds(10))))
+    }
+
+    func testLeavingAndReenteringMapCannotReuseTheOldDeadline() {
+        let start = ContinuousClock.now
+        var overlay = SlotNavigationOverlayState()
+        overlay.reveal(at: start, interacting: false)
+        overlay.dismiss()
+        XCTAssertFalse(overlay.dismissIfExpired(at: start.advanced(by: .seconds(2))))
+        overlay.reveal(at: start.advanced(by: .seconds(3)), interacting: false)
+        XCTAssertFalse(overlay.dismissIfExpired(at: start.advanced(by: .seconds(4))))
+        XCTAssertTrue(overlay.isVisible)
+        XCTAssertTrue(overlay.dismissIfExpired(at: start.advanced(by: .seconds(5))))
+    }
+
+    func testMapEntryWhileReelingWaitsForReleaseBeforeStartingTheTimer() {
+        let start = ContinuousClock.now
+        var overlay = SlotNavigationOverlayState()
+        overlay.reveal(at: start, interacting: true)
+        XCTAssertFalse(overlay.dismissIfExpired(at: start.advanced(by: .seconds(20))))
+        XCTAssertTrue(overlay.isVisible)
+        overlay.interactionChanged(false, at: start.advanced(by: .seconds(20)))
+        XCTAssertFalse(overlay.dismissIfExpired(at: start.advanced(by: .seconds(21))))
+        XCTAssertTrue(overlay.dismissIfExpired(at: start.advanced(by: .seconds(22))))
+    }
+
+    func testBottomEdgeRevealRejectsPaneScrollsHorizontalReelingAndShortPulls() {
+        XCTAssertTrue(SlotNavigationOverlayState.acceptsReveal(
+            start: CGPoint(x: 195, y: 680), translation: CGSize(width: 10, height: -60), viewportHeight: 700))
+        for (startY, translation) in [
+            (600.0, CGSize(width: 0, height: -100)),
+            (680.0, CGSize(width: 80, height: -50)),
+            (680.0, CGSize(width: 0, height: -47)),
+            (680.0, CGSize(width: 0, height: 80))
+        ] {
+            XCTAssertFalse(SlotNavigationOverlayState.acceptsReveal(
+                start: CGPoint(x: 195, y: startY), translation: translation, viewportHeight: 700))
+        }
+    }
 }

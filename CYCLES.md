@@ -1261,6 +1261,16 @@ The final builds include the concurrent committed workout-player changes while p
 
 Native probing and screenshots stopped at the user's request. The final Home and directional-navigation revisions received code-only checks. An attempted installation could not proceed because the previously running iPhone 16 was shut down; device enumeration showed no booted simulators, so no additional simulator was started. The temporary Reachability QA app remains on that shut-down simulator; no user app data was removed. Product DOCKS.md updates remain deferred until acceptance.
 
+### Maps bottom pane and temporary navigation overlay — 2026-10-19
+
+- [x] Dock the Maps main pane at the bottom without reserving space for the hidden menu; keep its content, sibling panes, and compact music player clear of the safe area
+- [x] Keep the full navigation menu over Maps for two idle seconds after navigating there, then slide it downward; pause dismissal during menu interaction or editing and restart the grace period after release
+- [x] Reveal the navigation menu above the Maps pane with an upward swipe from the bottom edge, without leaving Maps or treating ordinary pane scrolling as a reveal
+- [x] Build iOS Simulator and macOS, pass 13 focused navigation regressions and three pane geometry regressions, and run a headless native navigation-layout smoke
+- [ ] Human acceptance of Maps pane placement, bottom-edge reveal, menu overlay timing, and the slide-down transition
+
+Both platform builds passed in a task-only source snapshot. The native smoke measured the real navigation container with a full-height Maps content area and zero menu reserve, while Home retained its normal 96-point reserve. The pane geometry cases ran unchanged against the production calculation extracted from its iOS-only wrapper. No simulator interactions, screenshots, or physical-device gesture checks were performed. Final animation feel and device appearance remain for human review; existing build warnings remain. Product DOCKS.md updates await acceptance.
+
 ---
 
 ## Cycle 34 — Unified Database, Workout, and AI Surfaces

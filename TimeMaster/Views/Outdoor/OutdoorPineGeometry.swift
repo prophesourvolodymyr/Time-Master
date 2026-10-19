@@ -212,7 +212,7 @@ struct OutdoorPineGeometry: Equatable {
             return max(safeAreaTop, size.height - lowerInset - featureHeight - gap - mainHeight)
         }
         let progress = min(1, max(0, (mainHeight - mainMediumHeight) / max(1, mainFullHeight - mainMediumHeight)))
-        let normalBottom = size.height - lowerInset
+        let normalBottom = size.height - playerReserve
         let expandedBottom = mainMaximumFrame.maxY - 10
         let bottom = normalBottom + (expandedBottom - normalBottom) * progress
         return max(mainMaximumFrame.minY, bottom - mainHeight)

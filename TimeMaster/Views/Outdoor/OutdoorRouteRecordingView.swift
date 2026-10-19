@@ -9,7 +9,6 @@ struct OutdoorRouteRecordingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.slotNavigationContentBounds) private var navigationBounds
 
     @ObservedObject private var store: OutdoorActivityStore
     @ObservedObject private var preferences: OutdoorRecordingPreferencesStore
@@ -126,20 +125,16 @@ struct OutdoorRouteRecordingView: View {
     var body: some View {
         GeometryReader { proxy in
             let showsCompactPlayer = musicManager.currentTrack != nil && mainContent != .finish && tripEntry == nil
-            let visibleHeight = navigationBounds.map {
-                min(proxy.size.height, max(1, $0.maxY - proxy.frame(in: .global).minY))
-            } ?? proxy.size.height
-            let obscuredHeight = max(0, proxy.size.height - visibleHeight)
             let layout = OutdoorPineGeometry(
-                size: CGSize(width: proxy.size.width, height: visibleHeight),
+                size: proxy.size,
                 safeAreaTop: proxy.safeAreaInsets.top,
-                safeAreaBottom: max(0, min(proxy.safeAreaInsets.bottom, containerBottomInset) - obscuredHeight),
+                safeAreaBottom: containerBottomInset,
                 playerReserve: showsCompactPlayer ? 94 : 0,
                 fullscreenBounds: CGRect(
                     x: 0,
                     y: -proxy.safeAreaInsets.top,
                     width: proxy.size.width,
-                    height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+                    height: proxy.size.height + proxy.safeAreaInsets.top
                 )
             )
             let offlineCapabilities = (OutdoorMapMode.baseModes + OutdoorMapMode.overlayModes).map {
@@ -421,6 +416,7 @@ struct OutdoorRouteRecordingView: View {
                 musicSession.stop()
             }
         }
+        .ignoresSafeArea(.container, edges: .bottom)
         .task { await tripAreas.reload() }
         .sheet(isPresented: $offlineAreasPresented, onDismiss: {
             nearbyRoutes.refresh(kind: committedKind)

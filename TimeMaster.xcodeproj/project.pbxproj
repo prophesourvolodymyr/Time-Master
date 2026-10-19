@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BE190001AA00000000000001 /* SlotNavigationOverlayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE190000AA00000000000001 /* SlotNavigationOverlayState.swift */; };
+		BE190002AA00000000000001 /* SlotNavigationOverlayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE190000AA00000000000001 /* SlotNavigationOverlayState.swift */; };
 		BA520001AA00000000000001 /* ReachabilityAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000001 /* ReachabilityAction.swift */; };
 		BA520001AA00000000000002 /* ReachabilityGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000002 /* ReachabilityGeometry.swift */; };
 		BA520001AA00000000000003 /* ReachabilityGestureBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000003 /* ReachabilityGestureBridge.swift */; };
@@ -428,6 +430,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BE190000AA00000000000001 /* SlotNavigationOverlayState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlotNavigationOverlayState.swift; sourceTree = "<group>"; };
 		BA520000AA00000000000001 /* ReachabilityAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityAction.swift; sourceTree = "<group>"; };
 		BA520000AA00000000000002 /* ReachabilityGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityGeometry.swift; sourceTree = "<group>"; };
 		BA520000AA00000000000003 /* ReachabilityGestureBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityGestureBridge.swift; sourceTree = "<group>"; };
@@ -1079,6 +1082,7 @@
 				BA520000AA00000000000004 /* ReachabilityActionsModifier.swift */,
 				BA520000AA00000000000005 /* ReachabilityShelf.swift */,
 				BA520000AA00000000000008 /* SlotPageSwipeGeometry.swift */,
+				BE190000AA00000000000001 /* SlotNavigationOverlayState.swift */,
 				9307001A6FC7FD76022967AE /* SlotNavigationArc.swift */,
 				670BE94C2C96B125EDEF40DF /* SlotNavigationBar.swift */,
 				754B28C30A321F0E407FC8FA /* SlotNavigationContainer.swift */,
@@ -1302,6 +1306,7 @@
 				BA520001AA00000000000001 /* ReachabilityAction.swift in Sources */,
 				BA520001AA00000000000002 /* ReachabilityGeometry.swift in Sources */,
 				BA520001AA00000000000008 /* SlotPageSwipeGeometry.swift in Sources */,
+				BE190001AA00000000000001 /* SlotNavigationOverlayState.swift in Sources */,
 				BA520001AA00000000000003 /* ReachabilityGestureBridge.swift in Sources */,
 				BA520001AA00000000000004 /* ReachabilityActionsModifier.swift in Sources */,
 				BA520001AA00000000000005 /* ReachabilityShelf.swift in Sources */,
@@ -1495,6 +1500,7 @@
 				BA520002AA00000000000001 /* ReachabilityAction.swift in Sources */,
 				BA520002AA00000000000002 /* ReachabilityGeometry.swift in Sources */,
 				BA520002AA00000000000008 /* SlotPageSwipeGeometry.swift in Sources */,
+				BE190002AA00000000000001 /* SlotNavigationOverlayState.swift in Sources */,
 				BA520002AA00000000000003 /* ReachabilityGestureBridge.swift in Sources */,
 				BA520002AA00000000000004 /* ReachabilityActionsModifier.swift in Sources */,
 				BA520002AA00000000000005 /* ReachabilityShelf.swift in Sources */,

@@ -33,7 +33,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var requestedPresentation: SlotNavigationPresentation?
     @State private var contentDisablesInteraction = false
-    @State private var hiddenNavigationIsRevealed = false
+    @State private var hiddenNavigation = SlotNavigationOverlayState()
     @State private var hiddenNavigationDismissTask: Task<Void, Never>?
     @State private var isEditing = false
     @State private var showsCatalog = false
@@ -95,9 +95,10 @@ struct SlotCarouselNavigation<Content: View>: View {
             let presentation = effectivePresentation
             let layout = barLayout(for: presentation)
             let normalHeight = layout == .full ? barHeight : SlotCarouselNavigationBar.inlineHeight
-            let showsNavigation = presentation != .hidden || hiddenNavigationIsRevealed
+            let showsNavigation = presentation != .hidden || hiddenNavigation.isVisible
             let frame = proxy.frame(in: .global)
-            let restoreHeight: CGFloat = navigationManuallyHidden && navigationInteractionEnabled ? 24 : 0
+            let restoreHeight: CGFloat = navigationManuallyHidden && navigationInteractionEnabled
+                && defaultPresentation != .hidden ? 24 : 0
             let reservedHeight = presentation == .hidden ? restoreHeight : normalHeight
             let contentBounds = CGRect(
                 x: frame.minX,
@@ -125,7 +126,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                     .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive ? .all : .subviews)
-                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive && !navigationManuallyHidden ? .all : .subviews)
+                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive ? .all : .subviews)
                     .simultaneousGesture(contentNavigationDismissGesture)
 
                 if isEditing {
@@ -176,7 +177,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .background(SlotNavigationBarFrameReader())
                     .transition(navigationPresentationTransition)
                 }
-                else if navigationManuallyHidden && navigationInteractionEnabled {
+                else if restoreHeight > 0 {
                     Button(action: revealHiddenNavigation) {
                         Image(systemName: "chevron.up")
                             .font(.caption.weight(.semibold))
@@ -225,19 +226,25 @@ struct SlotCarouselNavigation<Content: View>: View {
                 if let selection, let destination, selection != destination {
                     AppInteractionHaptics.shared.selectionChanged()
                 }
+                hiddenNavigationDismissTask?.cancel()
                 withAnimation(presentationAnimation) {
+                    requestedPresentation = nil
                     navigationIsExpanded = false
                     navigationManuallyHidden = false
+                    if defaultPresentation != .hidden {
+                        hiddenNavigation.dismiss()
+                    }
                 }
-                if effectivePresentation == .hidden, hiddenNavigationIsRevealed {
-                    if !navigationIsInteracting { scheduleHiddenNavigationDismissal() }
+                if effectivePresentation == .hidden, hiddenNavigation.isVisible {
+                    hiddenNavigation.interactionChanged(navigationIsInteracting || isEditing, at: .now)
+                    scheduleHiddenNavigationDismissal()
                 }
             }
             .onChange(of: navigationInteractionEnabled) { enabled in
                 if !enabled {
                     finishEditing()
                     hiddenNavigationDismissTask?.cancel()
-                    hiddenNavigationIsRevealed = false
+                    hiddenNavigation.dismiss()
                     navigationManuallyHidden = false
                     pageIsDragging = false
                     navigationIsExpanded = false
@@ -246,7 +253,13 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
             }
             .onChange(of: scenePhase) { phase in
-                if phase != .active { AppInteractionHaptics.shared.suspend() }
+                if phase != .active {
+                    AppInteractionHaptics.shared.suspend()
+                    hiddenNavigationDismissTask?.cancel()
+                } else if effectivePresentation == .hidden, hiddenNavigation.isVisible {
+                    hiddenNavigation.interactionChanged(navigationIsInteracting || isEditing, at: .now)
+                    scheduleHiddenNavigationDismissal()
+                }
             }
             .onPreferenceChange(SlotNavigationInteractionDisabledPreferenceKey.self) { contentDisablesInteraction = $0 }
             .onPreferenceChange(SlotNavigationEditingPreferenceKey.self) { pageSwipesDisabled = $0 }
@@ -274,6 +287,13 @@ struct SlotCarouselNavigation<Content: View>: View {
             get: { items.firstIndex(where: { $0.id == selection }) ?? 0 },
             set: { index in
                 guard !isEditing, items.indices.contains(index) else { return }
+                guard selection != items[index].id else { return }
+                hiddenNavigationDismissTask?.cancel()
+                if items[index].presentation == .hidden {
+                    hiddenNavigation.reveal(at: .now, interacting: navigationIsInteracting)
+                } else {
+                    hiddenNavigation.dismiss()
+                }
                 selection = items[index].id
             }
         )
@@ -282,6 +302,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     private func beginEditing() {
         guard navigationInteractionEnabled, allowsEditing,
               barLayout(for: effectivePresentation) == .full, !isEditing else { return }
+        hiddenNavigationDismissTask?.cancel()
         withAnimation(presentationAnimation) { isEditing = true }
     }
 
@@ -313,7 +334,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     }
 
     private func barLayout(for presentation: SlotNavigationPresentation) -> SlotNavigationBarLayout {
-        presentation == .full || navigationIsExpanded || navigationIsInteracting || isEditing ? .full : .inline
+        presentation == .full || hiddenNavigation.isVisible || navigationIsExpanded || navigationIsInteracting || isEditing ? .full : .inline
     }
 
     private func applyPresentation(_ requested: SlotNavigationPresentation?) {
@@ -324,9 +345,13 @@ struct SlotCarouselNavigation<Content: View>: View {
             requestedPresentation = requested
             navigationManuallyHidden = false
             navigationIsExpanded = false
-            if requested != .hidden {
-                hiddenNavigationIsRevealed = false
+            if effectivePresentation != .hidden {
+                hiddenNavigation.dismiss()
             }
+        }
+        if effectivePresentation == .hidden, hiddenNavigation.isVisible {
+            hiddenNavigation.interactionChanged(navigationIsInteracting || isEditing, at: .now)
+            scheduleHiddenNavigationDismissal()
         }
     }
 
@@ -354,8 +379,13 @@ struct SlotCarouselNavigation<Content: View>: View {
         }
         if active {
             AppInteractionHaptics.shared.prepareSelection()
+        }
+        if hiddenNavigation.isVisible {
+            hiddenNavigation.interactionChanged(active || isEditing, at: .now)
+        }
+        if active {
             hiddenNavigationDismissTask?.cancel()
-        } else if effectivePresentation == .hidden, hiddenNavigationIsRevealed {
+        } else if effectivePresentation == .hidden {
             scheduleHiddenNavigationDismissal()
         }
     }
@@ -377,7 +407,7 @@ struct SlotCarouselNavigation<Content: View>: View {
         hiddenNavigationDismissTask?.cancel()
         withAnimation(presentationAnimation) {
             navigationManuallyHidden = true
-            hiddenNavigationIsRevealed = false
+            hiddenNavigation.dismiss()
             navigationIsExpanded = false
             navigationIsInteracting = false
         }
@@ -388,10 +418,11 @@ struct SlotCarouselNavigation<Content: View>: View {
         DragGesture(minimumDistance: 12, coordinateSpace: .local)
             .onEnded { value in
                 guard effectivePresentation == .hidden,
-                      !hiddenNavigationIsRevealed,
-                      value.startLocation.y >= size.height - 112,
-                      value.translation.height <= -48,
-                      abs(value.translation.height) > abs(value.translation.width) * 1.25 else {
+                      !hiddenNavigation.isVisible,
+                      SlotNavigationOverlayState.acceptsReveal(
+                        start: value.startLocation, translation: value.translation,
+                        viewportHeight: size.height
+                      ) else {
                     return
                 }
                 revealHiddenNavigation()
@@ -401,24 +432,32 @@ struct SlotCarouselNavigation<Content: View>: View {
     private func revealHiddenNavigation() {
         guard navigationInteractionEnabled, effectivePresentation == .hidden else { return }
         hiddenNavigationDismissTask?.cancel()
-        if navigationManuallyHidden {
-            withAnimation(presentationAnimation) { navigationManuallyHidden = false }
-            return
-        }
         withAnimation(presentationAnimation) {
-            hiddenNavigationIsRevealed = true
+            navigationManuallyHidden = false
             navigationIsExpanded = false
+            if effectivePresentation == .hidden {
+                hiddenNavigation.reveal(at: .now, interacting: navigationIsInteracting || isEditing)
+            }
         }
         scheduleHiddenNavigationDismissal()
     }
 
     private func scheduleHiddenNavigationDismissal() {
         hiddenNavigationDismissTask?.cancel()
+        guard effectivePresentation == .hidden, !isEditing,
+              let deadline = hiddenNavigation.dismissalDeadline else { return }
         hiddenNavigationDismissTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
-            guard !Task.isCancelled else { return }
+            do {
+                try await Task.sleep(until: deadline, clock: .continuous)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, effectivePresentation == .hidden,
+                  !navigationIsInteracting, !isEditing else { return }
             withAnimation(presentationAnimation) {
-                hiddenNavigationIsRevealed = false
+                if hiddenNavigation.dismissIfExpired(at: .now) {
+                    navigationIsExpanded = false
+                }
             }
         }
     }
@@ -545,6 +584,10 @@ struct SlotCarouselNavigation<Content: View>: View {
             navigationIsExpanded = false
         }
         onEditingEnded()
+        if effectivePresentation == .hidden, hiddenNavigation.isVisible {
+            hiddenNavigation.interactionChanged(false, at: .now)
+            scheduleHiddenNavigationDismissal()
+        }
     }
 }
 
