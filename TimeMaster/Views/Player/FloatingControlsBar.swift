@@ -107,43 +107,15 @@ struct WorkoutFloatingControlsOverlay: ViewModifier {
     let workoutName: String
     let context: WorkoutLiveContext?
     let library: MusicLibraryStore
-    @State private var anchor = CGPoint(x: 1, y: 1)
-    @State private var measuredSize: CGSize = .zero
-    @GestureState private var translation: CGSize = .zero
-    @Namespace private var coordinateSpace
     @ScaledMetric(relativeTo: .body) private var controlSize: CGFloat = 44
 
     func body(content: Content) -> some View {
         content.overlay {
             if let context {
-                GeometryReader { geometry in
-                    let hasMusic = context.music.timeline?.clips.isEmpty == false
-                    let width = min(geometry.size.width, controlSize * (hasMusic ? 7 : 5))
-                    let size = CGSize(width: width, height: max(controlSize + 8, measuredSize.height))
-                    let origin = WorkoutWidgetPlacement.origin(
-                        container: geometry.size, widget: size, anchor: anchor, translation: translation
-                    )
+                let hasMusic = context.music.timeline?.clips.isEmpty == false
+                WorkoutFloatingWidget(width: controlSize * (hasMusic ? 7 : 5)) {
                     FloatingControlsBar(workoutName: workoutName, context: context, library: library)
-                        .frame(width: width)
-                        .onGeometryChange(for: CGSize.self) { $0.size } action: { measuredSize = $0 }
-                        .contentShape(Rectangle())
-                        .simultaneousGesture(
-                            DragGesture(minimumDistance: 8, coordinateSpace: .named(coordinateSpace))
-                                .updating($translation) { value, state, _ in state = value.translation }
-                                .onEnded { value in
-                                    anchor = WorkoutWidgetPlacement.movedAnchor(
-                                        anchor, by: value.translation, container: geometry.size, widget: size
-                                    )
-                                }
-                        )
-                        .accessibilityAction(named: "Move widget to top") { anchor.y = 0 }
-                        .accessibilityAction(named: "Move widget to bottom") { anchor.y = 1 }
-                        .accessibilityAction(named: "Move widget left") { anchor.x = 0 }
-                        .accessibilityAction(named: "Move widget right") { anchor.x = 1 }
-                        .position(x: origin.x + width / 2, y: origin.y + size.height / 2)
                 }
-                .coordinateSpace(name: coordinateSpace)
-                .padding(12)
             }
         }
     }
@@ -158,10 +130,9 @@ struct WorkoutFloatingSurface: ViewModifier {
         let shape = RoundedRectangle(cornerRadius: circular ? radius * 4 : radius, style: .continuous)
         if reduceTransparency {
             content.background(Theme.surface2, in: shape)
-        } else if #available(iOS 26.0, macOS 26.0, *) {
-            content.glassEffect(.regular, in: shape)
         } else {
-            content.background(.ultraThinMaterial, in: shape)
+            content.background(.thinMaterial, in: shape)
+                .shadow(color: .black.opacity(0.2), radius: radius * 0.6, y: radius * 0.2)
         }
     }
 }

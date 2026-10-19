@@ -379,6 +379,11 @@ Query the TimeMaster exercise database.
                 normalized.workoutType = normalized.workoutType ?? .other
             }
         }
+        if !normalized.mediaComments.isEmpty {
+            var filenames = Set(normalized.mediaFilenames)
+            if let cover = normalized.coverImageFilename { filenames.insert(cover) }
+            normalized.mediaComments = normalized.mediaComments.filter { filenames.contains($0.key) }
+        }
         return normalized
     }
 
@@ -757,6 +762,18 @@ Query the TimeMaster exercise database.
         return filename
     }
 
+    public func updateMediaComment(pageID: String, filename: String, comment: String) throws {
+        var manifest = try getPage(id: pageID)
+        guard manifest.mediaFilenames.contains(filename) || manifest.coverImageFilename == filename else {
+            throw FileSystemHelper.Error.notFound(filename)
+        }
+        let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)
+        manifest.mediaComments[filename] = text.isEmpty ? nil : text
+        manifest.updatedAt = Date()
+        let folder = try resolvePageFolder(id: pageID)
+        try fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: manifest, encoder: encoder)
+    }
+
     public func reorderPageMedia(pageID: String, filenames: [String]) throws {
         let folder = try resolvePageFolder(id: pageID)
         var manifest = try getPage(id: pageID)
@@ -792,6 +809,7 @@ Query the TimeMaster exercise database.
         }
         var manifest = try getPage(id: pageID)
         manifest.mediaFilenames.removeAll { $0 == filename }
+        manifest.mediaComments.removeValue(forKey: filename)
         manifest.updatedAt = Date()
         let manifestURL = folder.appendingPathComponent("manifest.json")
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)

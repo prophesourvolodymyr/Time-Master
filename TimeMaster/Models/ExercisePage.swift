@@ -27,6 +27,13 @@ struct ExercisePage: Identifiable {
     var hasLinks: Bool { !manifest.linkURLs.isEmpty }
     var hasMedia: Bool { !mediaURLs.isEmpty }
     var hasMarkdown: Bool { !manifest.markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    var mediaCommentsByURL: [URL: String] {
+        mediaURLs.reduce(into: [:]) { result, url in
+            if let comment = manifest.mediaComments[url.lastPathComponent], !comment.isEmpty {
+                result[url] = comment
+            }
+        }
+    }
     var effectiveWorkoutType: TimeMasterCore.WorkoutType? { manifest.workoutType ?? inheritedWorkoutType }
     var totalChildCount: Int { children.count + children.reduce(0) { $0 + $1.totalChildCount } }
 

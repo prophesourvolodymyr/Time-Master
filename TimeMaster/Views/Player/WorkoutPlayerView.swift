@@ -59,6 +59,7 @@ struct WorkoutPlayerView: View {
     @State private var offeredMusicContinuation = false
     @State private var musicStarted = false
     @State private var showWorkoutManagement = false
+    @State private var playerHeaderBottom: CGFloat = 0
 
     // Settings
     @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
@@ -220,9 +221,12 @@ struct WorkoutPlayerView: View {
             .accessibilityHidden(showWorkoutManagement || showPageOverlay)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { backgroundLayer }
-            .safeAreaInset(edge: .bottom) {
+            .overlay {
                 if musicStarted && musicSession.activeClip != nil && !workoutCompleted && !showWorkoutManagement && !showPageOverlay {
-                    WorkoutFloatingMusicControls(session: musicSession, library: musicLibrary, onOpenTimeline: toggleOverlayMusic)
+                    GeometryReader { geometry in
+                        WorkoutFloatingMusicControls(session: musicSession, library: musicLibrary, onOpenTimeline: toggleOverlayMusic)
+                            .padding(.top, max(0, playerHeaderBottom - geometry.frame(in: .global).minY))
+                    }
                 }
             }
             .interactiveDismissDisabled()
@@ -314,7 +318,9 @@ struct WorkoutPlayerView: View {
                     PageMediaGallery(
                         urls: page.mediaURLs,
                         selectedIndex: $bundleMediaIndex,
-                        isPresented: $showBundleMediaViewer
+                        isPresented: $showBundleMediaViewer,
+                        comments: page.mediaCommentsByURL,
+                        onSaveComment: nil
                     )
                 }
             }
@@ -701,7 +707,7 @@ struct WorkoutPlayerView: View {
                            let pageID = slot.exercisePageID,
                            let page = databaseStore.page(id: pageID) {
                             if page.hasMedia {
-                                PageMediaGalleryGrid(urls: page.mediaURLs) { index in
+                                PageMediaGalleryGrid(urls: page.mediaURLs, comments: page.mediaCommentsByURL) { index in
                                     bundleMediaIndex = index
                                     showBundleMediaViewer = true
                                 }
@@ -1207,6 +1213,7 @@ struct WorkoutPlayerView: View {
             .accessibilityValue(musicSession.title ?? "Silence")
         }
         .foregroundStyle(.white)
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { playerHeaderBottom = $0 }
     }
 
     private var isMusicContinuationRest: Bool {

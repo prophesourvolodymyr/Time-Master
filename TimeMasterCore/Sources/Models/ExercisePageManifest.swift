@@ -96,6 +96,7 @@ public struct ExercisePageManifest: Codable {
     public var iconName: String?
     public var markdownBody: String
     public var mediaFilenames: [String]
+    public var mediaComments: [String: String]
     public var linkURLs: [String]
     public var linkMetadata: [LinkMetadata]
     public var workoutType: WorkoutType?
@@ -121,7 +122,7 @@ public struct ExercisePageManifest: Codable {
 
     enum CodingKeys: String, CodingKey {
         case id, title, pageKind, pageType, coverImageFilename, iconName, markdownBody
-        case mediaFilenames, linkURLs, linkMetadata, linkedPageIDs
+        case mediaFilenames, mediaComments, linkURLs, linkMetadata, linkedPageIDs
         case workoutType, duration, restAfter, prepareTime, sets, restBetweenSets, dropSetTemplates
         case skillStatus, skillBoardSectionID, skillBoardOrder, skillBoardSections
         case childIDs, parentID, order, createdAt, updatedAt
@@ -136,6 +137,7 @@ public struct ExercisePageManifest: Codable {
         iconName: String? = nil,
         markdownBody: String = "",
         mediaFilenames: [String] = [],
+        mediaComments: [String: String] = [:],
         linkURLs: [String] = [],
         linkMetadata: [LinkMetadata] = [],
         linkedPageIDs: [String] = [],
@@ -170,6 +172,7 @@ public struct ExercisePageManifest: Codable {
         self.iconName = iconName
         self.markdownBody = markdownBody
         self.mediaFilenames = mediaFilenames
+        self.mediaComments = mediaComments
         self.linkURLs = linkURLs
         self.linkMetadata = linkMetadata
         self.linkedPageIDs = resolvedPageType == nil ? [] : linkedPageIDs
@@ -212,6 +215,7 @@ public struct ExercisePageManifest: Codable {
             iconName: try values.decodeIfPresent(String.self, forKey: .iconName),
             markdownBody: try values.decodeIfPresent(String.self, forKey: .markdownBody) ?? "",
             mediaFilenames: try values.decodeIfPresent([String].self, forKey: .mediaFilenames) ?? [],
+            mediaComments: try values.decodeIfPresent([String: String].self, forKey: .mediaComments) ?? [:],
             linkURLs: try values.decodeIfPresent([String].self, forKey: .linkURLs) ?? [],
             linkMetadata: try values.decodeIfPresent([LinkMetadata].self, forKey: .linkMetadata) ?? [],
             linkedPageIDs: try values.decodeIfPresent([String].self, forKey: .linkedPageIDs) ?? [],

@@ -187,6 +187,11 @@ class DatabaseStore: ObservableObject {
         reload()
     }
 
+    func updateMediaComment(pageID: String, filename: String, comment: String) throws {
+        try DatabaseManager.shared.updateMediaComment(pageID: pageID, filename: filename, comment: comment)
+        reload()
+    }
+
     func deletePage(id: String) throws {
         try DatabaseManager.shared.deletePage(id: id)
         reload()

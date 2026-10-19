@@ -5,53 +5,104 @@ struct PageMediaGallery: View {
     let urls: [URL]
     @Binding var selectedIndex: Int
     @Binding var isPresented: Bool
+    let comments: [URL: String]
+    let onSaveComment: ((URL, String) throws -> Void)?
+    @State private var editingComment = false
+    @State private var commentHeight: CGFloat = 0
+
+    private var selectedURL: URL? {
+        urls.indices.contains(selectedIndex) ? urls[selectedIndex] : nil
+    }
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-            if urls.isEmpty {
-                Text("No media")
-                    .foregroundStyle(Theme.textSecondary)
-            } else {
-                #if os(iOS)
-                TabView(selection: $selectedIndex) {
-                    ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
-                        mediaView(for: url)
-                            .tag(index)
+                Group {
+                    if urls.isEmpty {
+                        Text("No media")
+                            .foregroundStyle(Theme.textSecondary)
+                    } else {
+                        #if os(iOS)
+                        TabView(selection: $selectedIndex) {
+                            ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                                mediaView(for: url)
+                                    .tag(index)
+                            }
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .automatic))
+                        #elseif os(macOS)
+                        macOSMediaViewer(urls: urls, selectedIndex: $selectedIndex)
+                        #endif
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .automatic))
-                #elseif os(macOS)
-                macOSMediaViewer(urls: urls, selectedIndex: $selectedIndex)
-                #endif
-            }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .gesture(
+                    DragGesture(minimumDistance: 30)
+                        .onEnded { value in
+                            if value.translation.height > 60 && value.translation.height > abs(value.translation.width) {
+                                isPresented = false
+                            }
+                        }
+                )
+                .safeAreaInset(edge: .bottom, spacing: 12) {
+                    if let url = selectedURL, comments[url] != nil || onSaveComment != nil {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let comment = comments[url] {
+                                ScrollView {
+                                    MediaCommentBubble(text: comment)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { commentHeight = $0 }
+                                }
+                                .frame(height: min(commentHeight, geometry.size.height * 0.3))
+                            }
+                            if onSaveComment != nil {
+                                Button {
+                                    editingComment = true
+                                } label: {
+                                    Label(comments[url] == nil ? "Add comment" : "Edit comment", systemImage: "bubble.left")
+                                        .font(.subheadline.weight(.semibold))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                        .background(.thinMaterial, in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.white)
+                                .frame(minHeight: 44)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 8)
+                    }
+                }
 
-            VStack {
-                HStack {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button {
+                            isPresented = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundStyle(.white.opacity(0.85))
+                                .padding(20)
+                        }
+                        .accessibilityLabel("Close media viewer")
+                    }
                     Spacer()
-                    Button {
-                        isPresented = false
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(.white.opacity(0.85))
-                            .padding(20)
-                    }
                 }
-                Spacer()
             }
         }
-        .gesture(
-            DragGesture(minimumDistance: 30)
-                .onEnded { value in
-                    if value.translation.height > 60 {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            isPresented = false
-                        }
-                    }
+        .preferredColorScheme(.dark)
+        .sheet(isPresented: $editingComment) {
+            if let url = selectedURL, let onSaveComment {
+                MediaCommentEditor(mediaURL: url, comment: comments[url] ?? "") { comment in
+                    try onSaveComment(url, comment)
                 }
-        )
+            }
+        }
     }
 
     @ViewBuilder
@@ -228,6 +279,7 @@ struct PageMediaGalleryGrid: View {
     var title: String = "Media"
     let urls: [URL]
     var marksCover = true
+    let comments: [URL: String]
     let onTapMedia: (Int) -> Void
     @ScaledMetric(relativeTo: .caption) private var thumbnailHeight: CGFloat = 108
 
@@ -300,10 +352,20 @@ struct PageMediaGalleryGrid: View {
                         .shadow(color: .black.opacity(0.5), radius: 2)
                 }
             }
+            .overlay(alignment: .bottomTrailing) {
+                if comments[url] != nil {
+                    Image(systemName: "bubble.left.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(8)
+                        .background(.black.opacity(0.65), in: Circle())
+                        .padding(6)
+                }
+            }
         }
         .buttonStyle(.borderless)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(isCover ? "Cover, " : "")\(isVideo ? "Video" : "Photo") \(index + 1) of \(urls.count)")
-        .accessibilityHint("Opens the media viewer")
+        .accessibilityHint(comments[url] == nil ? "Opens the media viewer" : "Opens the media viewer and its comment")
     }
 }

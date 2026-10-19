@@ -138,8 +138,10 @@ struct WorkoutFloatingMusicControls: View {
     @ScaledMetric(relativeTo: .body) private var controlSize: CGFloat = 44
 
     var body: some View {
-        HStack {
-            if collapsed { Spacer(minLength: 0) }
+        WorkoutFloatingWidget(
+            width: collapsed ? controlSize * 0.75 + 16 : controlSize * 8,
+            respectsNavigationBounds: false
+        ) {
             Group {
                 if collapsed {
                     Button { setCollapsed(false) } label: {
@@ -161,31 +163,30 @@ struct WorkoutFloatingMusicControls: View {
                         }
                         .accessibilityLabel("Open live music timeline")
                         WorkoutMusicTransportButtons(session: session)
-                        Button(action: onOpenTimeline) {
-                            Image(systemName: "music.note.list")
+                        Button { setCollapsed(true) } label: {
+                            Image(systemName: "chevron.down")
                                 .frame(width: controlSize, height: controlSize)
                         }
-                        .accessibilityLabel("Open live music timeline")
+                        .accessibilityLabel("Minimize music controls")
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .gesture(DragGesture(minimumDistance: 12).onEnded { value in
-                        if value.translation.height > 30 && value.translation.height > abs(value.translation.width) {
-                            setCollapsed(true)
-                        }
-                    })
                 }
             }
             .modifier(WorkoutFloatingSurface(circular: collapsed))
             .contextMenu {
-                Button("Minimize", systemImage: "chevron.down") { setCollapsed(true) }
+                if collapsed {
+                    Button("Expand", systemImage: "chevron.up") { setCollapsed(false) }
+                } else {
+                    Button("Minimize", systemImage: "chevron.down") { setCollapsed(true) }
+                }
             }
-            .accessibilityAction(named: "Collapse music controls") { setCollapsed(true) }
+            .accessibilityAction(named: collapsed ? "Expand music controls" : "Collapse music controls") {
+                setCollapsed(!collapsed)
+            }
         }
         .buttonStyle(.plain)
         .foregroundStyle(Theme.textPrimary)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
     }
 
     private var cover: some View {

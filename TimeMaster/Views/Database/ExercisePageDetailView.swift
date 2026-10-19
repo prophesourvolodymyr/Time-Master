@@ -150,7 +150,11 @@ struct ExercisePageDetailView: View {
                 PageMediaGallery(
                     urls: page.mediaURLs,
                     selectedIndex: $selectedMediaIndex,
-                    isPresented: $mediaGalleryPresented
+                    isPresented: $mediaGalleryPresented,
+                    comments: page.mediaCommentsByURL,
+                    onSaveComment: { url, comment in
+                        try store.updateMediaComment(pageID: page.manifest.id, filename: url.lastPathComponent, comment: comment)
+                    }
                 )
             }
         }
@@ -334,7 +338,7 @@ struct ExercisePageDetailView: View {
     private func detailContent(page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             if page.hasMedia {
-                PageMediaGalleryGrid(title: showsHero ? "Attachments" : "", urls: page.mediaURLs, marksCover: showsHero) { index in
+                PageMediaGalleryGrid(title: showsHero ? "Attachments" : "", urls: page.mediaURLs, marksCover: showsHero, comments: page.mediaCommentsByURL) { index in
                     selectedMediaIndex = index
                     mediaGalleryPresented = true
                 }

@@ -10,13 +10,13 @@ enum WorkoutWidgetPlacement {
         )
     }
 
-    static func movedAnchor(_ anchor: CGPoint, by translation: CGSize, container: CGSize, widget: CGSize) -> CGPoint {
+    static func snappedAnchor(_ anchor: CGPoint, by translation: CGSize, container: CGSize, widget: CGSize) -> CGPoint {
         let position = origin(container: container, widget: widget, anchor: anchor, translation: translation)
         let width = max(0, container.width - widget.width)
         let height = max(0, container.height - widget.height)
         return CGPoint(
-            x: width > 0 ? position.x / width : anchor.x,
-            y: height > 0 ? position.y / height : anchor.y
+            x: width > 0 ? (position.x < width / 2 ? 0 : 1) : anchor.x,
+            y: height > 0 ? (position.y < height / 2 ? 0 : 1) : anchor.y
         )
     }
 }

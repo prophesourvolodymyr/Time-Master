@@ -80,6 +80,12 @@
 		BA510002AA00000000000003 /* WorkoutMusicTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000003 /* WorkoutMusicTimelineView.swift */; };
 		BA510002AA00000000000004 /* WorkoutMusicPlaybackSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000004 /* WorkoutMusicPlaybackSheet.swift */; };
 		BA510002AA00000000000005 /* WorkoutWidgetPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA510000AA00000000000005 /* WorkoutWidgetPlacement.swift */; };
+		CD570001AA00000000000001 /* WorkoutFloatingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD570000AA00000000000001 /* WorkoutFloatingWidget.swift */; };
+		CD570002AA00000000000001 /* WorkoutFloatingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD570000AA00000000000001 /* WorkoutFloatingWidget.swift */; };
+		CD570001AA00000000000002 /* MediaCommentBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD570000AA00000000000002 /* MediaCommentBubble.swift */; };
+		CD570002AA00000000000002 /* MediaCommentBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD570000AA00000000000002 /* MediaCommentBubble.swift */; };
+		CD570001AA00000000000003 /* MediaCommentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD570000AA00000000000003 /* MediaCommentEditor.swift */; };
+		CD570002AA00000000000003 /* MediaCommentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD570000AA00000000000003 /* MediaCommentEditor.swift */; };
 		1FB477637AC9EC02C7CB82AE /* WorkoutTypesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CA3D35330EB704FCDFB8B2 /* WorkoutTypesSettingsView.swift */; };
 		20A75B2A698DC7E5010B4CC5 /* OutdoorActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */; };
 		20DE70D5B08F45B91DFE946E /* MacVideoEditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23EE3E0BC826FCFD182367D3 /* MacVideoEditorModel.swift */; };
@@ -555,6 +561,9 @@
 		BA510000AA00000000000003 /* WorkoutMusicTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicTimelineView.swift; sourceTree = "<group>"; };
 		BA510000AA00000000000004 /* WorkoutMusicPlaybackSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicPlaybackSheet.swift; sourceTree = "<group>"; };
 		BA510000AA00000000000005 /* WorkoutWidgetPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutWidgetPlacement.swift; sourceTree = "<group>"; };
+		CD570000AA00000000000001 /* WorkoutFloatingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutFloatingWidget.swift; sourceTree = "<group>"; };
+		CD570000AA00000000000002 /* MediaCommentBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaCommentBubble.swift; sourceTree = "<group>"; };
+		CD570000AA00000000000003 /* MediaCommentEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaCommentEditor.swift; sourceTree = "<group>"; };
 		AAC8FDFE63C6662440B3E0A5 /* OutdoorTripTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripTests.swift; sourceTree = "<group>"; };
 		AADDE983BD98A183CACB5A0A /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		ABC6B5B3175ED2D319B7424F /* OutdoorFinishContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorFinishContent.swift; sourceTree = "<group>"; };
@@ -936,6 +945,7 @@
 			children = (
 				7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */,
 				6E38BC78673EC52C30C37CFB /* FloatingControlsBar.swift */,
+				CD570000AA00000000000001 /* WorkoutFloatingWidget.swift */,
 				9ADAD9B141C4818314EE1253 /* WorkoutPlayerView.swift */,
 				BA510000AA00000000000004 /* WorkoutMusicPlaybackSheet.swift */,
 			);
@@ -1027,6 +1037,8 @@
 				C7A3A1CAF77CA030B8E930D9 /* PageCreationSheet.swift */,
 				AE37AEFDB6AEF4406879D5A3 /* PageLinkPreview.swift */,
 				D163AA4744C0E86692930FB6 /* PageMediaGallery.swift */,
+				CD570000AA00000000000002 /* MediaCommentBubble.swift */,
+				CD570000AA00000000000003 /* MediaCommentEditor.swift */,
 				2174535363CFC988D190B790 /* VideoEmbedCard.swift */,
 				901825E1313282F9A698669C /* WorkoutPickerSheet.swift */,
 			);
@@ -1316,6 +1328,7 @@
 				3E9F5D16097670B3CD457766 /* ExercisePageDetailView.swift in Sources */,
 				9CCD24B9A2CE8065FDD8507D /* ExercisePageOverlay.swift in Sources */,
 				D61E3F27C1ECB2FA9C512CA8 /* FloatingControlsBar.swift in Sources */,
+				CD570001AA00000000000001 /* WorkoutFloatingWidget.swift in Sources */,
 				5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */,
 				99D84511BC7FC327EF67428E /* HomeDashboardView.swift in Sources */,
 				58F48894A2463CFC841E7755 /* HomeToday.swift in Sources */,
@@ -1415,6 +1428,8 @@
 				C5A780D6F56613ABECE8AC4F /* PageCreationSheet.swift in Sources */,
 				F8D8047E415F5842E87BF5FD /* PageLinkPreview.swift in Sources */,
 				2543624AAD36591073E219EA /* PageMediaGallery.swift in Sources */,
+				CD570001AA00000000000002 /* MediaCommentBubble.swift in Sources */,
+				CD570001AA00000000000003 /* MediaCommentEditor.swift in Sources */,
 				8ACEDC7512FEB9A0F8708243 /* PageTreeBuilder.swift in Sources */,
 				915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */,
 				C86E9068EFDC9ACF3D897A0E /* PlannedRoute.swift in Sources */,
@@ -1506,6 +1521,7 @@
 				05853A325C958023D44EA3C3 /* ExercisePageDetailView.swift in Sources */,
 				E73352D93E3783385F9CD7EE /* ExercisePageOverlay.swift in Sources */,
 				1E682B19040505173A331CB0 /* FloatingControlsBar.swift in Sources */,
+				CD570002AA00000000000001 /* WorkoutFloatingWidget.swift in Sources */,
 				95F3A280CFA2C2673F4C0137 /* HistoryView.swift in Sources */,
 				09F3F5193FB171C978494FEC /* HomeDashboardView.swift in Sources */,
 				C4AF43C7C1323D3F6C8B8DEC /* HomeToday.swift in Sources */,
@@ -1605,6 +1621,8 @@
 				25AE8340C3DD506C78A63CE2 /* PageCreationSheet.swift in Sources */,
 				44313C07E2AC07FE3A4B99D8 /* PageLinkPreview.swift in Sources */,
 				035704F3EF5E2746903894C4 /* PageMediaGallery.swift in Sources */,
+				CD570002AA00000000000002 /* MediaCommentBubble.swift in Sources */,
+				CD570002AA00000000000003 /* MediaCommentEditor.swift in Sources */,
 				EBE639AA663B35B414DACED6 /* PageTreeBuilder.swift in Sources */,
 				231E7E1E2C99753E61EBEE54 /* PhotoManager.swift in Sources */,
 				A914ED0F4CEBF37A0F126AB9 /* PlannedRoute.swift in Sources */,

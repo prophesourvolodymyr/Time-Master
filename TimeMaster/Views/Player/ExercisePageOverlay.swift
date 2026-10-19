@@ -110,17 +110,28 @@ struct WorkoutAttachmentStrip: View {
         return result
     }
 
+    private var mediaComments: [URL: String] {
+        pageIDs.reduce(into: [:]) { result, id in
+            for (url, comment) in databaseStore.page(id: id)?.mediaCommentsByURL ?? [:] {
+                result[url] = comment
+            }
+        }
+    }
+
     var body: some View {
         let urls = mediaURLs
         if !urls.isEmpty {
-            PageMediaGalleryGrid(title: "", urls: urls, marksCover: false) { index in
+            PageMediaGalleryGrid(title: "", urls: urls, marksCover: false, comments: mediaComments) { index in
                 selectedMediaIndex = index
                 showingMedia = true
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .sheet(isPresented: $showingMedia) {
-                PageMediaGallery(urls: urls, selectedIndex: $selectedMediaIndex, isPresented: $showingMedia)
+                PageMediaGallery(
+                    urls: urls, selectedIndex: $selectedMediaIndex, isPresented: $showingMedia,
+                    comments: mediaComments, onSaveComment: nil
+                )
             }
         }
     }

@@ -1293,6 +1293,26 @@ The isolated task-only iOS and macOS builds passed. The native smoke measured 44
 
 ---
 
+## Cycle 35 — Floating Widget Snapping and Media Comments
+
+**Requested by the user on 2026-10-18; implementation ready for code review, not human-verified.**
+
+- [x] Give floating workout and music controls a translucent native Gaussian-blurred material base, with an opaque Reduce Transparency fallback
+- [x] Let both widgets follow a drag and snap to the nearest allowed top/bottom corner, preserving safe-area/navigation clearance and keeping the music widget below the measured player header
+- [x] Prevent dragging from firing the widget's buttons; retain explicit music minimization, compact-widget movement, expansion, and accessibility movement actions
+- [x] Persist one editable comment per Database image/video filename, preserving old manifests, reordered attachments, unrelated page fields, and other attachments' comments
+- [x] Add a compact Telegram-style growing native comment editor with live minimal-Markdown rendering, preserved line breaks, web-link insertion, clearing, unsaved-change confirmation, and save-error handling
+- [x] Show saved captions beneath the selected media in Database, workout previews, and live-workout attachment viewers, with comment indicators on thumbnails and bounded scrolling for long captions
+- [x] Pass iOS Simulator and macOS builds and three isolated storage regressions covering reload/reorder, removal/clearing/stale attachments, and old-manifest decoding
+- [x] Exercise real photo/video editing, Return-key line breaks, link insertion, persistence across app reload, caption rendering in the live workout, and opening the expected web destination on iPhone 16 with iOS 18.6
+- [x] Exercise both widgets' top/bottom snapping, non-triggering drag releases, and compact music movement/expansion; run the actual placement helper against corner, clamp, resize, and zero-travel boundaries
+- [x] Remove the temporary page, video, workout, browser tab, and test trash entries; preserve original page/workout file hashes and confirm the original resume checkpoint is offered after relaunch
+- [ ] Human acceptance of the blurred surfaces, snapping feel, attachment-comment scope, editor, and workout caption presentation
+
+The focused runtime check caught and fixed Return dismissing the original text field, a drag also triggering its button, and unnecessarily reserved caption-footer space. Builds used an isolated committed-source worktree plus only this task's changes, preserving unrelated working-tree edits and deleted app entry points. macOS received a build check, not an interactive UI check. Physical-device behavior and accessibility-setting variants were not exercised. Existing deprecation/concurrency warnings remain. Product DOCKS.md updates await acceptance; no next implementation prompt is needed for this request.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

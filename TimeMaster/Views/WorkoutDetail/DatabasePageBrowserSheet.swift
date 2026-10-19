@@ -753,7 +753,7 @@ private struct ExercisePageQuickPreview: View {
                     }
 
                     if page.hasMedia {
-                        PageMediaGalleryGrid(urls: page.mediaURLs) { index in
+                        PageMediaGalleryGrid(urls: page.mediaURLs, comments: page.mediaCommentsByURL) { index in
                             selectedMediaIndex = index
                             showingMedia = true
                         }
@@ -795,7 +795,9 @@ private struct ExercisePageQuickPreview: View {
             PageMediaGallery(
                 urls: page.mediaURLs,
                 selectedIndex: $selectedMediaIndex,
-                isPresented: $showingMedia
+                isPresented: $showingMedia,
+                comments: page.mediaCommentsByURL,
+                onSaveComment: nil
             )
         }
     }
