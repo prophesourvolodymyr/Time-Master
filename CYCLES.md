@@ -1230,6 +1230,17 @@ Before the user stopped simulator testing, native scenarios exercised real audio
 
 Both final platform builds passed in the isolated owned-change snapshot, using the committed app entry points. The checked-in project also includes the new geometry source in both app targets. Existing deprecation warnings remain. No iOS 27 compatibility claim is made from the installed SDK, and the final newer-OS toolbar appearance still needs human review. No further simulator interaction is planned; any future simulator verification is restricted to iOS 18 by the user's direction. Product DOCKS.md updates remain deferred until acceptance.
 
+### Independent music sidebar and workout-page surface corrections — 2026-10-18
+
+- [x] Give the configuration and live-timeline sidebar its own full-height rounded translucent system-blur base, remove its leading divider, and retain an opaque Reduce Transparency fallback
+- [x] Remove the workout header's decorative divider and suppress the header's automatic list-section separators
+- [x] Extend the workout page color behind the status bar by placing the safe-area background outside the sliding content's clip, without changing header actions
+- [x] Build both platform targets and exercise the corrected header, sidebar, source picker, and library search on the existing iPhone 16 running iOS 18.6
+- [ ] Human review of the independent sidebar's translucent background and opaque accessibility fallback
+- [ ] Human review of the continuous top-safe-area color and separator-free workout header
+
+iOS and macOS Debug builds passed in the isolated owned-change source snapshot. The corrected primary app was installed in place on the existing iOS 18.6 simulator. Native interaction exercised opening the sidebar, its source picker, filtering the existing library, and closing search. Rendered status-bar and page-background samples both matched the page color, and the existing workout file remained byte-for-byte unchanged. The opaque accessibility fallback and macOS appearance still need human review. Product DOCKS.md updates remain deferred until acceptance.
+
 ---
 
 ## Cycle 33 — One-Handed Actions and Directional Page Navigation

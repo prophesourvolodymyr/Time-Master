@@ -468,8 +468,16 @@ struct WorkoutMusicTimelineView: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 4)
-        .overlay(alignment: .leading) {
-            Rectangle().fill(Theme.separator).frame(width: 1)
+        .padding(.vertical, 8)
+        .frame(maxHeight: .infinity)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: controlSize * 0.6, style: .continuous)
+            if reduceTransparency {
+                shape.fill(Theme.surface2)
+            } else {
+                shape.fill(.thinMaterial)
+                    .shadow(color: .black.opacity(0.2), radius: 8, y: 3)
+            }
         }
     }
 

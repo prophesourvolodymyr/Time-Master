@@ -85,7 +85,6 @@ struct WorkoutDetailView: View {
             let editorPeek = proxy.size.width * 0.18
             let slideDistance = proxy.size.width - editorPeek
             ZStack(alignment: .topLeading) {
-                Theme.background.ignoresSafeArea()
                 if reveal > 0 {
                     WorkoutMusicTimelineView(
                         workout: workout,
@@ -142,6 +141,7 @@ struct WorkoutDetailView: View {
             .clipped()
             .animation(editorAnimation, value: musicConfigurationOpen)
         }
+        .background(Theme.background.ignoresSafeArea())
         .modifier(WorkoutFloatingControlsOverlay(workoutName: workout.name, context: liveContext, library: musicLibrary))
         .navigationTitle("")
         .slotNavigationPresentation(.inline)
@@ -439,20 +439,17 @@ struct WorkoutDetailView: View {
         let bottomPadding = metrics.expandedControlPadding * (1 - progress)
             + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
 
-        return VStack(spacing: 0) {
-            ZStack(alignment: .topLeading) {
-                WorkoutEditorChromeTitle(text: workout.name, progress: morph, metrics: metrics)
-                editorBackButton(diameter: metrics.compactControlSize)
+        return ZStack(alignment: .topLeading) {
+            WorkoutEditorChromeTitle(text: workout.name, progress: morph, metrics: metrics)
+            editorBackButton(diameter: metrics.compactControlSize)
                 .frame(height: metrics.collapsedRowHeight)
                 .oneHandedActionSource()
 
-                editorHeaderControls(progress: morph, diameter: diameter)
-                    .oneHandedActionSource()
-                    .offset(x: metrics.groupLeading(morph), y: height - diameter - bottomPadding)
-            }
-            .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
-            TimeMasterGlassDivider()
+            editorHeaderControls(progress: morph, diameter: diameter)
+                .oneHandedActionSource()
+                .offset(x: metrics.groupLeading(morph), y: height - diameter - bottomPadding)
         }
+        .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
         .buttonStyle(.plain)
         .foregroundStyle(Theme.textPrimary)
         .padding(.horizontal, metrics.horizontalPadding)
@@ -612,6 +609,7 @@ struct WorkoutDetailView: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+            .listSectionSeparator(.hidden)
 
             SwiftUI.Section {
                 if workout.sections.isEmpty && pendingSection == nil {
