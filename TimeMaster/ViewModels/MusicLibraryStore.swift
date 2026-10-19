@@ -268,6 +268,47 @@ final class MusicLibraryStore: ObservableObject {
         return true
     }
 
+    @discardableResult
+    func group(itemID: UUID, with targetID: UUID, in destination: MusicDestination) -> MusicLibraryItem? {
+        let membership = itemIDs(for: destination)
+        guard itemID != targetID, membership.contains(itemID),
+              let targetPosition = membership.firstIndex(of: targetID),
+              let source = item(id: itemID), let target = item(id: targetID) else { return nil }
+        func tracks(in item: MusicLibraryItem) -> [MusicCollectionTrack] {
+            item.isCollection ? item.tracks : [
+                MusicCollectionTrack(id: item.id, name: item.name, duration: item.totalDuration,
+                                     source: item.source, localReference: item.localReference, artwork: item.artwork)
+            ]
+        }
+        var collection = target.isCollection ? target : MusicLibraryItem(
+            name: "\(target.title) + \(source.title)", kind: .playlist, tracks: tracks(in: target)
+        )
+        var seen = Set(collection.tracks.map(\.id))
+        let additions = tracks(in: source).filter { seen.insert($0.id).inserted }
+        guard !additions.isEmpty else { return nil }
+        if target.isCollection && allDestinations().contains(where: {
+            $0 != destination && itemIDs(for: $0).contains(targetID)
+        }) {
+            collection.id = UUID()
+        }
+        collection.kind = .playlist
+        collection.source = .none
+        collection.localReference = nil
+        collection.tracks.append(contentsOf: additions)
+        collection.duration = collection.tracks.reduce(0) { $0 + $1.duration }
+        if let index = items.firstIndex(where: { $0.id == collection.id }) {
+            items[index] = collection
+        } else {
+            items.append(collection)
+        }
+        let insertion = membership[..<targetPosition].filter { $0 != itemID }.count
+        var updated = membership.filter { $0 != itemID && $0 != targetID }
+        updated.insert(collection.id, at: insertion)
+        setItemIDs(updated, for: destination)
+        persist()
+        return collection
+    }
+
     func prepareWorkoutTransfer(itemID: UUID, from source: MusicDestination, to destination: MusicDestination, at insertionIndex: Int? = nil) -> MusicTransfer? {
         guard source != destination, item(id: itemID) != nil, itemIDs(for: source).contains(itemID), source != .general, destination != .general else { return nil }
         return MusicTransfer(itemID: itemID, source: source, destination: destination, insertionIndex: insertionIndex)
@@ -414,9 +455,19 @@ final class MusicLibraryStore: ObservableObject {
     private func adoptLocalMusicReferences(_ filenames: [String], persist shouldPersist: Bool) {
         var changed = false
         var seen = Set<String>()
+        var representedFilenames = Set<String>()
+        for item in items {
+            if let filename = item.localReference?.filename { representedFilenames.insert(filename) }
+            for track in item.tracks {
+                if let filename = track.localReference?.filename { representedFilenames.insert(filename) }
+            }
+        }
         for filename in filenames where !filename.isEmpty && seen.insert(filename).inserted {
-            let item = items.first { $0.localReference?.filename == filename } ?? ensureLocalItem(filename: filename)
-            if !generalItemIDs.contains(item.id) { generalItemIDs.append(item.id); changed = true }
+            if !representedFilenames.contains(filename) {
+                let item = ensureLocalItem(filename: filename)
+                generalItemIDs.append(item.id)
+                changed = true
+            }
         }
         if shouldPersist && changed { persist() }
     }

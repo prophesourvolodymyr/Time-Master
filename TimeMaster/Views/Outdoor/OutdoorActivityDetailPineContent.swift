@@ -168,8 +168,8 @@ struct OutdoorWorkoutEditor: View {
             .navigationTitle("Edit workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).fontWeight(.semibold) }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save", action: save).fontWeight(.semibold) }
             }
             .onAppear {
                 title = activity.title

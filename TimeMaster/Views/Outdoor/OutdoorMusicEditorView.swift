@@ -561,7 +561,7 @@ struct OutdoorMusicEditorView: View {
                     artworkReference: artworkString(result.item.artwork),
                     size: 52
                 )
-                OutdoorMusicMarqueeText(
+                MusicMarqueeText(
                     text: result.item.title,
                     font: .system(size: min(compactTitleSize, 15), weight: .semibold, design: .rounded)
                 )

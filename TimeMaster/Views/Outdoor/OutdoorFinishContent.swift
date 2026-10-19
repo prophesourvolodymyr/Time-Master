@@ -304,9 +304,8 @@ struct OutdoorExportShareControl: View {
                 .navigationTitle("Export workout")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { showingPicker = false }
-                    }
+                    AppToolbar.item(placement: .confirmationAction) { Button("Done") { showingPicker = false }
+                                         }
                 }
             }
             .presentationDetents([.medium, .large])

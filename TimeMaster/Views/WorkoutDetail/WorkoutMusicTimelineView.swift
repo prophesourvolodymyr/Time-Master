@@ -7,11 +7,15 @@ struct WorkoutMusicTimelineView: View {
     @ObservedObject var library: MusicLibraryStore
     let onChange: (WorkoutMusicTimeline) -> Void
     let onClose: () -> Void
+    var showsSidebar = true
+    var playhead: Double?
+    var onPreviewChange: ((Bool) -> Void)?
 
     @ScaledMetric(relativeTo: .body) private var controlSize: CGFloat = 44
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @State private var zoom: Double = 2
+    @State private var baseZoom: Double = 2
+    @GestureState private var pinchMagnification: CGFloat = 1
     @State private var source: MusicDestination = .general
     @State private var draggedClip: WorkoutMusicClip?
     @State private var draggedItemID: UUID?
@@ -23,13 +27,14 @@ struct WorkoutMusicTimelineView: View {
     @State private var snapped = false
     @State private var duplicateSuggestionID: UUID?
     @State private var sheet: EditorSheet?
-    @State private var importPresented = false
-    @State private var importing = false
     @State private var message: String?
     @State private var searching = false
     @State private var searchText = ""
     @FocusState private var searchFocused: Bool
+    @State private var sourcePickerPresented = false
+    @State private var groupingTargetID: UUID?
 
+    private var zoom: Double { min(8, max(0.5, baseZoom * Double(pinchMagnification))) }
     private var timeline: WorkoutMusicTimeline { workout.musicTimeline ?? .init() }
     private var items: [MusicLibraryItem] {
         let group = library.items(for: source)
@@ -40,7 +45,7 @@ struct WorkoutMusicTimelineView: View {
         }
     }
     private var plannedEnd: Double { Double(workout.totalDuration) }
-    private var canvasEnd: Double { max(plannedEnd, timeline.end) + max(120, plannedEnd * 0.2) }
+    private var canvasEnd: Double { max(plannedEnd, timeline.end, playhead ?? 0) + max(120, plannedEnd * 0.2) }
     private var editorMotion: Animation? {
         reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.9)
     }
@@ -67,8 +72,11 @@ struct WorkoutMusicTimelineView: View {
                 HStack(alignment: .top, spacing: 8) {
                     timelineCanvas(viewport: geometry.size.height)
                         .frame(maxWidth: .infinity)
-                    tray
-                        .frame(width: trayWidth)
+                    if showsSidebar {
+                        tray
+                            .frame(width: trayWidth)
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
                 }
             }
         }
@@ -83,9 +91,6 @@ struct WorkoutMusicTimelineView: View {
         .onChange(of: searching) { searchFocused = $0 }
         .accessibilityAction(named: "Return to workout editor") { onClose() }
         .sheet(item: $sheet) { destination in editorSheet(destination) }
-        .fileImporter(isPresented: $importPresented, allowedContentTypes: [.audio, .movie], allowsMultipleSelection: true) { result in
-            importMusic(result)
-        }
         .alert("Music", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
             Button("OK", role: .cancel) { message = nil }
         } message: { Text(message ?? "") }
@@ -111,7 +116,7 @@ struct WorkoutMusicTimelineView: View {
                 .frame(width: 1, height: controlSize * 0.45)
                 .padding(.horizontal, 3)
             Button { changeZoom(by: 0.5) } label: { sidebarIcon("minus.magnifyingglass") }
-                .disabled(zoom <= 0.5 || resizeID != nil || ghost != nil)
+                .disabled(zoom <= 0.5 || resizeID != nil || ghost != nil || pinchMagnification != 1)
                 .accessibilityLabel("Zoom out timeline")
             if showScale {
                 Text("\(Int(zoom / 2 * 100))%")
@@ -121,7 +126,7 @@ struct WorkoutMusicTimelineView: View {
                     .accessibilityLabel("Timeline zoom")
             }
             Button { changeZoom(by: 2) } label: { sidebarIcon("plus.magnifyingglass") }
-                .disabled(zoom >= 8 || resizeID != nil || ghost != nil)
+                .disabled(zoom >= 8 || resizeID != nil || ghost != nil || pinchMagnification != 1)
                 .accessibilityLabel("Zoom in timeline")
         }
         .buttonStyle(.plain)
@@ -144,8 +149,34 @@ struct WorkoutMusicTimelineView: View {
 
     private func changeZoom(by factor: Double) {
         withAnimation(editorMotion) {
-            zoom = min(8, max(0.5, zoom * factor))
+            baseZoom = min(8, max(0.5, zoom * factor))
         }
+    }
+
+    @ViewBuilder
+    private func pinchable<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        if #available(iOS 17.0, macOS 14.0, *) {
+            content().simultaneousGesture(
+                MagnifyGesture()
+                    .updating($pinchMagnification) { value, state, _ in
+                        if resizeID == nil && ghost == nil { state = value.magnification }
+                    }
+                    .onEnded { finishPinch($0.magnification) }
+            )
+        } else {
+            content().simultaneousGesture(
+                MagnificationGesture()
+                    .updating($pinchMagnification) { value, state, _ in
+                        if resizeID == nil && ghost == nil { state = value }
+                    }
+                    .onEnded { finishPinch($0) }
+            )
+        }
+    }
+
+    private func finishPinch(_ magnification: CGFloat) {
+        guard resizeID == nil, ghost == nil else { return }
+        baseZoom = min(8, max(0.5, baseZoom * Double(magnification)))
     }
 
     private func timelineCanvas(viewport: CGFloat) -> some View {
@@ -156,6 +187,7 @@ struct WorkoutMusicTimelineView: View {
             }
             .font(.caption2.weight(.semibold))
             .foregroundStyle(Theme.textSecondary)
+            pinchable {
             ScrollView(.vertical) {
                 GeometryReader { geometry in
                     let laneWidth = geometry.size.width / 2
@@ -213,6 +245,18 @@ struct WorkoutMusicTimelineView: View {
                         }
                         .offset(y: plannedEnd * zoom)
                         .allowsHitTesting(false)
+                        if let playhead {
+                            HStack(spacing: 4) {
+                                Circle().frame(width: 8, height: 8)
+                                Rectangle().frame(height: 2)
+                                Text(musicTimestamp(playhead)).font(.caption2.monospacedDigit())
+                                    .padding(4).background(Theme.background)
+                            }
+                            .foregroundStyle(Theme.toolbarOrange)
+                            .offset(y: playhead * zoom)
+                            .allowsHitTesting(false)
+                            .accessibilityLabel("Now playing at \(musicTimestamp(playhead))")
+                        }
                         if let duplicateSuggestionID,
                            let clip = timeline.clips.first(where: { $0.id == duplicateSuggestionID }) {
                             let duration = resizeID == clip.id ? resizeDuration ?? clip.duration : clip.duration
@@ -248,6 +292,7 @@ struct WorkoutMusicTimelineView: View {
             }
             .background(Theme.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
             .accessibilityLabel("Free-positioned music timeline")
+            }
             .overlay(alignment: .bottomLeading) { timelineToolbar }
         }
     }
@@ -256,7 +301,7 @@ struct WorkoutMusicTimelineView: View {
         let duration = resizeID == clip.id ? resizeDuration ?? clip.duration : clip.duration
         let height = max(2, duration * zoom)
         return VStack(spacing: 0) {
-            clipIdentity(clip, height: height, duration: duration)
+            clipIdentity(clip, height: height, duration: duration, rotates: true)
             Spacer(minLength: 0)
         }
         .frame(width: max(0, laneWidth - 6), height: height)
@@ -337,18 +382,13 @@ struct WorkoutMusicTimelineView: View {
 
     private var tray: some View {
         VStack(spacing: 8) {
-            Menu {
-                Picker("Music group", selection: $source) {
-                    Text("General").tag(MusicDestination.general)
-                    SwiftUI.Section("Workout types") { sourceChoices(.type) }
-                    SwiftUI.Section("Workouts") { sourceChoices(.mine) }
-                    SwiftUI.Section("Outdoor") { sourceChoices(.route) }
-                }
-                Button("Open Music Settings", systemImage: "gearshape") { sheet = .library }
-            } label: {
-                sidebarIcon("music.note.list")
+            Button { sourcePickerPresented = true } label: {
+                sourceBadge(source)
             }
             .accessibilityLabel("Music tray source: \(library.destinationName(source))")
+            .popover(isPresented: $sourcePickerPresented) {
+                sourcePicker
+            }
             Button {
                 searching.toggle()
                 if !searching { searchText = "" }
@@ -365,9 +405,19 @@ struct WorkoutMusicTimelineView: View {
                         Button { sheet = .preview(item) } label: {
                             VStack(spacing: 4) {
                                 WorkoutMusicCover(artwork: item.artwork ?? item.tracks.first?.artwork,
-                                                  isCollection: item.isCollection, size: controlSize)
-                                Text(item.title).font(.caption2).lineLimit(1)
-                            }.frame(maxWidth: .infinity).contentShape(Rectangle())
+                                                  isCollection: item.isCollection, size: controlSize, tracks: item.tracks)
+                                MusicMarqueeText(text: item.title, font: .caption2)
+                                    .id(item.title)
+                                Text(musicTimestamp(item.totalDuration))
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .strokeBorder(Theme.toolbarOrange.opacity(groupingTargetID == item.id ? 1 : 0), lineWidth: 1)
+                            }
                         }
                         .buttonStyle(.plain)
                         .onDrag {
@@ -383,30 +433,37 @@ struct WorkoutMusicTimelineView: View {
                         } preview: {
                             musicDragPreview(draggedClip ?? item.musicClip())
                         }
-                        .onDrop(of: [workoutMusicDragType], isTargeted: nil) { _ in
-                            guard let draggedItemID, draggedItemID != item.id else { return false }
-                            if item.isCollection {
-                                _ = library.add(itemID: draggedItemID, toCollection: item.id)
-                            } else {
-                                _ = library.createFolder(named: "\(item.title) + \(library.item(id: draggedItemID)?.title ?? "Music")",
-                                                         in: source, containing: [item.id, draggedItemID])
-                            }
+                        .onDrop(of: [workoutMusicDragType], isTargeted: Binding(
+                            get: { groupingTargetID == item.id },
+                            set: { targeted in groupingTargetID = targeted && draggedItemID != item.id ? item.id : nil }
+                        )) { _ in
+                            guard let draggedItemID else { return false }
+                            let grouped = groupMusic(draggedItemID, with: item.id)
                             clearDrag()
-                            musicEditorHaptic()
-                            return true
+                            groupingTargetID = nil
+                            return grouped
                         }
+                        .contextMenu {
+                            Menu("Group with music", systemImage: "square.stack") {
+                                ForEach(items.filter { $0.id != item.id }) { target in
+                                    Button(target.title) { _ = groupMusic(item.id, with: target.id) }
+                                }
+                            }
+                            .disabled(items.count < 2)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(item.title)
+                        .accessibilityValue(musicTimestamp(item.totalDuration))
                         .accessibilityHint("Preview music. Hold and drag to place it on the timeline or group it with another track.")
                         .accessibilityAction(named: "Add to timeline") { sheet = .edit(item.musicClip()) }
                     }
                 }.padding(.vertical, 4)
             }
             sidebarDivider
-            Button { importPresented = true } label: {
-                if importing { ProgressView().frame(width: controlSize, height: controlSize) }
-                else { sidebarIcon("square.and.arrow.down") }
+            Button { sheet = .imports } label: {
+                sidebarIcon("square.and.arrow.down")
             }
             .frame(minWidth: controlSize, minHeight: controlSize)
-            .disabled(importing)
             .accessibilityLabel("Import music into Settings and this tray")
         }
         .buttonStyle(.plain)
@@ -416,14 +473,100 @@ struct WorkoutMusicTimelineView: View {
         }
     }
 
-    private func sourceChoices(_ family: MusicDestinationFamily) -> some View {
-        ForEach(library.destinations(for: family).filter {
-            !library.itemIDs(for: $0).isEmpty
-                || $0 == .workout(id: workout.id)
-                || $0 == .workoutType(id: workout.type.id)
-        }) { destination in
-            Text(library.destinationName(destination)).tag(destination)
+    @ViewBuilder
+    private var sourcePicker: some View {
+        #if os(iOS)
+        if #available(iOS 16.4, *) {
+            sourcePickerContent.presentationCompactAdaptation(.popover)
+        } else {
+            sourcePickerContent
         }
+        #else
+        sourcePickerContent
+        #endif
+    }
+
+    private var sourcePickerContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                sourceChoice(.general)
+                Text("Workout types").font(.caption).foregroundStyle(Theme.textSecondary)
+                ForEach(library.destinations(for: .type)) { sourceChoice($0) }
+                Text("Workouts").font(.caption).foregroundStyle(Theme.textSecondary)
+                ForEach(library.destinations(for: .mine)) { sourceChoice($0) }
+                Text("Outdoor").font(.caption).foregroundStyle(Theme.textSecondary)
+                ForEach(library.destinations(for: .route)) { sourceChoice($0) }
+                Divider()
+                Button {
+                    sourcePickerPresented = false
+                    sheet = .library
+                } label: {
+                    Label("Open Music Settings", systemImage: "gearshape")
+                        .frame(maxWidth: .infinity, minHeight: controlSize, alignment: .leading)
+                }
+            }
+            .padding()
+        }
+        .frame(idealWidth: controlSize * 6, maxHeight: controlSize * 10)
+        .background(Theme.background)
+        .foregroundStyle(Theme.textPrimary)
+        .buttonStyle(.plain)
+        .preferredColorScheme(.dark)
+    }
+
+    private func sourceChoice(_ destination: MusicDestination) -> some View {
+        Button {
+            source = destination
+            library.select(destination: destination)
+            sourcePickerPresented = false
+        } label: {
+            HStack(spacing: 10) {
+                sourceBadge(destination)
+                Text(library.destinationName(destination)).font(.subheadline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if source == destination {
+                    Image(systemName: "checkmark").font(.body.weight(.semibold))
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(library.destinationName(destination))
+        .accessibilityAddTraits(source == destination ? .isSelected : [])
+    }
+
+    private func sourceBadge(_ destination: MusicDestination) -> some View {
+        let type: WorkoutType? = switch destination {
+        case .general: nil
+        case .workoutType(let id): library.workoutType(for: id)
+        case .workout(let id): library.workout(for: id)?.type
+        }
+        let color = type.map { Color(hex: $0.colorHex) } ?? Theme.textPrimary
+        let symbol = type?.iconName ?? {
+            switch destination.routeDestination {
+            case .run: "figure.run"
+            case .bike: "bicycle"
+            case .walk: "figure.walk"
+            case .more: "figure.mixed.cardio"
+            case nil: "music.note.list"
+            }
+        }()
+        let shape = RoundedRectangle(cornerRadius: controlSize * 0.25, style: .continuous)
+        return Image(systemName: symbol)
+            .font(.body.weight(.medium))
+            .foregroundStyle(color)
+            .frame(width: controlSize, height: controlSize)
+            .background(color.opacity(0.14), in: shape)
+            .overlay(shape.strokeBorder(color.opacity(0.5), lineWidth: 1))
+            .contentShape(shape)
+    }
+
+    private func groupMusic(_ sourceID: UUID, with targetID: UUID) -> Bool {
+        let collection = withAnimation(editorMotion) {
+            library.group(itemID: sourceID, with: targetID, in: source)
+        }
+        guard collection != nil else { return false }
+        musicEditorHaptic()
+        return true
     }
 
     private func sidebarIcon(_ name: String) -> some View {
@@ -444,7 +587,7 @@ struct WorkoutMusicTimelineView: View {
         let item = clip.sourceItemID.flatMap { library.item(id: $0) }
         return HStack(spacing: 8) {
             WorkoutMusicCover(artwork: item?.artwork ?? item?.tracks.first?.artwork,
-                              isCollection: clip.tracks.count > 1, size: controlSize)
+                              isCollection: clip.tracks.count > 1, size: controlSize, tracks: item?.tracks ?? [])
             VStack(alignment: .leading, spacing: 3) {
                 Text(clip.title).font(.caption.weight(.semibold)).lineLimit(1)
                 Text(musicTimestamp(clip.duration)).font(.caption2.monospacedDigit())
@@ -458,7 +601,7 @@ struct WorkoutMusicTimelineView: View {
     }
 
     @ViewBuilder
-    private func clipIdentity(_ clip: WorkoutMusicClip, height: CGFloat, duration: Double? = nil) -> some View {
+    private func clipIdentity(_ clip: WorkoutMusicClip, height: CGFloat, duration: Double? = nil, rotates: Bool = false) -> some View {
         let duration = duration ?? clip.duration
         if height > 36 {
             let item = clip.sourceItemID.flatMap { library.item(id: $0) }
@@ -466,7 +609,9 @@ struct WorkoutMusicTimelineView: View {
             let cover = WorkoutMusicCover(
                 artwork: item?.artwork ?? item?.tracks.first?.artwork,
                 isCollection: clip.tracks.count > 1,
-                size: compact ? min(controlSize * 0.5, height - 20) : min(controlSize, max(12, height - 54))
+                size: compact ? min(controlSize * 0.5, height - 20) : min(controlSize, max(12, height - 54)),
+                rotates: rotates,
+                tracks: item?.tracks ?? []
             )
             let layout = compact ? AnyLayout(HStackLayout(spacing: 4)) : AnyLayout(VStackLayout(spacing: 4))
             layout {
@@ -510,12 +655,20 @@ struct WorkoutMusicTimelineView: View {
             }
         case .preview(let item):
             WorkoutMusicPreviewSheet(item: item)
+                .onAppear { onPreviewChange?(true) }
+                .onDisappear { onPreviewChange?(false) }
                 #if os(iOS)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 #endif
         case .library:
             MusicSettingsView(library: library)
+        case .imports:
+            WorkoutMusicImportSheet(workout: workout, library: library) { destination, configuration in
+                if let configuration { onChange(configuration) }
+                source = destination
+                sheet = nil
+            }
         }
     }
 
@@ -565,31 +718,9 @@ struct WorkoutMusicTimelineView: View {
         ghost = nil
     }
 
-    private func importMusic(_ result: Result<[URL], Error>) {
-        switch result {
-        case .failure(let error): message = error.localizedDescription
-        case .success(let urls):
-            importing = true
-            Task { @MainActor in
-                defer { importing = false }
-                do {
-                    for url in urls {
-                        if ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased()) {
-                            try await MusicManager.shared.importTrackAsync(from: url)
-                        } else {
-                            try MusicManager.shared.importTrack(from: url)
-                        }
-                    }
-                } catch { message = error.localizedDescription }
-                library.adoptMusicManagerTracks()
-                await library.refreshLocalDurations()
-                source = .general
-            }
-        }
-    }
 
     private enum EditorSheet: Identifiable {
-        case edit(WorkoutMusicClip), replace(UUID), add(WorkoutMusicLane, Double), preview(MusicLibraryItem), library
+        case edit(WorkoutMusicClip), replace(UUID), add(WorkoutMusicLane, Double), preview(MusicLibraryItem), library, imports
         var id: String {
             switch self {
             case .edit(let clip): return "edit-\(clip.id)"
@@ -597,6 +728,7 @@ struct WorkoutMusicTimelineView: View {
             case .add(let lane, let time): return "add-\(lane)-\(time)"
             case .preview(let item): return "preview-\(item.id)"
             case .library: return "library"
+            case .imports: return "imports"
             }
         }
     }
@@ -683,12 +815,11 @@ struct WorkoutMusicClipEditor: View {
             .scrollContentBackground(.hidden).background(Theme.background)
             .navigationTitle(clip.title)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { onSave(clip) }
-                        .disabled(!clip.start.isFinite || clip.start < 0 || !clip.duration.isFinite ||
-                                  clip.duration <= 0 || clip.duration > maximumDuration || clip.tracks.isEmpty)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") { onSave(clip) }
+                    .disabled(!clip.start.isFinite || clip.start < 0 || !clip.duration.isFinite ||
+                              clip.duration <= 0 || clip.duration > maximumDuration || clip.tracks.isEmpty)
+                                 }
             }
         }
         .preferredColorScheme(.dark)
@@ -726,7 +857,7 @@ struct WorkoutMusicItemPicker: View {
             .searchable(text: $query, prompt: "Music and folders")
             .scrollContentBackground(.hidden).background(Theme.background)
             .navigationTitle(title)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Cancel") { dismiss() } } }
         }
         .preferredColorScheme(.dark)
     }

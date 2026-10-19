@@ -60,7 +60,7 @@ struct HomeDashboardView: View {
                     .onEnded { _ in setEditing(true) },
                 including: isEditing ? .subviews : .all
             )
-            .sheet(item: $playerWorkout) { workout in
+            .workoutPlayerPage(item: $playerWorkout) { workout in
                 WorkoutPlayerView(workout: workout)
                     .environmentObject(store)
                     .environmentObject(databaseStore)

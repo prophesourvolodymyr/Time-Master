@@ -21,7 +21,7 @@ final class WorkoutMusicSession: ObservableObject {
     private var scheduler: WorkoutMusicScheduler?
     private var manual: WorkoutMusicScheduler?
     private var repeats = false
-    private var silenced = false
+    @Published private var silenced = false
     private var paused = false
     private var timer: Timer?
     private var anchor: TimeInterval = 0
@@ -37,6 +37,73 @@ final class WorkoutMusicSession: ObservableObject {
     private let fadeDuration: Double = 0.4
 
     var hasTimeline: Bool { scheduler != nil }
+    var isSilenced: Bool { silenced }
+    @Published private(set) var elapsed: Double = 0
+    var timeline: WorkoutMusicTimeline? { (manual ?? scheduler)?.timeline }
+    var selection: WorkoutMusicSelection? { manual?.selection ?? (manual == nil ? scheduler?.selection : nil) }
+    var activeClip: WorkoutMusicClip? {
+        guard let selection else { return nil }
+        return (manual ?? scheduler)?.timeline.clips.first { $0.id == selection.clipID }
+    }
+    var isPlaylist: Bool { (activeClip?.tracks.count ?? 0) > 1 }
+    var canSkipForward: Bool {
+        guard let clip = activeClip, let selection,
+              let index = clip.tracks.firstIndex(where: { $0.id == selection.track.id }) else { return false }
+        let nextStart = clip.tracks.prefix(index + 1).reduce(0) { $0 + $1.duration }
+        guard nextStart < clip.audibleDuration else { return false }
+        return clip.tracks.dropFirst(index + 1).contains { $0.duration > 0 }
+    }
+
+    func artwork(in library: MusicLibraryStore) -> MusicArtworkReference? {
+        guard let selection else { return nil }
+        let item = activeClip?.sourceItemID.flatMap { library.item(id: $0) }
+        return item?.tracks.first(where: { $0.id == selection.track.id })?.artwork
+            ?? library.item(id: selection.track.id)?.artwork ?? item?.artwork
+    }
+
+    func updateTimeline(_ timeline: WorkoutMusicTimeline) {
+        render()
+        let previous = manual ?? scheduler
+        let position = previous?.cursor.elapsed ?? 0
+        var rebuilt = WorkoutMusicScheduler(timeline: timeline)
+        rebuilt.advance(to: position)
+        var cursor = rebuilt.cursor
+        if let previous {
+            for clip in timeline.clips where previous.timeline.clips.contains(clip) {
+                cursor.positions[clip.id] = previous.cursor.positions[clip.id]
+            }
+        }
+        manual = nil
+        isManual = false
+        scheduler = WorkoutMusicScheduler(timeline: timeline, cursor: cursor)
+        anchorElapsed = position
+        anchor = ProcessInfo.processInfo.systemUptime
+        error = nil
+        render()
+        if let selection, let activePlayer, abs(activePlayer.currentTime - selection.offset) > 0.5 {
+            activePlayer.currentTime = min(selection.offset, activePlayer.duration)
+        }
+    }
+
+    func togglePlayback() {
+        if silenced {
+            silenced = false
+            render()
+        } else {
+            silence()
+        }
+    }
+
+    func skipForward() {
+        guard canSkipForward, let clip = activeClip, let selection,
+              let index = clip.tracks.firstIndex(where: { $0.id == selection.track.id }),
+              let playback = manual ?? scheduler else { return }
+        var cursor = playback.cursor
+        cursor.positions[clip.id] = clip.tracks.prefix(index + 1).reduce(0) { $0 + $1.duration }
+        let updated = WorkoutMusicScheduler(timeline: playback.timeline, cursor: cursor)
+        if manual != nil { manual = updated } else { scheduler = updated }
+        render()
+    }
     var checkpoint: WorkoutMusicCheckpoint? {
         guard let scheduler else { return nil }
         return WorkoutMusicCheckpoint(cursor: scheduler.cursor, manualTimeline: manual?.timeline,
@@ -163,6 +230,7 @@ final class WorkoutMusicSession: ObservableObject {
         isManual = false
         exhausted = false
         silenced = false
+        elapsed = 0
     }
 
     private func installTimer() {
@@ -186,6 +254,8 @@ final class WorkoutMusicSession: ObservableObject {
                 activeKey = nil
             }
         }
+        let currentElapsed = floor((manual ?? scheduler)?.cursor.elapsed ?? 0)
+        if elapsed != currentElapsed { elapsed = currentElapsed }
         let ended = manual?.exhausted ?? scheduler?.exhausted ?? false
         if exhausted != ended { exhausted = ended }
         guard !silenced else { return }

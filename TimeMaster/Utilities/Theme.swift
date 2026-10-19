@@ -83,7 +83,7 @@ enum AppToolbar {
                 content()
                     .buttonStyle(TimeMasterToolbarWideButtonStyle())
             }
-            .sharedBackgroundVisibility(.visible)
+            .sharedBackgroundVisibility(.hidden)
         } else {
             ToolbarItem(placement: placement) {
                 content()
@@ -102,7 +102,7 @@ enum AppToolbar {
                 content()
                     .buttonStyle(TimeMasterToolbarWideButtonStyle())
             }
-            .sharedBackgroundVisibility(.visible)
+            .sharedBackgroundVisibility(.hidden)
         } else {
             ToolbarItemGroup(placement: placement) {
                 content()
@@ -121,7 +121,7 @@ enum AppToolbar {
                 content()
                     .buttonStyle(TimeMasterToolbarIconButtonStyle())
             }
-            .sharedBackgroundVisibility(.visible)
+            .sharedBackgroundVisibility(.hidden)
         } else {
             ToolbarItem(placement: placement) {
                 content()
@@ -140,7 +140,7 @@ enum AppToolbar {
                 content()
                     .buttonStyle(TimeMasterToolbarIconButtonStyle())
             }
-            .sharedBackgroundVisibility(.visible)
+            .sharedBackgroundVisibility(.hidden)
         } else {
             ToolbarItemGroup(placement: placement) {
                 content()

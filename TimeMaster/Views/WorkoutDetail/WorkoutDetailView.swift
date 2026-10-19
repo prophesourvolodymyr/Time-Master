@@ -15,7 +15,7 @@ struct WorkoutDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteAlert = false
     @State private var sectionToDelete: Section?
-    @State private var showPlayer = false
+    @State private var playerWorkout: Workout?
     @State private var showingWorkoutSettings = false
     @State private var mediaPreviewSection: Section? = nil
     @State private var inspectedPageID: UUID?
@@ -35,6 +35,8 @@ struct WorkoutDetailView: View {
     @GestureState private var musicRevealDrag: CGFloat = 0
 
     let workoutID: UUID
+    let liveContext: WorkoutLiveContext?
+    let onClose: (() -> Void)?
     @State private var pendingSection: PendingSectionConfig?
     @State private var expandedSectionIDs: Set<UUID> = []
     @State private var draggedSlotID: UUID?
@@ -68,8 +70,10 @@ struct WorkoutDetailView: View {
         store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
     }
 
-    init(workout: Workout) {
+    init(workout: Workout, liveContext: WorkoutLiveContext? = nil, onClose: (() -> Void)? = nil) {
         workoutID = workout.id
+        self.liveContext = liveContext
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -99,8 +103,11 @@ struct WorkoutDetailView: View {
                 }
 
                 VStack(spacing: 0) {
+                    if liveContext != nil {
+                        WorkoutAttachmentStrip(workout: workout)
+                    }
                     sectionList(width: proxy.size.width)
-                    if !workout.sections.isEmpty {
+                    if !workout.sections.isEmpty && liveContext == nil {
                         startButton
                     }
                 }
@@ -135,6 +142,7 @@ struct WorkoutDetailView: View {
             .clipped()
             .animation(editorAnimation, value: musicConfigurationOpen)
         }
+        .modifier(WorkoutFloatingControlsOverlay(workoutName: workout.name, context: liveContext, library: musicLibrary))
         .navigationTitle("")
         .slotNavigationPresentation(.inline)
         .slotNavigationInteractionDisabled(musicConfigurationOpen || musicRevealDrag > 0.02)
@@ -155,8 +163,8 @@ struct WorkoutDetailView: View {
                 if entry.workoutId == workoutID { count += 1 }
             }
         }
-        .sheet(isPresented: $showPlayer) {
-            WorkoutPlayerView(workout: workout)
+        .workoutPlayerPage(item: $playerWorkout) { playingWorkout in
+            WorkoutPlayerView(workout: playingWorkout)
                 .environmentObject(store)
                 .environmentObject(DatabaseStore.shared)
         }
@@ -186,7 +194,7 @@ struct WorkoutDetailView: View {
             )
         ) {
             if let pageID = inspectedPageID {
-                WorkoutPageInspector(pageID: pageID)
+                WorkoutAttachmentBrowser(workout: workout, pageID: pageID, liveContext: liveContext)
                     .environmentObject(databaseStore)
                     .environmentObject(store)
             }
@@ -417,50 +425,93 @@ struct WorkoutDetailView: View {
 
     private func editorHeader(width: CGFloat) -> some View {
         let metrics = ScrollingChromeMetrics(
-            width: width, horizontalPadding: 12, compactControlSize: 32,
-            controlSpacing: 4, expandedControlWidthCap: 60, expandedControlHeightCap: 60
+            width: width, horizontalPadding: 12, compactControlSize: 48,
+            controlSpacing: 4, pinnedFooterHeight: 0, controlCount: 4
         )
         let progress: CGFloat = editorControlsExpanded ? 0 : 1
-        let diameter = metrics.compactControlSize
-        return HStack(spacing: 4) {
-            Button { dismiss() } label: { editorHeaderIcon("chevron.left", diameter: diameter) }
-                .accessibilityLabel("Back to workouts")
-            Text(workout.name)
-                .font(.title.bold())
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityAddTraits(.isHeader)
-            Button { setMusicConfigurationOpen(true) } label: {
-                editorHeaderIcon("music.note.list", diameter: diameter)
+        let morph = metrics.morph(progress)
+        let diameter = metrics.controlWidth(morph)
+        let height = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
+        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
+            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
+
+        return VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                WorkoutEditorChromeTitle(text: workout.name, progress: morph, metrics: metrics)
+                editorBackButton(diameter: metrics.compactControlSize)
+                .frame(height: metrics.collapsedRowHeight)
+
+                editorHeaderControls(progress: morph, diameter: diameter)
+                    .offset(x: metrics.groupLeading(morph), y: height - diameter - bottomPadding)
             }
-            .accessibilityLabel("Configure workout music")
-            Menu { editorActionMenuItems } label: {
-                editorHeaderIcon("ellipsis", diameter: metrics.controlWidth(progress), title: "More", progress: progress)
-            }
-            .accessibilityLabel("Workout actions")
-            Button { showingAddOptions = true } label: {
-                editorHeaderIcon("plus", diameter: metrics.controlWidth(progress), title: "Add", progress: progress)
-            }
-            .accessibilityLabel("Add to workout")
-            Button { openBrowser(.newSection) } label: {
-                editorHeaderIcon("folder.fill.badge.plus", diameter: metrics.controlWidth(progress), title: "Browse", progress: progress)
-            }
-            .accessibilityLabel("Browse exercises")
+            .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
+            TimeMasterGlassDivider()
         }
         .buttonStyle(.plain)
         .foregroundStyle(Theme.textPrimary)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, metrics.horizontalPadding)
+    }
+
+    private func editorHeaderControls(progress: CGFloat, diameter: CGFloat) -> some View {
+        HStack(spacing: 4) {
+            editorMusicButton(progress: progress, diameter: diameter)
+            editorActionsMenu(progress: progress, diameter: diameter)
+            editorAddButton(progress: progress, diameter: diameter)
+            editorBrowseButton(progress: progress, diameter: diameter)
+        }
+    }
+
+    private func editorBackButton(diameter: CGFloat) -> some View {
+        Button { if let onClose { onClose() } else { dismiss() } } label: {
+            editorHeaderIcon("chevron.left", diameter: diameter)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.textPrimary)
+        .accessibilityLabel("Back to workouts")
+    }
+
+    private func editorMusicButton(progress: CGFloat, diameter: CGFloat) -> some View {
+        Button { setMusicConfigurationOpen(true) } label: {
+            editorHeaderIcon("music.note.list", diameter: diameter, title: "Music", progress: progress)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.textPrimary)
+        .accessibilityLabel("Configure workout music")
+    }
+
+    private func editorActionsMenu(progress: CGFloat, diameter: CGFloat) -> some View {
+        Menu { editorActionMenuItems } label: {
+            editorHeaderIcon("ellipsis", diameter: diameter, title: "More", progress: progress)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.textPrimary)
+        .accessibilityLabel("Workout actions")
+    }
+
+    private func editorAddButton(progress: CGFloat, diameter: CGFloat) -> some View {
+        Button { showingAddOptions = true } label: {
+            editorHeaderIcon("plus", diameter: diameter, title: "Add", progress: progress)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.textPrimary)
+        .accessibilityLabel("Add to workout")
+    }
+
+    private func editorBrowseButton(progress: CGFloat, diameter: CGFloat) -> some View {
+        Button { openBrowser(.newSection) } label: {
+            editorHeaderIcon("folder.fill.badge.plus", diameter: diameter, title: "Browse", progress: progress)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.textPrimary)
+        .accessibilityLabel("Browse exercises")
     }
 
     private func editorHeaderIcon(_ name: String, diameter: CGFloat, title: String = "", progress: CGFloat = 1) -> some View {
         ScrollingChromeControl(
             systemImage: name, title: title, progress: progress,
-            width: max(44, diameter), height: max(44, diameter)
+            width: diameter, height: diameter
         )
-        .scaleEffect(diameter / max(44, diameter))
         .frame(width: diameter, height: diameter)
-        .frame(minWidth: 44, minHeight: 44)
         .contentShape(Rectangle())
     }
 
@@ -497,15 +548,15 @@ struct WorkoutDetailView: View {
     private func trackedSectionList(width: CGFloat) -> some View {
         if #available(iOS 18.0, macOS 15.0, *) {
             sectionListContent(width: width)
-                .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.contentOffset.y + geometry.contentInsets.top
-                } action: { _, offset in
-                    updateScrollState(offset)
+                .onScrollGeometryChange(for: WorkoutEditorScrollState.self) { geometry in
+                    WorkoutEditorScrollState(offset: geometry.contentOffset.y + geometry.contentInsets.top)
+                } action: { _, state in
+                    updateScrollState(state)
                 }
         } else {
             sectionListContent(width: width)
                 .onPreferenceChange(WorkoutEditorScrollOffsetPreferenceKey.self) { minY in
-                    updateScrollState(-minY)
+                    updateScrollState(WorkoutEditorScrollState(offset: -minY))
                 }
         }
     }
@@ -515,11 +566,13 @@ struct WorkoutDetailView: View {
             editorHeader(width: width)
             .padding(.top, 8)
             .background {
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: WorkoutEditorScrollOffsetPreferenceKey.self,
-                        value: proxy.frame(in: .named("workout-detail-scroll")).minY
-                    )
+                if #unavailable(iOS 18.0, macOS 15.0) {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: WorkoutEditorScrollOffsetPreferenceKey.self,
+                            value: proxy.frame(in: .named("workout-detail-scroll")).minY
+                        )
+                    }
                 }
             }
             .listRowInsets(EdgeInsets())
@@ -552,7 +605,8 @@ struct WorkoutDetailView: View {
 
                         builderListRow(
                             sectionHeader(section, isExpanded: expandedSectionIDs.contains(section.id)),
-                            insets: EdgeInsets(top: 6, leading: 12, bottom: 2, trailing: 12)
+                            insets: EdgeInsets(top: 6, leading: 12, bottom: 2, trailing: 12),
+                            progress: liveFraction(section: section, phase: .active)
                         )
                         .id(RowID.section(section.id))
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -575,7 +629,8 @@ struct WorkoutDetailView: View {
                                 target: RestTarget(sectionID: section.id, slotID: nil, isBig: true)
                             ),
                             insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
-                            depth: 1
+                            depth: 1,
+                            progress: liveFraction(section: section, phase: .sectionRest)
                         )
                         .id(RowID.bigRest(section.id))
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -615,14 +670,76 @@ struct WorkoutDetailView: View {
     private func builderListRow<Content: View>(
         _ content: Content,
         insets: EdgeInsets,
-        depth: Int = 0
+        depth: Int = 0,
+        progress: Double = 0
     ) -> some View {
-        BuilderThreadedRow(depth: depth) {
-            content
+        HStack(spacing: 8) {
+            BuilderThreadedRow(depth: depth) { content }
+            if liveContext != nil {
+                GeometryReader { geometry in
+                    ZStack(alignment: .top) {
+                        Rectangle().fill(Theme.separator).frame(width: 2)
+                        Rectangle().fill(Theme.toolbarOrange).frame(width: 2, height: geometry.size.height * progress)
+                        Circle().fill(progress > 0 ? Theme.toolbarOrange : Theme.textSecondary)
+                            .frame(width: depth == 0 ? 10 : 6, height: depth == 0 ? 10 : 6)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(width: 14)
+                .accessibilityLabel("Progress")
+                .accessibilityValue("\(Int(progress * 100)) percent")
+            }
         }
         .listRowInsets(insets)
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
+    }
+
+    private func liveFraction(section: Section, slot: SetSlot? = nil, phase: WorkoutPhase) -> Double {
+        guard let live = liveContext?.progress,
+              let currentIndex = workout.sections.firstIndex(where: { $0.id == live.sectionID }),
+              let index = workout.sections.firstIndex(where: { $0.id == section.id }) else { return 0 }
+        if index < currentIndex { return 1 }
+        if index > currentIndex || live.phase == .warmUp { return 0 }
+        if live.phase == .sectionRest { return phase == .sectionRest ? live.fraction : 1 }
+        if phase == .sectionRest { return 0 }
+        let slots = section.effectiveSlots
+        guard let currentSlot = slots.firstIndex(where: { $0.id == live.slotID }) else { return 0 }
+        guard let slot else {
+            var completed = 0.0
+            var total = 0.0
+            for (index, value) in slots.enumerated() {
+                let preparation = Double(section.preparationTime(for: value))
+                let work = section.mode == .bundle ? 1 : Double(value.duration)
+                let rest = index + 1 < slots.count ? Double(value.restAfter) : 0
+                let duration = preparation + work + rest
+                total += duration
+                if index < currentSlot { completed += duration }
+                else if index == currentSlot {
+                    switch live.phase {
+                    case .prepare: completed += preparation * live.fraction
+                    case .active: completed += preparation + work * live.fraction
+                    case .setRest: completed += preparation + work + rest * live.fraction
+                    case .warmUp, .sectionRest: break
+                    }
+                }
+            }
+            return total > 0 ? min(1, completed / total) : 0
+        }
+        guard let slotIndex = slots.firstIndex(where: { $0.id == slot.id }) else { return 0 }
+        if slotIndex < currentSlot { return 1 }
+        if slotIndex > currentSlot { return 0 }
+        func rank(_ value: WorkoutPhase) -> Int {
+            switch value {
+            case .warmUp: 0
+            case .prepare: 1
+            case .active: 2
+            case .setRest: 3
+            case .sectionRest: 4
+            }
+        }
+        if rank(phase) < rank(live.phase) { return 1 }
+        return phase == live.phase ? live.fraction : 0
     }
 
     @ViewBuilder
@@ -632,7 +749,8 @@ struct WorkoutDetailView: View {
                 builderListRow(
                     preparationRow(section: section, slot: slot),
                     insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
-                    depth: 1
+                    depth: 1,
+                    progress: liveFraction(section: section, slot: slot, phase: .prepare)
                 )
                 .id(RowID.preparation(slot.id))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -648,7 +766,8 @@ struct WorkoutDetailView: View {
             builderListRow(
                 setRow(section: section, slot: slot, index: slotIndex),
                 insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
-                depth: 1
+                depth: 1,
+                progress: liveFraction(section: section, slot: slot, phase: .active)
             )
             .id(RowID.set(slot.id))
             .onDrag {
@@ -731,7 +850,8 @@ struct WorkoutDetailView: View {
                 builderListRow(
                     restRowView(rest, target: target),
                     insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12),
-                    depth: 2
+                    depth: 2,
+                    progress: liveFraction(section: section, slot: slot, phase: .setRest)
                 )
                 .id(RowID.slotRest(slot.id))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -1504,7 +1624,7 @@ struct WorkoutDetailView: View {
     @ViewBuilder
     private var startButton: some View {
         if !workout.sections.isEmpty {
-            Button { showPlayer = true } label: {
+            Button { playerWorkout = workout } label: {
                 HStack {
                     Image(systemName: "play.fill")
                     Text("Start Workout")
@@ -1739,10 +1859,9 @@ struct WorkoutDetailView: View {
         showBrowserSheet = true
     }
 
-    private func updateScrollState(_ offset: CGFloat) {
-        guard offset.isFinite else { return }
-        let expanded = ScrollingChromeReveal.expanded(current: editorControlsExpanded, offset: offset)
-        let compactSummary = offset > 24 ? true : (offset <= 1 ? false : summaryIsCompact)
+    private func updateScrollState(_ state: WorkoutEditorScrollState) {
+        let expanded = state.expandsControls ?? editorControlsExpanded
+        let compactSummary = state.compactsSummary ?? summaryIsCompact
         guard expanded != editorControlsExpanded || compactSummary != summaryIsCompact else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
             editorControlsExpanded = expanded
@@ -2277,33 +2396,6 @@ private struct RestNoteTarget: Identifiable {
     let text: String
 }
 
-private struct WorkoutPageInspector: View {
-    let pageID: UUID
-    @StateObject private var navigationState = DatabaseNavigationState()
-
-    var body: some View {
-        NavigationStack(path: $navigationState.path) {
-            ExercisePageDetailView(pageID: pageID)
-                .navigationDestination(for: DatabasePageRoute.self) { route in
-                    if let pageID = UUID(uuidString: route.pageID) {
-                        ExercisePageDetailView(pageID: pageID)
-                    }
-                }
-                .navigationDestination(for: DatabaseCategoryRoute.self) { route in
-                    if let containerID = UUID(uuidString: route.containerID) {
-                        ContainerCategoryPage(
-                            destination: ContainerCategoryDestination(
-                                containerID: containerID,
-                                tab: route.tab
-                            )
-                        )
-                        .environmentObject(navigationState)
-                    }
-                }
-        }
-        .environmentObject(navigationState)
-    }
-}
 
 private struct DurationEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -2335,15 +2427,13 @@ private struct DurationEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") {
+                    onSave(seconds)
+                    dismiss()
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave(seconds)
-                        dismiss()
-                    }
-                }
+                                 }
             }
         }
     }
@@ -2381,15 +2471,13 @@ private struct RestNoteEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") {
+                    onSave(text.trimmingCharacters(in: .whitespacesAndNewlines))
+                    dismiss()
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onSave(text.trimmingCharacters(in: .whitespacesAndNewlines))
-                        dismiss()
-                    }
-                }
+                                 }
             }
         }
     }
@@ -2509,13 +2597,11 @@ private struct WorkoutSettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundColor(.white)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { saveSettings() }
-                        .foregroundColor(.white)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save") { saveSettings() }
+                    .foregroundColor(.white)
+                                 }
             }
         }
     }
@@ -2753,6 +2839,45 @@ private struct BuilderThread: View {
                 .offset(x: 8)
         }
         .accessibilityHidden(true)
+    }
+}
+
+private struct WorkoutEditorScrollState: Equatable {
+    let expandsControls: Bool?
+    let compactsSummary: Bool?
+
+    init(offset: CGFloat) {
+        expandsControls = offset < -24 ? true : (offset > 24 ? false : nil)
+        compactsSummary = offset > 24 ? true : (offset <= 1 ? false : nil)
+    }
+}
+
+private struct WorkoutEditorChromeTitle: View {
+    let text: String
+    let progress: CGFloat
+    let metrics: ScrollingChromeMetrics
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 36
+    @State private var textSize: CGSize = .zero
+
+    var body: some View {
+        let backInset = metrics.compactControlSize + metrics.controlSpacing
+        let expandedWidth = max(1, metrics.contentWidth - backInset * 2)
+        let compactWidth = max(1, metrics.contentWidth - metrics.compactGroupWidth - backInset - metrics.controlSpacing)
+        let expandedScale = min(1, expandedWidth / max(1, textSize.width))
+        let compactScale = min(22 / 36, compactWidth / max(1, textSize.width))
+        let scale = expandedScale + (compactScale - expandedScale) * progress
+        let expandedLeading = (metrics.contentWidth - textSize.width * expandedScale) / 2
+        let leading = expandedLeading + (backInset - expandedLeading) * progress
+
+        Text(text)
+            .font(.system(size: titleSize, weight: .bold))
+            .lineLimit(1)
+            .fixedSize()
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { textSize = $0 }
+            .scaleEffect(scale, anchor: .leading)
+            .offset(x: leading)
+            .frame(width: metrics.contentWidth, height: metrics.collapsedRowHeight, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 

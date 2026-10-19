@@ -68,21 +68,20 @@ struct MacVideoSavePopover: View {
             }
             .navigationTitle(step == .target ? "Save Media" : "Exercise Details")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(step == .target ? "Cancel" : "Back") {
-                        if step == .target {
-                            if saveChoice != nil {
-                                saveChoice = nil
-                                selectedTargetID = nil
-                            } else {
-                                dismiss()
-                            }
+                AppToolbar.item(placement: .cancellationAction) { Button(step == .target ? "Cancel" : "Back") {
+                    if step == .target {
+                        if saveChoice != nil {
+                            saveChoice = nil
+                            selectedTargetID = nil
                         } else {
-                            step = .target
-                            saveErrorMessage = nil
+                            dismiss()
                         }
+                    } else {
+                        step = .target
+                        saveErrorMessage = nil
                     }
                 }
+                                 }
             }
             .fileImporter(
                 isPresented: $showMediaPicker,

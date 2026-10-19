@@ -105,9 +105,8 @@ struct MacVideoImportSheet: View {
             }
             .navigationTitle("Import Video")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", action: dismiss.callAsFunction)
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Cancel", action: dismiss.callAsFunction)
+                                 }
             }
         }
         .frame(minWidth: 680, minHeight: 520)

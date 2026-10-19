@@ -1201,6 +1201,35 @@ The interface correction checks used the final production app with the existing 
 
 The styling-repair smoke used the same iPhone 16 with iOS 18.6. Temporary Flow placements and their duplicate were removed through the UI, restoring the user's Recovery timeline exactly. The corrected sidebar remains open for review. The native iOS 26 Liquid Glass appearance and macOS interactions were not exercised; both platform targets compiled.
 
+### Live workout integration and control corrections — 2026-10-18
+
+- [x] Preserve the populated sidebar, generated artwork, native pinch zoom, and floating timeline toolbar refinements
+- [x] Open the actual playing timeline from the workout music control, with playback controls below and a slide-out library that supports live placement
+- [x] Use compact floating music controls with artwork, title, stop/resume, and timeline access; collapse them into a corner circle on downward swipe and restore them on tap
+- [x] Show Next only for the active playlist placement, respecting its trim; do not skip separately scheduled tracks
+- [x] Open active-workout management from a corner control and reuse the builder's expandable exercises, sets, and rests, with right-side progress rails and start markers
+- [x] Keep the database browser and builder editing actions available during a workout, and reconcile saved edits into the active session rather than ignoring changes to the same workout ID
+- [x] Open the full attachment page and editor from workout rows, with actual photo/video thumbnails in a horizontal strip at the top instead of hero covers or page-cover cards
+- [x] Show a plain attachment-page title, open photos and videos in the media viewer, and retain attachment editing
+- [x] Replace direct sidebar import with the simplified shared Settings import flow, four import options, Search, and the collected-music list
+- [x] Restore exact configuration selection from another workout as an independent copy, superseding the earlier removal requested in this cycle
+- [x] Ask where collected imports belong before leaving: General, a workout type, or only this workout
+- [x] Preserve workout-only library memberships across reloads and expose those destinations in Settings, including explicit transfer into General
+- [x] Present active workouts full-screen from editor, Home, Schedule, workout list, and resume entry points, with explicit exit controls and swipe dismissal disabled
+- [x] Enlarge the four compact workout-header controls to 48 points while retaining their adaptive expanding layout
+- [x] Replace the header's per-button legacy Metal capture surfaces with system materials on older iOS, retain native glass where available, and publish scroll state only at meaningful thresholds
+- [x] Make the active-workout widget compact, separate workout and music actions with a divider, and use a stacked layout only at accessibility text sizes
+- [x] Allow dragging that widget within visible bounds; preserve normalized placement through size changes and provide accessibility movement actions
+- [x] Route remaining toolbar actions, including Done and Save, through the shared toolbar styles and isolate their backgrounds on newer OS versions
+- [x] Build the final iOS and macOS source snapshot, pass the nine timeline regressions, and exercise widget bounds and header state thresholds without a simulator
+- [x] Stop simulator testing at the user's request, remove the isolated test app, shut down the pre-existing iPhone 17 Pro, and remove owned temporary workout/page fixtures while preserving unrelated data and the original resume checkpoint
+- [ ] Human review of the live timeline, compact/collapsed music controls, playlist-only Next, active editing and progress, attachment browsing/editing, configuration copying, and import destinations
+- [ ] Human review of the larger header controls, draggable compact widget, accessibility layout, and independent toolbar button shapes on the user's OS
+
+Before the user stopped simulator testing, native scenarios exercised real audio, playlist trim boundaries, single-track non-skipping, live timeline replacement, pause/silence/resume, import membership persistence, progress expansion, and actual photo/video viewing. The final widget, header-performance, and toolbar changes received code-only checks afterward. The widget geometry smoke covered interior movement, every edge clamp, rotation, and zero-travel bounds. The header smoke covered threshold boundaries and hysteresis; 2,000 sampled offsets produced three distinct state transitions. These are not frame-rate measurements or human approval.
+
+Both final platform builds passed in the isolated owned-change snapshot, using the committed app entry points. The checked-in project also includes the new geometry source in both app targets. Existing deprecation warnings remain. No iOS 27 compatibility claim is made from the installed SDK, and the final newer-OS toolbar appearance still needs human review. No further simulator interaction is planned; any future simulator verification is restricted to iOS 18 by the user's direction. Product DOCKS.md updates remain deferred until acceptance.
+
 ---
 
 ## Notes

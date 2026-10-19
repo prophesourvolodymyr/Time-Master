@@ -91,7 +91,7 @@ struct OutdoorOfflineAreasView: View {
             }
             .navigationTitle("Offline areas")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.disabled(model.isImporting) } }
+            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() }.disabled(model.isImporting) } }
             .interactiveDismissDisabled(model.isImporting)
             .task {
                 do {

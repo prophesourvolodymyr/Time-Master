@@ -11,6 +11,7 @@ struct ScheduleView: View {
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @Binding var week: Date
     @State private var sheet: Sheet?
+    @State private var playerWorkout: Workout?
     @State private var now = Date()
     @State private var askedForChallenge = false
     @State private var pullArmed = false
@@ -21,7 +22,6 @@ struct ScheduleView: View {
     private enum Sheet: Identifiable {
         case challenge, calendar, plans
         case entry(Date, WeeklyWorkoutSchedule.Entry?, Bool)
-        case player(Workout)
 
         var id: String {
             switch self {
@@ -29,7 +29,6 @@ struct ScheduleView: View {
             case .calendar: "calendar"
             case .plans: "plans"
             case .entry(let date, let entry, let custom): "entry-\(date)-\(entry?.id.uuidString ?? "new")-\(custom)"
-            case .player(let workout): "player-\(workout.id)"
             }
         }
     }
@@ -75,11 +74,12 @@ struct ScheduleView: View {
                         store.saveScheduleEntry(updated, on: date, repeats: repeats,
                                                 completed: updated.workoutID == nil && entry == nil)
                     }
-                case .player(let workout):
-                    WorkoutPlayerView(workout: workout)
-                        .environmentObject(store)
-                        .environmentObject(DatabaseStore.shared)
                 }
+            }
+            .workoutPlayerPage(item: $playerWorkout) { workout in
+                WorkoutPlayerView(workout: workout)
+                    .environmentObject(store)
+                    .environmentObject(DatabaseStore.shared)
             }
             .onAppear {
                 now = Date()
@@ -167,7 +167,7 @@ struct ScheduleView: View {
                                             isVacation: isVacation, isChallengeDay: challenge.weekdays.contains(WeeklyWorkoutSchedule.weekday(day)),
                                             onAdd: { sheet = .entry(day, nil, $0) },
                                             onEdit: { sheet = .entry(day, $0, $0.workoutID == nil) },
-                                            onStart: { sheet = .player($0) })
+                                            onStart: { playerWorkout = $0 })
                         }
                     }
                 }

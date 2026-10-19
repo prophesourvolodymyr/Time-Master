@@ -11,6 +11,7 @@ struct ExercisePageDetailView: View {
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
     let pageID: UUID
+    var showsHero = true
     @ScaledMetric(relativeTo: .largeTitle) private var coverMinimumHeight: CGFloat = 220
 
     @State private var isEditing = false
@@ -48,7 +49,7 @@ struct ExercisePageDetailView: View {
             if let page {
                 ScrollView {
                     VStack(spacing: 0) {
-                        coverHero(page: page)
+                        if showsHero { coverHero(page: page) }
                         detailContent(page: page)
                     }
                 }
@@ -56,7 +57,7 @@ struct ExercisePageDetailView: View {
                 emptyPageView
             }
         }
-        .navigationTitle("")
+        .navigationTitle(showsHero ? "" : (page?.title ?? "Workout"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -66,7 +67,7 @@ struct ExercisePageDetailView: View {
         .navigationBarBackButtonHidden(true)
         #endif
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
+            AppToolbar.iconItem(placement: .cancellationAction) {
                 TimeMasterBackButton()
             }
             if page?.isWorkoutAddable == true {
@@ -273,7 +274,7 @@ struct ExercisePageDetailView: View {
     private func detailContent(page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             if page.hasMedia {
-                PageMediaGalleryGrid(title: "Attachments", urls: page.mediaURLs) { index in
+                PageMediaGalleryGrid(title: showsHero ? "Attachments" : "", urls: page.mediaURLs, marksCover: showsHero) { index in
                     selectedMediaIndex = index
                     mediaGalleryPresented = true
                 }
@@ -1451,7 +1452,7 @@ struct ContainerCategoryPage: View {
         .navigationBarBackButtonHidden(true)
         #endif
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
+            AppToolbar.iconItem(placement: .cancellationAction) {
                 TimeMasterBackButton()
             }
             if destination.tab == .skills {

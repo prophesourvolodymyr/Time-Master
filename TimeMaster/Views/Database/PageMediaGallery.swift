@@ -227,6 +227,7 @@ private struct ZoomableImageView: View {
 struct PageMediaGalleryGrid: View {
     var title: String = "Media"
     let urls: [URL]
+    var marksCover = true
     let onTapMedia: (Int) -> Void
     @ScaledMetric(relativeTo: .caption) private var thumbnailHeight: CGFloat = 108
 
@@ -259,7 +260,7 @@ struct PageMediaGalleryGrid: View {
 
     private func mediaThumbnail(index: Int) -> some View {
         let url = urls[index]
-        let isCover = index == 0
+        let isCover = marksCover && index == 0
         let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased())
         let width = thumbnailHeight * 4 / 3
 

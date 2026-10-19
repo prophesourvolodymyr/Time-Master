@@ -74,7 +74,7 @@ struct OutdoorTripDetailsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.background, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .tint(Theme.toolbarOrange)
         .preferredColorScheme(.dark)

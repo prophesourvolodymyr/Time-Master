@@ -88,7 +88,7 @@ struct TimeMasterApp: App {
             }) {
                 resumePromptSheet
             }
-            .sheet(item: $resumePlayerWorkout) { w in
+            .workoutPlayerPage(item: $resumePlayerWorkout) { w in
                 WorkoutPlayerView(workout: w)
                     .environmentObject(store)
                     .environmentObject(databaseStore)

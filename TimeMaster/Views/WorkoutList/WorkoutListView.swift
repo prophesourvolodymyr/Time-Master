@@ -51,7 +51,7 @@ struct WorkoutListView: View {
             .sheet(isPresented: $showingAddWorkout) {
                 addWorkoutSheet
             }
-            .sheet(item: $playerWorkout) { workout in
+            .workoutPlayerPage(item: $playerWorkout) { workout in
                 WorkoutPlayerView(workout: workout)
                     .environmentObject(store)
                     .environmentObject(DatabaseStore.shared)

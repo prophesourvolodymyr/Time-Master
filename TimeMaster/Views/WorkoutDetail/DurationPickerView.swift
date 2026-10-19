@@ -59,12 +59,11 @@ struct DurationPickerView: View {
         }
         .toolbar {
             if directEntry != nil {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        finishDirectEntry()
-                    }
+                AppToolbar.group(placement: .keyboard) { Spacer()
+                Button("Done") {
+                    finishDirectEntry()
                 }
+                                 }
             }
         }
         #endif

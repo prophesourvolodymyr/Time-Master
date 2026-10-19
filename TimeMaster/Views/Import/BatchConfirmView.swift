@@ -131,12 +131,10 @@ struct BatchConfirmView: View {
             .navigationTitle("Save Video Media")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Back") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    saveButton
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Back") { dismiss() }
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { saveButton
+                                 }
             }
             .onAppear(perform: initDefaults)
         }
@@ -538,12 +536,10 @@ struct BatchConfirmView: View {
             }
             .navigationTitle("Review & Save")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Back") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    saveButton
-                }
+                AppToolbar.item(placement: .cancellationAction) { Button("Back") { dismiss() }
+                                 }
+                AppToolbar.item(placement: .confirmationAction) { saveButton
+                                 }
             }
             .onAppear { initDefaults() }
         }

@@ -42,7 +42,7 @@ struct OutdoorCompactPlayerView: View {
                     .allowsHitTesting(false)
                 }
                 .overlay(alignment: .bottomLeading) {
-                    OutdoorMusicMarqueeText(
+                    MusicMarqueeText(
                         text: musicManager.currentTrack?.title ?? "Music",
                         font: .system(size: min(marqueeTitleSize, 14), weight: .semibold, design: .rounded)
                     )
@@ -168,97 +168,6 @@ struct OutdoorMusicArtworkView: View {
     }
 }
 
-struct OutdoorMusicMarqueeText: View {
-    let text: String
-    let font: Font
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var textWidth: CGFloat = 0
-    @State private var viewportWidth: CGFloat = 0
-    @State private var isMoving = false
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                if shouldMove {
-                    HStack(spacing: 18) {
-                        titleText
-                        titleText
-                    }
-                    .offset(x: isMoving ? -(textWidth + 18) : 0)
-                } else {
-                    titleText
-                }
-            }
-            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .leading)
-            .clipped()
-            .mask {
-                LinearGradient(
-                    colors: [.clear, .white, .white, .clear],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            }
-            .onAppear {
-                viewportWidth = proxy.size.width
-                updateMovement()
-            }
-            .onChange(of: proxy.size.width) { newWidth in
-                viewportWidth = newWidth
-                updateMovement()
-            }
-        }
-        .frame(height: 15)
-        .background {
-            Text(text)
-                .font(font)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .hidden()
-                .background {
-                    GeometryReader { measurement in
-                        Color.clear.preference(key: OutdoorMusicTextWidthKey.self, value: measurement.size.width)
-                    }
-                }
-        }
-        .onPreferenceChange(OutdoorMusicTextWidthKey.self) { width in
-            textWidth = width
-            updateMovement()
-        }
-        .animation(
-            shouldMove && !reduceMotion
-                ? .easeInOut(duration: 5).repeatForever(autoreverses: true)
-                : nil,
-            value: isMoving
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(text))
-    }
-
-    private var titleText: some View {
-        Text(text)
-            .font(font)
-            .foregroundStyle(Theme.textPrimary)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-    }
-
-    private var shouldMove: Bool {
-        !reduceMotion && textWidth > viewportWidth + 1
-    }
-
-    private func updateMovement() {
-        isMoving = shouldMove
-    }
-}
-
-private struct OutdoorMusicTextWidthKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
 
 private struct OutdoorMusicTransportButtonStyle: ButtonStyle {
     let reduceMotion: Bool

@@ -19,7 +19,7 @@ packages:
     from: "0.9.0"
   SwiftMP3:
     url: https://github.com/mierau/swift-mp3.git
-    from: "1.0"
+    revision: c33793f5e5725e941b12efd375691db7c98b86ec
   MapLibre:
     url: https://github.com/maplibre/maplibre-gl-native-distribution
     from: "6.0.0"

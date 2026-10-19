@@ -41,9 +41,8 @@ struct MacVideoEditorView: View {
         .frame(minWidth: 1100, minHeight: 760)
         .navigationTitle("Edit Video")
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Back", systemImage: "chevron.left", action: onBack)
-            }
+            AppToolbar.item(placement: .cancellationAction) { Button("Back", systemImage: "chevron.left", action: onBack)
+                         }
         }
         .onDisappear(perform: model.stopPlayback)
         .focusable()

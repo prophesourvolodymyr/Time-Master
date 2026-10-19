@@ -22,6 +22,7 @@ struct WorkoutPlayerView: View {
     @EnvironmentObject var databaseStore: DatabaseStore
     @ObservedObject private var musicLibrary = MusicLibraryStore.shared
     @Environment(\.dismiss) var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var workout: Workout
 
@@ -57,6 +58,7 @@ struct WorkoutPlayerView: View {
     @State private var musicChooserIsAutomatic = false
     @State private var offeredMusicContinuation = false
     @State private var musicStarted = false
+    @State private var showWorkoutManagement = false
 
     // Settings
     @AppStorage("extra_rest_seconds") private var extraRestSeconds: Int = 15
@@ -146,12 +148,86 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    private var livePhase: WorkoutPhase {
+        isWarmUp ? .warmUp : isPreparation ? .prepare : isSetRest ? .setRest : isSectionRest ? .sectionRest : .active
+    }
+
+    private var phaseDuration: Int {
+        switch livePhase {
+        case .warmUp: warmUpDuration
+        case .prepare: currentSlot.map { currentSection?.preparationTime(for: $0) ?? 0 } ?? 0
+        case .active: currentSection?.mode == .bundle ? 0 : (currentSlot?.duration ?? 0)
+        case .setRest: restSlot?.restAfter ?? currentSection?.restBetweenSets ?? 0
+        case .sectionRest: currentSection?.customRestAfter ?? workout.restBetweenSections
+        }
+    }
+
+    private var liveContext: WorkoutLiveContext {
+        WorkoutLiveContext(
+            progress: WorkoutLiveProgress(
+                sectionID: currentSection?.id, slotID: (isSetRest ? restSlot : currentSlot)?.id,
+                phase: livePhase, remaining: timeRemaining, phaseDuration: phaseDuration,
+                elapsed: elapsedSeconds, isPaused: isPaused
+            ),
+            music: musicSession,
+            onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
+            onStop: stopWorkout,
+            onOpenMusic: toggleOverlayMusic
+        )
+    }
+
+    private func reconcileLiveWorkout(_ workouts: [Workout]) {
+        guard let updated = workouts.first(where: { $0.id == workout.id }) else { return }
+        let sectionID = currentSection?.id
+        let slotID = currentSlot?.id
+        let restingSlotID = restSlot?.id
+        let oldDuration = phaseDuration
+        let oldMedia = currentSection?.mediaItems
+        let oldPageID = currentSlot?.exercisePageID
+        let musicChanged = updated.musicTimeline != workout.musicTimeline
+        workout = updated
+        if musicChanged && musicStarted {
+            musicSession.updateTimeline(updated.musicTimeline ?? .init())
+        }
+        guard !showingWarmUpPicker, !workoutCompleted, !isWarmUp else { return }
+        guard !updated.sections.isEmpty else { stopWorkout(); return }
+        if let sectionIndex = updated.sections.firstIndex(where: { $0.id == sectionID }) {
+            currentSectionIndex = sectionIndex
+            let slots = updated.sections[sectionIndex].effectiveSlots
+            var retainedPhase = true
+            if isSetRest, let restIndex = slots.firstIndex(where: { $0.id == restingSlotID }), restIndex + 1 < slots.count {
+                currentSetIndex = restIndex + 1
+            } else if let slotIndex = slots.firstIndex(where: { $0.id == slotID }) {
+                currentSetIndex = slotIndex
+                if isSetRest { beginCurrentSet(); retainedPhase = false }
+            } else {
+                currentSetIndex = min(currentSetIndex, max(0, slots.count - 1))
+                if !isSectionRest { beginCurrentSet(); retainedPhase = false }
+            }
+            if retainedPhase { timeRemaining = max(0, timeRemaining + phaseDuration - oldDuration) }
+        } else {
+            currentSectionIndex = min(currentSectionIndex, updated.sections.count - 1)
+            currentSetIndex = 0
+            beginCurrentSet()
+        }
+        if oldMedia != currentSection?.mediaItems || oldPageID != currentSlot?.exercisePageID { loadCurrentMedia() }
+        saveResumeState()
+    }
     // MARK: - Body
 
     var body: some View {
         contentLayer
+            .accessibilityHidden(showWorkoutManagement || showPageOverlay)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { backgroundLayer }
+            .safeAreaInset(edge: .bottom) {
+                if musicStarted && musicSession.activeClip != nil && !workoutCompleted && !showWorkoutManagement && !showPageOverlay {
+                    WorkoutFloatingMusicControls(session: musicSession, library: musicLibrary, onOpenTimeline: toggleOverlayMusic)
+                }
+            }
+            .interactiveDismissDisabled()
+            .slotNavigationInteractionDisabled(true)
+            .onReceive(store.$workouts, perform: reconcileLiveWorkout)
             .onAppear {
                 #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = true
@@ -202,37 +278,29 @@ struct WorkoutPlayerView: View {
                 }
             }
             .overlay {
-                if showPageOverlay, let section = currentSection, let pageID = overlayPageID ?? currentSlot?.exercisePageID ?? section.pageID {
-                    ExercisePageOverlay(
-                        pageID: pageID,
-                        sectionName: overlayPageName.isEmpty ? (currentSlot?.name ?? section.name) : overlayPageName,
-                        sectionIndex: currentSectionIndex,
-                        totalSections: workout.sections.count,
-                        timeRemaining: timeRemaining,
-                        elapsedSeconds: elapsedSeconds,
-                        isPaused: isPaused,
-                        isTimerEnabled: isPreparation || (section.mode == .timed && section.isTimerEnabled),
-                         isRest: isPreparation || isSetRest || isSectionRest,
-                         isMusicPlaying: musicSession.isPlaying,
-                         nextExerciseName: nextExerciseName,
-                         onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
-                        onMusicToggle: toggleOverlayMusic,
-                        onStop: { stopWorkout() },
-                        onSkip: {
-                            skipCurrentPhase()
-                        },
-                        onDismiss: {
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                showPageOverlay = false
-                                overlayPageID = nil
-                                overlayPageName = ""
-                            }
+                if showWorkoutManagement {
+                    NavigationStack {
+                        WorkoutDetailView(workout: workout, liveContext: liveContext) {
+                            showWorkoutManagement = false
                         }
-                    )
+                        .environmentObject(musicLibrary)
+                    }
+                    .background(Theme.background)
                     .transition(.opacity)
                 }
             }
-             .animation(.easeOut(duration: 0.3), value: showPageOverlay)
+            .overlay {
+                if showPageOverlay, let pageID = overlayPageID {
+                    WorkoutAttachmentBrowser(workout: workout, pageID: pageID, liveContext: liveContext) {
+                        showPageOverlay = false
+                        overlayPageID = nil
+                        overlayPageName = ""
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: showWorkoutManagement)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: showPageOverlay)
             .sheet(isPresented: $showBundleReorder) {
                 BundleReorderSheet(
                     slots: currentSection?.effectiveSlots ?? [],
@@ -1118,15 +1186,27 @@ struct WorkoutPlayerView: View {
     }
 
     private var musicButton: some View {
-        Button(action: toggleOverlayMusic) {
-            Image(systemName: musicSession.isPlaying ? "music.note" : "music.note.list")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
-                .background(Color.white.opacity(musicSession.isPlaying ? 0.25 : 0.12), in: Circle())
+        HStack(spacing: 6) {
+            if !showingWarmUpPicker {
+                Button { showWorkoutManagement = true } label: {
+                    Image(systemName: "list.bullet.clipboard")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                        .background(.white.opacity(0.12), in: Circle())
+                }
+                .accessibilityLabel("Manage active workout")
+                .accessibilityValue("Exercise \(currentSectionIndex + 1) of \(workout.sections.count)")
+            }
+            Button(action: toggleOverlayMusic) {
+                Image(systemName: musicSession.isPlaying ? "music.note" : "music.note.list")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(musicSession.isPlaying ? 0.25 : 0.12), in: Circle())
+            }
+            .accessibilityLabel("Choose workout music")
+            .accessibilityValue(musicSession.title ?? "Silence")
         }
-        .accessibilityLabel("Choose workout music")
-        .accessibilityValue(musicSession.title ?? "Silence")
+        .foregroundStyle(.white)
     }
 
     private var isMusicContinuationRest: Bool {
@@ -1474,7 +1554,6 @@ struct WorkoutPlayerView: View {
         slots.move(fromOffsets: source, toOffset: destination)
         updated.sections[currentSectionIndex].slots = slots
         updated.sections[currentSectionIndex].sets = slots.count
-        workout = updated
         store.updateWorkout(updated)
     }
 
@@ -1559,6 +1638,9 @@ struct WorkoutPlayerView: View {
         stopVideo()
         musicSession.stop()
         workoutCompleted = true
+        showWorkoutManagement = false
+        showPageOverlay = false
+        showMusicChooser = false
         WorkoutResumeManager.shared.clearResumeState()
         AudioManager.shared.speak("Congratulations! Incredible work!")
         let entry = WorkoutHistoryEntry(
@@ -1997,6 +2079,24 @@ private struct OverlayVideoPlayerView: View {
             NotificationCenter.default.removeObserver(obs)
             loopObserver = nil
         }
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func workoutPlayerPage<Content: View>(
+        item: Binding<Workout?>,
+        @ViewBuilder content: @escaping (Workout) -> Content
+    ) -> some View {
+        #if os(iOS)
+        fullScreenCover(item: item) { workout in
+            content(workout).interactiveDismissDisabled()
+        }
+        #else
+        sheet(item: item) { workout in
+            content(workout).interactiveDismissDisabled()
+        }
+        #endif
     }
 }
 

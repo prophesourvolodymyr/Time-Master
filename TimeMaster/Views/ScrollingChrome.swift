@@ -59,11 +59,12 @@ struct ScrollingChromeControl: View {
     let width: CGFloat
     let height: CGFloat
     var isInteractive: Bool = true
-    var circular = false
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         let labelProgress = min(1, progress / 0.65)
-        let cornerRadius = circular ? min(width, height) / 2 : 14 + (min(width, height) / 2 - 14) * progress
+        let cornerRadius = 14 + (min(width, height) / 2 - 14) * progress
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
         ZStack {
             Image(systemName: systemImage)
@@ -79,19 +80,20 @@ struct ScrollingChromeControl: View {
         }
         .foregroundStyle(.white)
         .frame(width: width, height: height)
-        .modifier(
-            TimeMasterPrivateGlassSurface(
-                cornerRadius: cornerRadius,
-                isInteractive: isInteractive,
-                tint: Theme.toolbarOrange,
-                tintOpacity: 0.42
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Theme.toolbarOrange.opacity(0.65), lineWidth: 1)
+        .background {
+            if reduceTransparency {
+                shape.fill(Theme.toolbarOrange.opacity(0.9))
+            } else if #available(iOS 26.0, macOS 26.0, *) {
+                Color.clear.glassEffect(
+                    .regular.tint(Theme.toolbarOrange.opacity(0.42)).interactive(isInteractive),
+                    in: shape
+                )
+            } else {
+                shape.fill(.ultraThinMaterial)
+                    .overlay { shape.fill(Theme.toolbarOrange.opacity(0.42)) }
+            }
         }
+        .overlay { shape.strokeBorder(Theme.toolbarOrange.opacity(0.65), lineWidth: 1) }
     }
 }
 
