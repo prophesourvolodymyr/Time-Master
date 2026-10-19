@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Twenty separate Fgen letter studies, A–J and a–j, each generated from the same original M. Review the images before changing the font.">
-  <title>Ribbon — M-based letter studies</title>
+  <meta name="description" content="Combine the new M-based letters into words, adjust size and spacing, and inspect each of the twenty original PNG studies alongside M.">
+  <title>Ribbon — letter combination hub</title>
   <style>
     :root {
       color-scheme: dark;
@@ -16,14 +16,17 @@
       --line: #333330;
       --accent: #ff9e64;
       --surface: #151514;
+      --study-size: 180px;
+      --study-tracking: .04em;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--background); color: var(--foreground); }
     body:has(dialog[open]) { overflow: hidden; }
-    button, a { color: inherit; touch-action: manipulation; }
-    button { font: inherit; cursor: pointer; }
+    button, a, input { color: inherit; touch-action: manipulation; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
     a { text-underline-offset: .25em; }
-    button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+    button:focus-visible, a:focus-visible, input:focus-visible, .stage-viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
     .shell { max-width: 1520px; margin-inline: auto; padding-inline: clamp(20px, 4vw, 64px); }
     .mono { font-family: "SFMono-Regular", Consolas, monospace; font-size: .75rem; line-height: 1.6; }
     .eyebrow { color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
@@ -71,11 +74,48 @@
     .dialog-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 22px; }
     .paging { display: flex; flex-wrap: wrap; gap: 8px; }
     .dialog-footer a { font-size: .875rem; }
+    .composer { margin-bottom: 44px; border-top: 1px solid var(--line); }
+    .stage-meta { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding-block: 16px; }
+    #preview-status { color: var(--accent); }
+    .stage-viewport { overflow-x: auto; padding: 16px 12px; background: #000; scrollbar-color: var(--muted) #000; }
+    .stage-line { position: relative; isolation: isolate; width: max-content; min-width: 100%; min-height: var(--study-line-height, 1.83em); font-size: var(--study-size); }
+    .study-word { display: flex; width: max-content; min-height: var(--study-line-height, 1.83em); margin-inline: auto; }
+    .composed-glyph { position: relative; display: block; flex: none; height: var(--study-line-height); overflow: hidden; margin-inline-end: var(--study-tracking); mix-blend-mode: screen; }
+    .composed-glyph:last-child { margin-inline-end: 0; }
+    .composed-glyph img { position: absolute; top: 0; display: block; max-width: none; height: auto; pointer-events: none; }
+    .study-space { width: .35em; }
+    .empty-message { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1rem; text-align: center; }
+    .empty-message[hidden] { display: none; }
+    .guides .stage-line::before, .guides .stage-line::after { content: ""; position: absolute; inset-inline: 0; z-index: 1; border-top: 1px solid var(--accent); opacity: .6; pointer-events: none; }
+    .guides .stage-line::before { top: var(--study-cap-line); }
+    .guides .stage-line::after { top: var(--study-baseline); }
+    .word-controls { min-width: 0; margin: 0; border: 0; padding: 24px 0; }
+    .word-controls:disabled { opacity: .5; }
+    .input-row { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+    .text-field { flex: 1 1 300px; min-width: 0; }
+    .small-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: .875rem; }
+    #word-input { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 0; padding: 12px 14px; background: transparent; font-size: 1rem; }
+    #word-input[aria-invalid="true"] { border-color: var(--accent); }
+    .case-buttons, .view-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+    #input-message { margin: 12px 0 24px; max-width: 75ch; color: var(--muted); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+    #input-message.error { color: var(--accent); }
+    .adjustments { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; gap: 20px 32px; }
+    .slider-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px; font-size: .875rem; }
+    output { color: var(--muted); }
+    input[type="range"] { display: block; width: 100%; height: 28px; margin: 8px 0 0; accent-color: var(--foreground); cursor: pointer; }
+    .button[aria-pressed="true"] { border-color: var(--accent); background: var(--surface); }
+    .word-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .word-presets .small-label { flex-basis: 100%; margin-bottom: 0; }
+    .hub-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; }
     @media (max-width: 1000px) {
       .glyph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 700px) {
       .layout { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+      .adjustments { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .view-buttons { grid-column: 1 / -1; }
+      .case-buttons, .view-buttons { width: 100%; }
+      .case-buttons .button, .view-buttons .button { flex: 1; }
       .master { position: static; }
       .master-image { max-width: 360px; margin-inline: auto; }
       .measurements { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
@@ -92,14 +132,43 @@
   <div class="shell">
     <header class="masthead">
       <span class="brand">ribbon.</span>
-      <span class="eyebrow mono">Individual studies / 01</span>
-      <a href="index.html">Previous font preview ↗</a>
+      <span class="eyebrow mono">M-based studies / combination hub</span>
+      <nav class="hub-navigation" aria-label="Font previews"><a href="#word-hub">Combine letters ↓</a><a href="#uppercase-heading">Inspect letters ↓</a><a href="index.html">Previous font preview ↗</a></nav>
     </header>
     <main>
       <section class="intro" aria-labelledby="page-title">
         <span class="eyebrow mono">One letter. One generation. The same M.</span>
-        <h1 id="page-title">M is the master.</h1>
-        <p>Ten capitals and ten lowercase letters, each generated separately with Fgen. Every call uses the same original M—not another generated letter. Gray halos and stray edge pixels are cleaned from these previews; the raw Fgen images are also available. These are image studies for your review; the font has not been rebuilt.</p>
+        <h1 id="page-title">See the letters together.</h1>
+        <p>Type words with the twenty new M-based letters, then inspect any shape below. This hub combines the actual PNGs on their shared design grid—no older letters mixed in, no shapes redrawn. Your original M and the existing font files are unchanged.</p>
+      </section>
+      <section class="composer" id="word-hub" aria-labelledby="word-heading" aria-busy="true">
+        <div class="stage-meta mono"><h2 id="word-heading">01 / Word combinations</h2><span id="preview-status" role="status">Loading letters…</span></div>
+        <div class="stage-viewport" id="stage" tabindex="0" aria-label="Combined letter preview. Long text scrolls horizontally.">
+          <div class="stage-line"><div class="study-word" id="live-word" role="img" aria-label="Loading letter preview"></div><div class="empty-message" id="empty-message">Loading letters…</div></div>
+        </div>
+        <fieldset class="word-controls" id="word-controls" aria-label="Word combination controls" disabled>
+          <div class="input-row">
+            <div class="text-field"><label class="small-label" for="word-input">Type a word or phrase</label><input id="word-input" type="text" value="badge" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="input-message" aria-invalid="false"></div>
+            <div class="case-buttons" role="group" aria-label="Change letter case"><button class="button" id="uppercase" type="button">UPPERCASE</button><button class="button" id="lowercase" type="button">lowercase</button></div>
+          </div>
+          <p id="input-message" role="status">A–J, a–j and spaces only. Size and spacing change the composition, not the letter shapes. K–Z are not generated yet.</p>
+          <div class="adjustments">
+            <div><div class="slider-heading"><label for="size">Size</label><output id="size-value" for="size">180 px</output></div><input id="size" type="range" min="24" max="240" value="180" step="1"></div>
+            <div><div class="slider-heading"><label for="tracking">Letter spacing</label><output id="tracking-value" for="tracking">0.040 em</output></div><input id="tracking" type="range" min="-0.04" max="0.16" value="0.04" step="0.005"></div>
+            <div class="view-buttons" role="group" aria-label="Preview display"><button class="button" id="fit" type="button">Fit word</button><button class="button" id="guides" type="button" aria-pressed="false">Guides</button></div>
+          </div>
+          <div class="word-presets" role="group" aria-label="Example words">
+            <span class="small-label">Try a combination</span>
+            <button class="button" type="button" data-word="badge" aria-pressed="true">badge</button>
+            <button class="button" type="button" data-word="cafe" aria-pressed="false">cafe</button>
+            <button class="button" type="button" data-word="big idea" aria-pressed="false">big idea</button>
+            <button class="button" type="button" data-word="beach" aria-pressed="false">beach</button>
+            <button class="button" type="button" data-word="chief" aria-pressed="false">chief</button>
+            <button class="button" type="button" data-word="hide" aria-pressed="false">hide</button>
+            <button class="button" type="button" data-word="Hi Jade" aria-pressed="false">Hi Jade</button>
+            <button class="button" type="button" data-word="ABCDEFGHIJ abcdefghij" aria-pressed="false">All 20 letters</button>
+          </div>
+        </fieldset>
       </section>
       <div class="layout">
         <aside class="master" aria-labelledby="master-heading">
@@ -117,7 +186,7 @@
         </aside>
         <div>
           <section class="batch" aria-labelledby="uppercase-heading">
-            <div class="batch-header mono"><h2 id="uppercase-heading">01 / Uppercase A–J</h2><span>10 individually generated images</span></div>
+            <div class="batch-header mono"><h2 id="uppercase-heading">02 / Uppercase A–J</h2><span>10 individually generated images</span></div>
             <div class="glyph-grid">
               <button class="glyph-card" type="button" data-glyph="A" aria-label="Inspect uppercase A"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-A.png" width="1024" height="1024" alt="Generated uppercase A"><span class="caption"><span>A</span><span class="mono">Inspect ↗</span></span></button>
               <button class="glyph-card" type="button" data-glyph="B" aria-label="Inspect uppercase B"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-B.png" width="1024" height="1024" alt="Generated uppercase B"><span class="caption"><span>B</span><span class="mono">Inspect ↗</span></span></button>
@@ -132,7 +201,7 @@
             </div>
           </section>
           <section class="batch" aria-labelledby="lowercase-heading">
-            <div class="batch-header mono"><h2 id="lowercase-heading">02 / Lowercase a–j</h2><span>10 individually generated images</span></div>
+            <div class="batch-header mono"><h2 id="lowercase-heading">03 / Lowercase a–j</h2><span>10 individually generated images</span></div>
             <div class="glyph-grid">
               <button class="glyph-card" type="button" data-glyph="a" aria-label="Inspect lowercase a"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-a.png" width="1024" height="1024" alt="Generated lowercase a"><span class="caption"><span>a</span><span class="mono">Inspect ↗</span></span></button>
               <button class="glyph-card" type="button" data-glyph="b" aria-label="Inspect lowercase b"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-b.png" width="1024" height="1024" alt="Generated lowercase b"><span class="caption"><span>b</span><span class="mono">Inspect ↗</span></span></button>
@@ -146,7 +215,7 @@
               <button class="glyph-card" type="button" data-glyph="j" aria-label="Inspect lowercase j"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-j.png" width="1024" height="1024" alt="Generated lowercase j"><span class="caption"><span>j</span><span class="mono">Inspect ↗</span></span></button>
             </div>
           </section>
-          <p class="review-note">First review batch only. No K–Z generation, alphabet-sheet generation, or font rebuild is included here. Your original M is untouched. Choose which letter shapes belong to the family before these are traced into a font.</p>
+          <p class="review-note">First review batch only. The word hub uses these PNGs directly, including their original vertical placement, proportions, separate dots and descenders. It removes empty side margins for composition; spacing is a review control, not final font kerning. No K–Z generation or font rebuild is included here.</p>
         </div>
       </div>
     </main>
@@ -160,6 +229,7 @@
     </div>
     <div class="dialog-footer"><div class="paging"><button class="button" id="previous-letter" type="button">← Previous</button><button class="button" id="next-letter" type="button">Next →</button></div><a id="download-image" download>Download cleaned PNG ↙</a><a id="raw-image" target="_blank" rel="noopener" aria-label="Open the raw Fgen image in a new tab">Raw Fgen PNG ↗</a><span class="mono muted" id="letter-position" role="status"></span></div>
   </dialog>
+  <script src="../../genesis/REFERENCE/ribbon-font/individual-m/preview-metrics.js"></script>
   <script>
     const cards = Array.from(document.querySelectorAll('[data-glyph]'));
     const dialog = document.getElementById('letter-dialog');
@@ -191,6 +261,115 @@
         event.preventDefault();
         showLetter(currentIndex + (event.key === 'ArrowLeft' ? -1 : 1));
       }
+    });
+
+    const composer = document.getElementById('word-hub');
+    const controls = document.getElementById('word-controls');
+    const input = document.getElementById('word-input');
+    const word = document.getElementById('live-word');
+    const stage = document.getElementById('stage');
+    const message = document.getElementById('input-message');
+    const emptyMessage = document.getElementById('empty-message');
+    const status = document.getElementById('preview-status');
+    const size = document.getElementById('size');
+    const tracking = document.getElementById('tracking');
+    const initialMessage = message.textContent;
+    const metrics = window.ribbonStudyMetrics;
+    const images = new Map(cards.map(card => [card.dataset.glyph, card.querySelector('img')]));
+    let automaticFit = true;
+    let wordUnits = 0;
+    let letterCount = 0;
+
+    function updateSize(value) {
+      size.value = String(value);
+      composer.style.setProperty('--study-size', `${size.value}px`);
+      document.getElementById('size-value').textContent = `${size.value} px`;
+      size.setAttribute('aria-valuetext', `${size.value} pixels`);
+    }
+
+    function fitWord() {
+      if (!letterCount) return;
+      const width = wordUnits + Number(tracking.value) * (letterCount - 1);
+      updateSize(Math.max(Number(size.min), Math.min(Number(size.max), Math.floor((stage.clientWidth - 26) / Math.max(width, .01)))));
+    }
+
+    function updateWord() {
+      const characters = [...input.value];
+      const unsupported = [...new Set(characters.filter(character => character !== ' ' && !metrics.glyphs[character]))];
+      input.setAttribute('aria-invalid', String(unsupported.length > 0));
+      message.classList.toggle('error', unsupported.length > 0);
+      if (unsupported.length) {
+        message.textContent = `Not generated yet: ${unsupported.join(' ')}. Use A–J, a–j and spaces. Showing your last supported text.`;
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      wordUnits = 0;
+      letterCount = characters.length;
+      characters.forEach(character => {
+        const span = document.createElement('span');
+        span.className = 'composed-glyph';
+        span.setAttribute('aria-hidden', 'true');
+        if (character === ' ') {
+          span.classList.add('study-space');
+          wordUnits += .35;
+        } else {
+          const glyph = metrics.glyphs[character];
+          const units = glyph.canvasWidth * metrics.capHeight;
+          span.style.width = `${glyph.width / units}em`;
+          const image = document.createElement('img');
+          image.src = images.get(character).getAttribute('src');
+          image.alt = '';
+          image.style.width = `${glyph.canvasWidth / units}em`;
+          image.style.left = `${-glyph.left / units}em`;
+          span.append(image);
+          wordUnits += glyph.width / units;
+        }
+        fragment.append(span);
+      });
+      word.replaceChildren(fragment);
+      word.setAttribute('aria-label', input.value.trim() ? `Letter combination: ${input.value}` : 'No preview text');
+      emptyMessage.textContent = 'Type a word below';
+      emptyMessage.hidden = Boolean(input.value.trim());
+      message.textContent = initialMessage;
+      document.querySelectorAll('[data-word]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.word === input.value)));
+      if (automaticFit) fitWord();
+    }
+
+    input.addEventListener('input', updateWord);
+    document.getElementById('uppercase').addEventListener('click', () => { input.value = input.value.toUpperCase(); updateWord(); });
+    document.getElementById('lowercase').addEventListener('click', () => { input.value = input.value.toLowerCase(); updateWord(); });
+    size.addEventListener('input', () => { automaticFit = false; updateSize(size.value); });
+    tracking.addEventListener('input', () => {
+      composer.style.setProperty('--study-tracking', `${tracking.value}em`);
+      document.getElementById('tracking-value').textContent = `${Number(tracking.value).toFixed(3)} em`;
+      tracking.setAttribute('aria-valuetext', `${tracking.value} em`);
+      if (automaticFit) fitWord();
+    });
+    document.getElementById('fit').addEventListener('click', () => { automaticFit = true; fitWord(); stage.scrollLeft = 0; });
+    document.getElementById('guides').addEventListener('click', event => event.currentTarget.setAttribute('aria-pressed', String(stage.classList.toggle('guides'))));
+    document.querySelectorAll('[data-word]').forEach(button => button.addEventListener('click', () => {
+      input.value = button.dataset.word;
+      automaticFit = true;
+      updateWord();
+      stage.scrollLeft = 0;
+    }));
+    const resizeObserver = new ResizeObserver(() => { if (!controls.disabled && automaticFit) fitWord(); });
+    resizeObserver.observe(stage);
+    Promise.all([...images.values()].map(image => image.decode())).then(() => {
+      if (!metrics || cards.some(card => !metrics.glyphs[card.dataset.glyph])) throw new Error('Combination metrics are missing.');
+      composer.style.setProperty('--study-line-height', `${Math.max(...Object.values(metrics.glyphs).map(glyph => glyph.canvasHeight / glyph.canvasWidth)) / metrics.capHeight}em`);
+      composer.style.setProperty('--study-cap-line', `${metrics.capLine / metrics.capHeight}em`);
+      composer.style.setProperty('--study-baseline', `${metrics.baseline / metrics.capHeight}em`);
+      controls.disabled = false;
+      composer.setAttribute('aria-busy', 'false');
+      status.textContent = `${images.size} letters / PNG preview`;
+      updateWord();
+    }).catch(() => {
+      composer.setAttribute('aria-busy', 'false');
+      status.textContent = 'Preview unavailable';
+      emptyMessage.textContent = 'Letter preview unavailable';
+      message.textContent = 'Keep this HTML with the individual-m PNGs and preview-metrics.js, then reopen it. The individual images remain available below.';
+      message.classList.add('error');
     });
   </script>
 </body>

@@ -49,6 +49,33 @@ def clean_letter(image):
     return Image.fromarray(np.rint(antialiased * 255).astype("uint8")).convert("RGB")
 
 
+def _export_preview_metrics():
+    canvas = json.loads((REFERENCE / "style-measurements.json").read_text())["target_canvas"]
+    glyphs = {}
+    for letter in CONSTRUCTIONS:
+        case = "uppercase" if letter.isupper() else "lowercase"
+        source = REFERENCE / f"{case}-{letter}.png"
+        if not source.exists():
+            continue
+        with Image.open(source) as image:
+            bounds = image.convert("L").getbbox()
+            glyphs[letter] = {
+                "left": bounds[0],
+                "width": bounds[2] - bounds[0],
+                "canvasWidth": image.width,
+                "canvasHeight": image.height,
+            }
+    metrics = {
+        "capHeight": canvas["cap_height"] / canvas["width"],
+        "capLine": canvas["cap_line_y"] / canvas["width"],
+        "baseline": canvas["baseline_y"] / canvas["width"],
+        "glyphs": glyphs,
+    }
+    destination = REFERENCE / "preview-metrics.js"
+    destination.write_text("window.ribbonStudyMetrics = " + json.dumps(metrics, indent=2) + ";\n")
+    print(f"Saved combination preview metrics: {destination}", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate A–J and a–j individually with the original M attached to every Fgen call.")
     parser.add_argument("--letters", default="ABCDEFGHIJabcdefghij")
@@ -94,6 +121,7 @@ def main():
             cleaned = clean_letter(image)
         cleaned.save(destination, format="PNG")
         print(f"Saved {letter}: {destination} ({cleaned.width} × {cleaned.height}; raw generation retained)", flush=True)
+    _export_preview_metrics()
 
 
 if __name__ == "__main__":

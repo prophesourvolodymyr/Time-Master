@@ -1486,6 +1486,17 @@ The user rejected the stylistic mismatch between the separate alphabet sheets, i
 
 The backend returned twenty 1254 × 1254 images despite the requested 1024-square target. Both raw and cleaned versions are retained in `genesis/REFERENCE/ribbon-font/individual-m/`, alongside the untouched source row, the M reference, measured geometry, and every per-letter prompt. The generated D has an open bottom in both versions and remains a human-review decision. Existing app typography and installable font files are unchanged; product DOCKS.md updates and further letter generation await the user's review. No next implementation prompt is needed for this review batch.
 
+#### Word-Combination Hub
+
+- [x] Put a live word composer at the top of `junk/ribbon-font/individual-review.html`, using the twenty actual M-based PNGs rather than mixing in the earlier alphabet; preserve each image's proportions and original vertical placement while cropping empty side margins
+- [x] Add editable phrases, uppercase/lowercase actions, eight supported presets, size and letter-spacing sliders, fit, shared-grid guides, explicit unsupported-character feedback, and empty-input handling
+- [x] Export repeatable image crop and shared-grid measurements to `genesis/REFERENCE/ribbon-font/individual-m/preview-metrics.js` from the existing individual-letter generation pipeline; support both HTTP and direct-file opening without changing PNGs or font files
+- [x] Link the previous font preview directly to the new composition hub and individual-letter inspection sections
+- [x] Exercise all eight presets and all twenty images, native typing/case/deletion, unsupported-input recovery, keyboard size/spacing, negative spacing, fit, guides, modal paging/Escape, direct-file navigation, 320/390/768/1440-pixel layouts, 200% text at 320 pixels, and contained long-text scrolling; observe no page errors on HTTP or direct-file pages
+- [ ] Human review of the new word combinations, original image alignment, stroke continuity, and spacing before any font rebuild
+
+The composer is an image-based review surface, not a replacement installable font. It supports only A–J, a–j, and spaces from the new batch. Existing app typography, original images, and all earlier TTF, OTF, and WOFF2 files remain unchanged. No next implementation prompt is needed for this hub.
+
 ---
 
 ## Notes
