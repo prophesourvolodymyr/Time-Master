@@ -29,17 +29,19 @@ enum RankedFamily: String, CaseIterable, Identifiable {
 
 enum RankedVariation: String, Codable, CaseIterable, Identifiable {
     case standardPushUp, widePushUp, closePushUp, kneePushUp, pausedPushUp, tempoPushUp
+    case diamondPushUp, wallHandstandPushUp, freestandingHandstandPushUp, planchePushUp
     case standardSquat, wideSquat, narrowSquat, pausedSquat
     case forearmPlank, highPlank, leftSidePlank, rightSidePlank
 
-    static let pushUps: [Self] = [.standardPushUp, .widePushUp, .closePushUp, .kneePushUp, .pausedPushUp, .tempoPushUp]
+    static let pushUps: [Self] = [.standardPushUp, .widePushUp, .closePushUp, .kneePushUp, .pausedPushUp, .tempoPushUp, .diamondPushUp, .wallHandstandPushUp, .freestandingHandstandPushUp, .planchePushUp]
     static let squats: [Self] = [.standardSquat, .wideSquat, .narrowSquat, .pausedSquat]
     static let core: [Self] = [.forearmPlank, .highPlank, .leftSidePlank, .rightSidePlank]
 
     var id: String { rawValue }
     var family: RankedFamily {
         switch self {
-        case .standardPushUp, .widePushUp, .closePushUp, .kneePushUp, .pausedPushUp, .tempoPushUp: .pushUps
+        case .standardPushUp, .widePushUp, .closePushUp, .kneePushUp, .pausedPushUp, .tempoPushUp,
+             .diamondPushUp, .wallHandstandPushUp, .freestandingHandstandPushUp, .planchePushUp: .pushUps
         case .standardSquat, .wideSquat, .narrowSquat, .pausedSquat: .squats
         case .forearmPlank, .highPlank, .leftSidePlank, .rightSidePlank: .core
         }
@@ -47,6 +49,12 @@ enum RankedVariation: String, Codable, CaseIterable, Identifiable {
     var isTimedHold: Bool { family == .core }
     var battleRule: String { isTimedHold ? "60 seconds · Longest valid hold" : "60 seconds · Most complete reps" }
     var assetName: String { "Ranked_\(rawValue)" }
+    var isAdvanced: Bool {
+        switch self {
+        case .diamondPushUp, .wallHandstandPushUp, .freestandingHandstandPushUp, .planchePushUp: true
+        default: false
+        }
+    }
     var title: String {
         switch self {
         case .standardPushUp, .standardSquat: "Standard"
@@ -55,6 +63,10 @@ enum RankedVariation: String, Codable, CaseIterable, Identifiable {
         case .kneePushUp: "Knee"
         case .pausedPushUp, .pausedSquat: "Paused"
         case .tempoPushUp: "Tempo"
+        case .diamondPushUp: "Diamond"
+        case .wallHandstandPushUp: "Wall handstand"
+        case .freestandingHandstandPushUp: "Freestanding handstand"
+        case .planchePushUp: "Planche"
         case .wideSquat: "Wide-stance"
         case .narrowSquat: "Narrow-stance"
         case .forearmPlank: "Forearm plank"
@@ -72,6 +84,10 @@ enum RankedVariation: String, Codable, CaseIterable, Identifiable {
         case .kneePushUp: "Knees supported. Keep your torso straight."
         case .pausedPushUp: "Pause at the bottom before pushing up."
         case .tempoPushUp: "Lower slowly. Keep the movement controlled."
+        case .diamondPushUp: "Keep your hands together beneath your chest. Lower with control."
+        case .wallHandstandPushUp: "Keep the body vertical. Wall contact is allowed only in this variation."
+        case .freestandingHandstandPushUp: "Maintain a freestanding handstand without a wall or other support."
+        case .planchePushUp: "Keep both feet off the floor and your body horizontal throughout the movement."
         case .standardSquat: "Feet shoulder-width apart. Sit down and back."
         case .wideSquat: "Take a wider stance. Follow your toes with your knees."
         case .narrowSquat: "Bring your feet closer. Keep your heels grounded."

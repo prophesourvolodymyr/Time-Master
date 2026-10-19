@@ -1393,6 +1393,34 @@ This is the requested UI-only Ranked slice. Matchmaking, camera-based rep counti
 
 Both app targets built from the scoped publication source, preserving unrelated edits and deleted app entry points. The five existing regression cases ran unchanged against the production profile/ranked models, persistence, and navigation model declarations in an isolated macOS fixture. Native iPhone 16 Pro review used an isolated app identity on iOS 18.6, leaving the production app's data untouched. Existing build warnings remain. The updated Ranked screen is open for human review; competitive scoring, camera tracking, matchmaking, and online leaderboards remain outside this UI-only slice. Product DOCKS.md updates await acceptance; no next implementation prompt is needed.
 
+### Complete Ranked — Real Tracking and Production Completion Handoff
+
+**Incomplete. The user's latest direction requires real camera/movement tracking and the complete working competitive feature, not another UI-only pass. Earlier UI-only exclusions are superseded for the continuation. The font messages were explicitly withdrawn from this task.**
+
+- [x] Connect an initial illustrated setup, search, opponent-ready, countdown, duel, provisional-result, and match-details flow, with an in-memory recent-round list; this is not real tracking or competition
+- [x] Register the new model and native screens in both app targets and replace the obsolete standalone arena
+- [x] Build the then-current iOS Simulator and macOS source in a disposable copy, recovering the already-deleted app bootstrap only in that copy
+- [x] Exercise the native iPhone 16 happy path, running timer, result/details/Close, recent-round row, one slot consumed at Go, and no additional slot consumed on pre-Go cancellation using isolated app data
+- [x] Write the user-requested comprehensive continuation prompt: `prompts/ranked/Ranked-phase-2-production-completion.md`
+- [ ] Implement real camera capture, permissions, usable framing, calibration, lifecycle, and pose processing
+  - [ ] Implement actual per-variation repetition validation, including stance, full range, paused/tempo phases, and no counting from elapsed time
+  - [ ] Implement longest valid continuous-hold scoring for each Core movement, including independent left and right side planks
+  - [ ] Implement and evaluate advanced movement tracking, inverted poses, visible-assistance handling, and honest insufficient-evidence behavior
+- [ ] Implement real account/session integration and authoritative persisted competitive data
+  - [ ] Implement exercise-specific skill-based matchmaking, real cancellation/readiness, synchronized countdown, live opponent state, and reconnect/forfeit handling
+  - [ ] Implement real result verification, exactly-once finalization, and server-owned exercise-specific Elo
+  - [ ] Enforce separate push-up/squat ten-match rolling four-hour allowances across variations and devices
+  - [ ] Implement actual exercise leaderboards, earned rank collection, persistent recent matches, and match details
+  - [ ] Migrate local editable-level callers and backups safely; never promote manually chosen values into earned Elo
+- [ ] Finish the visual-first native UI, compact normal-phone duel HUD, real camera guidance, and matching artwork for the four advanced additions
+- [ ] Remove simulated scores/opponents/results, preview-state controls, sample standings, obsolete demo models, and test-UI notices through the real production cutover
+- [ ] Exercise real camera input and two authenticated participants, persistence/recovery/security boundaries, remaining native states, and relevant regressions; deploy the real service when authorized
+- [ ] Human review and acceptance of the complete Ranked feature
+
+The current code still generates scores from elapsed time, uses an invented opponent and hardcoded result ratings, stores competitive-looking rounds/allowances only in memory, and offers sample leaderboards. No real camera tracker, authenticated match service, competitive Elo, online standings, or assistance detector was proved. The four advanced movement entries currently use SF Symbols. On the normal 393-point iPhone layout, the HUD fell back to a tall timer-over-scores card and pushed feedback/finish below the initial viewport; the continuation must correct that hierarchy.
+
+Both app targets compiled from the then-current working source plus temporary bootstrap recovery, not a clean-HEAD production tree. The new native happy path was exercised, but hardware tracking, online competition, remaining recovery states, new macOS interaction, and this continuation's Ranked/Profile regression rerun remain unverified. The isolated smoke app was removed; no production saved-checkpoint action was taken. Existing build warnings remain. This handoff is the explicit user-requested next implementation scope, not a completion claim or human approval. Product DOCKS updates await acceptance.
+
 ---
 
 ## Cycle 37 — Direct EverStore Profile, Collectibles, Verification, and Settings Import

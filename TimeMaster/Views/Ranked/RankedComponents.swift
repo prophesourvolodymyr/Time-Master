@@ -22,7 +22,17 @@ struct RankedBadgeView: View {
 struct RankedMovementArt: View {
     let variation: RankedVariation
     var body: some View {
-        Image(variation.assetName).resizable().scaledToFit().accessibilityHidden(true)
+        Group {
+            if variation.isAdvanced {
+                Image(systemName: variation == .diamondPushUp ? "diamond" : "figure.gymnastics")
+                    .resizable().scaledToFit()
+                    .foregroundStyle(Theme.toolbarOrange.opacity(0.8))
+                    .padding(ProfileStyle.inset)
+            } else {
+                Image(variation.assetName).resizable().scaledToFit()
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -47,6 +57,12 @@ struct RankedMovementTile: View {
                 Text(mode == .practice ? "Practice" : elo.map { "\($0.formatted()) Elo" } ?? "Unplaced")
                     .font(TimeMasterFont.caption().monospacedDigit())
                     .foregroundStyle(isSelected ? .white : ProfileStyle.secondary)
+                if variation.isAdvanced {
+                    Text("Advanced · Verification research")
+                        .font(TimeMasterFont.micro())
+                        .foregroundStyle(ProfileStyle.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(ProfileStyle.spacing)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

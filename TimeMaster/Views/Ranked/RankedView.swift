@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum RankedLobbySheet: String, Identifiable {
-    case settings, ranks, loadout
+    case settings, ranks, loadout, rules, leaderboard, history, limit
     var id: String { rawValue }
 }
 
@@ -18,6 +18,7 @@ struct RankedView: View {
     let onOpenProfile: () -> Void
     @State private var sheet: RankedLobbySheet?
     @State private var showsBattle = false
+    @StateObject private var previewSession = RankedPreviewSession()
     @ScaledMetric(relativeTo: .body) private var tileWidth: CGFloat = 144
     @ScaledMetric(relativeTo: .title) private var badgeSize: CGFloat = 56
 
@@ -52,15 +53,21 @@ struct RankedView: View {
                 case .settings: SettingsView(isPresentedModally: true)
                 case .ranks: RankedTierGalleryView()
                 case .loadout: loadoutSheet
+                case .rules: RankedRulesView(variation: selection)
+                case .leaderboard: RankedLeaderboardView(initialVariation: selection)
+                case .history: RankedMatchHistoryView(session: previewSession)
+                case .limit:
+                    RankedMatchLimitView(family: selection.family, nextSlot: previewSession.nextSlot(for: selection.family),
+                                         isExample: previewSession.remaining(for: selection.family) > 0)
                 }
             }
 #if os(iOS)
             .fullScreenCover(isPresented: $showsBattle) {
-                RankedReadyRoomView(variation: selection, mode: mode)
+                RankedMatchFlowView(variation: selection, mode: mode, session: previewSession)
             }
 #else
             .sheet(isPresented: $showsBattle) {
-                RankedReadyRoomView(variation: selection, mode: mode)
+                RankedMatchFlowView(variation: selection, mode: mode, session: previewSession)
                     .frame(minWidth: ProfileStyle.readableWidth, minHeight: ProfileStyle.readableWidth)
             }
 #endif
@@ -187,7 +194,7 @@ struct RankedView: View {
                                 .font(TimeMasterFont.title())
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
-                            Text(selection.isTimedHold ? (mode == .duel ? "1V1 · HOLD TIME" : "SOLO · HOLD TIME") : (mode == .duel ? "1V1 · 60 SECONDS" : "SOLO · YOUR PACE"))
+                            Text(selection.isTimedHold ? (mode == .duel ? "1V1 · HOLD TIME" : "SOLO · HOLD TIME") : (mode == .duel ? "1V1 · 60 SECONDS" : "SOLO · PRACTICE"))
                                 .font(TimeMasterFont.caption())
                                 .foregroundStyle(Theme.toolbarOrange)
                         }
@@ -243,16 +250,47 @@ struct RankedView: View {
             .accessibilityLabel("Change battle mode and movement")
             .accessibilityValue("\(mode.title), \(selection.fullTitle)")
             .accessibilityIdentifier("ranked-loadout")
-            Button { showsBattle = true } label: {
+            HStack(spacing: ProfileStyle.spacing) {
+                Button { sheet = .rules } label: {
+                    Label("Rules", systemImage: "play.rectangle")
+                        .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+                }
+                .accessibilityIdentifier("ranked-rules")
+                Button { sheet = .leaderboard } label: {
+                    Label("Leaderboard", systemImage: "list.number")
+                        .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+                }
+                .accessibilityIdentifier("ranked-leaderboard")
+            }
+            .font(TimeMasterFont.caption())
+            .buttonStyle(TimeMasterCardButtonStyle())
+            Button {
+                if mode == .duel && previewSession.remaining(for: selection.family) == 0 { sheet = .limit }
+                else { showsBattle = true }
+            } label: {
                 Label(mode == .duel ? "BATTLE" : "PRACTICE", systemImage: mode == .duel ? "bolt.fill" : "play.fill")
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(TimeMasterToolbarWideButtonStyle())
-            .accessibilityLabel(mode == .duel ? "Enter battle preview" : "Enter practice preview")
+            .accessibilityLabel(mode == .duel ? "Enter matchmaking preview" : "Enter practice preview")
             .accessibilityIdentifier("ranked-battle")
-            Text("Preview only · No Elo change")
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(ProfileStyle.secondary)
+            HStack(spacing: ProfileStyle.spacing) {
+                Button { sheet = .history } label: {
+                    Label("Recent rounds", systemImage: "clock.arrow.circlepath")
+                        .frame(minHeight: ProfileStyle.touchTarget)
+                }
+                .accessibilityIdentifier("ranked-history")
+                Spacer(minLength: 0)
+                Button { sheet = .limit } label: {
+                    Text("\(previewSession.remaining(for: selection.family))/10 · Preview slots")
+                        .monospacedDigit().frame(minHeight: ProfileStyle.touchTarget)
+                }
+                .accessibilityIdentifier("ranked-allowance")
+            }
+            .buttonStyle(TimeMasterCardButtonStyle())
+            .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+            Text("UI preview · No live matchmaking or Elo change")
+                .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
                 .frame(maxWidth: .infinity)
         }
     }
