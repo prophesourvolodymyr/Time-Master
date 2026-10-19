@@ -1409,6 +1409,22 @@ The latest Profile correction is displayed with one side indicator on each side 
 
 ---
 
+## Ribbon Font Specimen — 2026-10-19
+
+**Standalone typography experiment requested by the user; ready for human review, not human-verified.**
+
+- [x] Preserve the supplied PNG unchanged in `genesis/REFERENCE/ribbon-font/source.png`
+- [x] Trace the original A M N V W and a m n v w silhouettes without redesigning them, retaining their shared scale, lowercase proportions, and internal holes
+- [x] Generate installable TTF and cubic-outline OTF files plus a WOFF2 webfont, with only the supplied ten letters and space
+- [x] Create `junk/ribbon-font/index.html` with editable words, mama/wanna/Anna/VAN/MAN/AW examples, case controls, size and spacing sliders, fit, guides, inversion, original-image comparison, and font downloads
+- [x] Exercise the actual HTML over HTTP and directly from disk, including mobile widths, unsupported and empty input, keyboard-operated sliders, long-text containment, original-image loading, and all three font-file URLs
+- [x] Compare both outline formats against all ten source silhouettes; each exceeds 98% pixel overlap and differs only within one original pixel at contour edges
+- [ ] Human review of the extracted letterforms, word spacing, and HTML specimen
+
+The reproducible extractor is `junk/ribbon-font/build_font.py`. The reference is byte-identical to the supplied PNG. The browser loaded the actual WOFF2 with no page errors; the preview has no page-wide overflow at 320, 390, and 1440 pixels. Existing app fonts and unrelated working-tree changes are untouched. No app integration or additional letters are included. Product DOCKS.md changes await human acceptance; no next implementation prompt is needed for this request.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
