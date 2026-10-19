@@ -1440,6 +1440,20 @@ The reproducible extractor is `junk/ribbon-font/build_font.py`. The reference is
 
 The font now contains A through R plus V and W, in both cases, and space. S T U X Y Z, their lowercase forms, numbers, and punctuation remain unavailable rather than synthesized or substituted. All three new reference copies are byte-identical to the supplied PNGs. Existing app typography is unchanged. Product DOCKS.md changes await human acceptance; no next implementation prompt is needed for this batch.
 
+### Batch 3 — Complete Uppercase and Lowercase Alphabet
+
+- [x] Preserve the final supplied sheet unchanged in `genesis/REFERENCE/ribbon-font/source-stuxyz.png`
+- [x] Add S T U X Y Z and s t u x y z using one uniform sheet scale, retaining the original terminals, lowercase t ascender, and lowercase y descender
+- [x] Rebuild TTF, cubic-outline OTF, and WOFF2 version 1.200 with all fifty-two ASCII letterforms and space; preserve the previous forty outlines and their spacing exactly
+- [x] Open the HTML specimen with TimeMaster in the custom font, add style/STUDY/future/fuzzy/lazy examples, and include mixed-case and all-capital sentences that each contain every letter
+- [x] Show the complete uppercase and lowercase alphabet, include the fifth original-image comparison, and retain accurate unsupported-character handling without synthesized numbers, punctuation, or accents
+- [x] Exercise the actual HTTP and direct-file previews, all fifteen word/app-name/sentence presets, both case actions, supported and rejected input, native empty-input deletion, keyboard size/spacing, fit, guides, inversion, source loading, and font-file URLs
+- [x] Check 320-, 390-, 701-, 768-, and 1440-pixel layouts without page, word-card, or alphabet-cell overflow; observe no JavaScript page errors
+- [x] Compare all fifty-two glyphs in both outline formats with independent source crops, preserving every original component and hole with more than 98% silhouette overlap and contour differences within one source pixel
+- [ ] Human review of the final twelve glyphs, complete alphabet, TimeMaster wordmark appearance, sentence samples, and spacing
+
+The supplied A–Z and a–z alphabet is now represented in the font. Space is supported; numbers, punctuation, accented letters, and other scripts are not included. The final reference is byte-identical to the supplied PNG, and existing app typography remains unchanged. Product DOCKS.md changes await human acceptance; no next implementation prompt is needed for this batch.
+
 ---
 
 ## Notes

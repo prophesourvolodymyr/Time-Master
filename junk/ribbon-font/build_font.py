@@ -26,6 +26,7 @@ SHEETS = (
     ("source-fghij.png", "FGHIJ", "FHI", "fhi"),
     ("source-klopq.png", "KLOPQ", "KLOP", "klo"),
     ("source-bcder.png", "BCDER", "BCDE", "bcder"),
+    ("source-stuxyz.png", "STUXYZ", "STUXYZ", "stuxz"),
 )
 UPPERCASE = "".join(sorted("".join(sheet[1] for sheet in SHEETS)))
 CHARACTERS = UPPERCASE + UPPERCASE.lower()
@@ -147,11 +148,11 @@ def build_font(outlines, metrics, x_height, ascent, descent, output, is_ttf):
     builder.setupNameTable({
         "familyName": "Ribbon Specimen",
         "styleName": "Regular",
-        "uniqueFontIdentifier": "RibbonSpecimen-Regular-1.100",
+        "uniqueFontIdentifier": "RibbonSpecimen-Regular-1.200",
         "fullName": "Ribbon Specimen Regular",
         "psName": "RibbonSpecimen-Regular",
-        "version": "Version 1.100",
-        "description": f"{len(CHARACTERS)} glyphs traced from four supplied PNG sheets. {UPPERCASE} and lowercase; space. No other characters are supplied.",
+        "version": "Version 1.200",
+        "description": f"{len(CHARACTERS)} glyphs traced from {len(SHEETS)} supplied PNG sheets. {UPPERCASE} and lowercase; space. No other characters are supplied.",
     })
     builder.setupOS2(
         version=4,
@@ -164,7 +165,7 @@ def build_font(outlines, metrics, x_height, ascent, descent, output, is_ttf):
     builder.font["head"].created = 3875212800
     builder.font["head"].modified = 3875212800
     builder.font.recalcTimestamp = False
-    builder.font["head"].fontRevision = 1.1
+    builder.font["head"].fontRevision = 1.2
     destination = output / ("ribbon-specimen.ttf" if is_ttf else "ribbon-specimen.otf")
     builder.save(destination)
     print(f"Created {destination.name}: {destination.stat().st_size:,} bytes")
