@@ -1471,6 +1471,21 @@ The font now contains A through R plus V and W, in both cases, and space. S T U 
 
 The supplied A–Z and a–z alphabet is now represented in the font. Space is supported; numbers, punctuation, accented letters, and other scripts are not included. The final reference is byte-identical to the supplied PNG, and existing app typography remains unchanged. Product DOCKS.md changes await human acceptance; no next implementation prompt is needed for this batch.
 
+### Batch 4 — Individual M-Based Letter Studies
+
+The user rejected the stylistic mismatch between the separate alphabet sheets, identified the original M as the design master, and explicitly requested one letter per Fgen generation. The first review batch is ten capitals and ten lowercase letters, A–J and a–j; no font rebuild is part of this review batch. The earlier one-image alphabet attempt is discarded.
+
+- [x] Measure the original M's 275 × 175 pixel bounds, 1.571 width-to-height ratio, approximately 22% median interior stroke, and approximately 61° main rising diagonal; preserve the untouched source row and an isolated, proportionally enlarged M reference
+- [x] Generate uppercase A–J as individual PNGs with a separate Fgen call per letter and the same original M reference; refine A to retain the original open crossbar
+- [x] Generate lowercase a–j as individual PNGs with a separate Fgen call per letter and the same original M reference
+- [x] Retain all twenty raw Fgen images and individual prompts, remove gray halos and stray edge pixels from the review PNGs, and preserve the generated bowls, open terminals, and separate i/j dots without stretching or rescaling the letters
+- [x] Create `junk/ribbon-font/individual-review.html` with the twenty PNGs, measured master geometry, larger side-by-side M comparisons, keyboard paging, native modal focus isolation, cleaned PNG downloads, and raw-image links
+- [x] Link the earlier font preview to the new letter review while leaving all existing TTF, OTF, and WOFF2 bytes unchanged
+- [x] Exercise all twenty HTTP image comparisons and raw-image links, native PNG downloading, direct-file loading and navigation, Escape/focus restoration, 320/390/700/768/1440-pixel layouts, and 200% text at 320 pixels; fix modal caption overflow and observe no page errors
+- [ ] Human acceptance of the individual letter studies' style continuity, smoothness, stroke weight, and proportions before any font rebuild
+
+The backend returned twenty 1254 × 1254 images despite the requested 1024-square target. Both raw and cleaned versions are retained in `genesis/REFERENCE/ribbon-font/individual-m/`, alongside the untouched source row, the M reference, measured geometry, and every per-letter prompt. The generated D has an open bottom in both versions and remains a human-review decision. Existing app typography and installable font files are unchanged; product DOCKS.md updates and further letter generation await the user's review. No next implementation prompt is needed for this review batch.
+
 ---
 
 ## Notes

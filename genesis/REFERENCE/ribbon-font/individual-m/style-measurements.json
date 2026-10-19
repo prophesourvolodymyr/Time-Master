@@ -1,0 +1,46 @@
+{
+  "authority": "Original M in the user-provided AMNVW screenshot",
+  "measured": {
+    "M bounds": [
+      260,
+      73,
+      535,
+      248
+    ],
+    "M width": 275,
+    "M height": 175,
+    "width / height": 1.5714,
+    "interior thickness px p25/median/p75": [
+      29.73,
+      38.47,
+      43.27
+    ],
+    "median thickness / height": 0.2198,
+    "left diagonal degrees above horizontal": 60.88,
+    "rightward rise dx / dy": 0.5571,
+    "M filled proportion of bounds": 0.3455
+  },
+  "target_canvas": {
+    "width": 1024,
+    "height": 1024,
+    "cap_line_y": 232,
+    "baseline_y": 792,
+    "cap_height": 560,
+    "lowercase_x_height": 406,
+    "descender_limit_y": 938
+  },
+  "scale_note": "The M reference is enlarged uniformly by 3.2; lowercase metrics are design targets, not measurements of the supplied uppercase screenshot.",
+  "inferred_shape_rules": [
+    "Asymmetric continuous ribbon with gentle thick-to-thin modulation",
+    "Soft crests and deep clean concave turns",
+    "Rounded-flat terminals and relaxed curved feet",
+    "Natural proportional widths; no geometric bubble forms"
+  ],
+  "raster_cleanup": {
+    "foreground_threshold": 220,
+    "minimum_component_fraction_of_largest": 0.1,
+    "smoothing_sigma_pixels": 1,
+    "preservation": "The raw generation is retained in raw/. The image canvas, glyph scale, and baseline position are unchanged; cleanup only isolates the white fill, removes stray components, and antialiases the edges."
+  },
+  "review_scope": "A\u2013J and a\u2013j; a separate Fgen call and separate PNG per letter; no font changes before user review"
+}
