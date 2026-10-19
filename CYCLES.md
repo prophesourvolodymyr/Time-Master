@@ -1278,6 +1278,19 @@ Native probing and screenshots stopped at the user's request. The final Home and
 
 Both platform builds passed using the committed app entry points, preserving unrelated working-tree changes. The headless macOS smoke instantiated the actual selector, opening-handle, and inset-control views and checked their layout at two requested text-size environments. macOS kept the same measured control sizes, so this is not evidence of iOS accessibility-size rendering. No simulator interactions, screenshots, live AI requests, or device haptic checks were performed. Existing build warnings remain. Product DOCKS.md updates remain deferred until acceptance.
 
+### Minimal surfaces and original glass controls — 2026-10-18
+
+- [x] Replace the new outlined-gradient selectors with solid orange selected fills and quiet neutral unselected surfaces
+- [x] Flatten Database, Workouts, and AI cards; remove nested workout metric boxes and AI prompt boxes while retaining their real actions
+- [x] Give the workout editor calm dark section/set/rest surfaces and restrained orange actions while retaining its existing hierarchy, header controls, progress cues, editing, drag/reorder, and music entry
+- [x] Remove Schedule's redundant viewport clamp and allow the shared primary scroll surface to render behind the curved navigation menu, retaining its reserved bottom clearance and actual arc
+- [x] Remove decorative page/header lines from Home, Schedule, Database, Workouts, Analytics, the workout picker/browser, and the music library, including their unused separator height
+- [x] Restore the existing private-glass implementation to expandable page and workout-header buttons, keeping Reduce Transparency and unavailable-renderer fallbacks
+- [x] Build iOS Simulator and macOS and run a headless native smoke for selected/unselected control sizes, expanded/collapsed glass controls, arc coverage, and the actual unclipped scroll viewport
+- [ ] Human acceptance of the revised styling, editor balance, curved menu underlap, and restored glass appearance
+
+The isolated task-only iOS and macOS builds passed. The native smoke measured 44-point selectors, 108-point expanded and 48-point compact glass controls, correct transparent-above-arc and bottom-safe-area geometry, and a real scroll viewport with both scroll and clip views unclipped. macOS hosted the smoke in an unshown window; no screenshots or simulator interactions were used. This verifies layout and layer configuration, not final iOS appearance, interaction feel, or private-glass frame rate. Existing build warnings remain. Original Home content/card styling and semantic workout rails and timeline guides remain unchanged. Product documentation awaits acceptance.
+
 ---
 
 ## Notes

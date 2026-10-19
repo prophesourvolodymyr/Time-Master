@@ -56,7 +56,6 @@ struct AnalyticsView: View {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 0) {
                     typePicker
-                    Divider().background(Theme.separator)
                     analyticsScroll
                 }
             }
@@ -815,7 +814,6 @@ struct CalendarPage: View {
             VStack(spacing: 0) {
                 calendarHeader
                     .padding(20)
-                Divider().overlay(Theme.separator)
                 ScrollView {
                     VStack(spacing: 20) {
                         periodNavigation

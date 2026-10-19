@@ -147,7 +147,7 @@ struct WorkoutListView: View {
                 collapsedRowHeight: 48,
                 expandedControlWidthCap: .infinity,
                 expandedControlHeightCap: Self.trackingControlMaxHeight,
-                pinnedFooterHeight: selectorRowHeight + 1
+                pinnedFooterHeight: selectorRowHeight
                     + statsTileHeight + 12
                     + (store.hasWeeklyGoal ? weeklyGoalRowHeight : 0)
             )
@@ -299,8 +299,6 @@ struct WorkoutListView: View {
                 weeklyGoalRow(metrics: metrics)
             }
 
-            TimeMasterGlassDivider()
-                .padding(.horizontal, metrics.horizontalPadding)
 
             filterBar
         }
@@ -378,7 +376,7 @@ struct WorkoutListView: View {
         }
         .padding(.horizontal, 6)
         .frame(width: metrics.expandedControlWidth, height: statsTileHeight)
-        .modifier(TimeMasterCardSurface(cornerRadius: 16))
+        .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityValue(value)
@@ -399,7 +397,7 @@ struct WorkoutListView: View {
                 .tint(Theme.toolbarOrange)
         }
         .padding(12)
-        .modifier(TimeMasterCardSurface(cornerRadius: 16))
+        .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
         .padding(.horizontal, metrics.horizontalPadding)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
@@ -431,7 +429,7 @@ struct WorkoutListView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .modifier(TimeMasterCardSurface(cornerRadius: 14))
+        .modifier(TimeMasterCardSurface(cornerRadius: 14, flat: true))
     }
 
     @ViewBuilder
@@ -460,7 +458,7 @@ struct WorkoutListView: View {
                 .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: true))
             }
             .padding(14)
-            .modifier(TimeMasterCardSurface(emphasized: true))
+            .modifier(TimeMasterCardSurface(emphasized: true, flat: true))
         }
     }
 

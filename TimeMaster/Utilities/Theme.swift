@@ -32,30 +32,44 @@ struct TimeMasterCardSurface: ViewModifier {
     var cornerRadius: CGFloat = 20
     var accent: Color = Theme.toolbarOrange
     var emphasized = false
+    var flat = false
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         content
             .background {
-                shape.fill(
-                    LinearGradient(colors: [Theme.surface2, Theme.surface],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
-                shape.fill(
-                    LinearGradient(colors: [accent.opacity(emphasized ? 0.12 : 0), .clear],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
+                if flat {
+                    shape.fill(Theme.surface)
+                } else {
+                    shape.fill(
+                        LinearGradient(colors: [Theme.surface2, Theme.surface],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                    shape.fill(
+                        LinearGradient(colors: [accent.opacity(emphasized ? 0.12 : 0), .clear],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                }
             }
             .overlay {
-                shape.strokeBorder(
-                    LinearGradient(
-                        colors: [emphasized ? accent.opacity(0.65) : .white.opacity(contrast == .increased ? 0.5 : 0.2),
-                                 .white.opacity(contrast == .increased ? 0.3 : 0.06)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-                .allowsHitTesting(false)
+                if flat {
+                    shape.strokeBorder(
+                        contrast == .increased ? .white.opacity(0.5)
+                            : emphasized ? accent.opacity(0.3) : Theme.separator,
+                        lineWidth: 1
+                    )
+                    .allowsHitTesting(false)
+                } else {
+                    shape.strokeBorder(
+                        LinearGradient(
+                            colors: [emphasized ? accent.opacity(0.65) : .white.opacity(contrast == .increased ? 0.5 : 0.2),
+                                     .white.opacity(contrast == .increased ? 0.3 : 0.06)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                    .allowsHitTesting(false)
+                }
             }
     }
 }
@@ -78,19 +92,14 @@ struct TimeMasterSelectionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(isSelected ? .semibold : .medium))
-            .foregroundStyle(Theme.textPrimary)
+            .foregroundStyle(isSelected ? Theme.background : Theme.textPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .frame(minHeight: 44)
-            .modifier(TimeMasterCardSurface(cornerRadius: 14, emphasized: isSelected))
-            .overlay(alignment: .bottom) {
-                Capsule()
-                    .fill(Theme.toolbarOrange)
-                    .frame(width: 18, height: 2)
-                    .padding(.bottom, 4)
-                    .opacity(isSelected ? 1 : 0)
-                    .allowsHitTesting(false)
-            }
+            .background(
+                isSelected ? Theme.toolbarOrange : Theme.surface2,
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
             .opacity(configuration.isPressed ? 0.72 : 1)
     }
 }
@@ -101,7 +110,7 @@ struct TimeMasterInsetControlStyle: ButtonStyle {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Theme.textPrimary)
             .frame(minWidth: 44, minHeight: 44)
-            .modifier(TimeMasterCardSurface(cornerRadius: 12))
+            .modifier(TimeMasterCardSurface(cornerRadius: 12, flat: true))
             .opacity(configuration.isPressed ? 0.72 : 1)
     }
 }
@@ -114,7 +123,7 @@ struct TimeMasterDisclosureIndicator: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Theme.textPrimary.opacity(0.8))
             .frame(width: 44, height: 44)
-            .modifier(TimeMasterCardSurface(cornerRadius: 12))
+            .modifier(TimeMasterCardSurface(cornerRadius: 12, flat: true))
             .accessibilityHidden(true)
     }
 }
@@ -305,15 +314,6 @@ struct TimeMasterBackButton: View {
     }
 }
 
-struct TimeMasterGlassDivider: View {
-    var body: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .overlay(Color.white.opacity(0.12))
-            .frame(height: 1)
-            .accessibilityHidden(true)
-    }
-}
 
 struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled

@@ -251,7 +251,6 @@ struct MusicLibraryScreen: View {
                     .padding(.horizontal, 8).padding(.bottom, 8)
                 }
                 .scrollEdgeFade(.horizontal)
-                Divider().overlay(Theme.separator)
                 if let destination {
                     ScrollView {
                         LazyVStack(spacing: 7) {

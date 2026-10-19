@@ -562,7 +562,7 @@ struct DatabaseView: View {
 
     private var databaseV2Content: some View {
         ScrollingChrome(metrics: { width in
-            ScrollingChromeMetrics(width: width, pinnedFooterHeight: selectorRowHeight + 1)
+            ScrollingChromeMetrics(width: width, pinnedFooterHeight: selectorRowHeight)
         }) { _ in
             if store.rootPages.isEmpty {
                 v2EmptyState
@@ -591,8 +591,6 @@ struct DatabaseView: View {
             }
             .frame(height: height, alignment: .top)
 
-            TimeMasterGlassDivider()
-                .padding(.horizontal, metrics.horizontalPadding)
             filterChipsRow
         }
         .background(Theme.background.ignoresSafeArea(edges: .top))
@@ -600,9 +598,9 @@ struct DatabaseView: View {
 
     private var databaseChrome: some View {
         GeometryReader { proxy in
-            databaseChrome(progress: 1, metrics: ScrollingChromeMetrics(width: proxy.size.width, pinnedFooterHeight: selectorRowHeight + 1))
+            databaseChrome(progress: 1, metrics: ScrollingChromeMetrics(width: proxy.size.width, pinnedFooterHeight: selectorRowHeight))
         }
-        .frame(height: ScrollingChromeMetrics(width: 0).collapsedRowHeight + selectorRowHeight + 1)
+        .frame(height: ScrollingChromeMetrics(width: 0).collapsedRowHeight + selectorRowHeight)
     }
 
     private var oneHandedActions: [ReachabilityAction] {
@@ -1108,7 +1106,7 @@ struct DatabaseView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .modifier(TimeMasterCardSurface())
+        .modifier(TimeMasterCardSurface(flat: true))
         .padding(.leading, CGFloat(min(entry.depth, 4) * 12))
         .padding(.horizontal, 16)
     }

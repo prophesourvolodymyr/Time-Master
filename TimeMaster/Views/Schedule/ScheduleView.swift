@@ -8,7 +8,6 @@ struct ScheduleView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @Binding var week: Date
     @State private var sheet: Sheet?
     @State private var playerWorkout: Workout?
@@ -41,18 +40,12 @@ struct ScheduleView: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { proxy in
-                let visibleHeight = navigationBounds.map {
-                    min(proxy.size.height, max(0, $0.maxY - proxy.frame(in: .global).minY))
-                } ?? proxy.size.height
-                Group {
-                    if store.scheduleIsLoaded {
-                        timeline
-                    } else {
-                        loadError
-                    }
+            Group {
+                if store.scheduleIsLoaded {
+                    timeline
+                } else {
+                    loadError
                 }
-                .frame(height: visibleHeight, alignment: .top)
             }
             .background(Theme.background)
             .navigationTitle("")
@@ -151,7 +144,6 @@ struct ScheduleView: View {
                 .oneHandedActionSource()
             }
             .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
-            TimeMasterGlassDivider()
         }
         .padding(.horizontal, metrics.horizontalPadding)
         .background(Theme.background)
@@ -173,7 +165,7 @@ struct ScheduleView: View {
             ScrollingChrome(onScrollOffset: { offset in
                 pullArmed = offset < -88 && !pullFired
             }, metrics: { width in
-                var metrics = ScrollingChromeMetrics(width: min(width, 980), collapsedRowHeight: toolbarHeight, pinnedFooterHeight: 1)
+                var metrics = ScrollingChromeMetrics(width: min(width, 980), collapsedRowHeight: toolbarHeight, pinnedFooterHeight: 0)
                 if dynamicTypeSize.isAccessibilitySize {
                     metrics.collapsedRowHeight += metrics.compactControlSize + metrics.expandedControlPadding
                 }

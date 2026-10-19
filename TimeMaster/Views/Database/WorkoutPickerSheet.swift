@@ -35,7 +35,6 @@ struct WorkoutPickerSheet: View {
                 } else {
                     VStack(spacing: 0) {
                         configSummary
-                        Divider().background(Theme.separator)
                         workoutList
                     }
                 }

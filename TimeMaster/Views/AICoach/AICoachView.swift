@@ -103,7 +103,7 @@ struct AICoachView: View {
                 .truncationMode(.middle)
         }
         .padding(12)
-        .modifier(TimeMasterCardSurface(cornerRadius: 16))
+        .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
@@ -240,7 +240,7 @@ private struct EmptyCoachState: View {
                     .font(.title2)
                     .foregroundStyle(Theme.toolbarOrange)
                     .frame(width: 52, height: 52)
-                    .modifier(TimeMasterCardSurface(cornerRadius: 16, emphasized: true))
+                    .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
                     .accessibilityHidden(true)
                 Text("How can I help?")
                     .font(.title2.bold())
@@ -257,7 +257,7 @@ private struct EmptyCoachState: View {
             }
         }
         .padding(20)
-        .modifier(TimeMasterCardSurface())
+        .modifier(TimeMasterCardSurface(flat: true))
     }
 
     private func prompt(_ title: String, symbol: String) -> some View {
@@ -276,7 +276,7 @@ private struct EmptyCoachState: View {
             }
             .padding(12)
             .frame(minHeight: 44)
-            .modifier(TimeMasterCardSurface(cornerRadius: 14))
+            .contentShape(Rectangle())
         }
         .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityHint("Adds this prompt to your message")
@@ -352,7 +352,7 @@ private struct MessageBubble: View {
                 }
             }
         }
-        .modifier(TimeMasterCardSurface(cornerRadius: 20, emphasized: isUser))
+        .modifier(TimeMasterCardSurface(cornerRadius: 20, flat: true))
     }
 
     @ViewBuilder
@@ -549,7 +549,7 @@ private struct ChatInputBar: View {
             }
         }
         .padding(12)
-        .modifier(TimeMasterCardSurface())
+        .modifier(TimeMasterCardSurface(flat: true))
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
         .background(Theme.background)
@@ -585,7 +585,7 @@ private struct ReplyStripView: View {
             .buttonStyle(TimeMasterInsetControlStyle())
         }
         .padding(10)
-        .modifier(TimeMasterCardSurface(cornerRadius: 14))
+        .modifier(TimeMasterCardSurface(cornerRadius: 14, flat: true))
     }
 }
 
@@ -612,7 +612,7 @@ private struct PendingAttachmentStrip: View {
             .buttonStyle(TimeMasterInsetControlStyle())
         }
         .padding(10)
-        .modifier(TimeMasterCardSurface(cornerRadius: 14))
+        .modifier(TimeMasterCardSurface(cornerRadius: 14, flat: true))
     }
 }
 
@@ -643,7 +643,7 @@ struct SessionsListSheet: View {
                             .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: true))
                         }
                         .padding(24)
-                        .modifier(TimeMasterCardSurface())
+                        .modifier(TimeMasterCardSurface(flat: true))
                         .padding(16)
                     } else {
                         List {
@@ -698,18 +698,17 @@ private struct SessionRowView: View {
         HStack(spacing: 12) {
             Image(systemName: isCurrent ? "checkmark.bubble.fill" : "bubble.left")
                 .font(.title3)
-                .foregroundStyle(isCurrent ? Theme.toolbarOrange : Theme.textSecondary)
+                .foregroundStyle(isCurrent ? Theme.background : Theme.textSecondary)
                 .frame(width: 44, height: 44)
-                .modifier(TimeMasterCardSurface(cornerRadius: 12))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.title.isEmpty ? "New conversation" : session.title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(isCurrent ? Theme.background : Theme.textPrimary)
                     .lineLimit(2)
                 Text(session.lastUserPreview.isEmpty ? "No messages yet" : session.lastUserPreview)
                     .font(.caption)
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(isCurrent ? Theme.background.opacity(0.7) : Theme.textSecondary)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -718,10 +717,13 @@ private struct SessionRowView: View {
                 Text("\(session.visibleCount) messages")
             }
             .font(.caption2)
-            .foregroundStyle(Theme.textSecondary)
+            .foregroundStyle(isCurrent ? Theme.background.opacity(0.7) : Theme.textSecondary)
         }
         .padding(12)
-        .modifier(TimeMasterCardSurface(cornerRadius: 16, emphasized: isCurrent))
+        .background(
+            isCurrent ? Theme.toolbarOrange : Theme.surface,
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
     }
 }
 
@@ -739,7 +741,7 @@ private struct ToolCallIndicator: View {
                 .tint(Theme.toolbarOrange)
                 .foregroundStyle(Theme.textSecondary)
                 .padding(12)
-                .modifier(TimeMasterCardSurface(cornerRadius: 16))
+                .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
             Spacer(minLength: 52)
         }
     }
@@ -789,7 +791,7 @@ private struct ApprovalCardView: View {
             }
         }
         .padding(16)
-        .modifier(TimeMasterCardSurface(emphasized: true))
+        .modifier(TimeMasterCardSurface(flat: true))
     }
 
     private var iconName: String {

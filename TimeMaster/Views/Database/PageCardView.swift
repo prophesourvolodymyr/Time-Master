@@ -43,7 +43,7 @@ struct PageCardView: View {
             coverHeroGrid
             infoGrid
         }
-        .modifier(TimeMasterCardSurface())
+        .modifier(TimeMasterCardSurface(flat: true))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contextMenu { contextMenuContent }
     }

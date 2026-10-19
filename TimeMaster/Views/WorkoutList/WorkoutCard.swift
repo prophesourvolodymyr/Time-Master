@@ -63,7 +63,7 @@ struct WorkoutCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .modifier(TimeMasterCardSurface(emphasized: isResumable))
+        .modifier(TimeMasterCardSurface(emphasized: isResumable, flat: true))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(workout.name), \(durationText(workout.totalDuration)), \(exerciseCount) \(isStretchWorkout ? "stretches" : "exercises")")
@@ -101,9 +101,7 @@ struct WorkoutCard: View {
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(2)
         }
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity, minHeight: 44)
-        .modifier(TimeMasterCardSurface(cornerRadius: 12))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func scheduleBadge(_ schedule: ScheduledWorkout) -> some View {

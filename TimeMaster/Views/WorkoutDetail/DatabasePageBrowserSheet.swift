@@ -465,8 +465,6 @@ struct DatabasePageBrowserSheet: View {
 
     private var previewBar: some View {
         VStack(spacing: 0) {
-            Divider().background(Theme.separator)
-
             VStack(alignment: .leading, spacing: 8) {
                 if let page = previewPage {
                     HStack {
@@ -525,8 +523,6 @@ struct DatabasePageBrowserSheet: View {
 
     private var bundleBar: some View {
         VStack(spacing: 0) {
-            Divider().background(Theme.separator)
-
             VStack(spacing: 8) {
                 let selectedSources = selectedBundleSources
                 Text("\(selectedSources.count) items selected")

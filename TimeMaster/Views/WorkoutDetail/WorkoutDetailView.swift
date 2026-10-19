@@ -332,7 +332,7 @@ struct WorkoutDetailView: View {
                 .foregroundColor(.black)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 14)
-                .background(Color.white)
+                .background(Theme.toolbarOrange)
                 .cornerRadius(12)
             }
             .padding(.top, 8)
@@ -347,7 +347,7 @@ struct WorkoutDetailView: View {
                 .foregroundColor(.white.opacity(0.7))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.3), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.separator, lineWidth: 1))
             }
         }
     }
@@ -399,11 +399,7 @@ struct WorkoutDetailView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Theme.separator, lineWidth: 1)
-        }
+        .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .accessibilityElement(children: .ignore)
@@ -1020,8 +1016,7 @@ struct WorkoutDetailView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(14)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .modifier(TimeMasterCardSurface(cornerRadius: 12, flat: true))
     }
 
     private func sectionSummary(_ section: Section) -> String {
@@ -1065,7 +1060,7 @@ struct WorkoutDetailView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background(Theme.surface2)
+        .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
@@ -1076,7 +1071,7 @@ struct WorkoutDetailView: View {
                     text: formatCompactDuration(slot.duration),
                     title: "Set \(index + 1) duration",
                     seconds: slot.duration,
-                    foreground: .black
+                    foreground: Theme.textPrimary
                 ) {
                     durationEdit = DurationEditTarget(
                         title: "Set \(index + 1) duration",
@@ -1099,11 +1094,11 @@ struct WorkoutDetailView: View {
                 VStack(spacing: 2) {
                     Text(slot.displayName)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     Text("Set \(index + 1)")
                         .font(.caption2.weight(.medium))
-                        .foregroundColor(.black.opacity(0.56))
+                        .foregroundColor(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -1131,7 +1126,7 @@ struct WorkoutDetailView: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.caption.weight(.bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(Theme.textSecondary)
                         .frame(width: 28, height: 28)
                 }
                 .menuStyle(.borderlessButton)
@@ -1151,7 +1146,7 @@ struct WorkoutDetailView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(12)
-        .background(Color.white)
+        .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
@@ -1162,7 +1157,7 @@ struct WorkoutDetailView: View {
                     text: formatCompactDuration(drop.duration),
                     title: "\(drop.displayName) duration",
                     seconds: drop.duration,
-                    foreground: .black
+                    foreground: Theme.textPrimary
                 ) {
                     durationEdit = DurationEditTarget(
                         title: "\(drop.displayName) duration",
@@ -1185,11 +1180,11 @@ struct WorkoutDetailView: View {
                 VStack(spacing: 2) {
                     Text(drop.displayName)
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(.black)
+                        .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     Text("Drop")
                         .font(.caption2.weight(.medium))
-                        .foregroundColor(.black.opacity(0.56))
+                        .foregroundColor(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -1209,7 +1204,7 @@ struct WorkoutDetailView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background(Color.white)
+        .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
@@ -1265,7 +1260,7 @@ struct WorkoutDetailView: View {
                     text: formatCompactDuration(row.duration),
                     title: row.kind == .big ? "Big rest duration" : "Rest duration",
                     seconds: row.duration,
-                    foreground: .black
+                    foreground: Theme.textPrimary
                 ) {
                     durationEdit = DurationEditTarget(
                         title: row.kind == .big ? "Big rest duration" : "Rest duration",
@@ -1276,13 +1271,14 @@ struct WorkoutDetailView: View {
 
                 Image(systemName: row.kind == .big ? "square.stack.3d.up.fill" : "pause.fill")
                     .font(.caption.weight(.semibold))
+                    .foregroundColor(Theme.toolbarOrange)
             }
-            .foregroundColor(.black)
+            .foregroundColor(Theme.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(row.kind == .big ? "Big Rest" : "Rest")
                 .font(.subheadline.weight(.semibold))
-                .foregroundColor(.black)
+                .foregroundColor(Theme.textPrimary)
                 .frame(maxWidth: .infinity)
 
             HStack(spacing: 4) {
@@ -1300,7 +1296,7 @@ struct WorkoutDetailView: View {
                     Image(systemName: "chevron.down")
                         .rotationEffect(.degrees(isExpanded ? -180 : 0))
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(Theme.textSecondary)
                         .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
@@ -1323,7 +1319,7 @@ struct WorkoutDetailView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Theme.restAccent)
+        .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: row.kind == .big ? 11 : 8))
     }
 
@@ -1338,7 +1334,7 @@ struct WorkoutDetailView: View {
 
             Text(databaseStore.page(id: pageID)?.title ?? "Rest exercise")
                 .font(.caption.weight(.medium))
-                .foregroundColor(.black)
+                .foregroundColor(Theme.textSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
 
@@ -1347,19 +1343,15 @@ struct WorkoutDetailView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Theme.restAccent)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private var restEmptyHint: some View {
         Text("Add a note, stretch, or rest exercise")
             .font(.caption)
-            .foregroundColor(.black.opacity(0.7))
+            .foregroundColor(Theme.textSecondary)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Theme.restAccent.opacity(0.82))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func restActionMenu(target: RestTarget) -> some View {
@@ -1378,7 +1370,7 @@ struct WorkoutDetailView: View {
         } label: {
             Image(systemName: "plus")
                 .font(.caption.weight(.bold))
-                .foregroundColor(.black)
+                .foregroundColor(Theme.textSecondary)
                 .frame(width: 26, height: 26)
         }
         .menuStyle(.borderlessButton)
@@ -1446,7 +1438,7 @@ struct WorkoutDetailView: View {
 
             Text(content.text.isEmpty ? (content.kind == .stretch ? "Stretch" : "Note") : content.text)
                 .font(.caption.weight(.medium))
-                .foregroundColor(.black)
+                .foregroundColor(Theme.textSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
 
@@ -1457,7 +1449,7 @@ struct WorkoutDetailView: View {
                     } label: {
                         Image(systemName: "pencil")
                             .font(.caption2)
-                            .foregroundColor(.black)
+                            .foregroundColor(Theme.textSecondary)
                             .frame(width: 24, height: 24)
                     }
                     .buttonStyle(.plain)
@@ -1478,8 +1470,6 @@ struct WorkoutDetailView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Theme.restAccent)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func toggleSection(_ id: UUID) {
@@ -1550,7 +1540,7 @@ struct WorkoutDetailView: View {
                         .foregroundColor(Theme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.08))
+                        .background(Theme.surface2)
                         .cornerRadius(8)
                 }
 
@@ -1562,14 +1552,13 @@ struct WorkoutDetailView: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(Color.white)
+                        .background(Theme.toolbarOrange)
                         .cornerRadius(8)
                 }
             }
         }
         .padding(12)
-        .background(Theme.surface2.opacity(0.6))
-        .cornerRadius(12)
+        .modifier(TimeMasterCardSurface(cornerRadius: 12, flat: true))
         .padding(.vertical, 6)
     }
 
@@ -1665,7 +1654,7 @@ struct WorkoutDetailView: View {
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(Color.white)
+                .background(Theme.toolbarOrange)
                 .cornerRadius(16)
             }
             .padding(.horizontal, 16)

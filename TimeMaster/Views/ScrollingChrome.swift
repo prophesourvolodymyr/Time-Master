@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 /// Geometry for the collapsing page chrome shared by the Database and Workouts pages.
 struct ScrollingChromeMetrics {
@@ -13,8 +16,7 @@ struct ScrollingChromeMetrics {
     var expandedControlWidthCap: CGFloat = 108
     /// Tallest an expanded control may grow.
     var expandedControlHeightCap: CGFloat = 108
-    /// Everything the pinned header keeps below the control row: divider, goal line, filter row.
-    var pinnedFooterHeight: CGFloat = 49
+    var pinnedFooterHeight: CGFloat = 48
     var controlCount: Int = 3
 
     var contentWidth: CGFloat { max(0, width - horizontalPadding * 2) }
@@ -59,7 +61,6 @@ struct ScrollingChromeControl: View {
     let width: CGFloat
     let height: CGFloat
     var isInteractive: Bool = true
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         let labelProgress = min(1, progress / 0.65)
@@ -80,19 +81,12 @@ struct ScrollingChromeControl: View {
         }
         .foregroundStyle(.white)
         .frame(width: width, height: height)
-        .background {
-            if reduceTransparency {
-                shape.fill(Theme.toolbarOrange.opacity(0.9))
-            } else if #available(iOS 26.0, macOS 26.0, *) {
-                Color.clear.glassEffect(
-                    .regular.tint(Theme.toolbarOrange.opacity(0.42)).interactive(isInteractive),
-                    in: shape
-                )
-            } else {
-                shape.fill(.ultraThinMaterial)
-                    .overlay { shape.fill(Theme.toolbarOrange.opacity(0.42)) }
-            }
-        }
+        .modifier(TimeMasterPrivateGlassSurface(
+            cornerRadius: cornerRadius,
+            isInteractive: isInteractive,
+            tint: Theme.toolbarOrange,
+            tintOpacity: 0.42
+        ))
         .overlay { shape.strokeBorder(Theme.toolbarOrange.opacity(0.65), lineWidth: 1) }
     }
 }
@@ -122,6 +116,7 @@ struct ScrollingChrome<Content: View, Header: View>: View {
                     metrics: resolved,
                     height: max(0, proxy.size.height - headerHeight)
                 )
+                .modifier(ScrollingChromeOverflow())
                 .coordinateSpace(name: viewport)
             }
         }
@@ -159,6 +154,13 @@ struct ScrollingChrome<Content: View, Header: View>: View {
     private func scrollContent(metrics: ScrollingChromeMetrics, height: CGFloat) -> some View {
         content(metrics)
             .frame(minHeight: height + 1, alignment: .top)
+            .background {
+                #if os(iOS)
+                if #unavailable(iOS 17.0) {
+                    ScrollingChromeLegacyOverflow()
+                }
+                #endif
+            }
     }
 
     private func updateControls(offset: CGFloat) {
@@ -186,3 +188,68 @@ private struct ScrollingChromeOffsetKey: PreferenceKey {
         value = nextValue()
     }
 }
+
+private struct ScrollingChromeOverflow: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, macOS 14.0, *) {
+            content.scrollClipDisabled()
+        } else {
+            content
+        }
+    }
+}
+
+#if os(iOS)
+private struct ScrollingChromeLegacyOverflow: UIViewRepresentable {
+    func makeUIView(context: Context) -> ScrollOverflowProbe {
+        let view = ScrollOverflowProbe()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ uiView: ScrollOverflowProbe, context: Context) {
+        uiView.connect()
+    }
+
+    static func dismantleUIView(_ uiView: ScrollOverflowProbe, coordinator: ()) {
+        uiView.restore()
+    }
+
+    final class ScrollOverflowProbe: UIView {
+        private weak var scrollView: UIScrollView?
+        private var originalClipping = true
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            connect()
+        }
+
+        override func didMoveToSuperview() {
+            super.didMoveToSuperview()
+            connect()
+        }
+
+        func connect() {
+            var ancestor = superview
+            while let view = ancestor {
+                if let scroll = view as? UIScrollView {
+                    if scrollView !== scroll {
+                        restore()
+                        scrollView = scroll
+                        originalClipping = scroll.clipsToBounds
+                    }
+                    scroll.clipsToBounds = false
+                    return
+                }
+                ancestor = view.superview
+            }
+        }
+
+        func restore() {
+            scrollView?.clipsToBounds = originalClipping
+            scrollView = nil
+        }
+    }
+}
+#endif

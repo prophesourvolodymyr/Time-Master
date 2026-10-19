@@ -102,7 +102,6 @@ struct HomeDashboardView: View {
                 .oneHandedActionSource()
             }
             .frame(width: metrics.contentWidth, height: rowHeight, alignment: .topLeading)
-            TimeMasterGlassDivider()
         }
         .padding(.horizontal, metrics.horizontalPadding)
         .background(Theme.background.ignoresSafeArea(edges: .top))
