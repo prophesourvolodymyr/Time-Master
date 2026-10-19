@@ -309,17 +309,18 @@ final class OutdoorRideSafetyTests: XCTestCase {
         XCTAssertEqual(reopened.requestPrompt(at: start.addingTimeInterval(14_400)), .choose)
     }
 
-    func testPaneDocksAtBottomWhileContentAndSiblingPanesClearSafeAreaAndPlayer() {
+    func testFloatingPanesClearTheSafeAreaAndPlayerAcrossDetents() {
         for viewportHeight: CGFloat in [852, 420] {
             for playerHeight: CGFloat in [0, 94] {
                 let layout = OutdoorPineGeometry(size: CGSize(width: 393, height: viewportHeight),
                                                  safeAreaTop: 59, safeAreaBottom: 34, playerReserve: playerHeight)
                 let safeBottom = viewportHeight - 34 - playerHeight
-                let main = layout.mainFrame(mainHeight: layout.mainCompactHeight, featureHeight: nil, fullscreenProgress: 0)
-                XCTAssertGreaterThanOrEqual(main.minY, layout.safeAreaTop)
-                XCTAssertEqual(main.maxY, viewportHeight - playerHeight, accuracy: 0.01)
-                let contentPadding = max(0, main.maxY - (layout.size.height - layout.lowerInset))
-                XCTAssertLessThan(main.maxY - contentPadding, safeBottom)
+                for detent in [OutdoorPineDetent.compact, .medium, .expanded] {
+                    let main = layout.mainFrame(mainHeight: layout.mainHeight(for: detent), featureHeight: nil, fullscreenProgress: 0)
+                    XCTAssertGreaterThan(main.minY, layout.mainMaximumFrame.minY)
+                    XCTAssertLessThan(main.maxY, safeBottom)
+                    XCTAssertGreaterThanOrEqual(main.height, layout.mainCompactHeight)
+                }
 
                 let featureHeight = layout.maximumFeatureHeight(music: true)
                 let featureTop = viewportHeight - layout.lowerInset - featureHeight
@@ -327,6 +328,27 @@ final class OutdoorRideSafetyTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(stackedTop, layout.safeAreaTop)
                 XCTAssertLessThanOrEqual(stackedTop + layout.mainMinimumWithFeature + 8, featureTop)
                 XCTAssertLessThan(featureTop + featureHeight, safeBottom)
+            }
+        }
+    }
+
+    func testScaledContentKeepsDetentsOrderedAndSiblingPanesDisjoint() {
+        for viewportHeight: CGFloat in [420, 852] {
+            for minimumContentHeight: CGFloat in [164, 328, 492] {
+                let layout = OutdoorPineGeometry(
+                    size: CGSize(width: 393, height: viewportHeight),
+                    safeAreaTop: 59, safeAreaBottom: 34, playerReserve: 94,
+                    minimumContentHeight: minimumContentHeight
+                )
+                XCTAssertGreaterThanOrEqual(layout.mainMediumHeight, layout.mainCompactHeight)
+                XCTAssertGreaterThanOrEqual(layout.mainFullHeight, layout.mainMediumHeight)
+                let featureHeight = layout.maximumFeatureHeight(music: true)
+                let main = layout.mainFrame(mainHeight: layout.mainMinimumWithFeature, featureHeight: featureHeight, fullscreenProgress: 0)
+                let featureTop = layout.size.height - layout.lowerInset - featureHeight
+                XCTAssertGreaterThanOrEqual(main.minY, layout.safeAreaTop)
+                XCTAssertLessThanOrEqual(main.maxY + 8, featureTop + 0.01)
+                XCTAssertGreaterThan(featureHeight, 0)
+                XCTAssertEqual(layout.utilityOpacity(for: layout.mainFullHeight), 0, accuracy: 0.01)
             }
         }
     }

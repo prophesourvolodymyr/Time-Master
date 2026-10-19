@@ -1301,6 +1301,19 @@ Both platform builds passed using the committed app entry points, preserving unr
 
 The isolated task-only iOS and macOS builds passed. The native smoke measured 44-point selectors, 108-point expanded and 48-point compact glass controls, correct transparent-above-arc and bottom-safe-area geometry, and a real scroll viewport with both scroll and clip views unclipped. macOS hosted the smoke in an unshown window; no screenshots or simulator interactions were used. This verifies layout and layer configuration, not final iOS appearance, interaction feel, or private-glass frame rate. Existing build warnings remain. Original Home content/card styling and semantic workout rails and timeline guides remain unchanged. Product documentation awaits acceptance.
 
+### Expanding titles, floating Maps pane, and custom-workout fields — 2026-10-19
+
+- [x] Grow Home's title from a stable top edge and move it toward the center as its normal or Add/Done controls expand
+- [x] Apply the same measured title transition to Workouts, Database, Schedule, and the workout editor; keep long names within two lines and move compact controls below titles when needed
+- [x] Restore Maps' floating bottom safe-area/player gap without restoring the hidden navigation menu's layout reserve; keep true MAX edge-to-edge
+- [x] Give every main-pane content state the recovered usable space, remove clearance for invisible map controls, scale the compact content minimum with text size, and allow short Start content to scroll
+- [x] Replace the custom-workout sheet's stock grouped fields with flat dark fields, persistent labels, orange focus/toggles, keyboard dismissal, and the existing save, optional time/duration, repeat, and validation behavior
+- [x] Use a shared modest corner radius for standard selection, inset, toolbar, and expanding-header controls while retaining orange glass, disabled states, and native touch targets
+- [x] Build iOS Simulator and macOS, pass 17 focused pane/navigation regressions, and run 50 headless native header layouts plus four actual custom-form layouts
+- [ ] Human acceptance of Home and all expanding titles, Maps floating clearance and content sizing across every pane view, custom-workout fields, and less-rounded buttons
+
+This supersedes the earlier docked Maps placement, not its two-idle-second navigation overlay or bottom-edge reveal. Checks used the task-only source snapshot with committed app entry points, preserving unrelated edits and deletions. Native headers stayed top-anchored, grew, centered, and avoided their controls at endpoints and intermediate progress, including narrow widths and long names. Custom-form checks covered empty and optional-time/duration configurations; macOS expanded the narrow duration configuration to its native 352-point minimum. macOS did not enlarge measured fonts under the requested accessibility text environments, so iOS accessibility-size appearance is not claimed. No screenshots, simulator interactions, save actions, or physical-device gesture checks were performed. Existing build warnings remain; product DOCKS.md updates await acceptance.
+
 ---
 
 ## Cycle 35 — Floating Widget Snapping and Media Comments

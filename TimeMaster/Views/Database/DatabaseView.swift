@@ -432,9 +432,11 @@ struct DatabaseView: View {
                 if isV2 {
                     databaseV2Content
                 } else {
-                    rootList
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        databaseChrome
+                    GeometryReader { proxy in
+                        rootList
+                            .safeAreaInset(edge: .top, spacing: 0) {
+                                databaseChrome(progress: 1, metrics: ScrollingChromeMetrics(width: proxy.size.width))
+                            }
                     }
                 }
             }
@@ -562,7 +564,7 @@ struct DatabaseView: View {
 
     private var databaseV2Content: some View {
         ScrollingChrome(metrics: { width in
-            ScrollingChromeMetrics(width: width, pinnedFooterHeight: selectorRowHeight)
+            ScrollingChromeMetrics(width: width)
         }) { _ in
             if store.rootPages.isEmpty {
                 v2EmptyState
@@ -576,32 +578,17 @@ struct DatabaseView: View {
 
     private func databaseChrome(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
         let morph = metrics.morph(progress)
-        let height = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
-        let buttonSize = metrics.controlHeight(morph)
-        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
-            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
 
         return VStack(spacing: 0) {
-            ZStack(alignment: .top) {
-                DatabaseChromeTitle(progress: morph, metrics: metrics)
-                    .frame(height: metrics.collapsedRowHeight)
+            ScrollingChromeHeader(title: "Exercise Database", progress: morph, metrics: metrics) {
                 databaseControls(progress: morph, metrics: metrics)
-                    .oneHandedActionSource()
-                    .offset(y: height - buttonSize - bottomPadding)
             }
-            .frame(height: height, alignment: .top)
 
             filterChipsRow
         }
         .background(Theme.background.ignoresSafeArea(edges: .top))
     }
 
-    private var databaseChrome: some View {
-        GeometryReader { proxy in
-            databaseChrome(progress: 1, metrics: ScrollingChromeMetrics(width: proxy.size.width, pinnedFooterHeight: selectorRowHeight))
-        }
-        .frame(height: ScrollingChromeMetrics(width: 0).collapsedRowHeight + selectorRowHeight)
-    }
 
     private var oneHandedActions: [ReachabilityAction] {
         [
@@ -628,8 +615,6 @@ struct DatabaseView: View {
 
     private func databaseControls(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
         let buttonWidth = metrics.controlWidth(progress)
-        let groupWidth = buttonWidth * 3 + metrics.controlSpacing * 2
-        let leading = metrics.groupLeading(progress)
 
         return HStack(spacing: metrics.controlSpacing) {
             databaseMajorButton(
@@ -650,10 +635,6 @@ struct DatabaseView: View {
                 showingDatabaseSearch = true
             }
         }
-        .frame(width: groupWidth)
-        .offset(x: leading)
-        .frame(width: metrics.contentWidth, alignment: .leading)
-        .padding(.horizontal, metrics.horizontalPadding)
     }
 
     private func databaseMajorButton(
@@ -1176,30 +1157,6 @@ struct DatabaseView: View {
         .padding(.vertical, 48)
     }
 
-private struct DatabaseChromeTitle: View {
-    let progress: CGFloat
-    let metrics: ScrollingChromeMetrics
-    @State private var textSize: CGSize = .zero
-
-    var body: some View {
-        let available = max(1, metrics.contentWidth - metrics.compactGroupWidth - metrics.controlSpacing)
-        let compactScale = min(22 / 36, available / max(1, textSize.width))
-        let scale = 1 + (compactScale - 1) * progress
-        let leading = max(0, (metrics.contentWidth - textSize.width) / 2)
-
-        Text("Exercise Database")
-            .font(.system(size: 36, weight: .bold))
-            .foregroundStyle(Theme.textPrimary)
-            .lineLimit(1)
-            .fixedSize()
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { textSize = $0 }
-            .scaleEffect(scale, anchor: .leading)
-            .offset(x: -leading * progress)
-            .frame(width: metrics.contentWidth)
-            .padding(.horizontal, metrics.horizontalPadding)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
 
 
 private struct DatabasePageEntry: Identifiable {

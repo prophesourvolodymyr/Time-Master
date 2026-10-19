@@ -21,6 +21,11 @@ struct ScheduleEntryEditor: View {
     @State private var repeats: Bool
     @State private var search = ""
     @State private var error: String?
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case search, title, notes, exerciseCount
+    }
 
     init(date: Date, entry: WeeklyWorkoutSchedule.Entry? = nil, custom: Bool = false,
          showsRepeat: Bool = true, onSave: @escaping (WeeklyWorkoutSchedule.Entry, Bool) -> Bool) {
@@ -55,7 +60,10 @@ struct ScheduleEntryEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .accessibilityIdentifier("schedule.entry.cancel")
+                }
                 if configuring {
                     AppToolbar.item(placement: .confirmationAction) {
                         Button(custom && original == nil ? "Log workout" : "Save", action: save)
@@ -64,6 +72,18 @@ struct ScheduleEntryEditor: View {
                     }
                 }
             }
+            .tint(Theme.toolbarOrange)
+            .foregroundStyle(Theme.textPrimary)
+            .onSubmit { focusedField = nil }
+            #if os(iOS)
+            .toolbar {
+                if focusedField != nil {
+                    AppToolbar.item(placement: .keyboard) {
+                        Button("Done") { focusedField = nil }
+                    }
+                }
+            }
+            #endif
         }
         .preferredColorScheme(.dark)
     }
@@ -71,9 +91,12 @@ struct ScheduleEntryEditor: View {
     private var workoutPicker: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                TextField("Search workouts", text: $search)
-                    .textFieldStyle(.roundedBorder)
+                TextField("Search workouts", text: $search,
+                          prompt: Text("Search workouts").foregroundColor(Theme.textSecondary))
+                    .focused($focusedField, equals: .search)
+                    .modifier(ScheduleEntryFieldSurface(isFocused: focusedField == .search))
                     .accessibilityLabel("Search workouts")
+                    .accessibilityIdentifier("schedule.entry.search")
                 if store.workouts.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "dumbbell").font(.largeTitle)
@@ -100,80 +123,173 @@ struct ScheduleEntryEditor: View {
                 }
             }.padding(20)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var configuration: some View {
-        Form {
-            SwiftUI.Section {
-                if custom {
-                    TextField("Title (required)", text: $title)
-                        .accessibilityIdentifier("schedule.custom.title")
-                } else if let workoutID, let workout = store.workout(id: workoutID) {
-                    Label(workout.name, systemImage: workout.type.iconName)
-                        .font(.headline)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if original == nil {
-                        Button("Choose a different workout") { configuring = false }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
+                    sectionHeading(date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
+                    if custom {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Title (required)")
+                                .font(.subheadline.weight(.medium))
+                            TextField("Title (required)", text: $title,
+                                      prompt: Text("Workout title").foregroundColor(Theme.textSecondary))
+                                .focused($focusedField, equals: .title)
+                                .submitLabel(.done)
+                                .modifier(ScheduleEntryFieldSurface(isFocused: focusedField == .title))
+                                .accessibilityIdentifier("schedule.custom.title")
+                        }
+                        Text("Only a title is required. This logs what you did outside the app; it does not create a library workout.")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if let workoutID, let workout = store.workout(id: workoutID) {
+                        Label(workout.name, systemImage: workout.type.iconName)
+                            .font(.headline)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if original == nil {
+                            Button("Choose a different workout") { configuring = false }
+                                .buttonStyle(TimeMasterSelectionButtonStyle())
+                                .accessibilityIdentifier("schedule.entry.changeWorkout")
+                        }
+                    } else {
+                        Label(title, systemImage: original?.icon ?? "dumbbell.fill")
+                            .font(.headline)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("This workout is no longer in your library. Its schedule and completion record are preserved.")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                } else {
-                    Label(title, systemImage: original?.icon ?? "dumbbell.fill")
-                    Text("This workout is no longer in your library. Its schedule and completion record are preserved.")
-                        .font(.footnote).foregroundStyle(.secondary)
                 }
-            } header: {
-                Text(date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
-            } footer: {
-                if custom { Text("Only a title is required. This logs what you did outside the app; it does not create a library workout.") }
-            }
-            SwiftUI.Section {
-                if custom { Toggle("Add start time", isOn: $hasTime) }
-                if hasTime {
-                    #if os(iOS)
-                    DatePicker("Start time", selection: $time, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.wheel)
-                        .labelsHidden()
-                        .accessibilityLabel("Start time")
-                    #else
-                    DatePicker("Start time", selection: $time, displayedComponents: .hourAndMinute)
-                    #endif
-                }
-                if custom { Toggle("Add duration", isOn: $hasDuration) }
-                if hasDuration {
-                    Stepper("Hours: \(duration / 3600)", value: Binding(
-                        get: { duration / 3600 },
-                        set: { duration = min(86400, $0 * 3600 + duration % 3600) }
-                    ), in: 0...24)
-                    DurationPickerView(seconds: Binding(
-                        get: { duration % 3600 },
-                        set: { duration = duration / 3600 * 3600 + $0 }
-                    ), range: 0...3599, step: 1)
-                    .disabled(duration == 86400)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    sectionHeading("Time")
+                    if custom {
+                        Toggle(isOn: $hasTime) {
+                            Text("Add start time")
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .modifier(ScheduleEntryFieldSurface())
+                        .accessibilityIdentifier("schedule.entry.hasTime")
+                    }
                     if hasTime {
-                        LabeledContent("Finishes", value: time.addingTimeInterval(Double(duration)).formatted(date: .omitted, time: .shortened))
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Start time")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                            DatePicker("Start time", selection: $time, displayedComponents: .hourAndMinute)
+                                #if os(iOS)
+                                .datePickerStyle(.wheel)
+                                #endif
+                                .labelsHidden()
+                                .accessibilityLabel("Start time")
+                                .accessibilityIdentifier("schedule.entry.startTime")
+                        }
+                        .modifier(ScheduleEntryFieldSurface())
+                    }
+                    if custom {
+                        Toggle(isOn: $hasDuration) {
+                            Text("Add duration")
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .modifier(ScheduleEntryFieldSurface())
+                        .accessibilityIdentifier("schedule.entry.hasDuration")
+                    }
+                    if hasDuration {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Stepper(value: Binding(
+                                get: { duration / 3600 },
+                                set: { duration = min(86400, $0 * 3600 + duration % 3600) }
+                            ), in: 0...24) {
+                                Text("Hours: \(duration / 3600)")
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("schedule.entry.hours")
+                            DurationPickerView(seconds: Binding(
+                                get: { duration % 3600 },
+                                set: { duration = duration / 3600 * 3600 + $0 }
+                            ), range: 0...3599, step: 1)
+                            .disabled(duration == 86400)
+                            if hasTime {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Finishes")
+                                        .font(.subheadline)
+                                        .foregroundStyle(Theme.textSecondary)
+                                    Text(time.addingTimeInterval(Double(duration)).formatted(date: .omitted, time: .shortened))
+                                        .monospacedDigit()
+                                }
+                                .accessibilityElement(children: .combine)
+                            }
+                        }
+                        .modifier(ScheduleEntryFieldSurface())
                     }
                 }
-            } header: { Text("Time") }
-            if custom {
-                SwiftUI.Section("Optional details") {
-                    TextField("Description", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                    TextField("Exercise count", text: $exerciseCount)
-                        #if os(iOS)
-                        .keyboardType(.numberPad)
-                        #endif
+
+                if custom {
+                    VStack(alignment: .leading, spacing: 12) {
+                        sectionHeading("Optional details")
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Description")
+                                .font(.subheadline.weight(.medium))
+                            TextField("Description", text: $notes, axis: .vertical)
+                                .lineLimit(3...6)
+                                .focused($focusedField, equals: .notes)
+                                .modifier(ScheduleEntryFieldSurface(isFocused: focusedField == .notes))
+                                .accessibilityIdentifier("schedule.custom.description")
+                        }
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Exercise count")
+                                .font(.subheadline.weight(.medium))
+                            TextField("Exercise count", text: $exerciseCount,
+                                      prompt: Text("Optional").foregroundColor(Theme.textSecondary))
+                                #if os(iOS)
+                                .keyboardType(.numberPad)
+                                #endif
+                                .focused($focusedField, equals: .exerciseCount)
+                                .submitLabel(.done)
+                                .modifier(ScheduleEntryFieldSurface(isFocused: focusedField == .exerciseCount))
+                                .accessibilityIdentifier("schedule.custom.exerciseCount")
+                        }
+                    }
+                } else if showsRepeat {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(isOn: $repeats) {
+                            Text("Repeat in this Plan")
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .modifier(ScheduleEntryFieldSurface())
+                        .accessibilityIdentifier("schedule.entry.repeats")
+                        Text(repeats ? "Updates the Plan from this week onward. Previous weeks stay unchanged." : "Changes only this date. The repeating Plan stays unchanged.")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-            } else if showsRepeat {
-                SwiftUI.Section {
-                    Toggle("Repeat in this Plan", isOn: $repeats)
-                } footer: {
-                    Text(repeats ? "Updates the Plan from this week onward. Previous weeks stay unchanged." : "Changes only this date. The repeating Plan stays unchanged.")
+                if let error {
+                    Label(error, systemImage: "exclamationmark.circle")
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("schedule.entry.error")
                 }
             }
-            if let error {
-                SwiftUI.Section { Text(error).foregroundStyle(.red) }
-            }
+            .padding(20)
+            .frame(maxWidth: 640, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
-        .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    private func sectionHeading(_ title: String) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
     }
 
     private func save() {
@@ -194,5 +310,28 @@ struct ScheduleEntryEditor: View {
             colorHex: workout?.type.colorHex ?? original?.colorHex ?? "FFFFFF")
         if onSave(entry, !custom && showsRepeat && repeats) { dismiss() }
         else { error = store.scheduleError ?? "Your changes could not be saved. Please try again." }
+    }
+}
+
+private struct ScheduleEntryFieldSurface: ViewModifier {
+    @Environment(\.colorSchemeContrast) private var contrast
+    var isFocused = false
+
+    func body(content: Content) -> some View {
+        content
+            .textFieldStyle(.plain)
+            .foregroundStyle(Theme.textPrimary)
+            .padding(12)
+            .frame(minHeight: 44)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous)
+                    .strokeBorder(
+                        isFocused ? Theme.toolbarOrange : contrast == .increased ? .white.opacity(0.5) : Theme.separator,
+                        lineWidth: isFocused ? 2 : 1
+                    )
+                    .allowsHitTesting(false)
+            }
     }
 }

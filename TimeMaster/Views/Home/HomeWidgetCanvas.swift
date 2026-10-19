@@ -37,7 +37,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
 
             ScrollViewReader { scroll in
                 ScrollingChrome(metrics: {
-                    ScrollingChromeMetrics(width: $0, pinnedFooterHeight: 0, controlCount: 2)
+                    ScrollingChromeMetrics(width: $0, controlCount: 2)
                 }) { _ in
                     VStack(spacing: 0) {
                         Color.clear.frame(height: 0).id("home-top")

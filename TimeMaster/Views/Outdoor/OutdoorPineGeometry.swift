@@ -53,8 +53,10 @@ struct OutdoorPineGeometry: Equatable {
     var safeAreaBottom: CGFloat
     var playerReserve: CGFloat
     var fullscreenBounds: CGRect? = nil
+    var minimumContentHeight: CGFloat = OutdoorPineGeometry.minimumMainContentHeight
+    static let minimumMainContentHeight: CGFloat = 94 + 44 + 8 + 12 + 6
     static let quickStackHeight: CGFloat = 148
-    private var minimumInteractivePaneHeight: CGFloat { 48 + 44 * 2 + 8 + 12 + 6 }
+    private var minimumInteractivePaneHeight: CGFloat { 48 + minimumContentHeight }
 
     var usableHeight: CGFloat {
         max(1, size.height - safeAreaTop - safeAreaBottom)
@@ -69,11 +71,12 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var mainMediumHeight: CGFloat {
-        min(mainFullHeight, usableHeight * 0.60)
+        min(mainFullHeight, max(mainCompactHeight, usableHeight * 0.60))
     }
 
     var mainFullHeight: CGFloat {
-        mainMaximumHeight * 0.95
+        let available = max(1, size.height - lowerInset - mainMaximumFrame.minY - 10)
+        return min(mainMaximumHeight * 0.95, available)
     }
 
     var mainMaximumFrame: CGRect {
@@ -124,7 +127,7 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     func utilityOpacity(for height: CGFloat) -> CGFloat {
-        min(1, max(0, (mainMaximumHeight - height) / (mainMaximumHeight * 0.05)))
+        min(1, max(0, (mainFullHeight - height) / (mainFullHeight * 0.05)))
     }
 
     func utilityRowProgress(for height: CGFloat) -> CGFloat {
@@ -169,7 +172,8 @@ struct OutdoorPineGeometry: Equatable {
     }
 
     var mainMinimumWithFeature: CGFloat {
-        min(mainFullHeight, max(minimumInteractivePaneHeight, usableHeight * 0.28))
+        let available = max(1, size.height - safeAreaTop - lowerInset - 8 - 44)
+        return min(mainFullHeight, available, max(minimumInteractivePaneHeight, usableHeight * 0.28))
     }
 
     func maximumFeatureHeight(music: Bool) -> CGFloat {
@@ -211,11 +215,7 @@ struct OutdoorPineGeometry: Equatable {
         if let featureHeight {
             return max(safeAreaTop, size.height - lowerInset - featureHeight - gap - mainHeight)
         }
-        let progress = min(1, max(0, (mainHeight - mainMediumHeight) / max(1, mainFullHeight - mainMediumHeight)))
-        let normalBottom = size.height - playerReserve
-        let expandedBottom = mainMaximumFrame.maxY - 10
-        let bottom = normalBottom + (expandedBottom - normalBottom) * progress
-        return max(mainMaximumFrame.minY, bottom - mainHeight)
+        return max(mainMaximumFrame.minY, size.height - lowerInset - mainHeight)
     }
 
     func mainFrame(mainHeight: CGFloat, featureHeight: CGFloat?, fullscreenProgress: CGFloat) -> CGRect {

@@ -12,7 +12,6 @@ struct WorkoutListView: View {
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
     @ScaledMetric(relativeTo: .subheadline) private var selectorRowHeight: CGFloat = 56
     @ScaledMetric(relativeTo: .caption) private var statsTileHeight: CGFloat = 72
-    @ScaledMetric(relativeTo: .footnote) private var weeklyGoalRowHeight: CGFloat = 68
     @Binding var requestedWorkoutID: UUID?
     @State private var navigationPath: [Workout] = []
     @State private var showingAddWorkout = false
@@ -146,10 +145,7 @@ struct WorkoutListView: View {
                 width: min(width, Self.contentMaxWidth),
                 collapsedRowHeight: 48,
                 expandedControlWidthCap: .infinity,
-                expandedControlHeightCap: Self.trackingControlMaxHeight,
-                pinnedFooterHeight: selectorRowHeight
-                    + statsTileHeight + 12
-                    + (store.hasWeeklyGoal ? weeklyGoalRowHeight : 0)
+                expandedControlHeightCap: Self.trackingControlMaxHeight
             )
         }) { metrics in
             workoutsScrollContent(metrics: metrics)
@@ -243,16 +239,9 @@ struct WorkoutListView: View {
         let morph = metrics.morph(progress)
         let controlWidth = metrics.controlWidth(morph)
         let controlHeight = metrics.controlHeight(morph)
-        let groupWidth = controlWidth * 3 + metrics.controlSpacing * 2
-        let titleBlockHeight = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
-        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
-            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
 
         return VStack(spacing: 0) {
-            ZStack(alignment: .top) {
-                WorkoutChromeTitle(progress: morph, metrics: metrics)
-                    .frame(height: metrics.collapsedRowHeight)
-
+            ScrollingChromeHeader(title: "Workouts", progress: morph, metrics: metrics) {
                 HStack(spacing: metrics.controlSpacing) {
                     chromeButton(
                         systemImage: showingSearch ? "xmark" : "magnifyingglass",
@@ -284,14 +273,7 @@ struct WorkoutListView: View {
                         showingAddWorkout = true
                     }
                 }
-                .frame(width: groupWidth)
-                .offset(x: metrics.groupLeading(morph))
-                .frame(width: metrics.contentWidth, alignment: .leading)
-                .padding(.horizontal, metrics.horizontalPadding)
-                .offset(y: titleBlockHeight - controlHeight - bottomPadding)
-                .oneHandedActionSource()
             }
-            .frame(height: titleBlockHeight, alignment: .top)
 
             trackingTiles(metrics: metrics)
 
@@ -743,32 +725,6 @@ struct WorkoutListView: View {
     }
 }
 
-/// The page title: centred while the chrome is expanded, then travelling to the leading edge
-/// and shrinking as the controls collapse, the same way the Database page behaves.
-private struct WorkoutChromeTitle: View {
-    let progress: CGFloat
-    let metrics: ScrollingChromeMetrics
-    @State private var textSize: CGSize = .zero
-
-    var body: some View {
-        let available = max(1, metrics.contentWidth - metrics.compactGroupWidth - metrics.controlSpacing)
-        let compactScale = min(22 / 36, available / max(1, textSize.width))
-        let scale = 1 + (compactScale - 1) * progress
-        let leading = max(0, (metrics.contentWidth - textSize.width) / 2)
-
-        Text("Workouts")
-            .font(.system(size: 36, weight: .bold))
-            .foregroundStyle(Theme.textPrimary)
-            .lineLimit(1)
-            .fixedSize()
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { textSize = $0 }
-            .scaleEffect(scale, anchor: .leading)
-            .offset(x: -leading * progress)
-            .frame(width: metrics.contentWidth)
-            .padding(.horizontal, metrics.horizontalPadding)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
 
 #Preview {
     WorkoutListView()

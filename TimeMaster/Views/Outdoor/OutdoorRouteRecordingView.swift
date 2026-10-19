@@ -9,6 +9,7 @@ struct OutdoorRouteRecordingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .body) private var minimumPaneContentHeight = OutdoorPineGeometry.minimumMainContentHeight
 
     @ObservedObject private var store: OutdoorActivityStore
     @ObservedObject private var preferences: OutdoorRecordingPreferencesStore
@@ -135,7 +136,8 @@ struct OutdoorRouteRecordingView: View {
                     y: -proxy.safeAreaInsets.top,
                     width: proxy.size.width,
                     height: proxy.size.height + proxy.safeAreaInsets.top
-                )
+                ),
+                minimumContentHeight: minimumPaneContentHeight
             )
             let offlineCapabilities = (OutdoorMapMode.baseModes + OutdoorMapMode.overlayModes).map {
                 OutdoorMapProviderConfiguration.main.capability(for: $0)
@@ -784,10 +786,16 @@ struct OutdoorRouteRecordingView: View {
         let utilityGeometry = upperQuickGeometry(for: layout)
         let attributionOpacity = min(1, max(0, (0.90 - frame.height / layout.mainMaximumHeight) / 0.04))
         let utilityClearance = utilityGeometry.rowTop + 44 + (preferences.preferences.weatherInfo ? 20 : 0) + 32 * attributionOpacity + 8
-        let floatingTopPadding = max(0, utilityClearance - frame.minY) * utilityGeometry.rowProgress
+        let safeTopPadding = max(0, layout.mainMaximumFrame.minY + layout.safeAreaTop - frame.minY)
+        let floatingTopPadding = max(
+            safeTopPadding,
+            max(0, utilityClearance - frame.minY) * utilityGeometry.rowProgress * utilityGeometry.opacity
+        )
         let topPadding = floatingTopPadding * (1 - fullscreenAmount) + layout.safeAreaTop * fullscreenAmount
         let bottomPadding = max(0, frame.maxY - (layout.size.height - layout.lowerInset))
-        let cornerOpacity = isMax || fullscreenDrag.isDragging ? 1 : min(1, max(0, (frame.height / layout.mainMaximumHeight - 0.90) / 0.05))
+        let headerHeight: CGFloat = !isMax && (mainContent != .library || libraryActivityID != nil) ? 48 : 0
+        let contentHeight = max(0, primaryHeight - topPadding - (showsSection ? 0 : bottomPadding) - headerHeight)
+        let cornerOpacity = isMax || fullscreenDrag.isDragging ? 1 : min(1, max(0, (frame.height - layout.mainFullHeight * 0.95) / (layout.mainFullHeight * 0.05)))
 
         return OutdoorPineGlassSurface(
             identity: "route-main-pine",
@@ -828,7 +836,7 @@ struct OutdoorRouteRecordingView: View {
                     .accessibilityHidden(paneModalPresented)
                 }
 
-                mainContentView(expansion: expansion, availableHeight: primaryHeight, layout: layout)
+                mainContentView(expansion: expansion, availableHeight: contentHeight, layout: layout)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .allowsHitTesting(!blocksMainControls)
                     .accessibilityHidden(blocksMainControls)

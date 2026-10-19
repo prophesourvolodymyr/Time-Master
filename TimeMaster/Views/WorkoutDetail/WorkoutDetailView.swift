@@ -426,29 +426,28 @@ struct WorkoutDetailView: View {
     private func editorHeader(width: CGFloat) -> some View {
         let metrics = ScrollingChromeMetrics(
             width: width, horizontalPadding: 12, compactControlSize: 48,
-            controlSpacing: 4, pinnedFooterHeight: 0, controlCount: 4
+            controlSpacing: 4, controlCount: 4
         )
         let progress: CGFloat = editorControlsExpanded ? 0 : 1
         let morph = metrics.morph(progress)
         let diameter = metrics.controlWidth(morph)
-        let height = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
-        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
-            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
 
-        return ZStack(alignment: .topLeading) {
-            WorkoutEditorChromeTitle(text: workout.name, progress: morph, metrics: metrics)
-            editorBackButton(diameter: metrics.compactControlSize)
-                .frame(height: metrics.collapsedRowHeight)
-                .oneHandedActionSource()
-
+        return ScrollingChromeHeader(
+            title: workout.name,
+            progress: morph,
+            metrics: metrics,
+            leadingControlWidth: metrics.compactControlSize
+        ) {
             editorHeaderControls(progress: morph, diameter: diameter)
-                .oneHandedActionSource()
-                .offset(x: metrics.groupLeading(morph), y: height - diameter - bottomPadding)
         }
-        .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
+        .overlay(alignment: .topLeading) {
+            editorBackButton(diameter: metrics.compactControlSize)
+                .padding(.leading, metrics.horizontalPadding)
+                .padding(.top, 4)
+                .oneHandedActionSource()
+        }
         .buttonStyle(.plain)
         .foregroundStyle(Theme.textPrimary)
-        .padding(.horizontal, metrics.horizontalPadding)
     }
 
     private func editorHeaderControls(progress: CGFloat, diameter: CGFloat) -> some View {
@@ -2873,34 +2872,6 @@ private struct WorkoutEditorScrollState: Equatable {
     }
 }
 
-private struct WorkoutEditorChromeTitle: View {
-    let text: String
-    let progress: CGFloat
-    let metrics: ScrollingChromeMetrics
-    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 36
-    @State private var textSize: CGSize = .zero
-
-    var body: some View {
-        let backInset = metrics.compactControlSize + metrics.controlSpacing
-        let expandedWidth = max(1, metrics.contentWidth - backInset * 2)
-        let compactWidth = max(1, metrics.contentWidth - metrics.compactGroupWidth - backInset - metrics.controlSpacing)
-        let expandedScale = min(1, expandedWidth / max(1, textSize.width))
-        let compactScale = min(22 / 36, compactWidth / max(1, textSize.width))
-        let scale = expandedScale + (compactScale - expandedScale) * progress
-        let expandedLeading = (metrics.contentWidth - textSize.width * expandedScale) / 2
-        let leading = expandedLeading + (backInset - expandedLeading) * progress
-
-        Text(text)
-            .font(.system(size: titleSize, weight: .bold))
-            .lineLimit(1)
-            .fixedSize()
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { textSize = $0 }
-            .scaleEffect(scale, anchor: .leading)
-            .offset(x: leading)
-            .frame(width: metrics.contentWidth, height: metrics.collapsedRowHeight, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
 
 #Preview {
     NavigationStack {

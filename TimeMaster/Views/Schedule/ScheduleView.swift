@@ -7,7 +7,6 @@ struct ScheduleView: View {
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var week: Date
     @State private var sheet: Sheet?
     @State private var playerWorkout: Workout?
@@ -16,7 +15,6 @@ struct ScheduleView: View {
     @State private var pullArmed = false
     @State private var pullFired = false
     @ScaledMetric(relativeTo: .largeTitle) private var flameSize = 56.0
-    @ScaledMetric(relativeTo: .title2) private var toolbarHeight = 56.0
 
     private enum Sheet: Identifiable {
         case challenge, calendar, plans
@@ -112,40 +110,26 @@ struct ScheduleView: View {
 
     private func pageToolbar(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
         let morph = metrics.morph(progress)
-        let height = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
         let buttonWidth = metrics.controlWidth(morph)
         let buttonHeight = metrics.controlHeight(morph)
-        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
-            + (dynamicTypeSize.isAccessibilitySize ? metrics.expandedControlPadding : (metrics.collapsedRowHeight - metrics.compactControlSize) / 2) * progress
 
-        return VStack(spacing: 0) {
-            ZStack(alignment: .topLeading) {
-                Text("Schedule")
-                    .font(.title2.bold())
-                    .frame(width: metrics.contentWidth, height: toolbarHeight,
-                           alignment: progress == 0 || dynamicTypeSize.isAccessibilitySize ? .center : .leading)
-                HStack(spacing: metrics.controlSpacing) {
-                    pageControl("Calendar", icon: "calendar", destination: .calendar,
-                                progress: morph, width: buttonWidth, height: buttonHeight)
-                        .accessibilityIdentifier("schedule.calendar")
-                    pageControl("Plans", icon: "square.stack.3d.up", destination: .plans,
-                                progress: morph, width: buttonWidth, height: buttonHeight)
-                        .disabled(week < currentWeek || !store.scheduleIsLoaded)
-                        .opacity(week < currentWeek ? 0.4 : 1)
-                        .accessibilityValue(selection?.plan?.name ?? (isVacation ? "Vacation" : "No Plan"))
-                        .accessibilityIdentifier("schedule.plans")
-                    pageControl("Streak", icon: "flame", destination: .challenge,
-                                progress: morph, width: buttonWidth, height: buttonHeight)
-                        .accessibilityValue("\(challenge.weekdays.count)-day challenge")
-                        .accessibilityIdentifier("schedule.challenge")
-                }
-                .offset(x: dynamicTypeSize.isAccessibilitySize ? (metrics.contentWidth - buttonWidth * 3 - metrics.controlSpacing * 2) / 2 : metrics.groupLeading(morph),
-                        y: height - buttonHeight - bottomPadding)
-                .oneHandedActionSource()
+        return ScrollingChromeHeader(title: "Schedule", progress: morph, metrics: metrics) {
+            HStack(spacing: metrics.controlSpacing) {
+                pageControl("Calendar", icon: "calendar", destination: .calendar,
+                            progress: morph, width: buttonWidth, height: buttonHeight)
+                    .accessibilityIdentifier("schedule.calendar")
+                pageControl("Plans", icon: "square.stack.3d.up", destination: .plans,
+                            progress: morph, width: buttonWidth, height: buttonHeight)
+                    .disabled(week < currentWeek || !store.scheduleIsLoaded)
+                    .opacity(week < currentWeek ? 0.4 : 1)
+                    .accessibilityValue(selection?.plan?.name ?? (isVacation ? "Vacation" : "No Plan"))
+                    .accessibilityIdentifier("schedule.plans")
+                pageControl("Streak", icon: "flame", destination: .challenge,
+                            progress: morph, width: buttonWidth, height: buttonHeight)
+                    .accessibilityValue("\(challenge.weekdays.count)-day challenge")
+                    .accessibilityIdentifier("schedule.challenge")
             }
-            .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
         }
-        .padding(.horizontal, metrics.horizontalPadding)
         .background(Theme.background)
     }
 
@@ -165,11 +149,7 @@ struct ScheduleView: View {
             ScrollingChrome(onScrollOffset: { offset in
                 pullArmed = offset < -88 && !pullFired
             }, metrics: { width in
-                var metrics = ScrollingChromeMetrics(width: min(width, 980), collapsedRowHeight: toolbarHeight, pinnedFooterHeight: 0)
-                if dynamicTypeSize.isAccessibilitySize {
-                    metrics.collapsedRowHeight += metrics.compactControlSize + metrics.expandedControlPadding
-                }
-                return metrics
+                ScrollingChromeMetrics(width: min(width, 980))
             }) { _ in
                 VStack(spacing: 24) {
                     weekHeader.id("scheduleTop")
