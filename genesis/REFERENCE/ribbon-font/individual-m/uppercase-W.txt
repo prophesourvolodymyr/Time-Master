@@ -1,0 +1,17 @@
+Create ONE single uppercase letter: W. Nothing else. This is a flat typeface glyph mask, NOT a poster, NOT a specimen sheet, NOT an alphabet, NOT a sticker.
+
+Image 1 is the original capital M, isolated from the user's design and enlarged without changing its proportions. It is the sole design master. Invent the requested letter as a member of THIS precise family. Do not redraw the M, include the M, or copy a generic font. The output must contain only W.
+
+Measured DNA of the original M: width 275 units for height 175 (1.5714 times its height); interior stroke thickness has a median of 38.47 units (21.98 percent of cap height), with the middle half approximately 29.73 to 43.27 units. The main rising left diagonal is approximately 60.9 degrees above horizontal. These numbers describe the M reference; the requested letter must have its own natural proportional width, not M's width.
+
+Carry over the reference's asymmetric flowing ribbon: a broad diagonal rise, a soft rather than sharp crest, a deep narrow concave turn, a smaller second rise, and a relaxed curved foot. The ribbon gently thickens and thins through bends. Terminals are softly flattened rounded cuts with a subtle forward sweep, not circular pill endcaps. Use the same thick-to-thin rhythm, rounded internal joins, forward movement, and clean open negative spaces. No conventional straight mechanical stems, sharp corners, serifs, slab bars, ball terminals, extra swashes, detached decorative marks, or inflated bubble-font bowls. Smooth continuous contours; no wobble, bumps, grain, distress, rough outline, or texture.
+
+Rendering is crucial: the GLYPH ITSELF is one completely SOLID FLAT WHITE silhouette (#ffffff), and the entire surrounding canvas is completely SOLID BLACK (#000000). Holes inside bowls are solid black. No outline of any color around the white glyph. No gray stroke, border, halo, glow, extrusion, highlight, bevel, shadow, gradient, transparency, paper, checkerboard, crop marks, labels, text, or extra characters. Only antialiasing at the immediate silhouette edge is permitted. A clean binary black-and-white production cutout, not an illustrated rendering of a letter.
+
+Use a square 1024 by 1024 canvas. Common cap line at y=232 and baseline at y=792: cap height 560 pixels. The lowercase body starts at y=386 and ends at y=792: x-height 406 pixels, only 72.5 percent of capital height. Lowercase bodies must look visibly shorter than capitals. Only b, d, f, h, k and l have full-height ascenders; t is a shorter ascender. The bowls of b, d, g, h, k, p and q must still stay inside the lowercase body area. Descenders may reach y=938. The i/j dots sit separately above the short body. Do not scale a lowercase body up to fill unused space. Keep the same absolute ribbon stroke character, natural width and ample black margin.
+
+Case and placement requirement: The main uppercase form of W occupies y=232 through y=792. Lowercase bowls and short bodies are 406 pixels tall, only 72.5 percent of the 560-pixel capital height. For i/j only, the detached dot sits above the body near the cap line. Do not enlarge a lowercase body to fill the canvas.
+
+Letter construction: Capital W: two connected asymmetric ribbon troughs with a smaller central rise, drawn as a flowing counterpart to M. Natural wide proportions, smooth rounded low turns and soft-cut terminals, no sharp zigzag.
+
+Final check: exactly ONE letter, W, rendered as a filled white silhouette on plain black, visibly derived from the attached M's ribbon geometry.

@@ -1,0 +1,1 @@
+Original capital M reused directly from master-M-reference.png. No Fgen generation; the supplied M remains the design master.

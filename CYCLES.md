@@ -1509,6 +1509,19 @@ The backend returned twenty 1254 × 1254 images despite the requested 1024-squar
 
 The composer is an image-based review surface, not a replacement installable font. It supports only A–J, a–j, and spaces from the new batch. Existing app typography, original images, and all earlier TTF, OTF, and WOFF2 files remain unchanged. No next implementation prompt is needed for this hub.
 
+### Batch 5 — Complete M-Based Alphabet and Correct Lowercase Height
+
+The user asked to continue the remaining letters and reported that lowercase forms look almost as tall as capitals. Complete the new alphabet without mixing in the older font. Generate the new uppercase and lowercase raw images as independent batches, then normalize and connect them through the existing shared pipeline. Reuse the original M rather than generating a replacement.
+
+- [x] Complete K–Z with fifteen separate uppercase Fgen generations and the original M source
+- [x] Generate k–z with sixteen separate lowercase Fgen calls, using the same original M and explicit shorter-body proportions
+- [x] Normalize all review PNGs to a shared 560-pixel capital height, 406-pixel lowercase body, common baseline, proper ascenders and descenders, and separate i/j dots; use uniform scaling without stretching and preserve every raw image
+- [x] Connect all fifty-two PNGs to the word hub and individual comparisons, open with TimeMaster, add case-pair and full-alphabet examples, and add a dashed x-height guide
+- [x] Exercise the actual complete-alphabet HTTP and direct-file hub, measured case proportions, controls, comparisons, unsupported and empty input, and responsive layouts; commit and push the scoped work
+- [ ] Human review of the remaining letter shapes, corrected lowercase proportions, baseline alignment, and word spacing before any installable font rebuild
+
+All fifty-two review PNGs are connected. N, P, and w were regenerated to correct their letter anatomy; the rejected candidates and their submitted prompts are preserved separately. The original M is pixel-identical to the master reference. Looped descenders align by their outer bowls, and y by its upper fork; natural tails receive taller canvases instead of being clipped or compressed. Focused checks exercised all ten word presets, case switching, unsupported-input recovery, empty and space-only text, keyboard size and negative spacing, guides, fit, comparisons, wraparound, Escape, long-text containment, direct-file opening, 320/390/768/1440-pixel layouts, and 200% text at 320 pixels. No page errors were observed. The earlier TTF, OTF, and WOFF2 bytes remain unchanged. This is ready for human review, not an approved typeface; no next prompt is needed for this slice.
+
 ---
 
 ## Notes

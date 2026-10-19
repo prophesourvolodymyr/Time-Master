@@ -27,9 +27,11 @@
     "baseline_y": 792,
     "cap_height": 560,
     "lowercase_x_height": 406,
+    "short_ascender_height": 476,
+    "minimum_dot_gap": 34,
     "descender_limit_y": 938
   },
-  "scale_note": "The M reference is enlarged uniformly by 3.2; lowercase metrics are design targets, not measurements of the supplied uppercase screenshot.",
+  "scale_note": "The original M reference is uniformly enlarged by 3.2. Review PNGs use a 560-pixel capital height, 406-pixel lowercase body, 476-pixel short t ascender, and common baseline. Full ascenders reach the cap line; i/j dots remain separate above their short bodies. Looped descenders are aligned by the bowl, and y by the upper fork, rather than shrinking the whole letter into the body height. Their natural tails are preserved on taller canvases where needed. Wide forms receive a wider canvas rather than horizontal compression.",
   "inferred_shape_rules": [
     "Asymmetric continuous ribbon with gentle thick-to-thin modulation",
     "Soft crests and deep clean concave turns",
@@ -40,7 +42,7 @@
     "foreground_threshold": 220,
     "minimum_component_fraction_of_largest": 0.1,
     "smoothing_sigma_pixels": 1,
-    "preservation": "The raw generation is retained in raw/. The image canvas, glyph scale, and baseline position are unchanged; cleanup only isolates the white fill, removes stray components, and antialiases the edges."
+    "preservation": "Raw generations remain intact in raw/. Review PNGs isolate the white fill, remove stray components, antialias edges, and uniformly resize each silhouette to its case-aware metrics. Original aspect ratios are retained without stretching. The i/j dots keep their shapes and separate placement above the body. The original M is reused rather than regenerated."
   },
-  "review_scope": "A\u2013J and a\u2013j; a separate Fgen call and separate PNG per letter; no font changes before user review"
+  "review_scope": "A–Z and a–z, one Fgen call per generated letter with the same original M reference; uppercase M comes directly from the original. All fifty-two letters are connected to the word hub, with installable font changes deferred until human review."
 }
