@@ -1408,8 +1408,8 @@ Both app targets built from the scoped publication source, preserving unrelated 
   - [ ] Implement and evaluate advanced movement tracking, inverted poses, visible-assistance handling, and honest insufficient-evidence behavior
 - [ ] Implement real account/session integration and authoritative persisted competitive data
   - [ ] Implement exercise-specific skill-based matchmaking, real cancellation/readiness, synchronized countdown, live opponent state, and reconnect/forfeit handling
-  - [ ] Implement real result verification, exactly-once finalization, and server-owned exercise-specific Elo
-  - [ ] Enforce separate push-up/squat ten-match rolling four-hour allowances across variations and devices
+  - [x] Implement real result verification, exactly-once finalization, and server-owned exercise-specific Elo
+  - [x] Enforce separate push-up/squat ten-match rolling four-hour allowances across variations and devices
   - [ ] Implement actual exercise leaderboards, earned rank collection, persistent recent matches, and match details
   - [ ] Migrate local editable-level callers and backups safely; never promote manually chosen values into earned Elo
 - [ ] Finish the visual-first native UI, compact normal-phone duel HUD, real camera guidance, and matching artwork for the four advanced additions
@@ -1417,9 +1417,9 @@ Both app targets built from the scoped publication source, preserving unrelated 
 - [ ] Exercise real camera input and two authenticated participants, persistence/recovery/security boundaries, remaining native states, and relevant regressions; deploy the real service when authorized
 - [ ] Human review and acceptance of the complete Ranked feature
 
-The current code still generates scores from elapsed time, uses an invented opponent and hardcoded result ratings, stores competitive-looking rounds/allowances only in memory, and offers sample leaderboards. No real camera tracker, authenticated match service, competitive Elo, online standings, or assistance detector was proved. The four advanced movement entries currently use SF Symbols. On the normal 393-point iPhone layout, the HUD fell back to a tall timer-over-scores card and pushed feedback/finish below the initial viewport; the continuation must correct that hierarchy.
+The Phase 2 cutover replaces the earlier demo paths with AVFoundation/Vision tracking, an authenticated FastAPI/SQLite service, server-owned match state and ratings, real paginated competition data, and four generated movement assets. Service evidence is derived joint data, never images or video. Advanced diamond, handstand and planche competition is explicitly unavailable until recording-based hand/support validation is established; on-device Practice is an estimate, not a claim of assistance-proof tracking.
 
-Both app targets compiled from the then-current working source plus temporary bootstrap recovery, not a clean-HEAD production tree. The new native happy path was exercised, but hardware tracking, online competition, remaining recovery states, new macOS interaction, and this continuation's Ranked/Profile regression rerun remain unverified. The isolated smoke app was removed; no production saved-checkpoint action was taken. Existing build warnings remain. This handoff is the explicit user-requested next implementation scope, not a completion claim or human approval. Product DOCKS updates await acceptance.
+The service's twenty focused regressions pass. A separate real-time two-account HTTP scenario completed the shared sixty-second round with derived-vector fixtures, identical final results, exactly one Elo update and one history entry per participant, and the correct family allowances. This does not prove camera accuracy or hidden-assistance detection. Native interaction checks and final current-source builds are still being completed in an isolated simulator and disposable source copy; the already-deleted live app entry points remain untouched. Public deployment requires an authorized persistent HTTPS host/domain and build URL. Physical-device recordings remain unavailable. Product DOCKS updates and human acceptance remain pending.
 
 ---
 

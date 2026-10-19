@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - competition:/data
+    environment:
+      RANKED_DATABASE: /data/ranked.sqlite3
+      RANKED_REQUIRE_TLS: "true"
+    networks: [private]
+  https:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      RANKED_DOMAIN: ${RANKED_DOMAIN:?Set an authorized domain before deployment}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+    networks: [private]
+networks:
+  private:
+volumes:
+  competition:
+  certificates:
+  caddy_config:

@@ -40,3 +40,8 @@ Icon?
 
 # Simulators / Device logs
 *.log
+
+ranked_server/__pycache__/
+ranked_server/.venv/
+ranked_server/*.sqlite3*
+ranked.sqlite3*
