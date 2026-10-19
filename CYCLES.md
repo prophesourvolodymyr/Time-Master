@@ -1321,6 +1321,16 @@ The isolated task-only iOS and macOS builds passed. The native smoke measured 44
 
 The focused runtime check caught and fixed Return dismissing the original text field, a drag also triggering its button, and unnecessarily reserved caption-footer space. Builds used an isolated committed-source worktree plus only this task's changes, preserving unrelated working-tree edits and deleted app entry points. macOS received a build check, not an interactive UI check. Physical-device behavior and accessibility-setting variants were not exercised. Existing deprecation/concurrency warnings remain. Product DOCKS.md updates await acceptance; no next implementation prompt is needed for this request.
 
+### Exercise how-to UX demo — 2026-10-19
+
+- [x] Create `UX Demo - Exercise How-To` in the existing iPhone 16 simulator, with six linked exercise pages grouped under `UX Demo Exercises`: Bodyweight Squat, Push-Up, Walking Lunge, Glute Bridge, Forearm Plank, and Dead Bug
+- [x] Give each exercise a randomly selected cover pose, two saved local reference photos, concise form cues, step-by-step guidance, and independent setup/movement photo comments
+- [x] Check all six workout/page links, twelve local photos and their comments, and persisted guides; preserve every pre-existing workout, page, and history file
+- [ ] Exercise the demo's how-to preview in the iPhone app after CoreSimulator UI recovery
+- [ ] Human review of the demo workout and exercise-preview UX
+
+The demo was created through the real TimeMasterCore storage APIs, without app source changes or replacing the existing resume checkpoint. It is saved in this simulator's app data, not distributed to another device. App launch and accessibility inspection became unavailable during the preview check; simulator restart attempts did not restore usable UI, and the device was not erased. The preview interaction is not marked verified. Exercise instructions and twelve photos come from the public-domain [free-exercise-db](https://github.com/yuhonas/free-exercise-db), released under [The Unlicense](https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md).
+
 ---
 
 ## Notes
