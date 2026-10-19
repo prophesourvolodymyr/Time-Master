@@ -1263,6 +1263,23 @@ Native probing and screenshots stopped at the user's request. The final Home and
 
 ---
 
+## Cycle 34 — Unified Database, Workout, and AI Surfaces
+
+**Requested by the user; implementation ready for code review, not human-verified.**
+
+- [x] Give opening chevrons a defined inset-button appearance while retaining the existing navigation links and real hierarchy-expansion buttons
+- [x] Apply the shared charcoal card surface and soft border to database grid/list cards and workout cards, statistics, and the weekly goal
+- [x] Unify database/workout selectors and related controls, with orange selection accents, explicit accessibility labels, and minimum 44-point control targets
+- [x] Improve the AI conversation header, message layout, empty state, session rows, and composer without replacing the existing AI service or persistence
+- [x] Connect suggested AI prompts to the editable draft and place reviewable tool approvals above the composer rather than over the conversation
+- [x] Preserve Home's source files and existing shared style implementations; the new control styles are opt-in
+- [x] Build the isolated task-only iOS Simulator and macOS targets and run eight headless native control-layout checks
+- [ ] Human acceptance of these code changes; visual appearance and interaction feel are not marked verified
+
+Both platform builds passed using the committed app entry points, preserving unrelated working-tree changes. The headless macOS smoke instantiated the actual selector, opening-handle, and inset-control views and checked their layout at two requested text-size environments. macOS kept the same measured control sizes, so this is not evidence of iOS accessibility-size rendering. No simulator interactions, screenshots, live AI requests, or device haptic checks were performed. Existing build warnings remain. Product DOCKS.md updates remain deferred until acceptance.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

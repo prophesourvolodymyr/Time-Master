@@ -22,31 +22,37 @@ struct WorkoutCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            WorkoutCoverMosaic(workout: workout)
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(workout.name)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    categoryBadge
-                    durationBadge
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                WorkoutCoverMosaic(workout: workout, size: 64)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(workout.name)
+                        .font(.headline)
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(2)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 6) {
+                            categoryBadge
+                            durationBadge
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            categoryBadge
+                            durationBadge
+                        }
+                    }
+                    if let schedule {
+                        scheduleBadge(schedule)
+                    } else if isResumable {
+                        Text("Ready to resume")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Theme.toolbarOrange)
+                    }
                 }
-
-                if let schedule {
-                    scheduleBadge(schedule)
-                } else if isResumable {
-                    Text("Ready to resume")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                TimeMasterDisclosureIndicator()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: 7) {
+            HStack(spacing: 8) {
                 if isStretchWorkout {
                     metricBox(value: "\(exerciseCount)", label: "Stretches")
                 } else {
@@ -55,17 +61,10 @@ struct WorkoutCard: View {
                 }
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 94, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Theme.surface)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Theme.separator, lineWidth: 1)
-                }
-        }
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(TimeMasterCardSurface(emphasized: isResumable))
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(workout.name), \(durationText(workout.totalDuration)), \(exerciseCount) \(isStretchWorkout ? "stretches" : "exercises")")
     }
@@ -93,18 +92,18 @@ struct WorkoutCard: View {
     }
 
     private func metricBox(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
+        HStack(spacing: 6) {
             Text(value)
                 .font(.headline.weight(.semibold).monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.caption)
                 .foregroundStyle(Theme.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .lineLimit(2)
         }
-        .frame(width: 52, height: 52)
-        .background(Theme.surface2.opacity(0.8), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .modifier(TimeMasterCardSurface(cornerRadius: 12))
     }
 
     private func scheduleBadge(_ schedule: ScheduledWorkout) -> some View {

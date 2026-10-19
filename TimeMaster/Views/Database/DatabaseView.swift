@@ -398,6 +398,7 @@ struct DatabaseView: View {
     @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .subheadline) private var selectorRowHeight: CGFloat = 56
     @State private var showingNewFolderSheet     = false
     @State private var showingImport             = false
     @State private var showingDatabaseImport     = false
@@ -561,7 +562,7 @@ struct DatabaseView: View {
 
     private var databaseV2Content: some View {
         ScrollingChrome(metrics: { width in
-            ScrollingChromeMetrics(width: width)
+            ScrollingChromeMetrics(width: width, pinnedFooterHeight: selectorRowHeight + 1)
         }) { _ in
             if store.rootPages.isEmpty {
                 v2EmptyState
@@ -599,9 +600,9 @@ struct DatabaseView: View {
 
     private var databaseChrome: some View {
         GeometryReader { proxy in
-            databaseChrome(progress: 0, metrics: ScrollingChromeMetrics(width: proxy.size.width))
+            databaseChrome(progress: 1, metrics: ScrollingChromeMetrics(width: proxy.size.width, pinnedFooterHeight: selectorRowHeight + 1))
         }
-        .frame(height: 232)
+        .frame(height: ScrollingChromeMetrics(width: 0).collapsedRowHeight + selectorRowHeight + 1)
     }
 
     private var oneHandedActions: [ReachabilityAction] {
@@ -942,15 +943,15 @@ struct DatabaseView: View {
                         filterChip(.type(type.id), label: type.name)
                     }
                 }
-                .padding(.leading, 16)
-                .padding(.vertical, 7)
+                .padding(.leading, 20)
+                .padding(.vertical, 6)
             }
             .frame(maxWidth: .infinity)
 
             databaseFilterControls
-                .padding(.trailing, 16)
+                .padding(.trailing, 20)
         }
-        .frame(height: 48)
+        .frame(height: selectorRowHeight)
     }
 
     private var databaseFilterControls: some View {
@@ -962,7 +963,8 @@ struct DatabaseView: View {
             } label: {
                 Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
             }
-            .buttonStyle(DatabaseFilterButtonStyle(label: isGridMode ? "List View" : "Gallery View"))
+            .buttonStyle(TimeMasterInsetControlStyle())
+            .accessibilityLabel(isGridMode ? "List View" : "Gallery View")
 
             Menu {
                 ForEach(PageSortOption.allCases, id: \.self) { option in
@@ -975,30 +977,23 @@ struct DatabaseView: View {
             } label: {
                 Image(systemName: "arrow.up.arrow.down")
             }
-            .buttonStyle(DatabaseFilterButtonStyle(label: "Reorder"))
+            .buttonStyle(TimeMasterInsetControlStyle())
             .accessibilityLabel("Reorder")
+            .accessibilityValue(sortOption.label)
         }
     }
 
     private func filterChip(_ option: PageFilterOption, label: String) -> some View {
         let isActive = filterOption == option
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
                 filterOption = option
             }
         } label: {
-            Text(label)
-                .font(.system(size: 12, weight: isActive ? .semibold : .medium))
-                .foregroundStyle(isActive ? .black : Theme.textPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(isActive ? Theme.primary : Theme.surface2, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .stroke(isActive ? Theme.primary : Theme.primary.opacity(0.28), lineWidth: 1)
-                }
+            Text(label).lineLimit(1).fixedSize()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isActive))
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     private var noResultsView: some View {
@@ -1037,7 +1032,6 @@ struct DatabaseView: View {
 
                     if !page.children.isEmpty {
                         disclosureButton(page)
-                            .background(Theme.surface, in: Circle())
                             .padding(7)
                     }
                 }
@@ -1104,20 +1098,17 @@ struct DatabaseView: View {
             NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                 HStack(spacing: 12) {
                     pageCard(page, isGridMode: false)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .accessibilityHidden(true)
+                    TimeMasterDisclosureIndicator()
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(TimeMasterCardButtonStyle())
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityHint("Opens this page")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .modifier(TimeMasterCardSurface())
         .padding(.leading, CGFloat(min(entry.depth, 4) * 12))
         .padding(.horizontal, 16)
     }
@@ -1151,14 +1142,9 @@ struct DatabaseView: View {
                 }
             }
         } label: {
-            Image(systemName: "chevron.right")
-                .font(.subheadline.weight(.semibold))
-                .rotationEffect(.degrees(expandedPageIDs.contains(page.manifest.id) ? 90 : 0))
-                .foregroundStyle(Theme.textSecondary)
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
+            Image(systemName: expandedPageIDs.contains(page.manifest.id) ? "chevron.down" : "chevron.right")
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(TimeMasterInsetControlStyle())
         .accessibilityLabel(expandedPageIDs.contains(page.manifest.id) ? "Collapse \(page.title)" : "Expand \(page.title)")
         .accessibilityValue(expandedPageIDs.contains(page.manifest.id) ? "Expanded" : "Collapsed")
     }
@@ -1217,23 +1203,6 @@ private struct DatabaseChromeTitle: View {
     }
 }
 
-private struct DatabaseFilterButtonStyle: ButtonStyle {
-    let label: String
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(Theme.textSecondary)
-            .frame(width: 30, height: 30)
-            .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Theme.separator, lineWidth: 1)
-            }
-            .opacity(configuration.isPressed ? 0.65 : 1)
-            .accessibilityLabel(label)
-    }
-}
 
 private struct DatabasePageEntry: Identifiable {
     let page: ExercisePage

@@ -10,6 +10,9 @@ struct WorkoutListView: View {
     @EnvironmentObject private var musicLibraryStore: MusicLibraryStore
     @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
+    @ScaledMetric(relativeTo: .subheadline) private var selectorRowHeight: CGFloat = 56
+    @ScaledMetric(relativeTo: .caption) private var statsTileHeight: CGFloat = 72
+    @ScaledMetric(relativeTo: .footnote) private var weeklyGoalRowHeight: CGFloat = 68
     @Binding var requestedWorkoutID: UUID?
     @State private var navigationPath: [Workout] = []
     @State private var showingAddWorkout = false
@@ -134,11 +137,6 @@ struct WorkoutListView: View {
 
     /// Widest the tracking tiles and chrome controls grow before they stop filling their row.
     private static let trackingControlMaxHeight: CGFloat = 148
-    /// Reserved height of the slim weekly goal row inside the pinned chrome.
-    private static let weeklyGoalRowHeight: CGFloat = 36
-    /// Reserved height of the stats row: a collapsed tile plus its vertical padding.
-    private static let statsTileHeight: CGFloat = 48
-    private static let statsRowHeight: CGFloat = statsTileHeight + 12
     /// Widest the page content and chrome grow on large screens.
     private static let contentMaxWidth: CGFloat = 980
 
@@ -149,9 +147,9 @@ struct WorkoutListView: View {
                 collapsedRowHeight: 48,
                 expandedControlWidthCap: .infinity,
                 expandedControlHeightCap: Self.trackingControlMaxHeight,
-                pinnedFooterHeight: 49
-                    + Self.statsRowHeight
-                    + (store.hasWeeklyGoal ? Self.weeklyGoalRowHeight : 0)
+                pinnedFooterHeight: selectorRowHeight + 1
+                    + statsTileHeight + 12
+                    + (store.hasWeeklyGoal ? weeklyGoalRowHeight : 0)
             )
         }) { metrics in
             workoutsScrollContent(metrics: metrics)
@@ -176,7 +174,7 @@ struct WorkoutListView: View {
                         NavigationLink(value: workout) {
                             workoutCardLabel(for: workout)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(TimeMasterCardButtonStyle())
                         .contextMenu {
                             Button {
                                 playerWorkout = workout
@@ -362,22 +360,25 @@ struct WorkoutListView: View {
         label: String,
         metrics: ScrollingChromeMetrics
     ) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-            Text(value)
-                .font(.system(size: 19, weight: .semibold).monospacedDigit())
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+        VStack(spacing: 5) {
+            HStack(spacing: 7) {
+                Image(systemName: systemImage)
+                    .font(.body.weight(.semibold))
+                Text(value)
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .foregroundStyle(Theme.textPrimary)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
         }
-        .frame(width: metrics.expandedControlWidth, height: Self.statsTileHeight)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
-        }
+        .padding(.horizontal, 6)
+        .frame(width: metrics.expandedControlWidth, height: statsTileHeight)
+        .modifier(TimeMasterCardSurface(cornerRadius: 16))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .accessibilityValue(value)
@@ -394,20 +395,13 @@ struct WorkoutListView: View {
             .font(.footnote.weight(.medium))
             .foregroundStyle(Theme.textSecondary)
 
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.green.opacity(0.16))
-                    Capsule()
-                        .fill(Color.green)
-                        .frame(width: proxy.size.width * weeklyGoalProgress)
-                }
-            }
-            .frame(height: 4)
+            ProgressView(value: weeklyGoalProgress)
+                .tint(Theme.toolbarOrange)
         }
+        .padding(12)
+        .modifier(TimeMasterCardSurface(cornerRadius: 16))
         .padding(.horizontal, metrics.horizontalPadding)
-        .padding(.top, 2)
-        .padding(.bottom, 8)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Weekly goal")
@@ -437,11 +431,7 @@ struct WorkoutListView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Theme.surface, in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        }
+        .modifier(TimeMasterCardSurface(cornerRadius: 14))
     }
 
     @ViewBuilder
@@ -467,18 +457,10 @@ struct WorkoutListView: View {
                 Button("Resume") {
                     playerWorkout = workout
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.black)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.white, in: Capsule())
+                .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: true))
             }
             .padding(14)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            }
+            .modifier(TimeMasterCardSurface(emphasized: true))
         }
     }
 
@@ -509,10 +491,10 @@ struct WorkoutListView: View {
                     }
                 }
             }
-            .padding(.leading, 16)
-            .padding(.vertical, 7)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 6)
         }
-        .frame(height: 48)
+        .frame(height: selectorRowHeight)
     }
 
     private func filterChip(
@@ -521,18 +503,10 @@ struct WorkoutListView: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Text(label)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
-                .foregroundStyle(isSelected ? .black : Theme.textPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(isSelected ? Theme.primary : Theme.surface2, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .stroke(isSelected ? Theme.primary : Theme.primary.opacity(0.28), lineWidth: 1)
-                }
+            Text(label).lineLimit(1).fixedSize()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var filteredEmptyState: some View {

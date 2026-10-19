@@ -71,6 +71,53 @@ struct TimeMasterCardButtonStyle: ButtonStyle {
                        value: configuration.isPressed)
     }
 }
+
+struct TimeMasterSelectionButtonStyle: ButtonStyle {
+    var isSelected = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(isSelected ? .semibold : .medium))
+            .foregroundStyle(Theme.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .modifier(TimeMasterCardSurface(cornerRadius: 14, emphasized: isSelected))
+            .overlay(alignment: .bottom) {
+                Capsule()
+                    .fill(Theme.toolbarOrange)
+                    .frame(width: 18, height: 2)
+                    .padding(.bottom, 4)
+                    .opacity(isSelected ? 1 : 0)
+                    .allowsHitTesting(false)
+            }
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
+struct TimeMasterInsetControlStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.textPrimary)
+            .frame(minWidth: 44, minHeight: 44)
+            .modifier(TimeMasterCardSurface(cornerRadius: 12))
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
+struct TimeMasterDisclosureIndicator: View {
+    var systemImage = "chevron.right"
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.textPrimary.opacity(0.8))
+            .frame(width: 44, height: 44)
+            .modifier(TimeMasterCardSurface(cornerRadius: 12))
+            .accessibilityHidden(true)
+    }
+}
  
 enum AppToolbar {
     @ToolbarContentBuilder

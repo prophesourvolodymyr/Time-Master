@@ -43,8 +43,8 @@ struct PageCardView: View {
             coverHeroGrid
             infoGrid
         }
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .modifier(TimeMasterCardSurface())
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contextMenu { contextMenuContent }
     }
 
@@ -179,11 +179,10 @@ struct PageCardView: View {
                     Text("\(page.mediaURLs.count) media")
                 }
             }
-            .font(.system(size: 9))
-            .foregroundStyle(Theme.textSecondary.opacity(0.7))
+            .font(.caption)
+            .foregroundStyle(Theme.textSecondary)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(12)
     }
 
     @ViewBuilder

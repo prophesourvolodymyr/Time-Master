@@ -14,47 +14,49 @@ struct AICoachView: View {
     @State private var showingSessions  = false
     @State private var showingFilePicker = false
     @FocusState private var inputFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                VStack(spacing: 0) {
-                    ChatMessageList(
-                        store: store,
-                        onReply: { replyingTo = $0 }
-                    )
-                    ChatInputBar(
-                        text:              $inputText,
-                        replyingTo:        $replyingTo,
-                        pendingAttachName: $pendingAttachName,
-                        isFocused:         $inputFocused,
-                        isLoading:         store.isLoading,
-                        isApprovalPending: store.pendingApproval != nil,
-                        onSend:            sendMessage,
-                        onAttach:          { showingFilePicker = true }
-                    )
-                }
-                    .padding(.bottom, 8)
-                if let approval = store.pendingApproval {
-                    ApprovalCardView(approval: approval, store: store)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .zIndex(10)
+            GeometryReader { geometry in
+                ZStack {
+                    Theme.background.ignoresSafeArea()
+                    VStack(spacing: 0) {
+                        coachContextHeader
+                        ChatMessageList(
+                            store: store,
+                            onReply: { replyingTo = $0 },
+                            onSelectPrompt: {
+                                inputText = $0
+                                inputFocused = true
+                            }
+                        )
+                        if let approval = store.pendingApproval {
+                            ApprovalCardView(approval: approval, store: store)
+                                .frame(maxHeight: geometry.size.height * 0.45)
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 8)
+                                .transition(.opacity)
+                        }
+                        ChatInputBar(
+                            text: $inputText,
+                            replyingTo: $replyingTo,
+                            pendingAttachName: $pendingAttachName,
+                            isFocused: $inputFocused,
+                            isLoading: store.isLoading,
+                            isApprovalPending: store.pendingApproval != nil,
+                            onSend: sendMessage,
+                            onAttach: { showingFilePicker = true }
+                        )
+                    }
+                    .frame(maxWidth: 800)
+                    .frame(maxWidth: .infinity)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
             #if os(iOS)
-#if os(iOS)
-#if os(iOS)
-.navigationBarTitleDisplayMode(.inline)
-#endif
-#endif
-#endif
-            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.background, for: .navigationBar)
-            #endif
-            #if os(iOS)
             .toolbarBackground(.visible, for: .navigationBar)
             #endif
             .toolbar { chatToolbar }
@@ -80,8 +82,31 @@ struct AICoachView: View {
             ) { result in
                 handleFileImport(result)
             }
-            .animation(.spring(response: 0.38, dampingFraction: 0.82), value: store.pendingApproval != nil)
+            .onChange(of: store.pendingApproval != nil) { pending in
+                if pending { inputFocused = false }
+            }
+            .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.82),
+                       value: store.pendingApproval != nil)
         }
+    }
+
+    private var coachContextHeader: some View {
+        HStack(spacing: 12) {
+            Label(store.activeProvider.name, systemImage: "brain.head.profile")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Spacer(minLength: 8)
+            Text(store.model)
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .padding(12)
+        .modifier(TimeMasterCardSurface(cornerRadius: 16))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
     }
 
     @ToolbarContentBuilder
@@ -124,7 +149,7 @@ struct AICoachView: View {
         guard !text.isEmpty || pendingAttachName != nil else { return }
         let reply   = replyingTo
         let attName = pendingAttachName
-        let attBody = pendingAttachContent
+        let attBody = attName == nil ? nil : pendingAttachContent
         inputText          = ""
         replyingTo         = nil
         pendingAttachName  = nil
@@ -158,6 +183,8 @@ struct AICoachView: View {
 private struct ChatMessageList: View {
     @ObservedObject var store: AIStore
     let onReply: (ChatMessage) -> Void
+    let onSelectPrompt: (String) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var visible: [ChatMessage] {
         store.currentMessages.filter { $0.role != .system }
@@ -166,28 +193,23 @@ private struct ChatMessageList: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 4) {
+                LazyVStack(spacing: 16) {
                     if visible.isEmpty {
-                        EmptyCoachState()
-                            .padding(.top, 60)
+                        EmptyCoachState(onSelectPrompt: onSelectPrompt)
+                            .padding(.vertical, 20)
                     }
                     ForEach(visible) { msg in
                         MessageBubble(message: msg, onReply: onReply)
                             .id(msg.id)
-                            .transition(.asymmetric(
-                                insertion: .push(from: msg.role == .user ? .trailing : .leading)
-                                    .combined(with: .opacity),
-                                removal: .opacity.combined(with: .scale(scale: 0.92))
-                            ))
+                            .transition(.opacity)
                     }
                     if store.isExecutingTools {
                         ToolCallIndicator(count: store.toolCallCount)
-                            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            .transition(.opacity)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: visible.count) { _ in scrollToBottom(proxy) }
@@ -195,72 +217,69 @@ private struct ChatMessageList: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { scrollToBottom(proxy) }
             }
             .onAppear { scrollToBottom(proxy) }
-            .overlay(alignment: .top) {
-                VStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Theme.background)
-                        .frame(height: 0)
-                    LinearGradient(
-                        colors: [Theme.background, Theme.background.opacity(0)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 20)
-                }
-                .allowsHitTesting(false)
-            }
         }
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         guard let last = visible.last else { return }
-        withAnimation(.easeOut(duration: 0.3)) { proxy.scrollTo(last.id, anchor: .bottom) }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+            proxy.scrollTo(last.id, anchor: .bottom)
+        }
     }
 }
 
 // MARK: - EmptyCoachState
 
 private struct EmptyCoachState: View {
+    let onSelectPrompt: (String) -> Void
+
     var body: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: 72, height: 72)
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 30))
-                    .foregroundColor(Color.white.opacity(0.35))
-            }
-            VStack(spacing: 6) {
-                Text("AI Coach")
-                    .font(.title3.bold())
-                    .foregroundColor(Color.white.opacity(0.9))
-                Text("Ask about training, form, nutrition, or recovery.\nAttach files for extra context.")
+                    .font(.title2)
+                    .foregroundStyle(Theme.toolbarOrange)
+                    .frame(width: 52, height: 52)
+                    .modifier(TimeMasterCardSurface(cornerRadius: 16, emphasized: true))
+                    .accessibilityHidden(true)
+                Text("How can I help?")
+                    .font(.title2.bold())
+                    .foregroundStyle(Theme.textPrimary)
+                Text("Plan your week, work on technique, or talk through recovery. Attach a file when you need more context.")
                     .font(.subheadline)
-                    .foregroundColor(Color.white.opacity(0.4))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 20) {
-                SuggestionPill(text: "Plan my week")
-                SuggestionPill(text: "Fix my squat form")
-                SuggestionPill(text: "Rest day tips")
+            VStack(spacing: 8) {
+                prompt("Plan my week", symbol: "calendar")
+                prompt("Improve my squat form", symbol: "figure.strengthtraining.traditional")
+                prompt("Help me recover", symbol: "heart")
             }
         }
-        .padding(.horizontal, 32)
+        .padding(20)
+        .modifier(TimeMasterCardSurface())
     }
-}
 
-private struct SuggestionPill: View {
-    let text: String
-    var body: some View {
-        Text(text)
-            .font(.caption)
-            .foregroundColor(Color.white.opacity(0.55))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.white.opacity(0.07))
-            .cornerRadius(20)
+    private func prompt(_ title: String, symbol: String) -> some View {
+        Button { onSelectPrompt(title) } label: {
+            HStack(spacing: 10) {
+                Image(systemName: symbol)
+                    .frame(width: 24)
+                    .foregroundStyle(Theme.toolbarOrange)
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "arrow.up.left")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            .padding(12)
+            .frame(minHeight: 44)
+            .modifier(TimeMasterCardSurface(cornerRadius: 14))
+        }
+        .buttonStyle(TimeMasterCardButtonStyle())
+        .accessibilityHint("Adds this prompt to your message")
     }
 }
 
@@ -279,8 +298,8 @@ private struct MessageBubble: View {
             VStack(alignment: isUser ? .trailing : .leading, spacing: 3) {
                 bubbleContent
                 timestampLabel
-                    .contextMenu { contextMenuItems }
             }
+            .contextMenu { contextMenuItems }
 
             if !isUser { Spacer(minLength: 52) }
         }
@@ -304,7 +323,7 @@ private struct MessageBubble: View {
 
             // Attachment badge
             if let attName = message.attachmentName {
-                AttachmentBadgeView(name: attName, isUser: isUser)
+                AttachmentBadgeView(name: attName)
                     .padding(.horizontal, 12)
                     .padding(.top, message.replyToContent == nil ? 10 : 0)
                     .padding(.bottom, message.content.isEmpty ? 10 : 4)
@@ -319,7 +338,7 @@ private struct MessageBubble: View {
                 if isUser {
                     Text(message.content)
                         .font(.body)
-                        .foregroundColor(.black)
+                        .foregroundStyle(Theme.textPrimary)
                         .textSelection(.enabled)
                         .padding(.horizontal, 14)
                         .padding(.top, topPad)
@@ -333,8 +352,7 @@ private struct MessageBubble: View {
                 }
             }
         }
-        .background(isUser ? Color.white : Color(hex: "1C1C1C"))
-        .clipShape(BubbleShape(isUser: isUser))
+        .modifier(TimeMasterCardSurface(cornerRadius: 20, emphasized: isUser))
     }
 
     @ViewBuilder
@@ -359,18 +377,15 @@ private struct MessageBubble: View {
     }
 
     private var timestampLabel: some View {
-        Text(relativeTime(message.timestamp))
-            .font(.system(size: 10))
-            .foregroundColor(Color.white.opacity(0.28))
-            .padding(.horizontal, 4)
-    }
-
-    private func relativeTime(_ date: Date) -> String {
-        let diff = Date().timeIntervalSince(date)
-        if diff < 60 { return "just now" }
-        if diff < 3600 { return "\(Int(diff / 60))m ago" }
-        let f = DateFormatter(); f.timeStyle = .short
-        return f.string(from: date)
+        HStack(spacing: 4) {
+            Text(isUser ? "You" : "AI Coach")
+                .fontWeight(.medium)
+            Text("·")
+            Text(message.timestamp, style: .time)
+        }
+        .font(.caption2)
+        .foregroundStyle(Theme.textSecondary)
+        .padding(.horizontal, 4)
     }
 }
 
@@ -399,28 +414,6 @@ private struct SelectableMarkdownText: View {
     }
 }
 
-// MARK: - BubbleShape
-
-private struct BubbleShape: Shape {
-    let isUser: Bool
-    func path(in rect: CGRect) -> Path {
-        let r: CGFloat = 18
-        let smallR: CGFloat = 4
-        var path = Path()
-        if isUser {
-            // top-left, top-right (small), bottom-right (small), bottom-left
-            path.addRoundedRect(in: rect, cornerRadii: RectangleCornerRadii(
-                topLeading: r, bottomLeading: r, bottomTrailing: smallR, topTrailing: r
-            ))
-        } else {
-            path.addRoundedRect(in: rect, cornerRadii: RectangleCornerRadii(
-                topLeading: r, bottomLeading: smallR, bottomTrailing: r, topTrailing: r
-            ))
-        }
-        return path
-    }
-}
-
 // MARK: - ReplyQuoteView
 
 private struct ReplyQuoteView: View {
@@ -428,8 +421,8 @@ private struct ReplyQuoteView: View {
     let isAuthor: Bool    // true = original was from user
     let isUser: Bool      // true = current bubble is user's
 
-    private var barColor: Color { isUser ? Color.black.opacity(0.25) : Color.white.opacity(0.3) }
-    private var textColor: Color { isUser ? Color.black.opacity(0.65) : Color.white.opacity(0.55) }
+    private var barColor: Color { isUser ? Theme.toolbarOrange : Theme.textSecondary }
+    private var textColor: Color { Theme.textPrimary.opacity(0.75) }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -439,16 +432,16 @@ private struct ReplyQuoteView: View {
                 .cornerRadius(1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(isAuthor ? "You" : "AI Coach")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundColor(textColor)
                 Text(content)
-                    .font(.system(size: 12))
+                    .font(.caption)
                     .foregroundColor(textColor.opacity(0.85))
                     .lineLimit(2)
             }
         }
         .padding(8)
-        .background((isUser ? Color.black : Color.white).opacity(0.07))
+        .background(Theme.background.opacity(0.35))
         .cornerRadius(8)
     }
 }
@@ -457,7 +450,6 @@ private struct ReplyQuoteView: View {
 
 private struct AttachmentBadgeView: View {
     let name: String
-    let isUser: Bool
 
     var body: some View {
         HStack(spacing: 6) {
@@ -467,10 +459,10 @@ private struct AttachmentBadgeView: View {
                 .font(.system(size: 12, weight: .medium))
                 .lineLimit(1)
         }
-        .foregroundColor(isUser ? Color.black.opacity(0.6) : Color.white.opacity(0.55))
+        .foregroundStyle(Theme.textPrimary.opacity(0.8))
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background((isUser ? Color.black : Color.white).opacity(0.10))
+        .background(Theme.background.opacity(0.35))
         .cornerRadius(8)
     }
 }
@@ -478,20 +470,12 @@ private struct AttachmentBadgeView: View {
 // MARK: - TypingBubble
 
 private struct TypingBubble: View {
-    @State private var phase = 0
-    private let timer = Timer.publish(every: 0.35, on: .main, in: .common).autoconnect()
-
     var body: some View {
-        HStack(spacing: 5) {
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .fill(Color.white.opacity(phase == i ? 0.85 : 0.25))
-                    .frame(width: 7, height: 7)
-                    .scaleEffect(phase == i ? 1.15 : 0.9)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: phase)
-            }
-        }
-        .onReceive(timer) { _ in phase = (phase + 1) % 3 }
+        ProgressView("Thinking…")
+            .controlSize(.small)
+            .font(.caption)
+            .tint(Theme.toolbarOrange)
+            .foregroundStyle(Theme.textSecondary)
     }
 }
 
@@ -508,91 +492,66 @@ private struct ChatInputBar: View {
     let onAttach: () -> Void
 
     private var canSend: Bool {
-        !text.trimmingCharacters(in: .whitespaces).isEmpty || pendingAttachName != nil
+        !isLoading && !isApprovalPending
+            && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || pendingAttachName != nil)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Divider().background(Color.white.opacity(0.08))
-
-            // Reply strip
+        VStack(spacing: 10) {
             if let reply = replyingTo {
                 ReplyStripView(message: reply, onDismiss: { replyingTo = nil })
-                    .padding(.horizontal, 12)
-                    .padding(.top, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-
-            // Attachment badge
             if let name = pendingAttachName {
                 PendingAttachmentStrip(name: name, onRemove: { pendingAttachName = nil })
-                    .padding(.horizontal, 12)
-                    .padding(.top, replyingTo == nil ? 8 : 4)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-
-            // Input row
             HStack(alignment: .bottom, spacing: 10) {
-                // Attach
                 Button(action: onAttach) {
-                    Image(systemName: pendingAttachName != nil ? "paperclip.circle.fill" : "paperclip")
-                        .font(.system(size: 20))
-                        .foregroundColor(pendingAttachName != nil ? .white : Color.white.opacity(0.45))
+                    Label("Attach a file", systemImage: "paperclip")
+                        .labelStyle(.iconOnly)
                 }
-                .frame(width: 36, height: 36)
+                .buttonStyle(TimeMasterInsetControlStyle())
                 .disabled(isApprovalPending)
 
-                // Text field
                 if isApprovalPending {
-                    Text("Review the requested changes above...")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color.white.opacity(0.35))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color(hex: "1C1C1C"))
-                        .cornerRadius(20)
+                    Text("Review the changes above to continue.")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 } else {
-                    TextField("Message…", text: $text, axis: .vertical)
+                    TextField("Ask your coach…", text: $text, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .font(.body)
                         .lineLimit(1...6)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color(hex: "1C1C1C"))
-                        .cornerRadius(20)
-                        .foregroundColor(.white)
-                        .tint(.white)
+                        .padding(.vertical, 11)
+                        .foregroundStyle(Theme.textPrimary)
+                        .tint(Theme.toolbarOrange)
                         .focused(isFocused)
                         .onSubmit { if canSend { onSend() } }
                 }
 
-                // Send
                 Button(action: onSend) {
-                    ZStack {
-                        Circle()
-                            .fill(canSend && !isLoading && !isApprovalPending ? Color.white : Color.white.opacity(0.12))
-                            .frame(width: 36, height: 36)
+                    Group {
                         if isLoading {
-                            ProgressView()
-                                .tint(Color.white.opacity(0.6))
-                                .scaleEffect(0.75)
-                        } else if isApprovalPending {
-                            Image(systemName: "lock.fill")
-                                .font(.system(size: 13))
-                                .foregroundColor(Color.white.opacity(0.3))
+                            ProgressView().tint(Theme.textPrimary)
                         } else {
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(canSend ? .black : Color.white.opacity(0.3))
+                            Image(systemName: isApprovalPending ? "lock.fill" : "arrow.up")
+                                .font(.body.weight(.semibold))
                         }
                     }
+                    .foregroundStyle(canSend ? Theme.background : Theme.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(canSend ? Theme.toolbarOrange : Theme.surface2,
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .disabled(!canSend || isLoading || isApprovalPending)
+                .buttonStyle(.plain)
+                .disabled(!canSend)
+                .accessibilityLabel(isLoading ? "Waiting for response" : "Send message")
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: replyingTo?.id)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: pendingAttachName)
         }
+        .padding(12)
+        .modifier(TimeMasterCardSurface())
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
         .background(Theme.background)
     }
 }
@@ -606,28 +565,27 @@ private struct ReplyStripView: View {
     var body: some View {
         HStack(spacing: 10) {
             Rectangle()
-                .fill(Color.white.opacity(0.5))
+                .fill(Theme.toolbarOrange)
                 .frame(width: 2)
                 .cornerRadius(1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(message.role == .user ? "Replying to yourself" : "Replying to AI Coach")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Color.white.opacity(0.5))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary)
                 Text(message.content)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color.white.opacity(0.7))
+                    .font(.caption)
+                    .foregroundStyle(Theme.textPrimary.opacity(0.8))
                     .lineLimit(2)
             }
             Spacer()
             Button(action: onDismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(Color.white.opacity(0.35))
-                    .font(.system(size: 18))
+                Label("Cancel reply", systemImage: "xmark")
+                    .labelStyle(.iconOnly)
             }
+            .buttonStyle(TimeMasterInsetControlStyle())
         }
         .padding(10)
-        .background(Color.white.opacity(0.06))
-        .cornerRadius(10)
+        .modifier(TimeMasterCardSurface(cornerRadius: 14))
     }
 }
 
@@ -643,19 +601,18 @@ private struct PendingAttachmentStrip: View {
                 .foregroundColor(Color.white.opacity(0.6))
                 .font(.system(size: 13))
             Text(name)
-                .font(.system(size: 13, weight: .medium))
+                .font(.caption.weight(.medium))
                 .foregroundColor(Color.white.opacity(0.8))
                 .lineLimit(1)
             Spacer()
             Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(Color.white.opacity(0.35))
-                    .font(.system(size: 18))
+                Label("Remove attachment", systemImage: "xmark")
+                    .labelStyle(.iconOnly)
             }
+            .buttonStyle(TimeMasterInsetControlStyle())
         }
         .padding(10)
-        .background(Color.white.opacity(0.06))
-        .cornerRadius(10)
+        .modifier(TimeMasterCardSurface(cornerRadius: 14))
     }
 }
 
@@ -675,43 +632,47 @@ struct SessionsListSheet: View {
                 Theme.background.ignoresSafeArea()
                 Group {
                     if store.sessions.isEmpty {
-                        Text("No conversations yet.")
-                            .foregroundColor(Color.white.opacity(0.4))
+                        VStack(spacing: 12) {
+                            Label("No conversations yet", systemImage: "bubble.left.and.bubble.right")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+                            Button("New Chat") {
+                                store.newSession()
+                                isPresented = false
+                            }
+                            .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: true))
+                        }
+                        .padding(24)
+                        .modifier(TimeMasterCardSurface())
+                        .padding(16)
                     } else {
                         List {
                             ForEach(sorted) { session in
-                                SessionRowView(
-                                    session: session,
-                                    isCurrent: session.id == store.currentSessionID
-                                )
-                                .listRowBackground(
-                                    session.id == store.currentSessionID
-                                    ? Color.white.opacity(0.08)
-                                    : Color(hex: "141414")
-                                )
-                                .listRowSeparatorTint(Color.white.opacity(0.06))
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    withAnimation { store.switchSession(session.id) }
+                                Button {
+                                    store.switchSession(session.id)
                                     isPresented = false
+                                } label: {
+                                    SessionRowView(session: session, isCurrent: session.id == store.currentSessionID)
                                 }
+                                .buttonStyle(TimeMasterCardButtonStyle())
+                                .accessibilityAddTraits(session.id == store.currentSessionID ? .isSelected : [])
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                             }
                             .onDelete { offsets in
                                 offsets.map { sorted[$0].id }.forEach { store.deleteSession(id: $0) }
                             }
                         }
+                        .listStyle(.plain)
                         .scrollContentBackground(.hidden)
                     }
                 }
             }
             .navigationTitle("Conversations")
             #if os(iOS)
-#if os(iOS)
-#if os(iOS)
-.navigationBarTitleDisplayMode(.inline)
-#endif
-#endif
-#endif
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 AppToolbar.item(placement: .primaryAction) { Button("Done") { isPresented = false }
                     .foregroundColor(.white)
@@ -735,47 +696,32 @@ private struct SessionRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(isCurrent ? Color.white : Color.white.opacity(0.08))
-                    .frame(width: 36, height: 36)
-                Image(systemName: "bubble.left.fill")
-                    .font(.system(size: 15))
-                    .foregroundColor(isCurrent ? .black : Color.white.opacity(0.5))
+            Image(systemName: isCurrent ? "checkmark.bubble.fill" : "bubble.left")
+                .font(.title3)
+                .foregroundStyle(isCurrent ? Theme.toolbarOrange : Theme.textSecondary)
+                .frame(width: 44, height: 44)
+                .modifier(TimeMasterCardSurface(cornerRadius: 12))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(session.title.isEmpty ? "New conversation" : session.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(2)
+                Text(session.lastUserPreview.isEmpty ? "No messages yet" : session.lastUserPreview)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(2)
             }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(session.title)
-                    .font(.system(size: 14, weight: isCurrent ? .semibold : .regular))
-                    .foregroundColor(isCurrent ? .white : Color.white.opacity(0.85))
-                    .lineLimit(1)
-                Text(session.lastUserPreview)
-                    .font(.system(size: 12))
-                    .foregroundColor(Color.white.opacity(0.38))
-                    .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(session.createdAt, format: .dateTime.month(.abbreviated).day())
+                Text("\(session.visibleCount) messages")
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 3) {
-                Text(shortDate(session.createdAt))
-                    .font(.system(size: 11))
-                    .foregroundColor(Color.white.opacity(0.28))
-                Text("\(session.visibleCount)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(Color.white.opacity(0.3))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.white.opacity(0.07))
-                    .cornerRadius(8)
-            }
+            .font(.caption2)
+            .foregroundStyle(Theme.textSecondary)
         }
-        .padding(.vertical, 4)
-    }
-
-    private func shortDate(_ date: Date) -> String {
-        let diff = Date().timeIntervalSince(date)
-        if diff < 86400 {
-            let f = DateFormatter(); f.timeStyle = .short; return f.string(from: date)
-        }
-        let f = DateFormatter(); f.dateFormat = "MMM d"; return f.string(from: date)
+        .padding(12)
+        .modifier(TimeMasterCardSurface(cornerRadius: 16, emphasized: isCurrent))
     }
 }
 
@@ -784,37 +730,17 @@ private struct SessionRowView: View {
 
 private struct ToolCallIndicator: View {
     let count: Int
-    @State private var pulse = false
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack {
+            ProgressView(count == 0 ? "Working…" : "Using \(count) \(count == 1 ? "tool" : "tools")")
+                .controlSize(.small)
+                .font(.caption)
+                .tint(Theme.toolbarOrange)
+                .foregroundStyle(Theme.textSecondary)
+                .padding(12)
+                .modifier(TimeMasterCardSurface(cornerRadius: 16))
             Spacer(minLength: 52)
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.white.opacity(pulse ? 0.7 : 0.3))
-                    .frame(width: 6, height: 6)
-                    .scaleEffect(pulse ? 1.2 : 0.9)
-                    .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulse)
-                Text(toolActionText)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color.white.opacity(0.5))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color(hex: "1C1C1C"))
-            .clipShape(BubbleShape(isUser: false))
-            .onAppear { pulse = true }
-        }
-        .padding(.vertical, 2)
-    }
-
-    private var toolActionText: String {
-        if count >= 5 { return "Working on it..." }
-        switch count {
-        case 1: return "Checking your data..."
-        case 2: return "Looking deeper..."
-        case 3: return "Almost done..."
-        default: return "Working on it..."
         }
     }
 }
@@ -826,81 +752,44 @@ private struct ApprovalCardView: View {
     @ObservedObject var store: AIStore
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            VStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    Image(systemName: iconName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "FFD60A"))
-                    Text("AI wants to make changes")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 8)
-
-                Text(approval.summary)
-                    .font(.system(size: 13))
-                    .foregroundColor(Color.white.opacity(0.7))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-
-                if !approval.details.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(approval.details.keys.sorted(), id: \.self) { key in
-                            HStack(spacing: 4) {
-                                Text(key + ":")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(Color.white.opacity(0.4))
-                                Text(approval.details[key] ?? "")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Color.white.opacity(0.6))
-                                    .lineLimit(1)
-                            }
+        VStack(spacing: 12) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Review changes", systemImage: iconName)
+                        .font(.headline)
+                        .foregroundStyle(Theme.toolbarOrange)
+                    Text(approval.summary)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(approval.details.keys.sorted(), id: \.self) { key in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(key)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.textSecondary)
+                            Text(approval.details[key] ?? "")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textPrimary.opacity(0.85))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .textSelection(.enabled)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
                 }
-
-                HStack(spacing: 10) {
-                    Button(action: { store.rejectCurrentToolCall() }) {
-                        Text("Reject")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color.white.opacity(0.6))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.white.opacity(0.08))
-                            .cornerRadius(12)
-                    }
-                    Button(action: { store.approveCurrentToolCall() }) {
-                        Text("Approve")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color(hex: "FFD60A"))
-                            .cornerRadius(12)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(hex: "1C1C1C"))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color(hex: "FFD60A").opacity(0.3), lineWidth: 1)
-                    )
-            )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
+            HStack(spacing: 10) {
+                Button { store.rejectCurrentToolCall() } label: {
+                    Text("Reject").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(TimeMasterSelectionButtonStyle())
+                Button { store.approveCurrentToolCall() } label: {
+                    Text("Approve").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: true))
+            }
         }
+        .padding(16)
+        .modifier(TimeMasterCardSurface(emphasized: true))
     }
 
     private var iconName: String {
