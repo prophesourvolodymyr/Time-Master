@@ -80,7 +80,7 @@ struct BackupView: View {
             Text("Transfer Everything")
                 .font(.title3).fontWeight(.bold)
                 .foregroundColor(.white)
-            Text("Export all your workouts, exercises, notes and media into one file. AirDrop or share it to any iPhone and import in one tap.")
+            Text("Export your workouts, exercises, notes, profile, posts and media into one file. AirDrop or share it to another device and import it here.")
                 .font(.subheadline)
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -238,12 +238,18 @@ struct BackupView: View {
 
     private func runExport() {
         isExporting = true
-        // Snapshot store state HERE on the main thread before going background
-        let snap = BackupManager.shared.snapshot(
-            workoutStore: workoutStore,
-            databaseStore: databaseStore,
-            outdoorStore: outdoorStore
-        )
+        let snap: BackupManager.ExportSnapshot
+        do {
+            snap = try BackupManager.shared.snapshot(
+                workoutStore: workoutStore,
+                databaseStore: databaseStore,
+                outdoorStore: outdoorStore
+            )
+        } catch {
+            isExporting = false
+            show(title: "Export Failed", message: error.localizedDescription)
+            return
+        }
         Task.detached(priority: .userInitiated) {
             do {
                 let url = try BackupManager.shared.export(snapshot: snap)
@@ -273,7 +279,7 @@ struct BackupView: View {
                 )
                 await MainActor.run {
                     isImporting = false
-                    let msg = "Exercises: \(summary.exercisesImported), Workouts: \(summary.workoutsImported), History: \(summary.historyImported), Outdoor: \(summary.outdoorActivitiesImported)"
+                    let msg = "Exercises: \(summary.exercisesImported), Workouts: \(summary.workoutsImported), History: \(summary.historyImported), Outdoor: \(summary.outdoorActivitiesImported)" + (summary.profileImported ? "\nLocal profile and posts imported. Existing profile preferences are retained when merging." : "")
                     show(title: "Import Complete", message: msg)
                 }
             } catch {

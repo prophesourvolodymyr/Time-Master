@@ -17,51 +17,35 @@ private struct ProfileAchievementPlaceholder: Identifiable {
     ]
 }
 
-struct ProfileAchievementStrip: View {
+enum ProfileAchievementSide: String, CaseIterable, Identifiable {
+    case leading, trailing
+    var id: String { rawValue }
+}
+
+struct ProfileAchievementIndicator: View {
     let isLeading: Bool
+    var showAll = false
+    let palette: StoreProfilePalette
+    let compactProgress: CGFloat
+    let collectible: CollectibleItem?
+    let artworkActive: Bool
     @State private var showsAchievements = false
 
-    private var items: [ProfileAchievementPlaceholder] {
-        ProfileAchievementPlaceholder.catalog.filter { $0.id.isMultiple(of: 2) == isLeading }
-    }
-
     var body: some View {
-        GeometryReader { geometry in
-            let slots = max(1, Int((geometry.size.width + 4) / 48))
-            let visibleCount = slots >= items.count ? items.count : max(0, slots - 1)
-            VStack(spacing: 4) {
-                HStack(spacing: 4) {
-                    ForEach(items.prefix(visibleCount)) { item in
-                        Button { showsAchievements = true } label: {
-                            Image(systemName: item.symbol)
-                                .font(.system(size: 19, weight: .medium))
-                                .foregroundStyle(ProfileStyle.secondary)
-                                .frame(width: 44, height: 44)
-                                .background(Theme.surface2, in: Circle())
-                        }
-                        .accessibilityLabel("\(item.title), achievement placeholder. Coming later.")
-                    }
-                    if visibleCount < items.count {
-                        Button { showsAchievements = true } label: {
-                            Text("+\(items.count - visibleCount)")
-                                .font(TimeMasterFont.caption())
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Theme.surface2, in: Circle())
-                        }
-                        .accessibilityLabel("Show \(items.count - visibleCount) more achievement placeholders. Coming later.")
-                    }
-                }
-                .buttonStyle(.plain)
-                Text("Coming later")
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(ProfileStyle.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isLeading ? .trailing : .leading)
+        let placeholderCount = ProfileAchievementPlaceholder.catalog.reduce(into: 0) { count, item in
+            if showAll || item.id.isMultiple(of: 2) == isLeading { count += 1 }
         }
-        .frame(minWidth: 44, minHeight: 84)
+        Button { showsAchievements = true } label: {
+            ProfileAchievementShield(
+                title: "Later", value: "◇",
+                detail: placeholderCount > 1 ? "+\(placeholderCount - 1) more" : nil,
+                palette: palette, compactProgress: compactProgress,
+                collectible: collectible, artworkActive: artworkActive
+            )
+        }
+        .buttonStyle(EverPressButtonStyle())
+        .frame(minWidth: EverLayout.minimumTouchTarget)
+        .accessibilityLabel("Achievement placeholders. Coming later. Show all \(placeholderCount) placeholders.")
         .sheet(isPresented: $showsAchievements) { ProfileAchievementsView() }
     }
 }
@@ -71,7 +55,7 @@ struct ProfileAchievementsView: View {
 
     var body: some View {
         NavigationStack {
-            ProfileSettingsPage(title: "Achievements") {
+            EverSettingsPage(title: "Achievements") {
                 ProfileEmptyState(symbol: "sparkles", title: "Coming later", detail: "These are design placeholders, not unlocked achievements. No progress or awards are being tracked here yet.")
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
                     ForEach(ProfileAchievementPlaceholder.catalog) { item in

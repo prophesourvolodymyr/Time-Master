@@ -3,65 +3,120 @@ import SwiftUI
 import UIKit
 #endif
 
-private enum LocalProfileSheet: String, Identifiable {
+enum LocalProfileSheet: String, Identifiable {
     case edit, compose, settings, collectibles, verification, report
     var id: String { rawValue }
 }
 
 struct ProfileView: View {
-    let onOpenRanked: (RankedVariation) -> Void
-    @EnvironmentObject private var profileStore: LocalProfileStore
+    let onOpenRanked: ((RankedVariation) -> Void)?
+    let previewOnly: Bool
+    let onPreviewClose: (() -> Void)?
+    @EnvironmentObject var profileStore: LocalProfileStore
     @EnvironmentObject private var workoutStore: WorkoutStore
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @EnvironmentObject private var musicLibraryStore: MusicLibraryStore
     @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.everRasterizedContent) var rasterizedContent
+    @Environment(\.everPageTravelActive) var pageTravelActive
+    @Environment(\.collectiblePreviewItem) var collectiblePreviewItem
+    @Environment(\.verificationPreviewTier) var verificationPreviewTier
     @State private var selectedActivity: OutdoorActivity?
     @State private var showingHistory = false
-    @State private var selectedTab: LocalProfileTab = .posts
-    @State private var sheet: LocalProfileSheet?
-    @State private var asVisitor = false
-    @State private var biographyExpanded = false
-    @ScaledMetric(relativeTo: .title) private var avatarSize: CGFloat = 88
+    @State var selectedTab: LocalProfileTab = .posts
+    @State var sheet: LocalProfileSheet?
+    @State var asVisitor = false
+    @State var biographyExpanded = false
+    @State var isChromeVisible = false
+    @State var detailsHeight: CGFloat = 0
+    @ScaledMetric(relativeTo: .body) var compactHeight = EverLayout.minimumTouchTarget + EverSpacing.x8
+    @ScaledMetric(relativeTo: .body) var expandedAvatarSize = EverLayout.minimumTouchTarget * 2.4
+    @ScaledMetric(relativeTo: .body) var compactAvatarSize = EverLayout.minimumTouchTarget + EverSpacing.x2
+    @ScaledMetric(relativeTo: .body) var tabHeight = EverLayout.minimumTouchTarget + EverSpacing.x3
 
-    private var profile: LocalUserProfile { profileStore.profile }
-    private var canSeeDetails: Bool { !asVisitor || !profile.isPrivate }
-    private var tabs: [LocalProfileTab] {
-        guard asVisitor else { return LocalProfileTab.allCases }
+    init(
+        onOpenRanked: ((RankedVariation) -> Void)? = nil,
+        previewOnly: Bool = false,
+        onPreviewClose: (() -> Void)? = nil
+    ) {
+        self.onOpenRanked = onOpenRanked
+        self.previewOnly = previewOnly
+        self.onPreviewClose = onPreviewClose
+    }
+
+    var profile: LocalUserProfile { profileStore.profile }
+    var canSeeDetails: Bool { !asVisitor || !profile.isPrivate }
+    var isProfileRoot: Bool { !previewOnly }
+    var palette: StoreProfilePalette { .midnight }
+    var collectibleArtworkActive: Bool { isChromeVisible && !rasterizedContent && !pageTravelActive }
+    var selectedStats: [ProfileAchievementSide] {
+        canSeeDetails && (!asVisitor || profile.showAchievements) ? ProfileAchievementSide.allCases : []
+    }
+    func collectible(_ category: CollectibleCategory) -> CollectibleItem? {
+        collectiblePreviewItem?.category == category
+            ? collectiblePreviewItem
+            : CollectibleItem.selected(category, in: profileStore.snapshot)
+    }
+    var tabs: [LocalProfileTab] {
+        guard asVisitor else {
+            return LocalProfileTab.allCases.filter { $0 != .ranked || onOpenRanked != nil }
+        }
         return profile.isPrivate ? [] : profile.visibleTabs
     }
-    private var activeTab: LocalProfileTab? { tabs.contains(selectedTab) ? selectedTab : tabs.first }
+    var activeTab: LocalProfileTab? { tabs.contains(selectedTab) ? selectedTab : tabs.first }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: ProfileStyle.inset) {
+            EverProfileScaffold(
+                compactHeight: compactHeight,
+                expandedHeaderHeight: { width in
+                    EverProfileGeometry.expandedCore(coverHeight: width / 2, avatarSize: expandedAvatarSize) + detailsHeight
+                },
+                tabHeight: tabHeight
+            ) { width, progress in
+                let expandedCore = EverProfileGeometry.expandedCore(coverHeight: width / 2, avatarSize: expandedAvatarSize)
+                collapsingChrome(
+                    width: width, coverHeight: width / 2,
+                    expandedCore: expandedCore, expandedHeight: expandedCore + detailsHeight,
+                    progress: progress
+                )
+            } content: {
+                VStack(alignment: .leading, spacing: EverSpacing.x4) {
                     if asVisitor { visitorNotice }
                     if profileStore.isReadOnly { storageNotice }
-                    header
                     if !canSeeDetails {
                         ProfileEmptyState(symbol: "lock", title: "This profile is private", detail: "Only the name, handle and profile artwork are visible in this read-only visitor preview.")
                     } else if tabs.isEmpty {
                         ProfileEmptyState(symbol: "eye.slash", title: "No visible tabs", detail: "This profile has hidden all of its content tabs from the visitor preview.")
                     } else {
-                        tabBar
                         tabContent
                     }
                     Text("Local profile · Nothing is published online")
                         .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                 }
-                .frame(maxWidth: ProfileStyle.readableWidth)
-                .frame(maxWidth: .infinity)
-                .padding(ProfileStyle.inset)
+                .padding(EverLayout.phoneInset)
+                .frame(maxWidth: EverLayout.maximumReadableWidth)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .allowsHitTesting(!previewOnly)
             }
-            .background(Theme.background.ignoresSafeArea())
-            .foregroundStyle(.white)
-            .navigationTitle(asVisitor ? "Visitor preview" : "Profile")
-#if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-#endif
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) { profileMenu }
+            .background(palette.background)
+            .background(EverColor.background.ignoresSafeArea())
+            .foregroundStyle(palette.foreground)
+            .environment(\.storeProfilePalette, palette)
+            .tint(palette.foreground)
+            .navigationTitle("")
+            #if os(iOS)
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
+            .onAppear {
+                guard !rasterizedContent, !isChromeVisible else { return }
+                if reduceMotion || pageTravelActive || isProfileRoot {
+                    isChromeVisible = true
+                } else {
+                    withAnimation(.easeInOut(duration: 0.36)) { isChromeVisible = true }
+                }
             }
             .oneHandedActions(id: "profile", actions: ownerActions)
             .navigationDestination(isPresented: $showingHistory) {
@@ -100,96 +155,29 @@ struct ProfileView: View {
         .tint(.white)
     }
 
-    private var header: some View {
-        VStack(spacing: ProfileStyle.spacing) {
-            banner
-            HStack(spacing: 8) {
-                achievementSide(isLeading: true)
-                ProfileStyledAvatar(profile: profile, size: avatarSize)
-                    .background(Theme.background, in: Circle())
-                    .overlay { Circle().strokeBorder(Theme.background, lineWidth: 4).allowsHitTesting(false) }
-                achievementSide(isLeading: false)
-            }
-            .padding(.top, -avatarSize / 2)
-            .padding(.horizontal, 4)
-            VStack(spacing: 4) {
-                ProfileStyledName(text: profile.displayName)
-                    .multilineTextAlignment(.center).accessibilityAddTraits(.isHeader)
-                if canSeeDetails, !profile.location.isEmpty {
-                    Label(profile.location, systemImage: "mappin.and.ellipse")
-                        .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                }
-                Text("@\(profile.handle)").font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                if asVisitor {
-                    ProfileBadgePreview()
-                } else if profileStore.snapshot.badgePreview != nil {
-                    Button { sheet = .verification } label: { ProfileBadgePreview() }
-                        .buttonStyle(.plain).frame(minHeight: ProfileStyle.touchTarget)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            if !asVisitor {
-                RankedProfileSummary { selectedTab = .ranked }
-            }
-            if canSeeDetails {
-                HStack(alignment: .center, spacing: ProfileStyle.spacing) {
-                    biographyButton
-                    Spacer(minLength: 0)
-                    socialLinks
-                }
-                if biographyExpanded, !profile.biography.isEmpty {
-                    Text(profile.biography).font(TimeMasterFont.body()).textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
-    private var banner: some View {
-        Rectangle().fill(Theme.surface2)
-            .overlay {
-                if let filename = profile.bannerFilename, let image = PhotoManager.shared.loadPhoto(filename: filename) {
-                    GeometryReader { geometry in
-                        platformImage(image).resizable().scaledToFill()
-                            .frame(width: geometry.size.width, height: geometry.size.height).clipped()
-                    }
-                }
-            }
-            .overlay { ProfileBannerDecoration() }
-            .aspectRatio(2.6, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous))
-            .overlay(alignment: .topTrailing) {
-                if !asVisitor {
-                    HStack(spacing: 8) {
-                        Button { sheet = .compose } label: {
-                            Image(systemName: "plus").font(.body.weight(.semibold))
-                                .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
-                                .background(Theme.background.opacity(0.9), in: Circle())
-                        }
-                        .accessibilityLabel("Create post").accessibilityIdentifier("profile-create-post")
-                        Button { sheet = .edit } label: {
-                            Text("Edit").font(TimeMasterFont.rowTitle())
-                                .padding(.horizontal, ProfileStyle.inset)
-                                .frame(minHeight: ProfileStyle.touchTarget)
-                                .background(Theme.background.opacity(0.9), in: Capsule())
-                        }
-                        .accessibilityLabel("Edit profile").accessibilityIdentifier("profile-edit")
-                    }
-                    .buttonStyle(TimeMasterCardButtonStyle())
-                    .disabled(profileStore.isReadOnly)
-                    .padding(8)
-                    .oneHandedActionSource()
-                }
-            }
-    }
-
     @ViewBuilder
-    private func achievementSide(isLeading: Bool) -> some View {
-        if canSeeDetails && (!asVisitor || profile.showAchievements) {
-            ProfileAchievementStrip(isLeading: isLeading).frame(maxWidth: .infinity)
-        } else {
-            Color.clear.frame(maxWidth: .infinity).frame(height: ProfileStyle.touchTarget)
+    var expandedHeaderDetails: some View {
+        if let tier = verificationPreviewTier ?? profileStore.snapshot.badgePreview {
+            Text("\(tier.title) checkmark · Preview only")
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(palette.secondaryText)
+        }
+        if canSeeDetails {
+            if !profile.location.isEmpty {
+                Label(profile.location, systemImage: "mappin.and.ellipse")
+                    .font(TimeMasterFont.caption()).foregroundStyle(palette.secondaryText)
+            }
+            HStack(alignment: .center, spacing: EverSpacing.x3) {
+                biographyButton
+                Spacer(minLength: 0)
+                socialLinks
+            }
+            if biographyExpanded, !profile.biography.isEmpty {
+                Text(profile.biography).font(TimeMasterFont.secondary()).textSelection(.enabled)
+                    .foregroundStyle(palette.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -237,20 +225,6 @@ struct ProfileView: View {
         }
     }
 
-    private var tabBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(tabs) { tab in
-                    Button { selectedTab = tab } label: {
-                        ProfilePillLabel(title: tab.title, symbol: tab.symbol, isSelected: activeTab == tab)
-                    }
-                    .buttonStyle(TimeMasterCardButtonStyle())
-                    .accessibilityAddTraits(activeTab == tab ? .isSelected : [])
-                    .accessibilityIdentifier("profile-tab-\(tab.rawValue)")
-                }
-            }
-        }
-    }
 
     @ViewBuilder
     private var tabContent: some View {
@@ -258,7 +232,8 @@ struct ProfileView: View {
         case .posts: LocalPostsView(asVisitor: asVisitor)
         case .reposted: LocalPostsView(asVisitor: asVisitor, repostsOnly: true)
         case .activity: activityContent
-        case .ranked: RankedProfileSection(onOpenRanked: onOpenRanked)
+        case .ranked:
+            if let onOpenRanked { RankedProfileSection(onOpenRanked: onOpenRanked) }
         case nil: EmptyView()
         }
     }
@@ -272,7 +247,7 @@ struct ProfileView: View {
             }
             if !asVisitor {
                 Button { showingHistory = true } label: {
-                    ProfileSettingsRow(icon: "clock.arrow.circlepath", title: "All Activity History", detail: "Your workouts and outdoor sessions")
+                    EverActionRow(title: "All Activity History", detail: "Your workouts and outdoor sessions", symbol: "clock.arrow.circlepath")
                         .modifier(TimeMasterCardSurface(flat: true))
                 }
                 .buttonStyle(.plain)
@@ -280,7 +255,7 @@ struct ProfileView: View {
                     Text("Recent workouts").font(TimeMasterFont.heading())
                     ForEach(workoutStore.historyEntries.sorted { $0.completedAt > $1.completedAt }.prefix(10)) { entry in
                         Button { showingHistory = true } label: {
-                            ProfileSettingsRow(icon: entry.isPartial ? "clock.badge.exclamationmark" : "checkmark.circle", title: entry.workoutName, detail: "\(entry.completedAt.formatted(date: .abbreviated, time: .omitted)) · \(entry.isPartial ? "Partial workout" : "Completed workout")")
+                            EverActionRow(title: entry.workoutName, detail: "\(entry.completedAt.formatted(date: .abbreviated, time: .omitted)) · \(entry.isPartial ? "Partial workout" : "Completed workout")", symbol: entry.isPartial ? "clock.badge.exclamationmark" : "checkmark.circle")
                                 .modifier(TimeMasterCardSurface(flat: true))
                         }
                         .buttonStyle(.plain)
@@ -342,7 +317,7 @@ struct ProfileView: View {
             Text("Read-only visitor preview").font(TimeMasterFont.rowTitle())
             Text("This shows your visibility settings, not another signed-in account.")
                 .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-            Button("Return to my profile") { asVisitor = false }.buttonStyle(ProfilePrimaryButtonStyle())
+            Button("Return to my profile") { asVisitor = false }.buttonStyle(EverPrimaryButtonStyle())
         }
     }
 
@@ -351,29 +326,24 @@ struct ProfileView: View {
             Text("Profile storage unavailable").font(TimeMasterFont.heading())
             Text("The saved file is preserved. Changes are disabled until it can be loaded.")
                 .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            Button("Retry loading profile") { profileStore.reload() }.buttonStyle(ProfilePrimaryButtonStyle())
+            Button("Retry loading profile") { profileStore.reload() }.buttonStyle(EverPrimaryButtonStyle())
         }
     }
 
-    private var profileMenu: some View {
-        Menu {
-            if asVisitor {
-                Button("Return to my profile") { asVisitor = false }
-                Button("Report profile") { sheet = .report }
-            } else {
-                Button("Visitor preview") { asVisitor = true }
-                Button("Collectibles") { sheet = .collectibles }
-                Button("Verification") { sheet = .verification }
-                Button("Settings") { sheet = .settings }
-                Button("All Activity History") { showingHistory = true }
-            }
-        } label: {
-            Image(systemName: asVisitor ? "ellipsis" : "gearshape")
-                .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
-                .background(Theme.surface2, in: Circle())
+    @ViewBuilder
+    var profileActionItems: some View {
+        if asVisitor {
+            Button("Return to my profile") { asVisitor = false }
+            Button("Report profile") { sheet = .report }
+        } else {
+            Button("Edit profile") { sheet = .edit }.disabled(profileStore.isReadOnly)
+            Button("New post") { sheet = .compose }.disabled(profileStore.isReadOnly)
+            Button("Visitor preview") { asVisitor = true }
+            Button("Collectibles") { sheet = .collectibles }
+            Button("Verification") { sheet = .verification }
+            Button("Settings") { sheet = .settings }
+            Button("All Activity History") { showingHistory = true }
         }
-        .accessibilityLabel("Profile options").accessibilityIdentifier("profile-options")
-        .oneHandedActionSource()
     }
 
     private var ownerActions: [ReachabilityAction] {

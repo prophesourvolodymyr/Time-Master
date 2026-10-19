@@ -43,7 +43,7 @@ struct LocalPostThreadView: View {
                                             if let last = self.post?.replies.last { reader.scrollTo(last.id, anchor: .bottom) }
                                         } catch { errorMessage = error.localizedDescription }
                                     }
-                                    .buttonStyle(ProfilePrimaryButtonStyle())
+                                    .buttonStyle(EverPrimaryButtonStyle())
                                     .disabled(reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                     Text("Replies are saved under your own local profile, not posted as another person.")
                                         .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)

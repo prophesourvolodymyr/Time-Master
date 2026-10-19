@@ -20,14 +20,18 @@ struct LocalProfileEditorView: View {
 
     var body: some View {
         NavigationStack {
-            ProfileSettingsPage(title: "Edit profile") {
-                ProfileSettingsSection(title: "Identity", footer: "Saved only on this device. Your handle is not reserved online.") {
+            EverSettingsPage(title: "Edit profile") {
+                EverSettingsSection(title: "Identity", detail: "Saved only on this device. Your handle is not reserved online.") {
                     VStack(spacing: ProfileStyle.inset) {
                         ProfileAvatar(profile: draft, size: avatarSize)
                         HStack {
                             photoPicker("Avatar", selection: $avatarItem)
                             if draft.avatarFilename != nil {
-                                Button("Remove avatar", role: .destructive) { draft.avatarFilename = nil }
+                                Button(role: .destructive) { draft.avatarFilename = nil } label: {
+                                    Text("Remove avatar")
+                                        .frame(minHeight: ProfileStyle.touchTarget)
+                                        .contentShape(Rectangle())
+                                }
                             }
                         }
                         if let filename = draft.bannerFilename, let image = PhotoManager.shared.loadPhoto(filename: filename) {
@@ -38,7 +42,11 @@ struct LocalProfileEditorView: View {
                         HStack {
                             photoPicker("Banner", selection: $bannerItem)
                             if draft.bannerFilename != nil {
-                                Button("Remove banner", role: .destructive) { draft.bannerFilename = nil }
+                                Button(role: .destructive) { draft.bannerFilename = nil } label: {
+                                    Text("Remove banner")
+                                        .frame(minHeight: ProfileStyle.touchTarget)
+                                        .contentShape(Rectangle())
+                                }
                             }
                         }
                         if isImporting { ProgressView("Importing photo…") }
@@ -48,14 +56,14 @@ struct LocalProfileEditorView: View {
                     }
                     .padding(ProfileStyle.inset)
                 }
-                ProfileSettingsSection(title: "Biography", footer: "Your profile shows the first eight characters. Tap to read the full description.") {
+                EverSettingsSection(title: "Biography", detail: "Your profile shows the first eight characters. Tap to read the full description.") {
                     TextEditor(text: $draft.biography)
                         .font(TimeMasterFont.body()).scrollContentBackground(.hidden)
                         .frame(minHeight: avatarSize * 1.5)
                         .padding(ProfileStyle.spacing)
                         .accessibilityLabel("Biography")
                 }
-                ProfileSettingsSection(title: "Social links", footer: "Up to three links. Include https:// in each address.") {
+                EverSettingsSection(title: "Social links", detail: "Up to three links. Include https:// in each address.") {
                     VStack(spacing: ProfileStyle.inset) {
                         ForEach($draft.links) { $link in
                             VStack(alignment: .leading, spacing: ProfileStyle.spacing) {

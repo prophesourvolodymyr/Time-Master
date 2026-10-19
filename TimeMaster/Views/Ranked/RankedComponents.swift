@@ -36,10 +36,11 @@ struct RankedActionStyle: ButtonStyle {
             .foregroundStyle(.black)
             .padding(ProfileStyle.inset)
             .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-            .background(Theme.toolbarOrange, in: RoundedRectangle(cornerRadius: ProfileStyle.inset))
+            .background(Theme.toolbarOrange, in: RoundedRectangle(cornerRadius: ProfileStyle.inset, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.inset, style: .continuous))
             .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-            .animation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.75), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: configuration.isPressed)
     }
 }
 
@@ -52,25 +53,28 @@ struct RankedMovementTile: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 4) {
-                RankedMovementArt(variation: variation).aspectRatio(1.35, contentMode: .fit)
+            VStack(alignment: .leading, spacing: 8) {
+                RankedMovementArt(variation: variation)
+                    .aspectRatio(1.35, contentMode: .fit)
+                    .padding(.vertical, 8)
                 Text(variation.title).font(TimeMasterFont.rowTitle())
                     .fixedSize(horizontal: false, vertical: true)
-                if variation.isTimedHold {
-                    Label("Hold time", systemImage: "timer").font(TimeMasterFont.caption())
-                        .foregroundStyle(ProfileStyle.secondary)
-                }
+                Label(variation.isTimedHold ? "Hold time" : "Repetitions", systemImage: variation.isTimedHold ? "timer" : "repeat")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(ProfileStyle.secondary)
                 Text(mode == .practice ? "Practice" : elo.map { "\($0.formatted()) Elo" } ?? "Unplaced")
                     .font(TimeMasterFont.caption().monospacedDigit())
                     .foregroundStyle(isSelected ? .white : ProfileStyle.secondary)
             }
             .padding(ProfileStyle.spacing)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: ProfileStyle.corner))
+            .modifier(TimeMasterCardSurface(flat: true))
             .overlay {
-                RoundedRectangle(cornerRadius: ProfileStyle.corner)
-                    .strokeBorder(isSelected ? Theme.toolbarOrange : Theme.separator, lineWidth: isSelected ? 2 : 1)
-                    .allowsHitTesting(false)
+                if isSelected {
+                    RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous)
+                        .strokeBorder(Theme.toolbarOrange, lineWidth: 2)
+                        .allowsHitTesting(false)
+                }
             }
             .overlay(alignment: .topTrailing) {
                 if isSelected {
@@ -79,12 +83,13 @@ struct RankedMovementTile: View {
                         .padding(8).accessibilityHidden(true)
                 }
             }
-            .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.corner))
+            .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous))
         }
         .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(.white)
         .accessibilityLabel(variation.fullTitle)
         .accessibilityValue(mode == .practice ? "Practice" : elo.map { "\($0) Elo, profile level" } ?? "Unplaced")
+        .accessibilityHint(variation.isTimedHold ? "Select a timed hold" : "Select a repetition-based movement")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("ranked-variation-\(variation.rawValue)")
     }
@@ -96,22 +101,23 @@ struct RankedProfileSummary: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                RankedBadgeView(elo: profileStore.rankedLevels.overall)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(RankedTier.level(for: profileStore.rankedLevels.overall)?.title ?? "Unplaced")
-                        .font(TimeMasterFont.rowTitle())
-                    Text(profileStore.rankedLevels.overall.map { "\($0.formatted()) Elo · Profile level" } ?? "Set your Ranked profile level")
-                        .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                }
-                Image(systemName: "chevron.right").font(.caption.weight(.bold))
+            VStack(spacing: EverSpacing.x1) {
+                Text("Elo")
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(ProfileStyle.secondary)
+                Text(profileStore.rankedLevels.overall.map { $0.formatted() } ?? "Unplaced")
+                    .font(profileStore.rankedLevels.overall == nil ? TimeMasterFont.rowTitle() : TimeMasterFont.title())
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text("Local level")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(ProfileStyle.secondary)
+                    .lineLimit(1)
             }
-            .padding(.horizontal, ProfileStyle.spacing)
-            .padding(.vertical, 4)
-            .background(Theme.surface2, in: Capsule())
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(EverPressButtonStyle())
         .foregroundStyle(.white)
         .accessibilityIdentifier("profile-ranked-summary")
     }

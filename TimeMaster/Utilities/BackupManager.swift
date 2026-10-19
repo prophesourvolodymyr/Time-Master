@@ -24,7 +24,7 @@ struct BackupOfflineRegionMetadata: Codable, Equatable {
 }
 
 struct BackupManifest: Codable {
-    var version: Int = 2
+    var version: Int = 3
     var exportedAt: Date = Date()
     var workouts: [Workout]
     var workoutHistory: [WorkoutHistoryEntry]
@@ -35,6 +35,7 @@ struct BackupManifest: Codable {
     var plannedRoutes: [PlannedRoute]? = nil
     var config: ConfigManifest? = nil
     var offlineRegions: [BackupOfflineRegionMetadata]? = nil
+    var localProfile: LocalProfileSnapshot? = nil
 
     init(
         workouts: [Workout],
@@ -45,7 +46,8 @@ struct BackupManifest: Codable {
         outdoorActivities: [OutdoorActivity]? = nil,
         plannedRoutes: [PlannedRoute]? = nil,
         config: ConfigManifest? = nil,
-        offlineRegions: [BackupOfflineRegionMetadata]? = nil
+        offlineRegions: [BackupOfflineRegionMetadata]? = nil,
+        localProfile: LocalProfileSnapshot? = nil
     ) {
         self.workouts = workouts
         self.workoutHistory = workoutHistory
@@ -56,11 +58,12 @@ struct BackupManifest: Codable {
         self.plannedRoutes = plannedRoutes
         self.config = config
         self.offlineRegions = offlineRegions
+        self.localProfile = localProfile
     }
 
     private enum CodingKeys: String, CodingKey {
         case version, exportedAt, workouts, workoutHistory, folders, rootNotes, rootExercises
-        case outdoorActivities, plannedRoutes, config, offlineRegions
+        case outdoorActivities, plannedRoutes, config, offlineRegions, localProfile
     }
 
     init(from decoder: Decoder) throws {
@@ -76,6 +79,7 @@ struct BackupManifest: Codable {
         plannedRoutes = try container.decodeIfPresent([PlannedRoute].self, forKey: .plannedRoutes)
         config = try container.decodeIfPresent(ConfigManifest.self, forKey: .config)
         offlineRegions = try container.decodeIfPresent([BackupOfflineRegionMetadata].self, forKey: .offlineRegions)
+        localProfile = try container.decodeIfPresent(LocalProfileSnapshot.self, forKey: .localProfile)
     }
 }
 
@@ -87,6 +91,7 @@ struct ImportSummary {
     var workoutsImported: Int = 0
     var historyImported: Int = 0
     var outdoorActivitiesImported: Int = 0
+    var profileImported = false
     var routesImported: Int = 0
     var preferencesImported: Int = 0
     var offlineRegionsImported: Int = 0
@@ -120,10 +125,11 @@ final class BackupManager {
         let config: ConfigManifest
         let offlineRegions: [BackupOfflineRegionMetadata]
         let rootExercises: [Exercise]
+        let localProfile: LocalProfileSnapshot?
     }
 
     /// Call this on the main thread to capture current store state.
-    func snapshot(workoutStore: WorkoutStore, databaseStore: DatabaseStore, outdoorStore: OutdoorActivityStore) -> ExportSnapshot {
+    func snapshot(workoutStore: WorkoutStore, databaseStore: DatabaseStore, outdoorStore: OutdoorActivityStore) throws -> ExportSnapshot {
         let outdoorActivities = outdoorStore.activities
         var outdoorRoutes: [String: [OutdoorTrackPoint]] = [:]
         for activity in outdoorActivities {
@@ -139,7 +145,8 @@ final class BackupManager {
             plannedRoutes: outdoorStore.plannedRoutes,
             config: (try? db.loadConfig()) ?? ConfigManifest(),
             offlineRegions: loadOfflineRegionMetadata(),
-            rootExercises: databaseStore.rootExercises
+            rootExercises: databaseStore.rootExercises,
+            localProfile: try LocalProfilePersistence.load()
         )
     }
 
@@ -156,7 +163,8 @@ final class BackupManager {
             outdoorActivities: snapshot.outdoorActivities,
             plannedRoutes: snapshot.plannedRoutes,
             config: snapshot.config,
-            offlineRegions: snapshot.offlineRegions
+            offlineRegions: snapshot.offlineRegions,
+            localProfile: snapshot.localProfile
         )
         let manifestData = try JSONEncoder().encode(manifest)
 
@@ -190,7 +198,7 @@ final class BackupManager {
             folders: snapshot.folders,
             exercises: snapshot.rootExercises
         )
-        let referencedFilenames = Set(workoutMedia + databaseMedia)
+        let referencedFilenames = Set(workoutMedia + databaseMedia + (snapshot.localProfile?.mediaFilenames ?? []))
 
         // 6. Add only referenced media files
         let photosDir = PhotoManager.shared.photosDirectoryURL
@@ -260,6 +268,22 @@ final class BackupManager {
         }
         let manifestData = try Data(contentsOf: manifestURL)
         let manifest = try JSONDecoder().decode(BackupManifest.self, from: manifestData)
+        let originalProfile: LocalProfileSnapshot?
+        if let profile = manifest.localProfile {
+            guard profile.version == 1, profile.mediaFilenames.allSatisfy({
+                !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") && !$0.contains("\\")
+            }) else { throw BackupError.invalidBackup }
+            originalProfile = try LocalProfilePersistence.load()
+        } else {
+            originalProfile = nil
+        }
+        var profilePhotoURLs: [URL] = []
+        var profileImportCompleted = false
+        defer {
+            if !profileImportCompleted {
+                for url in profilePhotoURLs { try? fm.removeItem(at: url) }
+            }
+        }
 
         // 3. Bootstrap directories
         try db.bootstrapIfNeeded()
@@ -355,6 +379,21 @@ final class BackupManager {
                 if let uuidFilename = try? db.importMedia(from: src) {
                     mediaMap[original] = uuidFilename
                 }
+            }
+        }
+        let preparedProfile = manifest.localProfile.map { imported in
+            let remapped = imported.remappingMedia(mediaMap)
+            return originalProfile?.merging(remapped) ?? remapped
+        }
+        let requiredProfilePhotos = Set(preparedProfile?.mediaFilenames ?? [])
+        for filename in Set(manifest.localProfile?.mediaFilenames ?? []) {
+            guard let mapped = mediaMap[filename] else { throw BackupError.invalidBackup }
+            guard requiredProfilePhotos.contains(mapped) else { continue }
+            let source = mediaDir.appendingPathComponent(filename)
+            let destination = PhotoManager.shared.photosDirectoryURL.appendingPathComponent(mapped)
+            if !fm.fileExists(atPath: destination.path) {
+                try fm.copyItem(at: source, to: destination)
+                profilePhotoURLs.append(destination)
             }
         }
 
@@ -531,6 +570,9 @@ final class BackupManager {
                 )
                 offlineRegionsImported = preparedOfflineRegions.importedCount
             }
+            if let preparedProfile {
+                try LocalProfilePersistence.save(preparedProfile)
+            }
         } catch {
             for routeURL in createdRouteURLs {
                 try? fm.removeItem(at: routeURL)
@@ -551,12 +593,16 @@ final class BackupManager {
             }
             throw error
         }
+        profileImportCompleted = true
 
         // 10. Reload stores on main thread (@Published properties)
         DispatchQueue.main.sync {
             workoutStore.reload()
             databaseStore.reload()
             outdoorStore.reload()
+            if preparedProfile != nil {
+                NotificationCenter.default.post(name: .localProfileDidChange, object: nil)
+            }
             if preferencesImported > 0 {
                 NotificationCenter.default.post(name: .outdoorRecordingPreferencesDidChange, object: nil)
             }
@@ -568,6 +614,7 @@ final class BackupManager {
             workoutsImported: workoutsImported,
             historyImported: historyImported,
             outdoorActivitiesImported: outdoorActivitiesImported,
+            profileImported: preparedProfile != nil,
             routesImported: routesImported,
             preferencesImported: preferencesImported,
             offlineRegionsImported: offlineRegionsImported,

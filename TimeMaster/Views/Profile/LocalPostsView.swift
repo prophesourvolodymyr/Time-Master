@@ -237,20 +237,20 @@ struct LocalPostCard: View {
     private func actions(_ post: LocalProfilePost) -> some View {
         if !asVisitor {
             Button { sheet = .reactions(postID) } label: {
-                ProfilePillLabel(title: "React", symbol: "face.smiling", isSelected: false)
+                EverPillTabLabel(title: "React", symbol: "face.smiling", isSelected: false)
             }
             .buttonStyle(.plain)
             .disabled(profileStore.isReadOnly)
         }
         if showsThreadButton {
             Button { sheet = .thread(postID) } label: {
-                ProfilePillLabel(title: "\(post.replies.count) \(post.replies.count == 1 ? "reply" : "replies")", symbol: "bubble.left", isSelected: false)
+                EverPillTabLabel(title: "\(post.replies.count) \(post.replies.count == 1 ? "reply" : "replies")", symbol: "bubble.left", isSelected: false)
             }
             .buttonStyle(.plain)
         }
         if !asVisitor {
             Button(action: toggleRepost) {
-                ProfilePillLabel(
+                EverPillTabLabel(
                     title: profileStore.snapshot.repostedIDs.contains(postID) ? "Reposted" : "Repost",
                     symbol: "arrow.2.squarepath",
                     isSelected: profileStore.snapshot.repostedIDs.contains(postID)

@@ -11,15 +11,15 @@ struct LocalProfileReportView: View {
 
     var body: some View {
         NavigationStack {
-            ProfileSettingsPage(title: "Report profile") {
+            EverSettingsPage(title: "Report profile") {
                 if saved {
                     ProfileEmptyState(symbol: "doc.text", title: "Report draft saved locally", detail: "Nothing was sent. TimeMaster has no social moderation service connected. You can share the report text yourself.")
                     ShareLink(item: reportText) {
                         Label("Share report text", systemImage: "square.and.arrow.up")
                     }
-                    .buttonStyle(ProfilePrimaryButtonStyle())
+                    .buttonStyle(EverPrimaryButtonStyle())
                 } else {
-                    ProfileSettingsSection(title: "Local draft", footer: "This does not submit a report, notify anyone, or restrict an account.") {
+                    EverSettingsSection(title: "Local draft", detail: "This does not submit a report, notify anyone, or restrict an account.") {
                         VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
                             Text("@\(profileStore.profile.handle)").font(TimeMasterFont.rowTitle())
                             Picker("Reason", selection: $reason) {
@@ -36,7 +36,7 @@ struct LocalProfileReportView: View {
                             saved = true
                         } catch { errorMessage = error.localizedDescription }
                     }
-                    .buttonStyle(ProfilePrimaryButtonStyle()).disabled(profileStore.isReadOnly)
+                    .buttonStyle(EverPrimaryButtonStyle()).disabled(profileStore.isReadOnly)
                 }
             }
             .toolbar {

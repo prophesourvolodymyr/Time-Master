@@ -25,46 +25,19 @@ enum TimeMasterFont {
     }
 
     static func title() -> Font { face("Inter-Black", size: 24, relativeTo: .title2) }
+    static func display() -> Font { face("Inter-Black", size: 28, relativeTo: .largeTitle) }
+    static func sectionTitle() -> Font { face("Inter-Black", size: 17, relativeTo: .headline) }
     static func heading() -> Font { face("Inter-Black", size: 20, relativeTo: .title3) }
     static func rowTitle() -> Font { face("Inter-Black", size: 15, relativeTo: .subheadline) }
     static func label() -> Font { face("Inter-Black", size: 16, relativeTo: .body) }
     static func body() -> Font { face("Inter-Regular", size: 16, relativeTo: .body) }
     static func secondary() -> Font { face("Inter-Regular", size: 14, relativeTo: .subheadline) }
     static func caption() -> Font { face("Inter-Regular", size: 12, relativeTo: .caption) }
+    static func micro() -> Font { face("Inter-Regular", size: 11, relativeTo: .caption2) }
+    static func technical() -> Font { .system(size: 12, weight: .regular, design: .monospaced) }
 }
 
-struct ProfilePillLabel: View {
-    let title: String
-    let symbol: String
-    let isSelected: Bool
 
-    var body: some View {
-        Label(title, systemImage: symbol)
-            .font(TimeMasterFont.rowTitle())
-            .padding(.horizontal, ProfileStyle.inset)
-            .padding(.vertical, ProfileStyle.spacing)
-            .foregroundStyle(isSelected ? .black : ProfileStyle.secondary)
-            .background(isSelected ? .white : Theme.surface2, in: Capsule())
-            .frame(minHeight: ProfileStyle.touchTarget)
-    }
-}
-
-struct ProfilePrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(TimeMasterFont.label())
-            .padding(.horizontal, ProfileStyle.inset)
-            .frame(minHeight: 50)
-            .foregroundStyle(.black)
-            .background(.white, in: Capsule())
-            .opacity(!isEnabled ? 0.35 : configuration.isPressed ? 0.75 : 1)
-            .scaleEffect(!reduceMotion && configuration.isPressed ? 0.97 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
 
 struct ProfileAvatar: View {
     let profile: LocalUserProfile
@@ -76,9 +49,10 @@ struct ProfileAvatar: View {
                 platformImage(image).resizable().scaledToFill()
             } else {
                 Image(systemName: "person.fill")
-                    .resizable().scaledToFit().padding(size * 0.24)
-                    .foregroundStyle(ProfileStyle.secondary)
-                    .background(Theme.surface2)
+                    .font(.system(size: size * 0.45, weight: .medium))
+                    .foregroundStyle(StoreArtworkStyle.mono.ink)
+                    .frame(width: size, height: size)
+                    .background(StoreArtworkStyle.mono.color, in: Circle())
             }
         }
         .frame(width: size, height: size)
@@ -134,35 +108,6 @@ struct ProfileSettingsSection<Content: View>: View {
     }
 }
 
-struct ProfileSettingsRow: View {
-    let icon: String
-    let title: String
-    var detail: String? = nil
-    var showsChevron = true
-
-    var body: some View {
-        HStack(spacing: ProfileStyle.spacing) {
-            Image(systemName: icon).font(.body.weight(.medium))
-                .frame(width: ProfileStyle.touchTarget)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(TimeMasterFont.rowTitle()).foregroundStyle(.white)
-                if let detail {
-                    Text(detail).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            Spacer(minLength: 4)
-            if showsChevron {
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold))
-                    .foregroundStyle(ProfileStyle.secondary).accessibilityHidden(true)
-            }
-        }
-        .padding(ProfileStyle.spacing)
-        .frame(minHeight: 56)
-        .contentShape(Rectangle())
-    }
-}
 
 struct ProfileEmptyState: View {
     let symbol: String

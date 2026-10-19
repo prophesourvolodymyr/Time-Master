@@ -1369,6 +1369,32 @@ This is the requested UI-only Ranked slice. Matchmaking, camera-based rep counti
 
 ---
 
+## Cycle 37 — Direct EverStore Profile, Collectibles, Verification, and Settings Import
+
+**User direction: copy the original components, then change only TimeMaster fonts, button/theme styling, required local data bindings, and native platform boundaries. The earlier rewritten UI was rejected. Human visual approval comes before further functional testing.**
+
+- [x] Import the original Profile cover, avatar/header geometry, collapsing scaffold, achievement shield, tabs, and controls while retaining the requested local-profile additions and existing Ranked integration
+- [x] Import the original collectible shop, carousels, artwork, search, collection, and expanding detail presentation with real local save/apply/reset actions and no blockchain, transactions, prices, or ownership claims
+- [x] Import the original verification progress, qualification, plan, benefit, preview, and celebration components; keep the difficult free milestone and label paid-tier appearances as local Preview only
+- [x] Import the original Settings navigation, rows, sections, profile settings, and privacy presentation while preserving every existing TimeMaster setting and real destination
+- [x] Stop functional testing of the rejected UI and remove only the temporary profile data and three profile photos created during the earlier smoke
+- [x] Remove the imported circling button-highlight animation while preserving the static button design and normal press feedback
+- [x] Keep exactly two Profile side indicators total: one achievement placeholder with overflow inside the same shield, and the existing local Elo summary as compact plain text; remove the separate Elo row
+- [x] Present the actual imported Profile, collectible, verification, and Settings screens for human visual approval
+- [ ] Human acceptance of the imported Profile UI
+- [ ] Human acceptance of the imported collectible UI
+- [ ] Human acceptance of the imported verification UI
+- [ ] Human acceptance of the imported Settings UI
+- [ ] Resume focused functional checks only after the user approves the UI
+
+Product DOCKS.md changes remain deferred until the user accepts the resulting behavior. Compilation and opening the screens for review do not constitute human approval. Existing workouts, history, database media, preferences, resume data, unrelated source edits, and the newly published Ranked feature are preserved.
+
+The direct-import iOS review build compiles and the actual Profile, collectible shop, verification progress and plan previews, and Settings screens have been opened for visual review. The circling button-rim renderer is removed. No further functional tests were run after the visual-approval gate; functional checks and the direct-import macOS check remain pending.
+
+The latest Profile correction is displayed with one side indicator on each side of the avatar. The left indicator retains access to all eight achievement placeholders without an extra overflow shield. The right indicator shows the real local Elo value, or Unplaced when none is set, and retains the existing Ranked navigation.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
