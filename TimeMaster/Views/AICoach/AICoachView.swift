@@ -58,6 +58,17 @@ struct AICoachView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             #endif
             .toolbar { chatToolbar }
+            .oneHandedActions(id: "ai-coach", actions: [
+                ReachabilityAction("sessions", title: "Conversations") {
+                    sessionsButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+                },
+                ReachabilityAction("new-session", title: "New Chat") {
+                    newSessionButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+                },
+                ReachabilityAction("settings", title: "AI Settings") {
+                    settingsButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+                }
+            ])
             .sheet(isPresented: $showingSettings) { AISettingsView() }
             .sheet(isPresented: $showingSessions) {
                 SessionsListSheet(store: store, isPresented: $showingSessions)
@@ -75,20 +86,37 @@ struct AICoachView: View {
 
     @ToolbarContentBuilder
     private var chatToolbar: some ToolbarContent {
-        AppToolbar.iconItem(placement: .primaryAction) { Button { showingSessions = true } label: {
+        AppToolbar.iconItem(placement: .primaryAction) {
+            sessionsButton.oneHandedActionSource()
+        }
+        AppToolbar.iconGroup(placement: .primaryAction) {
+            newSessionButton.oneHandedActionSource()
+            settingsButton.oneHandedActionSource()
+        }
+    }
+
+    private var sessionsButton: some View {
+        Button { showingSessions = true } label: {
             Image(systemName: "bubble.left.and.bubble.right.fill")
                 .foregroundColor(.white)
         }
-                 }
-        AppToolbar.iconGroup(placement: .primaryAction) { Button { store.newSession() } label: {
+        .accessibilityLabel("Conversations")
+    }
+
+    private var newSessionButton: some View {
+        Button { store.newSession() } label: {
             Image(systemName: "square.and.pencil")
                 .foregroundColor(.white)
         }
+        .accessibilityLabel("New Chat")
+    }
+
+    private var settingsButton: some View {
         Button { showingSettings = true } label: {
             Image(systemName: "gearshape.fill")
                 .foregroundColor(Color.white.opacity(0.7))
         }
-                 }
+        .accessibilityLabel("AI Settings")
     }
 
     private func sendMessage() {

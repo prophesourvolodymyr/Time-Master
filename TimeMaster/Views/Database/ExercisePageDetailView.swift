@@ -69,53 +69,33 @@ struct ExercisePageDetailView: View {
         .toolbar {
             AppToolbar.iconItem(placement: .cancellationAction) {
                 TimeMasterBackButton()
+                    .oneHandedActionSource()
             }
             if page?.isWorkoutAddable == true {
                 AppToolbar.iconItem(placement: .primaryAction) {
-                    Button {
-                        showWorkoutPicker = true
-                    } label: {
-                        Image(systemName: "figure.strengthtraining.traditional")
-                    }
-                    .help("Add to Workout")
+                    addToWorkoutButton.oneHandedActionSource()
                 }
             }
             if page?.isSkillLike == true {
                 AppToolbar.iconItem(placement: .primaryAction) {
-                    Button {
-                        showingLinkedPagePicker = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .help("Attach Page")
+                    attachPageButton.oneHandedActionSource()
                 }
             }
             AppToolbar.item(placement: .primaryAction) {
-                Button(isEditing ? "Done" : "Edit") {
-                    isEditing.toggle()
-                }
-                .buttonStyle(TimeMasterToolbarTextButtonStyle())
+                editPageButton.oneHandedActionSource()
             }
             if page?.canContainChildren == true {
                 AppToolbar.iconItem(placement: .primaryAction) {
-                    Button {
-                        showingAddChildPage = true
-                    } label: {
-                        Image(systemName: "doc.badge.plus")
-                    }
-                    .help("Add Child Page")
+                    addChildPageButton.oneHandedActionSource()
                 }
             }
             #if os(iOS)
             AppToolbar.iconItem(placement: .primaryAction) {
-                Button {
-                    showMediaPicker = true
-                } label: {
-                    Image(systemName: "photo.badge.plus")
-                }
+                addMediaButton.oneHandedActionSource()
             }
             #endif
         }
+        .oneHandedActions(id: "exercise-page-\(pageID)", actions: pageActions)
         .sheet(isPresented: $isEditing) {
             if let page {
                 PageCreationSheet(page: page) { manifest, _ in
@@ -198,6 +178,86 @@ struct ExercisePageDetailView: View {
         }
         #endif
     }
+
+    private var pageActions: [ReachabilityAction] {
+        var actions = [
+            ReachabilityAction("back", title: "Back") {
+                TimeMasterBackButton()
+            }
+        ]
+        if page?.isWorkoutAddable == true {
+            actions.append(ReachabilityAction("add-to-workout", title: "Add to Workout") {
+                addToWorkoutButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+            })
+        }
+        if page?.isSkillLike == true {
+            actions.append(ReachabilityAction("attach-page", title: "Attach Page") {
+                attachPageButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+            })
+        }
+        actions.append(ReachabilityAction("edit", title: isEditing ? "Done" : "Edit") {
+            editPageButton
+        })
+        if page?.canContainChildren == true {
+            actions.append(ReachabilityAction("add-child", title: "Add Child Page") {
+                addChildPageButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+            })
+        }
+        #if os(iOS)
+        actions.append(ReachabilityAction("add-media", title: "Add Media") {
+            addMediaButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+        })
+        #endif
+        return actions
+    }
+
+    private var addToWorkoutButton: some View {
+        Button {
+            showWorkoutPicker = true
+        } label: {
+            Image(systemName: "figure.strengthtraining.traditional")
+        }
+        .help("Add to Workout")
+        .accessibilityLabel("Add to Workout")
+    }
+
+    private var attachPageButton: some View {
+        Button {
+            showingLinkedPagePicker = true
+        } label: {
+            Image(systemName: "plus")
+        }
+        .help("Attach Page")
+        .accessibilityLabel("Attach Page")
+    }
+
+    private var editPageButton: some View {
+        Button(isEditing ? "Done" : "Edit") {
+            isEditing.toggle()
+        }
+        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+    }
+
+    private var addChildPageButton: some View {
+        Button {
+            showingAddChildPage = true
+        } label: {
+            Image(systemName: "doc.badge.plus")
+        }
+        .help("Add Child Page")
+        .accessibilityLabel("Add Child Page")
+    }
+
+    #if os(iOS)
+    private var addMediaButton: some View {
+        Button {
+            showMediaPicker = true
+        } label: {
+            Image(systemName: "photo.badge.plus")
+        }
+        .accessibilityLabel("Add Media")
+    }
+    #endif
 
     private func coverHero(page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1414,9 +1474,7 @@ struct ContainerCategoryPage: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                             HStack(spacing: 10) {
                                 SkillPresentationPicker(selection: $skillPresentation)
-                                Button {
-                                    showingSkillCreation = true
-                                } label: {
+                                createSkillButton {
                                     Image(systemName: "plus")
                                         .font(.headline.weight(.semibold))
                                         .frame(width: 38, height: 38)
@@ -1425,6 +1483,7 @@ struct ContainerCategoryPage: View {
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("Create skill in \(container.title)")
+                                .oneHandedActionSource()
                             }
                             if skillPresentation == .table {
                                 SkillTableBoardView(container: container, skills: skills)
@@ -1454,18 +1513,22 @@ struct ContainerCategoryPage: View {
         .toolbar {
             AppToolbar.iconItem(placement: .cancellationAction) {
                 TimeMasterBackButton()
+                    .oneHandedActionSource()
             }
             if destination.tab == .skills {
                 AppToolbar.iconItem(placement: .primaryAction) {
-                    Button {
-                        showingSkillCreation = true
-                    } label: {
+                    createSkillButton {
                         Image(systemName: "plus")
                     }
                     .help("Create Skill")
+                    .oneHandedActionSource()
                 }
             }
         }
+        .oneHandedActions(
+            id: "container-category-\(destination.containerID)-\(destination.tab)",
+            actions: categoryActions
+        )
         .sheet(isPresented: $showingSkillCreation) {
             if let container {
                 PageCreationSheet(
@@ -1484,6 +1547,32 @@ struct ContainerCategoryPage: View {
                 .environmentObject(store)
                 .environmentObject(workoutStore)
             }
+        }
+    }
+
+    private var categoryActions: [ReachabilityAction] {
+        var actions = [
+            ReachabilityAction("back", title: "Back") {
+                TimeMasterBackButton()
+            }
+        ]
+        if destination.tab == .skills {
+            actions.append(ReachabilityAction("create-skill", title: "Create Skill") {
+                createSkillButton {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                .accessibilityLabel("Create Skill")
+            })
+        }
+        return actions
+    }
+
+    private func createSkillButton<Label: View>(@ViewBuilder label: () -> Label) -> some View {
+        Button {
+            showingSkillCreation = true
+        } label: {
+            label()
         }
     }
 }

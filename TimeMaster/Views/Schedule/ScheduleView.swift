@@ -59,6 +59,7 @@ struct ScheduleView: View {
             #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
             #endif
+            .oneHandedActions(id: "schedule", actions: oneHandedActions)
             .sheet(item: $sheet) { destination in
                 switch destination {
                 case .challenge:
@@ -95,6 +96,27 @@ struct ScheduleView: View {
         .accessibilityIdentifier("schedule.page")
     }
 
+    private var oneHandedActions: [ReachabilityAction] {
+        [
+            ReachabilityAction("calendar", title: "Calendar") {
+                pageControl("Calendar", icon: "calendar", destination: .calendar,
+                            progress: 1, width: 48, height: 48)
+            },
+            ReachabilityAction("plans", title: "Plans") {
+                pageControl("Plans", icon: "square.stack.3d.up", destination: .plans,
+                            progress: 1, width: 48, height: 48)
+                    .disabled(week < currentWeek || !store.scheduleIsLoaded)
+                    .opacity(week < currentWeek ? 0.4 : 1)
+                    .accessibilityValue(selection?.plan?.name ?? (isVacation ? "Vacation" : "No Plan"))
+            },
+            ReachabilityAction("challenge", title: "Streak") {
+                pageControl("Streak", icon: "flame", destination: .challenge,
+                            progress: 1, width: 48, height: 48)
+                    .accessibilityValue("\(challenge.weekdays.count)-day challenge")
+            }
+        ]
+    }
+
     private func pageToolbar(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
         let morph = metrics.morph(progress)
         let height = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
@@ -126,6 +148,7 @@ struct ScheduleView: View {
                 }
                 .offset(x: dynamicTypeSize.isAccessibilitySize ? (metrics.contentWidth - buttonWidth * 3 - metrics.controlSpacing * 2) / 2 : metrics.groupLeading(morph),
                         y: height - buttonHeight - bottomPadding)
+                .oneHandedActionSource()
             }
             .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
             TimeMasterGlassDivider()

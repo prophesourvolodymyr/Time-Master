@@ -152,6 +152,10 @@ struct WorkoutDetailView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         #endif
+        .oneHandedActions(
+            id: "workout-detail-\(workoutID.uuidString)",
+            actions: musicConfigurationOpen || musicRevealDrag > 0 ? [] : oneHandedActions
+        )
         .onAppear {
             sectionIDs = workout.sections.map(\.id)
         }
@@ -440,8 +444,10 @@ struct WorkoutDetailView: View {
                 WorkoutEditorChromeTitle(text: workout.name, progress: morph, metrics: metrics)
                 editorBackButton(diameter: metrics.compactControlSize)
                 .frame(height: metrics.collapsedRowHeight)
+                .oneHandedActionSource()
 
                 editorHeaderControls(progress: morph, diameter: diameter)
+                    .oneHandedActionSource()
                     .offset(x: metrics.groupLeading(morph), y: height - diameter - bottomPadding)
             }
             .frame(width: metrics.contentWidth, height: height, alignment: .topLeading)
@@ -504,6 +510,34 @@ struct WorkoutDetailView: View {
         .buttonStyle(.plain)
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Browse exercises")
+    }
+
+    private var oneHandedActions: [ReachabilityAction] {
+        [
+            ReachabilityAction("back", title: "Back to workouts") {
+                editorBackButton(diameter: 48)
+            },
+            ReachabilityAction("music", title: "Music") {
+                editorMusicButton(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("more", title: "Workout actions", dismissesOnActivation: false) {
+                editorActionsMenu(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("add", title: "Add to workout") {
+                editorAddButton(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("browse", title: "Browse exercises") {
+                editorBrowseButton(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("settings", title: "Workout Settings") {
+                Button { showingWorkoutSettings = true } label: {
+                    editorHeaderIcon("slider.horizontal.3", diameter: 48, title: "Settings")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.textPrimary)
+                .accessibilityLabel("Workout Settings")
+            }
+        ]
     }
 
     private func editorHeaderIcon(_ name: String, diameter: CGFloat, title: String = "", progress: CGFloat = 1) -> some View {

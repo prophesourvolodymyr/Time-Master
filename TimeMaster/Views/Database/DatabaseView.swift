@@ -458,6 +458,7 @@ struct DatabaseView: View {
                     .environmentObject(workoutStore)
                 }
             }
+            .oneHandedActions(id: "database", actions: oneHandedActions)
             .sheet(isPresented: $showingNewFolderSheet) {
                 NewFolderSheet { name, colorHex, workoutType in
                     store.addRootFolder(name: name, colorHex: colorHex, workoutType: workoutType)
@@ -584,6 +585,7 @@ struct DatabaseView: View {
                 DatabaseChromeTitle(progress: morph, metrics: metrics)
                     .frame(height: metrics.collapsedRowHeight)
                 databaseControls(progress: morph, metrics: metrics)
+                    .oneHandedActionSource()
                     .offset(y: height - buttonSize - bottomPadding)
             }
             .frame(height: height, alignment: .top)
@@ -600,6 +602,29 @@ struct DatabaseView: View {
             databaseChrome(progress: 0, metrics: ScrollingChromeMetrics(width: proxy.size.width))
         }
         .frame(height: 232)
+    }
+
+    private var oneHandedActions: [ReachabilityAction] {
+        [
+            ReachabilityAction("video", title: "From Video") {
+                databaseMajorButton(systemImage: "video.badge.plus", title: "From Video", progress: 1, width: 48) {
+                    showingImport = true
+                }
+            },
+            ReachabilityAction("add", title: "Add", dismissesOnActivation: false) {
+                databaseAddMenu(progress: 1, width: 48)
+            },
+            ReachabilityAction("search", title: "Search") {
+                databaseMajorButton(systemImage: "magnifyingglass", title: "Search", progress: 1, width: 48) {
+                    showingDatabaseSearch = true
+                }
+            },
+            ReachabilityAction("import", title: "Import Database File") {
+                databaseMajorButton(systemImage: "square.and.arrow.down", title: "Import Database File", progress: 1, width: 48) {
+                    showingDatabaseImport = true
+                }
+            }
+        ]
     }
 
     private func databaseControls(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {

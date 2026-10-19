@@ -70,18 +70,57 @@ struct AnalyticsView: View {
 #endif
             .toolbar {
                 if !store.historyEntries.isEmpty {
-                    AppToolbar.iconItem(placement: .primaryAction) { Button { showingClearAlert = true } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(Color.white.opacity(0.45))
+                    AppToolbar.iconItem(placement: .primaryAction) {
+                        clearHistoryButton.oneHandedActionSource()
                     }
-                                         }
                 }
             }
+            .oneHandedActions(id: "analytics", actions: analyticsActions)
             .alert("Clear History?", isPresented: $showingClearAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) { store.clearHistory() }
             } message: { Text("This will delete all workout history.") }
         }
+    }
+
+    private var analyticsActions: [ReachabilityAction] {
+        var actions = [
+            ReachabilityAction("filter", title: "Workout Type", dismissesOnActivation: false) {
+                Menu {
+                    Button("All", systemImage: "square.grid.2x2") {
+                        selectType(nil)
+                    }
+                    ForEach(WorkoutType.all(custom: store.customWorkoutTypes), id: \.id) { type in
+                        Button(type.name, systemImage: type.icon) {
+                            selectType(type)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                .accessibilityLabel("Filter by workout type")
+            }
+        ]
+        if !store.historyEntries.isEmpty {
+            actions.append(ReachabilityAction("clear-history", title: "Clear History") {
+                clearHistoryButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+            })
+        }
+        return actions
+    }
+
+    private var clearHistoryButton: some View {
+        Button { showingClearAlert = true } label: {
+            Image(systemName: "trash")
+                .foregroundColor(Color.white.opacity(0.45))
+        }
+        .accessibilityLabel("Clear History")
+    }
+
+    private func selectType(_ type: WorkoutType?) {
+        selectedType = type
     }
 
     // MARK: Type picker
@@ -90,7 +129,7 @@ struct AnalyticsView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 typeChip(label: "All", icon: "square.grid.2x2", selected: selectedType == nil) {
-                    selectedType = nil
+                    selectType(nil)
                 }
                 ForEach(WorkoutType.all(custom: store.customWorkoutTypes), id: \.id) { type in
                     typeChip(
@@ -98,7 +137,7 @@ struct AnalyticsView: View {
                         icon: type.icon,
                         selected: selectedType == type
                     ) {
-                        selectedType = type
+                        selectType(type)
                     }
                 }
             }

@@ -8,6 +8,7 @@ struct ProfileView: View {
     @EnvironmentObject private var musicLibraryStore: MusicLibraryStore
     @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @State private var selectedActivity: OutdoorActivity?
+    @State private var showingHistory = false
 
     private var weekActivities: [OutdoorActivity] { activities(in: Calendar.current.dateInterval(of: .weekOfYear, for: Date())) }
     private var monthActivities: [OutdoorActivity] { activities(in: Calendar.current.dateInterval(of: .month, for: Date())) }
@@ -17,13 +18,11 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     totals
-                    NavigationLink {
-                        HistoryView()
-                            .environmentObject(outdoorStore)
-                    } label: {
+                    historyButton {
                         Label("All Activity History", systemImage: "clock.arrow.circlepath")
                             .foregroundStyle(.white)
                     }
+                    .buttonStyle(.plain)
                     if outdoorStore.profileActivities.isEmpty {
                         emptyState
                     } else {
@@ -34,6 +33,20 @@ struct ProfileView: View {
             }
             .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Profile")
+            .oneHandedActions(id: "profile", actions: [
+                ReachabilityAction("history", title: "Activity History") {
+                    historyButton {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                    .accessibilityLabel("All Activity History")
+                }
+            ])
+            .navigationDestination(isPresented: $showingHistory) {
+                HistoryView()
+                    .environmentObject(outdoorStore)
+            }
 #if os(iOS)
             .fullScreenCover(
                 item: Binding(
@@ -50,6 +63,14 @@ struct ProfileView: View {
                 )
             }
             #endif
+        }
+    }
+
+    private func historyButton<Label: View>(@ViewBuilder label: () -> Label) -> some View {
+        Button {
+            showingHistory = true
+        } label: {
+            label()
         }
     }
 

@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 #endif
 
-struct HomeWidgetCanvas: View {
+struct HomeWidgetCanvas<ChromeHeader: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
@@ -21,6 +21,7 @@ struct HomeWidgetCanvas: View {
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
+    @ViewBuilder let chromeHeader: (CGFloat, ScrollingChromeMetrics) -> ChromeHeader
 
     @State private var interaction: HomeWidgetInteraction?
     @State private var previewOrder: [UUID]?
@@ -35,7 +36,9 @@ struct HomeWidgetCanvas: View {
             let dragViewport = frame.intersection(navigationBounds ?? frame)
 
             ScrollViewReader { scroll in
-                ScrollView(showsIndicators: false) {
+                ScrollingChrome(metrics: {
+                    ScrollingChromeMetrics(width: $0, pinnedFooterHeight: 1, controlCount: 2)
+                }) { _ in
                     VStack(spacing: 0) {
                         Color.clear.frame(height: 0).id("home-top")
                         ZStack(alignment: .topLeading) {
@@ -128,7 +131,10 @@ struct HomeWidgetCanvas: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.bottom, max(0, frame.maxY - dragViewport.maxY))
+                } header: { progress, metrics in
+                    chromeHeader(progress, metrics)
                 }
+                .scrollIndicators(.hidden)
                 .accessibilityIdentifier("home-canvas")
                 .onChange(of: insertedWidgetID) { _ in
                     scroll.scrollTo("home-top", anchor: .top)

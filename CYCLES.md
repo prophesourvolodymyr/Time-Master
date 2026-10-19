@@ -1232,6 +1232,26 @@ Both final platform builds passed in the isolated owned-change snapshot, using t
 
 ---
 
+## Cycle 33 — One-Handed Actions and Directional Page Navigation
+
+**Requested by the user; implementation ready for code review, not human-verified.**
+
+- [x] Add an angled leftward reveal for an action shelf at the swipe height, with a faded curved base, overflow scrolling, cancellation, and dismissal
+- [x] Reuse the existing orange controls and real actions on Home, AI Coach, Analytics, Profile, Settings, Database, exercise/category details, History, Workouts, Schedule, and the workout editor
+- [x] Move original action controls out of the way while the shelf is revealed, preserve menu-backed actions, and provide accessible reveal/dismiss and reel adjustment
+- [x] Exclude Maps and preserve the workout music edge gesture and modal presentation ownership
+- [x] Add distinct reveal, threshold, settle, selection, and dismissal haptics, plus feedback when the navigation menu changes pages
+- [x] Replace Home's toolbar buttons with the shared scroll-expanding orange controls, including its Add Widget and Done editing states
+- [x] Remove leftward page switching; rightward edge swipes can only move to the previous page, with cancellation on reversal and no wrap from the first page
+- [x] Pass eight retained gesture-boundary regressions and build the final merged iOS Simulator and macOS targets
+- [ ] Human acceptance of the code changes; interaction feel and physical-device haptics are not marked verified
+
+The final builds include the concurrent committed workout-player changes while preserving unrelated working-tree edits and deleted app-entry files. The package-resolution stall was traced to Keychain authorization for a public binary dependency; the build used Xcode's documented non-Keychain package authorization option. Existing deprecation and concurrency warnings remain.
+
+Native probing and screenshots stopped at the user's request. The final Home and directional-navigation revisions received code-only checks. An attempted installation could not proceed because the previously running iPhone 16 was shut down; device enumeration showed no booted simulators, so no additional simulator was started. The temporary Reachability QA app remains on that shut-down simulator; no user app data was removed. Product DOCKS.md updates remain deferred until acceptance.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

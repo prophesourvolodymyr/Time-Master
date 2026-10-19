@@ -41,6 +41,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     @State private var showsGuide = false
     @State private var pageIsDragging = false
     @State private var pageSwipesDisabled = false
+    @State private var reachabilityIsActive = false
     @State private var navigationIsExpanded = false
     @State private var navigationIsInteracting = false
     @State private var navigationManuallyHidden = false
@@ -123,8 +124,8 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .accessibilityHidden(isEditing)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
-                    .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled ? .all : .subviews)
-                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !navigationManuallyHidden ? .all : .subviews)
+                    .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive ? .all : .subviews)
+                    .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive && !navigationManuallyHidden ? .all : .subviews)
                     .simultaneousGesture(contentNavigationDismissGesture)
 
                 if isEditing {
@@ -220,7 +221,10 @@ struct SlotCarouselNavigation<Content: View>: View {
                     showsGuide = false
                 }
             }
-            .onChange(of: selection) { _ in
+            .onChange(of: selection) { [selection] destination in
+                if let selection, let destination, selection != destination {
+                    AppInteractionHaptics.shared.selectionChanged()
+                }
                 withAnimation(presentationAnimation) {
                     navigationIsExpanded = false
                     navigationManuallyHidden = false
@@ -241,8 +245,12 @@ struct SlotCarouselNavigation<Content: View>: View {
                     onPageDragEnded()
                 }
             }
+            .onChange(of: scenePhase) { phase in
+                if phase != .active { AppInteractionHaptics.shared.suspend() }
+            }
             .onPreferenceChange(SlotNavigationInteractionDisabledPreferenceKey.self) { contentDisablesInteraction = $0 }
             .onPreferenceChange(SlotNavigationEditingPreferenceKey.self) { pageSwipesDisabled = $0 }
+            .onPreferenceChange(ReachabilityActivePreferenceKey.self) { reachabilityIsActive = $0 }
             .onPreferenceChange(SlotNavigationPresentationPreferenceKey.self) { requested in
                 applyPresentation(requested)
             }
@@ -345,6 +353,7 @@ struct SlotCarouselNavigation<Content: View>: View {
             }
         }
         if active {
+            AppInteractionHaptics.shared.prepareSelection()
             hiddenNavigationDismissTask?.cancel()
         } else if effectivePresentation == .hidden, hiddenNavigationIsRevealed {
             scheduleHiddenNavigationDismissal()
@@ -417,23 +426,30 @@ struct SlotCarouselNavigation<Content: View>: View {
     private func pageSwipeGesture(in size: CGSize) -> some Gesture {
         DragGesture(minimumDistance: 20, coordinateSpace: .local)
             .onChanged { value in
-                guard !isEditing, let selected = selection,
-                      let index = items.firstIndex(where: { $0.id == selected }),
-                      value.startLocation.x <= 28 || value.startLocation.x >= size.width - 28,
-                      abs(value.translation.width) > abs(value.translation.height) * 1.7 else { return }
+                guard !isEditing, !reachabilityIsActive, let selected = selection,
+                      let index = items.firstIndex(where: { $0.id == selected }) else { return }
+                guard let progress = SlotPageSwipeGeometry.progress(
+                    index: index, start: value.startLocation, translation: value.translation, width: size.width
+                ) else {
+                    if pageIsDragging {
+                        pageIsDragging = false
+                        onPageDragEnded()
+                    }
+                    return
+                }
                 pageIsDragging = true
-                onPageDrag(CGFloat(index) - value.translation.width / max(size.width, 1))
+                onPageDrag(progress)
             }
             .onEnded { value in
                 guard pageIsDragging else { return }
                 pageIsDragging = false
-                if let selected = selection,
-                   let index = items.firstIndex(where: { $0.id == selected }) {
-                    let projected = value.predictedEndTranslation.width
-                    if abs(projected) > size.width * 0.25 {
-                        let next = min(max(index + (projected < 0 ? 1 : -1), 0), items.count - 1)
-                        selection = items[next].id
-                    }
+                if !reachabilityIsActive, let selected = selection,
+                   let index = items.firstIndex(where: { $0.id == selected }),
+                   let destination = SlotPageSwipeGeometry.destination(
+                    index: index, translation: value.translation,
+                    projectedWidth: value.predictedEndTranslation.width, width: size.width
+                   ) {
+                    selection = items[destination].id
                 }
                 onPageDragEnded()
             }

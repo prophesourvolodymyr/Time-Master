@@ -57,9 +57,7 @@ struct SettingsView: View {
                                 subtitle: "Spoken during workouts"
                             )
                         }
-                        Button {
-                            showMusicSettings = true
-                        } label: {
+                        musicSettingsButton {
                             settingsRow(
                                 icon: "music.note",
                                 title: "Background Music",
@@ -135,9 +133,7 @@ struct SettingsView: View {
 
                     // MARK: Server Settings
                     SwiftUI.Section {
-                        Button {
-                            showServerSettings = true
-                        } label: {
+                        serverSettingsButton {
                             settingsRow(
                                 icon: "server.rack",
                                 title: "Companion Server",
@@ -178,6 +174,24 @@ struct SettingsView: View {
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Settings")
+            .oneHandedActions(id: "settings", actions: [
+                ReachabilityAction("music", title: "Background Music") {
+                    musicSettingsButton {
+                        Image(systemName: "music.note")
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                    .accessibilityLabel("Background Music")
+                },
+                ReachabilityAction("server", title: "Companion Server") {
+                    serverSettingsButton {
+                        Image(systemName: "server.rack")
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                    .accessibilityLabel("Companion Server")
+                }
+            ])
             .sheet(isPresented: $showServerSettings) {
                 ServerSettingsView(settings: serverSettings)
             }
@@ -192,6 +206,22 @@ struct SettingsView: View {
                     .environmentObject(workoutStore)
             }
 #endif
+        }
+    }
+
+    private func musicSettingsButton<Label: View>(@ViewBuilder label: () -> Label) -> some View {
+        Button {
+            showMusicSettings = true
+        } label: {
+            label()
+        }
+    }
+
+    private func serverSettingsButton<Label: View>(@ViewBuilder label: () -> Label) -> some View {
+        Button {
+            showServerSettings = true
+        } label: {
+            label()
         }
     }
 

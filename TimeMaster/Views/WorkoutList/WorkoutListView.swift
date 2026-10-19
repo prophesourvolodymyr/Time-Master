@@ -48,6 +48,7 @@ struct WorkoutListView: View {
             .navigationDestination(for: Workout.self) { workout in
                 workoutDestination(for: workout)
             }
+            .oneHandedActions(id: "workouts", actions: oneHandedActions)
             .sheet(isPresented: $showingAddWorkout) {
                 addWorkoutSheet
             }
@@ -214,6 +215,32 @@ struct WorkoutListView: View {
         .padding(.bottom, 18)
     }
 
+    private var oneHandedActions: [ReachabilityAction] {
+        [
+            ReachabilityAction("search", title: showingSearch ? "Close Search" : "Search") {
+                chromeButton(
+                    systemImage: showingSearch ? "xmark" : "magnifyingglass",
+                    title: showingSearch ? "Close" : "Search",
+                    progress: 1, width: 48, height: 48
+                ) {
+                    withAnimation(.smooth(duration: 0.2)) {
+                        showingSearch.toggle()
+                    }
+                }
+            },
+            ReachabilityAction("settings", title: "Settings") {
+                chromeButton(systemImage: "gearshape", title: "Settings", progress: 1, width: 48, height: 48) {
+                    NotificationCenter.default.post(name: .openSettingsCommand, object: nil)
+                }
+            },
+            ReachabilityAction("add", title: "Add") {
+                chromeButton(systemImage: "plus", title: "Add", progress: 1, width: 48, height: 48) {
+                    showingAddWorkout = true
+                }
+            }
+        ]
+    }
+
     private func workoutsHeader(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
         let morph = metrics.morph(progress)
         let controlWidth = metrics.controlWidth(morph)
@@ -264,6 +291,7 @@ struct WorkoutListView: View {
                 .frame(width: metrics.contentWidth, alignment: .leading)
                 .padding(.horizontal, metrics.horizontalPadding)
                 .offset(y: titleBlockHeight - controlHeight - bottomPadding)
+                .oneHandedActionSource()
             }
             .frame(height: titleBlockHeight, alignment: .top)
 

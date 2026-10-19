@@ -37,17 +37,14 @@ struct HomeDashboardView: View {
                     onBrowseWorkouts: onBrowseWorkouts,
                     onBrowseDatabase: onBrowseDatabase,
                     onCreateWorkout: onCreateWorkout,
-                    onStartOutdoor: onStartOutdoor
+                    onStartOutdoor: onStartOutdoor,
+                    chromeHeader: homeHeader
                 )
             }
             .navigationTitle("")
             .preference(key: SlotNavigationEditingPreferenceKey.self, value: isEditing)
-            .toolbar {
-                toolbarContent
-            }
             #if os(iOS)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
             #endif
             .onAppear {
                 now = Date()
@@ -60,6 +57,7 @@ struct HomeDashboardView: View {
                     .onEnded { _ in setEditing(true) },
                 including: isEditing ? .subviews : .all
             )
+            .oneHandedActions(id: "home", actions: homeActions)
             .workoutPlayerPage(item: $playerWorkout) { workout in
                 WorkoutPlayerView(workout: workout)
                     .environmentObject(store)
@@ -74,47 +72,101 @@ struct HomeDashboardView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        if isEditing {
-            AppToolbar.iconItem(placement: .primaryAction) {
-                Button {
-                    showingWidgetPicker = true
-                } label: {
-                    Image(systemName: "plus")
-                        .foregroundStyle(.white)
+    private func homeHeader(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
+        let morph = metrics.morph(progress)
+        let width = metrics.controlWidth(morph)
+        let height = metrics.controlHeight(morph)
+        let rowHeight = metrics.collapsedRowHeight + metrics.collapseDistance * (1 - progress)
+        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
+            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
+
+        return VStack(spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                Text("Home")
+                    .font(.title2.bold())
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(width: max(0, metrics.contentWidth - metrics.compactGroupWidth - metrics.controlSpacing),
+                           height: metrics.collapsedRowHeight, alignment: .leading)
+                HStack(spacing: metrics.controlSpacing) {
+                    if isEditing {
+                        addWidgetButton(progress: morph, width: width, height: height)
+                        doneEditingButton(progress: morph, width: width, height: height)
+                    } else {
+                        editLayoutButton(progress: morph, width: width, height: height)
+                        settingsButton(progress: morph, width: width, height: height)
+                    }
                 }
-                .accessibilityLabel("Add Home widget")
+                .offset(x: metrics.groupLeading(morph), y: rowHeight - height - bottomPadding)
+                .oneHandedActionSource()
             }
-            AppToolbar.iconItem(placement: .primaryAction) {
-                Button {
-                    setEditing(false)
-                } label: {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(.white)
-                }
-                .accessibilityLabel("Done editing Home")
-            }
-        } else {
-            AppToolbar.iconItem(placement: .primaryAction) {
-                Button {
-                    setEditing(true)
-                } label: {
-                    Image(systemName: "pencil")
-                        .foregroundStyle(.white)
-                }
-                .accessibilityLabel("Edit Home layout")
-            }
-            AppToolbar.iconItem(placement: .primaryAction) {
-                Button {
-                    NotificationCenter.default.post(name: .openSettingsCommand, object: nil)
-                } label: {
-                    Image(systemName: "gearshape")
-                        .foregroundStyle(.white)
-                }
-                .accessibilityLabel("Open Settings")
-            }
+            .frame(width: metrics.contentWidth, height: rowHeight, alignment: .topLeading)
+            TimeMasterGlassDivider()
         }
+        .padding(.horizontal, metrics.horizontalPadding)
+        .background(Theme.background.ignoresSafeArea(edges: .top))
+    }
+
+    private var homeActions: [ReachabilityAction] {
+        var actions = [
+            ReachabilityAction("add-widget", title: "Add Widget") {
+                addWidgetButton()
+            }
+        ]
+        if isEditing {
+            actions.append(ReachabilityAction("done-editing", title: "Done") {
+                doneEditingButton()
+            })
+        } else {
+            actions.append(ReachabilityAction("edit-layout", title: "Edit Layout") {
+                editLayoutButton()
+            })
+            actions.append(ReachabilityAction("settings", title: "Settings") {
+                settingsButton()
+            })
+        }
+        return actions
+    }
+
+    private func addWidgetButton(progress: CGFloat = 1, width: CGFloat = 48, height: CGFloat = 48) -> some View {
+        Button {
+            showingWidgetPicker = true
+        } label: {
+            ScrollingChromeControl(systemImage: "plus", title: "Add Widget", progress: progress, width: width, height: height)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add Home widget")
+    }
+
+    private func doneEditingButton(progress: CGFloat = 1, width: CGFloat = 48, height: CGFloat = 48) -> some View {
+        Button {
+            setEditing(false)
+        } label: {
+            ScrollingChromeControl(systemImage: "checkmark", title: "Done", progress: progress, width: width, height: height)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Done editing Home")
+    }
+
+    private func editLayoutButton(progress: CGFloat = 1, width: CGFloat = 48, height: CGFloat = 48) -> some View {
+        Button {
+            setEditing(true)
+        } label: {
+            ScrollingChromeControl(systemImage: "pencil", title: "Edit", progress: progress, width: width, height: height)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Edit Home layout")
+    }
+
+    private func settingsButton(progress: CGFloat = 1, width: CGFloat = 48, height: CGFloat = 48) -> some View {
+        Button {
+            NotificationCenter.default.post(name: .openSettingsCommand, object: nil)
+        } label: {
+            ScrollingChromeControl(systemImage: "gearshape", title: "Settings", progress: progress, width: width, height: height)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open Settings")
     }
 
     private func insertPendingWidget() {

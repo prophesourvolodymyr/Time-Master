@@ -36,7 +36,6 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 if items.isEmpty {
@@ -85,15 +84,19 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            .navigationBarBackButtonHidden(true)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    TimeMasterBackButton()
+                        .oneHandedActionSource()
+                }
                 if !store.historyEntries.isEmpty {
                     AppToolbar.iconItem(placement: .primaryAction) {
-                        Button { showingClearAlert = true } label: {
-                            Image(systemName: "trash").foregroundColor(.white)
-                        }
+                        clearHistoryButton.oneHandedActionSource()
                     }
                 }
             }
+            .oneHandedActions(id: "history", actions: historyActions)
             .alert("Clear Workout History?", isPresented: $showingClearAlert) {
                 Button("Cancel", role: .cancel) {}
                 Button("Clear", role: .destructive) { store.clearHistory() }
@@ -114,7 +117,27 @@ struct HistoryView: View {
                 )
             }
             #endif
+    }
+
+    private var historyActions: [ReachabilityAction] {
+        var actions = [
+            ReachabilityAction("back", title: "Back") {
+                TimeMasterBackButton()
+            }
+        ]
+        if !store.historyEntries.isEmpty {
+            actions.append(ReachabilityAction("clear-history", title: "Clear History") {
+                clearHistoryButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
+            })
         }
+        return actions
+    }
+
+    private var clearHistoryButton: some View {
+        Button { showingClearAlert = true } label: {
+            Image(systemName: "trash").foregroundColor(.white)
+        }
+        .accessibilityLabel("Clear Workout History")
     }
 }
 

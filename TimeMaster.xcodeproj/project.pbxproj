@@ -7,6 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BA520001AA00000000000001 /* ReachabilityAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000001 /* ReachabilityAction.swift */; };
+		BA520001AA00000000000002 /* ReachabilityGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000002 /* ReachabilityGeometry.swift */; };
+		BA520001AA00000000000003 /* ReachabilityGestureBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000003 /* ReachabilityGestureBridge.swift */; };
+		BA520001AA00000000000004 /* ReachabilityActionsModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000004 /* ReachabilityActionsModifier.swift */; };
+		BA520001AA00000000000005 /* ReachabilityShelf.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000005 /* ReachabilityShelf.swift */; };
+		BA520001AA00000000000006 /* AppInteractionHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000006 /* AppInteractionHaptics.swift */; };
+		BA520002AA00000000000001 /* ReachabilityAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000001 /* ReachabilityAction.swift */; };
+		BA520002AA00000000000002 /* ReachabilityGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000002 /* ReachabilityGeometry.swift */; };
+		BA520002AA00000000000003 /* ReachabilityGestureBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000003 /* ReachabilityGestureBridge.swift */; };
+		BA520002AA00000000000004 /* ReachabilityActionsModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000004 /* ReachabilityActionsModifier.swift */; };
+		BA520002AA00000000000005 /* ReachabilityShelf.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000005 /* ReachabilityShelf.swift */; };
+		BA520002AA00000000000006 /* AppInteractionHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000006 /* AppInteractionHaptics.swift */; };
+		BA520003AA00000000000007 /* ReachabilityGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000007 /* ReachabilityGeometryTests.swift */; };
+		BA520001AA00000000000008 /* SlotPageSwipeGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000008 /* SlotPageSwipeGeometry.swift */; };
+		BA520002AA00000000000008 /* SlotPageSwipeGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA520000AA00000000000008 /* SlotPageSwipeGeometry.swift */; };
 		00475B10D54B98E90FB9CC20 /* HomeWidgetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA516C7C1A9687022D33978 /* HomeWidgetPicker.swift */; };
 		005E36B44A5D97B0347339A0 /* OutdoorMapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B252752B4743B22C413C4047 /* OutdoorMapModels.swift */; };
 		00DE919604F3F6021AE8F641 /* OutdoorCompactPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C26F385E634A4382548D776 /* OutdoorCompactPlayerView.swift */; };
@@ -407,6 +422,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BA520000AA00000000000001 /* ReachabilityAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityAction.swift; sourceTree = "<group>"; };
+		BA520000AA00000000000002 /* ReachabilityGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityGeometry.swift; sourceTree = "<group>"; };
+		BA520000AA00000000000003 /* ReachabilityGestureBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityGestureBridge.swift; sourceTree = "<group>"; };
+		BA520000AA00000000000004 /* ReachabilityActionsModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityActionsModifier.swift; sourceTree = "<group>"; };
+		BA520000AA00000000000005 /* ReachabilityShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityShelf.swift; sourceTree = "<group>"; };
+		BA520000AA00000000000006 /* AppInteractionHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInteractionHaptics.swift; sourceTree = "<group>"; };
+		BA520000AA00000000000007 /* ReachabilityGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityGeometryTests.swift; sourceTree = "<group>"; };
+		BA520000AA00000000000008 /* SlotPageSwipeGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlotPageSwipeGeometry.swift; sourceTree = "<group>"; };
 		0008579785FB963981CED211 /* AISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsView.swift; sourceTree = "<group>"; };
 		001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		01618C53E4137D7AC1CB4DCF /* OutdoorActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorActivityStore.swift; sourceTree = "<group>"; };
@@ -791,6 +814,7 @@
 		35A54AE4B141791F78BE29C4 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				BA520000AA00000000000006 /* AppInteractionHaptics.swift */,
 				B26870953ABC5C4610D424C6 /* AudioManager.swift */,
 				5E287CB0142E9444C0E8CE06 /* BackupManager.swift */,
 				F5F451370DBD282BA9ED115D /* ExerciseNamingService.swift */,
@@ -853,6 +877,7 @@
 		4FD4626F2266EE951B2BCA3D /* TimeMasterTests */ = {
 			isa = PBXGroup;
 			children = (
+				BA520000AA00000000000007 /* ReachabilityGeometryTests.swift */,
 				493236A1A0E36022EFED0F2E /* OutdoorOfflinePlaceIndexTests.swift */,
 				F3EBE0E3B5F2BD49A8C6C802 /* OutdoorRideSafetyTests.swift */,
 				AAC8FDFE63C6662440B3E0A5 /* OutdoorTripTests.swift */,
@@ -1036,6 +1061,12 @@
 		EDDE53096491166E59037E3F /* Navigation */ = {
 			isa = PBXGroup;
 			children = (
+				BA520000AA00000000000001 /* ReachabilityAction.swift */,
+				BA520000AA00000000000002 /* ReachabilityGeometry.swift */,
+				BA520000AA00000000000003 /* ReachabilityGestureBridge.swift */,
+				BA520000AA00000000000004 /* ReachabilityActionsModifier.swift */,
+				BA520000AA00000000000005 /* ReachabilityShelf.swift */,
+				BA520000AA00000000000008 /* SlotPageSwipeGeometry.swift */,
 				9307001A6FC7FD76022967AE /* SlotNavigationArc.swift */,
 				670BE94C2C96B125EDEF40DF /* SlotNavigationBar.swift */,
 				754B28C30A321F0E407FC8FA /* SlotNavigationContainer.swift */,
@@ -1256,6 +1287,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA520001AA00000000000001 /* ReachabilityAction.swift in Sources */,
+				BA520001AA00000000000002 /* ReachabilityGeometry.swift in Sources */,
+				BA520001AA00000000000008 /* SlotPageSwipeGeometry.swift in Sources */,
+				BA520001AA00000000000003 /* ReachabilityGestureBridge.swift in Sources */,
+				BA520001AA00000000000004 /* ReachabilityActionsModifier.swift in Sources */,
+				BA520001AA00000000000005 /* ReachabilityShelf.swift in Sources */,
+				BA520001AA00000000000006 /* AppInteractionHaptics.swift in Sources */,
 				2B55D0F00A9F2A54F585FDCC /* AICoachView.swift in Sources */,
 				AE60993DD2ED3AED3CFCDFC1 /* AIProvider.swift in Sources */,
 				FD452ABA07833934841CC4E0 /* AISettingsView.swift in Sources */,
@@ -1439,6 +1477,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA520002AA00000000000001 /* ReachabilityAction.swift in Sources */,
+				BA520002AA00000000000002 /* ReachabilityGeometry.swift in Sources */,
+				BA520002AA00000000000008 /* SlotPageSwipeGeometry.swift in Sources */,
+				BA520002AA00000000000003 /* ReachabilityGestureBridge.swift in Sources */,
+				BA520002AA00000000000004 /* ReachabilityActionsModifier.swift in Sources */,
+				BA520002AA00000000000005 /* ReachabilityShelf.swift in Sources */,
+				BA520002AA00000000000006 /* AppInteractionHaptics.swift in Sources */,
 				56E37DD04D21CBCBCEE65195 /* AICoachView.swift in Sources */,
 				AA338139391D16AB2B65CA22 /* AIProvider.swift in Sources */,
 				E4243D9BD9F55DC011375CE8 /* AISettingsView.swift in Sources */,
@@ -1622,6 +1667,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA520003AA00000000000007 /* ReachabilityGeometryTests.swift in Sources */,
 				13AF47E60C939D1F963D6F9E /* OutdoorOfflinePlaceIndexTests.swift in Sources */,
 				9DBC3465A8A4F651A166770E /* OutdoorRideSafetyTests.swift in Sources */,
 				01A5B56ACC5F477E667066E6 /* OutdoorTripTests.swift in Sources */,
