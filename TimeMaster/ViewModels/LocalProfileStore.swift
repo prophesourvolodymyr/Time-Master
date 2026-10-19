@@ -16,7 +16,9 @@ enum LocalProfilePersistence {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let value = try decoder.decode(LocalProfileSnapshot.self, from: Data(contentsOf: url))
-        guard value.version == 1 else { throw LocalProfileError.storageUnreadable }
+        guard value.version == 1, value.rankedLevels?.isValid != false, value.mediaFilenames.allSatisfy({
+            !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") && !$0.contains("\\")
+        }) else { throw LocalProfileError.storageUnreadable }
         return value
     }
 
@@ -166,6 +168,13 @@ final class LocalProfileStore: ObservableObject {
 
     func setBadgePreview(_ tier: LocalBadgeTier?) throws {
         try change { $0.badgePreview = tier }
+    }
+
+    var rankedLevels: RankedLevels { snapshot.rankedLevels ?? RankedLevels() }
+
+    func updateRankedLevels(_ levels: RankedLevels) throws {
+        guard levels.isValid else { throw RankedLevelError.invalidLevel }
+        try change { $0.rankedLevels = levels.isEmpty ? nil : levels }
     }
 
     func claimMilestone(progress: LocalVerificationProgress) throws {

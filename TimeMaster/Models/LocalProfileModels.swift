@@ -1,13 +1,14 @@
 import Foundation
 
 enum LocalProfileTab: String, Codable, CaseIterable, Identifiable {
-    case posts, activity, reposted
+    case posts, activity, ranked, reposted
     var id: String { rawValue }
     var title: String { rawValue.capitalized }
     var symbol: String {
         switch self {
         case .posts: return "text.bubble"
         case .activity: return "waveform.path.ecg"
+        case .ranked: return "shield.lefthalf.filled"
         case .reposted: return "arrow.2.squarepath"
         }
     }
@@ -63,6 +64,7 @@ struct LocalUserProfile: Codable, Equatable, Identifiable {
             switch $0 {
             case .posts: return showPostsToVisitors
             case .activity: return showActivityToVisitors
+            case .ranked: return false
             case .reposted: return showRepostsToVisitors
             }
         }
@@ -104,6 +106,7 @@ struct LocalProfileSnapshot: Codable, Equatable {
     var badgePreview: LocalBadgeTier?
     var earnedMilestoneClaimed = false
     var reportDrafts: [LocalProfileReport] = []
+    var rankedLevels: RankedLevels?
 
     func visiblePosts(asVisitor: Bool, repostsOnly: Bool = false) -> [LocalProfilePost] {
         guard !asVisitor || !profile.isPrivate else { return [] }
@@ -128,16 +131,26 @@ struct LocalProfileSnapshot: Codable, Equatable {
     }
 
     func merging(_ imported: Self) -> Self {
-        if profile.displayName == "Your name", posts.isEmpty, profile.biography.isEmpty,
-           profile.avatarFilename == nil, profile.bannerFilename == nil {
+        var emptyProfile = LocalUserProfile()
+        emptyProfile.id = profile.id
+        emptyProfile.createdAt = profile.createdAt
+        if profile == emptyProfile, posts.isEmpty, cosmeticSelections.isEmpty,
+           savedCollectibleIDs.isEmpty, badgePreview == nil, reportDrafts.isEmpty, !earnedMilestoneClaimed,
+           rankedLevels?.isEmpty != false {
             return imported
         }
         var next = self
         let existing = Set(posts.map(\.id))
-        next.posts.append(contentsOf: imported.posts.filter { !existing.contains($0.id) })
+        next.posts.append(contentsOf: imported.posts.filter { !existing.contains($0.id) }.map {
+            var post = $0
+            if imported.profile.isPrivate { post.audience = .onlyMe }
+            return post
+        })
         next.repostedIDs.formUnion(imported.repostedIDs)
         next.repostedIDs.formIntersection(Set(next.posts.map(\.id)))
         next.savedCollectibleIDs.formUnion(imported.savedCollectibleIDs)
+        let existingReports = Set(reportDrafts.map(\.id))
+        next.reportDrafts.append(contentsOf: imported.reportDrafts.filter { !existingReports.contains($0.id) })
         return next
     }
 }

@@ -15,10 +15,12 @@ struct MainTabView: View {
     @StateObject private var musicLibraryStore = MusicLibraryStore.shared
     @StateObject private var outdoorPreferencesStore = OutdoorRecordingPreferencesStore()
     @StateObject private var navigationLayout = SlotNavigationLayoutStore()
+    @StateObject private var profileStore = LocalProfileStore()
     @State private var selectedDestination: String? = SlotNavigationDestination.home.rawValue
     @State private var lastPageDestination = SlotNavigationDestination.home.rawValue
     @State private var scheduleWeek = WeeklyWorkoutSchedule.weekStart(Date())
     @State private var requestedWorkoutID: UUID?
+    @State private var requestedRankedVariation: RankedVariation?
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     @State private var activeOutdoorPlannedRoute: PlannedRoute?
@@ -107,6 +109,7 @@ struct MainTabView: View {
         }
         .environmentObject(musicLibraryStore)
         .environmentObject(outdoorPreferencesStore)
+        .environmentObject(profileStore)
         .environmentObject(databaseNavigationState)
 #if os(macOS)
         .buttonStyle(.plain)
@@ -173,8 +176,14 @@ struct MainTabView: View {
         case .coach:
             AICoachView()
                 .environmentObject(aiStore)
+        case .ranked:
+            RankedView(requestedVariation: $requestedRankedVariation, onOpenProfile: { openPage(.profile) })
+                .environmentObject(outdoorStore)
         case .profile:
-            ProfileView()
+            ProfileView(onOpenRanked: { variation in
+                requestedRankedVariation = variation
+                openPage(.ranked)
+            })
                 .environmentObject(outdoorStore)
         case .map:
             #if os(iOS)
@@ -183,6 +192,13 @@ struct MainTabView: View {
             homeDestination
             #endif
         }
+    }
+
+    private func openPage(_ destination: SlotNavigationDestination) {
+        if !navigationLayout.contains(id: destination.rawValue) {
+            navigationLayout.insert(id: destination.rawValue, at: navigationLayout.order.count)
+        }
+        selectedDestination = destination.rawValue
     }
 
     @ViewBuilder

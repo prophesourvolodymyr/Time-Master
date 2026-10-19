@@ -1346,6 +1346,29 @@ The demo was created through the real TimeMasterCore storage APIs, without app s
 
 ---
 
+## Cycle 36 — Ranked Battle Lobby and Sculptural Athlete
+
+**Requested by the user on 2026-10-19; ready for human code and visual review, not human-verified.**
+
+- [x] Replace the exercise-picker landing screen with a character-led battle lobby and a prominent orange Battle or Practice action
+- [x] Move battle-mode covers, movement families, and individual movement selection into a connected loadout sheet with saved local selections
+- [x] Open a distinct arena preview from the lobby and retain working Profile, Settings, rank-collection, close, and return actions
+- [x] Add the Core family with forearm plank, high plank, left side plank, and right side plank, using hold-time rules instead of rep-count rules
+- [x] Add independently editable overall and movement-specific local Elo display levels, preserving existing profile identity, posts, cosmetics, backup preferences, and independent left/right plank levels
+- [x] Reject invalid saved levels without overwriting their original storage and preserve existing navigation order and the user's later removal of Ranked
+- [x] Generate the lobby hero, two mode covers, fourteen movement illustrations, and six geometric tier badges with Fgen
+- [x] Replace every bear character with an approachable ivory-marble athlete, fluted lower-face mask, black clothing, and orange accents
+- [x] Apply the latest reference's completely bald, smooth rounded head throughout the hero, both mode covers, and every movement illustration
+- [x] Build the exact publication-tree iOS Simulator and macOS targets and pass five existing ranked persistence, backup, validation, and navigation regressions
+- [x] Exercise the real native lobby, Core loadout, hold-time arena, solo practice, profile Elo save and reload, independent side-plank levels, and profile-to-Core return
+- [ ] Human acceptance of the bald masked athlete, artwork consistency, battle-lobby hierarchy, loadout, arena preview, Core choices, and editable local Elo levels
+
+The native interaction smoke used the production SwiftUI views and stores in an isolated macOS host; it also rendered phone-sized, larger-text, and desktop-sized layouts. iOS received a build check, not a successful interactive simulator check: the earlier CoreSimulator test run timed out. Both final app targets were built from the same scoped publication tree, including the checked-in Xcode project and committed app entry points. Existing deprecation and concurrency warnings remain.
+
+This is the requested UI-only Ranked slice. Matchmaking, camera-based rep counting, plank validation, competitive rating calculation, and online leaderboards are not connected; the arena states that it is a preview and awards no Elo. The editable values are local display levels, not verified competitive ratings. Unrelated source edits, deleted app entry points, and concurrent Profile styling remain untouched in the working tree. Product DOCKS.md updates await human acceptance; no next implementation prompt is needed for this slice.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

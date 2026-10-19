@@ -422,6 +422,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     case analytics
     case coach
     case profile
+    case ranked
     case map
     case schedule
     case settings
@@ -436,6 +437,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .analytics: "Analytics"
         case .coach: "AI Coach"
         case .profile: "Profile"
+        case .ranked: "Ranked"
         case .map: "Map"
         case .schedule: "Schedule"
         case .settings: "Settings"
@@ -450,6 +452,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .analytics: "chart.bar.fill"
         case .coach: "brain.head.profile"
         case .profile: "person.crop.circle"
+        case .ranked: "bolt.shield.fill"
         case .map: "map.fill"
         case .schedule: "calendar"
         case .settings: "gearshape.fill"
@@ -464,6 +467,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .analytics: "Shows your workout analytics."
         case .coach: "Opens your AI coach."
         case .profile: "Shows your profile and history."
+        case .ranked: "Shows your Ranked arena and movement loadout."
         case .map: "Opens the live outdoor map and workout start page."
         case .schedule: "Shows your weekly workout Plans and streak."
         case .settings: "Shows app settings."
@@ -487,7 +491,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     }
 
     /// The arrangement the app ships with, before anyone edits the bar.
-    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .home, .map, .workouts, .schedule, .database, .analytics, .settings]
+    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .home, .map, .ranked, .workouts, .schedule, .database, .analytics, .settings]
 }
 
 extension SlotNavigationItem {
@@ -528,6 +532,14 @@ final class SlotNavigationLayoutStore: ObservableObject {
             if !order.contains(.settings) { order.append(.settings) }
             defaults.set(order.map(\.rawValue), forKey: orderKey)
             defaults.set(true, forKey: "tm.navigation.scheduleSettingsAdded")
+        }
+        if !defaults.bool(forKey: "tm.navigation.rankedAdded") {
+            if !order.contains(.ranked) {
+                let index = (order.firstIndex(of: .map) ?? order.firstIndex(of: .home)).map { $0 + 1 } ?? order.count
+                order.insert(.ranked, at: index)
+            }
+            save()
+            defaults.set(true, forKey: "tm.navigation.rankedAdded")
         }
     }
 
