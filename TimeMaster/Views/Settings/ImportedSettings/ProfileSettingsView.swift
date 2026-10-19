@@ -4,7 +4,7 @@ struct ProfileSettingsView: View {
     @EnvironmentObject private var profileStore: LocalProfileStore
     @State private var showsProfileEditor = false
     @State private var showsCollectibles = false
-    @State private var showsRankedLevels = false
+    @State private var showsRankedRanks = false
     @State private var errorMessage: String?
     @State private var showsVerification = false
 
@@ -30,7 +30,7 @@ struct ProfileSettingsView: View {
             }
             EverSettingsSection(
                 title: "Profile",
-                detail: "Your identity and profile levels are saved locally in TimeMaster."
+                detail: "Your profile stays local. Competitive ratings belong to your Ranked account."
             ) {
                 Button {
                     showsProfileEditor = true
@@ -50,12 +50,11 @@ struct ProfileSettingsView: View {
                 .buttonStyle(.plain)
                 .disabled(profileStore.isReadOnly)
                 Button {
-                    showsRankedLevels = true
+                    showsRankedRanks = true
                 } label: {
                     EverActionRow(
-                        title: "Ranked Elo Levels",
-                        detail: profileStore.rankedLevels.overall.map { "\($0.formatted()) Elo · Local profile level" }
-                            ?? "Choose your local profile and movement levels",
+                        title: "Ranked Ranks",
+                        detail: "Earned movement ratings and placement",
                         symbol: "bolt.shield"
                     ) {
                         Image(systemName: "chevron.right")
@@ -64,8 +63,7 @@ struct ProfileSettingsView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .disabled(profileStore.isReadOnly)
-                .accessibilityIdentifier("settings-ranked-levels")
+                .accessibilityIdentifier("settings-ranked-ranks")
             }
 
             EverSettingsSection(
@@ -132,8 +130,8 @@ struct ProfileSettingsView: View {
         .everSheet(isPresented: $showsCollectibles) {
             ProfileCollectiblesView()
         }
-        .everSheet(isPresented: $showsRankedLevels) {
-            RankedLevelsEditorView()
+        .everSheet(isPresented: $showsRankedRanks) {
+            RankedTierGalleryView()
         }
         .everSheet(isPresented: $showsVerification) {
             ProfileVerificationView()

@@ -36,7 +36,7 @@
 
 	<!-- Privacy usage descriptions -->
 	<key>NSCameraUsageDescription</key>
-	<string>Time-Master needs camera access to take photos of your exercises</string>
+	<string>TimeMaster uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Time-Master needs photo library access to add photos of your exercises</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -47,6 +47,8 @@
 	<string>Time-Master records your active Run, Walk, or Bike route while you exercise.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Time-Master uses the barometer to measure elevation gain during your outdoor workout.</string>
+	<key>TMRankedServiceURL</key>
+	<string>$(TM_RANKED_SERVICE_URL)</string>
 	<key>TMExploreStyleURL</key>
 	<string>$(TM_EXPLORE_STYLE_URL)</string>
 	<key>TMExploreOfflineAllowed</key>

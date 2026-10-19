@@ -3,89 +3,48 @@ import XCTest
 
 final class RankedProfileTests: XCTestCase {
     @MainActor
-    func testOlderProfileAcceptsIndependentLevelsAndClearingWithoutLosingIdentityOrPosts() throws {
+    func testLegacyLevelsSurviveProfileEditsWithoutBecomingEarnedRatings() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("profile.json")
         var snapshot = LocalProfileSnapshot()
         snapshot.profile.displayName = "Existing athlete"
-        snapshot.profile.isPrivate = false
         snapshot.posts = [LocalProfilePost(body: "Keep my post")]
         snapshot.cosmeticSelections = ["frame": "orbit"]
+        snapshot.savedCollectibleIDs = ["original"]
+        snapshot.legacyRankedLevels = LegacyRankedLevels(overall: 99_999, variations: ["leftSidePlank": 1200, "rightSidePlank": 1600])
         try LocalProfilePersistence.save(snapshot, to: url)
         let store = LocalProfileStore(fileURL: url)
-        let existing = store.snapshot
-        XCTAssertNil(store.rankedLevels.overall)
-        XCTAssertNil(store.rankedLevels[.standardPushUp])
-        var levels = store.rankedLevels
-        levels.overall = 1_400
-        levels[.standardPushUp] = 1_100
-        levels[.wideSquat] = 1_800
-        levels[.forearmPlank] = 900
-        levels[.leftSidePlank] = 1_200
-        levels[.rightSidePlank] = 1_600
-        try store.updateRankedLevels(levels)
-        let reloaded = LocalProfileStore(fileURL: url)
-        XCTAssertEqual(reloaded.rankedLevels, levels)
-        XCTAssertEqual(reloaded.profile, existing.profile)
-        XCTAssertEqual(reloaded.snapshot.posts, existing.posts)
-        XCTAssertEqual(reloaded.snapshot.cosmeticSelections, existing.cosmeticSelections)
-        levels[.standardPushUp] = nil
-        levels[.leftSidePlank] = nil
-        try reloaded.updateRankedLevels(levels)
-        let cleared = LocalProfileStore(fileURL: url)
-        XCTAssertNil(cleared.rankedLevels[.standardPushUp])
-        XCTAssertEqual(cleared.rankedLevels.overall, 1_400)
-        XCTAssertEqual(cleared.rankedLevels[.wideSquat], 1_800)
-        XCTAssertEqual(cleared.rankedLevels[.forearmPlank], 900)
-        XCTAssertNil(cleared.rankedLevels[.leftSidePlank])
-        XCTAssertEqual(cleared.rankedLevels[.rightSidePlank], 1_600)
-        XCTAssertFalse(cleared.profile.visibleTabs.contains(.ranked))
+        XCTAssertFalse(store.isReadOnly)
+        var edited = store.profile
+        edited.biography = "Still my profile"
+        try store.updateProfile(edited)
+        let reloaded = try XCTUnwrap(LocalProfilePersistence.load(from: url))
+        XCTAssertEqual(reloaded.profile.id, snapshot.profile.id)
+        XCTAssertEqual(reloaded.profile.biography, "Still my profile")
+        XCTAssertEqual(reloaded.posts.map(\.id), snapshot.posts.map(\.id))
+        XCTAssertEqual(reloaded.posts.map(\.body), snapshot.posts.map(\.body))
+        XCTAssertEqual(reloaded.cosmeticSelections, snapshot.cosmeticSelections)
+        XCTAssertEqual(reloaded.savedCollectibleIDs, snapshot.savedCollectibleIDs)
+        XCTAssertEqual(reloaded.legacyRankedLevels, snapshot.legacyRankedLevels)
+        XCTAssertFalse(reloaded.profile.visibleTabs.contains(.ranked))
     }
 
-    @MainActor
-    func testInvalidLevelsDoNotReplaceSavedLevels() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appendingPathComponent("profile.json")
-        let store = LocalProfileStore(fileURL: url)
-        let valid = RankedLevels(overall: 1_000, variations: [RankedVariation.standardSquat.rawValue: 1_400])
-        try store.updateRankedLevels(valid)
-        let data = try Data(contentsOf: url)
-        XCTAssertThrowsError(try store.updateRankedLevels(RankedLevels(overall: -1)))
-        XCTAssertThrowsError(try store.updateRankedLevels(RankedLevels(overall: 5_001)))
-        XCTAssertThrowsError(try store.updateRankedLevels(RankedLevels(variations: ["unknown": 1_000])))
-        XCTAssertEqual(store.rankedLevels, valid)
-        XCTAssertEqual(try Data(contentsOf: url), data)
-    }
-
-    func testBackupMergeKeepsChosenLocalLevelsButRestoresIntoAnEmptyProfile() {
+    func testHistoricalBackupMergePreservesIdentityAndArchivedLevels() {
         var local = LocalProfileSnapshot()
-        local.rankedLevels = RankedLevels(overall: 1_400)
+        local.profile.displayName = "Local identity"
+        local.legacyRankedLevels = LegacyRankedLevels(overall: 1400)
         var imported = LocalProfileSnapshot()
         imported.profile.displayName = "Backup identity"
-        imported.rankedLevels = RankedLevels(overall: 2_200)
+        imported.legacyRankedLevels = LegacyRankedLevels(overall: 2200)
+        imported.posts = [LocalProfilePost(body: "Private backup post")]
         let merged = local.merging(imported)
-        XCTAssertEqual(merged.profile.id, local.profile.id)
-        XCTAssertEqual(merged.rankedLevels?.overall, 1_400)
+        XCTAssertEqual(merged.profile, local.profile)
+        XCTAssertEqual(merged.legacyRankedLevels?.overall, 1400)
+        XCTAssertEqual(merged.posts.first?.audience, .onlyMe)
         let restored = LocalProfileSnapshot().merging(imported)
-        XCTAssertEqual(restored.profile.id, imported.profile.id)
-        XCTAssertEqual(restored.rankedLevels?.overall, 2_200)
-    }
-
-    @MainActor
-    func testOutOfRangeStoredLevelIsPreservedWithoutOpeningAnEditableProfile() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appendingPathComponent("profile.json")
-        var invalid = LocalProfileSnapshot()
-        invalid.rankedLevels = RankedLevels(overall: 99_999)
-        try LocalProfilePersistence.save(invalid, to: url)
-        let original = try Data(contentsOf: url)
-        let store = LocalProfileStore(fileURL: url)
-        XCTAssertTrue(store.isReadOnly)
-        XCTAssertThrowsError(try store.updateRankedLevels(RankedLevels(overall: 1_000)))
-        XCTAssertEqual(try Data(contentsOf: url), original)
+        XCTAssertEqual(restored.profile, imported.profile)
+        XCTAssertEqual(restored.legacyRankedLevels, imported.legacyRankedLevels)
     }
 
     @MainActor

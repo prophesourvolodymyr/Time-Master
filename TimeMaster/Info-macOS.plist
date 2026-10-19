@@ -31,6 +31,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>TimeMaster uses the camera for on-device exercise tracking. Ranked sends joint estimates, never camera images.</string>
+	<key>TMRankedServiceURL</key>
+	<string>$(TM_RANKED_SERVICE_URL)</string>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
 	<key>NSPrincipalClass</key>

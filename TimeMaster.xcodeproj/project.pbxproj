@@ -136,7 +136,7 @@
 		375A4173E80AC9C787020579 /* ScheduleEntryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9E367E393C1744ED9CDFE8 /* ScheduleEntryEditor.swift */; };
 		37B45B1AF694C7BDAB12A472 /* OutdoorPineGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746E0E8210EFD993244CDD40 /* OutdoorPineGeometry.swift */; };
 		382B6B5883B9104541493D70 /* EverSpacetime.metal in Sources */ = {isa = PBXBuildFile; fileRef = C5AAE4E222E4202FC4A0D3D3 /* EverSpacetime.metal */; };
-		38B140BB3657F333535D5E88 /* RankedLevelsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BA4F55832B68CD99E6CD14 /* RankedLevelsEditorView.swift */; };
+		38B140BB3657F333535D5E88 /* RankedAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BA4F55832B68CD99E6CD14 /* RankedAccountView.swift */; };
 		38F4D6D6E4EB92879758A36F /* BatchConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */; };
 		3A0F9D922F125196542FFBF1 /* OutdoorActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01618C53E4137D7AC1CB4DCF /* OutdoorActivityStore.swift */; };
 		3A597591485A90E63BE698C1 /* SettingsRootContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E390E931AB1D067DD94F2FC /* SettingsRootContent.swift */; };
@@ -240,7 +240,7 @@
 		6AF2F0DA33DF607E3BA97D9E /* WorkoutResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */; };
 		6B201BE5D8D6C8685E62EC17 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D582991CAE01E1427BA7D5B /* KeychainHelper.swift */; };
 		6C4A94D8E37BEE0F25824ABA /* HomeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 330EF96B497C63642640EBD3 /* HomeWidget.swift */; };
-		6EB58BB6B825E329712CF186 /* RankedLevelsEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BA4F55832B68CD99E6CD14 /* RankedLevelsEditorView.swift */; };
+		6EB58BB6B825E329712CF186 /* RankedAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BA4F55832B68CD99E6CD14 /* RankedAccountView.swift */; };
 		6F11DFB9D44A0C8530FD5AFF /* CollectibleArtworkPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BCFAE4EF50212724FF9FBED /* CollectibleArtworkPalette.swift */; };
 		70A8938D4FADD29277FBC7EC /* MusicLibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFE4033315C9DD766463155 /* MusicLibraryScreen.swift */; };
 		7120FAF755AA3EBA138E2010 /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED9DF2FD706E1FCDC8B9E7C /* ScheduleView.swift */; };
@@ -365,6 +365,18 @@
 		E001A0030000000000000006 /* RankedRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E001A0010000000000000006 /* RankedRulesView.swift */; };
 		E001A0030000000000000007 /* RankedLeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E001A0010000000000000007 /* RankedLeaderboardView.swift */; };
 		E001A0030000000000000008 /* RankedMatchHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E001A0010000000000000008 /* RankedMatchHistoryView.swift */; };
+		E002A0020000000000000001 /* RankedAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000001 /* RankedAPI.swift */; };
+		E002A0020000000000000002 /* RankedAccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000002 /* RankedAccountStore.swift */; };
+		E002A0020000000000000003 /* RankedCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000003 /* RankedCamera.swift */; };
+		E002A0020000000000000004 /* RankedMovementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000004 /* RankedMovementTracker.swift */; };
+		E002A0020000000000000005 /* RankedMatchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000005 /* RankedMatchController.swift */; };
+		E002A0020000000000000006 /* RankedCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000006 /* RankedCameraPreview.swift */; };
+		E002A0030000000000000001 /* RankedAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000001 /* RankedAPI.swift */; };
+		E002A0030000000000000002 /* RankedAccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000002 /* RankedAccountStore.swift */; };
+		E002A0030000000000000003 /* RankedCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000003 /* RankedCamera.swift */; };
+		E002A0030000000000000004 /* RankedMovementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000004 /* RankedMovementTracker.swift */; };
+		E002A0030000000000000005 /* RankedMatchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000005 /* RankedMatchController.swift */; };
+		E002A0030000000000000006 /* RankedCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000006 /* RankedCameraPreview.swift */; };
 		A6F55114B692E1DA0A558CC4 /* OutdoorMapQuickStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42789063925993436C4FC1F5 /* OutdoorMapQuickStack.swift */; };
 		A78A596CECD6113AB5418CC0 /* MotionTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = E165B27B8BF5FC1F4E7CB844 /* MotionTokens.swift */; };
 		A7B85AEA6B15BB153D993914 /* WorkoutMusicTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E177BBE26F2882EE2E2E337C /* WorkoutMusicTimelineView.swift */; };
@@ -491,6 +503,7 @@
 		DF365B3329D18015F0D078D8 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B26870953ABC5C4610D424C6 /* AudioManager.swift */; };
 		E2D6C048BC35E79383BAF960 /* ProfileCollectiblesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF541F05C4FCBDBB9E3A9C5C /* ProfileCollectiblesView.swift */; };
 		E32694C7DDAF98C95C3B6DAC /* RankedProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 815610DC5B55A675A0DB0FD7 /* RankedProfileTests.swift */; };
+		E002A0040000000000000001 /* RankedTrackingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000007 /* RankedTrackingTests.swift */; };
 		E327CFB3140AE60E39808425 /* EverSpacetime.metal in Sources */ = {isa = PBXBuildFile; fileRef = C5AAE4E222E4202FC4A0D3D3 /* EverSpacetime.metal */; };
 		E4243D9BD9F55DC011375CE8 /* AISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0008579785FB963981CED211 /* AISettingsView.swift */; };
 		E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */; };
@@ -706,6 +719,7 @@
 		7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePageOverlay.swift; sourceTree = "<group>"; };
 		811BB55E3BD88B54CD74BF4C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		815610DC5B55A675A0DB0FD7 /* RankedProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedProfileTests.swift; sourceTree = "<group>"; };
+		E002A0010000000000000007 /* RankedTrackingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedTrackingTests.swift; sourceTree = "<group>"; };
 		84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEditorView.swift; sourceTree = "<group>"; };
 		8536224B744BCA4A566A035C /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		8640BA661B18C3C3660EC803 /* INTER-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "INTER-LICENSE.txt"; sourceTree = "<group>"; };
@@ -723,6 +737,12 @@
 		E001A0010000000000000006 /* RankedRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedRulesView.swift; sourceTree = "<group>"; };
 		E001A0010000000000000007 /* RankedLeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedLeaderboardView.swift; sourceTree = "<group>"; };
 		E001A0010000000000000008 /* RankedMatchHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedMatchHistoryView.swift; sourceTree = "<group>"; };
+		E002A0010000000000000001 /* RankedAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedAPI.swift; sourceTree = "<group>"; };
+		E002A0010000000000000002 /* RankedAccountStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedAccountStore.swift; sourceTree = "<group>"; };
+		E002A0010000000000000003 /* RankedCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedCamera.swift; sourceTree = "<group>"; };
+		E002A0010000000000000004 /* RankedMovementTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedMovementTracker.swift; sourceTree = "<group>"; };
+		E002A0010000000000000005 /* RankedMatchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedMatchController.swift; sourceTree = "<group>"; };
+		E002A0010000000000000006 /* RankedCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedCameraPreview.swift; sourceTree = "<group>"; };
 		8880F70DC5DDC88AD96D653B /* MusicGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGuideOverlay.swift; sourceTree = "<group>"; };
 		8A1602CC55687977DCBEBCB6 /* HomeWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetStore.swift; sourceTree = "<group>"; };
 		8B0BA674EDC86792635987F6 /* MapGlyphs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MapGlyphs; path = TimeMaster/Resources/MapGlyphs; sourceTree = SOURCE_ROOT; };
@@ -789,7 +809,7 @@
 		C5AAE4E222E4202FC4A0D3D3 /* EverSpacetime.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = EverSpacetime.metal; sourceTree = "<group>"; };
 		C5BC831437460203726A338E /* OutdoorMapLibreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorMapLibreView.swift; sourceTree = "<group>"; };
 		C66B50B0364426A1FB53608A /* PhotoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoManager.swift; sourceTree = "<group>"; };
-		C6BA4F55832B68CD99E6CD14 /* RankedLevelsEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedLevelsEditorView.swift; sourceTree = "<group>"; };
+		C6BA4F55832B68CD99E6CD14 /* RankedAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedAccountView.swift; sourceTree = "<group>"; };
 		C7A3A1CAF77CA030B8E930D9 /* PageCreationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageCreationSheet.swift; sourceTree = "<group>"; };
 		C83A693DF17BAE0299EC5DB2 /* ReachabilityAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityAction.swift; sourceTree = "<group>"; };
 		C91D487A09656BCA4A96361B /* OutdoorTripEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripEditor.swift; sourceTree = "<group>"; };
@@ -1152,6 +1172,7 @@
 				F3EBE0E3B5F2BD49A8C6C802 /* OutdoorRideSafetyTests.swift */,
 				AAC8FDFE63C6662440B3E0A5 /* OutdoorTripTests.swift */,
 				815610DC5B55A675A0DB0FD7 /* RankedProfileTests.swift */,
+				E002A0010000000000000007 /* RankedTrackingTests.swift */,
 				F3327AE5D7417B14C6958228 /* ReachabilityGeometryTests.swift */,
 			);
 			path = TimeMasterTests;
@@ -1331,7 +1352,8 @@
 				E001A0010000000000000006 /* RankedRulesView.swift */,
 				E001A0010000000000000007 /* RankedLeaderboardView.swift */,
 				E001A0010000000000000008 /* RankedMatchHistoryView.swift */,
-				C6BA4F55832B68CD99E6CD14 /* RankedLevelsEditorView.swift */,
+				C6BA4F55832B68CD99E6CD14 /* RankedAccountView.swift */,
+				E002A0010000000000000006 /* RankedCameraPreview.swift */,
 				FB88A84725CA9E5630C47C8E /* RankedProfileSection.swift */,
 				F9EB7C6791C2095ACD92C633 /* RankedTierGalleryView.swift */,
 				9088C4DC6C587F8ED0148471 /* RankedView.swift */,
@@ -1408,6 +1430,11 @@
 		E77C50DF73EE34BD211B8CF4 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				E002A0010000000000000001 /* RankedAPI.swift */,
+				E002A0010000000000000002 /* RankedAccountStore.swift */,
+				E002A0010000000000000003 /* RankedCamera.swift */,
+				E002A0010000000000000004 /* RankedMovementTracker.swift */,
+				E002A0010000000000000005 /* RankedMatchController.swift */,
 				A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */,
 				50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */,
 				18C92EF761CE54686C4177F7 /* MusicProviderAdapters.swift */,
@@ -1828,7 +1855,13 @@
 				5BD2F456C5EF9E5BA8C84217 /* ProfileVerificationView.swift in Sources */,
 				D876BBF5D66A951F5E3066F4 /* ProfileView.swift in Sources */,
 				A63A82A54B07FE0E0F83B3DA /* RankedComponents.swift in Sources */,
-				38B140BB3657F333535D5E88 /* RankedLevelsEditorView.swift in Sources */,
+				38B140BB3657F333535D5E88 /* RankedAccountView.swift in Sources */,
+				E002A0020000000000000001 /* RankedAPI.swift in Sources */,
+				E002A0020000000000000002 /* RankedAccountStore.swift in Sources */,
+				E002A0020000000000000003 /* RankedCamera.swift in Sources */,
+				E002A0020000000000000004 /* RankedMovementTracker.swift in Sources */,
+				E002A0020000000000000005 /* RankedMatchController.swift in Sources */,
+				E002A0020000000000000006 /* RankedCameraPreview.swift in Sources */,
 				BE3726B086212A962BD8182F /* RankedModels.swift in Sources */,
 				E001A0020000000000000001 /* RankedFlowModels.swift in Sources */,
 				E001A0020000000000000002 /* RankedDuelPlayerView.swift in Sources */,
@@ -2092,7 +2125,13 @@
 				B0832715CEBBF0814028A27C /* ProfileVerificationView.swift in Sources */,
 				478C04B1C47C61C1017A2323 /* ProfileView.swift in Sources */,
 				BF5118731467CB9CA2F708BE /* RankedComponents.swift in Sources */,
-				6EB58BB6B825E329712CF186 /* RankedLevelsEditorView.swift in Sources */,
+				6EB58BB6B825E329712CF186 /* RankedAccountView.swift in Sources */,
+				E002A0030000000000000001 /* RankedAPI.swift in Sources */,
+				E002A0030000000000000002 /* RankedAccountStore.swift in Sources */,
+				E002A0030000000000000003 /* RankedCamera.swift in Sources */,
+				E002A0030000000000000004 /* RankedMovementTracker.swift in Sources */,
+				E002A0030000000000000005 /* RankedMatchController.swift in Sources */,
+				E002A0030000000000000006 /* RankedCameraPreview.swift in Sources */,
 				98F46CB7DA08560C2A322007 /* RankedModels.swift in Sources */,
 				E001A0030000000000000001 /* RankedFlowModels.swift in Sources */,
 				E001A0030000000000000002 /* RankedDuelPlayerView.swift in Sources */,
@@ -2188,6 +2227,7 @@
 				9DBC3465A8A4F651A166770E /* OutdoorRideSafetyTests.swift in Sources */,
 				01A5B56ACC5F477E667066E6 /* OutdoorTripTests.swift in Sources */,
 				E32694C7DDAF98C95C3B6DAC /* RankedProfileTests.swift in Sources */,
+				E002A0040000000000000001 /* RankedTrackingTests.swift in Sources */,
 				00BC1E9BDD98F62C47AE2A0F /* ReachabilityGeometryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2301,6 +2341,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.macos;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				TM_RANKED_SERVICE_URL = "";
 			};
 			name = Debug;
 		};
@@ -2476,11 +2517,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = YES;
+				"CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]" = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "-";
 				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster.entitlements;
 				CODE_SIGN_IDENTITY = "";
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = TimeMaster/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
+				INFOPLIST_KEY_NSCameraUsageDescription = "TimeMaster uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Time-Master saves your Planned Trip map image to Photos so you can share it.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -2488,6 +2532,7 @@
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				TM_RANKED_SERVICE_URL = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2539,6 +2584,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.macos;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				TM_RANKED_SERVICE_URL = "";
 			};
 			name = Release;
 		};
@@ -2569,11 +2615,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGNING_REQUIRED = NO;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = YES;
+				"CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]" = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "-";
 				CODE_SIGN_ENTITLEMENTS = TimeMaster/TimeMaster.entitlements;
 				CODE_SIGN_IDENTITY = "";
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = TimeMaster/Info.plist;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Time-Master needs camera access to take photos of your exercises";
+				INFOPLIST_KEY_NSCameraUsageDescription = "TimeMaster uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Time-Master saves your Planned Trip map image to Photos so you can share it.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Time-Master needs photo library access to add photos of your exercises";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -2581,6 +2630,7 @@
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				TM_RANKED_SERVICE_URL = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

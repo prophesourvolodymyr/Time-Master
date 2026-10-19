@@ -121,25 +121,13 @@ enum RankedTier: String, CaseIterable, Identifiable {
     }
 }
 
-struct RankedLevels: Codable, Equatable {
-    static let range = 0...5_000
-    var overall: Int?
-    var variations: [String: Int] = [:]
-
-    subscript(_ variation: RankedVariation) -> Int? {
-        get { variations[variation.rawValue] }
-        set { variations[variation.rawValue] = newValue }
+struct LegacyRankedLevels: Codable, Equatable {
+    let overall: Int?
+    let variations: [String: Int]
+    init(overall: Int? = nil, variations: [String: Int] = [:]) {
+        self.overall = overall
+        self.variations = variations
     }
-
     var isEmpty: Bool { overall == nil && variations.isEmpty }
-    var isValid: Bool {
-        (overall.map(Self.range.contains) ?? true) && variations.allSatisfy {
-            RankedVariation(rawValue: $0.key) != nil && Self.range.contains($0.value)
-        }
-    }
 }
 
-enum RankedLevelError: LocalizedError {
-    case invalidLevel
-    var errorDescription: String? { "Choose an Elo level between 0 and 5,000." }
-}

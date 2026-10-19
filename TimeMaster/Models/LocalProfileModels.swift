@@ -106,7 +106,13 @@ struct LocalProfileSnapshot: Codable, Equatable {
     var badgePreview: LocalBadgeTier?
     var earnedMilestoneClaimed = false
     var reportDrafts: [LocalProfileReport] = []
-    var rankedLevels: RankedLevels?
+    var legacyRankedLevels: LegacyRankedLevels?
+
+    enum CodingKeys: String, CodingKey {
+        case version, profile, posts, repostedIDs, cosmeticSelections, savedCollectibleIDs
+        case badgePreview, earnedMilestoneClaimed, reportDrafts
+        case legacyRankedLevels = "rankedLevels"
+    }
 
     func visiblePosts(asVisitor: Bool, repostsOnly: Bool = false) -> [LocalProfilePost] {
         guard !asVisitor || !profile.isPrivate else { return [] }
@@ -136,7 +142,7 @@ struct LocalProfileSnapshot: Codable, Equatable {
         emptyProfile.createdAt = profile.createdAt
         if profile == emptyProfile, posts.isEmpty, cosmeticSelections.isEmpty,
            savedCollectibleIDs.isEmpty, badgePreview == nil, reportDrafts.isEmpty, !earnedMilestoneClaimed,
-           rankedLevels?.isEmpty != false {
+           legacyRankedLevels?.isEmpty != false {
             return imported
         }
         var next = self

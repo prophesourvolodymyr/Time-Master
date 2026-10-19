@@ -12,6 +12,7 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
     GENERATE_INFOPLIST_FILE: YES
+    TM_RANKED_SERVICE_URL: ""
 
 packages:
   ZIPFoundation:
@@ -62,7 +63,7 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-        INFOPLIST_KEY_NSCameraUsageDescription: "Time-Master needs camera access to take photos of your exercises"
+        INFOPLIST_KEY_NSCameraUsageDescription: "TimeMaster uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Time-Master needs photo library access to add photos of your exercises"
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Time-Master saves your Planned Trip map image to Photos so you can share it."
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
@@ -92,6 +93,9 @@ targets:
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
+        "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": YES
+        "CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]": YES
+        "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
 
   TimeMasterWidget:
     type: app-extension

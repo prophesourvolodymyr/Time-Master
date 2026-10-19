@@ -22,16 +22,7 @@ struct RankedBadgeView: View {
 struct RankedMovementArt: View {
     let variation: RankedVariation
     var body: some View {
-        Group {
-            if variation.isAdvanced {
-                Image(systemName: variation == .diamondPushUp ? "diamond" : "figure.gymnastics")
-                    .resizable().scaledToFit()
-                    .foregroundStyle(Theme.toolbarOrange.opacity(0.8))
-                    .padding(ProfileStyle.inset)
-            } else {
-                Image(variation.assetName).resizable().scaledToFit()
-            }
-        }
+        Image(variation.assetName).resizable().scaledToFit()
         .accessibilityHidden(true)
     }
 }
@@ -58,7 +49,7 @@ struct RankedMovementTile: View {
                     .font(TimeMasterFont.caption().monospacedDigit())
                     .foregroundStyle(isSelected ? .white : ProfileStyle.secondary)
                 if variation.isAdvanced {
-                    Text("Advanced · Verification research")
+                    Text("Practice · Rated verification unavailable")
                         .font(TimeMasterFont.micro())
                         .foregroundStyle(ProfileStyle.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -86,7 +77,7 @@ struct RankedMovementTile: View {
         .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(.white)
         .accessibilityLabel(variation.fullTitle)
-        .accessibilityValue(mode == .practice ? "Practice" : elo.map { "\($0) Elo, profile level" } ?? "Unplaced")
+        .accessibilityValue(mode == .practice ? "Practice" : elo.map { "\($0) earned Elo" } ?? "Unplaced")
         .accessibilityHint(variation.isTimedHold ? "Select a timed hold" : "Select a repetition-based movement")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("ranked-variation-\(variation.rawValue)")
@@ -94,21 +85,21 @@ struct RankedMovementTile: View {
 }
 
 struct RankedProfileSummary: View {
-    @EnvironmentObject private var profileStore: LocalProfileStore
+    @ObservedObject private var account = RankedAccountStore.shared
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: EverSpacing.x1) {
-                Text("Elo")
+                Text("Ranks")
                     .font(TimeMasterFont.caption())
                     .foregroundStyle(ProfileStyle.secondary)
-                Text(profileStore.rankedLevels.overall.map { $0.formatted() } ?? "Unplaced")
-                    .font(profileStore.rankedLevels.overall == nil ? TimeMasterFont.rowTitle() : TimeMasterFont.title())
+                Text(account.placedCount == 0 ? "Unplaced" : account.placedCount.formatted())
+                    .font(account.placedCount == 0 ? TimeMasterFont.rowTitle() : TimeMasterFont.title())
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                Text("Local level")
+                Text("Earned movements")
                     .font(TimeMasterFont.caption())
                     .foregroundStyle(ProfileStyle.secondary)
                     .lineLimit(1)
@@ -118,5 +109,6 @@ struct RankedProfileSummary: View {
         .buttonStyle(EverPressButtonStyle())
         .foregroundStyle(.white)
         .accessibilityIdentifier("profile-ranked-summary")
+        .task { await account.restore() }
     }
 }

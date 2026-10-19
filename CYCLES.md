@@ -1402,24 +1402,37 @@ Both app targets built from the scoped publication source, preserving unrelated 
 - [x] Build the then-current iOS Simulator and macOS source in a disposable copy, recovering the already-deleted app bootstrap only in that copy
 - [x] Exercise the native iPhone 16 happy path, running timer, result/details/Close, recent-round row, one slot consumed at Go, and no additional slot consumed on pre-Go cancellation using isolated app data
 - [x] Write the user-requested comprehensive continuation prompt: `prompts/ranked/Ranked-phase-2-production-completion.md`
-- [ ] Implement real camera capture, permissions, usable framing, calibration, lifecycle, and pose processing
-  - [ ] Implement actual per-variation repetition validation, including stance, full range, paused/tempo phases, and no counting from elapsed time
-  - [ ] Implement longest valid continuous-hold scoring for each Core movement, including independent left and right side planks
+- [x] Implement real camera capture, permissions, usable framing, calibration, lifecycle, and pose processing
+  - [x] Implement actual per-variation repetition validation, including stance, full range, paused/tempo phases, and no counting from elapsed time
+  - [x] Implement longest valid continuous-hold scoring for each Core movement, including independent left and right side planks
   - [ ] Implement and evaluate advanced movement tracking, inverted poses, visible-assistance handling, and honest insufficient-evidence behavior
-- [ ] Implement real account/session integration and authoritative persisted competitive data
-  - [ ] Implement exercise-specific skill-based matchmaking, real cancellation/readiness, synchronized countdown, live opponent state, and reconnect/forfeit handling
+    - [x] Implement inverted-pose fallback, hand-contact/support estimates and explicit unavailability of advanced rated matches when assistance cannot be verified
+    - [ ] Evaluate real athlete recordings on physical devices, including advanced support/assistance and camera accuracy before enabling advanced competition
+- [x] Implement real account/session integration and authoritative persisted competitive data
+  - [x] Implement exercise-specific skill-based matchmaking, real cancellation/readiness, synchronized countdown, live opponent state, and reconnect/forfeit handling
   - [x] Implement real result verification, exactly-once finalization, and server-owned exercise-specific Elo
   - [x] Enforce separate push-up/squat ten-match rolling four-hour allowances across variations and devices
-  - [ ] Implement actual exercise leaderboards, earned rank collection, persistent recent matches, and match details
-  - [ ] Migrate local editable-level callers and backups safely; never promote manually chosen values into earned Elo
-- [ ] Finish the visual-first native UI, compact normal-phone duel HUD, real camera guidance, and matching artwork for the four advanced additions
-- [ ] Remove simulated scores/opponents/results, preview-state controls, sample standings, obsolete demo models, and test-UI notices through the real production cutover
+  - [x] Implement actual exercise leaderboards, earned rank collection, persistent recent matches, and match details
+  - [x] Migrate local editable-level callers and backups safely; never promote manually chosen values into earned Elo
+- [x] Finish the visual-first native UI, compact normal-phone duel HUD, real camera guidance, and matching artwork for the four advanced additions
+- [x] Remove simulated scores/opponents/results, preview-state controls, sample standings, obsolete demo models, and test-UI notices through the real production cutover
 - [ ] Exercise real camera input and two authenticated participants, persistence/recovery/security boundaries, remaining native states, and relevant regressions; deploy the real service when authorized
+  - [x] Exercise server authorization, evidence boundaries, exact-once ratings, family allowances and pagination with twenty focused regressions
+  - [x] Complete a real-time sixty-second two-account HTTP round using derived-vector fixtures, then restart the service and recover the persisted sessions, result, rating and history
+  - [x] Exercise the actual iPhone lobby and Practice setup, honest camera-unavailable state with disabled Start, real account creation and sign-in, secure Keychain restore after relaunch and sign-out
+  - [x] Run the fifteen focused native tracking, legacy-profile preservation and existing Profile regressions
+  - [x] Build both arm64 native targets and exercise ordinary and accessibility-sized HUD components with persisted service results, an inactive camera and reachable feedback
+  - [ ] Complete physical-camera rounds with two real athletes, including movement accuracy, native Duel recovery, assistance limitations and iOS/macOS camera/focus/lifecycle behavior
+  - [ ] Deploy to an authorized persistent HTTPS service and set the native build's Ranked service address
 - [ ] Human review and acceptance of the complete Ranked feature
 
 The Phase 2 cutover replaces the earlier demo paths with AVFoundation/Vision tracking, an authenticated FastAPI/SQLite service, server-owned match state and ratings, real paginated competition data, and four generated movement assets. Service evidence is derived joint data, never images or video. Advanced diamond, handstand and planche competition is explicitly unavailable until recording-based hand/support validation is established; on-device Practice is an estimate, not a claim of assistance-proof tracking.
 
-The service's twenty focused regressions pass. A separate real-time two-account HTTP scenario completed the shared sixty-second round with derived-vector fixtures, identical final results, exactly one Elo update and one history entry per participant, and the correct family allowances. This does not prove camera accuracy or hidden-assistance detection. Native interaction checks and final current-source builds are still being completed in an isolated simulator and disposable source copy; the already-deleted live app entry points remain untouched. Public deployment requires an authorized persistent HTTPS host/domain and build URL. Physical-device recordings remain unavailable. Product DOCKS updates and human acceptance remain pending.
+The service's twenty focused regressions pass. A separate real-time two-account HTTP scenario completed the shared sixty-second round with derived-vector fixtures, identical final results, exactly one Elo update and one history entry per participant, and the correct family allowances; those results survived an actual service restart. The final iPhone run passes all fifteen permanent regressions and two disposable native smokes. Real registration/sign-in, Keychain-backed relaunch recovery and sign-out were exercised against the local service. Simulator ad-hoc signing is now configured for the app's Keychain entitlement instead of relying on unsigned execution.
+
+Both native targets build for arm64 from the current working source in a disposable copy, with the historical app bootstrap recovered only there; the already-deleted live app entry points and unrelated font/Profile work remain untouched. macOS startup opened an isolated native window, but Apple Events automation was not authorized, so new macOS Ranked interaction, camera, focus and lifecycle behavior is not claimed. The ordinary HUD and accessibility reflow were rendered using real persisted result values with the camera inactive, not a fake production match.
+
+Camera accuracy, hidden-assistance detection and full physical-camera competition are still unproved. Joint evidence is motion validation, not proof against a modified client or replay. Advanced rated movements remain unavailable. Public deployment still requires an authorized persistent HTTPS host/domain and native build URL; Docker/Compose configuration validates, but a container build and public TLS deployment were not exercised because the Docker engine is stopped and no host authorization exists. Physical-device recordings remain unavailable. Product DOCKS updates and human acceptance remain pending; this is a code-review handoff, not a complete-production or human-approval claim.
 
 ---
 

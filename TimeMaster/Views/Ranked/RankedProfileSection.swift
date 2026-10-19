@@ -1,38 +1,21 @@
 import SwiftUI
 
 struct RankedProfileSection: View {
-    @EnvironmentObject private var profileStore: LocalProfileStore
+    @ObservedObject private var account = RankedAccountStore.shared
     let onOpenRanked: (RankedVariation) -> Void
-    @State private var showsEditor = false
-    @ScaledMetric(relativeTo: .title) private var badgeSize: CGFloat = 88
+    @State private var showsAccount = false
     @ScaledMetric(relativeTo: .body) private var artSize: CGFloat = 64
 
     var body: some View {
         VStack(alignment: .leading, spacing: ProfileStyle.inset) {
-            HStack(spacing: ProfileStyle.spacing) {
-                RankedBadgeView(elo: profileStore.rankedLevels.overall, size: badgeSize)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Overall profile level").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                    Text(profileStore.rankedLevels.overall.map { "\($0.formatted()) Elo" } ?? "Unplaced")
-                        .font(TimeMasterFont.title().monospacedDigit())
-                    Text(RankedTier.level(for: profileStore.rankedLevels.overall)?.title ?? "Choose your starting look")
-                        .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(ProfileStyle.inset)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: ProfileStyle.corner))
-            Button { showsEditor = true } label: {
-                Label("Edit Elo levels", systemImage: "slider.horizontal.3")
-                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-            }
-            .buttonStyle(EverPrimaryButtonStyle())
-            .disabled(profileStore.isReadOnly)
-            .accessibilityIdentifier("profile-ranked-edit")
-            Text("Manually set on this device. Not a verified competitive rating.")
+            Text("\(account.placedCount) earned movement ranks").font(TimeMasterFont.title())
+            Text("Server-owned, exercise-specific ratings. Your previous local display choices are preserved in your profile archive, not used as competitive Elo.")
                 .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Button { showsAccount = true } label: {
+                Label(account.identity == nil ? "Sign in to Ranked" : "Ranked account", systemImage: "person.crop.circle")
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+            }.buttonStyle(EverPrimaryButtonStyle())
+            if let error = account.error { RankedServiceNotice(message: error, retry: { Task { await account.refresh() } }) }
             ForEach(RankedFamily.allCases) { family in
                 ProfileSettingsSection(title: family.title) {
                     ForEach(family.variations) { variation in
@@ -41,16 +24,13 @@ struct RankedProfileSection: View {
                                 RankedMovementArt(variation: variation).frame(width: artSize, height: artSize)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(variation.title).font(TimeMasterFont.rowTitle())
-                                    Text(profileStore.rankedLevels[variation].map { "\($0.formatted()) Elo" } ?? "Unplaced")
+                                    Text(account.rating(for: variation)?.label ?? "Unplaced")
                                         .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                                 }
                                 Spacer()
-                                RankedBadgeView(elo: profileStore.rankedLevels[variation])
-                                Image(systemName: "arrow.up.right").font(.body.weight(.bold))
-                                    .foregroundStyle(Theme.toolbarOrange)
-                            }
-                            .padding(ProfileStyle.spacing)
-                            .contentShape(Rectangle())
+                                RankedBadgeView(elo: account.rating(for: variation)?.rating)
+                                Image(systemName: "arrow.up.right").font(.body.weight(.bold)).foregroundStyle(Theme.toolbarOrange)
+                            }.padding(ProfileStyle.spacing).contentShape(Rectangle())
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
                         .accessibilityLabel("Open \(variation.fullTitle) in Ranked")
@@ -59,6 +39,7 @@ struct RankedProfileSection: View {
                 }
             }
         }
-        .sheet(isPresented: $showsEditor) { RankedLevelsEditorView() }
+        .sheet(isPresented: $showsAccount) { RankedAccountView() }
+        .task { await account.restore(); if account.identity != nil { await account.refresh() } }
     }
 }

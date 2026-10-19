@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum RankedLobbySheet: String, Identifiable {
-    case settings, ranks, loadout, rules, leaderboard, history, limit
+    case settings, account, ranks, loadout, rules, leaderboard, history, limit
     var id: String { rawValue }
 }
 
@@ -18,7 +18,7 @@ struct RankedView: View {
     let onOpenProfile: () -> Void
     @State private var sheet: RankedLobbySheet?
     @State private var showsBattle = false
-    @StateObject private var previewSession = RankedPreviewSession()
+    @ObservedObject private var account = RankedAccountStore.shared
     @ScaledMetric(relativeTo: .body) private var tileWidth: CGFloat = 144
     @ScaledMetric(relativeTo: .title) private var badgeSize: CGFloat = 56
 
@@ -51,28 +51,28 @@ struct RankedView: View {
             .sheet(item: $sheet) { destination in
                 switch destination {
                 case .settings: SettingsView(isPresentedModally: true)
+                case .account: RankedAccountView()
                 case .ranks: RankedTierGalleryView()
                 case .loadout: loadoutSheet
                 case .rules: RankedRulesView(variation: selection)
                 case .leaderboard: RankedLeaderboardView(initialVariation: selection)
-                case .history: RankedMatchHistoryView(session: previewSession)
-                case .limit:
-                    RankedMatchLimitView(family: selection.family, nextSlot: previewSession.nextSlot(for: selection.family),
-                                         isExample: previewSession.remaining(for: selection.family) > 0)
+                case .history: RankedMatchHistoryView()
+                case .limit: RankedMatchLimitView(family: selection.family)
                 }
             }
 #if os(iOS)
             .fullScreenCover(isPresented: $showsBattle) {
-                RankedMatchFlowView(variation: selection, mode: mode, session: previewSession)
+                RankedMatchFlowView(variation: selection, mode: mode)
             }
 #else
             .sheet(isPresented: $showsBattle) {
-                RankedMatchFlowView(variation: selection, mode: mode, session: previewSession)
+                RankedMatchFlowView(variation: selection, mode: mode)
                     .frame(minWidth: ProfileStyle.readableWidth, minHeight: ProfileStyle.readableWidth)
             }
 #endif
             .onAppear(perform: consumeRequest)
             .onChange(of: requestedVariation) { _ in consumeRequest() }
+            .task { await account.restore(); if account.identity != nil { await account.refresh() } }
         }
         .tint(Theme.toolbarOrange)
     }
@@ -95,8 +95,8 @@ struct RankedView: View {
                 HStack(spacing: 8) {
                     ProfileStyledAvatar(profile: profileStore.profile, size: ProfileStyle.touchTarget)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(profileStore.profile.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
-                        Text(profileStore.rankedLevels.overall.map { "\($0.formatted()) Elo · Profile level" } ?? "Your Ranked profile")
+                        Text(account.identity?.displayName ?? profileStore.profile.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
+                        Text(account.identity == nil ? "Sign in to compete · Practice is open" : "\(account.placedCount) earned movement ranks")
                             .font(TimeMasterFont.caption().monospacedDigit())
                             .foregroundStyle(ProfileStyle.secondary)
                             .lineLimit(1)
@@ -137,7 +137,7 @@ struct RankedView: View {
                                     .foregroundStyle(Theme.toolbarOrange).accessibilityHidden(true)
                             }
                         }
-                        Text(option == .duel ? "Head-to-head preview" : "Train at your own pace")
+                        Text(option == .duel ? "Same movement · Nearby skill" : "Solo camera tracking")
                             .font(TimeMasterFont.caption())
                             .foregroundStyle(ProfileStyle.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -156,7 +156,7 @@ struct RankedView: View {
                 }
                 .buttonStyle(TimeMasterCardButtonStyle())
                 .accessibilityLabel(option.title)
-                .accessibilityValue(option == .duel ? "Head-to-head preview" : "Solo practice preview")
+                .accessibilityValue(option == .duel ? "Online competition" : "Solo camera-tracked Practice")
                 .accessibilityAddTraits(mode == option ? .isSelected : [])
                 .accessibilityIdentifier("ranked-mode-\(option.rawValue)")
             }
@@ -201,8 +201,8 @@ struct RankedView: View {
                         Spacer(minLength: ProfileStyle.spacing)
                         Button { sheet = .ranks } label: {
                             VStack(spacing: 2) {
-                                RankedBadgeView(elo: profileStore.rankedLevels[selection], size: badgeSize)
-                                Text(RankedTier.level(for: profileStore.rankedLevels[selection])?.title ?? "Unplaced")
+                                RankedBadgeView(elo: account.rating(for: selection)?.rating, size: badgeSize)
+                                Text(RankedTier.level(for: account.rating(for: selection)?.rating)?.title ?? "Unplaced")
                                     .font(TimeMasterFont.caption())
                                     .foregroundStyle(ProfileStyle.secondary)
                                 Image(systemName: "chevron.right")
@@ -213,7 +213,7 @@ struct RankedView: View {
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
                         .accessibilityLabel("View rank collection")
-                        .accessibilityValue(profileStore.rankedLevels[selection].map { "\(RankedTier.level(for: $0)?.title ?? "Unplaced"), \($0) Elo" } ?? "Unplaced")
+                        .accessibilityValue(account.rating(for: selection)?.label ?? "Unplaced")
                         .accessibilityIdentifier("ranked-ranks")
                     }
                     Spacer(minLength: 0)
@@ -252,7 +252,7 @@ struct RankedView: View {
             .accessibilityIdentifier("ranked-loadout")
             HStack(spacing: ProfileStyle.spacing) {
                 Button { sheet = .rules } label: {
-                    Label("Rules", systemImage: "play.rectangle")
+                    Label("Rules", systemImage: "list.bullet.clipboard")
                         .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
                 }
                 .accessibilityIdentifier("ranked-rules")
@@ -265,14 +265,18 @@ struct RankedView: View {
             .font(TimeMasterFont.caption())
             .buttonStyle(TimeMasterCardButtonStyle())
             Button {
-                if mode == .duel && previewSession.remaining(for: selection.family) == 0 { sheet = .limit }
-                else { showsBattle = true }
+                if mode == .duel && account.identity == nil { sheet = .account }
+                else if mode == .duel && account.allowance(for: selection.family)?.remaining == 0 { sheet = .limit }
+                else {
+                    if mode == .duel, let active = account.recoveryMatch { select(active.variation) }
+                    showsBattle = true
+                }
             } label: {
-                Label(mode == .duel ? "BATTLE" : "PRACTICE", systemImage: mode == .duel ? "bolt.fill" : "play.fill")
+                Label(mode == .duel ? (account.recoveryMatch == nil ? "BATTLE" : "RESUME MATCH") : "PRACTICE", systemImage: mode == .duel ? "bolt.fill" : "play.fill")
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
-            .buttonStyle(TimeMasterToolbarWideButtonStyle())
-            .accessibilityLabel(mode == .duel ? "Enter matchmaking preview" : "Enter practice preview")
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
+            .accessibilityLabel(mode == .duel ? "Enter online Ranked" : "Enter camera-tracked Practice")
             .accessibilityIdentifier("ranked-battle")
             HStack(spacing: ProfileStyle.spacing) {
                 Button { sheet = .history } label: {
@@ -282,16 +286,19 @@ struct RankedView: View {
                 .accessibilityIdentifier("ranked-history")
                 Spacer(minLength: 0)
                 Button { sheet = .limit } label: {
-                    Text("\(previewSession.remaining(for: selection.family))/10 · Preview slots")
+                    Text(selection.family == .core ? "Core · No family limit" : account.allowance(for: selection.family)?.remaining.map { "\($0)/10 · Remaining" } ?? "View allowance")
                         .monospacedDigit().frame(minHeight: ProfileStyle.touchTarget)
                 }
                 .accessibilityIdentifier("ranked-allowance")
             }
             .buttonStyle(TimeMasterCardButtonStyle())
             .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-            Text("UI preview · No live matchmaking or Elo change")
-                .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
-                .frame(maxWidth: .infinity)
+            Button { sheet = .account } label: {
+                Label(account.identity == nil ? "Ranked account" : account.stale ? "Account · Reconnecting" : "Ranked account · Connected", systemImage: account.identity == nil ? "person.crop.circle" : "lock.shield")
+                    .frame(minHeight: ProfileStyle.touchTarget)
+            }
+            .font(TimeMasterFont.caption()).buttonStyle(TimeMasterCardButtonStyle())
+            .foregroundStyle(ProfileStyle.secondary)
         }
     }
 
@@ -363,7 +370,7 @@ struct RankedView: View {
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: tileWidth), spacing: ProfileStyle.spacing)], spacing: ProfileStyle.spacing) {
                 ForEach(family.variations) { variation in
-                    RankedMovementTile(variation: variation, elo: profileStore.rankedLevels[variation], mode: mode, isSelected: selection == variation) {
+                    RankedMovementTile(variation: variation, elo: account.rating(for: variation)?.rating, mode: mode, isSelected: selection == variation) {
                         select(variation)
                     }
                 }

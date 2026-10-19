@@ -3,175 +3,109 @@ import SwiftUI
 struct RankedMatchResultView: View {
     let variation: RankedVariation
     let mode: RankedMode
+    let match: RankedMatch?
     let frame: RankedDuelFrame
-    let outcome: RankedPreviewOutcome
-    let remaining: Int
     let onAnother: () -> Void
     let onLobby: () -> Void
     let onLeaderboard: () -> Void
     let onDetails: () -> Void
-    @ScaledMetric(relativeTo: .largeTitle) private var badgeSize: CGFloat = 112
-
-    private var isRatedExample: Bool { mode == .duel && [.win, .loss, .draw].contains(outcome) }
-    private var exampleRating: Int { outcome == .win ? 944 : outcome == .loss ? 905 : 920 }
 
     var body: some View {
-        VStack(spacing: ProfileStyle.inset * 2) {
-            VStack(spacing: 8) {
-                Image(systemName: mode == .practice ? "checkmark.circle.fill" : outcome.symbol)
-                    .font(.largeTitle).foregroundStyle(Theme.toolbarOrange)
-                    .accessibilityHidden(true)
-                Text(mode == .practice ? "Practice complete" : outcome.title)
-                    .font(TimeMasterFont.display()).accessibilityAddTraits(.isHeader)
-                Text(variation.fullTitle).font(TimeMasterFont.secondary())
-                    .foregroundStyle(ProfileStyle.secondary)
-            }
-            .multilineTextAlignment(.center)
+        VStack(spacing: ProfileStyle.inset) {
+            Image(systemName: mode == .practice ? "checkmark.circle" : match?.state == "completed" ? "trophy" : "shield.slash")
+                .font(.system(size: 56, weight: .light)).foregroundStyle(Theme.toolbarOrange).accessibilityHidden(true)
+            Text(mode == .practice ? "Practice complete" : match?.outcomeTitle ?? "Verification pending")
+                .font(TimeMasterFont.display()).accessibilityAddTraits(.isHeader)
+            Text(variation.fullTitle).font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
             VStack(spacing: ProfileStyle.inset) {
-                if isRatedExample {
-                    RankedBadgeView(elo: exampleRating, size: badgeSize)
-                    Text("EXAMPLE RATING").font(TimeMasterFont.micro())
-                        .foregroundStyle(Theme.toolbarOrange)
+                if let you = match?.you, let after = you.afterRating, let before = you.beforeRating {
+                    RankedBadgeView(elo: after, size: 88)
                     HStack(spacing: ProfileStyle.spacing) {
-                        Text("920").foregroundStyle(ProfileStyle.secondary)
-                        Image(systemName: "arrow.right").font(.body).accessibilityHidden(true)
-                        Text(exampleRating.formatted())
+                        Text(before.formatted()).foregroundStyle(ProfileStyle.secondary)
+                        Image(systemName: "arrow.right").accessibilityHidden(true)
+                        Text(after.formatted())
+                    }.font(TimeMasterFont.title().monospacedDigit())
+                    if let delta = you.delta {
+                        Text("\(delta >= 0 ? "+" : "")\(delta) Elo · \(RankedTier.level(for: after)?.title ?? "Unplaced")")
+                            .font(TimeMasterFont.secondary()).foregroundStyle(Theme.toolbarOrange)
                     }
-                    .font(TimeMasterFont.display().monospacedDigit())
-                    ProgressView(value: Double(exampleRating - 800), total: 200)
-                        .tint(Theme.toolbarOrange)
-                        .accessibilityLabel("Illustrative progress through Bronze")
-                    HStack {
-                        Text("BRONZE")
-                        Spacer()
-                        Text("SILVER · 1,000")
+                    if let tier = RankedTier.level(for: after), let next = RankedTier.allCases.first(where: { $0.minimum > after }) {
+                        ProgressView(value: Double(after - tier.minimum), total: Double(next.minimum - tier.minimum))
+                            .tint(Theme.toolbarOrange).accessibilityLabel("Progress toward \(next.title)")
+                        Text("\(next.title) at \(next.minimum.formatted()) Elo").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                     }
-                    .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
-                } else {
-                    Image(systemName: mode == .practice ? "figure.strengthtraining.traditional" : "shield.slash")
-                        .font(.system(size: badgeSize * 0.6, weight: .light))
-                        .foregroundStyle(ProfileStyle.secondary).accessibilityHidden(true)
-                    Text("No rating change").font(TimeMasterFont.heading())
+                } else { Text("No competitive rating change").font(TimeMasterFont.rowTitle()) }
+                HStack {
+                    score(frame.yourScore, name: "You")
+                    if mode == .duel { score(frame.opponentScore, name: match?.opponent?.displayName ?? "Opponent") }
                 }
-                HStack(alignment: .firstTextBaseline) {
-                    score(frame.yourScore, title: "YOU")
-                    if mode == .duel {
-                        Text("—").font(.title2).foregroundStyle(ProfileStyle.secondary)
-                        score(frame.opponentScore, title: "ALEX · EXAMPLE")
-                    }
-                }
-                Text(outcome == .unverified ? "Example: movement could not be verified." : "Example scores · Not a verified result")
+                Text(mode == .practice ? "Solo camera-tracked activity. No competitive allowance, Elo or workout history was changed." : match?.reason ?? "Waiting for the service to verify this round.")
                     .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                    .multilineTextAlignment(.center)
             }
-            .padding(ProfileStyle.inset * 1.5)
-            .frame(maxWidth: .infinity)
-            .modifier(TimeMasterCardSurface(flat: true))
-            VStack(spacing: ProfileStyle.spacing) {
-                if mode == .duel {
-                    Label("\(remaining) / 10 \(variation.family.title.lowercased()) preview slots", systemImage: "bolt.shield")
-                        .font(TimeMasterFont.secondary().monospacedDigit())
-                        .foregroundStyle(ProfileStyle.secondary)
-                }
-                Button(action: onAnother) {
-                    Label(mode == .practice ? "Practice again" : remaining > 0 ? "Find another match" : "View match limit", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-                }
+            .padding(ProfileStyle.inset).frame(maxWidth: .infinity).modifier(TimeMasterCardSurface(flat: true))
+            Button(mode == .practice ? "Practice again" : "Find another match", action: onAnother)
                 .buttonStyle(TimeMasterToolbarWideButtonStyle())
-                .accessibilityIdentifier("ranked-result-another")
-                if mode == .duel {
-                    HStack(spacing: ProfileStyle.spacing) {
-                        Button("Leaderboard", action: onLeaderboard)
-                            .accessibilityIdentifier("ranked-result-leaderboard")
-                        Button("Match details", action: onDetails)
-                            .accessibilityIdentifier("ranked-result-details")
-                    }
-                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
-                }
-                Button("Return to lobby", action: onLobby)
-                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
-                    .accessibilityIdentifier("ranked-result-lobby")
-                Text("UI preview only. Your saved profile levels are unchanged.")
-                    .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+            if mode == .duel {
+                HStack {
+                    Button("Leaderboard", action: onLeaderboard)
+                    Button("Match details", action: onDetails)
+                }.buttonStyle(TimeMasterToolbarWideButtonStyle())
             }
-        }
+            Button("Return to lobby", action: onLobby).buttonStyle(TimeMasterToolbarWideButtonStyle())
+        }.multilineTextAlignment(.center)
     }
 
-    private func score(_ value: Int, title: String) -> some View {
+    private func score(_ value: Double, name: String) -> some View {
         VStack(spacing: 4) {
-            Text(value.formatted() + (variation.isTimedHold ? "s" : ""))
+            Text(variation.isTimedHold ? value.formatted(.number.precision(.fractionLength(1))) : Int(value).formatted())
                 .font(TimeMasterFont.display().monospacedDigit())
-            Text(title).font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+            Text("\(name) · \(variation.isTimedHold ? "seconds" : "reps")")
+                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+        }.frame(maxWidth: .infinity).accessibilityElement(children: .combine)
     }
 }
 
 struct RankedMatchLimitView: View {
     let family: RankedFamily
-    let nextSlot: Date?
-    let isExample: Bool
+    @ObservedObject private var account = RankedAccountStore.shared
     @Environment(\.dismiss) private var dismiss
-    @ScaledMetric(relativeTo: .largeTitle) private var iconSize: CGFloat = 64
-
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: ProfileStyle.inset * 2) {
-                    Image(systemName: "hourglass").font(.system(size: iconSize, weight: .light))
-                        .foregroundStyle(Theme.toolbarOrange).accessibilityHidden(true)
-                    Text("Time to recover").font(TimeMasterFont.display())
-                        .accessibilityAddTraits(.isHeader)
-                    Text("\(family.title) match limit").font(TimeMasterFont.heading())
-                    VStack(spacing: ProfileStyle.spacing) {
+                VStack(spacing: ProfileStyle.inset) {
+                    Image(systemName: "hourglass").font(.system(size: 56, weight: .light)).foregroundStyle(Theme.toolbarOrange)
+                    Text("\(family.title) allowance").font(TimeMasterFont.title())
+                    if family == .core {
+                        Text("The push-up and squat rolling limits do not apply to Core. Practice never uses competitive slots.")
+                            .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
+                    } else if let allowance = account.allowance(for: family), let remaining = allowance.remaining {
+                        Text("\(remaining) / 10 remaining").font(TimeMasterFont.title().monospacedDigit())
                         HStack(spacing: 5) {
-                            ForEach(0..<10) { _ in
-                                RoundedRectangle(cornerRadius: 3).fill(Theme.toolbarOrange)
+                            ForEach(0..<10) { index in
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(index < remaining ? Theme.toolbarOrange : Theme.surface2)
                                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.spacing)
                             }
+                        }.accessibilityHidden(true)
+                        if let next = allowance.nextSlot {
+                            Text("Next slot: \(Date(timeIntervalSince1970: next).formatted(date: .abbreviated, time: .shortened))")
+                                .font(TimeMasterFont.secondary())
                         }
-                        .accessibilityLabel("Ten of ten example match slots used")
-                        Text("10 / 10").font(TimeMasterFont.display().monospacedDigit())
-                        if let nextSlot {
-                            Text("Next preview slot")
-                                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                            Text(nextSlot, style: .relative).font(TimeMasterFont.heading().monospacedDigit())
-                        } else {
-                            Text("Each slot returns four hours after that match starts.")
-                                .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                        }
-                    }
-                    .padding(ProfileStyle.inset)
-                    .frame(maxWidth: .infinity)
-                    .modifier(TimeMasterCardSurface(flat: true))
-                    Text(family == .core ? "Timed holds have their own preview allowance." : "All \(family.title.lowercased()) variations share this allowance. Switching variations does not reset it.")
-                        .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                    Text(isExample ? "LIMIT-STATE PREVIEW · Your allowance has not been used." : "UI PREVIEW · No real competitive matches were played.")
-                        .font(TimeMasterFont.caption()).foregroundStyle(Theme.toolbarOrange)
-                    Button("Return", action: { dismiss() })
-                        .buttonStyle(TimeMasterToolbarWideButtonStyle())
-                        .accessibilityIdentifier("ranked-limit-return")
+                        Text("All \(family.title.lowercased()) variations share ten started matches in a rolling four-hour window. Only Go consumes a slot. Forfeits remain charged.")
+                            .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
+                        if account.stale { Text("Last fetched values · Connection interrupted").font(TimeMasterFont.caption()).foregroundStyle(Theme.toolbarOrange) }
+                    } else if account.loading { ProgressView() }
+                    else { Text("Sign in to load your server allowance.").font(TimeMasterFont.secondary()) }
+                    if let error = account.error { RankedServiceNotice(message: error, retry: { Task { await account.refresh() } }) }
+                    Button("Refresh") { Task { await account.refresh() } }.buttonStyle(TimeMasterToolbarWideButtonStyle())
+                    Button("Return") { dismiss() }.buttonStyle(TimeMasterToolbarWideButtonStyle())
                 }
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(ProfileStyle.inset * 2)
-                .frame(maxWidth: ProfileStyle.readableWidth)
-                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center).padding(ProfileStyle.inset)
+                .frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)
             }
-            .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
-            .navigationTitle("Match allowance")
-#if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-#endif
-            .toolbar {
-                AppToolbar.item(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-            }
-        }
-        .tint(Theme.toolbarOrange)
+            .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white).navigationTitle("Match allowance")
+            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Close") { dismiss() } } }
+            .task { await account.restore(); if account.identity != nil { await account.refresh() } }
+        }.tint(Theme.toolbarOrange)
     }
 }
