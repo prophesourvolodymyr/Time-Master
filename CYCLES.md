@@ -1314,6 +1314,18 @@ The isolated task-only iOS and macOS builds passed. The native smoke measured 44
 
 This supersedes the earlier docked Maps placement, not its two-idle-second navigation overlay or bottom-edge reveal. Checks used the task-only source snapshot with committed app entry points, preserving unrelated edits and deletions. Native headers stayed top-anchored, grew, centered, and avoided their controls at endpoints and intermediate progress, including narrow widths and long names. Custom-form checks covered empty and optional-time/duration configurations; macOS expanded the narrow duration configuration to its native 352-point minimum. macOS did not enlarge measured fonts under the requested accessibility text environments, so iOS accessibility-size appearance is not claimed. No screenshots, simulator interactions, save actions, or physical-device gesture checks were performed. Existing build warnings remain; product DOCKS.md updates await acceptance.
 
+### Straight navigation default and original Home controls — 2026-10-19
+
+- [x] Start Home and every normal destination with the straight menu, rather than an arch; keep expansion transient during menu interaction or editing and collapse again on release
+- [x] Persist a top or bottom menu position in the existing editor and mirror the arc, reels, editor/catalog placement, outward dismissal, and restore affordance
+- [x] Constrain the real page viewport to the menu's occupied height so Ranked actions, multiple bottom rows, and the live-workout status widget keep usable clearance
+- [x] Preserve Maps' zero menu reserve, temporary two-idle-second overlay, and bottom-edge reveal
+- [x] Restore the pre-change circular/capsule button shapes and Home's original small-title/control arrangement, retaining minimum 44-point touch areas and bounded expanding-control labels
+- [x] Pass 20 focused navigation regressions and 126 headless native layout/state checks across both menu edges and three viewport sizes
+- [ ] Human acceptance of the straight default, original Home controls, page clearance, top/bottom placement, and animation/gesture feel
+
+The original-button request supersedes the pending Maps-style restyle and the earlier less-rounded/Home-title changes above; other pages retain their measured headers. Both iOS Simulator and macOS builds passed for these corrections. The native smoke covered Home's restored header at expanded, intermediate, and compact sizes, real Ranked actions, dense content rows, global collapse, the editor/catalog, saved position, and hide/restore. It used an unshown macOS window and the current OS Reduce Motion setting without changing accessibility preferences. The checked iOS app was installed and launched in place on the existing iPhone 16 simulator. No screenshots or simulator gestures were used. Final iOS appearance, accessibility-size rendering, and motion feel remain for human review; product DOCKS.md updates await acceptance.
+
 ---
 
 ## Cycle 35 — Floating Widget Snapping and Media Comments

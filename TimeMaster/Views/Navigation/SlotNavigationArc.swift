@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct SlotArcShape: Shape {
-    let bottomExtension: CGFloat
+    let edgeExtension: CGFloat
+    var placement: SlotNavigationPlacement = .bottom
     let curveOffset: CGFloat
     var expansion: CGFloat
 
@@ -16,12 +17,13 @@ struct SlotArcShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        SlotArcGeometry.surfacePath(in: rect, bottomExtension: bottomExtension, curveOffset: curveOffset, expansion: expansion)
+        SlotArcGeometry.surfacePath(in: rect, edgeExtension: edgeExtension, curveOffset: curveOffset, expansion: expansion, placement: placement)
     }
 }
 
 struct SlotArcLineShape: Shape {
     let curveOffset: CGFloat
+    var placement: SlotNavigationPlacement = .bottom
     var expansion: CGFloat
 
     var animatableData: CGFloat {
@@ -30,7 +32,7 @@ struct SlotArcLineShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        SlotArcGeometry.linePath(in: rect, curveOffset: curveOffset, expansion: expansion)
+        SlotArcGeometry.linePath(in: rect, curveOffset: curveOffset, expansion: expansion, placement: placement)
     }
 }
 
@@ -52,10 +54,10 @@ enum SlotArcGeometry {
             + t * t * t * edgeY
     }
 
-    static func linePath(in rect: CGRect, curveOffset: CGFloat, expansion: CGFloat) -> Path {
-        let startY = curveY(at: rect.minX, in: rect, curveOffset: curveOffset, expansion: expansion)
-        let endY = curveY(at: rect.maxX, in: rect, curveOffset: curveOffset, expansion: expansion)
-        let controlY = rect.minY + (rect.height * controlHeightRatio + curveOffset) * expansion
+    static func linePath(in rect: CGRect, curveOffset: CGFloat, expansion: CGFloat, placement: SlotNavigationPlacement = .bottom) -> Path {
+        let startY = placedY(curveY(at: rect.minX, in: rect, curveOffset: curveOffset, expansion: expansion), in: rect, placement: placement)
+        let endY = placedY(curveY(at: rect.maxX, in: rect, curveOffset: curveOffset, expansion: expansion), in: rect, placement: placement)
+        let controlY = placedY(rect.minY + (rect.height * controlHeightRatio + curveOffset) * expansion, in: rect, placement: placement)
         var path = Path()
         path.move(to: CGPoint(x: rect.minX, y: startY))
         path.addCurve(
@@ -66,15 +68,19 @@ enum SlotArcGeometry {
         return path
     }
 
-    static func surfacePath(in rect: CGRect, bottomExtension: CGFloat, curveOffset: CGFloat, expansion: CGFloat) -> Path {
-        let line = linePath(in: rect, curveOffset: curveOffset, expansion: expansion)
-        let startY = curveY(at: rect.minX, in: rect, curveOffset: curveOffset, expansion: expansion)
-        let bottomY = rect.maxY + max(0, bottomExtension)
+    static func surfacePath(in rect: CGRect, edgeExtension: CGFloat, curveOffset: CGFloat, expansion: CGFloat, placement: SlotNavigationPlacement = .bottom) -> Path {
+        let line = linePath(in: rect, curveOffset: curveOffset, expansion: expansion, placement: placement)
+        let startY = placedY(curveY(at: rect.minX, in: rect, curveOffset: curveOffset, expansion: expansion), in: rect, placement: placement)
+        let edgeY = placement == .bottom ? rect.maxY + max(0, edgeExtension) : rect.minY - max(0, edgeExtension)
         var path = line
-        path.addLine(to: CGPoint(x: rect.maxX, y: bottomY))
-        path.addLine(to: CGPoint(x: rect.minX, y: bottomY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: edgeY))
+        path.addLine(to: CGPoint(x: rect.minX, y: edgeY))
         path.addLine(to: CGPoint(x: rect.minX, y: startY))
         path.closeSubpath()
         return path
+    }
+
+    private static func placedY(_ y: CGFloat, in rect: CGRect, placement: SlotNavigationPlacement) -> CGFloat {
+        placement == .bottom ? y : rect.minY + rect.maxY - y
     }
 }

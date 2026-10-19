@@ -11,9 +11,58 @@ import SwiftUI
 // MARK: - Presentation
 
 enum SlotNavigationPresentation: Equatable, Hashable {
-    case full
-    case inline
+    case visible
     case hidden
+}
+
+enum SlotNavigationPlacement: String, CaseIterable {
+    case bottom
+    case top
+
+    var edge: Edge {
+        self == .bottom ? .bottom : .top
+    }
+
+    var alignment: Alignment {
+        self == .bottom ? .bottom : .top
+    }
+
+    var outwardSign: CGFloat {
+        self == .bottom ? 1 : -1
+    }
+
+    func contentBounds(in frame: CGRect, reservedHeight: CGFloat) -> CGRect {
+        guard frame.origin.x.isFinite, frame.origin.y.isFinite,
+              frame.size.width.isFinite, frame.size.height.isFinite else { return .zero }
+        let width = max(0, frame.size.width)
+        let height = max(0, frame.size.height)
+        guard (frame.origin.x + width).isFinite,
+              (frame.origin.y + height).isFinite else { return .zero }
+        let reserved = reservedHeight.isNaN ? 0 : min(height, max(0, reservedHeight))
+        return CGRect(
+            x: frame.origin.x,
+            y: frame.origin.y + (self == .top ? reserved : 0),
+            width: width,
+            height: height - reserved
+        )
+    }
+
+    func acceptsDismiss(translation: CGSize, projected: CGSize) -> Bool {
+        let distance = translation.height * outwardSign
+        let projectedDistance = projected.height * outwardSign
+        guard translation.width.isFinite, distance.isFinite,
+              projected.width.isFinite, projectedDistance.isFinite,
+              distance > abs(translation.width) * 1.3,
+              projectedDistance > abs(projected.width) * 1.3,
+              projectedDistance >= distance else { return false }
+        return distance > 40 || projectedDistance > 80
+    }
+
+    func dismissOffset(for translation: CGSize) -> CGFloat {
+        guard translation.width.isFinite, translation.height.isFinite,
+              translation.height * outwardSign > abs(translation.width) * 1.3 else { return 0 }
+        return translation.height
+    }
 }
 
 struct SlotNavigationPresentationPreferenceKey: PreferenceKey {
@@ -359,7 +408,7 @@ struct SlotNavigationItem: Identifiable, Hashable {
         icon: SlotNavigationIcon,
         title: String,
         accessibilityHint: String = "",
-        presentation: SlotNavigationPresentation = .full,
+        presentation: SlotNavigationPresentation = .visible,
         isPending: Bool = false,
         isConfigurable: Bool = false,
         badgeCount: Int = 0
@@ -415,6 +464,15 @@ struct SlotNavigationConfiguration {
 enum SlotNavigationBarLayout: Equatable {
     case full
     case inline
+
+    static func resolve(
+        isExpanded: Bool,
+        isInteracting: Bool,
+        isEditing: Bool,
+        isOverlayVisible: Bool
+    ) -> Self {
+        isExpanded || isInteracting || isEditing || isOverlayVisible ? .full : .inline
+    }
 }
 // MARK: - Destinations
 
@@ -481,9 +539,8 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
 
     var presentation: SlotNavigationPresentation {
         switch self {
-        case .coach: .inline
         case .map: .hidden
-        default: .full
+        default: .visible
         }
     }
 

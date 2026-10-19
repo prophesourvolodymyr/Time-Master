@@ -89,6 +89,116 @@ final class ReachabilityGeometryTests: XCTestCase {
                                                     translation: CGSize(width: 10, height: 120), width: 390))
     }
 
+    func testNavigationRestsCompactAndExpandsOnlyWhileInUse() {
+        for flags in 0..<16 {
+            XCTAssertEqual(SlotNavigationBarLayout.resolve(
+                isExpanded: flags & 1 != 0,
+                isInteracting: flags & 2 != 0,
+                isEditing: flags & 4 != 0,
+                isOverlayVisible: flags & 8 != 0
+            ), flags == 0 ? .inline : .full, "Interaction flags: \(flags)")
+        }
+    }
+
+    func testHiddenOverlayReturnsToCompactAfterItsIdleWindow() {
+        let start = ContinuousClock.now
+        var overlay = SlotNavigationOverlayState()
+        overlay.reveal(at: start, interacting: false)
+        XCTAssertEqual(SlotNavigationBarLayout.resolve(
+            isExpanded: false, isInteracting: false, isEditing: false,
+            isOverlayVisible: overlay.isVisible
+        ), .full)
+        XCTAssertTrue(overlay.dismissIfExpired(at: start.advanced(by: .seconds(2))))
+        XCTAssertEqual(SlotNavigationBarLayout.resolve(
+            isExpanded: false, isInteracting: false, isEditing: false,
+            isOverlayVisible: overlay.isVisible
+        ), .inline)
+    }
+
+    func testNavigationReservesOnlyItsSelectedEdge() {
+        let frame = CGRect(x: 12, y: 44, width: 390, height: 700)
+        for reserve in [64.0, 160.0] {
+            let top = SlotNavigationPlacement.top.contentBounds(in: frame, reservedHeight: reserve)
+            let bottom = SlotNavigationPlacement.bottom.contentBounds(in: frame, reservedHeight: reserve)
+            XCTAssertEqual(top, CGRect(x: 12, y: 44 + reserve, width: 390, height: 700 - reserve))
+            XCTAssertEqual(bottom, CGRect(x: 12, y: 44, width: 390, height: 700 - reserve))
+            XCTAssertEqual(top.maxY, frame.maxY)
+            XCTAssertEqual(bottom.minY, frame.minY)
+        }
+    }
+
+    func testNavigationReservationClampsToTheHostViewport() {
+        let frame = CGRect(x: 12, y: 44, width: 390, height: 100)
+        for placement in SlotNavigationPlacement.allCases {
+            XCTAssertEqual(placement.contentBounds(in: frame, reservedHeight: -20), frame)
+            XCTAssertEqual(placement.contentBounds(in: frame, reservedHeight: .nan), frame)
+            for reserve in [100.0, 900.0, .infinity] {
+                let content = placement.contentBounds(in: frame, reservedHeight: reserve)
+                XCTAssertEqual(content.width, frame.width)
+                XCTAssertEqual(content.height, 0)
+                XCTAssertEqual(content.minY, placement == .top ? frame.maxY : frame.minY)
+                XCTAssertGreaterThanOrEqual(content.minY, frame.minY)
+                XCTAssertLessThanOrEqual(content.maxY, frame.maxY)
+            }
+        }
+    }
+
+    func testNavigationReservationIsFiniteForDegenerateViewports() {
+        for frame in [
+            CGRect.zero,
+            CGRect(x: 12, y: 44, width: 390, height: 0),
+            CGRect(x: 12, y: 44, width: 0, height: 100),
+            CGRect(x: 12, y: 44, width: -30, height: -20),
+            CGRect.null,
+            CGRect.infinite,
+            CGRect(x: CGFloat.nan, y: 0, width: 390, height: 700)
+        ] {
+            for placement in SlotNavigationPlacement.allCases {
+                let content = placement.contentBounds(in: frame, reservedHeight: 160)
+                XCTAssertTrue(content.origin.x.isFinite)
+                XCTAssertTrue(content.origin.y.isFinite)
+                XCTAssertTrue(content.width.isFinite)
+                XCTAssertTrue(content.height.isFinite)
+                XCTAssertGreaterThanOrEqual(content.width, 0)
+                XCTAssertGreaterThanOrEqual(content.height, 0)
+            }
+        }
+    }
+
+    func testNavigationDismissUsesStrictOutwardDistanceOrProjectionThresholds() {
+        for placement in SlotNavigationPlacement.allCases {
+            let sign = placement.outwardSign
+            XCTAssertFalse(placement.acceptsDismiss(
+                translation: CGSize(width: 0, height: 40 * sign),
+                projected: CGSize(width: 0, height: 80 * sign)))
+            XCTAssertTrue(placement.acceptsDismiss(
+                translation: CGSize(width: 10, height: 41 * sign),
+                projected: CGSize(width: 10, height: 41 * sign)))
+            XCTAssertTrue(placement.acceptsDismiss(
+                translation: CGSize(width: 0, height: 20 * sign),
+                projected: CGSize(width: 0, height: 81 * sign)))
+            XCTAssertEqual(placement.dismissOffset(for: CGSize(width: 10, height: 60 * sign)), 60 * sign)
+        }
+    }
+
+    func testNavigationDismissRejectsHorizontalInwardAndReversedMotion() {
+        for placement in SlotNavigationPlacement.allCases {
+            let sign = placement.outwardSign
+            for (translation, projected) in [
+                (CGSize(width: 80, height: 60 * sign), CGSize(width: 90, height: 100 * sign)),
+                (CGSize(width: 0, height: -60 * sign), CGSize(width: 0, height: 100 * sign)),
+                (CGSize(width: 0, height: 60 * sign), CGSize(width: 0, height: -100 * sign)),
+                (CGSize(width: 0, height: 60 * sign), CGSize(width: 0, height: 50 * sign)),
+                (CGSize(width: 0, height: 60 * sign), CGSize(width: 100, height: 90 * sign)),
+                (CGSize.zero, CGSize(width: 0, height: 100 * sign))
+            ] {
+                XCTAssertFalse(placement.acceptsDismiss(translation: translation, projected: projected))
+            }
+            XCTAssertEqual(placement.dismissOffset(for: CGSize(width: 80, height: 60 * sign)), 0)
+            XCTAssertEqual(placement.dismissOffset(for: CGSize(width: 0, height: -60 * sign)), 0)
+        }
+    }
+
     func testHiddenMenuRemainsVisibleForTwoIdleSeconds() {
         let start = ContinuousClock.now
         var overlay = SlotNavigationOverlayState()

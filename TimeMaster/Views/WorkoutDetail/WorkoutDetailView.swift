@@ -144,7 +144,7 @@ struct WorkoutDetailView: View {
         .background(Theme.background.ignoresSafeArea())
         .modifier(WorkoutFloatingControlsOverlay(workoutName: workout.name, context: liveContext, library: musicLibrary))
         .navigationTitle("")
-        .slotNavigationPresentation(.inline)
+        .slotNavigationPresentation(.visible)
         .slotNavigationInteractionDisabled(musicConfigurationOpen || musicRevealDrag > 0.02)
         .preference(key: SlotNavigationEditingPreferenceKey.self, value: true)
         #if os(iOS)

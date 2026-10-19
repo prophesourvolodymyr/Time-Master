@@ -1,6 +1,6 @@
 // SlotNavigationContainer.swift
 //
-// Hosts a destination, the carousel bar and the three navigation presentations. Part of the
+// Hosts a destination, the carousel bar and navigation presentations. Part of the
 // CarouselNavigation component from the SwiftComponentLibrary, copied into the app, with the
 // app's content-bounds hook and Home's page-swipe gate.
 
@@ -27,6 +27,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     private let onPageDrag: (CGFloat) -> Void
     private let onPageDragEnded: () -> Void
 
+    @AppStorage("tm.navigation.placement") private var navigationPlacement = SlotNavigationPlacement.bottom
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.scenePhase) private var scenePhase
@@ -93,28 +94,23 @@ struct SlotCarouselNavigation<Content: View>: View {
     var body: some View {
         GeometryReader { proxy in
             let presentation = effectivePresentation
-            let layout = barLayout(for: presentation)
-            let normalHeight = layout == .full ? barHeight : SlotCarouselNavigationBar.inlineHeight
+            let layout = barLayout
+            let normalHeight = SlotCarouselNavigationBar.contentHeight(for: layout, barHeight: barHeight)
             let showsNavigation = presentation != .hidden || hiddenNavigation.isVisible
             let frame = proxy.frame(in: .global)
             let restoreHeight: CGFloat = navigationManuallyHidden && navigationInteractionEnabled
                 && defaultPresentation != .hidden ? 24 : 0
             let reservedHeight = presentation == .hidden ? restoreHeight : normalHeight
-            let contentBounds = CGRect(
-                x: frame.minX,
-                y: frame.minY,
-                width: frame.width,
-                height: max(1, frame.height - reservedHeight)
-            )
+            let contentBounds = navigationPlacement.contentBounds(in: frame, reservedHeight: reservedHeight)
 
-            ZStack {
+            ZStack(alignment: .top) {
                 content()
                     .environment(\.slotNavigationContentBounds, contentBounds)
                     .environment(\.slotNavigationArcLensFrame, layout == .full && showsNavigation
                         && !isEditing && !reduceMotion && !reduceTransparency && !lowPower && scenePhase == .active
                         ? CGRect(
                             x: proxy.frame(in: .global).minX,
-                            y: proxy.frame(in: .global).maxY - barHeight,
+                            y: navigationPlacement == .bottom ? frame.maxY - barHeight : frame.minY,
                             width: proxy.size.width,
                             height: barHeight
                         ) : .zero)
@@ -123,7 +119,8 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .opacity(isEditing ? 0.48 : 1)
                     .allowsHitTesting(!isEditing)
                     .accessibilityHidden(isEditing)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(width: contentBounds.width, height: contentBounds.height, alignment: .top)
+                    .offset(y: contentBounds.minY - frame.minY)
                     .contentShape(Rectangle())
                     .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive ? .all : .subviews)
                     .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive ? .all : .subviews)
@@ -137,66 +134,17 @@ struct SlotCarouselNavigation<Content: View>: View {
                         .accessibilityHidden(true)
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if reservedHeight > 0 {
-                    Color.clear.frame(height: reservedHeight)
-                        .allowsHitTesting(false)
+            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+            .overlay(alignment: .bottom) {
+                if navigationPlacement == .bottom {
+                    navigationOverlay(in: proxy, layout: layout, showsNavigation: showsNavigation, restoreHeight: restoreHeight)
+                        .transition(navigationPresentationTransition(edge: .bottom))
                 }
             }
-            .overlay(alignment: .bottom) {
-                if showsNavigation {
-                    SlotCarouselNavigationBar(
-                        selection: normalSelection,
-                        items: items,
-                        bottomSafeArea: proxy.safeAreaInsets.bottom,
-                        theme: theme,
-                        strings: strings,
-                        barHeight: barHeight,
-                        layout: layout,
-                        isEditing: $isEditing,
-                        showsCatalog: $showsCatalog,
-                        availableItems: availableItems,
-                        configuration: configuration,
-                        onInsert: onInsert,
-                        onMove: onMove,
-                        onRemove: onRemove,
-                        onConfigure: onConfigure,
-                        onEditingEnded: finishEditing,
-                        onPageDrag: onPageDrag,
-                        onPageDragEnded: onPageDragEnded,
-                        onInteractionChanged: navigationInteractionChanged
-                    )
-                    .simultaneousGesture(
-                        LongPressGesture(minimumDuration: 0.56, maximumDistance: 18)
-                            .onEnded { _ in beginEditing() },
-                        including: allowsEditing && !isEditing ? .all : .subviews
-                    )
-                    .simultaneousGesture(navigationDismissGesture)
-                    .offset(y: navigationDismissDrag)
-                    .accessibilityAction(named: "Hide navigation", hideNavigation)
-                    .background(SlotNavigationBarFrameReader())
-                    .transition(navigationPresentationTransition)
-                }
-                else if restoreHeight > 0 {
-                    Button(action: revealHiddenNavigation) {
-                        Image(systemName: "chevron.up")
-                            .font(.caption.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: restoreHeight)
-                            .background(theme.background)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(theme.textSecondary)
-                    .accessibilityLabel("Show navigation")
-                    .highPriorityGesture(
-                        DragGesture(minimumDistance: 12)
-                            .onEnded { value in
-                                guard value.translation.height < -40,
-                                      abs(value.translation.height) > abs(value.translation.width) * 1.3 else { return }
-                                revealHiddenNavigation()
-                            }
-                    )
+            .overlay(alignment: .top) {
+                if navigationPlacement == .top {
+                    navigationOverlay(in: proxy, layout: layout, showsNavigation: showsNavigation, restoreHeight: restoreHeight)
+                        .transition(navigationPresentationTransition(edge: .top))
                 }
             }
             .overlay {
@@ -256,6 +204,10 @@ struct SlotCarouselNavigation<Content: View>: View {
                 if phase != .active {
                     AppInteractionHaptics.shared.suspend()
                     hiddenNavigationDismissTask?.cancel()
+                    navigationIsExpanded = false
+                    navigationIsInteracting = false
+                    pageIsDragging = false
+                    onPageDragEnded()
                 } else if effectivePresentation == .hidden, hiddenNavigation.isVisible {
                     hiddenNavigation.interactionChanged(navigationIsInteracting || isEditing, at: .now)
                     scheduleHiddenNavigationDismissal()
@@ -270,15 +222,81 @@ struct SlotCarouselNavigation<Content: View>: View {
             .animation(presentationAnimation, value: effectivePresentation)
             .animation(presentationAnimation, value: isEditing)
             .animation(presentationAnimation, value: navigationIsExpanded)
+            .animation(presentationAnimation, value: navigationPlacement)
             .accessibilityElement(children: .contain)
             .accessibilityAction(named: strings.showNavigation) {
                 guard navigationInteractionEnabled else { return }
                 if effectivePresentation == .hidden {
                     revealHiddenNavigation()
-                } else if effectivePresentation == .inline {
+                } else {
                     withAnimation(presentationAnimation) { navigationIsExpanded = true }
                 }
             }
+            .accessibilityAction(named: "Collapse navigation", collapseNavigation)
+            .accessibilityAction(named: strings.editNavigation, beginEditing)
+        }
+    }
+
+    @ViewBuilder
+    private func navigationOverlay(
+        in proxy: GeometryProxy,
+        layout: SlotNavigationBarLayout,
+        showsNavigation: Bool,
+        restoreHeight: CGFloat
+    ) -> some View {
+        if showsNavigation {
+            SlotCarouselNavigationBar(
+                selection: normalSelection,
+                items: items,
+                placement: navigationPlacement,
+                edgeSafeArea: navigationPlacement == .bottom ? proxy.safeAreaInsets.bottom : proxy.safeAreaInsets.top,
+                theme: theme,
+                strings: strings,
+                barHeight: barHeight,
+                layout: layout,
+                isEditing: $isEditing,
+                showsCatalog: $showsCatalog,
+                availableItems: availableItems,
+                configuration: configuration,
+                onInsert: onInsert,
+                onMove: onMove,
+                onRemove: onRemove,
+                onConfigure: onConfigure,
+                onEditingEnded: finishEditing,
+                onPageDrag: onPageDrag,
+                onPageDragEnded: onPageDragEnded,
+                onInteractionChanged: navigationInteractionChanged
+            )
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.56, maximumDistance: 18)
+                    .onEnded { _ in beginEditing() },
+                including: allowsEditing && !isEditing ? .all : .subviews
+            )
+            .simultaneousGesture(navigationDismissGesture)
+            .offset(y: reduceMotion ? 0 : navigationDismissDrag)
+            .accessibilityAction(named: "Hide navigation", hideNavigation)
+            .background(SlotNavigationBarFrameReader())
+            .transition(navigationPresentationTransition(edge: navigationPlacement.edge))
+        } else if restoreHeight > 0 {
+            Button(action: revealHiddenNavigation) {
+                Image(systemName: navigationPlacement == .bottom ? "chevron.up" : "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: restoreHeight)
+                    .background(theme.background)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.textSecondary)
+            .accessibilityLabel("Show navigation")
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 12)
+                    .onEnded { value in
+                        guard value.translation.height * navigationPlacement.outwardSign < -40,
+                              abs(value.translation.height) > abs(value.translation.width) * 1.3 else { return }
+                        revealHiddenNavigation()
+                    }
+            )
         }
     }
 
@@ -300,10 +318,16 @@ struct SlotCarouselNavigation<Content: View>: View {
     }
 
     private func beginEditing() {
-        guard navigationInteractionEnabled, allowsEditing,
-              barLayout(for: effectivePresentation) == .full, !isEditing else { return }
+        guard navigationInteractionEnabled, allowsEditing, !isEditing else { return }
         hiddenNavigationDismissTask?.cancel()
-        withAnimation(presentationAnimation) { isEditing = true }
+        withAnimation(presentationAnimation) {
+            navigationManuallyHidden = false
+            if effectivePresentation == .hidden {
+                hiddenNavigation.reveal(at: .now, interacting: true)
+            }
+            navigationIsExpanded = true
+            isEditing = true
+        }
     }
 
     private var navigationInteractionEnabled: Bool {
@@ -312,7 +336,7 @@ struct SlotCarouselNavigation<Content: View>: View {
 
     private var effectivePresentation: SlotNavigationPresentation {
         guard navigationInteractionEnabled else { return .hidden }
-        if items.isEmpty { return .full }
+        if items.isEmpty { return .visible }
         if navigationManuallyHidden { return .hidden }
         return requestedPresentation ?? defaultPresentation
     }
@@ -320,7 +344,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     private var defaultPresentation: SlotNavigationPresentation {
         guard let selected = selection,
               let item = items.first(where: { $0.id == selected }) else {
-            return .full
+            return .visible
         }
         return item.presentation
     }
@@ -329,17 +353,22 @@ struct SlotCarouselNavigation<Content: View>: View {
         reduceMotion ? nil : .spring(response: 0.42, dampingFraction: 0.9)
     }
 
-    private var navigationPresentationTransition: AnyTransition {
-        reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity)
+    private func navigationPresentationTransition(edge: Edge) -> AnyTransition {
+        reduceMotion ? .opacity : .move(edge: edge).combined(with: .opacity)
     }
 
-    private func barLayout(for presentation: SlotNavigationPresentation) -> SlotNavigationBarLayout {
-        presentation == .full || hiddenNavigation.isVisible || navigationIsExpanded || navigationIsInteracting || isEditing ? .full : .inline
+    private var barLayout: SlotNavigationBarLayout {
+        SlotNavigationBarLayout.resolve(
+            isExpanded: navigationIsExpanded,
+            isInteracting: navigationIsInteracting,
+            isEditing: isEditing,
+            isOverlayVisible: hiddenNavigation.isVisible
+        )
     }
 
     private func applyPresentation(_ requested: SlotNavigationPresentation?) {
         guard requestedPresentation != requested else { return }
-        if let requested, requested != .full { finishEditing() }
+        if requested == .hidden { finishEditing() }
         hiddenNavigationDismissTask?.cancel()
         withAnimation(presentationAnimation) {
             requestedPresentation = requested
@@ -365,16 +394,15 @@ struct SlotCarouselNavigation<Content: View>: View {
     }
 
     private func collapseNavigation() {
-        guard effectivePresentation == .inline, navigationIsExpanded,
-              !navigationIsInteracting, !isEditing else { return }
+        guard navigationIsExpanded, !navigationIsInteracting, !isEditing else { return }
         withAnimation(presentationAnimation) { navigationIsExpanded = false }
     }
 
     private func navigationInteractionChanged(_ active: Bool) {
         withAnimation(presentationAnimation) {
-            navigationIsInteracting = active
-            if active, navigationInteractionEnabled, effectivePresentation != .full {
-                navigationIsExpanded = true
+            navigationIsInteracting = active && navigationInteractionEnabled
+            if !isEditing {
+                navigationIsExpanded = navigationIsInteracting
             }
         }
         if active {
@@ -393,12 +421,13 @@ struct SlotCarouselNavigation<Content: View>: View {
     private var navigationDismissGesture: some Gesture {
         DragGesture(minimumDistance: 12, coordinateSpace: .global)
             .updating($navigationDismissDrag) { value, offset, _ in
-                guard !isEditing, value.translation.height > abs(value.translation.width) * 1.3 else { return }
-                offset = value.translation.height
+                guard !isEditing else { return }
+                offset = navigationPlacement.dismissOffset(for: value.translation)
             }
             .onEnded { value in
-                guard !isEditing, value.translation.height > abs(value.translation.width) * 1.3,
-                      value.translation.height > 40 || value.predictedEndTranslation.height > 80 else { return }
+                guard !isEditing, navigationPlacement.acceptsDismiss(
+                    translation: value.translation, projected: value.predictedEndTranslation
+                ) else { return }
                 hideNavigation()
             }
     }
@@ -495,7 +524,49 @@ struct SlotCarouselNavigation<Content: View>: View {
     }
 
     private func editingGuideOverlay(size: CGSize) -> some View {
-        ZStack(alignment: .top) {
+        let occupiedHeight = SlotCarouselNavigationBar.contentHeight(for: .full, barHeight: barHeight)
+            + SlotCarouselNavigationBar.accessoryHeight(
+                barHeight: barHeight, showsCatalog: showsCatalog, hasConfiguration: configuration != nil
+            )
+
+        return VStack(spacing: 0) {
+            if navigationPlacement == .top {
+                Color.clear.frame(height: occupiedHeight).allowsHitTesting(false)
+            } else {
+                editorControls
+            }
+
+            if showsGuide, configuration == nil {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        ForEach(Array(strings.guideSteps.enumerated()), id: \.offset) { _, step in
+                            guideStep(step)
+                        }
+                        Button(strings.guideDismissTitle, action: dismissGuide)
+                            .buttonStyle(SlotNavigationProminentButtonStyle(theme: theme))
+                            .accessibilityIdentifier("navigation-guide-dismiss")
+                    }
+                    .padding(.vertical, 8)
+                }
+                .frame(maxWidth: 720, maxHeight: .infinity)
+                .padding(.horizontal, 20)
+                .transition(.opacity)
+            } else {
+                Spacer(minLength: 0)
+            }
+
+            if navigationPlacement == .bottom {
+                Color.clear.frame(height: occupiedHeight).allowsHitTesting(false)
+            } else {
+                editorControls
+            }
+        }
+        .foregroundStyle(theme.textPrimary)
+        .frame(width: size.width, height: size.height, alignment: .top)
+    }
+
+    private var editorControls: some View {
+        VStack(spacing: 8) {
             HStack {
                 SlotNavigationEditorHeader(title: strings.editorTitle, theme: theme)
                 Button {
@@ -525,29 +596,46 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .accessibilityIdentifier("navigation-help")
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
 
-            if showsGuide, configuration == nil {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
-                        ForEach(Array(strings.guideSteps.enumerated()), id: \.offset) { _, step in
-                            guideStep(step)
-                        }
-                        Button(strings.guideDismissTitle, action: dismissGuide)
-                            .buttonStyle(SlotNavigationProminentButtonStyle(theme: theme))
-                            .accessibilityIdentifier("navigation-guide-dismiss")
+            HStack(spacing: 8) {
+                Text("Position")
+                    .font(.subheadline)
+                    .foregroundStyle(theme.textSecondary)
+                ForEach(SlotNavigationPlacement.allCases, id: \.self) { placement in
+                    Button {
+                        moveNavigation(to: placement)
+                    } label: {
+                        Label(
+                            placement == .top ? "Top" : "Bottom",
+                            systemImage: placement == .top ? "rectangle.topthird.inset.filled" : "rectangle.bottomthird.inset.filled"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(
+                            navigationPlacement == placement ? theme.controlSurface : .clear,
+                            in: RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous)
+                        )
+                        .contentShape(Rectangle())
                     }
-                    .padding(.vertical, 8)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Place navigation at the \(placement.rawValue)")
+                    .accessibilityAddTraits(navigationPlacement == placement ? .isSelected : [])
+                    .accessibilityIdentifier("navigation-position-\(placement.rawValue)")
                 }
-                .frame(width: min(size.width - 20 * 2, 720),
-                       height: size.height * 0.54)
-                .position(x: size.width / 2, y: size.height * 0.49)
-                .transition(.opacity)
             }
         }
-        .foregroundStyle(theme.textPrimary)
-        .frame(width: size.width, height: size.height, alignment: .top)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
+    }
+
+    private func moveNavigation(to placement: SlotNavigationPlacement) {
+        guard placement != navigationPlacement else { return }
+        withAnimation(presentationAnimation) {
+            finishEditing()
+            navigationIsExpanded = false
+            navigationIsInteracting = false
+            navigationPlacement = placement
+        }
     }
 
     private func guideStep(_ step: SlotNavigationGuideStep) -> some View {

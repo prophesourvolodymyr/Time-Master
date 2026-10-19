@@ -176,21 +176,21 @@ struct ScrollingChromeControl: View {
 
     var body: some View {
         let labelProgress = min(1, progress / 0.65)
-        let cornerRadius = Theme.controlCornerRadius
+        let cornerRadius = 14 + (min(width, height) / 2 - 14) * progress
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
         ZStack {
             Image(systemName: systemImage)
                 .font(.system(size: 22, weight: .semibold))
-                .offset(y: -(height / 4 - 8) * (1 - labelProgress))
+                .offset(y: -12 * (1 - labelProgress))
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(2)
-                .minimumScaleFactor(0.4)
+                .minimumScaleFactor(0.75)
                 .multilineTextAlignment(.center)
                 .frame(width: max(1, width - 12), height: max(1, height / 2 - 6))
                 .opacity(1 - labelProgress)
-                .offset(y: height / 4 - 3)
+                .offset(y: 18)
                 .accessibilityHidden(true)
         }
         .foregroundStyle(.white)

@@ -71,20 +71,22 @@ struct MainTabView: View {
                 strings: .timeMaster
             ) {
                 detailView
+                    #if os(iOS)
+                    .overlay(alignment: .topTrailing) {
+                        if selectedPage != .map, outdoorRecorder.isLiveSession {
+                            OutdoorLiveWorkoutStatusWidget(
+                                recorder: outdoorRecorder,
+                                preferences: outdoorPreferencesStore,
+                                onOpenMap: openActiveOutdoorMap
+                            )
+                            .padding(.top, 8)
+                            .padding(.trailing, 12)
+                            .zIndex(100)
+                        }
+                    }
+                    #endif
             }
             #if os(iOS)
-            .overlay(alignment: .topTrailing) {
-                if selectedPage != .map, outdoorRecorder.isLiveSession {
-                    OutdoorLiveWorkoutStatusWidget(
-                        recorder: outdoorRecorder,
-                        preferences: outdoorPreferencesStore,
-                        onOpenMap: openActiveOutdoorMap
-                    )
-                    .padding(.top, 8)
-                    .padding(.trailing, 12)
-                    .zIndex(100)
-                }
-            }
             .fullScreenCover(
                 item: Binding(
                     get: { UIDevice.current.userInterfaceIdiom == .phone ? activeOutdoorKind : nil },

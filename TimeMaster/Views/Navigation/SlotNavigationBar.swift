@@ -66,6 +66,39 @@ struct SlotNavigationProminentButtonStyle: ButtonStyle {
 struct SlotCarouselNavigationBar: View, Animatable {
     static let inlineHeight: CGFloat = 60
     static let fullHeight: CGFloat = 96
+    private static let configurationHeight: CGFloat = 156
+    private static let accessorySpacing: CGFloat = 12
+
+    static func accessoryHeight(barHeight: CGFloat, showsCatalog: Bool, hasConfiguration: Bool) -> CGFloat {
+        (showsCatalog ? max(fullHeight, barHeight) + accessorySpacing : 0)
+            + (hasConfiguration ? configurationHeight + accessorySpacing : 0)
+    }
+
+    static func contentHeight(for layout: SlotNavigationBarLayout, barHeight: CGFloat) -> CGFloat {
+        guard layout == .full else { return inlineHeight }
+        let height = max(fullHeight, barHeight)
+        return height + inwardClearance(for: height)
+    }
+
+    private static func inwardClearance(for height: CGFloat) -> CGFloat {
+        let rect = CGRect(x: 0, y: 0, width: 1, height: height)
+        let curveY = SlotArcGeometry.curveY(at: 0.5, in: rect, curveOffset: platformCurveOffset, expansion: 1)
+        let dragCurveY = height - (height - curveY) * 1.35
+        let dragCenterY = dragCurveY + 56 - (42 + 15 + 4) / 2 - 40
+        let dragOverflow = 114 * (1.2 - 0.5) - dragCenterY
+        let editCurveY = height - (height - curveY) * 1.25 - 24
+        let editCenterY = editCurveY + 56 - (42 + 15 + 4) / 2
+        let editOverflow = 90 * (1.06 * 1.12 - 0.5) - editCenterY
+        return ceil(max(0, max(dragOverflow, editOverflow)))
+    }
+
+    private static var platformCurveOffset: CGFloat {
+        #if os(iOS)
+        8
+        #else
+        54
+        #endif
+    }
 
     @Binding private var selection: Int
     @Binding private var isEditing: Bool
@@ -78,7 +111,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private let onRemove: (String) -> Void
     private let onConfigure: (String) -> Void
     private let onEditingEnded: () -> Void
-    private let bottomSafeArea: CGFloat
+    private let placement: SlotNavigationPlacement
+    private let edgeSafeArea: CGFloat
     private let barHeight: CGFloat
     private var expansion: CGFloat
     private var editingAmount: CGFloat
@@ -125,7 +159,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
     init(
         selection: Binding<Int>,
         items: [SlotNavigationItem],
-        bottomSafeArea: CGFloat = 0,
+        placement: SlotNavigationPlacement = .bottom,
+        edgeSafeArea: CGFloat = 0,
         theme: SlotNavigationTheme = .timeMaster,
         strings: SlotNavigationStrings = .timeMaster,
         barHeight: CGFloat = SlotCarouselNavigationBar.fullHeight,
@@ -155,7 +190,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
         self.onRemove = onRemove
         self.onConfigure = onConfigure
         self.onEditingEnded = onEditingEnded
-        self.bottomSafeArea = max(0, bottomSafeArea)
+        self.placement = placement
+        self.edgeSafeArea = max(0, edgeSafeArea)
         self.theme = theme
         self.strings = strings
         self.barHeight = max(Self.fullHeight, barHeight)
@@ -173,38 +209,52 @@ struct SlotCarouselNavigationBar: View, Animatable {
     }
 
     private var expandedAmount: CGFloat { min(max(expansion, 0), 1) }
-    private var effectiveDragIntensity: CGFloat { dragIntensity * expandedAmount }
+    private var effectiveDragIntensity: CGFloat { reduceMotion ? 0 : dragIntensity * expandedAmount * (1 - editProgress) }
     private var editProgress: CGFloat { reduceMotion ? 0 : min(max(editingAmount, 0), 1) }
-    private var mainHeight: CGFloat { Self.inlineHeight + (barHeight - Self.inlineHeight) * expandedAmount }
+    private var surfaceHeight: CGFloat { Self.inlineHeight + (barHeight - Self.inlineHeight) * expandedAmount }
+    private var inwardClearance: CGFloat { Self.inwardClearance(for: barHeight) * expandedAmount }
+    private var mainHeight: CGFloat { surfaceHeight + inwardClearance }
+    private var mainOriginY: CGFloat { placement == .bottom ? accessoryHeight : 0 }
+    private var catalogOriginY: CGFloat {
+        placement == .bottom ? accessoryHeight - barHeight - Self.accessorySpacing
+            : mainHeight + Self.accessorySpacing
+                + Self.accessoryHeight(barHeight: barHeight, showsCatalog: false, hasConfiguration: configuration != nil)
+    }
+    private var scaleAnchor: UnitPoint { placement == .bottom ? .bottom : .top }
+    private var accessoryTransition: AnyTransition {
+        reduceMotion ? .opacity : .move(edge: placement.edge).combined(with: .opacity)
+    }
     private var accessoryHeight: CGFloat {
-        (isEditing && showsCatalog ? barHeight + 12 : 0)
-            + (isEditing && configuration != nil ? 156 + 12 : 0)
+        Self.accessoryHeight(barHeight: barHeight, showsCatalog: isEditing && showsCatalog,
+                             hasConfiguration: isEditing && configuration != nil)
     }
     private var editorAnimation: Animation? {
-        reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.34, dampingFraction: 0.84)
+        reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.84)
     }
-    private var curveOffset: CGFloat {
-        #if os(iOS)
-        8
-        #else
-        54
-        #endif
+    private var curveOffset: CGFloat { Self.platformCurveOffset }
+
+    private func placedY(_ y: CGFloat, height: CGFloat) -> CGFloat {
+        placement == .bottom ? y : height - y
     }
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Self.accessorySpacing) {
+            if placement == .top {
+                mainArc.frame(height: mainHeight)
+            }
             if isEditing, let configuration {
                 configurationView(configuration)
-                    .frame(height: 156)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .frame(height: Self.configurationHeight)
+                    .transition(accessoryTransition)
             }
             if isEditing, showsCatalog {
                 catalogView
                     .frame(height: barHeight)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(accessoryTransition)
             }
-            mainArc
-                .frame(height: mainHeight)
+            if placement == .bottom {
+                mainArc.frame(height: mainHeight)
+            }
         }
         .coordinateSpace(name: Self.coordinateSpace)
         .simultaneousGesture(
@@ -218,7 +268,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         .accessibilityAction(named: isEditing ? strings.doneEditing : strings.editNavigation) {
             if isEditing {
                 onEditingEnded()
-            } else if expandedAmount == 1 {
+            } else {
                 withAnimation(editorAnimation) { isEditing = true }
             }
         }
@@ -241,33 +291,41 @@ struct SlotCarouselNavigationBar: View, Animatable {
         GeometryReader { proxy in
             let size = proxy.size
             let slotWidth = slotWidth(for: size.width)
-            let arcRect = CGRect(origin: .zero, size: size)
+            let arcRect = CGRect(x: 0, y: inwardClearance, width: size.width, height: surfaceHeight)
             let centeredOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
             let displayOffset = hasMeasured ? reelOffset : centeredOffset
             let arcScaleX = 1 + effectiveDragIntensity * 0.15 + editProgress * 0.12
             let arcScaleY = 1 + effectiveDragIntensity * 0.35 + editProgress * 0.25
 
             ZStack {
-                SlotArcSurface(theme: theme, bottomSafeArea: bottomSafeArea, curveOffset: curveOffset, expansion: expandedAmount)
-                    .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: .bottom)
-                    .offset(y: -24 * editProgress)
+                SlotArcSurface(theme: theme, edgeSafeArea: (edgeSafeArea + 24 * editProgress) / arcScaleY, placement: placement,
+                               curveOffset: curveOffset, expansion: expandedAmount)
+                    .frame(height: surfaceHeight)
+                    .scaleEffect(x: arcScaleX, y: arcScaleY, anchor: scaleAnchor)
+                    .offset(y: -24 * editProgress * placement.outwardSign)
+                    .frame(height: size.height, alignment: placement.alignment)
                     .allowsHitTesting(false)
 
-                ForEach(items.indices, id: \.self) { index in
-                    slotView(item: items[index], index: index, offset: displayOffset,
-                             size: size, arcRect: arcRect, slotWidth: slotWidth)
+                ZStack {
+                    ForEach(items.indices, id: \.self) { index in
+                        slotView(item: items[index], index: index, offset: displayOffset,
+                                 size: size, arcRect: arcRect, slotWidth: slotWidth)
+                    }
+                    if isEditing {
+                        slotView(item: SlotNavigationItem(id: "navigation.add.begin", icon: .system("plus"), title: strings.addItemTitle),
+                                 index: -1, offset: displayOffset, size: size, arcRect: arcRect,
+                                 slotWidth: slotWidth, role: .prepend)
+                        slotView(item: SlotNavigationItem(id: "navigation.add.end", icon: .system("plus"), title: strings.addItemTitle),
+                                 index: visibleItemCount, offset: displayOffset, size: size, arcRect: arcRect,
+                                 slotWidth: slotWidth, role: .append)
+                    }
                 }
-                if isEditing {
-                    slotView(item: SlotNavigationItem(id: "navigation.add.begin", icon: .system("plus"), title: strings.addItemTitle),
-                             index: -1, offset: displayOffset, size: size, arcRect: arcRect,
-                             slotWidth: slotWidth, role: .prepend)
-                    slotView(item: SlotNavigationItem(id: "navigation.add.end", icon: .system("plus"), title: strings.addItemTitle),
-                             index: visibleItemCount, offset: displayOffset, size: size, arcRect: arcRect,
-                             slotWidth: slotWidth, role: .append)
-                }
+                .frame(width: size.width, height: size.height)
+                .clipped()
+                .contentShape(Rectangle())
                 if let liftedItem {
                     liftedIcon(liftedItem)
-                        .position(x: liftedItem.center.x, y: liftedItem.center.y - accessoryHeight)
+                        .position(x: liftedItem.center.x, y: liftedItem.center.y - mainOriginY)
                         .transaction { $0.animation = nil }
                         .allowsHitTesting(false)
                         .zIndex(100)
@@ -367,15 +425,17 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let arcY = catalog
             ? SlotArcGeometry.curveY(at: itemX, in: arcRect, curveOffset: curveOffset, expansion: 1)
             : transformedArcY(at: itemX, in: arcRect)
-        let itemHeight = Self.inlineHeight + 30 * amount + intensity * 24
+        let itemHeight = min(Self.inlineHeight + 30 * amount + intensity * 24, size.height / itemScale)
         let iconFrameHeight = 28 + 14 * amount + intensity * max(0, expandedIconSize - 42)
         let zIndex = max(0, focus + intensity * (1 - min(norm, 10) - focus))
         let labelHeight = 15 * amount
         let labelSpacing = 4 * amount
         let compactY = Self.inlineHeight / 2
         let expandedY = arcY + 56 - (iconFrameHeight + labelHeight + labelSpacing) / 2 + verticalOffset
-        let itemY = compactY + (expandedY - compactY) * amount
-        let rootY = catalog ? accessoryHeight - barHeight - 12 + itemY : accessoryHeight + itemY
+        let proposedY = compactY + (expandedY - compactY) * amount
+        let boundedY = min(max(proposedY, itemHeight * (max(1, itemScale) - 0.5)), size.height - itemHeight / 2)
+        let itemY = placedY(boundedY, height: size.height)
+        let rootY = (catalog ? catalogOriginY : mainOriginY) + itemY
         let selected = role == .page && selection == index
         let manipulable = isEditing && configuration == nil && !item.isPending && !add
 
@@ -422,9 +482,9 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 .accessibilityHidden(true)
         }
         .frame(width: slotWidth, height: itemHeight)
-        .scaleEffect(itemScale, anchor: .bottom)
-        .opacity(liftedItem?.item.id == item.id ? 0 : (item.isPending ? (catalog ? 0.55 : 0.4) : itemOpacity))
         .contentShape(Rectangle())
+        .scaleEffect(itemScale, anchor: scaleAnchor)
+        .opacity(liftedItem?.item.id == item.id ? 0 : (item.isPending ? (catalog ? 0.55 : 0.4) : itemOpacity))
         .onTapGesture {
             guard liftedItem == nil, !item.isPending else { return }
             if !isEditing {
@@ -513,7 +573,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             let slotWidth = slotWidth(for: size.width)
             let initial = offset(for: 0, viewportWidth: size.width, slotWidth: slotWidth)
             ZStack {
-                SlotArcSurface(theme: theme, bottomSafeArea: 0, curveOffset: curveOffset, expansion: 1)
+                SlotArcSurface(theme: theme, edgeSafeArea: 0, placement: placement, curveOffset: curveOffset, expansion: 1)
                     .allowsHitTesting(false)
                 ForEach(availableItems.indices, id: \.self) { index in
                     slotView(item: availableItems[index], index: index,
@@ -522,6 +582,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
                              slotWidth: slotWidth, role: .catalog)
                 }
             }
+            .frame(width: size.width, height: size.height)
+            .clipped()
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 8).onChanged { value in
                 guard configuration == nil, liftedItem == nil else { return }
@@ -622,7 +684,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         guard var lifted = liftedItem else { return }
         lifted.location = location
         let point = lifted.center
-        let localY = point.y - accessoryHeight
+        let localY = placedY(point.y - mainOriginY, height: size.height)
         lifted.removes = lifted.originalIndex != nil && localY < -16
         if !lifted.removes, localY >= -8, localY <= size.height + 32,
            point.x >= -24, point.x <= size.width + 24 {
@@ -746,12 +808,12 @@ struct SlotCarouselNavigationBar: View, Animatable {
         reduceMotion ? .easeOut(duration: 0.16) : .interpolatingSpring(stiffness: 260, damping: 28)
     }
 
-    private var dragExpansionAnimation: Animation {
-        reduceMotion ? .easeOut(duration: 0.1) : .easeOut(duration: 0.18)
+    private var dragExpansionAnimation: Animation? {
+        reduceMotion ? nil : .easeOut(duration: 0.18)
     }
 
-    private var dragWindDownAnimation: Animation {
-        reduceMotion ? .easeOut(duration: 0.1) : .easeOut(duration: 0.24)
+    private var dragWindDownAnimation: Animation? {
+        reduceMotion ? nil : .easeOut(duration: 0.24)
     }
 
     private func dragGesture(size: CGSize, slotWidth: CGFloat, fallbackOffset: CGFloat) -> some Gesture {
@@ -1018,17 +1080,18 @@ private struct SlotSpaghettificationShape: Shape {
 
 private struct SlotArcSurface: View {
     let theme: SlotNavigationTheme
-    let bottomSafeArea: CGFloat
+    let edgeSafeArea: CGFloat
+    let placement: SlotNavigationPlacement
     let curveOffset: CGFloat
     let expansion: CGFloat
 
     var body: some View {
-        let shape = SlotArcShape(bottomExtension: bottomSafeArea, curveOffset: curveOffset, expansion: expansion)
+        let shape = SlotArcShape(edgeExtension: edgeSafeArea, placement: placement, curveOffset: curveOffset, expansion: expansion)
         shape
             .fill(theme.surface)
-            .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: -8)
+            .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: -8 * placement.outwardSign)
             .overlay {
-                SlotArcLineShape(curveOffset: curveOffset, expansion: expansion)
+                SlotArcLineShape(curveOffset: curveOffset, placement: placement, expansion: expansion)
                     .stroke(theme.rim, lineWidth: 1)
             }
     }
