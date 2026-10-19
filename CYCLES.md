@@ -1141,6 +1141,14 @@ Requested by the user; implementation is ready for human review, not human-verif
 
 Two focused native scenarios passed on iPhone 16 with iOS 18.6: month/year navigation, returning from Activity and day details, selecting a Schedule week, repeated populated-day expansion/collapse, empty-day adding, and maximum accessibility text with system Reduce Motion enabled. The existing custom sample log appeared in day details. The day-reveal frame sequence was inspected. Final iOS and macOS builds passed in an isolated snapshot with committed app-entry files; unrelated working-tree edits and deletions were preserved. macOS interaction review remains pending. The simulator's Reduce Motion preference was restored. Temporary verification sources are not part of production; the updated Schedule QA app retains its separate sample data.
 
+### Activity heatmap refinement — 2026-10-18
+
+- [x] Reduce the Activity sheet's time-range heading and date-number typography without changing the grid or tap targets
+- [x] Increase corner rounding on both the interactive Activity squares and compact Analytics heatmap squares
+- [ ] Human review of the smaller heatmap labels and rounder cells
+
+The iOS build and focused native smoke passed in the isolated Schedule QA app. The rendered heatmap was inspected; opening a visible date's details and returning to Calendar passed. Changes are ready for human review; no calendar behavior was changed.
+
 ---
 
 ## Cycle 32 — Advanced Workout Music Configuration

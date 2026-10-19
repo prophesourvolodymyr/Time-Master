@@ -530,7 +530,7 @@ struct ActivityHeatmap: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(onSelectDate == nil ? "Activity" : "Last 24 weeks")
-                    .font(.headline)
+                    .font(onSelectDate == nil ? .headline : .subheadline.weight(.medium))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 if onSelectDate == nil {
@@ -597,11 +597,11 @@ struct ActivityHeatmap: View {
                 Group {
                     if let onSelectDate {
                         Button { onSelectDate(date) } label: {
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
                                 .overlay {
                                     Text(date.formatted(.dateTime.day()))
-                                        .font(.caption.monospacedDigit())
+                                        .font(.caption2.monospacedDigit())
                                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                         .foregroundStyle(.white)
                                 }
@@ -612,7 +612,7 @@ struct ActivityHeatmap: View {
                         .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts")
                         .accessibilityIdentifier("activity.day.\(WeeklyWorkoutSchedule.dayKey(date))")
                     } else {
-                        RoundedRectangle(cornerRadius: 3)
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
                             .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
                             .aspectRatio(1, contentMode: .fit)
                     }
