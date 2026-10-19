@@ -1413,6 +1413,8 @@ The latest Profile correction is displayed with one side indicator on each side 
 
 **Standalone typography experiment requested by the user; ready for human review, not human-verified.**
 
+### Batch 1 — Original Five Letters
+
 - [x] Preserve the supplied PNG unchanged in `genesis/REFERENCE/ribbon-font/source.png`
 - [x] Trace the original A M N V W and a m n v w silhouettes without redesigning them, retaining their shared scale, lowercase proportions, and internal holes
 - [x] Generate installable TTF and cubic-outline OTF files plus a WOFF2 webfont, with only the supplied ten letters and space
@@ -1422,6 +1424,21 @@ The latest Profile correction is displayed with one side indicator on each side 
 - [ ] Human review of the extracted letterforms, word spacing, and HTML specimen
 
 The reproducible extractor is `junk/ribbon-font/build_font.py`. The reference is byte-identical to the supplied PNG. The browser loaded the actual WOFF2 with no page errors; the preview has no page-wide overflow at 320, 390, and 1440 pixels. Existing app fonts and unrelated working-tree changes are untouched. No app integration or additional letters are included. Product DOCKS.md changes await human acceptance; no next implementation prompt is needed for this request.
+
+### Batch 2 — Three Additional Sheets
+
+- [x] Add F G H I J and f g h i j from the unchanged `source-fghij.png` reference, retaining both detached dots and the g/j descenders
+- [x] Add K L O P Q and k l o p q from the unchanged `source-klopq.png` reference, retaining counters, the Q tail, and the p/q descenders
+- [x] Add B C D E R and b c d e r from the unchanged `source-bcder.png` reference, retaining all original counters and terminal shapes
+- [x] Extend the extractor to combine detached components by sheet column, normalize each sheet with one uniform scale, align non-descending baselines, and reserve enough line-metric depth for the new descenders
+- [x] Rebuild TTF, OTF, and WOFF2 version 1.100 with forty supplied letterforms and space; preserve the first batch's outline geometry and spacing exactly
+- [x] Update the HTML with twelve word examples, all forty glyphs, accurate supported-input handling, all four original-image comparisons, and a versioned webfont URL
+- [x] Exercise the actual HTTP and direct-file previews, every word preset, both case actions, supported and rejected input, native empty-input deletion, keyboard size/spacing, fit, guides, inversion, source loading, and font-file URLs
+- [x] Check 320-, 390-, 768-, and 1440-pixel layouts without page or word-card overflow; observe no JavaScript page errors
+- [x] Compare all forty glyphs in both outline formats against independent source-image crops, retaining every original component and hole with more than 98% silhouette overlap and contour differences within one source pixel
+- [ ] Human review of the three new glyph batches, inter-sheet scale and baseline alignment, descenders, spacing, and expanded HTML specimen
+
+The font now contains A through R plus V and W, in both cases, and space. S T U X Y Z, their lowercase forms, numbers, and punctuation remain unavailable rather than synthesized or substituted. All three new reference copies are byte-identical to the supplied PNGs. Existing app typography is unchanged. Product DOCKS.md changes await human acceptance; no next implementation prompt is needed for this batch.
 
 ---
 
