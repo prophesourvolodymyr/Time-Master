@@ -1522,6 +1522,18 @@ The user asked to continue the remaining letters and reported that lowercase for
 
 All fifty-two review PNGs are connected. N, P, and w were regenerated to correct their letter anatomy; the rejected candidates and their submitted prompts are preserved separately. The original M is pixel-identical to the master reference. Looped descenders align by their outer bowls, and y by its upper fork; natural tails receive taller canvases instead of being clipped or compressed. Focused checks exercised all ten word presets, case switching, unsupported-input recovery, empty and space-only text, keyboard size and negative spacing, guides, fit, comparisons, wraparound, Escape, long-text containment, direct-file opening, 320/390/768/1440-pixel layouts, and 200% text at 320 pixels. No page errors were observed. The earlier TTF, OTF, and WOFF2 bytes remain unchanged. This is ready for human review, not an approved typeface; no next prompt is needed for this slice.
 
+### Batch 6 — Ribbon Style Corrections for l and j
+
+The user identified lowercase l and j as outside the original M’s style. Replace their generic near-upright rounded stems and oversized bottom hooks with M-derived oblique ribbons, controlled taper, compact terminal turns, and softly flattened cuts. Keep the existing case heights and baseline placement; preserve the rest of the alphabet and the original M.
+
+- [x] Regenerate lowercase l separately from the original M, using its approximately 61-degree rising direction and restrained rightward terminal
+- [x] Regenerate lowercase j separately from the original M, using the same oblique stroke character, a compact leftward descender terminal, and a separate compact dot
+- [x] Preserve both rejected raw images, submitted prompts, and normalized previews; update only the two canonical glyphs and their shared composition metrics
+- [x] Add focused l/j word examples, exercise the corrected glyphs in the actual HTTP and direct-file hub, and publish the scoped changes
+- [ ] Human review of the corrected l and j shapes, word rhythm, dot, and terminal treatment
+
+Both replacements were generated separately with the unchanged original M as their sole image reference. Their measured rising strokes are approximately 63 degrees, replacing the earlier near-upright stems. Case heights, baseline placement, and j’s two separate components are retained. The other fifty normalized letter images and the earlier installable font files remain byte-unchanged. The hub includes jolly and little examples. Focused HTTP and direct-file checks exercised both examples, corrected-image comparisons, keyboard navigation, the raw j link, Escape, desktop and mobile layouts, and 200% text at 320 pixels; no page errors were observed. The rejected raw images, submitted prompts, and normalized previews are retained for comparison. Both letters are ready for human review; no next prompt is needed for this correction.
+
 ---
 
 ## Notes

@@ -216,8 +216,8 @@ window.ribbonStudyMetrics = {
       "canvasHeight": 1024
     },
     "j": {
-      "left": 348,
-      "width": 327,
+      "left": 293,
+      "width": 437,
       "canvasWidth": 1024,
       "canvasHeight": 1024
     },
@@ -228,8 +228,8 @@ window.ribbonStudyMetrics = {
       "canvasHeight": 1024
     },
     "l": {
-      "left": 415,
-      "width": 193,
+      "left": 314,
+      "width": 396,
       "canvasWidth": 1024,
       "canvasHeight": 1024
     },
