@@ -1,6 +1,7 @@
 *
 !Dockerfile
-!requirements.txt
-!app.py
-!rules.py
+!Cargo.toml
+!Cargo.lock
 !schema.sql
+!src/
+!src/**

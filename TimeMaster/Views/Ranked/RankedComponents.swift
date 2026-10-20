@@ -190,17 +190,15 @@ struct RankedMovementTile: View {
             }
             .padding(ProfileStyle.spacing)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .modifier(TimeMasterCardSurface(emphasized: isSelected))
             .overlay(alignment: .topTrailing) {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Theme.toolbarOrange)
+                        .foregroundStyle(.white)
                         .padding(EverSpacing.x2)
                 }
             }
-            .contentShape(RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous))
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
         .foregroundStyle(.white)
         .accessibilityLabel(variation.fullTitle)
         .accessibilityValue(mode == .practice ? "Practice" : elo.map { "\($0) earned Elo" } ?? "No earned rating")
@@ -221,9 +219,15 @@ struct RankedFamilyPicker: View {
                         .frame(height: ProfileStyle.touchTarget)
                         .frame(maxWidth: .infinity)
                         .padding(EverSpacing.x2)
-                        .modifier(TimeMasterCardSurface(emphasized: family == option))
+                        .overlay(alignment: .topTrailing) {
+                            if family == option {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.white)
+                                    .padding(EverSpacing.x1)
+                            }
+                        }
                 }
-                .buttonStyle(TimeMasterCardButtonStyle())
+                .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: family == option))
                 .accessibilityLabel(option.title)
                 .accessibilityAddTraits(family == option ? .isSelected : [])
                 .accessibilityIdentifier("ranked-family-\(option.rawValue)")

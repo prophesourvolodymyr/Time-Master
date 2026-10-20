@@ -171,10 +171,8 @@ struct RankedView: View {
                     Image(systemName: "slider.horizontal.3").font(.title3.weight(.semibold))
                 }
                 .padding(ProfileStyle.spacing)
-                .modifier(TimeMasterCardSurface(flat: true))
-                .contentShape(Rectangle())
             }
-            .buttonStyle(TimeMasterCardButtonStyle())
+            .buttonStyle(TimeMasterToolbarWideButtonStyle())
             .accessibilityLabel("Change battle mode and movement")
             .accessibilityValue("\(mode.title), \(selection.fullTitle)")
             .accessibilityIdentifier("ranked-loadout")
@@ -223,15 +221,14 @@ struct RankedView: View {
                         .aspectRatio(1.5, contentMode: .fit)
                         .padding(EverSpacing.x2)
                         .frame(maxWidth: .infinity)
-                        .modifier(TimeMasterCardSurface(emphasized: mode == option))
                         .overlay(alignment: .topTrailing) {
                             if mode == option {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(Theme.toolbarOrange).padding(EverSpacing.x2)
+                                    .foregroundStyle(.white).padding(EverSpacing.x2)
                             }
                         }
                 }
-                .buttonStyle(TimeMasterCardButtonStyle())
+                .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: mode == option))
                 .accessibilityLabel(option.title)
                 .accessibilityValue(option == .duel ? "Online competition" : "Solo camera-tracked Practice")
                 .accessibilityAddTraits(mode == option ? .isSelected : [])

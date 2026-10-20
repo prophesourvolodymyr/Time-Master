@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS matches (
     winner TEXT REFERENCES accounts(id),
     revision INTEGER NOT NULL DEFAULT 1
 );
+CREATE INDEX IF NOT EXISTS matches_pending ON matches(state) WHERE state NOT IN ('completed','forfeited','invalid','cancelled');
 CREATE TABLE IF NOT EXISTS participants (
     match_id TEXT NOT NULL REFERENCES matches(id),
     user_id TEXT NOT NULL REFERENCES accounts(id),
@@ -94,6 +95,7 @@ CREATE TABLE IF NOT EXISTS evidence (
     PRIMARY KEY(match_id,user_id,sequence),
     FOREIGN KEY(match_id,user_id) REFERENCES participants(match_id,user_id)
 );
+CREATE INDEX IF NOT EXISTS evidence_retention ON evidence(received) WHERE frames IS NOT NULL;
 CREATE TABLE IF NOT EXISTS requests (
     user_id TEXT NOT NULL REFERENCES accounts(id),
     request_id TEXT NOT NULL,

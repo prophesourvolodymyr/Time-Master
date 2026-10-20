@@ -1485,6 +1485,24 @@ The final integration run passed eighteen existing tracking, Practice-persistenc
 
 Both arm64 native targets compiled from the committed baseline plus this scoped UI work in a disposable copy. The already-deleted app entry points were recovered only in that copy; unrelated live edits and production account data remain untouched. macOS received a build check, not an interaction check. Physical-camera accuracy, full native live-duel recovery, advanced rated verification, and public HTTPS deployment remain subject to the limits and pending work above. Product documentation and human acceptance remain pending.
 
+### Rust server cutover and shared tracking selectors
+
+- [x] Replace the real Ranked Python runtime with a Rust/Axum/Tokio executable, preserving the native `/v1` contract, SQLite records, existing scrypt passwords, sessions, evidence retries, scoring, Elo, allowances, history, and privacy
+- [x] Keep SQLite work on one bounded database worker and expensive password hashing off networking threads; use fixed joint storage, cached queries, and active-match/evidence-retention indexes without changing the joint-only batched transfer format
+- [x] Migrate the persistent local service on loopback port 8765 to Rust without inserting review accounts or changing existing account, session, rating, match, participant, evidence, or allowance records; retain a private pre-cutover SQLite backup
+- [x] Replace the Python launcher and container runtime, require explicitly trusted HTTPS proxy headers behind the private Caddy network, and remove obsolete Python modules and dependency manifests
+- [x] Preserve account-free, server-independent native Practice and expose pure Rust pose assessment/tracking for a later camera-only API; do not add a test-only server or speculative serverless endpoint
+- [x] Apply TimeMaster's shared selection/action styles to movement tiles, family choices, mode choices, and the lobby selector entry, preserving selected-state checkmarks, accessible names, and persisted selections
+- [x] Pass 31 Rust behavior regressions, strict Clippy checks, the release build, deployment-configuration validation, and a real-time two-account HTTP round followed by actual process restart and session rotation
+- [x] Build the iOS Simulator app and exercise all three movement families, mode changes, saved selection after relaunch, guest Practice with the server stopped, disabled Start with no camera, real native sign-in against Rust, earned-data decoding, Keychain recovery, and sign-out
+- [ ] Human review of the Rust service cutover, deployment changes, camera-only boundary, and themed selectors
+
+The Rust service supersedes the FastAPI runtime described in the earlier Phase 2 handoff. Its macOS arm64 release executable measured approximately 3.1 MB; the final local process measured about 38 MiB resident memory after startup. A separate keep-alive loop measured a roughly 0.20 ms median and 0.27 ms 95th-percentile state response on this machine. These are local smoke measurements, not production load or cross-platform benchmarks. Password hashing intentionally retains the existing memory-hard scrypt policy.
+
+The real-time service round used derived-joint fixtures, not camera images: 631 frames per athlete, a 2–1 result, ratings of 1,020 and 980, and one push-up allowance charged per participant. The finalized result, history, ratings, allowances, existing sessions, and refresh-token rotation survived a process restart. Native review used a separate Simulator with isolated app data; no review account was added to the existing persistent database. That database passed integrity checks and retained its original records through the cutover.
+
+The iOS build used a disposable copy with the user's deleted app entry points recovered only there. Existing native warnings remain; this slice does not claim a new macOS UI run or a successful rerun of the interrupted native test runner. Physical-camera accuracy, advanced competitive verification, container execution, public HTTPS deployment, and human acceptance remain pending as recorded above. The later camera-only/serverless API is intentionally not implemented yet. No next prompt is needed for this requested slice; product DOCKS updates await human acceptance.
+
 ---
 
 ## Cycle 37 — Direct EverStore Profile, Collectibles, Verification, and Settings Import

@@ -9,6 +9,7 @@ services:
     environment:
       RANKED_DATABASE: /data/ranked.sqlite3
       RANKED_REQUIRE_TLS: "true"
+      RANKED_TRUST_PROXY: "true"
     networks: [private]
   https:
     image: caddy:2.10-alpine
