@@ -4,7 +4,7 @@ import UIKit
 #endif
 
 enum LocalProfileSheet: String, Identifiable {
-    case edit, compose, settings, collectibles, verification, report
+    case edit, compose, settings, collectibles, verification, report, rankedAccount, actions
     var id: String { rawValue }
 }
 
@@ -13,6 +13,11 @@ struct ProfileView: View {
     let previewOnly: Bool
     let onPreviewClose: (() -> Void)?
     @EnvironmentObject var profileStore: LocalProfileStore
+    @ObservedObject var rankedAccount = RankedAccountStore.shared
+    @AppStorage("tm.ranked.family") var rankedFamily: RankedFamily = .pushUps
+    @AppStorage("tm.ranked.pushUp") var rankedPushUp: RankedVariation = .standardPushUp
+    @AppStorage("tm.ranked.squat") var rankedSquat: RankedVariation = .standardSquat
+    @AppStorage("tm.ranked.core") var rankedCore: RankedVariation = .forearmPlank
     @EnvironmentObject private var workoutStore: WorkoutStore
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @EnvironmentObject private var musicLibraryStore: MusicLibraryStore
@@ -31,7 +36,8 @@ struct ProfileView: View {
     @State var biographyExpanded = false
     @State var isChromeVisible = false
     @State var detailsHeight: CGFloat = 0
-    @ScaledMetric(relativeTo: .body) var compactHeight = EverLayout.minimumTouchTarget + EverSpacing.x8
+    @State var identityHeight: CGFloat = 0
+    @ScaledMetric(relativeTo: .body) var compactHeight = EverLayout.minimumTouchTarget + EverSpacing.x8 + EverSpacing.x1
     @ScaledMetric(relativeTo: .body) var expandedAvatarSize = EverLayout.minimumTouchTarget * 2.4
     @ScaledMetric(relativeTo: .body) var compactAvatarSize = EverLayout.minimumTouchTarget + EverSpacing.x2
     @ScaledMetric(relativeTo: .body) var tabHeight = EverLayout.minimumTouchTarget + EverSpacing.x3
@@ -66,17 +72,53 @@ struct ProfileView: View {
         return profile.isPrivate ? [] : profile.visibleTabs
     }
     var activeTab: LocalProfileTab? { tabs.contains(selectedTab) ? selectedTab : tabs.first }
+    var rankedVariation: RankedVariation {
+        switch rankedFamily {
+        case .pushUps: rankedPushUp.family == .pushUps ? rankedPushUp : .standardPushUp
+        case .squats: rankedSquat.family == .squats ? rankedSquat : .standardSquat
+        case .core: rankedCore.family == .core ? rankedCore : .forearmPlank
+        }
+    }
+    var showsEarnedElo: Bool { !asVisitor && onOpenRanked != nil }
+    var earnedEloBadgeHeight: CGFloat { EverLayout.minimumTouchTarget * 2.4 }
+
+    func expandedProfileAvatar(width: CGFloat) -> CGFloat {
+        min(expandedAvatarSize, max(EverLayout.minimumTouchTarget, (width - EverLayout.phoneInset * 2) / 3))
+    }
+
+    func profileIdentityTop(width: CGFloat) -> CGFloat {
+        let avatar = expandedProfileAvatar(width: width)
+        let clearance = showsEarnedElo ? avatar * 0.55 + earnedEloBadgeHeight / 2 : avatar / 2
+        return width / 2 + clearance + EverSpacing.x3
+    }
+
+    func expandedProfileCore(width: CGFloat) -> CGFloat {
+        max(
+            EverProfileGeometry.expandedCore(coverHeight: width / 2, avatarSize: expandedProfileAvatar(width: width)),
+            profileIdentityTop(width: width) + identityHeight + EverSpacing.x2
+                + EverLayout.minimumTouchTarget + EverSpacing.x2
+        )
+    }
+    func openRankedRating() {
+        if rankedAccount.identity == nil || onOpenRanked == nil { sheet = .rankedAccount }
+        else { selectedTab = .ranked }
+    }
+
+    func openProfileHistory() {
+        sheet = nil
+        showingHistory = true
+    }
 
     var body: some View {
         NavigationStack {
             EverProfileScaffold(
                 compactHeight: compactHeight,
                 expandedHeaderHeight: { width in
-                    EverProfileGeometry.expandedCore(coverHeight: width / 2, avatarSize: expandedAvatarSize) + detailsHeight
+                    expandedProfileCore(width: width) + detailsHeight
                 },
                 tabHeight: tabHeight
             ) { width, progress in
-                let expandedCore = EverProfileGeometry.expandedCore(coverHeight: width / 2, avatarSize: expandedAvatarSize)
+                let expandedCore = expandedProfileCore(width: width)
                 collapsingChrome(
                     width: width, coverHeight: width / 2,
                     expandedCore: expandedCore, expandedHeight: expandedCore + detailsHeight,
@@ -118,6 +160,11 @@ struct ProfileView: View {
                     withAnimation(.easeInOut(duration: 0.36)) { isChromeVisible = true }
                 }
             }
+            .task {
+                guard !previewOnly, !rasterizedContent else { return }
+                await rankedAccount.restore()
+                if rankedAccount.identity != nil { await rankedAccount.refresh() }
+            }
             .oneHandedActions(id: "profile", actions: ownerActions)
             .navigationDestination(isPresented: $showingHistory) {
                 HistoryView().environmentObject(outdoorStore)
@@ -130,6 +177,8 @@ struct ProfileView: View {
                 case .collectibles: ProfileCollectiblesView()
                 case .verification: ProfileVerificationView()
                 case .report: LocalProfileReportView()
+                case .rankedAccount: RankedAccountView()
+                case .actions: profileActionsSheet
                 }
             }
 #if os(iOS)
@@ -330,21 +379,6 @@ struct ProfileView: View {
         }
     }
 
-    @ViewBuilder
-    var profileActionItems: some View {
-        if asVisitor {
-            Button("Return to my profile") { asVisitor = false }
-            Button("Report profile") { sheet = .report }
-        } else {
-            Button("Edit profile") { sheet = .edit }.disabled(profileStore.isReadOnly)
-            Button("New post") { sheet = .compose }.disabled(profileStore.isReadOnly)
-            Button("Visitor preview") { asVisitor = true }
-            Button("Collectibles") { sheet = .collectibles }
-            Button("Verification") { sheet = .verification }
-            Button("Settings") { sheet = .settings }
-            Button("All Activity History") { showingHistory = true }
-        }
-    }
 
     private var ownerActions: [ReachabilityAction] {
         guard !asVisitor else { return [] }

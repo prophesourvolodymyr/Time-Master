@@ -1467,6 +1467,24 @@ The local service runs through `start_ranked_server.command` on loopback port 87
 
 Native account review used a separate Simulator and app identity with isolated documents and Keychain. Its displayed 1,020 Elo came from a real sixty-second service match with explicitly labeled derived-pose fixture accounts, not a fabricated production rank. A separate local history fixture exercised saved-result rendering only. The current iOS and macOS source built in disposable copies; already-deleted app entry points were recovered only there. Unrelated Profile, font, shared-control, and navigation work remains preserved. Product DOCKS updates await human acceptance. Physical camera accuracy and public iPhone connectivity are not claimed.
 
+### Sport Elo crest and interaction-first native UI
+
+- [x] Replace the right-hand Ranks indicator with an epic sport-specific earned-Elo crest; remove the standalone Elo row and put the username below the badges
+- [x] Keep exact-movement account ratings, Profile-entry restoration, sign-in access, and local profile identity intact
+- [x] Use the app's shared icon controls for Profile verification, collectibles, compose, settings, edit and actions; replace the text menu with a themed action grid
+- [x] Generate the epic crest with fgen and compose it with the exact movement artwork and live native Elo
+- [x] Refine Profile name and Elo typography with soft vertical ink fades, deliberate spacing, a smaller tracked handle and unit, and a non-overlapping collapse crossfade; keep the existing font family and Reduce Motion behavior
+- [x] Replace prose-led Ranked lobby, loadout, camera setup, search, ready, countdown, live HUD, results, ratings, standings and history surfaces with icon interactions, numeric values and units
+- [x] Preserve private account entry, real camera permission/calibration, service-owned matches and Elo, exercise separation, recovery, and readable on-demand safety/error details
+- [x] Exercise the actual redesigned native surfaces and focused regressions
+- [ ] Human review of the epic Elo badge, native controls, menus and interaction-first Ranked
+
+The standalone Profile Elo row and prose-heavy presentation were rejected by the user. The correction replaces the existing Ranks side indicator rather than adding a third indicator. Unplaced accounts display no invented score. Public sign-in still requires the authorized HTTPS deployment tracked above. Solo Practice stays local and unrated; real push-up accuracy still requires the physical-device validation tracked above.
+
+The final integration run passed eighteen existing tracking, Practice-persistence, legacy-rating, navigation, and Profile regressions plus two disposable native interaction smokes. The isolated iPhone 16 run exercised the Profile action grid, keyboard sign-in, earned-Elo crest, exact-movement Profile-to-Ranked navigation and restoration, rules, standings, separate Practice history, server allowance, movement selection, and camera-unavailable setup with Start disabled. Ordinary and largest-accessibility Profile rendering were inspected, including non-overlapping expanded and collapsed name/crest geometry. The displayed 1,020 Elo and 9/10 push-up allowance came from a real server-owned forfeit using explicitly labeled derived-pose calibration fixtures, not physical camera input or invented production ratings.
+
+Both arm64 native targets compiled from the committed baseline plus this scoped UI work in a disposable copy. The already-deleted app entry points were recovered only in that copy; unrelated live edits and production account data remain untouched. macOS received a build check, not an interaction check. Physical-camera accuracy, full native live-duel recovery, advanced rated verification, and public HTTPS deployment remain subject to the limits and pending work above. Product documentation and human acceptance remain pending.
+
 ---
 
 ## Cycle 37 — Direct EverStore Profile, Collectibles, Verification, and Settings Import

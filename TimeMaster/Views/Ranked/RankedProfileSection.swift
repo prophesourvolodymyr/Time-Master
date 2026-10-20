@@ -4,38 +4,25 @@ struct RankedProfileSection: View {
     @ObservedObject private var account = RankedAccountStore.shared
     let onOpenRanked: (RankedVariation) -> Void
     @State private var showsAccount = false
-    @ScaledMetric(relativeTo: .body) private var artSize: CGFloat = 64
+    @AppStorage("tm.ranked.family") private var family: RankedFamily = .pushUps
 
     var body: some View {
-        VStack(alignment: .leading, spacing: ProfileStyle.inset) {
-            Text("\(account.placedCount) earned movement ranks").font(TimeMasterFont.title())
-            Text("Server-owned, exercise-specific ratings. Your previous local display choices are preserved in your profile archive, not used as competitive Elo.")
-                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-            Button { showsAccount = true } label: {
-                Label(account.identity == nil ? "Sign in to Ranked" : "Ranked account", systemImage: "person.crop.circle")
-                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-            }.buttonStyle(EverPrimaryButtonStyle())
+        VStack(spacing: ProfileStyle.inset) {
+            HStack {
+                RankedMetric(value: "\(account.placedCount)/\(RankedFamily.allCases.reduce(0) { $0 + $1.variations.count })", unit: "")
+                    .accessibilityLabel("Earned exact-movement ranks")
+                Spacer()
+                RankedInfoButton(label: "Earned movement ratings", message: "Every exact movement has a separate server-earned Elo. Your previous local display choices remain preserved in your profile archive; they never become competitive Elo.")
+                RankedIconAction(symbol: "person.badge.key", label: "Ranked account", id: "profile-ranked-account") { showsAccount = true }
+            }
+            if account.loading { ProgressView().accessibilityLabel("Loading earned ratings") }
             if let error = account.error { RankedServiceNotice(message: error, retry: { Task { await account.refresh() } }) }
-            ForEach(RankedFamily.allCases) { family in
-                ProfileSettingsSection(title: family.title) {
-                    ForEach(family.variations) { variation in
-                        Button { onOpenRanked(variation) } label: {
-                            HStack(spacing: ProfileStyle.spacing) {
-                                RankedMovementArt(variation: variation).frame(width: artSize, height: artSize)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(variation.title).font(TimeMasterFont.rowTitle())
-                                    Text(account.rating(for: variation)?.label ?? "Unplaced")
-                                        .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                                }
-                                Spacer()
-                                RankedBadgeView(elo: account.rating(for: variation)?.rating)
-                                Image(systemName: "arrow.up.right").font(.body.weight(.bold)).foregroundStyle(Theme.toolbarOrange)
-                            }.padding(ProfileStyle.spacing).contentShape(Rectangle())
-                        }
-                        .buttonStyle(TimeMasterCardButtonStyle())
-                        .accessibilityLabel("Open \(variation.fullTitle) in Ranked")
+            RankedFamilyPicker(family: $family)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: ProfileStyle.touchTarget * 3))], spacing: ProfileStyle.spacing) {
+                ForEach(family.variations) { variation in
+                    RankedRatingTile(variation: variation, rating: account.rating(for: variation)) { onOpenRanked(variation) }
+                        .accessibilityHint("Open this exact movement in Ranked")
                         .accessibilityIdentifier("profile-compete-\(variation.rawValue)")
-                    }
                 }
             }
         }

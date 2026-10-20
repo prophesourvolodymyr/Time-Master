@@ -12,43 +12,47 @@ struct RankedCameraSetupView: View {
 
     var body: some View {
         VStack(spacing: ProfileStyle.inset) {
-            Text("Find your position").font(TimeMasterFont.title()).accessibilityAddTraits(.isHeader)
-            Text(controller.variation.fullTitle).font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            RankedCameraPreview(camera: camera).frame(height: 300)
-            VStack(spacing: ProfileStyle.spacing) {
-                Label(camera.tracking.calibrated ? "Calibrated" : "Hold the starting position for 1.5 seconds",
-                      systemImage: camera.tracking.calibrated ? "checkmark.circle.fill" : "viewfinder")
-                    .font(TimeMasterFont.rowTitle()).foregroundStyle(Theme.toolbarOrange)
-                Text(camera.status == .running ? camera.tracking.reason : camera.status.message)
-                    .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                Text(controller.variation.cue).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+            HStack {
+                RankedMovementArt(variation: controller.variation)
+                    .frame(width: ProfileStyle.touchTarget * 2, height: ProfileStyle.touchTarget * 1.5)
+                Spacer()
+                RankedMetric(value: "60", unit: "s")
             }
-            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            RankedCameraPreview(camera: camera).aspectRatio(4 / 3, contentMode: .fit)
             HStack(spacing: ProfileStyle.spacing) {
-                Button("Movement guide", action: onRules)
-                Button("Recalibrate") { camera.recalibrate() }
-                Button { camera.switchCamera() } label: { Label("Switch camera", systemImage: "arrow.triangle.2.circlepath.camera").labelStyle(.iconOnly) }
+                RankedInfoButton(label: "Calibration", message: camera.status == .running ? camera.tracking.reason : camera.status.message, symbol: camera.tracking.calibrated ? "checkmark.circle.fill" : "viewfinder")
+                    .accessibilityValue(camera.tracking.calibrated ? "Calibrated" : "Not calibrated")
+                RankedMetric(value: "1.5", unit: "s")
+                Spacer(minLength: 0)
+                RankedIconAction(symbol: "arrow.counterclockwise", label: "Recalibrate", id: "ranked-camera-recalibrate") { camera.recalibrate() }
+                    .disabled(camera.status != .running)
+                RankedIconAction(symbol: "arrow.triangle.2.circlepath.camera", label: "Switch camera", id: "ranked-camera-switch") { camera.switchCamera() }
+                    .disabled(camera.status != .running)
             }
-            .buttonStyle(TimeMasterToolbarWideButtonStyle())
-            if camera.status == .denied {
-                Button("Open camera settings", action: openSettings).buttonStyle(TimeMasterToolbarWideButtonStyle())
-            } else if camera.status != .running && camera.status != .restricted {
-                Button("Retry camera") { Task { await camera.start() } }.buttonStyle(TimeMasterToolbarWideButtonStyle())
+            HStack(spacing: ProfileStyle.spacing) {
+                RankedIconAction(symbol: "figure.strengthtraining.traditional", label: "Movement guide", id: "ranked-camera-guide", action: onRules)
+                RankedInfoButton(label: "Camera privacy", message: controller.mode == .practice ? "Images stay on your device. Practice never uses competitive slots or awards Elo." : "Only timestamped joint estimates are sent for scoring. Images and video stay on this device and are never shown to your opponent.", symbol: "lock.shield")
+                Spacer(minLength: 0)
+                if camera.status == .denied {
+                    RankedIconAction(symbol: "gearshape", label: "Open camera settings", id: "ranked-camera-settings", action: openSettings)
+                } else if camera.status != .running && camera.status != .restricted {
+                    RankedIconAction(symbol: "arrow.clockwise", label: "Retry camera", id: "ranked-camera-retry") { Task { await camera.start() } }
+                        .disabled(camera.status == .requesting || camera.status == .starting)
+                }
+                if controller.variation.isAdvanced {
+                    RankedInfoButton(label: "Advanced movement safety", message: "Use only a skill you already control; stop if you lose balance or feel pain. Hand contact, wall support and feet-off-floor estimates are not proof against assistance. Rated verification is unavailable until validated recordings and support evidence establish sufficient evidence.", symbol: "hand.raised")
+                }
             }
-            if controller.variation.isAdvanced {
-                RankedServiceNotice(message: "Advanced movement. Use only a skill you already control; stop if you lose balance or feel pain. Hand contact, wall support and feet-off-floor estimates are not proof against assistance. Rated verification needs validated recordings and support evidence.")
-            }
-            Button {
-                Task { await controller.prepare() }
-            } label: {
-                Label(controller.mode == .practice ? "Start Practice" : "Find opponent", systemImage: controller.mode == .practice ? "play.fill" : "person.2")
+            Button { Task { await controller.prepare() } } label: {
+                Image(systemName: controller.mode == .practice ? "play.fill" : "person.2")
+                    .font(.title2.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(TimeMasterToolbarWideButtonStyle())
             .disabled(!camera.tracking.calibrated || camera.status != .running || controller.busy || (controller.mode == .duel && controller.variation.isAdvanced))
+            .accessibilityLabel(controller.mode == .practice ? "Start Practice" : "Find opponent")
+            .accessibilityHint(controller.variation.isAdvanced && controller.mode == .duel ? "Advanced rated verification is unavailable. Choose Practice." : "Requires a calibrated camera")
             .accessibilityIdentifier("ranked-camera-continue")
-            Text(controller.mode == .practice ? "Images stay on your device. Practice never uses competitive slots or awards Elo." : "Only timestamped joint estimates are sent for scoring. Images and video stay on this device and are never shown to your opponent.")
-                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary).multilineTextAlignment(.center)
         }
     }
 
@@ -64,20 +68,27 @@ struct RankedCameraSetupView: View {
 struct RankedSearchView: View {
     let variation: RankedVariation
     let onCancel: () -> Void
+    @ObservedObject private var account = RankedAccountStore.shared
+
     var body: some View {
         VStack(spacing: ProfileStyle.inset * 2) {
-            RankedMovementArt(variation: variation).frame(height: 160)
-            ProgressView()
-            Text("Finding a fair match").font(TimeMasterFont.title()).accessibilityAddTraits(.isHeader)
-            Text(variation.fullTitle).font(TimeMasterFont.heading())
-            Label("Same movement · Nearby earned rating", systemImage: "scope")
-                .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            Text("If nobody is available, try again or choose real solo Practice. Search expires after 90 seconds.")
-                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-            Button("Cancel search", action: onCancel).buttonStyle(TimeMasterToolbarWideButtonStyle())
-            Text("No slot or rating change before Go").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+            RankedEloBadge(variation: variation, elo: account.rating(for: variation)?.rating)
+                .frame(width: ProfileStyle.touchTarget * 4, height: ProfileStyle.touchTarget * 4)
+            ProgressView().accessibilityLabel("Finding a fair match")
+            HStack(spacing: ProfileStyle.inset) {
+                RankedMetric(value: "1V1", unit: "")
+                Image(systemName: "scope").foregroundStyle(Theme.toolbarOrange)
+                RankedMetric(value: "90", unit: "s")
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Finding an opponent for \(variation.fullTitle) near your earned rating. Search expires after 90 seconds.")
+            HStack {
+                RankedInfoButton(label: "Matchmaking", message: "Opponents perform this exact movement near your exercise-specific earned rating. If nobody is available, try again or choose solo Practice. Cancelling before Go uses no slot and changes no rating.", symbol: "person.2")
+                Spacer()
+                RankedIconAction(symbol: "xmark", label: "Cancel search", id: "ranked-search-cancel", action: onCancel)
+            }
         }
-        .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -88,38 +99,46 @@ struct RankedOpponentReadyView: View {
     let onReady: () -> Void
     let onRules: () -> Void
     @State private var player: RankedParticipant?
+
     var body: some View {
         VStack(spacing: ProfileStyle.inset) {
-            Text("Opponent found").font(TimeMasterFont.title()).accessibilityAddTraits(.isHeader)
             HStack(alignment: .top, spacing: ProfileStyle.inset) {
                 ForEach(match.participants) { participant in
                     Button { player = participant } label: {
                         VStack(spacing: ProfileStyle.spacing) {
-                            Image(systemName: "person.crop.circle.fill").font(.system(size: 56)).foregroundStyle(ProfileStyle.secondary)
-                            Text(participant.isYou ? "You" : participant.displayName).font(TimeMasterFont.rowTitle())
-                            Label(participant.ready ? "Ready" : "Calibrating", systemImage: participant.ready ? "checkmark.circle.fill" : "viewfinder")
-                                .font(TimeMasterFont.caption()).foregroundStyle(participant.ready ? Theme.toolbarOrange : ProfileStyle.secondary)
-                        }.frame(maxWidth: .infinity)
+                            Image(systemName: "person.crop.circle.fill").font(.largeTitle).foregroundStyle(ProfileStyle.secondary)
+                            Text(participant.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
+                            Image(systemName: participant.ready ? "checkmark.circle.fill" : "viewfinder")
+                                .font(.title2).foregroundStyle(participant.ready ? Theme.toolbarOrange : ProfileStyle.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(TimeMasterCardButtonStyle())
+                    .accessibilityLabel(participant.isYou ? "You, \(participant.displayName)" : participant.displayName)
+                    .accessibilityValue(participant.ready ? "Ready" : "Calibrating")
                 }
             }
             .padding(ProfileStyle.inset).modifier(TimeMasterCardSurface(flat: true))
-            RankedMovementArt(variation: match.variation).frame(height: 140)
-            Text(match.variation.fullTitle).font(TimeMasterFont.heading())
-            Text(match.variation.battleRule).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-            Button("Movement rules", action: onRules).buttonStyle(TimeMasterToolbarWideButtonStyle())
-            if match.you?.ready == true {
-                Label("Waiting for the other athlete", systemImage: "clock").font(TimeMasterFont.secondary())
-            } else {
-                Button("I'm ready", action: onReady).buttonStyle(TimeMasterToolbarWideButtonStyle())
-                    .disabled(!calibrated || busy)
-                    .accessibilityIdentifier("ranked-ready-confirm")
+            RankedMovementArt(variation: match.variation).frame(height: ProfileStyle.touchTarget * 3)
+            RankedMetric(value: "60", unit: "s")
+            HStack {
+                RankedIconAction(symbol: "list.bullet.clipboard", label: "Movement rules", action: onRules)
+                Spacer()
+                RankedInfoButton(label: "Ready room", message: "Both cameras must stay calibrated. Both athletes must be ready before the shared countdown. Cancel before Go without using a slot.", symbol: "person.2")
             }
-            Text("Both cameras must stay calibrated. Cancel before Go without using a slot.")
-                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+            if match.you?.ready == true {
+                ProgressView().accessibilityLabel("Waiting for the other athlete")
+            } else {
+                Button(action: onReady) {
+                    Image(systemName: "checkmark").font(.title2.weight(.bold))
+                        .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+                }
+                .buttonStyle(TimeMasterToolbarWideButtonStyle())
+                .disabled(!calibrated || busy)
+                .accessibilityLabel("I'm ready")
+                .accessibilityIdentifier("ranked-ready-confirm")
+            }
         }
-        .multilineTextAlignment(.center)
         .sheet(item: $player) { RankedPublicPlayerView(publicID: $0.publicID) }
     }
 }

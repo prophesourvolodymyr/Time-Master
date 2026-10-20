@@ -2,47 +2,31 @@ import SwiftUI
 
 struct RankedRulesView: View {
     let variation: RankedVariation
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: ProfileStyle.inset) {
-                    VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                        RankedMovementArt(variation: variation)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 180)
-                        Text(variation.fullTitle).font(TimeMasterFont.title())
-                            .accessibilityAddTraits(.isHeader)
-                        Label(variation.battleRule, systemImage: variation.isTimedHold ? "timer" : "repeat")
-                            .font(TimeMasterFont.secondary())
-                            .foregroundStyle(Theme.toolbarOrange)
-                        Text(variation.cue).font(TimeMasterFont.body())
+                VStack(spacing: ProfileStyle.inset) {
+                    RankedMovementArt(variation: variation)
+                        .frame(height: ProfileStyle.touchTarget * 4).frame(maxWidth: .infinity)
+                    HStack {
+                        RankedMetric(value: "60", unit: "s")
+                        Spacer()
+                        RankedInfoButton(label: variation.fullTitle, message: variation.cue, symbol: variation.isTimedHold ? "stopwatch" : "repeat")
                     }
-                    .padding(ProfileStyle.inset)
-                    .modifier(TimeMasterCardSurface(flat: true))
-
-                    Text("MOVEMENT GUIDE").font(TimeMasterFont.sectionTitle())
-                        .accessibilityAddTraits(.isHeader)
-                    VStack(spacing: 0) {
+                    HStack(spacing: ProfileStyle.spacing) {
                         guideStep(1, title: "Set your position", symbol: "figure.stand", detail: setup)
-                        Divider().overlay(Theme.surface2).padding(.leading, 64)
-                        guideStep(2, title: variation.isTimedHold ? "Hold your line" : "Move with control", symbol: variation.isTimedHold ? "pause.circle" : "arrow.down.circle", detail: movement)
-                        Divider().overlay(Theme.surface2).padding(.leading, 64)
-                        guideStep(3, title: variation.isTimedHold ? "Finish the hold" : "Complete the rep", symbol: variation.isTimedHold ? "stop.circle" : "arrow.up.circle", detail: finish)
+                        guideStep(2, title: variation.isTimedHold ? "Hold your line" : "Move with control", symbol: variation.isTimedHold ? "pause.fill" : "arrow.down", detail: movement)
+                        guideStep(3, title: variation.isTimedHold ? "Finish the hold" : "Complete the rep", symbol: variation.isTimedHold ? "stop.fill" : "arrow.up", detail: finish)
                     }
-                    .modifier(TimeMasterCardSurface(flat: true))
-
                     cameraGuide
-                    ruleCard(title: variation.isTimedHold ? "Longest continuous hold" : "One complete repetition", symbol: variation.isTimedHold ? "stopwatch" : "checkmark.circle", detail: variation.isTimedHold ? "The round lasts 60 seconds. Only the longest uninterrupted valid segment counts, to tenths of a second. A break or unusable observation ends the segment; fragments are never added together. Recalibrate after tracking loss." : "The round lasts 60 seconds. Establish full extension after Go, lower through the required depth, then return to full extension. A partial movement at either boundary does not score. Each endpoint must be observed steadily, not crossed by jitter.")
-                    ruleCard(title: "Keep the variation exact", symbol: "scope", detail: variationRule)
-                    ruleCard(title: variation.isTimedHold ? "Breaks in form" : "Invalid reps", symbol: "xmark.circle", detail: invalidRule)
-                    ruleCard(title: "Assistance & safety", symbol: "hand.raised", detail: assistanceRule)
-                    Label(variation.isAdvanced ? "Advanced Practice uses pose estimates. Rated verification is unavailable until real movement recordings and an appropriate hand/support validation method establish sufficient evidence." : "On-device joint estimates are checked again by the service. This validates the observed movement, not the absence of hidden assistance or replay.", systemImage: "checkmark.shield")
-                        .font(TimeMasterFont.secondary())
-                        .foregroundStyle(ProfileStyle.secondary)
-                        .padding(ProfileStyle.inset)
-                        .modifier(TimeMasterCardSurface(flat: true))
+                    HStack(spacing: ProfileStyle.spacing) {
+                        ruleCard(title: variation.isTimedHold ? "Longest continuous hold" : "One complete repetition", symbol: variation.isTimedHold ? "stopwatch" : "checkmark.circle", detail: variation.isTimedHold ? "The round lasts 60 seconds. Only the longest uninterrupted valid segment counts, to tenths of a second. A break or unusable observation ends the segment; fragments are never added together. Recalibrate after tracking loss." : "The round lasts 60 seconds. Establish full extension after Go, lower through the required depth, then return to full extension. A partial movement at either boundary does not score. Each endpoint must be observed steadily, not crossed by jitter.")
+                        ruleCard(title: "Keep the variation exact", symbol: "scope", detail: variationRule)
+                        ruleCard(title: variation.isTimedHold ? "Breaks in form" : "Invalid reps", symbol: "xmark.circle", detail: invalidRule)
+                        ruleCard(title: "Assistance and safety", symbol: "hand.raised", detail: assistanceRule)
+                    }
+                    RankedInfoButton(label: "What tracking validates", message: variation.isAdvanced ? "Advanced Practice uses pose estimates. Rated verification is unavailable until real movement recordings and an appropriate hand/support validation method establish sufficient evidence." : "On-device joint estimates are checked again by the service. This validates observed movement, not the absence of hidden assistance or replay.", symbol: "checkmark.shield")
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(ProfileStyle.inset)
@@ -52,73 +36,48 @@ struct RankedRulesView: View {
             .scrollIndicators(.hidden)
             .background(Theme.background.ignoresSafeArea())
             .foregroundStyle(.white)
-            .navigationTitle("Movement rules")
-#if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-#endif
             .toolbar {
-                AppToolbar.item(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                AppToolbar.iconItem(placement: .cancellationAction) { RankedCloseButton() }
             }
         }
         .tint(Theme.toolbarOrange)
     }
 
     private var cameraGuide: some View {
-        VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-            Label("Keep the whole movement in frame", systemImage: "viewfinder")
-                .font(TimeMasterFont.sectionTitle())
-                .accessibilityAddTraits(.isHeader)
-            ZStack {
+        VStack(spacing: ProfileStyle.spacing) {
+            HStack(spacing: ProfileStyle.spacing) {
+                Image(systemName: "camera.fill").font(.title2)
+                Image(systemName: "arrow.left.and.right").foregroundStyle(ProfileStyle.secondary)
+                RankedMovementArt(variation: variation).frame(maxWidth: .infinity)
+            }
+            .padding(ProfileStyle.inset)
+            .frame(height: ProfileStyle.touchTarget * 3)
+            .overlay {
                 RoundedRectangle(cornerRadius: ProfileStyle.corner)
                     .strokeBorder(Theme.toolbarOrange, style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
-                HStack(spacing: ProfileStyle.spacing) {
-                    Image(systemName: "camera.fill").font(.title2)
-                    Image(systemName: "arrow.left.and.right").foregroundStyle(ProfileStyle.secondary)
-                    RankedMovementArt(variation: variation)
-                        .frame(maxWidth: 180)
-                        .padding(ProfileStyle.spacing)
-                }
-                .padding(ProfileStyle.inset)
             }
-            .frame(height: 150)
-            .accessibilityHidden(true)
-            Text("Use a stable three-quarter view with both shoulders and support points visible. Include your head, hands, hips, knees and feet, the floor and space around the full movement. Keep the camera still; moving or rotating it requires recalibration.")
-                .font(TimeMasterFont.secondary())
-                .foregroundStyle(ProfileStyle.secondary)
-            Text("Bright, even light · Unobstructed view · Stable phone")
-                .font(TimeMasterFont.caption())
+            HStack {
+                RankedInfoButton(label: "Full-body framing", message: "Use a stable three-quarter view with both shoulders and support points visible. Include your head, hands, hips, knees and feet, the floor and space around the full movement. Moving or rotating the camera requires recalibration.", symbol: "viewfinder")
+                Spacer()
+                RankedInfoButton(label: "Lighting", message: "Use bright, even lighting and keep your whole body unobstructed.", symbol: "sun.max")
+                Spacer()
+                RankedInfoButton(label: "Stable camera", message: "Keep the phone fixed throughout calibration and the round. Recalibrate after moving or rotating it.", symbol: "iphone.gen3.radiowaves.left.and.right")
+            }
         }
-        .padding(ProfileStyle.inset)
-        .modifier(TimeMasterCardSurface(flat: true))
     }
 
     private func guideStep(_ number: Int, title: String, symbol: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: ProfileStyle.spacing) {
-            VStack(spacing: 8) {
-                Text(number.formatted()).font(TimeMasterFont.heading())
-                Image(systemName: symbol).font(.title2)
-            }
-            .foregroundStyle(Theme.toolbarOrange)
-            .frame(width: ProfileStyle.touchTarget)
-            .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(number). \(title)").font(TimeMasterFont.rowTitle())
-                Text(detail).font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(spacing: EverSpacing.x2) {
+            Text(number.formatted()).font(TimeMasterFont.heading()).monospacedDigit()
+            RankedInfoButton(label: "\(number). \(title)", message: detail, symbol: symbol)
         }
-        .padding(ProfileStyle.inset)
-        .accessibilityElement(children: .combine)
+        .padding(ProfileStyle.spacing).frame(maxWidth: .infinity)
+        .modifier(TimeMasterCardSurface(flat: true))
     }
 
     private func ruleCard(title: String, symbol: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: symbol).font(TimeMasterFont.rowTitle())
-            Text(detail).font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(ProfileStyle.inset)
-        .modifier(TimeMasterCardSurface(flat: true))
+        RankedInfoButton(label: title, message: detail, symbol: symbol)
+            .frame(maxWidth: .infinity)
     }
 
     private var setup: String {

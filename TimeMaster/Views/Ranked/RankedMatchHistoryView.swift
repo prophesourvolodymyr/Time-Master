@@ -2,7 +2,6 @@ import SwiftUI
 
 struct RankedMatchHistoryView: View {
     @ObservedObject private var account = RankedAccountStore.shared
-    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var practice = RankedPracticeStore.shared
     @State private var mode: RankedMode
     @State private var matches: [RankedMatch] = []
@@ -30,20 +29,30 @@ struct RankedMatchHistoryView: View {
                         NavigationLink {
                             RankedMatchDetailView(match: match)
                         } label: {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(match.variation.fullTitle).font(TimeMasterFont.rowTitle())
-                                Text(match.outcomeTitle).font(TimeMasterFont.secondary()).foregroundStyle(Theme.toolbarOrange)
-                                Text("You \(score(match.you?.score ?? 0, match.variation)) – \(match.opponent?.displayName ?? "Opponent") \(score(match.opponent?.score ?? 0, match.variation))")
-                                    .font(TimeMasterFont.secondary().monospacedDigit())
-                                HStack {
-                                    Text(Date(timeIntervalSince1970: match.createdAt).formatted(date: .abbreviated, time: .shortened))
-                                    Spacer()
-                                    if let delta = match.you?.delta { Text("\(delta >= 0 ? "+" : "")\(delta) Elo") }
-                                }.font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+                            HStack(spacing: ProfileStyle.spacing) {
+                                RankedMovementArt(variation: match.variation)
+                                    .frame(width: ProfileStyle.touchTarget * 1.5, height: ProfileStyle.touchTarget * 1.5)
+                                VStack(alignment: .leading, spacing: EverSpacing.x1) {
+                                    Text(match.opponent?.displayName ?? "—").font(TimeMasterFont.rowTitle()).lineLimit(1)
+                                    Text("\(score(match.you?.score ?? 0, match.variation)) : \(score(match.opponent?.score ?? 0, match.variation))")
+                                        .font(TimeMasterFont.title().monospacedDigit())
+                                    Text(Date(timeIntervalSince1970: match.createdAt).formatted(date: .numeric, time: .shortened))
+                                        .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
+                                    if let delta = match.you?.delta {
+                                        Text("\(delta >= 0 ? "+" : "")\(delta) Elo")
+                                            .font(TimeMasterFont.caption().monospacedDigit()).foregroundStyle(Theme.toolbarOrange)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                RankedOutcomeIcon(match: match).font(.title2)
                             }
                             .padding(ProfileStyle.inset).frame(maxWidth: .infinity, alignment: .leading)
                             .modifier(TimeMasterCardSurface(flat: true)).contentShape(Rectangle())
-                        }.buttonStyle(TimeMasterCardButtonStyle()).accessibilityElement(children: .combine)
+                        }
+                        .buttonStyle(TimeMasterCardButtonStyle())
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(match.variation.fullTitle), \(match.outcomeTitle)")
+                        .accessibilityIdentifier("ranked-history-\(match.id)")
                     }
                     if loading { ProgressView().frame(maxWidth: .infinity) }
                     if mode == .duel, let error { RankedServiceNotice(message: (matches.isEmpty ? "" : "Last fetched history · ") + error, retry: { Task { await load() } }) }
@@ -57,8 +66,7 @@ struct RankedMatchHistoryView: View {
                 .padding(ProfileStyle.inset).frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)
             }
             .scrollIndicators(.hidden).background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
-            .navigationTitle("Recent rounds")
-            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Close") { dismiss() } } }
+            .toolbar { AppToolbar.iconItem(placement: .confirmationAction) { RankedCloseButton() } }
             .sheet(isPresented: $showsAccount) { RankedAccountView() }
             .task(id: (account.identity?.publicID ?? "guest") + mode.rawValue) {
                 version += 1
@@ -163,36 +171,45 @@ struct RankedMatchDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ProfileStyle.inset) {
                 if match.you?.publicID == account.identity?.publicID, account.identity != nil {
-                Text(match.outcomeTitle).font(TimeMasterFont.title()).accessibilityAddTraits(.isHeader)
-                Text(match.variation.fullTitle).font(TimeMasterFont.heading())
-                Text(Date(timeIntervalSince1970: match.createdAt).formatted(date: .abbreviated, time: .shortened))
-                    .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                RankedMovementArt(variation: match.variation).frame(height: 140).frame(maxWidth: .infinity)
-                ForEach(match.participants) { participant in
-                    VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                        Text(participant.isYou ? "You" : participant.displayName).font(TimeMasterFont.rowTitle())
-                        Text(match.variation.isTimedHold ? participant.score.formatted(.number.precision(.fractionLength(1))) + " seconds · Longest continuous hold" : "\(Int(participant.score)) complete reps")
-                            .font(TimeMasterFont.heading().monospacedDigit())
-                        Text(verification(participant.verification)).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                        if let before = participant.beforeRating, let after = participant.afterRating {
-                            Label("\(before) → \(after) Elo", systemImage: "shield.lefthalf.filled").font(TimeMasterFont.secondary())
-                        }
-                    }
-                    .padding(ProfileStyle.inset).frame(maxWidth: .infinity, alignment: .leading).modifier(TimeMasterCardSurface(flat: true))
+                HStack {
+                    RankedOutcomeIcon(match: match).font(.largeTitle)
+                    Spacer()
+                    Text(Date(timeIntervalSince1970: match.createdAt).formatted(date: .numeric, time: .shortened))
+                        .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                 }
-                Text(match.reason ?? "The service is still collecting and checking this round's evidence.")
-                    .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                Text("Rules \(match.ruleVersion) · Match \(match.id)").font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary).textSelection(.enabled)
+                RankedMovementArt(variation: match.variation)
+                    .frame(height: ProfileStyle.touchTarget * 3).frame(maxWidth: .infinity)
+                ForEach(match.participants) { participant in
+                    HStack(spacing: ProfileStyle.spacing) {
+                        VStack(alignment: .leading, spacing: EverSpacing.x2) {
+                            Text(participant.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
+                            RankedMetric(value: match.variation.isTimedHold ? participant.score.formatted(.number.precision(.fractionLength(1))) : Int(participant.score).formatted(), unit: match.variation.isTimedHold ? "s" : "reps")
+                            if let delta = participant.delta {
+                                Text("\(delta >= 0 ? "+" : "")\(delta) Elo")
+                                    .font(TimeMasterFont.caption().monospacedDigit()).foregroundStyle(Theme.toolbarOrange)
+                            }
+                            RankedInfoButton(label: participant.verification == "motionValidated" ? "Movement evidence validated" : "Verification status", message: verification(participant.verification), symbol: participant.verification == "motionValidated" ? "checkmark.shield" : "shield.slash")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        RankedEloBadge(variation: match.variation, elo: participant.afterRating ?? participant.beforeRating)
+                            .frame(width: ProfileStyle.touchTarget * 2, height: ProfileStyle.touchTarget * 2)
+                    }
+                    .padding(ProfileStyle.inset).modifier(TimeMasterCardSurface(flat: true))
+                }
+                RankedInfoButton(label: match.outcomeTitle, message: (match.reason ?? "The service is still collecting and checking this round's evidence.") + "\nRules \(match.ruleVersion)\nMatch \(match.id)")
                 if let error { RankedServiceNotice(message: "Last fetched match · " + error, retry: { Task { await refresh() } }) }
-                Button("This movement's leaderboard") { showsLeaderboard = true }.buttonStyle(TimeMasterToolbarWideButtonStyle())
-                Button("Refresh result") { Task { await refresh() } }.buttonStyle(TimeMasterToolbarWideButtonStyle())
+                HStack {
+                    RankedIconAction(symbol: "list.number", label: "This movement's leaderboard", id: "ranked-details-leaderboard") { showsLeaderboard = true }
+                    Spacer()
+                    RankedIconAction(symbol: "arrow.clockwise", label: "Refresh result", id: "ranked-details-refresh") { Task { await refresh() } }
+                }
                 } else {
-                    ProfileEmptyState(symbol: "lock", title: "Sign in to the original account", detail: "This match belongs to a different Ranked session.")
+                    RankedInfoButton(label: "Sign in to the original account", message: "This match belongs to a different Ranked session.", symbol: "lock")
                 }
             }
             .padding(ProfileStyle.inset).frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)
         }
-        .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white).navigationTitle("Match details")
+        .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
         .sheet(isPresented: $showsLeaderboard) { RankedLeaderboardView(initialVariation: match.variation) }
         .task(id: account.identity?.publicID) {
             guard match.you?.publicID == account.identity?.publicID, account.identity != nil else { return }

@@ -20,19 +20,20 @@ extension ProfileView {
         let topControl = EverLayout.minimumTouchTarget + EverSpacing.x1
         let inset = EverSpacing.x2
         let expandedCenter = coverHeight
-        let expandedIdentityY = expandedCenter + expandedAvatarSize * 0.86 - EverSpacing.x3
-        let addHeight = EverProfileGeometry.addButtonHeight
-        let expandedAddY = expandedIdentityY + EverSpacing.x7 + addHeight / 2
+        let expandedAvatar = expandedProfileAvatar(width: width)
+        let expandedIdentityY = profileIdentityTop(width: width) + identityHeight / 2
+        let addHeight = control
+        let expandedAddY = profileIdentityTop(width: width) + identityHeight + EverSpacing.x2 + addHeight / 2
         let stats = selectedStats
-        let collapsingStat = stats.first
-        let showsRankedIndicator = !asVisitor && onOpenRanked != nil
+        let showsRankedIndicator = showsEarnedElo
+        let collapsingStat = showsRankedIndicator ? stats.last : stats.first
         let shieldWidth = min(
             EverLayout.minimumTouchTarget * 3 + EverSpacing.x4,
-            max(0, (width - EverLayout.phoneInset * 2 - expandedAvatarSize - EverSpacing.x3 * 2) / 2)
+            max(0, (width - EverLayout.phoneInset * 2 - expandedAvatar - EverSpacing.x3 * 2) / 2)
         )
-        let expandedStatY = expandedCenter + expandedAvatarSize * 0.55
+        let expandedStatY = expandedCenter + expandedAvatar * 0.55
         let compactAvatar = min(compactAvatarSize, EverLayout.standardRowMinimum)
-        let addWidth = EverProfileGeometry.addButtonWidth
+        let addWidth = control
         let activeProfile = !asVisitor && !previewOnly
         let accessoryCount = 0
         let compactStatWidth = collapsingStat == nil
@@ -66,13 +67,19 @@ extension ProfileView {
         let shieldDock = layoutProgress
         let secondaryShieldExit = min(1, layoutProgress * 1.5)
         let shieldParallaxY = reduceMotion ? 0 : -coverHeight * layoutProgress * (1 - shieldDock) * 0.25
-        let avatarSize = interpolate(expandedAvatarSize, compactAvatar, avatarProgress)
-        let expandedNameWidth = stats.isEmpty
-            ? max(1, width - EverLayout.phoneInset * 2)
-            : max(1, width - (shieldWidth + EverLayout.phoneInset + EverSpacing.x3) * 2)
+        let avatarSize = interpolate(expandedAvatar, compactAvatar, avatarProgress)
+        let compactIdentityY = showsRankedIndicator ? compactHeight / 2 + control / 2 + EverSpacing.x3 : compactHeight / 2
+        let expandedNameOpacity = max(0, 1 - nameProgress * 2)
+        let compactNameOpacity = max(0, (nameProgress - 0.55) / 0.45)
+        let identityInk = LinearGradient(
+            colors: [palette.foreground, palette.foreground.opacity(0.74)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        let expandedNameWidth = max(1, width - EverLayout.phoneInset * 2)
         let nameWidth = interpolate(expandedNameWidth, compact.titleWidth + unusedBackSpace, avatarProgress)
         let nameX = interpolate(width / 2, compact.titleX - unusedBackSpace / 2, nameProgress)
-        let nameY = interpolate(expandedIdentityY, compactHeight / 2, nameProgress)
+        let nameY = interpolate(expandedIdentityY, showsRankedIndicator ? compactIdentityY + identityHeight / 2 : compactIdentityY, nameProgress)
         let actionY = interpolate(expandedAddY, compactHeight / 2, actionProgress)
         let controlY = interpolate(expandedTopControlY, compactHeight / 2, layoutProgress)
 
@@ -112,47 +119,62 @@ extension ProfileView {
                 .allowsHitTesting(!previewOnly)
                 .accessibilityIdentifier("profile-morph-avatar")
 
-            VStack(spacing: interpolate(EverSpacing.x1, 0, layoutProgress)) {
+            VStack(spacing: EverSpacing.x2) {
                 ProfileStyledName(text: profile.displayName)
-                    .font(TimeMasterFont.title())
+                    .font(TimeMasterFont.display())
+                    .tracking(-0.5)
+                    .foregroundStyle(identityInk)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .scaleEffect(reduceMotion ? 1 : interpolate(1, 0.8, layoutProgress))
+                    .accessibilityIdentifier("profile-user-name")
                 Text("@\(profile.handle)")
-                    .font(TimeMasterFont.secondary())
+                    .font(TimeMasterFont.caption())
+                    .tracking(0.5)
                     .foregroundStyle(palette.secondaryText)
                     .lineLimit(1)
                     .opacity(1 - progress)
-                    .frame(height: interpolate(EverSpacing.x5, 0, layoutProgress))
-                    .clipped()
                     .accessibilityHidden(progress > 0.5)
             }
             .foregroundStyle(palette.foreground)
             .frame(width: nameWidth)
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                if layoutProgress == 0 { identityHeight = height }
+            }
             .clipped()
-            .contextMenu {
-                if !previewOnly { profileActionItems }
+            .onLongPressGesture {
+                if !previewOnly { sheet = .actions }
             }
             .position(x: nameX, y: nameY)
             .offset(y: chromeEntranceOffset(12))
-            .opacity(chromeEntranceOpacity * (1 - nameProgress))
+            .opacity(chromeEntranceOpacity * expandedNameOpacity)
             .animation(chromeEntranceAnimation.delay(0.08), value: isChromeVisible)
+            .accessibilityHidden(nameProgress >= 0.5)
 
             ProfileStyledName(text: profile.displayName)
                 .font(TimeMasterFont.rowTitle())
+                .tracking(-0.2)
+                .foregroundStyle(identityInk)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .frame(width: compact.titleWidth, alignment: .leading)
-                .position(x: compactNameX, y: controlY)
-                .opacity(chromeEntranceOpacity * nameProgress)
-                .accessibilityHidden(nameProgress < 0.5)
+                .frame(width: compact.titleWidth)
+                .position(
+                    x: compactNameX,
+                    y: compactIdentityY
+                )
+                .opacity(chromeEntranceOpacity * compactNameOpacity)
+                .accessibilityHidden(nameProgress <= 0.55)
+                .accessibilityIdentifier("profile-compact-user-name")
 
             if !stats.isEmpty {
                 ForEach(stats) { stat in
                     let isCollapsingStat = stat.id == collapsingStat?.id
                     Group {
                         if stat == .trailing && showsRankedIndicator {
-                            RankedProfileSummary { selectedTab = .ranked }
+                            RankedProfileSummary(variation: rankedVariation, compact: shieldDock > 0.5, action: openRankedRating)
+                                .disabled(previewOnly)
                         } else {
                             ProfileAchievementIndicator(
                                 isLeading: stat == .leading,
@@ -166,39 +188,35 @@ extension ProfileView {
                     }
                     .frame(
                         width: interpolate(shieldWidth, compactStatWidth, isCollapsingStat ? shieldDock : 0),
-                        height: interpolate(EverLayout.minimumTouchTarget * 2, EverLayout.minimumTouchTarget, isCollapsingStat ? shieldDock : 0)
+                        height: interpolate(stat == .trailing && showsRankedIndicator ? earnedEloBadgeHeight : control * 2, control, isCollapsingStat ? shieldDock : 0)
                     )
                     .position(
                         x: interpolate(
                             stat.id == stats.first?.id
                                 ? EverLayout.phoneInset + shieldWidth / 2
                                 : width - EverLayout.phoneInset - shieldWidth / 2,
-                            compactShieldX,
+                            showsRankedIndicator && stat == .trailing ? compactNameX : compactShieldX,
                             isCollapsingStat ? shieldDock : 0
                         ),
-                        y: interpolate(expandedStatY, compactHeight / 2, isCollapsingStat ? shieldDock : 0) + (isCollapsingStat ? shieldParallaxY : 0)
+                        y: interpolate(expandedStatY, showsRankedIndicator ? compactHeight / 2 - EverSpacing.x2 : compactHeight / 2, isCollapsingStat ? shieldDock : 0) + (isCollapsingStat ? shieldParallaxY : 0)
                     )
                     .opacity(chromeEntranceOpacity * (isCollapsingStat ? 1 : 1 - secondaryShieldExit))
                     .offset(y: chromeEntranceOffset(10))
                     .animation(chromeEntranceAnimation.delay(0.1), value: isChromeVisible)
                     .allowsHitTesting(isCollapsingStat || secondaryShieldExit < 1)
                     .accessibilityHidden(!isCollapsingStat && secondaryShieldExit >= 1)
-                    .accessibilityIdentifier(stat == .trailing && showsRankedIndicator ? "profile-ranked-summary" : "profile-stat-\(stat.rawValue)")
+                    .accessibilityIdentifier(stat == .trailing && showsRankedIndicator ? "profile-earned-elo" : "profile-stat-\(stat.rawValue)")
                 }
             }
 
             Button {
                 sheet = asVisitor ? .report : .edit
             } label: {
-                Text(asVisitor ? "Report" : "Edit")
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .frame(maxWidth: .infinity)
+                Image(systemName: asVisitor ? "flag" : "pencil")
+                    .font(.body.weight(.semibold))
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
-            .buttonStyle(StoreCompactButtonStyle(
-                isPrimary: false,
-                minimumHeight: addHeight
-            ))
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
             .frame(width: addWidth, height: addHeight)
             .disabled(previewOnly || (!asVisitor && profileStore.isReadOnly))
             .position(
@@ -224,10 +242,11 @@ extension ProfileView {
                 } label: {
                     Image(systemName: "plus")
                         .font(.body.weight(.semibold))
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .frame(width: topControlSize, height: topControlSize)
                         .contentShape(Circle())
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: topControlSize))
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
                 .disabled(profileStore.isReadOnly)
                 .accessibilityLabel("Create post")
                 .accessibilityIdentifier("profile-create-post")
@@ -248,9 +267,10 @@ extension ProfileView {
                     Image(systemName: "gearshape")
                         .font(.body.weight(.semibold))
                         .frame(width: topControlSize, height: topControlSize)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .contentShape(Circle())
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: topControlSize))
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
                 .accessibilityLabel("Profile settings")
                 .accessibilityIdentifier("profile-settings")
                 .position(
@@ -276,6 +296,7 @@ extension ProfileView {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("profile-collapsing-header")
     }
+
 
     private func profileAvatar(size: CGFloat) -> some View {
         ZStack(alignment: .bottomTrailing) {
@@ -316,6 +337,7 @@ extension ProfileView {
         CollectibleProfileCover(profile: profile)
             .overlay { ProfileBannerDecoration() }
             .modifier(EverProfileCoverMotion(width: width, coverHeight: coverHeight, compactHeight: compactHeight, progress: progress, background: palette.background))
+            .overlay(palette.background.opacity(progress * 0.38))
             .overlay {
                 HStack(spacing: 0) {
                     LinearGradient(

@@ -51,71 +51,51 @@ struct RankedDuelPlayerView: View {
     }
 
     private var header: some View {
-        Group {
-            if typeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                    leaveButton
-                    Text(variation.fullTitle).font(TimeMasterFont.caption())
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                HStack(spacing: ProfileStyle.spacing) {
-                    leaveButton
-                    Spacer(minLength: 0)
-                    Text(variation.fullTitle).font(TimeMasterFont.caption()).multilineTextAlignment(.trailing)
-                }
-            }
+        HStack(spacing: ProfileStyle.spacing) {
+            leaveButton
+            Spacer(minLength: 0)
+            RankedMovementArt(variation: variation)
+                .frame(width: ProfileStyle.touchTarget * 1.5, height: ProfileStyle.touchTarget)
+                .accessibilityHidden(false)
+                .accessibilityLabel(variation.fullTitle)
         }
     }
 
     private var leaveButton: some View {
-        Button(action: onLeave) { Label("Leave", systemImage: "xmark") }
-            .buttonStyle(TimeMasterToolbarWideButtonStyle())
-            .fixedSize()
+        RankedIconAction(symbol: "xmark", label: "Leave", action: onLeave)
             .accessibilityHint(mode == .duel ? "Leaving after Go forfeits the match." : "Ends this solo activity.")
             .accessibilityIdentifier("ranked-duel-leave")
     }
 
     private var feedback: some View {
-        Group {
-            if typeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                    HStack { feedbackIcon; Spacer(minLength: 0); connection }
-                    feedbackText
-                }
-            } else {
-                HStack(alignment: .top, spacing: ProfileStyle.spacing) {
-                    feedbackIcon
-                    feedbackText
-                    connection
-                }
+        HStack(spacing: ProfileStyle.spacing) {
+            RankedInfoButton(label: frame.phase, message: frame.feedback, symbol: phaseSymbol)
+            if variation.isTimedHold {
+                RankedMetric(value: camera.tracking.currentHold.formatted(.number.precision(.fractionLength(1))), unit: "s")
+                    .accessibilityLabel("Current continuous hold")
             }
+            Spacer(minLength: 0)
+            connection
         }
-        .padding(ProfileStyle.spacing).frame(maxWidth: .infinity, alignment: .leading)
+        .padding(EverSpacing.x2)
         .modifier(TimeMasterCardSurface(flat: true))
-        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("ranked-duel-feedback")
     }
 
-    private var feedbackIcon: some View {
-        Image(systemName: camera.tracking.usable ? "figure.strengthtraining.traditional" : "viewfinder")
-            .foregroundStyle(Theme.toolbarOrange).accessibilityHidden(true)
+    private var phaseSymbol: String {
+        guard camera.tracking.usable else { return "viewfinder" }
+        switch frame.phase {
+        case "Lower": return "arrow.down"
+        case "Return to full extension": return "arrow.up"
+        case "Holding": return "pause.fill"
+        default: return "figure.stand"
+        }
     }
 
-    private var feedbackText: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(frame.phase).font(TimeMasterFont.rowTitle())
-            Text(frame.feedback).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
 
     @ViewBuilder private var connection: some View {
         if mode == .duel {
-            Label(frame.connected ? "Live" : "Reconnecting", systemImage: frame.connected ? "wifi" : "wifi.exclamationmark")
-                .font(TimeMasterFont.micro()).foregroundStyle(frame.connected ? ProfileStyle.secondary : Theme.toolbarOrange)
-                .fixedSize(horizontal: true, vertical: false)
+            RankedInfoButton(label: frame.connected ? "Live connection" : "Reconnecting", message: frame.connected ? "Scores are provisional until the service verifies the round." : "Connection interrupted. The shared round clock continues; the last opponent score is not a live update.", symbol: frame.connected ? "wifi" : "wifi.exclamationmark")
         }
     }
 
@@ -130,8 +110,9 @@ struct RankedDuelPlayerView: View {
                     timer.fixedSize(horizontal: true, vertical: false)
                     if mode == .duel { scoreSide(you: false).frame(maxWidth: .infinity) }
                     else {
-                        Label("Solo", systemImage: "figure.stand")
-                            .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary).frame(maxWidth: .infinity)
+                        Image(systemName: "person.fill")
+                            .foregroundStyle(ProfileStyle.secondary).frame(maxWidth: .infinity)
+                            .accessibilityLabel("Solo Practice")
                     }
                 }
             }
@@ -144,10 +125,14 @@ struct RankedDuelPlayerView: View {
                 }
                 .frame(height: 6).accessibilityHidden(true)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: share)
-                Text(lead).font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
-            } else {
-                Text("Camera-tracked Practice · No Elo or allowance used")
-                    .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
+                HStack(spacing: EverSpacing.x1) {
+                    Image(systemName: frame.yourScore == frame.opponentScore ? "equal" : frame.yourScore > frame.opponentScore ? "arrow.up.right" : "arrow.down.right")
+                    Text("\(frame.yourScore >= frame.opponentScore ? "+" : "−")\(score(abs(frame.yourScore - frame.opponentScore))) \(unit)")
+                        .monospacedDigit()
+                }
+                .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(lead)
             }
         }
         .padding(ProfileStyle.spacing).frame(maxWidth: .infinity)
@@ -156,7 +141,7 @@ struct RankedDuelPlayerView: View {
 
     private var timer: some View {
         VStack(spacing: 2) {
-            Text("TIME").font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
+            Text("60 s").font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
             Text(timerText).font(.custom("Inter-Black", size: 40, relativeTo: .largeTitle).monospacedDigit())
                 .accessibilityIdentifier("ranked-duel-timer")
         }
@@ -168,7 +153,7 @@ struct RankedDuelPlayerView: View {
             HStack(spacing: 5) {
                 if you { ProfileAvatar(profile: profileStore.profile, size: 22).accessibilityHidden(true) }
                 else { Image(systemName: "person.crop.circle.fill").accessibilityHidden(true) }
-                Text(you ? "You" : frame.opponentName).font(TimeMasterFont.micro()).lineLimit(1)
+                Text(you ? profileStore.profile.displayName : frame.opponentName).font(TimeMasterFont.micro()).lineLimit(1)
             }.foregroundStyle(ProfileStyle.secondary)
             Text(score(you ? frame.yourScore : frame.opponentScore))
                 .font(.custom("Inter-Black", size: 34, relativeTo: .title).monospacedDigit())

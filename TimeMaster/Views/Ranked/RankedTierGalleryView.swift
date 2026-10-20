@@ -1,70 +1,68 @@
 import SwiftUI
 
 struct RankedTierGalleryView: View {
-    @Environment(\.dismiss) private var dismiss
     @ObservedObject private var account = RankedAccountStore.shared
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedVariation: RankedVariation?
     @State private var showsAccount = false
+    @State private var showsTiers = false
+    @AppStorage("tm.ranked.family") private var family: RankedFamily = .pushUps
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: ProfileStyle.inset) {
-                    Text("\(account.placedCount) earned movement ranks").font(TimeMasterFont.title()).accessibilityAddTraits(.isHeader)
-                    Text("Every exact movement has its own rating. Placement is provisional for the first five rated rounds. Unrelated ladders are never averaged.")
-                        .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                    if account.identity == nil {
-                        Button("Sign in to load ranks") { showsAccount = true }.buttonStyle(TimeMasterToolbarWideButtonStyle())
+                VStack(spacing: ProfileStyle.inset) {
+                    HStack {
+                        RankedMetric(value: "\(account.placedCount)/\(RankedFamily.allCases.reduce(0) { $0 + $1.variations.count })", unit: "")
+                            .accessibilityLabel("Earned exact-movement ranks")
+                        Spacer()
+                        RankedInfoButton(label: "Exercise-specific ranks", message: "Every exact movement has its own earned rating. The first five rated rounds are provisional placement. Unrelated ladders are never averaged. A dash means no earned rating.")
+                        RankedIconAction(symbol: "square.grid.2x2", label: "Six-tier guide", id: "ranked-tier-guide") { showsTiers = true }
+                        RankedIconAction(symbol: "person.badge.key", label: "Ranked account", id: "ranked-ranks-account") { showsAccount = true }
                     }
-                    if account.loading { ProgressView() }
+                    if account.loading { ProgressView().accessibilityLabel("Loading earned ranks") }
                     if let error = account.error { RankedServiceNotice(message: error, retry: { Task { await account.refresh() } }) }
-                    ForEach(RankedFamily.allCases) { family in
-                        ProfileSettingsSection(title: family.title) {
-                            ForEach(family.variations) { variation in
-                                Button { selectedVariation = variation } label: {
-                                    HStack(spacing: ProfileStyle.spacing) {
-                                        if !dynamicTypeSize.isAccessibilitySize { RankedMovementArt(variation: variation).frame(width: 56, height: 64) }
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(variation.title).font(TimeMasterFont.rowTitle())
-                                            Text(account.rating(for: variation)?.label ?? "Unplaced")
-                                                .font(TimeMasterFont.caption().monospacedDigit()).foregroundStyle(ProfileStyle.secondary)
-                                            if variation.isAdvanced {
-                                                Text("Practice · Verification evidence required for Ranked")
-                                                    .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
-                                            }
-                                        }.frame(maxWidth: .infinity, alignment: .leading)
-                                        RankedBadgeView(elo: account.rating(for: variation)?.rating)
-                                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(ProfileStyle.secondary)
-                                    }.padding(ProfileStyle.inset).contentShape(Rectangle())
-                                }
-                                .buttonStyle(TimeMasterCardButtonStyle())
-                                .accessibilityLabel(variation.fullTitle).accessibilityValue(account.rating(for: variation)?.label ?? "Unplaced")
+                    RankedFamilyPicker(family: $family)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: ProfileStyle.touchTarget * 3))], spacing: ProfileStyle.spacing) {
+                        ForEach(family.variations) { variation in
+                            RankedRatingTile(variation: variation, rating: account.rating(for: variation)) { selectedVariation = variation }
+                                .accessibilityHint("Open this movement's leaderboard")
                                 .accessibilityIdentifier("ranked-rank-\(variation.rawValue)")
-                            }
                         }
                     }
-                    DisclosureGroup {
-                        LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 144))], spacing: ProfileStyle.spacing) {
-                            ForEach(RankedTier.allCases) { tier in
-                                VStack(spacing: ProfileStyle.spacing) {
-                                    Image(tier.assetName).resizable().scaledToFit().frame(maxHeight: 144).accessibilityHidden(true)
-                                    Text(tier.title).font(TimeMasterFont.rowTitle())
-                                    Text("\(tier.minimum.formatted())+ Elo").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                                }
-                                .padding(ProfileStyle.inset).frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .modifier(TimeMasterCardSurface(flat: true)).accessibilityElement(children: .combine)
-                            }
-                        }.padding(.top, ProfileStyle.spacing)
-                    } label: { Label("Six-tier guide", systemImage: "shield.lefthalf.filled").font(TimeMasterFont.rowTitle()).frame(minHeight: ProfileStyle.touchTarget) }
                 }
                 .padding(ProfileStyle.inset).frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)
             }
-            .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white).navigationTitle("Your ranks")
-            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Close") { dismiss() } } }
+            .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
+            .toolbar { AppToolbar.iconItem(placement: .confirmationAction) { RankedCloseButton() } }
             .sheet(item: $selectedVariation) { RankedLeaderboardView(initialVariation: $0) }
             .sheet(isPresented: $showsAccount) { RankedAccountView() }
+            .sheet(isPresented: $showsTiers) { tierGuide }
             .task { await account.restore(); if account.identity != nil { await account.refresh() } }
-        }.tint(Theme.toolbarOrange)
+        }
+        .tint(Theme.toolbarOrange)
+    }
+
+    private var tierGuide: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: ProfileStyle.touchTarget * 3))], spacing: ProfileStyle.spacing) {
+                    ForEach(RankedTier.allCases) { tier in
+                        VStack(spacing: ProfileStyle.spacing) {
+                            Image(tier.assetName).resizable().scaledToFit().aspectRatio(1, contentMode: .fit)
+                            RankedMetric(value: "\(tier.minimum.formatted())+", unit: "Elo")
+                        }
+                        .padding(ProfileStyle.spacing)
+                        .modifier(TimeMasterCardSurface(flat: true))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(tier.title)
+                        .accessibilityValue("\(tier.minimum) Elo or higher")
+                    }
+                }
+                .padding(ProfileStyle.inset).frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)
+            }
+            .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
+            .toolbar { AppToolbar.iconItem(placement: .confirmationAction) { RankedCloseButton() } }
+        }
+        .tint(Theme.toolbarOrange)
     }
 }

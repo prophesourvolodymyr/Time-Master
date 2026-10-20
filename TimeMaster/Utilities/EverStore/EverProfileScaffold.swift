@@ -110,52 +110,51 @@ struct EverProfileScaffold<Chrome: View, Content: View>: View {
             let progress = reduceMotion ? (rawProgress >= 0.5 ? 1 : 0) : rawProgress
             let chromeHeight = interpolate(expandedHeight + tabHeight, compactHeight + tabHeight, progress)
 
-            ZStack(alignment: .top) {
-                ScrollView {
-                    let scrolling = VStack(spacing: 0) {
-                        Color.clear
-                            .frame(height: expandedHeight + tabHeight)
-                            .allowsHitTesting(false)
-                            .accessibilityHidden(true)
-                        content
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: max(0, viewport.size.height - compactHeight - tabHeight), alignment: .top)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .background {
-                        if #unavailable(iOS 18.0, macOS 15.0) {
-                            GeometryReader { content in
-                                Color.clear.preference(
-                                    key: EverProfileScrollOffsetKey.self,
-                                    value: content.frame(in: .named(coordinateSpace)).minY
-                                )
-                            }
+            ScrollView {
+                let scrolling = VStack(spacing: 0) {
+                    Color.clear
+                        .frame(height: expandedHeight + tabHeight)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                    content
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: max(0, viewport.size.height - compactHeight - tabHeight), alignment: .top)
+                }
+                .frame(maxWidth: .infinity)
+                .background {
+                    if #unavailable(iOS 18.0, macOS 15.0) {
+                        GeometryReader { content in
+                            Color.clear.preference(
+                                key: EverProfileScrollOffsetKey.self,
+                                value: content.frame(in: .named(coordinateSpace)).minY
+                            )
                         }
                     }
-                    Group {
-                        if rasterizesContent {
-                            scrolling.modifier(EverScrollSmear())
-                        } else {
-                            scrolling
-                        }
+                }
+                Group {
+                    if rasterizesContent {
+                        scrolling.modifier(EverScrollSmear())
+                    } else {
+                        scrolling
                     }
-                    .modifier(EverArcScrollableContent())
                 }
-                .modifier(EverVerticalScrollOffset(offset: $scrollOffset))
-                .modifier(EverScrollMotion())
-                .modifier(EverArcScrollOverflow())
-                .coordinateSpace(name: coordinateSpace)
-                .scrollIndicators(.hidden)
-                .accessibilityIdentifier("profile-scroll")
-                .onPreferenceChange(EverProfileScrollOffsetKey.self) { value in
-                    if #unavailable(iOS 18.0, macOS 15.0) { scrollOffset = value }
+                .modifier(EverArcScrollableContent())
+                .overlay(alignment: .top) {
+                    chrome(viewport.size.width, progress)
+                        .frame(height: chromeHeight, alignment: .top)
+                        .frame(maxWidth: .infinity, alignment: .top)
+                        .background(EverColor.background)
+                        .offset(y: -scrollOffset)
                 }
-
-                chrome(viewport.size.width, progress)
-                    .frame(height: chromeHeight, alignment: .top)
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    .background(EverColor.background)
-                    .zIndex(1)
+            }
+            .modifier(EverVerticalScrollOffset(offset: $scrollOffset))
+            .modifier(EverScrollMotion())
+            .modifier(EverArcScrollOverflow())
+            .coordinateSpace(name: coordinateSpace)
+            .scrollIndicators(.hidden)
+            .accessibilityIdentifier("profile-scroll")
+            .onPreferenceChange(EverProfileScrollOffsetKey.self) { value in
+                if #unavailable(iOS 18.0, macOS 15.0) { scrollOffset = value }
             }
         }
     }

@@ -2,51 +2,87 @@ import SwiftUI
 
 extension ProfileView {
     var membershipButton: some View {
-        ProfileCheckmarkEntryButton(
-            hasMembership: profileStore.snapshot.badgePreview != nil,
-            isPaused: sheet == .verification
-        ) {
+        RankedIconAction(symbol: "checkmark.seal", label: "Checkmark styles", id: "profile-verification") {
             sheet = .verification
         }
-        .accessibilityIdentifier("profile-verification")
+        .accessibilityValue(profileStore.snapshot.badgePreview == nil ? "Not verified" : "Local style preview, not verification")
     }
 
     var marketplaceButton: some View {
-        Button { sheet = .collectibles } label: {
-            Image(systemName: "bag.badge.plus")
-                .font(.body.weight(.semibold))
-                .frame(width: EverLayout.minimumTouchTarget, height: EverLayout.minimumTouchTarget)
-                .contentShape(Circle())
+        RankedIconAction(symbol: "bag.badge.plus", label: "Collectibles", id: "profile-marketplace") {
+            sheet = .collectibles
         }
-        .buttonStyle(TimeMasterToolbarIconButtonStyle())
-        .accessibilityLabel("Collectibles")
-        .accessibilityIdentifier("profile-marketplace")
     }
+
     func backButton(size: CGFloat = EverLayout.minimumTouchTarget) -> some View {
-        Button {
+        RankedIconAction(symbol: "chevron.left", label: "Back", id: "profile-back") {
             if let onPreviewClose { onPreviewClose() } else { dismiss() }
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.body.weight(.semibold))
-                .frame(width: size, height: size)
-                .contentShape(Circle())
         }
-        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: size))
-        .accessibilityLabel("Back")
-        .accessibilityIdentifier("profile-back")
+        .frame(width: size, height: size)
     }
 
     func profileActions(size: CGFloat = EverLayout.minimumTouchTarget) -> some View {
-        Menu {
-            profileActionItems
-        } label: {
-            Image(systemName: "square.and.pencil")
-                .font(.body.weight(.semibold))
-                .frame(width: size, height: size)
-                .contentShape(Circle())
+        RankedIconAction(symbol: "ellipsis", label: "Profile actions", id: "profile-options") {
+            sheet = .actions
         }
-        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: size))
-        .accessibilityLabel("Profile actions")
-        .accessibilityIdentifier("profile-options")
+        .frame(width: size, height: size)
+    }
+
+    var profileActionsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: EverLayout.minimumTouchTarget * 2))], spacing: EverSpacing.x5) {
+                    if asVisitor {
+                        profileMenuAction("Return to my profile", symbol: "person.crop.circle") {
+                            asVisitor = false
+                            sheet = nil
+                        }
+                        profileMenuAction("Report profile", symbol: "flag") { sheet = .report }
+                    } else {
+                        profileMenuAction("Edit profile", symbol: "pencil") { sheet = .edit }
+                            .disabled(profileStore.isReadOnly)
+                        profileMenuAction("New post", symbol: "square.and.pencil") { sheet = .compose }
+                            .disabled(profileStore.isReadOnly)
+                        profileMenuAction("Visitor preview", symbol: "eye") {
+                            asVisitor = true
+                            sheet = nil
+                        }
+                        profileMenuAction("Collectibles", symbol: "bag") { sheet = .collectibles }
+                        profileMenuAction("Checkmark styles", symbol: "checkmark.seal") { sheet = .verification }
+                        profileMenuAction("Settings", symbol: "gearshape") { sheet = .settings }
+                        profileMenuAction("All Activity History", symbol: "clock.arrow.circlepath", action: openProfileHistory)
+                        profileMenuAction("Ranked account", symbol: "person.badge.key") { sheet = .rankedAccount }
+                    }
+                }
+                .padding(EverLayout.phoneInset)
+                .frame(maxWidth: ProfileStyle.readableWidth)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Theme.background.ignoresSafeArea())
+            .toolbar {
+                AppToolbar.iconItem(placement: .confirmationAction) {
+                    RankedIconAction(symbol: "xmark", label: "Close Profile actions", id: "profile-actions-close") { sheet = nil }
+                }
+            }
+        }
+        .tint(Theme.toolbarOrange)
+        .preferredColorScheme(.dark)
+#if os(iOS)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+#endif
+    }
+
+    private func profileMenuAction(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.title2.weight(.semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                .frame(maxWidth: .infinity, minHeight: EverLayout.minimumTouchTarget * 1.5)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(TimeMasterToolbarWideButtonStyle())
+        .accessibilityLabel(title)
+        .help(title)
     }
 }

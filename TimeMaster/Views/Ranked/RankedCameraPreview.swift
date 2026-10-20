@@ -42,17 +42,14 @@ struct RankedCameraPreview: View {
                 .padding(ProfileStyle.inset)
                 .allowsHitTesting(false)
             if camera.status != .running {
-                VStack(spacing: ProfileStyle.spacing) {
-                    Image(systemName: "video.slash").font(.largeTitle)
-                    Text(camera.status.message).font(TimeMasterFont.secondary()).multilineTextAlignment(.center)
-                }
+                RankedInfoButton(label: "Camera unavailable", message: camera.status.message, symbol: "video.slash")
                 .padding(ProfileStyle.inset)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.surface.opacity(0.95))
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: ProfileStyle.corner))
-        .accessibilityElement(children: .ignore)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel("Camera framing")
         .accessibilityValue(camera.status == .running ? camera.tracking.reason : camera.status.message)
     }

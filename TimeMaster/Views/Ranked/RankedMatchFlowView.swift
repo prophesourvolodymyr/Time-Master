@@ -50,7 +50,7 @@ struct RankedMatchFlowView: View {
                 if let match = controller.match {
                     NavigationStack {
                         RankedMatchDetailView(match: match)
-                            .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Close") { sheet = nil } } }
+                            .toolbar { AppToolbar.iconItem(placement: .confirmationAction) { RankedCloseButton() } }
                     }
                 } else if let result = controller.practiceResult {
                     NavigationStack {
@@ -83,16 +83,16 @@ struct RankedMatchFlowView: View {
 
     private var header: some View {
         HStack(spacing: ProfileStyle.spacing) {
-            Button(controller.stage == .result || controller.stage == .verifying ? "Close" : "Cancel") {
+            RankedIconAction(symbol: "xmark", label: controller.stage == .result || controller.stage == .verifying ? "Close" : "Cancel", id: "ranked-flow-close") {
                 if controller.stage == .countdown { confirmsLeave = true }
                 else { Task { if await controller.leave() { dismiss() } } }
             }
-            .buttonStyle(TimeMasterToolbarWideButtonStyle()).disabled(controller.busy)
+            .disabled(controller.busy)
             Spacer(minLength: 0)
-            Text(controller.mode == .practice ? "PRACTICE" : "RANKED 1V1").font(TimeMasterFont.caption())
+            Image(systemName: controller.mode.symbol).foregroundStyle(Theme.toolbarOrange)
+                .accessibilityLabel(controller.mode.title)
             Spacer(minLength: 0)
-            Button { sheet = .rules } label: { Label("Movement rules", systemImage: "list.bullet.clipboard").labelStyle(.iconOnly) }
-                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            RankedIconAction(symbol: "list.bullet.clipboard", label: "Movement rules", id: "ranked-flow-rules") { sheet = .rules }
         }.padding(ProfileStyle.inset)
     }
 
@@ -107,12 +107,15 @@ struct RankedMatchFlowView: View {
                 RankedReadyCameraContent(controller: controller, match: match, onRules: { sheet = .rules })
             }
         case .countdown:
-            Text(controller.countdown == 0 ? "GO" : String(controller.countdown))
-                .font(.custom("Inter-Black", size: 96, relativeTo: .largeTitle)).foregroundStyle(Theme.toolbarOrange)
-                .frame(maxWidth: .infinity).padding(.vertical, ProfileStyle.inset * 2)
-            RankedCameraPreview(camera: controller.camera).frame(height: 300)
-            Text(controller.variation.fullTitle).font(TimeMasterFont.heading())
-            Text("Get into position · No pause after Go").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+            if controller.countdown == 0 {
+                Image(systemName: "flag.checkered").font(.largeTitle).accessibilityLabel("Go")
+            } else {
+                Text(String(controller.countdown))
+                    .font(.custom("Inter-Black", size: 96, relativeTo: .largeTitle))
+                    .accessibilityLabel("Countdown \(controller.countdown)")
+            }
+            RankedCameraPreview(camera: controller.camera).aspectRatio(4 / 3, contentMode: .fit)
+            RankedMetric(value: "60", unit: "s")
         case .live: EmptyView()
         case .verifying:
             if controller.mode == .practice {
@@ -129,8 +132,8 @@ struct RankedMatchFlowView: View {
                                   onLobby: { Task { if await controller.leave() { dismiss() } } },
                                   onLeaderboard: { sheet = .leaderboard }, onDetails: { sheet = .details })
         case .noOpponent:
-            ProfileEmptyState(symbol: "person.2.slash", title: "No opponent available", detail: "Nobody within this movement's current skill window was matched. No slot was used. Try again or return to solo Practice.")
-            Button("Try again") { Task { await controller.retry() } }.buttonStyle(TimeMasterToolbarWideButtonStyle())
+            RankedInfoButton(label: "No opponent available", message: "Nobody within this movement's current skill window was matched. No slot was used. Try again or return to solo Practice.", symbol: "person.2.slash")
+            RankedIconAction(symbol: "arrow.clockwise", label: "Try again", id: "ranked-search-retry") { Task { await controller.retry() } }
         }
     }
 }
@@ -148,7 +151,7 @@ private struct RankedReadyCameraContent: View {
     }
     var body: some View {
         VStack(spacing: ProfileStyle.inset) {
-            RankedCameraPreview(camera: camera).frame(height: 180)
+            RankedCameraPreview(camera: camera).aspectRatio(16 / 9, contentMode: .fit)
             RankedOpponentReadyView(match: match, calibrated: camera.tracking.calibrated, busy: controller.busy,
                                     onReady: { Task { await controller.ready() } }, onRules: onRules)
         }
