@@ -1725,7 +1725,7 @@ The user requires the agent to calculate and send a separate Fgen brief for ever
   - [x] z
 - [x] Preserve case-aware sizing, baseline alignment, detached i/j dots, open counters and unclipped shapes; check normalizer regressions
 - [x] Exercise mixed-case words, all-letter examples, comparisons and actual desktop/mobile HTML rendering
-- [ ] Commit and push the scoped revision and open the HTML for human review
+- [x] Commit and push the scoped revision and open the HTML for human review
 - [ ] Human acceptance of the individually reviewed family, weight contrast, ribbon character and word rhythm
 
 The measured M’s broad rising profile is 131.5–159.5 pixels and its narrower return is 75.9–78.2 pixels on the 560-pixel capital-height grid. `glyph-calculations.json` separates those measured facts from each letter’s optical width and anatomy targets. All fifty-one non-M letters have a retained individual Fgen saved event, raw output, and submitted brief; the original M is pixel-identical to its preserved reference. Rejected strict, noisy, and malformed candidates remain under the reference’s raw history rather than being presented as accepted work.
