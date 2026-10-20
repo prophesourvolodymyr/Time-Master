@@ -13,6 +13,10 @@ settings:
     SWIFT_VERSION: "5.9"
     GENERATE_INFOPLIST_FILE: YES
     TM_RANKED_SERVICE_URL: ""
+  configs:
+    Debug:
+      "TM_RANKED_SERVICE_URL[sdk=iphonesimulator*]": "http://127.0.0.1:8765"
+      "TM_RANKED_SERVICE_URL[sdk=macosx*]": "http://127.0.0.1:8765"
 
 packages:
   ZIPFoundation:

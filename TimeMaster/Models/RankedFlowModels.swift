@@ -130,3 +130,33 @@ struct RankedDuelFrame: Equatable {
     var connected = true
     var phase = "Set position"
 }
+
+struct RankedPracticeResult: Codable, Equatable, Identifiable {
+    enum Status: String, Codable {
+        case completed, endedEarly, interrupted
+
+        var title: String {
+            switch self {
+            case .completed: return "Completed"
+            case .endedEarly: return "Ended early"
+            case .interrupted: return "Interrupted"
+            }
+        }
+    }
+
+    let id: UUID
+    let accountID: String?
+    let variation: RankedVariation
+    let startedAt: Date
+    let duration: Double
+    let score: Double
+    let status: Status
+    let ruleVersion: String
+
+    var isValid: Bool {
+        startedAt.timeIntervalSince1970.isFinite && duration.isFinite && (0...60).contains(duration)
+            && score.isFinite && score >= 0 && !ruleVersion.isEmpty
+            && (variation.isTimedHold ? score <= duration : score.rounded(.down) == score)
+            && (status != .completed || duration == 60)
+    }
+}

@@ -40,7 +40,8 @@ struct RankedMatchFlowView: View {
         }
         .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
         .tint(Theme.toolbarOrange).preferredColorScheme(.dark)
-        .interactiveDismissDisabled(controller.stage != .camera && controller.stage != .result)
+        .interactiveDismissDisabled((controller.stage != .camera && controller.stage != .result)
+                                    || (controller.practiceResult != nil && !controller.practiceSaved))
         .sheet(item: $sheet) { destination in
             switch destination {
             case .rules: RankedRulesView(variation: controller.variation)
@@ -51,6 +52,11 @@ struct RankedMatchFlowView: View {
                         RankedMatchDetailView(match: match)
                             .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Close") { sheet = nil } } }
                     }
+                } else if let result = controller.practiceResult {
+                    NavigationStack {
+                        RankedPracticeDetailView(result: result)
+                            .toolbar { AppToolbar.iconItem(placement: .confirmationAction) { RankedCloseButton() } }
+                    }
                 }
             }
         }
@@ -60,7 +66,7 @@ struct RankedMatchFlowView: View {
                 Task { if await controller.leave() { dismiss() } }
             }
         } message: {
-            Text(controller.mode == .practice ? "No competitive rating or match slot is affected." : controller.postGo ? "Leaving or backgrounding after Go is a forfeit. The started match remains charged." : "Cancel before Go without using a slot or changing Elo.")
+            Text(controller.mode == .practice ? "A started solo round is saved with its current score as Ended early. No competitive rating or match slot is affected." : controller.postGo ? "Leaving or backgrounding after Go is a forfeit. The started match remains charged." : "Cancel before Go without using a slot or changing Elo.")
         }
         .task { await controller.run() }
         .onDisappear { controller.stop() }
@@ -109,15 +115,19 @@ struct RankedMatchFlowView: View {
             Text("Get into position · No pause after Go").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
         case .live: EmptyView()
         case .verifying:
-            ProgressView()
-            Text("Verifying the round").font(TimeMasterFont.title())
-            Text("The service is checking the movement timeline and finalizing both results. You can close this screen and return from Recent rounds; no winner is guessed while the service is unavailable.")
-                .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            Button("Check result") { Task { await controller.retry() } }.buttonStyle(TimeMasterToolbarWideButtonStyle())
+            if controller.mode == .practice {
+                ProgressView().accessibilityLabel("Saving your Practice result")
+            } else {
+                ProgressView().accessibilityLabel("Verifying the round")
+                RankedInfoButton(label: "Verification pending", message: "The service is checking the movement timeline and finalizing both results. You can close and return from Recent rounds. No winner is guessed while the service is unavailable.", symbol: "checkmark.shield")
+                RankedIconAction(symbol: "arrow.clockwise", label: "Check result", id: "ranked-verification-retry") { Task { await controller.retry() } }
+            }
         case .result:
             RankedMatchResultView(variation: controller.variation, mode: controller.mode, match: controller.match,
-                                  frame: controller.frame, onAnother: { Task { await controller.restart() } },
-                                  onLobby: { dismiss() }, onLeaderboard: { sheet = .leaderboard }, onDetails: { sheet = .details })
+                                  frame: controller.frame, practiceResult: controller.practiceResult, practiceSaved: controller.practiceSaved,
+                                  onAnother: { Task { await controller.restart() } },
+                                  onLobby: { Task { if await controller.leave() { dismiss() } } },
+                                  onLeaderboard: { sheet = .leaderboard }, onDetails: { sheet = .details })
         case .noOpponent:
             ProfileEmptyState(symbol: "person.2.slash", title: "No opponent available", detail: "Nobody within this movement's current skill window was matched. No slot was used. Try again or return to solo Practice.")
             Button("Try again") { Task { await controller.retry() } }.buttonStyle(TimeMasterToolbarWideButtonStyle())

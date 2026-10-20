@@ -56,7 +56,7 @@ struct RankedView: View {
                 case .loadout: loadoutSheet
                 case .rules: RankedRulesView(variation: selection)
                 case .leaderboard: RankedLeaderboardView(initialVariation: selection)
-                case .history: RankedMatchHistoryView()
+                case .history: RankedMatchHistoryView(mode: mode)
                 case .limit: RankedMatchLimitView(family: selection.family)
                 }
             }
@@ -94,19 +94,24 @@ struct RankedView: View {
             Button(action: onOpenProfile) {
                 HStack(spacing: 8) {
                     ProfileStyledAvatar(profile: profileStore.profile, size: ProfileStyle.touchTarget)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(account.identity?.displayName ?? profileStore.profile.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
-                        Text(account.identity == nil ? "Sign in to compete · Practice is open" : "\(account.placedCount) earned movement ranks")
-                            .font(TimeMasterFont.caption().monospacedDigit())
-                            .foregroundStyle(ProfileStyle.secondary)
-                            .lineLimit(1)
+                    VStack(alignment: .leading, spacing: EverSpacing.x1) {
+                        Text(account.rating(for: selection).map { "\($0.rating.formatted()) Elo" } ?? "— Elo")
+                            .font(TimeMasterFont.rowTitle().monospacedDigit())
+                            .foregroundStyle(Theme.toolbarOrange)
+                            .accessibilityLabel("\(selection.fullTitle) earned Elo")
+                            .accessibilityValue(account.rating(for: selection)?.label ?? "No earned rating")
+                            .accessibilityIdentifier("ranked-identity-elo")
+                        Text(account.identity?.displayName ?? profileStore.profile.displayName)
+                            .font(TimeMasterFont.caption())
+                            .accessibilityIdentifier("ranked-identity-username")
                     }
+                    .lineLimit(1)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(TimeMasterCardButtonStyle())
             .layoutPriority(1)
-            .accessibilityLabel("Open \(profileStore.profile.displayName)'s profile")
+            .accessibilityLabel("Open \(account.identity?.displayName ?? profileStore.profile.displayName)'s profile")
             .accessibilityIdentifier("ranked-profile")
             Spacer(minLength: 0)
             Button { sheet = .settings } label: {
@@ -275,7 +280,7 @@ struct RankedView: View {
                 Label(mode == .duel ? (account.recoveryMatch == nil ? "BATTLE" : "RESUME MATCH") : "PRACTICE", systemImage: mode == .duel ? "bolt.fill" : "play.fill")
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
-            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
+            .buttonStyle(TimeMasterToolbarWideButtonStyle())
             .accessibilityLabel(mode == .duel ? "Enter online Ranked" : "Enter camera-tracked Practice")
             .accessibilityIdentifier("ranked-battle")
             HStack(spacing: ProfileStyle.spacing) {

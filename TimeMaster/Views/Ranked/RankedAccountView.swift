@@ -14,6 +14,11 @@ struct RankedAccountView: View {
     private enum Field: Hashable { case login, password, name }
     @FocusState private var focusedField: Field?
 
+    private var canSubmit: Bool {
+        !busy && account.configured && login.count >= 3 && password.count >= 12
+            && (!creating || !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -58,12 +63,19 @@ struct RankedAccountView: View {
                                 .onSubmit { focusedField = .password }
 #if os(iOS)
                                 .textInputAutocapitalization(.never)
+                                .textContentType(.username)
 #endif
                             Text("Password · At least 12 characters").font(TimeMasterFont.caption())
                             SecureField("Password", text: $password)
                                 .focused($focusedField, equals: .password)
                                 .submitLabel(creating ? .next : .done)
-                                .onSubmit { focusedField = creating ? .name : nil }
+                                .onSubmit {
+                                    if creating { focusedField = .name }
+                                    else if canSubmit { authenticate() }
+                                }
+#if os(iOS)
+                                .textContentType(creating ? .newPassword : .password)
+#endif
                             if creating { publicIdentity }
                         }
                         .textFieldStyle(.roundedBorder)
@@ -73,7 +85,7 @@ struct RankedAccountView: View {
                                 .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
                         }
                         .buttonStyle(TimeMasterToolbarWideButtonStyle())
-                        .disabled(busy || !account.configured || login.count < 3 || password.count < 12 || (creating && name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+                        .disabled(!canSubmit)
                         .accessibilityIdentifier("ranked-account-submit")
                     }
                     if busy { ProgressView().frame(maxWidth: .infinity) }
@@ -103,7 +115,10 @@ struct RankedAccountView: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($focusedField, equals: .name)
                 .submitLabel(.done)
-                .onSubmit { focusedField = nil }
+                .onSubmit {
+                    focusedField = nil
+                    if creating && canSubmit { authenticate() }
+                }
             Toggle("Appear in public leaderboards", isOn: $listed)
             Text("Opting in shares only this alias and exercise ratings. Opponents see your alias during a match. Camera images, private posts and account login are never shared.")
                 .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)

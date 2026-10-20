@@ -5,6 +5,8 @@ struct RankedMatchResultView: View {
     let mode: RankedMode
     let match: RankedMatch?
     let frame: RankedDuelFrame
+    var practiceResult: RankedPracticeResult? = nil
+    var practiceSaved = false
     let onAnother: () -> Void
     let onLobby: () -> Void
     let onLeaderboard: () -> Void
@@ -39,7 +41,7 @@ struct RankedMatchResultView: View {
                     score(frame.yourScore, name: "You")
                     if mode == .duel { score(frame.opponentScore, name: match?.opponent?.displayName ?? "Opponent") }
                 }
-                Text(mode == .practice ? "Solo camera-tracked activity. No competitive allowance, Elo or workout history was changed." : match?.reason ?? "Waiting for the service to verify this round.")
+                Text(mode == .practice ? "\(practiceResult?.status.title ?? "Practice") · \(Int(practiceResult?.duration ?? 0)) seconds. \(practiceSaved ? "Saved on this device in Recent rounds." : "Result not saved. Retry before leaving.") No competitive allowance, Elo or workout history was changed." : match?.reason ?? "Waiting for the service to verify this round.")
                     .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
             }
             .padding(ProfileStyle.inset).frame(maxWidth: .infinity).modifier(TimeMasterCardSurface(flat: true))
@@ -50,6 +52,11 @@ struct RankedMatchResultView: View {
                     Button("Leaderboard", action: onLeaderboard)
                     Button("Match details", action: onDetails)
                 }.buttonStyle(TimeMasterToolbarWideButtonStyle())
+            }
+            if mode == .practice && practiceResult != nil {
+                Button("Practice details", action: onDetails)
+                    .buttonStyle(TimeMasterToolbarWideButtonStyle())
+                    .accessibilityIdentifier("ranked-result-details")
             }
             Button("Return to lobby", action: onLobby).buttonStyle(TimeMasterToolbarWideButtonStyle())
         }.multilineTextAlignment(.center)

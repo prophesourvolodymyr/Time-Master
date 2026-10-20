@@ -82,6 +82,15 @@ final class RankedCamera: ObservableObject {
         pose = nil
         pipeline.stop()
     }
+    func finishTracking() async -> RankedTrackingState {
+        activation += 1
+        let finalState = await withCheckedContinuation { continuation in
+            pipeline.stop { continuation.resume(returning: $0) }
+        }
+        interruptTracking("Camera is off")
+        pose = nil
+        return finalState
+    }
     func switchCamera() { if status == .running { pipeline.switchCamera() } }
     func begin(start: Double, end: Double) { pipeline.begin(start: start, end: end) }
     func recalibrate() {
@@ -186,16 +195,18 @@ final class RankedCapturePipeline: NSObject, AVCaptureVideoDataOutputSampleBuffe
         }
     }
 
-    func stop() {
+    func stop(snapshot: ((RankedTrackingState) -> Void)? = nil) {
         queue.async { [weak self] in
-            guard let self else { return }
+            guard let self else { snapshot?(RankedTrackingState()); return }
             self.active = false
+            let finalState = self.tracker.state
 #if os(iOS)
             self.motion.stopGyroUpdates()
 #endif
             if self.session.isRunning { self.session.stopRunning() }
             self.tracker.interrupt("Camera is off")
             self.onStatus?(.idle)
+            snapshot?(finalState)
         }
     }
 

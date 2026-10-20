@@ -369,12 +369,14 @@
 		E002A0020000000000000003 /* RankedCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000003 /* RankedCamera.swift */; };
 		E002A0020000000000000004 /* RankedMovementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000004 /* RankedMovementTracker.swift */; };
 		E002A0020000000000000005 /* RankedMatchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000005 /* RankedMatchController.swift */; };
+		E002A0020000000000000008 /* RankedPracticeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000008 /* RankedPracticeStore.swift */; };
 		E002A0020000000000000006 /* RankedCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000006 /* RankedCameraPreview.swift */; };
 		E002A0030000000000000001 /* RankedAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000001 /* RankedAPI.swift */; };
 		E002A0030000000000000002 /* RankedAccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000002 /* RankedAccountStore.swift */; };
 		E002A0030000000000000003 /* RankedCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000003 /* RankedCamera.swift */; };
 		E002A0030000000000000004 /* RankedMovementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000004 /* RankedMovementTracker.swift */; };
 		E002A0030000000000000005 /* RankedMatchController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000005 /* RankedMatchController.swift */; };
+		E002A0030000000000000008 /* RankedPracticeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000008 /* RankedPracticeStore.swift */; };
 		E002A0030000000000000006 /* RankedCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = E002A0010000000000000006 /* RankedCameraPreview.swift */; };
 		A6F55114B692E1DA0A558CC4 /* OutdoorMapQuickStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42789063925993436C4FC1F5 /* OutdoorMapQuickStack.swift */; };
 		A78A596CECD6113AB5418CC0 /* MotionTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = E165B27B8BF5FC1F4E7CB844 /* MotionTokens.swift */; };
@@ -741,6 +743,7 @@
 		E002A0010000000000000003 /* RankedCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedCamera.swift; sourceTree = "<group>"; };
 		E002A0010000000000000004 /* RankedMovementTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedMovementTracker.swift; sourceTree = "<group>"; };
 		E002A0010000000000000005 /* RankedMatchController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedMatchController.swift; sourceTree = "<group>"; };
+		E002A0010000000000000008 /* RankedPracticeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ranked/RankedPracticeStore.swift; sourceTree = "<group>"; };
 		E002A0010000000000000006 /* RankedCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedCameraPreview.swift; sourceTree = "<group>"; };
 		8880F70DC5DDC88AD96D653B /* MusicGuideOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGuideOverlay.swift; sourceTree = "<group>"; };
 		8A1602CC55687977DCBEBCB6 /* HomeWidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetStore.swift; sourceTree = "<group>"; };
@@ -1433,6 +1436,7 @@
 				E002A0010000000000000003 /* RankedCamera.swift */,
 				E002A0010000000000000004 /* RankedMovementTracker.swift */,
 				E002A0010000000000000005 /* RankedMatchController.swift */,
+				E002A0010000000000000008 /* RankedPracticeStore.swift */,
 				A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */,
 				50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */,
 				18C92EF761CE54686C4177F7 /* MusicProviderAdapters.swift */,
@@ -1857,6 +1861,7 @@
 				E002A0020000000000000003 /* RankedCamera.swift in Sources */,
 				E002A0020000000000000004 /* RankedMovementTracker.swift in Sources */,
 				E002A0020000000000000005 /* RankedMatchController.swift in Sources */,
+				E002A0020000000000000008 /* RankedPracticeStore.swift in Sources */,
 				E002A0020000000000000006 /* RankedCameraPreview.swift in Sources */,
 				BE3726B086212A962BD8182F /* RankedModels.swift in Sources */,
 				E001A0020000000000000001 /* RankedFlowModels.swift in Sources */,
@@ -2127,6 +2132,7 @@
 				E002A0030000000000000003 /* RankedCamera.swift in Sources */,
 				E002A0030000000000000004 /* RankedMovementTracker.swift in Sources */,
 				E002A0030000000000000005 /* RankedMatchController.swift in Sources */,
+				E002A0030000000000000008 /* RankedPracticeStore.swift in Sources */,
 				E002A0030000000000000006 /* RankedCameraPreview.swift in Sources */,
 				98F46CB7DA08560C2A322007 /* RankedModels.swift in Sources */,
 				E001A0030000000000000001 /* RankedFlowModels.swift in Sources */,
@@ -2338,6 +2344,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				TM_RANKED_SERVICE_URL = "";
+				"TM_RANKED_SERVICE_URL[sdk=macosx*]" = "http://127.0.0.1:8765";
 			};
 			name = Debug;
 		};
@@ -2529,6 +2536,7 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				TM_RANKED_SERVICE_URL = "";
+				"TM_RANKED_SERVICE_URL[sdk=iphonesimulator*]" = "http://127.0.0.1:8765";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

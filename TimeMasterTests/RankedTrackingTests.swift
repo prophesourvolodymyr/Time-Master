@@ -88,4 +88,55 @@ final class RankedTrackingTests: XCTestCase {
         XCTAssertFalse(assessment.bottom)
         XCTAssertTrue(RankedMovementRules.assess(pose(0, bottom: true), variation: .standardPushUp).bottom)
     }
+
+    @MainActor
+    func testPracticeResultsSurviveReloadAndStayWithTheirOriginalAccount() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = RankedPracticeStore(directoryURL: directory)
+        let first = practiceResult(accountID: "first")
+        let second = practiceResult(accountID: "second")
+        let guest = practiceResult(accountID: nil)
+        for result in [first, second, guest] { try store.save(result) }
+
+        let restored = RankedPracticeStore(directoryURL: directory)
+        XCTAssertEqual(restored.results(for: "first"), [first])
+        XCTAssertEqual(restored.results(for: "second"), [second])
+        XCTAssertEqual(restored.results(for: nil), [guest])
+    }
+
+    @MainActor
+    func testPracticeSaveIsIdempotentAndNeverOverwritesADifferentResult() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = RankedPracticeStore(directoryURL: directory)
+        let original = practiceResult(accountID: "athlete")
+        try store.save(original)
+        try store.save(original)
+        let conflicting = RankedPracticeResult(id: original.id, accountID: original.accountID, variation: original.variation,
+                                              startedAt: original.startedAt, duration: original.duration,
+                                              score: 9, status: original.status, ruleVersion: original.ruleVersion)
+        XCTAssertThrowsError(try store.save(conflicting))
+        XCTAssertEqual(RankedPracticeStore(directoryURL: directory).results(for: "athlete"), [original])
+    }
+
+    @MainActor
+    func testFailedPracticeWriteDoesNotPublishASavedResult() throws {
+        let parent = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: parent) }
+        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        let directory = parent.appendingPathComponent("practice")
+        let original = Data("Preserve this existing file".utf8)
+        try original.write(to: directory)
+        let store = RankedPracticeStore(directoryURL: directory)
+        XCTAssertThrowsError(try store.save(practiceResult(accountID: nil)))
+        XCTAssertEqual(store.results, [])
+        XCTAssertEqual(try Data(contentsOf: directory), original)
+    }
+
+    private func practiceResult(accountID: String?) -> RankedPracticeResult {
+        RankedPracticeResult(id: UUID(), accountID: accountID, variation: .standardPushUp,
+                             startedAt: Date(timeIntervalSinceReferenceDate: 813_456_789.123456),
+                             duration: 60, score: 4, status: .completed, ruleVersion: RankedMovementRules.version)
+    }
 }

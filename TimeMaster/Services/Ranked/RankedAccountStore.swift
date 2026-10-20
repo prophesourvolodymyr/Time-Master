@@ -31,8 +31,16 @@ final class RankedAccountStore: ObservableObject {
 
     func authenticate(login: String, password: String, displayName: String?, listed: Bool) async throws {
         generation += 1
+        let version = generation
         try await api.authenticate(login: login, password: password, displayName: displayName, listed: listed)
+        guard version == generation else { throw RankedServiceError.signedOut }
+        identity = nil
+        ratings = []
+        allowances = []
+        recoveryMatch = nil
+        stale = false
         await refresh()
+        guard version == generation else { throw RankedServiceError.signedOut }
         if identity == nil { throw RankedServiceError.message(error ?? "Could not load your account") }
     }
 

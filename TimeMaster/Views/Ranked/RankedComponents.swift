@@ -1,5 +1,85 @@
 import SwiftUI
 
+private let rankedMetricInk = LinearGradient(
+    colors: [.white, .white.opacity(0.78)],
+    startPoint: .top,
+    endPoint: .bottom
+)
+
+private let rankedAccentMetricInk = LinearGradient(
+    colors: [Theme.toolbarOrange, Theme.toolbarOrange.opacity(0.78)],
+    startPoint: .top,
+    endPoint: .bottom
+)
+
+struct RankedIconAction: View {
+    let symbol: String
+    let label: String
+    var id: String? = nil
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        }
+        .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(id ?? label)
+        .help(label)
+    }
+}
+
+struct RankedCloseButton: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        RankedIconAction(symbol: "xmark", label: "Close", id: "ranked-sheet-close") { dismiss() }
+    }
+}
+
+struct RankedInfoButton: View {
+    let label: String
+    let message: String
+    var symbol = "info"
+    @State private var showsInfo = false
+
+    var body: some View {
+        RankedIconAction(symbol: symbol, label: label) { showsInfo = true }
+            .alert(label, isPresented: $showsInfo) {
+                Button("OK", role: .cancel) { }
+            } message: { Text(message) }
+            .accessibilityHint(message)
+    }
+}
+
+struct RankedMetric: View {
+    let value: String
+    let unit: String
+    var emphasized = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: EverSpacing.x1) {
+            Text(value)
+                .font(TimeMasterFont.title().monospacedDigit())
+                .foregroundStyle(emphasized ? rankedAccentMetricInk : rankedMetricInk)
+                .tracking(-0.4)
+                .contentTransition(.opacity)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: value)
+            Text(unit)
+                .font(TimeMasterFont.micro())
+                .foregroundStyle(ProfileStyle.secondary)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(unit)
+        .accessibilityValue(value)
+    }
+}
+
 struct RankedBadgeView: View {
     let elo: Int?
     var size: CGFloat = ProfileStyle.touchTarget

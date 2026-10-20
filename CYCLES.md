@@ -1449,6 +1449,24 @@ Both native targets build for arm64 from the current working source in a disposa
 
 Camera accuracy, hidden-assistance detection and full physical-camera competition are still unproved. Joint evidence is motion validation, not proof against a modified client or replay. Advanced rated movements remain unavailable. Public deployment still requires an authorized persistent HTTPS host/domain and native build URL; Docker/Compose configuration validates, but a container build and public TLS deployment were not exercised because the Docker engine is stopped and no host authorization exists. Physical-device recordings remain unavailable. Product DOCKS updates and human acceptance remain pending; this is a code-review handoff, not a complete-production or human-approval claim.
 
+### Solo camera rounds, local sign-in, and earned identity
+
+- [x] Add a double-clickable local Ranked service launcher with persistent accounts and match data; connect Debug Simulator and macOS builds to loopback without weakening physical-device or Release HTTPS requirements
+- [x] Connect keyboard submission and account switching to real authentication, clearing previous-account ratings before refreshing the new identity
+- [x] Save completed, ended-early, and interrupted sixty-second Practice rounds with exact movement, validated score, duration, date, account ownership, and tracking-rule version
+- [x] Drain queued camera tracking before finalizing the score, serialize overlapping finish paths, skip pre-Go cancellations, and preserve unsaved results for retry
+- [x] Expose account-isolated Practice history and round details; keep solo rounds separate from competitive Elo and match allowances
+- [x] Display the selected movement's earned Elo above the signed-in account name in the lobby and preserve Profile's real exact-movement earned-rating binding
+- [x] Pass eighteen permanent native tracking, persistence, and Profile regressions plus two disposable derived-pose scenarios covering a real-time sixty-second round and unexpected repeated dismissal
+- [x] Exercise actual native sign-in with keyboard Return, Keychain-backed relaunch recovery, Profile earned Elo, Elo-above-name ordering, Practice camera-unavailable gating, saved-history details, sign-out, and guest-history isolation
+- [x] Complete a separate real-time two-account service round and verify exactly-once earned Elo for the native account review
+- [ ] Human review of login, solo rounds, saved history, and earned Elo presentation
+- [ ] Complete physical-camera push-up rounds and evaluate real-athlete accuracy; deploy an authorized persistent HTTPS endpoint before physical-iPhone sign-in
+
+The local service runs through `start_ranked_server.command` on loopback port 8765 and stores its database outside the repository. The native real-time fixture scenario exercised the production clock, tracker, controller, and persistence: a completed round, pre-Go cancellation, repeated exit, and an interrupted round. A second smoke preserved both validated fixture reps through unexpected repeated dismissal and saved exactly one interrupted result. Neither scenario exercised camera images. The eighteen permanent cases passed again after integration with current main; both disposable smokes passed separately and were removed from source.
+
+Native account review used a separate Simulator and app identity with isolated documents and Keychain. Its displayed 1,020 Elo came from a real sixty-second service match with explicitly labeled derived-pose fixture accounts, not a fabricated production rank. A separate local history fixture exercised saved-result rendering only. The current iOS and macOS source built in disposable copies; already-deleted app entry points were recovered only there. Unrelated Profile, font, shared-control, and navigation work remains preserved. Product DOCKS updates await human acceptance. Physical camera accuracy and public iPhone connectivity are not claimed.
+
 ---
 
 ## Cycle 37 — Direct EverStore Profile, Collectibles, Verification, and Settings Import

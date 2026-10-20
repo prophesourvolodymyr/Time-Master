@@ -15,6 +15,13 @@ final class RankedMatchController: ObservableObject {
     @Published private(set) var busy = false
     @Published private(set) var connected = true
     @Published var error: String?
+    @Published private(set) var practiceResult: RankedPracticeResult?
+    @Published private(set) var practiceSaved = false
+    private let practiceStore: RankedPracticeStore
+    private var practiceID: UUID?
+    private var practiceStartedAt: Date?
+    private var practiceAccountID: String?
+    private var finishingPractice: Task<Void, Never>?
     private var startHost: Double?
     private var endHost: Double?
     private var clockServer: Double = 0
@@ -32,10 +39,11 @@ final class RankedMatchController: ObservableObject {
     private var submitted = false
     private var lostReadiness = false
 
-    init(variation: RankedVariation, mode: RankedMode, account: RankedAccountStore? = nil) {
+    init(variation: RankedVariation, mode: RankedMode, account: RankedAccountStore? = nil, practiceStore: RankedPracticeStore? = nil) {
         self.variation = variation
         self.mode = mode
         self.account = account ?? .shared
+        self.practiceStore = practiceStore ?? .shared
         camera = RankedCamera(variation: variation)
         camera.onPose = { [weak self] pose in self?.receive(pose) }
     }
@@ -49,7 +57,7 @@ final class RankedMatchController: ObservableObject {
         guard !stopped else { return }
         ticker = Task { [weak self] in
             while !Task.isCancelled {
-                self?.updateClock()
+                await self?.updateClock()
                 do { try await Task.sleep(nanoseconds: 100_000_000) } catch { return }
             }
         }
@@ -66,11 +74,14 @@ final class RankedMatchController: ObservableObject {
     }
 
     func prepare() async {
-        guard camera.tracking.calibrated, camera.status == .running, !busy else { return }
+        guard stage == .camera, camera.tracking.calibrated, camera.status == .running, !busy else { return }
         error = nil
         if mode == .practice {
             startHost = RankedCamera.monotonicTime + 3
             endHost = startHost! + 60
+            practiceID = UUID()
+            practiceStartedAt = Date().addingTimeInterval(3)
+            practiceAccountID = account.identity?.publicID
             camera.begin(start: startHost!, end: endHost!)
             stage = .countdown
             return
@@ -102,17 +113,27 @@ final class RankedMatchController: ObservableObject {
 
     func retry() async {
         error = nil
+        if mode == .practice && practiceResult != nil { savePractice(); return }
         if match != nil { await poll() }
         else if stage == .noOpponent { requestID = UUID().uuidString; stage = .camera }
         else { await camera.start() }
     }
 
     func restart() async {
+        if mode == .practice, practiceResult != nil, !practiceSaved {
+            savePractice()
+            guard practiceSaved else { return }
+        }
         stop()
         match = nil
         startHost = nil
         endHost = nil
         frame = RankedDuelFrame()
+        practiceResult = nil
+        practiceSaved = false
+        practiceID = nil
+        practiceStartedAt = nil
+        practiceAccountID = nil
         localBase = 0
         nextSequence = 0
         bestRTT = .infinity
@@ -131,7 +152,12 @@ final class RankedMatchController: ObservableObject {
     }
 
     func leave() async -> Bool {
-        if mode == .practice { stop(); return true }
+        if mode == .practice {
+            await finishPractice(status: .endedEarly)
+            guard practiceResult == nil || practiceSaved else { return false }
+            stop()
+            return true
+        }
         busy = true
         defer { busy = false }
         do {
@@ -151,11 +177,12 @@ final class RankedMatchController: ObservableObject {
     }
 
     func background() async {
-        camera.stop()
         if mode == .practice {
-            if stage == .live || stage == .countdown { stage = .result }
+            await finishPractice(status: .interrupted)
+            camera.stop()
             return
         }
+        camera.stop()
         guard let match, !match.terminal else { return }
         struct Presence: Encodable { let active: Bool; let calibrated: Bool }
         do {
@@ -173,13 +200,17 @@ final class RankedMatchController: ObservableObject {
     }
 
     func stop() {
+        let shouldSavePractice = mode == .practice && practiceID != nil && practiceResult == nil
+        if shouldSavePractice {
+            Task { await finishPractice(status: .interrupted) }
+        }
         stopped = true
         polling?.cancel()
         polling = nil
         ticker?.cancel()
         ticker = nil
         camera.onPose = nil
-        camera.stop()
+        if !shouldSavePractice { camera.stop() }
         pending.removeAll()
         inFlight = nil
         calibration.removeAll()
@@ -187,6 +218,7 @@ final class RankedMatchController: ObservableObject {
 
     private func receive(_ pose: RankedPose) {
         guard !stopped else { return }
+        if mode == .practice && (stage == .result || stage == .verifying) { return }
         let assessment = RankedMovementRules.assess(pose, variation: variation)
         if let last = calibration.last, pose.time - last.time > RankedMovementRules.maximumGap {
             calibration.removeAll(keepingCapacity: true)
@@ -209,7 +241,7 @@ final class RankedMatchController: ObservableObject {
         }
     }
 
-    private func updateClock() {
+    private func updateClock() async {
         guard !stopped else { return }
         camera.expireStalePose()
         let now = RankedCamera.monotonicTime
@@ -224,9 +256,53 @@ final class RankedMatchController: ObservableObject {
         if stage == .live {
             frame.remaining = max(0, min(60, Int(ceil(endHost - now))))
             if now >= endHost {
-                stage = mode == .practice ? .result : .verifying
-                camera.stop()
+                if mode == .practice { await finishPractice(status: .completed) }
+                else { stage = .verifying; camera.stop() }
             }
+        }
+    }
+
+    private func finishPractice(status: RankedPracticeResult.Status) async {
+        if let finishingPractice { await finishingPractice.value; return }
+        guard mode == .practice, let startHost, let endHost, let practiceID, let practiceStartedAt else { return }
+        if practiceResult != nil { savePractice(); return }
+        let ended = RankedCamera.monotonicTime
+        guard ended >= startHost else {
+            self.startHost = nil
+            self.endHost = nil
+            self.practiceID = nil
+            self.practiceStartedAt = nil
+            stage = .camera
+            camera.stop()
+            return
+        }
+        stage = .verifying
+        let task = Task {
+            let finalState = await camera.finishTracking()
+            let ended = RankedCamera.monotonicTime
+            frame.yourScore = max(frame.yourScore, finalState.score)
+            practiceResult = RankedPracticeResult(
+                id: practiceID, accountID: practiceAccountID, variation: variation,
+                startedAt: practiceStartedAt, duration: min(60, max(0, ended - startHost)),
+                score: frame.yourScore, status: ended >= endHost ? .completed : status,
+                ruleVersion: RankedMovementRules.version
+            )
+            savePractice()
+            stage = .result
+        }
+        finishingPractice = task
+        await task.value
+        finishingPractice = nil
+    }
+
+    private func savePractice() {
+        guard let practiceResult, !practiceSaved else { return }
+        do {
+            try practiceStore.save(practiceResult)
+            practiceSaved = true
+            error = nil
+        } catch {
+            self.error = "Practice result was not saved. Retry before leaving. \(error.localizedDescription)"
         }
     }
 
