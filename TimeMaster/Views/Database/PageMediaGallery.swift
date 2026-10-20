@@ -63,13 +63,8 @@ struct PageMediaGallery: View {
                                 } label: {
                                     Label(comments[url] == nil ? "Add comment" : "Edit comment", systemImage: "bubble.left")
                                         .font(.subheadline.weight(.semibold))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 10)
-                                        .background(.thinMaterial, in: Capsule())
                                 }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(.white)
-                                .frame(minHeight: 44)
+                                .buttonStyle(TimeMasterActionButtonStyle())
                                 .frame(maxWidth: .infinity, alignment: .trailing)
                             }
                         }
@@ -322,7 +317,7 @@ struct PageMediaGalleryGrid: View {
             AsyncCoverImage(
                 url: url,
                 fallbackIcon: isVideo ? "play.rectangle.fill" : "photo",
-                fallbackColor: isVideo ? Theme.primary : nil,
+                fallbackColor: isVideo ? Theme.toolbarOrange : nil,
                 height: thumbnailHeight,
                 contentMode: .fill,
                 overlayGradient: false
@@ -331,7 +326,7 @@ struct PageMediaGalleryGrid: View {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(isCover ? Theme.primary : Theme.separator, lineWidth: isCover ? 2 : 1)
+                    .strokeBorder(isCover ? Theme.toolbarOrange : Theme.separator, lineWidth: isCover ? 2 : 1)
             }
             .overlay(alignment: .topLeading) {
                 if isCover {

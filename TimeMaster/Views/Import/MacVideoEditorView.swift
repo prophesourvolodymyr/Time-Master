@@ -80,7 +80,7 @@ struct MacVideoEditorView: View {
                     HStack {
                         Spacer()
                         Button("Done") { isFullscreen = false }
-                            .foregroundStyle(.white)
+                            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                             .padding()
                     }
                     Spacer()
@@ -167,6 +167,7 @@ struct MacVideoEditorView: View {
                         }
                     }
                 )
+                .tint(Theme.toolbarOrange)
                 .disabled(model.duration == 0)
 
                 Text(timeString(model.duration))
@@ -355,7 +356,7 @@ struct MacVideoEditorView: View {
                     model.selectDraft(id: draft.id)
                     draftForSaving = draft
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
 
                 Spacer()
 
@@ -415,16 +416,18 @@ struct MacVideoEditorView: View {
                 Button("Split", systemImage: "scissors") {
                     splitAtPlayhead()
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(TimeMasterActionButtonStyle())
                 .disabled(!canSplit || model.isProcessing)
                 Button("Still", systemImage: "camera") {
                     Task { await model.addStill() }
                 }
+                .buttonStyle(TimeMasterActionButtonStyle())
                 .disabled(model.duration == 0 || model.isProcessing)
 
                 Button("Add All", systemImage: "tray.and.arrow.down") {
                     Task { await model.addAllSegmentsToTray() }
                 }
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
                 .disabled(model.segments.isEmpty || model.isProcessing)
             }
 
@@ -483,7 +486,7 @@ struct MacVideoEditorView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
 
             Rectangle()
-                .fill(Color.accentColor)
+                .fill(Theme.toolbarOrange)
                 .frame(width: 2, height: trackHeight + 10)
                 .position(
                     x: max(1, min(width - 1, playheadX)),
@@ -508,7 +511,7 @@ struct MacVideoEditorView: View {
 
         return ZStack {
             RoundedRectangle(cornerRadius: 8)
-                .fill(isSelected ? Color.accentColor.opacity(0.78) : Color.blue.opacity(0.58))
+                .fill(isSelected ? Theme.toolbarOrange.opacity(0.78) : Color.blue.opacity(0.58))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.white.opacity(isSelected ? 0.85 : 0.25), lineWidth: 1)

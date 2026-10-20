@@ -110,7 +110,7 @@ struct BatchConfirmView: View {
                             Button("Create Video Library", systemImage: "folder.badge.plus") {
                                 createVideoLibrary()
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                         }
                         ForEach(nonEmptyItems) { item in
                             itemCard(item)

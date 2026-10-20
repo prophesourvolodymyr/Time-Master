@@ -68,7 +68,7 @@ struct LocalPostThreadView: View {
             .navigationBarTitleDisplayMode(.inline)
 #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button("Done") {
                         if !reply.isEmpty { confirmsDiscard = true } else { dismiss() }
                     }

@@ -469,9 +469,84 @@ enum SlotNavigationBarLayout: Equatable {
         isExpanded: Bool,
         isInteracting: Bool,
         isEditing: Bool,
-        isOverlayVisible: Bool
+        isOverlayVisible: Bool,
+        contentRequiresInline: Bool = false
     ) -> Self {
-        isExpanded || isInteracting || isEditing || isOverlayVisible ? .full : .inline
+        isExpanded || isInteracting || isEditing || isOverlayVisible || !contentRequiresInline ? .full : .inline
+    }
+}
+
+struct SlotNavigationClearanceContext: Equatable {
+    let page: String?
+    let viewport: CGRect
+    let placement: SlotNavigationPlacement
+    let dynamicTypeSize: DynamicTypeSize
+    var safeAreaInsets = EdgeInsets()
+    var archedHeight: CGFloat = 0
+}
+
+struct SlotNavigationContentClearance: Equatable {
+    var context: SlotNavigationClearanceContext?
+    var measuredArchedLayout = false
+    var controlCount = 0
+    var controlSize = CGSize.zero
+    var hasObstruction = false
+
+    static func assess(
+        control: CGRect, contentBounds: CGRect, viewport: CGRect,
+        placement: SlotNavigationPlacement, primaryAction: Bool, scrollBounds: CGRect?
+    ) -> (isRelevant: Bool, hasObstruction: Bool) {
+        guard isUsable(control), isUsable(contentBounds), isUsable(viewport),
+              control.intersects(viewport) else { return (false, false) }
+        if let scrollBounds {
+            guard primaryAction, isUsable(scrollBounds),
+                  control.intersects(scrollBounds) else { return (false, false) }
+        }
+        guard control.maxX > contentBounds.minX, control.minX < contentBounds.maxX else { return (false, false) }
+        let boundary = placement == .bottom ? contentBounds.maxY : contentBounds.minY
+        let clippedByMenu = placement == .bottom ? control.maxY > boundary + 1 : control.minY < boundary - 1
+        guard clippedByMenu else { return (true, false) }
+        if let scrollBounds {
+            return (true, placement == .bottom
+                ? scrollBounds.maxY >= boundary - 1
+                : scrollBounds.minY <= boundary + 1)
+        }
+        return (true, true)
+    }
+
+    private static func isUsable(_ rect: CGRect) -> Bool {
+        !rect.isInfinite && rect.origin.x.isFinite && rect.origin.y.isFinite
+            && rect.minX.isFinite && rect.minY.isFinite && rect.maxX.isFinite && rect.maxY.isFinite
+            && rect.size.width > 0 && rect.size.height > 0
+    }
+}
+
+struct SlotNavigationClearanceState {
+    private(set) var context: SlotNavigationClearanceContext?
+    private(set) var controlCount = 0
+    private var controlSize = CGSize.zero
+    private(set) var requiresInline = false
+    private var lastMeasuredArchedLayout: Bool?
+
+    func requiresInline(in context: SlotNavigationClearanceContext) -> Bool {
+        self.context == context && requiresInline
+    }
+
+    mutating func observe(_ measurement: SlotNavigationContentClearance) {
+        guard let context = measurement.context else { return }
+        let contextChanged = self.context != context
+        let controlsChanged = lastMeasuredArchedLayout == measurement.measuredArchedLayout
+            && (controlCount != measurement.controlCount || controlSize != measurement.controlSize)
+        if contextChanged || controlsChanged || measurement.controlCount == 0 {
+            requiresInline = false
+        }
+        self.context = context
+        controlCount = measurement.controlCount
+        controlSize = measurement.controlSize
+        lastMeasuredArchedLayout = measurement.measuredArchedLayout
+        if measurement.measuredArchedLayout && measurement.hasObstruction {
+            requiresInline = true
+        }
     }
 }
 // MARK: - Destinations

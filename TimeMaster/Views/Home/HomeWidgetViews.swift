@@ -411,7 +411,7 @@ struct HomeWidgetContent: View {
                         } label: {
                             Label(activity.finished ? "Review" : "Resume", systemImage: activity.finished ? "checkmark.circle" : "play.fill")
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
                     } else {
                         Text("Resume on iPhone")
                             .font(.caption.weight(.semibold))
@@ -739,7 +739,7 @@ private struct HomeActivityShortcutCircle: View {
 
     private var shortcutColor: Color {
         switch shortcut {
-        case .workout: .orange
+        case .workout: Theme.toolbarOrange
         case .runWalk: .green
         case .walk: .mint
         case .bike: .cyan

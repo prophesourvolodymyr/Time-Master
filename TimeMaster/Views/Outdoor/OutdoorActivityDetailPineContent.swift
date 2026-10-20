@@ -34,7 +34,7 @@ struct OutdoorActivityDetailPineContent: View {
                                 } label: {
                                     Image(systemName: activity.starred ? "star.fill" : "star")
                                         .font(.title2)
-                                        .foregroundStyle(activity.starred ? Theme.restAccent : Theme.textSecondary)
+                                        .foregroundStyle(activity.starred ? Theme.toolbarOrange : Theme.textSecondary)
                                         .frame(minWidth: 44, minHeight: 44)
                                 }
                                 .buttonStyle(.plain)
@@ -55,12 +55,13 @@ struct OutdoorActivityDetailPineContent: View {
                                     .overlay(alignment: .bottomTrailing) {
                                         Label("View on map", systemImage: "arrow.up.left.and.arrow.down.right")
                                             .font(.caption.weight(.semibold))
-                                            .padding(10)
-                                            .background(.regularMaterial, in: Capsule())
+                                            .padding(.horizontal, 14)
+                                            .frame(minHeight: 44)
+                                            .modifier(TimeMasterGlassSurface(cornerRadius: Theme.controlCornerRadius, isInteractive: true))
                                             .padding(10)
                                     }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(TimeMasterCardButtonStyle())
                             .disabled(points.isEmpty)
                             .accessibilityLabel("View the recorded route on the map")
                             .accessibilityHint("Closes the details pane until you return from the map")
@@ -80,10 +81,9 @@ struct OutdoorActivityDetailPineContent: View {
                         Button(role: .destructive) { showingDelete = true } label: {
                             Image(systemName: "trash")
                                 .font(.body.weight(.semibold))
-                                .foregroundStyle(.red)
                                 .frame(width: 44, height: 44)
                         }
-                        .buttonStyle(OutdoorAccessoryButtonStyle())
+                        .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                         .accessibilityFocused($deleteButtonFocused)
                         .accessibilityLabel("Delete workout")
                     }
@@ -164,7 +164,7 @@ struct OutdoorWorkoutEditor: View {
                 }
                 if let errorMessage { SwiftUI.Section { OutdoorInlineError(message: errorMessage) } }
             }
-            .tint(Theme.restAccent)
+            .tint(Theme.toolbarOrange)
             .navigationTitle("Edit workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

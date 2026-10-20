@@ -53,7 +53,7 @@ struct OutdoorFinishContent: View {
                             HStack {
                                 Label("Workout complete", systemImage: "checkmark.circle.fill")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Theme.restAccent)
+                                    .foregroundStyle(Theme.toolbarOrange)
                                 Spacer()
                                 Menu {
                                     Button("Delete workout", role: .destructive) { showingDelete = true }
@@ -88,7 +88,7 @@ struct OutdoorFinishContent: View {
                                 .padding(.top, 16)
                             }
                             .font(.subheadline.weight(.semibold))
-                            .tint(Theme.restAccent)
+                            .tint(Theme.toolbarOrange)
                             if !compact, expansion >= 0.4 {
                                 OutdoorRouteThumbnailView(points: points, cacheKey: activity.id.uuidString)
                             }
@@ -141,14 +141,14 @@ struct OutdoorFinishContent: View {
         Button { resume(activity) } label: {
             OutdoorPaneActionLabel(title: "Resume", systemImage: "play.fill", compact: compact)
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: compact))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: compact, minimumSize: compact ? 44 : 52))
         .accessibilityLabel("Resume workout")
         OutdoorExportShareControl(activity: exportDraft(activity), points: points, preferences: preferences, compact: true)
         Button { save(activity) } label: {
             if isSaving { ProgressView().frame(minWidth: 44, minHeight: 44) }
             else { OutdoorPaneActionLabel(title: "Save", systemImage: "checkmark", compact: compact) }
         }
-        .buttonStyle(OutdoorPineButtonStyle(prominent: true, circular: compact))
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, circular: compact, minimumSize: compact ? 44 : 52))
         .accessibilityLabel("Save workout")
         .accessibilityIdentifier("save-outdoor-workout")
     }
@@ -270,7 +270,7 @@ struct OutdoorExportShareControl: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .buttonStyle(OutdoorAccessoryButtonStyle())
+        .buttonStyle(TimeMasterActionButtonStyle(circular: compact))
         .accessibilityLabel("Share or export workout")
         .sheet(isPresented: $showingPicker) {
             NavigationStack {
@@ -300,7 +300,7 @@ struct OutdoorExportShareControl: View {
                         }
                     }
                 }
-                .tint(Theme.restAccent)
+                .tint(Theme.toolbarOrange)
                 .navigationTitle("Export workout")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

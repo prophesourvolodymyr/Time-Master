@@ -25,7 +25,7 @@ struct EverScreenHeader: View {
                 Button(actionTitle, action: action)
                     .font(TimeMasterFont.label())
                     .frame(minWidth: EverLayout.minimumTouchTarget, minHeight: EverLayout.minimumTouchTarget)
-                    .buttonStyle(EverSpecularButtonStyle(isPrimary: true))
+                    .buttonStyle(EverActionButtonStyle(isPrimary: true))
             }
         }
     }
@@ -137,30 +137,27 @@ struct EverStatusPill: View {
 }
 
 struct EverPrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(TimeMasterFont.label())
-            .foregroundStyle(isEnabled ? EverColor.onAccent : EverColor.disabledContent)
-            .frame(maxWidth: .infinity, minHeight: EverLayout.primaryButtonMinimum)
-            .padding(.horizontal, EverSpacing.x4)
-            .background(isEnabled ? EverColor.accent : EverColor.disabledSurface, in: RoundedRectangle(cornerRadius: EverRadius.button, style: .circular))
-            .modifier(EverSpecularButtonEffect(isPressed: configuration.isPressed, isEnabled: isEnabled, radius: EverRadius.button, isLightBase: true))
+        TimeMasterActionButtonStyle(
+            prominent: true,
+            minimumSize: 52,
+            fillsWidth: true,
+            horizontalPadding: EverSpacing.x4
+        )
+        .makeBody(configuration: configuration)
+        .font(TimeMasterFont.label())
     }
 }
 
 struct EverSecondaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(TimeMasterFont.label())
-            .foregroundStyle(isEnabled ? EverColor.textPrimary : EverColor.disabledContent)
-            .frame(maxWidth: .infinity, minHeight: EverLayout.primaryButtonMinimum)
-            .padding(.horizontal, EverSpacing.x4)
-            .background(EverColor.background, in: RoundedRectangle(cornerRadius: EverRadius.button, style: .circular))
-            .modifier(EverSpecularButtonEffect(isPressed: configuration.isPressed, isEnabled: isEnabled, radius: EverRadius.button))
+        TimeMasterActionButtonStyle(
+            minimumSize: 52,
+            fillsWidth: true,
+            horizontalPadding: EverSpacing.x4
+        )
+        .makeBody(configuration: configuration)
+        .font(TimeMasterFont.label())
     }
 }
 

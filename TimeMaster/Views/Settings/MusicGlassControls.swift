@@ -1,10 +1,6 @@
 import SwiftUI
 
-/// A compact, circular control for screen-level Music Library actions.
-///
-/// On iOS 26 and later this uses SwiftUI's native Liquid Glass surface. Older
-/// systems use a material surface with an explicit edge highlight so the
-/// control keeps the same hierarchy without imitating the newer API.
+/// A circular Music Library action using the shared Maps-style surface and press treatment.
 private enum MusicGlassMetrics {
     static let controlSize: CGFloat = 44
 }
@@ -15,7 +11,6 @@ public struct MusicGlassCircleButton<Label: View>: View {
     private let action: () -> Void
     private let label: () -> Label
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(
         accessibilityLabel: String,
@@ -45,35 +40,11 @@ public struct MusicGlassCircleButton<Label: View>: View {
                 .frame(width: MusicGlassMetrics.controlSize, height: MusicGlassMetrics.controlSize)
                 .contentShape(Circle())
         }
-        .buttonStyle(MusicGlassCircleButtonStyle(reduceMotion: reduceMotion))
-        .modifier(
-            TimeMasterPrivateGlassSurface(
-                cornerRadius: MusicGlassMetrics.controlSize / 2,
-                isInteractive: true
-            )
-        )
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: MusicGlassMetrics.controlSize))
         .accessibilityLabel(Text(accessibilityLabel))
     }
 }
 
-private struct MusicGlassCircleButtonStyle: ButtonStyle {
-    let reduceMotion: Bool
-
-    @ViewBuilder
-    func makeBody(configuration: Configuration) -> some View {
-        if reduceMotion {
-            configuration.label
-                .opacity(configuration.isPressed ? 0.78 : 1)
-        } else {
-            configuration.label
-                .scaleEffect(configuration.isPressed ? 0.93 : 1)
-                .animation(
-                    .spring(response: 0.22, dampingFraction: 0.88),
-                    value: configuration.isPressed
-                )
-        }
-    }
-}
 
 
 /// Adds a stationary fade at the visible edges of scrollable content.

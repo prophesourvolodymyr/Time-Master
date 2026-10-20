@@ -468,7 +468,7 @@ struct ExercisePageDetailView: View {
                     Label("Add", systemImage: "plus")
                         .font(.subheadline.weight(.semibold))
                 }
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(Theme.toolbarOrange)
             }
 
             ForEach(children) { child in
@@ -494,7 +494,7 @@ struct ExercisePageDetailView: View {
                     Label("Attach", systemImage: "link.badge.plus")
                         .font(.subheadline.weight(.semibold))
                 }
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(Theme.toolbarOrange)
             }
 
             if linkedPages.isEmpty {
@@ -642,15 +642,15 @@ private struct SkillPresentationPicker: View {
                             .padding(.horizontal, 13)
                             .padding(.vertical, 9)
                             .background(
-                                selection == presentation ? Theme.primary : Theme.surface2,
+                                selection == presentation ? Theme.toolbarOrange : Theme.surface2,
                                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                             )
                             .overlay {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .stroke(
                                         selection == presentation
-                                            ? Theme.primary
-                                            : Theme.primary.opacity(0.28),
+                                            ? Theme.toolbarOrange
+                                            : Theme.toolbarOrange.opacity(0.28),
                                         lineWidth: 1
                                     )
                             }
@@ -683,9 +683,9 @@ private struct SkillBoardSectionIconView: View {
                     .font(.system(size: size, weight: .semibold))
             }
         }
-        .foregroundStyle(Theme.primary)
+        .foregroundStyle(Theme.toolbarOrange)
         .frame(width: size + 8, height: size + 8)
-        .background(Theme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+        .background(Theme.toolbarOrange.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
     }
 }
 
@@ -747,13 +747,13 @@ private struct SkillSectionEditorSheet: View {
                                             .foregroundStyle(systemIcon == icon ? .black : Theme.textPrimary)
                                             .frame(maxWidth: .infinity, minHeight: 42)
                                             .background(
-                                                systemIcon == icon ? Theme.primary : Theme.surface,
+                                                systemIcon == icon ? Theme.toolbarOrange : Theme.surface,
                                                 in: RoundedRectangle(cornerRadius: 10)
                                             )
                                             .overlay {
                                                 RoundedRectangle(cornerRadius: 10)
                                                     .stroke(
-                                                        systemIcon == icon ? Theme.primary : Theme.primary.opacity(0.22),
+                                                        systemIcon == icon ? Theme.toolbarOrange : Theme.toolbarOrange.opacity(0.22),
                                                         lineWidth: 1
                                                     )
                                             }
@@ -793,13 +793,13 @@ private struct SkillSectionEditorSheet: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .background(
-                    iconType == type ? Theme.primary : Theme.surface,
+                    iconType == type ? Theme.toolbarOrange : Theme.surface,
                     in: RoundedRectangle(cornerRadius: 9)
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 9)
                         .stroke(
-                            iconType == type ? Theme.primary : Theme.primary.opacity(0.24),
+                            iconType == type ? Theme.toolbarOrange : Theme.toolbarOrange.opacity(0.24),
                             lineWidth: 1
                         )
                 }
@@ -867,13 +867,13 @@ private struct ContainerChildrenTabs: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                             .background(
-                                selectedTab == tab ? Theme.primary : Theme.surface2,
+                                selectedTab == tab ? Theme.toolbarOrange : Theme.surface2,
                                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                             )
                             .overlay {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .stroke(
-                                        selectedTab == tab ? Theme.primary : Theme.primary.opacity(0.25),
+                                        selectedTab == tab ? Theme.toolbarOrange : Theme.toolbarOrange.opacity(0.25),
                                         lineWidth: 1
                                     )
                             }
@@ -908,11 +908,8 @@ private struct ContainerChildrenTabs: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.headline.weight(.semibold))
-                            .frame(width: 38, height: 38)
-                            .foregroundStyle(Theme.primary)
-                            .modifier(TimeMasterToolbarIconSurface())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
                     .accessibilityLabel("Create skill in \(container.title)")
                 }
 
@@ -1005,7 +1002,7 @@ private struct SkillSectionList: View {
                     Label("Add Section", systemImage: "plus")
                         .font(.caption.weight(.semibold))
                 }
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(Theme.toolbarOrange)
             }
 
             if sections.isEmpty {
@@ -1219,7 +1216,7 @@ private struct SkillTableBoardView: View {
                     Label("Add Section", systemImage: "plus")
                         .font(.caption.weight(.semibold))
                 }
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(Theme.toolbarOrange)
             }
 
             ScrollView(.horizontal, showsIndicators: true) {
@@ -1481,11 +1478,8 @@ struct ContainerCategoryPage: View {
                                 createSkillButton {
                                     Image(systemName: "plus")
                                         .font(.headline.weight(.semibold))
-                                        .frame(width: 38, height: 38)
-                                        .foregroundStyle(Theme.primary)
-                                        .modifier(TimeMasterToolbarIconSurface())
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(TimeMasterToolbarIconButtonStyle())
                                 .accessibilityLabel("Create skill in \(container.title)")
                                 .oneHandedActionSource()
                             }
@@ -1613,7 +1607,7 @@ private struct LinkedPagePickerSheet: View {
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: selectedIDs.contains(candidate.manifest.id) ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(selectedIDs.contains(candidate.manifest.id) ? Theme.primary : Theme.textSecondary)
+                                    .foregroundStyle(selectedIDs.contains(candidate.manifest.id) ? Theme.toolbarOrange : Theme.textSecondary)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(candidate.title)
                                         .foregroundStyle(Theme.textPrimary)
@@ -1686,7 +1680,7 @@ private func skillStatusLabel(_ status: SkillStatus) -> String {
 private func skillStatusColor(_ status: SkillStatus) -> Color {
     switch status {
     case .notStarted: Theme.textSecondary
-    case .learning: Theme.primary
+    case .learning: Theme.toolbarOrange
     case .completed: Color(hex: "B6E9BF")
     }
 }

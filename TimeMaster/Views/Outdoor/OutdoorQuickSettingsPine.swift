@@ -77,7 +77,7 @@ struct OutdoorQuickSettingsPine: View {
                                 Image(systemName: showOfflineDetails ? "chevron.up" : "chevron.right")
                                     .font(.caption2.weight(.bold))
                             }
-                            .foregroundStyle(Theme.restAccent)
+                            .foregroundStyle(Theme.toolbarOrange)
                         }
                     }
                     .buttonStyle(.plain)
@@ -117,7 +117,7 @@ struct OutdoorQuickSettingsPine: View {
                                 Image(systemName: "chevron.right")
                                     .font(.caption2.weight(.bold))
                             }
-                            .foregroundStyle(Theme.restAccent)
+                            .foregroundStyle(Theme.toolbarOrange)
                         }
                     }
                     .buttonStyle(.plain)
@@ -259,7 +259,7 @@ struct OutdoorQuickSettingsPine: View {
                 Text("500 m").tag(500)
             }
             .pickerStyle(.menu)
-            .tint(Theme.restAccent)
+            .tint(Theme.toolbarOrange)
         }
     }
 
@@ -298,7 +298,7 @@ struct OutdoorQuickSettingsPine: View {
                             .font(.caption2.weight(.semibold))
                         }
                         ProgressView(value: download.fractionCompleted)
-                            .tint(Theme.restAccent)
+                            .tint(Theme.toolbarOrange)
                             .accessibilityLabel("Offline map download progress")
                             .accessibilityValue(Text(download.fractionCompleted, format: .percent))
                     }
@@ -347,7 +347,7 @@ struct OutdoorQuickSettingsPine: View {
         settingRowLabel(title: title, subtitle: subtitle, systemImage: systemImage) {
             Toggle(title, isOn: binding)
                 .labelsHidden()
-                .tint(Theme.restAccent)
+                .tint(Theme.toolbarOrange)
                 .disabled(!isEnabled)
                 .accessibilityLabel(title)
                 .accessibilityValue(binding.wrappedValue ? "On" : "Off")
@@ -370,7 +370,7 @@ struct OutdoorQuickSettingsPine: View {
                 }
             }
             .pickerStyle(.menu)
-            .tint(Theme.restAccent)
+            .tint(Theme.toolbarOrange)
             .accessibilityLabel(title)
             .accessibilityValue(titleForValue(selection.wrappedValue))
         }
@@ -380,7 +380,7 @@ struct OutdoorQuickSettingsPine: View {
         HStack(alignment: .center, spacing: 9) {
             Image(systemName: systemImage)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.restAccent)
+                .foregroundStyle(Theme.toolbarOrange)
                 .frame(width: 24)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {

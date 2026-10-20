@@ -17,7 +17,6 @@
 		01BA29675C5B96EED094BF07 /* EverPillTabLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A27C48FA9BA59EBAF68A0F /* EverPillTabLabel.swift */; };
 		026A76A2FDAEE70DC0D52521 /* ProfileMembershipConfettiMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F8A57D98601C655821199E /* ProfileMembershipConfettiMac.swift */; };
 		0296EE5247DE6E6AB32D966E /* ProfileVerificationBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84477FBD678CB4B72F30921 /* ProfileVerificationBadge.swift */; };
-		02CF516ECBF0AD6AF038DEF8 /* LiquidGlassKit in Frameworks */ = {isa = PBXBuildFile; productRef = E1F2E895BBE5E9609E17ECAA /* LiquidGlassKit */; };
 		03447B137A25C3CE4E719FF9 /* OutdoorWeatherKitAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1DAA5F8821CDF4789BC0D1A /* OutdoorWeatherKitAdapter.swift */; };
 		035704F3EF5E2746903894C4 /* PageMediaGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D163AA4744C0E86692930FB6 /* PageMediaGallery.swift */; };
 		03F7A4C3ACB31CC61B8F4B38 /* DatabasePageBrowserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC65261AB128B4346DD0F22 /* DatabasePageBrowserSheet.swift */; };
@@ -60,7 +59,7 @@
 		14A9A6B4074B29F3C763D2F9 /* OutdoorOfflinePlaceIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC1B5D451A1C70EE24C65C10 /* OutdoorOfflinePlaceIndex.swift */; };
 		1558E754036592B4167EBD04 /* OutdoorOfflineAreasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E4AFB73EE943A20594B5A9 /* OutdoorOfflineAreasView.swift */; };
 		15B20E94E62C194E03C71187 /* CollectibleBadgeSkin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1CA336BEBA420F79D3409DF /* CollectibleBadgeSkin.swift */; };
-		163AA4E32C4E8BD3F77A991F /* PrivateLiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */; };
+		163AA4E32C4E8BD3F77A991F /* TimeMasterGlassControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* TimeMasterGlassControls.swift */; };
 		1721B0FEDD18A9A1C6044358 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08AAEB576B7DB134E5212C54 /* AIStore.swift */; };
 		178D5EA64B0BB4B4288F96E5 /* WorkoutResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */; };
 		17A90C7549024F36781B5B74 /* ProfileDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587FF305905A736E4291C57A /* ProfileDesign.swift */; };
@@ -125,7 +124,7 @@
 		32C3F52FBE05CFD0BF9867DB /* OutdoorTripService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B34E5635E729208DA51B19 /* OutdoorTripService.swift */; };
 		33B91A2434A40488D46D3D2F /* OutdoorRideEndToEndTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */; };
 		33E739BF7130062B8901B5E2 /* ScheduleEntryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9E367E393C1744ED9CDFE8 /* ScheduleEntryEditor.swift */; };
-		344529B60298C2240393C5F9 /* EverSpecularButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903C48E6D84B5EF591621A28 /* EverSpecularButtonStyle.swift */; };
+		344529B60298C2240393C5F9 /* EverActionButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903C48E6D84B5EF591621A28 /* EverActionButtonStyle.swift */; };
 		344CCE3A3041DF7CF91A7444 /* ReachabilityGestureBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5DF0B2ACB9645B869DB42BB /* ReachabilityGestureBridge.swift */; };
 		34D564A8DBFB52547B884647 /* ScheduleFlame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E18F35F19D71C706F049CDC /* ScheduleFlame.swift */; };
 		34EEDD619D2CC4FB2EAB1265 /* OutdoorLibraryContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B365EF6F42049DD314787EF /* OutdoorLibraryContent.swift */; };
@@ -330,8 +329,8 @@
 		9B6DF421F0E78AE68E236CF1 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50404F48596B5A3F12EDB777 /* DesignTokens.swift */; };
 		9CC9684997DA3660B5666198 /* ExerciseAISettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C292D5EBD8FE623151401D3B /* ExerciseAISettingsView.swift */; };
 		9CCD24B9A2CE8065FDD8507D /* ExercisePageOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7BFAD21B9B1C17B9DE368D /* ExercisePageOverlay.swift */; };
-		9CE5F2326BA858138E1E243C /* PrivateLiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */; };
-		9CF3686408BC43039A09DA1D /* EverSpecularButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903C48E6D84B5EF591621A28 /* EverSpecularButtonStyle.swift */; };
+		9CE5F2326BA858138E1E243C /* TimeMasterGlassControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B8D0B299BE9EADEB23A74D6 /* TimeMasterGlassControls.swift */; };
+		9CF3686408BC43039A09DA1D /* EverActionButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903C48E6D84B5EF591621A28 /* EverActionButtonStyle.swift */; };
 		9D2178E3D124854214B69513 /* OutdoorTripMapStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23181D748CCAECF6ADD988AC /* OutdoorTripMapStyle.swift */; };
 		9DBC3465A8A4F651A166770E /* OutdoorRideSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3EBE0E3B5F2BD49A8C6C802 /* OutdoorRideSafetyTests.swift */; };
 		9F976B9F3D89DFDDA316DF47 /* ReachabilityGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26C2885600C62CFD6DF8B035 /* ReachabilityGeometry.swift */; };
@@ -646,7 +645,7 @@
 		26AC4F7C7EFFB1CD39BC51FE /* ImportedProfileControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedProfileControls.swift; sourceTree = "<group>"; };
 		26C2885600C62CFD6DF8B035 /* ReachabilityGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityGeometry.swift; sourceTree = "<group>"; };
 		282193241415BB7A32B3786C /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
-		2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivateLiquidGlass.swift; sourceTree = "<group>"; };
+		2B8D0B299BE9EADEB23A74D6 /* TimeMasterGlassControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterGlassControls.swift; sourceTree = "<group>"; };
 		2D4DE30F7F34FC710FFA43F9 /* OutdoorUpperQuickPine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorUpperQuickPine.swift; sourceTree = "<group>"; };
 		2E8598895ADD6B3F640D7C53 /* SettingsDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDestination.swift; sourceTree = "<group>"; };
 		2E89B236DA27477DE058ABD6 /* ToolRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRouter.swift; sourceTree = "<group>"; };
@@ -750,7 +749,7 @@
 		8E18F35F19D71C706F049CDC /* ScheduleFlame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleFlame.swift; sourceTree = "<group>"; };
 		8EAE79631040FBF42F00924E /* OutdoorPineGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorPineGlass.swift; sourceTree = "<group>"; };
 		901825E1313282F9A698669C /* WorkoutPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPickerSheet.swift; sourceTree = "<group>"; };
-		903C48E6D84B5EF591621A28 /* EverSpecularButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EverSpecularButtonStyle.swift; sourceTree = "<group>"; };
+		903C48E6D84B5EF591621A28 /* EverActionButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EverActionButtonStyle.swift; sourceTree = "<group>"; };
 		9088C4DC6C587F8ED0148471 /* RankedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedView.swift; sourceTree = "<group>"; };
 		9230F02AB8D6DD1D8D9C8133 /* OutdoorTripPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripPlannerView.swift; sourceTree = "<group>"; };
 		9307001A6FC7FD76022967AE /* SlotNavigationArc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlotNavigationArc.swift; sourceTree = "<group>"; };
@@ -905,7 +904,6 @@
 				36662D83C3CB3D8D357DEB4C /* ZIPFoundation in Frameworks */,
 				7B53FEBE75247574E2D513E2 /* SwiftMP3 in Frameworks */,
 				AAD684B85FF8425C89AC4A5E /* MapLibre in Frameworks */,
-				02CF516ECBF0AD6AF038DEF8 /* LiquidGlassKit in Frameworks */,
 				BAFFF55FD1388086FEC622F9 /* TimeMasterCore in Frameworks */,
 				F25D55AB2F0170A3CD2135B4 /* TimeMasterRouting in Frameworks */,
 				25886880839A7EE718451D32 /* libsqlite3.tbd in Frameworks */,
@@ -1110,7 +1108,7 @@
 				A9F596DD500BCC620B6E3318 /* MusicManager.swift */,
 				AADDE983BD98A183CACB5A0A /* NotificationManager.swift */,
 				C66B50B0364426A1FB53608A /* PhotoManager.swift */,
-				2B8D0B299BE9EADEB23A74D6 /* PrivateLiquidGlass.swift */,
+				2B8D0B299BE9EADEB23A74D6 /* TimeMasterGlassControls.swift */,
 				345F9AD6087284292868BA1B /* ProfileChrome.swift */,
 				587FF305905A736E4291C57A /* ProfileDesign.swift */,
 				F807BCDB518D68ED40746740 /* Theme.swift */,
@@ -1290,7 +1288,7 @@
 				0919F70FDD8945E7DE735277 /* EverScrollShutter.metal */,
 				C5AAE4E222E4202FC4A0D3D3 /* EverSpacetime.metal */,
 				F7EF354272EE0915038117F9 /* EverSpacetimeCanvas.swift */,
-				903C48E6D84B5EF591621A28 /* EverSpecularButtonStyle.swift */,
+				903C48E6D84B5EF591621A28 /* EverActionButtonStyle.swift */,
 				E165B27B8BF5FC1F4E7CB844 /* MotionTokens.swift */,
 				A8875009322F4382C939D9A2 /* StoreArtwork.swift */,
 				4070015FB36AE9ADCD9E3BBF /* StoreArtworkStyle.swift */,
@@ -1586,7 +1584,6 @@
 				85E2120C60EC88EBCAB370DF /* ZIPFoundation */,
 				08B40C23A0D2EC5ACDFA623B /* SwiftMP3 */,
 				9657EC7E161B4E4B7E8855A2 /* MapLibre */,
-				E1F2E895BBE5E9609E17ECAA /* LiquidGlassKit */,
 				252C84030B2F7B9008ABFAF3 /* TimeMasterCore */,
 				E42E87AE1754A57B981C7CB4 /* TimeMasterRouting */,
 			);
@@ -1627,7 +1624,6 @@
 			mainGroup = C70E59D4A6468EC75DF66FD0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				9E5451DFC05F1DB9FFA97E90 /* XCRemoteSwiftPackageReference "LiquidGlassKit" */,
 				ADCDE9D1DDDAC1397586B4EA /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */,
 				C73D7CF2D7D649BC79CEB2B6 /* XCRemoteSwiftPackageReference "swift-mp3" */,
 				D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
@@ -1720,7 +1716,7 @@
 				CFCFFDF09B37D18FE4BB1560 /* EverScrollShutter.metal in Sources */,
 				382B6B5883B9104541493D70 /* EverSpacetime.metal in Sources */,
 				1304AA5A6EDDB7CADB124B0A /* EverSpacetimeCanvas.swift in Sources */,
-				344529B60298C2240393C5F9 /* EverSpecularButtonStyle.swift in Sources */,
+				344529B60298C2240393C5F9 /* EverActionButtonStyle.swift in Sources */,
 				82DB6A336E75B5E7CB4FC3F6 /* ExerciseAISettingsView.swift in Sources */,
 				E43BC31D1ACC34BC8B287DBD /* ExerciseDatabase.swift in Sources */,
 				0A8D5CD3B048420DD121192F /* ExerciseNamingService.swift in Sources */,
@@ -1837,7 +1833,7 @@
 				8ACEDC7512FEB9A0F8708243 /* PageTreeBuilder.swift in Sources */,
 				915FEE50E6150A07D9782D4E /* PhotoManager.swift in Sources */,
 				C86E9068EFDC9ACF3D897A0E /* PlannedRoute.swift in Sources */,
-				9CE5F2326BA858138E1E243C /* PrivateLiquidGlass.swift in Sources */,
+				9CE5F2326BA858138E1E243C /* TimeMasterGlassControls.swift in Sources */,
 				736FA91C75523689C2804E20 /* ProfileAchievementShield.swift in Sources */,
 				BE403A955DCCF47DA3FEF705 /* ProfileAchievementsView.swift in Sources */,
 				F6852AD700DB7C454223A6A5 /* ProfileCheckmarkEntryButton.swift in Sources */,
@@ -1990,7 +1986,7 @@
 				B94058E766F94A028FC62C8E /* EverScrollShutter.metal in Sources */,
 				E327CFB3140AE60E39808425 /* EverSpacetime.metal in Sources */,
 				A4FAB14D41A18A949326ABED /* EverSpacetimeCanvas.swift in Sources */,
-				9CF3686408BC43039A09DA1D /* EverSpecularButtonStyle.swift in Sources */,
+				9CF3686408BC43039A09DA1D /* EverActionButtonStyle.swift in Sources */,
 				9CC9684997DA3660B5666198 /* ExerciseAISettingsView.swift in Sources */,
 				96444760F84DA562E3C1E961 /* ExerciseDatabase.swift in Sources */,
 				2961777529AC80F2A9570C32 /* ExerciseNamingService.swift in Sources */,
@@ -2107,7 +2103,7 @@
 				EBE639AA663B35B414DACED6 /* PageTreeBuilder.swift in Sources */,
 				231E7E1E2C99753E61EBEE54 /* PhotoManager.swift in Sources */,
 				A914ED0F4CEBF37A0F126AB9 /* PlannedRoute.swift in Sources */,
-				163AA4E32C4E8BD3F77A991F /* PrivateLiquidGlass.swift in Sources */,
+				163AA4E32C4E8BD3F77A991F /* TimeMasterGlassControls.swift in Sources */,
 				B7C34D7C3C6C172A02C40B4B /* ProfileAchievementShield.swift in Sources */,
 				B7868EF5D1523367F336E150 /* ProfileAchievementsView.swift in Sources */,
 				9A450BC03988149AA5ACA382 /* ProfileCheckmarkEntryButton.swift in Sources */,
@@ -2731,14 +2727,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		9E5451DFC05F1DB9FFA97E90 /* XCRemoteSwiftPackageReference "LiquidGlassKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ThijsMussig/LiquidGlassKit";
-			requirement = {
-				kind = revision;
-				revision = 51ef8d187a466345882b90d281865ceec7bad3b0;
-			};
-		};
 		ADCDE9D1DDDAC1397586B4EA /* XCRemoteSwiftPackageReference "maplibre-gl-native-distribution" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/maplibre/maplibre-gl-native-distribution";
@@ -2802,11 +2790,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D7F3042714C3A535D64E4761 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
-		};
-		E1F2E895BBE5E9609E17ECAA /* LiquidGlassKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 9E5451DFC05F1DB9FFA97E90 /* XCRemoteSwiftPackageReference "LiquidGlassKit" */;
-			productName = LiquidGlassKit;
 		};
 		E42E87AE1754A57B981C7CB4 /* TimeMasterRouting */ = {
 			isa = XCSwiftPackageProductDependency;

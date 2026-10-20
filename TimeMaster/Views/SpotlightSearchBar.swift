@@ -53,7 +53,7 @@ struct SpotlightSearchBar<Accessory: View>: View {
                     Image(systemName: "xmark")
                         .font(.body.weight(.semibold))
                 }
-                .buttonStyle(SpotlightCircleButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 48))
                 .accessibilityLabel("Close search")
                 .keyboardShortcut(.cancelAction)
             } else {
@@ -103,19 +103,3 @@ struct SpotlightSearchBar<Accessory: View>: View {
     }
 }
 
-struct SpotlightCircleButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Theme.textPrimary)
-            .frame(width: 48, height: 48)
-            .background(reduceTransparency ? AnyShapeStyle(Theme.surface2) : AnyShapeStyle(.regularMaterial), in: Circle())
-            .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
-            .contentShape(Circle())
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
-            .opacity(configuration.isPressed ? 0.75 : 1)
-            .animation(reduceMotion ? .none : .spring(response: 0.24, dampingFraction: 0.85), value: configuration.isPressed)
-    }
-}

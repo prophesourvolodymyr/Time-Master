@@ -1,14 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "liquidglasskit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ThijsMussig/LiquidGlassKit",
-      "state" : {
-        "revision" : "51ef8d187a466345882b90d281865ceec7bad3b0"
-      }
-    },
-    {
       "identity" : "maplibre-gl-native-distribution",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/maplibre/maplibre-gl-native-distribution",

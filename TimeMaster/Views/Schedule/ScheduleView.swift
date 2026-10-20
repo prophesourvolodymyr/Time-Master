@@ -139,7 +139,7 @@ struct ScheduleView: View {
             ScrollingChromeControl(systemImage: icon, title: title, progress: progress, width: width, height: height)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel(title)
         .help(title)
     }

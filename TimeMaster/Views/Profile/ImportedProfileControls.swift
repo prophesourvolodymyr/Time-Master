@@ -18,7 +18,7 @@ extension ProfileView {
                 .frame(width: EverLayout.minimumTouchTarget, height: EverLayout.minimumTouchTarget)
                 .contentShape(Circle())
         }
-        .buttonStyle(EverSpecularButtonStyle(radius: EverLayout.minimumTouchTarget / 2, horizontalPadding: 0))
+        .buttonStyle(TimeMasterToolbarIconButtonStyle())
         .accessibilityLabel("Collectibles")
         .accessibilityIdentifier("profile-marketplace")
     }
@@ -31,7 +31,7 @@ extension ProfileView {
                 .frame(width: size, height: size)
                 .contentShape(Circle())
         }
-        .buttonStyle(EverSpecularButtonStyle(radius: size / 2, horizontalPadding: 0))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: size))
         .accessibilityLabel("Back")
         .accessibilityIdentifier("profile-back")
     }
@@ -45,7 +45,7 @@ extension ProfileView {
                 .frame(width: size, height: size)
                 .contentShape(Circle())
         }
-        .buttonStyle(EverSpecularButtonStyle(radius: size / 2, horizontalPadding: 0))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: size))
         .accessibilityLabel("Profile actions")
         .accessibilityIdentifier("profile-options")
     }

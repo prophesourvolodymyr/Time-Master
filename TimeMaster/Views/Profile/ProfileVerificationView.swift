@@ -115,10 +115,7 @@ struct ProfileVerificationView: View {
                     Image(systemName: "chevron.left")
                         .frame(width: EverLayout.minimumTouchTarget, height: EverLayout.minimumTouchTarget)
                 }
-                .buttonStyle(EverSpecularButtonStyle(
-                    radius: EverLayout.minimumTouchTarget / 2,
-                    horizontalPadding: 0
-                ))
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
                 .accessibilityLabel("Back")
                 .accessibilityIdentifier("pro-back")
             }

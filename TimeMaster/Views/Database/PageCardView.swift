@@ -34,7 +34,7 @@ struct PageCardView: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: isGridMode ? 14 : 10)
-                .stroke(isDropTargeted ? Theme.primary : Color.clear, lineWidth: 2)
+                .stroke(isDropTargeted ? Theme.toolbarOrange : Color.clear, lineWidth: 2)
         }
     }
 

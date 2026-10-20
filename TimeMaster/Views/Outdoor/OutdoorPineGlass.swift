@@ -2,22 +2,6 @@
 import SwiftUI
 import UIKit
 
-struct OutdoorFrostedGlassBackground: UIViewRepresentable {
-    let style: UIBlurEffect.Style
-
-    init(style: UIBlurEffect.Style = .systemMaterialDark) {
-        self.style = style
-    }
-
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
-        view.isUserInteractionEnabled = false
-        view.backgroundColor = .clear
-        return view
-    }
-
-    func updateUIView(_ view: UIVisualEffectView, context: Context) {}
-}
 
 struct OutdoorPineGlassSurface<Content: View>: View {
     let identity: String
@@ -102,7 +86,7 @@ struct OutdoorPineGlassSurface<Content: View>: View {
     private var fallbackSurface: some View {
         content()
             .background {
-                if !solid { OutdoorFrostedGlassBackground() }
+                if !solid { TimeMasterFrostedGlassBackground() }
                 RoundedRectangle(cornerRadius: flat ? 0 : cornerRadius, style: .continuous)
                     .fill(Theme.surface.opacity(solid ? 1 : 0.20))
             }
@@ -113,78 +97,6 @@ struct OutdoorPineGlassSurface<Content: View>: View {
             }
     }
 
-}
-struct OutdoorPineButtonStyle: ButtonStyle {
-    let prominent: Bool
-    let circular: Bool
-    let minimumSize: CGFloat
-    let expansion: CGFloat
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    init(prominent: Bool = false, circular: Bool = false, minimumSize: CGFloat = 44, expansion: CGFloat = 1) {
-        self.prominent = prominent
-        self.circular = circular
-        self.minimumSize = minimumSize
-        self.expansion = min(1, max(0, expansion))
-    }
-
-    func makeBody(configuration: Configuration) -> some View {
-        let tintOpacity = prominent ? 0.58 : 0.46
-        return material(
-            configuration.label
-                .padding(.horizontal, circular ? 0 : 8 * expansion)
-                .frame(width: circular ? minimumSize : nil, height: circular ? minimumSize : nil)
-                .frame(minWidth: minimumSize, minHeight: minimumSize)
-                .foregroundStyle(Theme.textPrimary)
-                .background {
-                    shape
-                        .fill(
-                            reduceTransparency
-                                ? Theme.toolbarOrange.opacity(0.9)
-                                : Theme.toolbarOrange.opacity(tintOpacity)
-                        )
-                }
-                .overlay {
-                    shape.strokeBorder(
-                        Color.white.opacity(reduceTransparency ? 0.32 : 0.18),
-                        lineWidth: 1
-                    )
-                }
-        )
-        .clipShape(shape)
-        .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.94)
-        .opacity(configuration.isPressed ? 0.86 : 1)
-        .animation(
-            reduceMotion ? .none : .spring(response: 0.24, dampingFraction: 0.88),
-            value: configuration.isPressed
-        )
-        .contentShape(shape)
-    }
-
-    @ViewBuilder
-    private func material<Content: View>(_ content: Content) -> some View {
-        if reduceTransparency {
-            content
-        } else if #available(iOS 26.0, *) {
-            content
-                .glassEffect(
-                    .regular.tint(Theme.toolbarOrange).interactive(),
-                    in: shape
-                )
-        } else {
-            content
-                .background {
-                    OutdoorFrostedGlassBackground()
-                    shape.fill(Theme.toolbarOrange.opacity(0.24))
-                }
-        }
-    }
-
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: circular ? minimumSize / 2 : minimumSize / 2 + (14 - minimumSize / 2) * expansion, style: .continuous)
-    }
 }
 
 struct OutdoorPineIconAction: View {
@@ -201,7 +113,7 @@ struct OutdoorPineIconAction: View {
             Image(systemName: symbol)
                 .font(.system(size: max(15, size * 0.36), weight: .semibold))
         }
-        .buttonStyle(OutdoorPineButtonStyle(prominent: prominent, circular: true, minimumSize: max(44, size)))
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: prominent, circular: true, minimumSize: max(44, size)))
         .disabled(disabled)
         .accessibilityLabel(label)
     }
@@ -237,7 +149,7 @@ struct OutdoorPineTileAction: View {
             }
             .frame(maxWidth: .infinity, minHeight: 82)
         }
-        .buttonStyle(OutdoorPineButtonStyle())
+        .buttonStyle(TimeMasterActionButtonStyle())
         .accessibilityLabel(title)
     }
 }
@@ -265,7 +177,7 @@ struct OutdoorPinePrimaryAction: View {
             }
             .frame(maxWidth: .infinity, minHeight: 52)
         }
-        .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
         .disabled(disabled)
         .accessibilityIdentifier(identifier)
     }

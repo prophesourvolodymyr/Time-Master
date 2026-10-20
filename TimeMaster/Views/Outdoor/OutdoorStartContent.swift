@@ -15,7 +15,7 @@ struct OutdoorStartContent: View, Animatable {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @ScaledMetric(relativeTo: .caption) private var labelHeight: CGFloat = 16
     @ScaledMetric(relativeTo: .body) private var minimumContentHeight = OutdoorPineGeometry.minimumMainContentHeight
-    @ScaledMetric(relativeTo: .title2) private var primaryDiameter: CGFloat = 94
+    @ScaledMetric(relativeTo: .title2) private var primarySize: CGFloat = 94
     @State private var recentRouteID: UUID?
     @State private var recentRoutePoints: [OutdoorTrackPoint] = []
 
@@ -35,7 +35,8 @@ struct OutdoorStartContent: View, Animatable {
                 VStack(spacing: 8) {
                     GeometryReader { proxy in
                         let sideSize = max(44, min(44 + 28 * expansion, proxy.size.width * 0.19, proxy.size.height * 0.6))
-                        let diameter = max(44, min(primaryDiameter + 138 * expansion, proxy.size.width * (0.42 + 0.06 * expansion), proxy.size.height * 0.9, proxy.size.width - 2 * sideSize - 32 - 8 * expansion))
+                        let primaryWidth = max(52, min(primarySize + 138 * expansion, proxy.size.width * (0.42 + 0.06 * expansion), proxy.size.width - 2 * sideSize - 32 - 8 * expansion))
+                        let primaryHeight = max(52, min(primarySize + 44 * expansion, proxy.size.height * 0.9, primaryWidth * 0.72))
                         HStack(spacing: 16 + 4 * expansion) {
                             Button(action: onLibrary) {
                                 VStack(spacing: 6 * labelProgress) {
@@ -54,7 +55,7 @@ struct OutdoorStartContent: View, Animatable {
                                         }
                                     }
                                     .frame(width: sideSize, height: sideSize)
-                                    .background(Theme.surface2.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .modifier(TimeMasterGlassSurface(cornerRadius: sideSize / 2, isInteractive: true))
                                     Text("Library")
                                         .font(.caption.weight(.semibold))
                                         .lineLimit(1)
@@ -64,26 +65,20 @@ struct OutdoorStartContent: View, Animatable {
                                         .clipped()
                                 }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(TimeMasterCardButtonStyle())
                             .accessibilityLabel("Library")
                             .accessibilityHint(recentRouteID == nil ? "Opens your recorded workouts" : "Shows your latest recorded route. Opens your workout library")
 
                             Button(action: onStart) {
                                 VStack(spacing: 4) {
-                                    Text("Start").font(.system(size: 24, weight: .bold, design: .rounded))
-                                    Text(committedKind.displayName).font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    Text("Start").font(.system(size: 24 + 8 * expansion, weight: .bold, design: .rounded))
+                                    Text(committedKind.displayName).font(.system(size: 16 + 4 * expansion, weight: .semibold, design: .rounded))
                                 }
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.4)
-                                .foregroundStyle(Theme.textPrimary)
-                                .padding(94 * 0.14)
-                                .frame(width: 94, height: 94)
-                                .scaleEffect(diameter / 94)
-                                .frame(width: diameter, height: diameter)
-                                .background(Theme.restAccent, in: Circle())
-                                .overlay(Circle().strokeBorder(Color.white.opacity(0.4), lineWidth: 1))
+                                .frame(width: max(0, primaryWidth - 28), height: primaryHeight)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                             .accessibilityLabel("Start \(committedKind.displayName) recording")
 
                             Button { onFeature(.route) } label: {
@@ -93,7 +88,7 @@ struct OutdoorStartContent: View, Animatable {
                                         .scaledToFit()
                                         .frame(width: 24 + (sideSize * 0.5 - 24) * expansion, height: 24 + (sideSize * 0.5 - 24) * expansion)
                                         .frame(width: sideSize, height: sideSize)
-                                        .background(Theme.surface2.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                        .modifier(TimeMasterGlassSurface(cornerRadius: sideSize / 2, isInteractive: true))
                                     Text("Routes")
                                         .font(.caption.weight(.semibold))
                                         .lineLimit(1)
@@ -103,7 +98,7 @@ struct OutdoorStartContent: View, Animatable {
                                         .clipped()
                                 }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(TimeMasterCardButtonStyle())
                             .accessibilityLabel("Routes")
                         }
                         .frame(width: proxy.size.width, height: proxy.size.height)
@@ -159,10 +154,8 @@ struct OutdoorStartContent: View, Animatable {
                     .clipped()
             }
             .frame(maxWidth: .infinity, minHeight: height)
-            .foregroundStyle(activeFeature == feature ? Theme.restAccent : Theme.textPrimary.opacity(0.8))
-            .background(activeFeature == feature ? Theme.restAccent.opacity(0.16) : .clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: activeFeature == feature))
         .accessibilityLabel(feature == .type ? "Workout type" : feature.title)
         .accessibilityValue(feature == .type ? committedKind.displayName : activeFeature == feature ? "Open" : "Closed")
     }

@@ -105,7 +105,7 @@ public struct MusicGuideOverlay: View {
     @State private var replayTimestamps: [MusicGuideStep: Date] = [:]
 
     private let chatHeight: CGFloat = 224
-    private let orange = Color(red: 1.0, green: 0.478, blue: 0.0)
+    private let orange = Theme.toolbarOrange
 
     public init(
         isPresented: Binding<Bool>,
@@ -218,22 +218,7 @@ public struct MusicGuideOverlay: View {
             finish(.skipped)
         }
         .font(.system(size: 11, weight: .semibold))
-        .foregroundStyle(Color.white.opacity(0.86))
-        .padding(.horizontal, 12)
-        .frame(height: 32)
-        .background {
-            Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    Capsule(style: .continuous)
-                        .fill(Color.black.opacity(0.36))
-                }
-                .overlay {
-                    Capsule(style: .continuous)
-                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                }
-        }
-        .contentShape(Capsule(style: .continuous))
+        .buttonStyle(TimeMasterActionButtonStyle())
         .accessibilityHint("Closes the Music guide")
         .padding(.top, 50)
         .padding(.trailing, 14)
@@ -349,20 +334,8 @@ public struct MusicGuideOverlay: View {
                 .font(.system(size: 11, weight: .semibold))
                 .lineLimit(1)
                 .frame(minWidth: title == "More" ? 66 : 62)
-                .frame(height: 32)
-                .padding(.horizontal, 4)
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(primary ? Color.black : Color.white.opacity(0.94))
-        .background {
-            Capsule(style: .continuous)
-                .fill(primary ? orange : Color.white.opacity(0.12))
-                .overlay {
-                    Capsule(style: .continuous)
-                        .stroke(primary ? orange : Color.white.opacity(0.14), lineWidth: 1)
-                }
-        }
-        .opacity(isEnabled ? 1 : 0.32)
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: primary, minimumSize: 52))
         .disabled(!isEnabled)
         .accessibilityHint(isEnabled ? "Advances the guide" : "Guide is preparing the next message")
     }
@@ -806,7 +779,7 @@ private struct GuideBubbleModifier: ViewModifier {
             .frame(maxWidth: 300, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: 17, style: .continuous)
-                    .fill(author == .app ? Color(red: 0.165, green: 0.165, blue: 0.18) : Color(red: 1.0, green: 0.478, blue: 0.0))
+                    .fill(author == .app ? Color(red: 0.165, green: 0.165, blue: 0.18) : Theme.toolbarOrange)
                     .overlay {
                         RoundedRectangle(cornerRadius: 17, style: .continuous)
                             .stroke(author == .app ? Color.white.opacity(0.075) : Color.clear, lineWidth: 1)

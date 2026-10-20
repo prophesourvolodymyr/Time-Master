@@ -140,7 +140,7 @@ struct DatabasePageBrowserSheet: View {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .buttonStyle(TimeMasterToolbarTextButtonStyle())
-                        .tint(Theme.primary)
+                        .tint(Theme.toolbarOrange)
                 }
                 if onNewExercise != nil {
                     AppToolbar.iconItem(placement: .primaryAction) {
@@ -150,7 +150,7 @@ struct DatabasePageBrowserSheet: View {
                         } label: {
                             Image(systemName: "figure.run.circle.fill")
                         }
-                        .foregroundStyle(Theme.primary)
+                        .foregroundStyle(Theme.toolbarOrange)
                         .accessibilityLabel("New Exercise")
                     }
                 }
@@ -162,7 +162,7 @@ struct DatabasePageBrowserSheet: View {
                     } label: {
                         Image(systemName: isGridMode ? "list.bullet" : "square.grid.2x2")
                     }
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(Theme.toolbarOrange)
                 }
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Menu {
@@ -176,7 +176,7 @@ struct DatabasePageBrowserSheet: View {
                     } label: {
                         Image(systemName: "arrow.up.arrow.down")
                     }
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(Theme.toolbarOrange)
                 }
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Button {
@@ -190,7 +190,7 @@ struct DatabasePageBrowserSheet: View {
                     } label: {
                         Image(systemName: isBundleMode ? "rectangle.stack.fill" : "rectangle.stack")
                     }
-                    .foregroundStyle(isBundleMode ? Theme.primary : Theme.primary.opacity(0.9))
+                    .foregroundStyle(isBundleMode ? Theme.toolbarOrange : Theme.toolbarOrange.opacity(0.9))
                 }
             }
             .overlay(alignment: .bottom) {
@@ -286,12 +286,8 @@ struct DatabasePageBrowserSheet: View {
                 } label: {
                     Label("New Exercise", systemImage: "plus.circle.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color.white)
-                        .clipShape(Capsule())
                 }
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             }
         }
         .frame(maxHeight: .infinity)
@@ -498,13 +494,9 @@ struct DatabasePageBrowserSheet: View {
                             Text(page.isWorkoutAddable ? "Add Section" : "This page cannot be added")
                         }
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(page.isWorkoutAddable ? Theme.primary : Theme.surface2)
-                        .cornerRadius(10)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                     .disabled(!page.isWorkoutAddable)
                     .opacity(page.isWorkoutAddable ? 1 : 0.5)
                 }
@@ -766,11 +758,9 @@ private struct ExercisePageQuickPreview: View {
                         } label: {
                             Label("Add to Workout", systemImage: "plus.circle.fill")
                                 .font(.headline)
-                                .foregroundStyle(.black)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Theme.primary, in: RoundedRectangle(cornerRadius: 12))
                         }
+                        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                     } else {
                         Text("Containers organize exercises and cannot be added as workout sections.")
                             .font(.subheadline)
@@ -787,7 +777,6 @@ private struct ExercisePageQuickPreview: View {
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(Theme.primary)
                 }
             }
         }

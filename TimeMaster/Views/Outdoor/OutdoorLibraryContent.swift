@@ -89,7 +89,7 @@ struct OutdoorLibraryContent<Handle: View>: View {
                     HStack(spacing: 8) {
                         if !searchPresented {
                             Button(action: onClose) { Image(systemName: "chevron.left").font(.body.weight(.semibold)) }
-                                .buttonStyle(SpotlightCircleButtonStyle())
+                                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 48))
                                 .accessibilityLabel("Back to Start")
                         }
                         Spacer(minLength: 0)
@@ -277,7 +277,7 @@ struct OutdoorLibraryEmptyState: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: systemImage).font(.title2).foregroundStyle(Theme.restAccent)
+            Image(systemName: systemImage).font(.title2).foregroundStyle(Theme.toolbarOrange)
             Text(title).font(.headline)
             Text(message).font(.subheadline).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
         }

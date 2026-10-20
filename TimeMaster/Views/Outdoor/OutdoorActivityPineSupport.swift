@@ -136,7 +136,7 @@ struct OutdoorRoutePolylineFallback: View {
             }
             context.stroke(
                 route,
-                with: .color(Theme.restAccent),
+                with: .color(Theme.toolbarOrange),
                 style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
             )
 
@@ -338,7 +338,7 @@ struct OutdoorPublicDetailsFields: View {
                                 tagText = tags.joined(separator: ", ")
                             }
                             .font(.caption)
-                            .buttonStyle(OutdoorAccessoryButtonStyle())
+                            .buttonStyle(TimeMasterActionButtonStyle())
                             .accessibilityLabel("Add tag \(tag)")
                         }
                     }
@@ -366,7 +366,7 @@ struct OutdoorPublicDetailsFields: View {
             }
         }
         .font(.subheadline)
-        .tint(Theme.restAccent)
+        .tint(Theme.toolbarOrange)
     }
 }
 
@@ -491,7 +491,7 @@ struct OutdoorDeletionConfirmation: View {
                     Button("Cancel") {
                         isPresented = false
                     }
-                    .buttonStyle(OutdoorPineButtonStyle())
+                    .buttonStyle(TimeMasterActionButtonStyle())
                     if significant {
                         OutdoorDestructiveHoldButton {
                             isPresented = false
@@ -502,7 +502,7 @@ struct OutdoorDeletionConfirmation: View {
                             isPresented = false
                             onDelete()
                         }
-                        .buttonStyle(OutdoorPineButtonStyle())
+                        .buttonStyle(TimeMasterActionButtonStyle())
                     }
                 }
             }

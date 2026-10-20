@@ -76,8 +76,8 @@ struct ProfileAchievementsView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }.frame(minWidth: 44, minHeight: 44)
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
                 }
             }
         }

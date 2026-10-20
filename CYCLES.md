@@ -1326,6 +1326,21 @@ This supersedes the earlier docked Maps placement, not its two-idle-second navig
 
 The original-button request supersedes the pending Maps-style restyle and the earlier less-rounded/Home-title changes above; other pages retain their measured headers. Both iOS Simulator and macOS builds passed for these corrections. The native smoke covered Home's restored header at expanded, intermediate, and compact sizes, real Ranked actions, dense content rows, global collapse, the editor/catalog, saved position, and hide/restore. It used an unshown macOS window and the current OS Reduce Motion setting without changing accessibility preferences. The checked iOS app was installed and launched in place on the existing iPhone 16 simulator. No screenshots or simulator gestures were used. Final iOS appearance, accessibility-size rendering, and motion feel remain for human review; product DOCKS.md updates await acceptance.
 
+### Maps-style controls and obstruction-aware arched navigation — 2026-10-19
+
+- [x] Use one Maps-style glass renderer for action controls, with native supported-system glass, older-system material, a white rim, Reduce Transparency fallback, disabled feedback, and minimum touch targets
+- [x] Keep icon-only controls circular and give wide or text actions rounded-rectangle bases instead of capsules across the shared styles and their page consumers
+- [x] Use the deeper neon-orange accent #FF6A00 consistently for action controls while preserving destructive and other semantic colors
+- [x] Increase the painted Done bases to the shared 44-point toolbar, 52-point wide-action, and 60-point completion sizes, center their labels, and preserve configured minimum height under compression
+- [x] Default normal destinations to the arch and compact only for measured navigation-edge obstruction; protect visible primary scroll actions, ignore ordinary or entirely offscreen scroll rows and unrelated inner clipping, and keep the fallback stable through its own reflow
+- [x] Observe clearance at the stable navigation root, re-evaluate after relevant page, viewport, text-size, placement, or control changes, and restore the arch when protected controls disappear
+- [x] Preserve saved top/bottom placement, interaction/editor expansion, Maps' zero reserve, two-idle-second overlay, and existing bottom-edge reveal
+- [x] Remove the competing private glass renderer and unused LiquidGlassKit dependency from both Xcode targets, package resolution, and the project generator
+- [x] Build iOS Simulator and macOS, pass 27 focused navigation regressions, and run 37 headless native control/clearance checks against the actual compiled app module
+- [ ] Human acceptance of the Maps-style surfaces, circular icons, rectangular actions, deeper orange, taller Done bases, and obstruction-only menu compaction at both edges
+
+This request supersedes the straight-default and original circle/capsule treatment above; Home's information arrangement is not redesigned. Native checks exercised both menu edges, fixed and partly clipped scroll actions, offscreen and inner-scroll exclusions, stable compaction and restoration, Maps visibility/reserve, viewport/text-environment changes, 44/52/60-point control geometry, compressed tall bases, centered Done labels, and the runtime orange value. Checks used an unshown macOS window, the current OS Reduce Motion setting, and isolated preferences; no screenshots, simulator gestures, or accessibility-preference changes were used. The iOS 16 scroll-view measurement fallback compiled but was not exercised on an iOS 16 runtime. Final iOS appearance, accessibility-size rendering, and motion feel remain for human review. Unrelated local Ranked/profile work, other edits, and deleted app entry points or feature documents are preserved outside this change. Product-document updates await human acceptance; no next prompt is needed for this slice.
+
 ---
 
 ## Cycle 35 — Floating Widget Snapping and Media Comments

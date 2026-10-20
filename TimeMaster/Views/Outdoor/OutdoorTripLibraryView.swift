@@ -34,7 +34,7 @@ struct OutdoorTripsMenu: View {
                                         Label("Resume unfinished edit", systemImage: "arrow.clockwise.circle")
                                             .frame(maxWidth: .infinity, minHeight: 44)
                                     }
-                                    .buttonStyle(OutdoorPineButtonStyle())
+                                    .buttonStyle(TimeMasterActionButtonStyle())
                                 }
                             }
                             if searchPresented || library == nil || library == .nearby {
@@ -49,7 +49,7 @@ struct OutdoorTripsMenu: View {
                                         Label("Adjust distance and places", systemImage: "slider.horizontal.3")
                                             .frame(maxWidth: .infinity, minHeight: 44)
                                     }
-                                    .buttonStyle(OutdoorPineButtonStyle())
+                                    .buttonStyle(TimeMasterActionButtonStyle())
                                 }
                             }
                             if searchPresented || library == nil || library == .yours || library == .saved {

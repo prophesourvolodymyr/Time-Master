@@ -183,12 +183,8 @@ struct LocalPostCard: View {
                                         Button { toggleReaction(reaction) } label: {
                                             Text("\(reaction) 1")
                                                 .font(TimeMasterFont.secondary())
-                                                .padding(.horizontal, 12)
-                                                .frame(minHeight: ProfileStyle.touchTarget)
-                                                .foregroundStyle(.black)
-                                                .background(.white, in: Capsule())
                                         }
-                                        .buttonStyle(.plain)
+                                        .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
                                         .disabled(profileStore.isReadOnly)
                                         .accessibilityLabel("Remove your local \(reaction) reaction")
                                     }
@@ -323,7 +319,7 @@ private struct LocalPostReactionPicker: View {
             .background(Theme.background)
             .navigationTitle("React")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+                AppToolbar.item(placement: .cancellationAction) { Button("Done") { dismiss() } }
             }
         }
         .profileErrorAlert($errorMessage)
@@ -374,7 +370,7 @@ private struct LocalPostImageViewer: View {
             .background(Theme.background)
             .navigationTitle("Photo")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+                AppToolbar.item(placement: .cancellationAction) { Button("Done") { dismiss() } }
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button {
                         zoom = max(1, zoom - 0.5)

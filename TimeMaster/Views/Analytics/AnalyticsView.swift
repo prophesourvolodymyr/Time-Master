@@ -158,12 +158,8 @@ struct AnalyticsView: View {
                 Text(label)
                     .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundColor(selected ? .black : Color.white.opacity(0.7))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(selected ? Color.white : Color.white.opacity(0.1))
-            .clipShape(Capsule())
         }
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: selected))
     }
 
     // MARK: Scroll content

@@ -22,7 +22,7 @@ private enum OutdoorMinimalMapPalette {
         let plannedRoute: UIColor
     }
 
-    static let routeAccent = UIColor(red: 1, green: 0.478, blue: 0, alpha: 1)
+    static let routeAccent = UIColor(Theme.toolbarOrange)
 
     static let light = Style(
         canvas: UIColor(red: 0.956, green: 0.956, blue: 0.941, alpha: 1),

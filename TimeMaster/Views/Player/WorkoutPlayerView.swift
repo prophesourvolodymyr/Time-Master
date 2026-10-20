@@ -956,14 +956,9 @@ struct WorkoutPlayerView: View {
                     } label: {
                         Label("Rest exercise: \(page.title)", systemImage: "figure.cooldown")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.white)
                             .lineLimit(1)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.white.opacity(0.12))
-                            .clipShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(TimeMasterActionButtonStyle())
                 }
 
             if !restExtensionText.isEmpty {
@@ -1081,11 +1076,9 @@ struct WorkoutPlayerView: View {
         return Button { extendRest(by: seconds) } label: {
             Text("+\(seconds)s")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(canExtend ? .white : Color.white.opacity(0.25))
-                .frame(width: 84, height: 44)
-                .background(canExtend ? Color.white.opacity(0.15) : Color.white.opacity(0.06))
-                .clipShape(Capsule())
+                .frame(width: 56)
         }
+        .buttonStyle(TimeMasterActionButtonStyle())
         .disabled(!canExtend)
     }
 
@@ -1134,12 +1127,9 @@ struct WorkoutPlayerView: View {
                 Button { dismiss() } label: {
                     Text("Done")
                         .font(.headline)
-                        .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color.white)
-                        .cornerRadius(16)
                 }
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 60))
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
             }

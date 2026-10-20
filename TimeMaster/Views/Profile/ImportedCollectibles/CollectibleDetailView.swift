@@ -60,7 +60,8 @@ struct CollectibleDetailView: View {
                     HStack {
                         Text("Local preview · \(item.name)").font(TimeMasterFont.caption())
                         Spacer()
-                        Button("Done") { showsPreview = false }.buttonStyle(EverSpecularButtonStyle())
+                        Button("Done") { showsPreview = false }
+                            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                             .accessibilityIdentifier("collectible-preview-done")
                     }.padding(EverSpacing.x3)
                     ProfileView(previewOnly: true, onPreviewClose: { showsPreview = false })
@@ -174,7 +175,7 @@ struct CollectibleDetailView: View {
                 .accessibilityIdentifier("collectible-close")
         }
         .font(.body.weight(.semibold))
-        .buttonStyle(EverSpecularButtonStyle(radius: 999, horizontalPadding: 0))
+        .buttonStyle(TimeMasterToolbarIconButtonStyle())
     }
 
     private var info: some View {
@@ -221,11 +222,12 @@ struct CollectibleDetailView: View {
                 .accessibilityIdentifier("collectible-try-on")
                 if item.category == .entrance {
                     Button { playback += 1 } label: { Image(systemName: "arrow.clockwise") }
+                        .buttonStyle(TimeMasterToolbarIconButtonStyle())
                         .accessibilityLabel("Replay artwork")
                 }
             }
             .font(TimeMasterFont.rowTitle())
-            .buttonStyle(EverSpecularButtonStyle(radius: 999))
+            .buttonStyle(EverActionButtonStyle())
             Text(item.detail).font(TimeMasterFont.secondary()).foregroundStyle(EverColor.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -362,8 +364,6 @@ struct CollectibleTabs: View {
                     Text(titles[index])
                         .font(TimeMasterFont.rowTitle())
                         .frame(maxWidth: .infinity, minHeight: EverLayout.minimumTouchTarget)
-                        .foregroundStyle(selection == index ? EverColor.onAccent : EverColor.textSecondary)
-                        .background(selection == index ? EverColor.accent : EverColor.surfaceSecondary, in: Capsule())
                 }
                 .buttonStyle(EverPillTabButtonStyle(isSelected: selection == index))
                 .accessibilityAddTraits(selection == index ? .isSelected : [])

@@ -5,6 +5,9 @@
 // app's content-bounds hook and Home's page-swipe gate.
 
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 struct SlotCarouselNavigation<Content: View>: View {
     @Binding private var selection: String?
@@ -31,6 +34,8 @@ struct SlotCarouselNavigation<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var contentClearance = SlotNavigationClearanceState()
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var requestedPresentation: SlotNavigationPresentation?
     @State private var contentDisablesInteraction = false
@@ -94,18 +99,38 @@ struct SlotCarouselNavigation<Content: View>: View {
     var body: some View {
         GeometryReader { proxy in
             let presentation = effectivePresentation
-            let layout = barLayout
+            let frame = proxy.frame(in: .global)
+            let clearanceContext = SlotNavigationClearanceContext(
+                page: selection, viewport: frame, placement: navigationPlacement, dynamicTypeSize: dynamicTypeSize,
+                safeAreaInsets: proxy.safeAreaInsets,
+                archedHeight: SlotCarouselNavigationBar.contentHeight(for: .full, barHeight: barHeight)
+            )
+            let layout = barLayout(in: clearanceContext)
             let normalHeight = SlotCarouselNavigationBar.contentHeight(for: layout, barHeight: barHeight)
             let showsNavigation = presentation != .hidden || hiddenNavigation.isVisible
-            let frame = proxy.frame(in: .global)
             let restoreHeight: CGFloat = navigationManuallyHidden && navigationInteractionEnabled
                 && defaultPresentation != .hidden ? 24 : 0
             let reservedHeight = presentation == .hidden ? restoreHeight : normalHeight
             let contentBounds = navigationPlacement.contentBounds(in: frame, reservedHeight: reservedHeight)
+            let measuresClearance = presentation == .visible
+                && !navigationIsExpanded && !navigationIsInteracting && !isEditing
 
             ZStack(alignment: .top) {
                 content()
                     .environment(\.slotNavigationContentBounds, contentBounds)
+                    .environment(\.slotNavigationClearanceScope, measuresClearance ? SlotNavigationClearanceScope(
+                        context: clearanceContext, contentBounds: contentBounds, measuresArchedLayout: layout == .full
+                    ) : nil)
+                    .transformPreference(SlotNavigationContentClearancePreferenceKey.self) { measurement in
+                        guard measuresClearance else {
+                            measurement = SlotNavigationContentClearance()
+                            return
+                        }
+                        if measurement.context == nil {
+                            measurement.context = clearanceContext
+                            measurement.measuredArchedLayout = layout == .full
+                        }
+                    }
                     .environment(\.slotNavigationArcLensFrame, layout == .full && showsNavigation
                         && !isEditing && !reduceMotion && !reduceTransparency && !lowPower && scenePhase == .active
                         ? CGRect(
@@ -154,6 +179,10 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
             }
             .background(theme.background.ignoresSafeArea())
+            .onPreferenceChange(SlotNavigationContentClearancePreferenceKey.self) { measurement in
+                guard measurement.context == clearanceContext else { return }
+                contentClearance.observe(measurement)
+            }
             .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
                 lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
             }
@@ -223,6 +252,7 @@ struct SlotCarouselNavigation<Content: View>: View {
             .animation(presentationAnimation, value: isEditing)
             .animation(presentationAnimation, value: navigationIsExpanded)
             .animation(presentationAnimation, value: navigationPlacement)
+            .animation(presentationAnimation, value: layout)
             .accessibilityElement(children: .contain)
             .accessibilityAction(named: strings.showNavigation) {
                 guard navigationInteractionEnabled else { return }
@@ -357,12 +387,13 @@ struct SlotCarouselNavigation<Content: View>: View {
         reduceMotion ? .opacity : .move(edge: edge).combined(with: .opacity)
     }
 
-    private var barLayout: SlotNavigationBarLayout {
+    private func barLayout(in context: SlotNavigationClearanceContext) -> SlotNavigationBarLayout {
         SlotNavigationBarLayout.resolve(
             isExpanded: navigationIsExpanded,
             isInteracting: navigationIsInteracting,
             isEditing: isEditing,
-            isOverlayVisible: hiddenNavigation.isVisible
+            isOverlayVisible: hiddenNavigation.isVisible,
+            contentRequiresInline: contentClearance.requiresInline(in: context)
         )
     }
 
@@ -542,8 +573,11 @@ struct SlotCarouselNavigation<Content: View>: View {
                         ForEach(Array(strings.guideSteps.enumerated()), id: \.offset) { _, step in
                             guideStep(step)
                         }
-                        Button(strings.guideDismissTitle, action: dismissGuide)
-                            .buttonStyle(SlotNavigationProminentButtonStyle(theme: theme))
+                        Button(action: dismissGuide) {
+                            Text(strings.guideDismissTitle)
+                                .frame(maxWidth: .infinity)
+                        }
+                            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                             .accessibilityIdentifier("navigation-guide-dismiss")
                     }
                     .padding(.vertical, 8)
@@ -576,7 +610,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                         .font(.system(size: 20, weight: .semibold))
                         .frame(width: 44, height: 44)
                 }
-                .buttonStyle(SlotNavigationQuietButtonStyle(theme: theme, horizontalPadding: 0))
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                 .accessibilityLabel(showsCatalog ? strings.doneEditing : strings.addItemTitle)
                 .accessibilityIdentifier("navigation-add")
                 if showsEditingGuide {
@@ -591,7 +625,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                             .font(.system(size: 20, weight: .semibold))
                             .frame(width: 44, height: 44)
                     }
-                    .buttonStyle(SlotNavigationQuietButtonStyle(theme: theme, horizontalPadding: 0))
+                    .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                     .accessibilityLabel(strings.guideAccessibilityLabel)
                     .accessibilityIdentifier("navigation-help")
                 }
@@ -611,13 +645,9 @@ struct SlotCarouselNavigation<Content: View>: View {
                         )
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(
-                            navigationPlacement == placement ? theme.controlSurface : .clear,
-                            in: RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous)
-                        )
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(TimeMasterActionButtonStyle(prominent: navigationPlacement == placement))
                     .accessibilityLabel("Place navigation at the \(placement.rawValue)")
                     .accessibilityAddTraits(navigationPlacement == placement ? .isSelected : [])
                     .accessibilityIdentifier("navigation-position-\(placement.rawValue)")
@@ -690,7 +720,7 @@ struct SlotNavigationEditingPreferenceKey: PreferenceKey {
 }
 
 /// The rectangle a destination can safely occupy, in the global coordinate space: the
-/// container's frame minus the space the bar reserves at the bottom.
+/// container's frame minus the space reserved at the saved navigation edge.
 private struct SlotNavigationContentBoundsKey: EnvironmentKey {
     static let defaultValue: CGRect? = nil
 }
@@ -701,3 +731,167 @@ extension EnvironmentValues {
         set { self[SlotNavigationContentBoundsKey.self] = newValue }
     }
 }
+
+private struct SlotNavigationClearanceScope: Equatable {
+    let context: SlotNavigationClearanceContext
+    let contentBounds: CGRect
+    let measuresArchedLayout: Bool
+
+    func measurement(control: CGRect, primaryAction: Bool, scrollBounds: CGRect?) -> SlotNavigationContentClearance {
+        let assessment = SlotNavigationContentClearance.assess(
+            control: control, contentBounds: contentBounds, viewport: context.viewport,
+            placement: context.placement, primaryAction: primaryAction, scrollBounds: scrollBounds
+        )
+        return SlotNavigationContentClearance(
+            context: context,
+            measuredArchedLayout: measuresArchedLayout,
+            controlCount: assessment.isRelevant ? 1 : 0,
+            controlSize: assessment.isRelevant ? CGSize(width: control.width.rounded(), height: control.height.rounded()) : .zero,
+            hasObstruction: assessment.hasObstruction
+        )
+    }
+}
+
+private struct SlotNavigationClearanceScopeKey: EnvironmentKey {
+    static let defaultValue: SlotNavigationClearanceScope? = nil
+}
+
+private extension EnvironmentValues {
+    var slotNavigationClearanceScope: SlotNavigationClearanceScope? {
+        get { self[SlotNavigationClearanceScopeKey.self] }
+        set { self[SlotNavigationClearanceScopeKey.self] = newValue }
+    }
+}
+
+private struct SlotNavigationContentClearancePreferenceKey: PreferenceKey {
+    static let defaultValue = SlotNavigationContentClearance()
+
+    static func reduce(value: inout SlotNavigationContentClearance, nextValue: () -> SlotNavigationContentClearance) {
+        let next = nextValue()
+        guard next.context != nil else { return }
+        if value.context != next.context {
+            value = next
+        } else {
+            value.controlCount += next.controlCount
+            value.controlSize.width += next.controlSize.width
+            value.controlSize.height += next.controlSize.height
+            value.hasObstruction = value.hasObstruction || next.hasObstruction
+            value.measuredArchedLayout = value.measuredArchedLayout || next.measuredArchedLayout
+        }
+    }
+}
+
+struct SlotNavigationContentClearanceReader: View {
+    var primaryAction = false
+    @Environment(\.slotNavigationClearanceScope) private var scope
+
+    var body: some View {
+        Group {
+            if let scope {
+                GeometryReader { proxy in
+                    let frame = proxy.frame(in: .global)
+                    if #available(iOS 17.0, macOS 14.0, *) {
+                        let scrollBounds = proxy.bounds(of: .scrollView(axis: .vertical)).map {
+                            $0.offsetBy(dx: frame.minX, dy: frame.minY)
+                        }
+                        Color.clear.preference(
+                            key: SlotNavigationContentClearancePreferenceKey.self,
+                            value: scope.measurement(control: frame, primaryAction: primaryAction, scrollBounds: scrollBounds)
+                        )
+                    } else {
+#if os(iOS)
+                        LegacySlotNavigationClearanceReader(scope: scope, control: frame, primaryAction: primaryAction)
+#endif
+                    }
+                }
+            } else {
+                Color.clear
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+#if os(iOS)
+private struct LegacySlotNavigationClearanceReader: View {
+    let scope: SlotNavigationClearanceScope
+    let control: CGRect
+    let primaryAction: Bool
+    @State private var measurement = SlotNavigationContentClearance()
+
+    var body: some View {
+        LegacySlotNavigationClearanceProbe(
+            scope: scope, control: control, primaryAction: primaryAction,
+            onMeasurement: { measurement = $0 }
+        )
+        .preference(key: SlotNavigationContentClearancePreferenceKey.self, value: measurement)
+    }
+}
+
+private struct LegacySlotNavigationClearanceProbe: UIViewRepresentable {
+    let scope: SlotNavigationClearanceScope
+    let control: CGRect
+    let primaryAction: Bool
+    let onMeasurement: (SlotNavigationContentClearance) -> Void
+
+    func makeUIView(context: Context) -> LegacySlotNavigationClearanceView {
+        let view = LegacySlotNavigationClearanceView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ view: LegacySlotNavigationClearanceView, context: Context) {
+        view.scope = scope
+        view.control = control
+        view.primaryAction = primaryAction
+        view.onMeasurement = onMeasurement
+        view.measure()
+    }
+
+    static func dismantleUIView(_ view: LegacySlotNavigationClearanceView, coordinator: ()) {
+        view.onMeasurement = nil
+        view.scope = nil
+    }
+}
+
+private final class LegacySlotNavigationClearanceView: UIView {
+    var scope: SlotNavigationClearanceScope?
+    var control = CGRect.zero
+    var primaryAction = false
+    var onMeasurement: ((SlotNavigationContentClearance) -> Void)?
+    private var lastMeasurement: SlotNavigationContentClearance?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        measure()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        measure()
+    }
+
+    func measure() {
+        guard let scope, let window else { return }
+        var ancestor = superview
+        var scrollBounds: CGRect?
+        while let view = ancestor {
+            if let scrollView = view as? UIScrollView,
+               scrollView.alwaysBounceVertical || scrollView.contentSize.height > scrollView.bounds.height + 1
+                || (!scrollView.alwaysBounceHorizontal && scrollView.contentSize.width <= scrollView.bounds.width + 1) {
+                let nativeFrame = convert(bounds, to: window)
+                scrollBounds = scrollView.convert(scrollView.bounds, to: window).offsetBy(
+                    dx: control.minX - nativeFrame.minX, dy: control.minY - nativeFrame.minY
+                )
+                break
+            }
+            ancestor = view.superview
+        }
+        let value = scope.measurement(control: control, primaryAction: primaryAction, scrollBounds: scrollBounds)
+        guard value != lastMeasurement else { return }
+        lastMeasurement = value
+        DispatchQueue.main.async { [weak self] in self?.onMeasurement?(value) }
+    }
+}
+#endif

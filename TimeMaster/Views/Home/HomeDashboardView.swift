@@ -135,7 +135,7 @@ struct HomeDashboardView: View {
         } label: {
             ScrollingChromeControl(systemImage: "plus", title: "Add Widget", progress: progress, width: width, height: height)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel("Add Home widget")
     }
 
@@ -145,7 +145,7 @@ struct HomeDashboardView: View {
         } label: {
             ScrollingChromeControl(systemImage: "checkmark", title: "Done", progress: progress, width: width, height: height)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel("Done editing Home")
     }
 
@@ -155,7 +155,7 @@ struct HomeDashboardView: View {
         } label: {
             ScrollingChromeControl(systemImage: "pencil", title: "Edit", progress: progress, width: width, height: height)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel("Edit Home layout")
     }
 
@@ -165,7 +165,7 @@ struct HomeDashboardView: View {
         } label: {
             ScrollingChromeControl(systemImage: "gearshape", title: "Settings", progress: progress, width: width, height: height)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel("Open Settings")
     }
 

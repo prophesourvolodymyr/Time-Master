@@ -227,7 +227,7 @@ extension ProfileView {
                         .frame(width: topControlSize, height: topControlSize)
                         .contentShape(Circle())
                 }
-                .buttonStyle(EverSpecularButtonStyle(radius: topControlSize / 2, horizontalPadding: 0))
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: topControlSize))
                 .disabled(profileStore.isReadOnly)
                 .accessibilityLabel("Create post")
                 .accessibilityIdentifier("profile-create-post")
@@ -250,7 +250,7 @@ extension ProfileView {
                         .frame(width: topControlSize, height: topControlSize)
                         .contentShape(Circle())
                 }
-                .buttonStyle(EverSpecularButtonStyle(radius: topControlSize / 2, horizontalPadding: 0))
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: topControlSize))
                 .accessibilityLabel("Profile settings")
                 .accessibilityIdentifier("profile-settings")
                 .position(

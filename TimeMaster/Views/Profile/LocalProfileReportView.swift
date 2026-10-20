@@ -40,7 +40,7 @@ struct LocalProfileReportView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button(saved ? "Done" : "Cancel") {
                         if !saved && !details.isEmpty { confirmsDiscard = true } else { dismiss() }
                     }

@@ -125,8 +125,7 @@ struct VideoEditorView: View {
     private var headerBar: some View {
         HStack {
             Button("Cancel") { onClose() }
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
+                .buttonStyle(TimeMasterToolbarTextButtonStyle())
             Spacer()
             Text("Edit Video")
                 .font(.headline)
@@ -145,7 +144,8 @@ struct VideoEditorView: View {
             if hasMedia { showBatchConfirm = true }
         }
         .font(.subheadline.weight(.semibold))
-        .foregroundColor(hasMedia ? .white : .white.opacity(0.25))
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
+        .disabled(!hasMedia || vm.isProcessing)
     }
 
     // MARK: - Time Labels + Scrubber

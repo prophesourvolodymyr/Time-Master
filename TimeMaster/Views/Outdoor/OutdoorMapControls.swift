@@ -53,7 +53,7 @@ struct OutdoorMapControls: View, Animatable {
                     Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
                         .font(.system(size: 17, weight: .semibold))
                 }
-                .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 44))
                 .accessibilityLabel("Trip map controls")
             }
 
@@ -70,7 +70,7 @@ struct OutdoorMapControls: View, Animatable {
             Image(systemName: "arrow.down.circle")
                 .font(.system(size: 17, weight: .semibold))
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 44))
         .accessibilityLabel("Offline map area")
         .accessibilityHint("Manages installed maps, routing, and places for offline use.")
     }
@@ -80,7 +80,7 @@ struct OutdoorMapControls: View, Animatable {
             Image(systemName: followsUser ? "location.fill" : "location")
                 .font(.system(size: 17, weight: .semibold))
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 44))
         .accessibilityLabel("Focus current location")
         .accessibilityValue(followsUser ? "Following" : "Not following")
         .accessibilityHint("Centers the map on your current position and follows it.")
@@ -215,7 +215,7 @@ struct OutdoorMapControls: View, Animatable {
         } else {
             content
                 .background {
-                    OutdoorFrostedGlassBackground()
+                    TimeMasterFrostedGlassBackground()
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(Theme.surface.opacity(0.20))
                 }
@@ -241,7 +241,7 @@ struct OutdoorRouteNotification: View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.restAccent)
+                .foregroundStyle(Theme.toolbarOrange)
                 .frame(width: 24, height: 24)
                 .accessibilityHidden(true)
 
@@ -296,7 +296,7 @@ struct OutdoorRouteIdleCloseControl: View {
             Image(systemName: "xmark")
                 .font(.system(size: 15, weight: .bold))
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 38))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 38))
         .padding(3)
         .accessibilityLabel("Close route")
         .accessibilityHint("Returns to the app surface that opened the route feature.")
@@ -311,7 +311,7 @@ struct OutdoorRouteExitControl: View {
             Image(systemName: "rectangle.portrait.and.arrow.right")
                 .font(.system(size: 15, weight: .semibold))
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 38))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 38))
         .padding(3)
         .accessibilityLabel("Return to app")
         .accessibilityHint("Leaves the map while keeping the active workout running.")
@@ -356,7 +356,7 @@ struct OutdoorLiveWorkoutStatusWidget: View {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(Theme.surface)
                     } else {
-                        OutdoorFrostedGlassBackground(style: .systemMaterialDark)
+                        TimeMasterFrostedGlassBackground(style: .systemMaterialDark)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(Theme.surface.opacity(0.28))

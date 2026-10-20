@@ -160,7 +160,7 @@ struct OutdoorMusicEditorView: View {
                         .minimumScaleFactor(0.72)
                         .frame(minWidth: 60, maxWidth: 118, minHeight: 44)
                 }
-                .buttonStyle(OutdoorPineButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle())
                 .accessibilityLabel("Choose music section")
                 .accessibilityValue(library.destinationName(activeDestination))
                 Spacer(minLength: 0)
@@ -168,7 +168,7 @@ struct OutdoorMusicEditorView: View {
                     Button { musicManager.stopPlayback() } label: {
                         Image(systemName: "stop.fill").font(.body.weight(.semibold))
                     }
-                    .buttonStyle(SpotlightCircleButtonStyle())
+                    .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 48))
                     .accessibilityLabel("Stop playback")
                 }
             }
@@ -182,7 +182,7 @@ struct OutdoorMusicEditorView: View {
                 } label: {
                     Image(systemName: "line.3.horizontal.decrease")
                 }
-                .buttonStyle(SpotlightCircleButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 48))
                 .disabled(importSourceDestinations.isEmpty)
                 .accessibilityLabel("Choose music import source")
                 .accessibilityValue(library.destinationName(searchSourceDestination))
@@ -220,11 +220,13 @@ struct OutdoorMusicEditorView: View {
             .accessibilityLabel("Music section wheel")
             .accessibilityValue(destinationChoiceName(destinationPreviewID))
 
-            Button("Use \(destinationChoiceName(destinationPreviewID))") {
+            Button {
                 commitDestination(destinationPreviewID)
+            } label: {
+                Text("Use \(destinationChoiceName(destinationPreviewID))")
+                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(OutdoorPineButtonStyle(prominent: true))
-            .frame(maxWidth: .infinity)
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .disabled(destinationChoices.isEmpty)
         }
         .padding(9)
@@ -277,7 +279,7 @@ struct OutdoorMusicEditorView: View {
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             if let onImportLocalMusic {
-                Button("Import Local Music", action: onImportLocalMusic).buttonStyle(OutdoorPineButtonStyle())
+                Button("Import Local Music", action: onImportLocalMusic).buttonStyle(TimeMasterActionButtonStyle())
             }
         }
         .frame(maxWidth: .infinity, minHeight: 112)
@@ -304,7 +306,7 @@ struct OutdoorMusicEditorView: View {
                         if let status = unavailableStatus(for: item) {
                             Text(status)
                                 .font(.caption2.weight(.semibold))
-                                .foregroundStyle(Theme.restAccent)
+                                .foregroundStyle(Theme.toolbarOrange)
                                 .lineLimit(1)
                         }
                     }
@@ -340,7 +342,7 @@ struct OutdoorMusicEditorView: View {
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(Theme.restAccent)
+                    .foregroundStyle(Theme.toolbarOrange)
                     .accessibilityLabel(musicManager.currentTrackID == item.id.uuidString.lowercased() && musicManager.isPlaying ? "Pause \(item.title)" : "Play \(item.title)")
                 }
                 Button {
@@ -371,19 +373,19 @@ struct OutdoorMusicEditorView: View {
                 .strokeBorder(rowBorderColor(for: item), lineWidth: folderTargetID == item.id ? 1.4 : 1)
         }
         .overlay(alignment: .top) {
-            if dropTargetID == item.id && dropZone == .before { Capsule().fill(Theme.restAccent).frame(height: 2).padding(.horizontal, 9).offset(y: -2) }
+            if dropTargetID == item.id && dropZone == .before { Capsule().fill(Theme.toolbarOrange).frame(height: 2).padding(.horizontal, 9).offset(y: -2) }
         }
         .overlay(alignment: .bottom) {
-            if dropTargetID == item.id && dropZone == .after { Capsule().fill(Theme.restAccent).frame(height: 2).padding(.horizontal, 9).offset(y: 2) }
+            if dropTargetID == item.id && dropZone == .after { Capsule().fill(Theme.toolbarOrange).frame(height: 2).padding(.horizontal, 9).offset(y: 2) }
         }
         .overlay(alignment: .topTrailing) {
             if folderTargetID == item.id {
                 Text("Group")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.restAccent)
+                    .foregroundStyle(Theme.toolbarOrange)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Theme.restAccent.opacity(0.15), in: Capsule())
+                    .background(Theme.toolbarOrange.opacity(0.15), in: Capsule())
                     .padding(.top, 5)
                     .padding(.trailing, 48)
             }
@@ -432,7 +434,7 @@ struct OutdoorMusicEditorView: View {
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(Theme.restAccent)
+            .foregroundStyle(Theme.toolbarOrange)
             .accessibilityLabel("Play \(track.title)")
         }
         .padding(.vertical, 4)
@@ -448,7 +450,7 @@ struct OutdoorMusicEditorView: View {
                         .font(.system(size: 14, weight: .bold))
                         .frame(width: 44, height: 44)
                 }
-                .buttonStyle(OutdoorPineButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                 .accessibilityLabel("Back to music destination")
                 Text(library.item(id: id)?.title ?? "Collection")
                     .font(.headline.weight(.semibold))
@@ -717,16 +719,16 @@ struct OutdoorMusicEditorView: View {
                     _ = library.commitWorkoutTransfer(transfer, choice: .move)
                     pendingTransfer = nil
                 }
-                .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                 Button("Keep Both") {
                     _ = library.commitWorkoutTransfer(transfer, choice: .duplicate)
                     pendingTransfer = nil
                 }
-                .buttonStyle(OutdoorPineButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle())
                 Button("Cancel") {
                     pendingTransfer = nil
                 }
-                .buttonStyle(OutdoorPineButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle())
             }
         }
         .padding(10)
@@ -792,8 +794,8 @@ struct OutdoorMusicEditorView: View {
 
 
     private func rowBorderColor(for item: MusicLibraryItem) -> Color {
-        if folderTargetID == item.id { return Theme.restAccent.opacity(0.78) }
-        if initialItemID == item.id { return Theme.restAccent.opacity(0.5) }
+        if folderTargetID == item.id { return Theme.toolbarOrange.opacity(0.78) }
+        if initialItemID == item.id { return Theme.toolbarOrange.opacity(0.5) }
         return Color.white.opacity(0.1)
     }
 

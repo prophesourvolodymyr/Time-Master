@@ -329,12 +329,8 @@ struct WorkoutDetailView: View {
                     Text("Add First Exercise")
                 }
                 .font(.headline)
-                .foregroundColor(.black)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 14)
-                .background(Theme.toolbarOrange)
-                .cornerRadius(12)
             }
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .padding(.top, 8)
             Button {
                 openBrowser(.newSection)
@@ -450,6 +446,7 @@ struct WorkoutDetailView: View {
         .foregroundStyle(Theme.textPrimary)
     }
 
+
     private func editorHeaderControls(progress: CGFloat, diameter: CGFloat) -> some View {
         HStack(spacing: 4) {
             editorMusicButton(progress: progress, diameter: diameter)
@@ -463,7 +460,7 @@ struct WorkoutDetailView: View {
         Button { if let onClose { onClose() } else { dismiss() } } label: {
             editorHeaderIcon("chevron.left", diameter: diameter)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Back to workouts")
     }
@@ -472,7 +469,7 @@ struct WorkoutDetailView: View {
         Button { setMusicConfigurationOpen(true) } label: {
             editorHeaderIcon("music.note.list", diameter: diameter, title: "Music", progress: progress)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Configure workout music")
     }
@@ -481,7 +478,7 @@ struct WorkoutDetailView: View {
         Menu { editorActionMenuItems } label: {
             editorHeaderIcon("ellipsis", diameter: diameter, title: "More", progress: progress)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Workout actions")
     }
@@ -490,7 +487,7 @@ struct WorkoutDetailView: View {
         Button { showingAddOptions = true } label: {
             editorHeaderIcon("plus", diameter: diameter, title: "Add", progress: progress)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Add to workout")
     }
@@ -499,7 +496,7 @@ struct WorkoutDetailView: View {
         Button { openBrowser(.newSection) } label: {
             editorHeaderIcon("folder.fill.badge.plus", diameter: diameter, title: "Browse", progress: progress)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Browse exercises")
     }
@@ -1536,24 +1533,18 @@ struct WorkoutDetailView: View {
                 } label: {
                     Text("Cancel")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(Theme.textSecondary)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Theme.surface2)
-                        .cornerRadius(8)
                 }
+                .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
 
                 Button {
                     confirmPendingSection(pending)
                 } label: {
                     Text("Confirm")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(Theme.toolbarOrange)
-                        .cornerRadius(8)
                 }
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             }
         }
         .padding(12)
@@ -1650,12 +1641,9 @@ struct WorkoutDetailView: View {
                     Text("Start Workout")
                 }
                 .font(.headline)
-                .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Theme.toolbarOrange)
-                .cornerRadius(16)
             }
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
@@ -2358,12 +2346,8 @@ private struct SavedWorkoutPickerSheet: View {
             } label: {
                 Text("Create New Workout")
                     .font(.headline)
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .background(Color.white)
-                    .clipShape(Capsule())
             }
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(28)
@@ -2687,7 +2671,7 @@ private struct WorkoutSettingsView: View {
                     Button("Choose image") {
                         showingCoverImporter = true
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(TimeMasterActionButtonStyle())
                     .foregroundStyle(Theme.textPrimary)
 
                     Spacer()

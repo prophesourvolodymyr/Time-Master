@@ -153,7 +153,7 @@ struct OutdoorTripDetailsView: View {
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 48)
             }
-            .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .disabled(exporting || route.trip?.isRouted == false || route.points.count < 2)
             .accessibilityIdentifier("trip.exportImage")
             if saved {

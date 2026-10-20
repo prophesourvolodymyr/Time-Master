@@ -165,7 +165,6 @@ private struct ScrollingChromeHeaderLayout: Layout {
     }
 }
 
-/// One private-glass control of a page chrome. The label fades out as the control collapses.
 struct ScrollingChromeControl: View {
     let systemImage: String
     let title: String
@@ -176,8 +175,8 @@ struct ScrollingChromeControl: View {
 
     var body: some View {
         let labelProgress = min(1, progress / 0.65)
-        let cornerRadius = 14 + (min(width, height) / 2 - 14) * progress
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let cornerRadius = Theme.controlCornerRadius
+            + (min(width, height) / 2 - Theme.controlCornerRadius) * progress
 
         ZStack {
             Image(systemName: systemImage)
@@ -195,13 +194,10 @@ struct ScrollingChromeControl: View {
         }
         .foregroundStyle(.white)
         .frame(width: width, height: height)
-        .modifier(TimeMasterPrivateGlassSurface(
+        .modifier(TimeMasterGlassSurface(
             cornerRadius: cornerRadius,
-            isInteractive: isInteractive,
-            tint: Theme.toolbarOrange,
-            tintOpacity: 0.42
+            isInteractive: isInteractive
         ))
-        .overlay { shape.strokeBorder(Theme.toolbarOrange.opacity(0.65), lineWidth: 1) }
     }
 }
 

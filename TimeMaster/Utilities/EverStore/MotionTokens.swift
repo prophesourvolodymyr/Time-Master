@@ -344,14 +344,10 @@ private final class EverScrollBlurSample {
 }
 
 struct EverPressButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(isEnabled && configuration.isPressed && !reduceMotion ? 0.97 : 1)
-            .opacity(isEnabled ? 1 : 0.55)
-            .animation(reduceMotion ? nil : (configuration.isPressed ? EverMotion.press : EverMotion.release), value: configuration.isPressed)
+            .background(SlotNavigationContentClearanceReader())
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
     }
 }
 

@@ -32,7 +32,7 @@ struct OutdoorTypePicker: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .accessibilityLabel("Accept \(previewKind.displayName)")
             .accessibilityValue("Current Start type: \(committedKind.displayName)")
             .accessibilityIdentifier("confirm-outdoor-mode")

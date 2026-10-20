@@ -538,12 +538,8 @@ private struct ChatInputBar: View {
                                 .font(.body.weight(.semibold))
                         }
                     }
-                    .foregroundStyle(canSend ? Theme.background : Theme.textSecondary)
-                    .frame(width: 44, height: 44)
-                    .background(canSend ? Theme.toolbarOrange : Theme.surface2,
-                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, circular: true))
                 .disabled(!canSend)
                 .accessibilityLabel(isLoading ? "Waiting for response" : "Send message")
             }

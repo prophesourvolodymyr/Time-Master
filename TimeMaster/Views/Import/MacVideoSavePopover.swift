@@ -138,19 +138,21 @@ struct MacVideoSavePopover: View {
             if saveChoice == nil {
                 Text("Save to?")
                     .font(.headline)
-                Button("Existing page") {
+                Button {
                     saveChoice = "existing"
                     saveErrorMessage = nil
+                } label: {
+                    Text("Existing page").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
 
-                Button("New page") {
+                Button {
                     saveChoice = "new"
                     saveErrorMessage = nil
+                } label: {
+                    Text("New page").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .frame(maxWidth: .infinity)
+                .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
             } else {
                 ScrollView {
                     LazyVStack(spacing: 6) {
@@ -167,7 +169,7 @@ struct MacVideoSavePopover: View {
                     Button("Create Video Library", systemImage: "folder.badge.plus") {
                         createVideoLibrary()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(TimeMasterActionButtonStyle())
                 }
 
                 HStack {
@@ -175,10 +177,10 @@ struct MacVideoSavePopover: View {
                         saveChoice = nil
                         selectedTargetID = nil
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(TimeMasterActionButtonStyle())
                     Spacer()
                     Button("Continue") { continueToForm() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                         .disabled(targetPage == nil || isSaving)
                 }
             }
@@ -288,7 +290,7 @@ struct MacVideoSavePopover: View {
                     step = .target
                     saveErrorMessage = nil
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(TimeMasterActionButtonStyle())
             }
             .padding(12)
             .background(Theme.surface)
@@ -360,7 +362,7 @@ struct MacVideoSavePopover: View {
                 Button("Add Media", systemImage: "plus.rectangle.on.rectangle") {
                     showMediaPicker = true
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(TimeMasterActionButtonStyle())
             }
         }
     }

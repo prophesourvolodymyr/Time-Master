@@ -31,7 +31,7 @@ struct ProfileCheckmarkEntryButton: View {
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
         }
-        .buttonStyle(EverSpecularButtonStyle(isPrimary: true))
+        .buttonStyle(EverActionButtonStyle(isPrimary: true))
         .accessibilityLabel("Preview checkmark styles")
         .task(id: rotates) {
             guard rotates else { return }

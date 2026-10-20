@@ -193,7 +193,7 @@ struct OutdoorLiveContent: View, Animatable {
             .frame(minHeight: 28)
             .background(reduceTransparency ? Theme.surface2 : Color.black.opacity(0.36), in: Capsule())
             .overlay {
-                Capsule().strokeBorder(Theme.restAccent.opacity(0.38), lineWidth: 1)
+                Capsule().strokeBorder(Theme.toolbarOrange.opacity(0.38), lineWidth: 1)
             }
             .accessibilityLabel(status)
     }
@@ -255,28 +255,28 @@ struct OutdoorLiveContent: View, Animatable {
         Button(action: onMusic) {
             OutdoorPaneActionLabel(title: "Music", systemImage: "music.note", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(expansion: labelProgress))
+        .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 44 + 8 * labelProgress, expansion: labelProgress))
         .frame(width: width)
         .accessibilityLabel("Music")
 
         Button(action: onFinish) {
             OutdoorPaneActionLabel(title: "Finish", systemImage: "stop.fill", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(prominent: true, expansion: labelProgress))
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 44 + 8 * labelProgress, expansion: labelProgress))
         .frame(width: width)
         .accessibilityLabel("Finish workout")
 
         Button(action: onTogglePause) {
             OutdoorPaneActionLabel(title: isPaused ? "Resume" : "Pause", systemImage: isPaused ? "play.fill" : "pause.fill", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(expansion: labelProgress))
+        .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 44 + 8 * labelProgress, expansion: labelProgress))
         .frame(width: width)
         .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
 
         Button(action: recorder.toggleBusTransfer) {
             OutdoorPaneActionLabel(title: recorder.isOnBus ? "Resume riding" : "Board bus", systemImage: recorder.isOnBus ? recorder.kind.iconName : "bus", compact: false, vertical: true, labelProgress: labelProgress)
         }
-        .buttonStyle(OutdoorPineButtonStyle(expansion: labelProgress))
+        .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 44 + 8 * labelProgress, expansion: labelProgress))
         .frame(width: width)
         .accessibilityLabel(recorder.isOnBus ? "End bus transfer and resume active distance" : "Board bus and pause active distance")
         .accessibilityIdentifier("trip.busToggle")
@@ -292,14 +292,14 @@ struct OutdoorLiveContent: View, Animatable {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 280)
             Button("Try Again", action: onRetry)
-                .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             if recorder.requiresLocationSettingsRecovery {
                 Button("Open Settings", action: onOpenSettings)
-                    .buttonStyle(OutdoorPineButtonStyle())
+                    .buttonStyle(TimeMasterActionButtonStyle())
             }
             if recorder.activeActivity != nil {
                 Button("Finish saved workout", action: onFinish)
-                    .buttonStyle(OutdoorPineButtonStyle())
+                    .buttonStyle(TimeMasterActionButtonStyle())
             }
         }
         .padding(16)

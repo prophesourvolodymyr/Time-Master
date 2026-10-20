@@ -22,44 +22,6 @@ struct SlotNavigationEditorHeader: View {
     }
 }
 
-/// Quiet pill used by the editor's Cancel button, the source choices and the help glyph.
-struct SlotNavigationQuietButtonStyle: ButtonStyle {
-    let theme: SlotNavigationTheme
-    var horizontalPadding: CGFloat = 12
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(theme.typography.buttonLabel)
-            .padding(.horizontal, horizontalPadding)
-            .frame(minWidth: 44, minHeight: 44)
-            .foregroundStyle(isEnabled ? theme.textPrimary : theme.textSecondary)
-            .background(theme.controlSurface, in: RoundedRectangle(cornerRadius: 18, style: .circular))
-            .opacity(configuration.isPressed ? 0.72 : 1)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
-/// Full-width confirmation button used by the guide's "Got it".
-struct SlotNavigationProminentButtonStyle: ButtonStyle {
-    let theme: SlotNavigationTheme
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(theme.typography.buttonLabel)
-            .foregroundStyle(isEnabled ? theme.onAccent : theme.textSecondary)
-            .frame(maxWidth: .infinity, minHeight: 50)
-            .padding(.horizontal, 16)
-            .background(
-                isEnabled ? theme.accent : theme.controlSurface,
-                in: RoundedRectangle(cornerRadius: 14, style: .circular)
-            )
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
 
 // MARK: - Bar
 
@@ -758,7 +720,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 Spacer()
                 Button("Cancel", action: configuration.onCancel)
                     .font(theme.typography.buttonLabel)
-                    .buttonStyle(SlotNavigationQuietButtonStyle(theme: theme))
+                    .buttonStyle(TimeMasterActionButtonStyle())
                     .accessibilityIdentifier("navigation-source-cancel")
             }
             Text(configuration.message)
@@ -782,7 +744,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                                 .font(theme.typography.buttonLabel)
                                 .frame(minHeight: 44)
                         }
-                        .buttonStyle(SlotNavigationQuietButtonStyle(theme: theme))
+                        .buttonStyle(TimeMasterActionButtonStyle())
                         .accessibilityIdentifier("navigation-source-choice-\(choice.id)")
                     }
                 }

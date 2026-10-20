@@ -133,11 +133,7 @@ struct AISettingsView: View {
 
             Button("Switch") { showProviderPicker = true }
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.10))
-                .clipShape(Capsule())
+                .buttonStyle(TimeMasterActionButtonStyle())
         }
     }
 
@@ -181,11 +177,7 @@ struct AISettingsView: View {
                 store.activeProviderID = detected.id
             }
             .font(.caption.weight(.semibold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color.white.opacity(0.12))
-            .clipShape(Capsule())
+            .buttonStyle(TimeMasterActionButtonStyle())
         }
         .padding(10)
         .background(Color.white.opacity(0.06))
@@ -293,11 +285,7 @@ struct AISettingsView: View {
                         ForEach(models, id: \.self) { m in
                             Button(m) { store.model = m }
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.white.opacity(0.07))
-                                .clipShape(Capsule())
+                                .buttonStyle(TimeMasterActionButtonStyle())
                         }
                     }
                 }

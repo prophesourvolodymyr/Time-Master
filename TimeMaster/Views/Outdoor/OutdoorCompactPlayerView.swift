@@ -7,7 +7,6 @@ struct OutdoorCompactPlayerView: View {
     let namespace: Namespace.ID
     let onEdit: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .caption2) private var marqueeTitleSize: CGFloat = 9
 
     init(
@@ -86,9 +85,9 @@ struct OutdoorCompactPlayerView: View {
                 Button(action: onEdit) {
                     Image(systemName: "pencil")
                         .font(.system(size: 17, weight: .semibold))
-                        .frame(width: 44, height: 54)
+                        .frame(width: 44, height: 44)
                 }
-                .buttonStyle(OutdoorPineButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                 .accessibilityLabel("Open music editor")
                 .accessibilityHint("Edit the route music library")
             }
@@ -108,9 +107,9 @@ struct OutdoorCompactPlayerView: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 20, weight: .semibold))
-                .frame(minWidth: 44, minHeight: 38)
+                .frame(width: 44, height: 44)
         }
-        .buttonStyle(OutdoorMusicTransportButtonStyle(reduceMotion: reduceMotion))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true))
         .accessibilityLabel(label)
     }
 }
@@ -169,18 +168,4 @@ struct OutdoorMusicArtworkView: View {
 }
 
 
-private struct OutdoorMusicTransportButtonStyle: ButtonStyle {
-    let reduceMotion: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Theme.textPrimary)
-            .opacity(configuration.isPressed ? 0.58 : 1)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.92 : 1)
-            .animation(
-                reduceMotion ? .none : .easeOut(duration: 0.14),
-                value: configuration.isPressed
-            )
-    }
-}
 #endif

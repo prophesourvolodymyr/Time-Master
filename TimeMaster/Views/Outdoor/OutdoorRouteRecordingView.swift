@@ -274,7 +274,7 @@ struct OutdoorRouteRecordingView: View {
                         Label("Back to workout", systemImage: "chevron.up")
                             .font(.headline)
                     }
-                    .buttonStyle(OutdoorPineButtonStyle(prominent: true))
+                    .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                     .padding(.bottom, layout.lowerInset)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .zIndex(40)

@@ -308,7 +308,7 @@ struct WorkoutMusicTimelineView: View {
         .background(clip.lane == .primary ? Theme.surface2 : Theme.surface,
                     in: RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(
-            resizeID == clip.id && snapped ? Theme.restAccent : Theme.textPrimary.opacity(clip.lane == .primary ? 0.4 : 0.18), lineWidth: 1))
+            resizeID == clip.id && snapped ? Theme.toolbarOrange : Theme.textPrimary.opacity(clip.lane == .primary ? 0.4 : 0.18), lineWidth: 1))
         .contentShape(Rectangle())
         .onTapGesture { showDuplicateSuggestion(nil); sheet = .edit(clip) }
         .contextMenu {

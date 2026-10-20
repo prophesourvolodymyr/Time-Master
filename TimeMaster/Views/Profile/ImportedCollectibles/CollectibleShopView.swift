@@ -66,10 +66,12 @@ struct CollectibleShopView: View {
                             .accessibilityIdentifier("collectibles-collection")
                             Button { showsAbout = true } label: {
                                 Image(systemName: "info.circle")
-                            }.accessibilityLabel("About collectibles")
+                            }
+                            .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                            .accessibilityLabel("About collectibles")
                         }
                         .font(TimeMasterFont.rowTitle())
-                        .buttonStyle(EverSpecularButtonStyle())
+                        .buttonStyle(EverActionButtonStyle())
                     }
                     if let warning = profileStore.errorMessage {
                         Text(warning).font(TimeMasterFont.caption()).foregroundStyle(EverColor.warning)
@@ -187,7 +189,7 @@ struct CollectibleShopView: View {
                 .accessibilityIdentifier("collectibles-search")
             }
             .font(.body.weight(.semibold))
-            .buttonStyle(EverSpecularButtonStyle(radius: 999, horizontalPadding: 0))
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
             .padding(.horizontal, EverSpacing.x2)
             .padding(.top, (compactHeight - control) / 2)
         }

@@ -172,7 +172,7 @@ struct PageCreationSheet: View {
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
                         .background(Theme.surface2, in: Capsule())
-                        .overlay(Capsule().stroke(Theme.primary.opacity(0.7), lineWidth: 1))
+                        .overlay(Capsule().stroke(Theme.toolbarOrange.opacity(0.7), lineWidth: 1))
                         .padding(.bottom, 84)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -185,7 +185,7 @@ struct PageCreationSheet: View {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .buttonStyle(TimeMasterToolbarTextButtonStyle())
-                        .tint(Theme.primary)
+                        .tint(Theme.toolbarOrange)
                 }
                 if existingPage == nil {
                     AppToolbar.iconItem(placement: .primaryAction) {
@@ -195,7 +195,7 @@ struct PageCreationSheet: View {
                         } label: {
                             Image(systemName: "doc.badge.clock")
                         }
-                        .foregroundStyle(Theme.primary)
+                        .foregroundStyle(Theme.toolbarOrange)
                         .accessibilityLabel("Open page drafts")
                     }
                 }
@@ -331,7 +331,7 @@ struct PageCreationSheet: View {
                 .foregroundStyle(isSelected ? .black : Theme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
-                .background(isSelected ? Theme.primary : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
+                .background(isSelected ? Theme.toolbarOrange : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
     }
@@ -370,7 +370,7 @@ struct PageCreationSheet: View {
                     Label("Add Media (\(mediaFilenames.count)/20)", systemImage: "plus.rectangle.on.rectangle")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(OrangeFormButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle())
             }
         }
     }
@@ -398,7 +398,7 @@ struct PageCreationSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isCover ? Theme.primary : Color.white.opacity(0.08), lineWidth: isCover ? 2 : 1)
+                    .stroke(isCover ? Theme.toolbarOrange : Color.white.opacity(0.08), lineWidth: isCover ? 2 : 1)
             }
 
             if isCover {
@@ -407,7 +407,7 @@ struct PageCreationSheet: View {
                     .foregroundStyle(.black)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 4)
-                    .background(Theme.primary, in: Capsule())
+                    .background(Theme.toolbarOrange, in: Capsule())
                     .padding(7)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -443,7 +443,7 @@ struct PageCreationSheet: View {
                     Text(inheritedWorkoutType == nil ? "None" : "Container default")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(OrangeChoiceButtonStyle(isSelected: workoutType == nil))
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: workoutType == nil))
 
                 ForEach(WorkoutType.all(custom: workoutStore.customWorkoutTypes), id: \.id) { type in
                     Button {
@@ -455,7 +455,7 @@ struct PageCreationSheet: View {
                         }
                         .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(OrangeChoiceButtonStyle(isSelected: workoutType == type))
+                    .buttonStyle(TimeMasterActionButtonStyle(prominent: workoutType == type))
                 }
             }
         }
@@ -472,7 +472,7 @@ struct PageCreationSheet: View {
                         Text(skillStatusTitle(status))
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(OrangeChoiceButtonStyle(isSelected: effectiveSkillStatus == status))
+                    .buttonStyle(TimeMasterActionButtonStyle(prominent: effectiveSkillStatus == status))
                 }
             }
             if !availableSkillBoardSections.isEmpty {
@@ -529,12 +529,12 @@ struct PageCreationSheet: View {
             formHeading(label, required: required, optional: optional)
             Spacer()
             Text("\(value.wrappedValue)\(unit)")
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(Theme.toolbarOrange)
                 .monospacedDigit()
                 .frame(minWidth: 42, alignment: .trailing)
             Stepper("", value: value, in: range, step: step)
                 .labelsHidden()
-                .tint(Theme.primary)
+                .tint(Theme.toolbarOrange)
         }
         .padding(12)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
@@ -548,18 +548,18 @@ struct PageCreationSheet: View {
                     addManualDropSet()
                 } label: {
                     Image(systemName: "plus")
-                        .frame(width: 48, height: 42)
+                        .frame(width: 44, height: 44)
                 }
-                .buttonStyle(OrangeDraftIconButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                 .accessibilityLabel("Add manual drop set")
 
                 Button {
                     showDropSetPicker = true
                 } label: {
                     Image(systemName: "externaldrive.badge.plus")
-                        .frame(width: 48, height: 42)
+                        .frame(width: 44, height: 44)
                 }
-                .buttonStyle(OrangeDraftIconButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                 .accessibilityLabel("Add drop set from database")
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -569,7 +569,7 @@ struct PageCreationSheet: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
                             Image(systemName: template.exerciseID.isEmpty ? "pencil" : "externaldrive")
-                                .foregroundStyle(Theme.primary)
+                                .foregroundStyle(Theme.toolbarOrange)
                             TextField("Drop-set exercise name", text: $template.name)
                                 .textFieldStyle(.plain)
                                 .foregroundStyle(Theme.textPrimary)
@@ -594,9 +594,9 @@ struct PageCreationSheet: View {
                                 in: 0...max(0, sets - 1)
                             )
                             .labelsHidden()
-                            .tint(Theme.primary)
+                            .tint(Theme.toolbarOrange)
                             Text("\(template.setIndex + 1)")
-                                .foregroundStyle(Theme.primary)
+                                .foregroundStyle(Theme.toolbarOrange)
                                 .monospacedDigit()
                                 .frame(minWidth: 24, alignment: .trailing)
                         }
@@ -627,12 +627,12 @@ struct PageCreationSheet: View {
             HStack(spacing: 4) {
                 Text("\(value.wrappedValue)\(unit)")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(Theme.toolbarOrange)
                     .monospacedDigit()
                 Stepper("", value: value, in: range, step: step)
                     .labelsHidden()
                     .scaleEffect(0.85, anchor: .trailing)
-                    .tint(Theme.primary)
+                    .tint(Theme.toolbarOrange)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -663,7 +663,7 @@ struct PageCreationSheet: View {
                     Spacer()
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.primary)
+                        .foregroundStyle(Theme.toolbarOrange)
                         .frame(width: 32, height: 28)
                         .contentShape(Rectangle())
                         .accessibilityLabel("Resize markdown editor")
@@ -707,7 +707,7 @@ struct PageCreationSheet: View {
                         Image(systemName: "plus.circle")
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(Theme.toolbarOrange)
                     .accessibilityLabel("Add external link")
                 }
             }
@@ -729,7 +729,7 @@ struct PageCreationSheet: View {
                             if row.isLoading {
                                 ProgressView()
                                     .controlSize(.small)
-                                    .tint(Theme.primary)
+                                    .tint(Theme.toolbarOrange)
                             }
                             Button {
                                 linkRows.removeAll { $0.id == row.id }
@@ -757,7 +757,7 @@ struct PageCreationSheet: View {
                                 .font(.caption.weight(.semibold))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(OrangeFormButtonStyle())
+                        .buttonStyle(TimeMasterActionButtonStyle())
                     }
                 }
             }
@@ -773,8 +773,7 @@ struct PageCreationSheet: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
         }
-        .buttonStyle(.bordered)
-        .tint(.red)
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52, fillsWidth: true))
     }
 
     private var actionBar: some View {
@@ -785,7 +784,7 @@ struct PageCreationSheet: View {
                 Text(existingPage == nil ? "Create Page" : "Save Changes")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(OrangePrimaryButtonStyle())
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .disabled(!canSave)
 
             if existingPage == nil {
@@ -794,9 +793,9 @@ struct PageCreationSheet: View {
                 } label: {
                     Image(systemName: "doc.badge.clock")
                         .font(.headline)
-                        .frame(width: 50, height: 50)
+                        .frame(width: 52, height: 52)
                 }
-                .buttonStyle(OrangeDraftIconButtonStyle())
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 52))
                 .disabled(!canDraft)
                 .accessibilityLabel("Save draft")
             }
@@ -807,7 +806,7 @@ struct PageCreationSheet: View {
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Theme.primary.opacity(0.55))
+                .fill(Theme.toolbarOrange.opacity(0.55))
                 .frame(height: 1)
         }
     }
@@ -907,7 +906,7 @@ struct PageCreationSheet: View {
         if required {
             Text("*")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(Theme.toolbarOrange)
         } else if optional {
             Text("opt")
                 .font(.system(size: 9, weight: .semibold))
@@ -1426,22 +1425,22 @@ private struct PageCreationLinkPreview: View {
                 }
                 Text(metadata.url)
                     .font(.caption2)
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(Theme.toolbarOrange)
                     .lineLimit(1)
             }
             Spacer(minLength: 0)
         }
         .padding(10)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.primary.opacity(0.22), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.toolbarOrange.opacity(0.22), lineWidth: 1))
     }
 
     private var placeholder: some View {
         RoundedRectangle(cornerRadius: 8)
-            .fill(Theme.primary.opacity(0.14))
+            .fill(Theme.toolbarOrange.opacity(0.14))
             .overlay {
                 Image(systemName: "link")
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(Theme.toolbarOrange)
             }
     }
 }
@@ -1464,7 +1463,7 @@ private struct PageCreationDraftListSheet: View {
                     VStack(spacing: 10) {
                         Image(systemName: "doc.badge.clock")
                             .font(.system(size: 38))
-                            .foregroundStyle(Theme.primary)
+                            .foregroundStyle(Theme.toolbarOrange)
                         Text("No drafts")
                             .font(.headline)
                             .foregroundStyle(Theme.textPrimary)
@@ -1480,12 +1479,12 @@ private struct PageCreationDraftListSheet: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     RoundedRectangle(cornerRadius: 9)
-                                        .fill(Theme.primary.opacity(0.14))
+                                        .fill(Theme.toolbarOrange.opacity(0.14))
                                         .frame(width: 44, height: 44)
                                         .overlay {
                                             Text(draft.pageKind == .leaf ? "E" : "C")
                                                 .font(.headline.weight(.bold))
-                                                .foregroundStyle(Theme.primary)
+                                                .foregroundStyle(Theme.toolbarOrange)
                                         }
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(draft.title.isEmpty ? "Untitled page" : draft.title)
@@ -1500,7 +1499,7 @@ private struct PageCreationDraftListSheet: View {
                                     Spacer()
                                     Image(systemName: "chevron.right")
                                         .font(.caption)
-                                        .foregroundStyle(Theme.primary)
+                                        .foregroundStyle(Theme.toolbarOrange)
                                 }
                                 .padding(.vertical, 5)
                             }
@@ -1526,7 +1525,7 @@ private struct PageCreationDraftListSheet: View {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .buttonStyle(TimeMasterToolbarTextButtonStyle())
-                        .tint(Theme.primary)
+                        .tint(Theme.toolbarOrange)
                 }
             }
             .task { store.reload() }
@@ -1559,105 +1558,3 @@ private struct PageMediaDropDelegate: DropDelegate {
     }
 }
 
-private struct OrangePrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline.weight(.semibold))
-            .foregroundStyle(isEnabled ? .black : Theme.textSecondary)
-            .padding(.vertical, 14)
-            .background(
-                isEnabled
-                    ? Theme.primary.opacity(configuration.isPressed ? 0.72 : 1)
-                    : Theme.surface2,
-                in: RoundedRectangle(cornerRadius: 11)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-    }
-}
-
-private struct OrangeDraftIconButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
-            .background(
-                isEnabled
-                    ? Theme.primary.opacity(configuration.isPressed ? 0.25 : 0.12)
-                    : Theme.surface2,
-                in: RoundedRectangle(cornerRadius: 11)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 11)
-                    .stroke(isEnabled ? Theme.primary.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 1)
-            }
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-    }
-}
-
-private struct OrangeSecondaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
-            .padding(.vertical, 13)
-            .background(
-                isEnabled
-                    ? Theme.primary.opacity(configuration.isPressed ? 0.25 : 0.12)
-                    : Theme.surface2,
-                in: RoundedRectangle(cornerRadius: 11)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 11)
-                    .stroke(isEnabled ? Theme.primary.opacity(0.7) : Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-    }
-}
-
-private struct OrangeFormButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isEnabled ? Theme.primary : Theme.textSecondary)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 12)
-            .background(
-                isEnabled
-                    ? Theme.primary.opacity(configuration.isPressed ? 0.22 : 0.1)
-                    : Theme.surface2,
-                in: RoundedRectangle(cornerRadius: 10)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(isEnabled ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08), lineWidth: 1)
-            )
-    }
-}
-
-private struct OrangeChoiceButtonStyle: ButtonStyle {
-    let isSelected: Bool
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(isSelected ? .semibold : .regular))
-            .foregroundStyle(isEnabled ? (isSelected ? .black : Theme.textPrimary) : Theme.textSecondary)
-            .padding(.vertical, 10)
-            .background(
-                isEnabled && isSelected ? Theme.primary : Theme.surface,
-                in: RoundedRectangle(cornerRadius: 8)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isEnabled && isSelected ? Theme.primary : Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .opacity(configuration.isPressed ? 0.78 : 1)
-    }
-}

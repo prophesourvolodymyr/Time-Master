@@ -653,7 +653,7 @@ struct DatabaseView: View {
                 height: width
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel(title)
         .help(title)
     }
@@ -670,7 +670,7 @@ struct DatabaseView: View {
                 height: width
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel("Add")
         .help("Add")
     }
@@ -892,7 +892,6 @@ struct DatabaseView: View {
         } label: {
             Image(systemName: "plus.circle.fill")
                 .font(.title3)
-                .modifier(TimeMasterToolbarIconSurface())
         }
                  }
     }
@@ -1146,11 +1145,8 @@ struct DatabaseView: View {
             } label: {
                 Text("Create First Page")
                     .font(.headline)
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Theme.primary, in: RoundedRectangle(cornerRadius: 10))
             }
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
@@ -1190,7 +1186,7 @@ private struct DatabaseSearchSheet: View {
                 VStack(spacing: 0) {
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(Theme.primary)
+                            .foregroundStyle(Theme.toolbarOrange)
                         TextField("Search every page", text: $searchText)
                             .textFieldStyle(.plain)
                             .foregroundStyle(Theme.textPrimary)
@@ -1208,7 +1204,7 @@ private struct DatabaseSearchSheet: View {
                     .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Theme.primary.opacity(0.35), lineWidth: 1)
+                            .stroke(Theme.toolbarOrange.opacity(0.35), lineWidth: 1)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
@@ -1217,7 +1213,7 @@ private struct DatabaseSearchSheet: View {
                         VStack(spacing: 10) {
                             Image(systemName: "arrow.down.right.and.arrow.up.left")
                                 .font(.system(size: 34))
-                                .foregroundStyle(Theme.primary.opacity(0.8))
+                                .foregroundStyle(Theme.toolbarOrange.opacity(0.8))
                             Text("Search the full database")
                                 .font(.headline)
                                 .foregroundStyle(Theme.textPrimary)
@@ -1244,7 +1240,7 @@ private struct DatabaseSearchSheet: View {
                                 NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                                     HStack(spacing: 12) {
                                         Image(systemName: page.isContainer ? "rectangle.stack" : "doc.text")
-                                            .foregroundStyle(Theme.primary)
+                                            .foregroundStyle(Theme.toolbarOrange)
                                             .frame(width: 24)
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(page.title)
@@ -1588,7 +1584,6 @@ struct FolderDetailView: View {
         } label: {
             Image(systemName: "plus.circle.fill")
                 .font(.title3)
-                .modifier(TimeMasterToolbarIconSurface())
         }
                  }
     }

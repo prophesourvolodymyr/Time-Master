@@ -331,7 +331,7 @@ struct OutdoorTripPlannerView: View {
             Image(systemName: editor.trip.kind.iconName)
                 .font(.system(size: 17, weight: .semibold))
         }
-        .buttonStyle(OutdoorPineButtonStyle(circular: true, minimumSize: 44))
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 44))
         .accessibilityLabel("Trip routing options")
         .accessibilityValue(editor.trip.preference.title(for: editor.trip.kind))
     }

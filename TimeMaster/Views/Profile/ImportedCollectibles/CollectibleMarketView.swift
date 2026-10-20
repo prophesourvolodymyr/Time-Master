@@ -51,7 +51,7 @@ struct CollectibleMarketView: View {
                     .accessibilityLabel(sort == 0 ? "Name: A to Z" : "Name: Z to A")
                     .accessibilityIdentifier("market-sort")
                 }
-                .buttonStyle(EverSpecularButtonStyle(radius: 999, horizontalPadding: 0))
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
                 if items.isEmpty {
                     StoreCommerceEmptyRow(title: "No matching previews", detail: "Try another style or clear your search.", symbol: "square.grid.2x2")
                     Button("Clear filters") { category = nil; query = ""; release = nil }.buttonStyle(EverSecondaryButtonStyle())
@@ -87,12 +87,12 @@ struct CollectibleMarketView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { dismiss() } label: { Image(systemName: "chevron.left") }
-                    .buttonStyle(EverSpecularButtonStyle(radius: 999, horizontalPadding: 0))
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
                     .accessibilityLabel("Back to shop")
             }
             ToolbarItem(placement: .primaryAction) {
                 Button { showsSearch = true } label: { Image(systemName: "magnifyingglass") }
-                    .buttonStyle(EverSpecularButtonStyle(radius: 999, horizontalPadding: 0))
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
                     .accessibilityLabel("Search collectibles")
                     .accessibilityIdentifier("market-search")
             }
@@ -155,7 +155,7 @@ struct CollectibleCollectionView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { dismiss() } label: { Image(systemName: "chevron.left") }
-                    .buttonStyle(EverSpecularButtonStyle(radius: 999, horizontalPadding: 0))
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
                     .accessibilityLabel("Back to shop")
             }
         }
@@ -184,10 +184,8 @@ struct CollectibleCategoryRail: View {
             Image(systemName: category?.symbol ?? "square.grid.2x2")
                 .font(.body.weight(.semibold))
                 .frame(width: EverLayout.minimumTouchTarget, height: EverLayout.minimumTouchTarget)
-                .foregroundStyle(selection == category ? EverColor.onAccent : EverColor.textPrimary)
-                .background(selection == category ? EverColor.accent : EverColor.surfaceSecondary, in: Capsule())
         }
-        .buttonStyle(EverPillTabButtonStyle(isSelected: selection == category))
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: selection == category, circular: true))
         .accessibilityLabel(category?.title ?? "All styles")
         .accessibilityAddTraits(selection == category ? .isSelected : [])
         .accessibilityIdentifier("collectible-category-\(category?.rawValue ?? "all")")
@@ -225,7 +223,7 @@ struct CollectibleVisualSearch: View {
                     .accessibilityLabel("Close search")
                     .accessibilityIdentifier("collectibles-search-close")
             }
-            .buttonStyle(EverSpecularButtonStyle(radius: 999, horizontalPadding: 0))
+            .buttonStyle(TimeMasterToolbarIconButtonStyle())
             CollectibleCategoryRail(selection: $category)
             ScrollView {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: EverSpacing.x3), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: EverSpacing.x3) {

@@ -1,11 +1,8 @@
 import SwiftUI
 
 struct Theme {
-    // Defined but ONLY used in AnalyticsView.swift
-    static let primary       = Color(hex: "FF6B35")
-    static let accent        = Color(hex: "4ECDC4")
-    static let restAccent = Color(hex: "FF9500")
-    static let toolbarOrange = Color(hex: "FF7A00")
+    static let accent = Color(hex: "4ECDC4")
+    static let toolbarOrange = Color(hex: "FF6A00")
     // App-wide monochrome palette
     static let background    = Color(hex: "0A0A0A")
     static let surface       = Color(hex: "141414")
@@ -13,7 +10,7 @@ struct Theme {
     static let textPrimary   = Color.white
     static let textSecondary = Color.white.opacity(0.45)
     static let separator     = Color.white.opacity(0.08)
-    static let controlCornerRadius: CGFloat = 14
+    static let controlCornerRadius: CGFloat = 18
 
     // Icon color palette (8 choices) — used in WorkoutListView and DatabaseView
     static let iconColors: [(hex: String, label: String)] = [
@@ -76,14 +73,10 @@ struct TimeMasterCardSurface: ViewModifier {
 }
 
 struct TimeMasterCardButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
-            .opacity(configuration.isPressed ? 0.82 : 1)
-            .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.9),
-                       value: configuration.isPressed)
+            .background(SlotNavigationContentClearanceReader())
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
     }
 }
 
@@ -91,28 +84,17 @@ struct TimeMasterSelectionButtonStyle: ButtonStyle {
     var isSelected = false
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        TimeMasterActionButtonStyle(prominent: isSelected)
+            .makeBody(configuration: configuration)
             .font(.subheadline.weight(isSelected ? .semibold : .medium))
-            .foregroundStyle(isSelected ? Theme.background : Theme.textPrimary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .frame(minHeight: 44)
-            .background(
-                isSelected ? Theme.toolbarOrange : Theme.surface2,
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-            )
-            .opacity(configuration.isPressed ? 0.72 : 1)
     }
 }
 
 struct TimeMasterInsetControlStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        TimeMasterActionButtonStyle()
+            .makeBody(configuration: configuration)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(Theme.textPrimary)
-            .frame(minWidth: 44, minHeight: 44)
-            .modifier(TimeMasterCardSurface(cornerRadius: 12, flat: true))
-            .opacity(configuration.isPressed ? 0.72 : 1)
     }
 }
 
@@ -208,100 +190,9 @@ enum AppToolbar {
 }
 
 struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        #if os(iOS)
-        configuration.label
-            .foregroundStyle(.white)
-            .frame(width: 36, height: 36)
-            .modifier(
-                TimeMasterPrivateGlassSurface(
-                    cornerRadius: 18,
-                    isInteractive: true,
-                    tint: Theme.toolbarOrange,
-                    tintOpacity: 0.52
-                )
-            )
-            .clipShape(Circle())
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Rectangle())
-            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.92)
-            .opacity(configuration.isPressed ? 0.82 : 1)
-            .animation(
-                reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
-                value: configuration.isPressed
-            )
-        #else
-        fallback(configuration)
-        #endif
-    }
-
-    @ViewBuilder
-    private func fallback(_ configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(.white)
-            .frame(width: 36, height: 36)
-            .background {
-                Circle()
-                    .fill(reduceTransparency ? Theme.toolbarOrange.opacity(0.9) : Theme.toolbarOrange.opacity(0.52))
-                if !reduceTransparency {
-                    Circle().fill(.ultraThinMaterial)
-                }
-            }
-            .overlay {
-                Circle()
-                    .strokeBorder(
-                        Color.white.opacity(reduceTransparency ? 0.24 : 0.18),
-                        lineWidth: 1
-                    )
-            }
-            .overlay(alignment: .top) {
-                Capsule()
-                    .fill(Color.white.opacity(reduceTransparency ? 0.28 : 0.12))
-                    .frame(width: 16, height: 1)
-                    .offset(y: 1)
-            }
-            .clipShape(Circle())
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Rectangle())
-            .shadow(
-                color: reduceTransparency ? .clear : Color.black.opacity(0.28),
-                radius: 8,
-                y: 3
-            )
-            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.92)
-            .opacity(configuration.isPressed ? 0.82 : 1)
-            .animation(
-                reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
-                value: configuration.isPressed
-            )
-    }
-}
-struct TimeMasterToolbarIconSurface: ViewModifier {
-    let size: CGFloat
-
-    init(size: CGFloat = 36) {
-        self.size = size
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .foregroundStyle(.white)
-            .frame(width: size, height: size)
-            .modifier(
-                TimeMasterPrivateGlassSurface(
-                    cornerRadius: size / 2,
-                    isInteractive: true,
-                    tint: Theme.toolbarOrange,
-                    tintOpacity: 0.52
-                )
-            )
-            .clipShape(Circle())
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Rectangle())
+        TimeMasterActionButtonStyle(circular: true)
+            .makeBody(configuration: configuration)
     }
 }
 
@@ -315,70 +206,25 @@ struct TimeMasterBackButton: View {
             Image(systemName: "chevron.left")
                 .font(.system(size: 16, weight: .bold))
         }
-        .buttonStyle(.plain)
-        .modifier(TimeMasterToolbarIconSurface(size: 38))
+        .buttonStyle(TimeMasterToolbarIconButtonStyle())
         .accessibilityLabel("Back")
     }
 }
 
 
 struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        TimeMasterActionButtonStyle()
+            .makeBody(configuration: configuration)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .modifier(
-                TimeMasterPrivateGlassSurface(
-                    cornerRadius: 9,
-                    isInteractive: true,
-                    tint: isEnabled ? Theme.toolbarOrange : Theme.surface2,
-                    tintOpacity: isEnabled ? 0.48 : 0.26
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(
-                        isEnabled ? Theme.toolbarOrange.opacity(0.7) : Color.white.opacity(0.12),
-                        lineWidth: 1
-                    )
-            }
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
-            .opacity(configuration.isPressed ? 0.78 : 1)
     }
 }
 
 struct TimeMasterToolbarWideButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .frame(minHeight: 36)
-            .modifier(
-                TimeMasterPrivateGlassSurface(
-                    cornerRadius: 18,
-                    isInteractive: true,
-                    tint: Theme.toolbarOrange,
-                    tintOpacity: 0.52
-                )
-            )
-            .clipShape(Capsule())
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
-            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.96)
-            .opacity(configuration.isPressed ? 0.82 : 1)
-            .animation(
-                reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 0.88),
-                value: configuration.isPressed
-            )
+        TimeMasterActionButtonStyle(prominent: true)
+            .makeBody(configuration: configuration)
+            .font(.body.weight(.semibold))
     }
 }
 

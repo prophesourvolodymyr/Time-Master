@@ -28,7 +28,7 @@ struct MusicLibraryScreen: View {
     @State private var showingNewFolder = false
     @State private var newFolderName = ""
 
-    private let orange = Color(red: 1, green: 0.48, blue: 0)
+    private let orange = Theme.toolbarOrange
 
     var body: some View {
         ZStack {
@@ -278,7 +278,7 @@ struct MusicLibraryScreen: View {
             familyButton("Mine", .mine)
         }
         .padding(2)
-        .background(Theme.surface2, in: Capsule())
+        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous))
         .gesture(DragGesture(minimumDistance: 4).onEnded { value in
             family = value.translation.width >= 0 ? .mine : .type
         })
@@ -287,11 +287,11 @@ struct MusicLibraryScreen: View {
 
     private func familyButton(_ title: String, _ value: MusicDestinationFamily) -> some View {
         Button { family = value } label: {
-            Text(title).font(.system(size: 9, weight: .bold))
-                .foregroundStyle(family == value ? .white : Theme.textSecondary)
-                .frame(width: 40, height: 20)
-                .background(family == value ? orange.opacity(0.28) : .clear, in: Capsule())
-        }.buttonStyle(.plain)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .frame(minWidth: 44, minHeight: 44)
+        }
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: family == value, horizontalPadding: 0))
         .accessibilityLabel("Show \(title) folders")
     }
 
@@ -407,7 +407,13 @@ struct MusicLibraryScreen: View {
                         }
                     }
                 }.frame(maxHeight: 210).scrollEdgeFade(.vertical)
-                HStack { Button("Cancel") { selectingItem = nil }; Spacer(); Button("Done") { selectingItem = nil }.buttonStyle(.borderedProminent).tint(orange) }
+                HStack(alignment: .center) {
+                    Button("Cancel") { selectingItem = nil }
+                        .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
+                    Spacer()
+                    Button("Done") { selectingItem = nil }
+                        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
+                }
             }
             .padding(16).background(Theme.background, in: RoundedRectangle(cornerRadius: 24)).padding(10)
         }
@@ -421,7 +427,11 @@ struct MusicLibraryScreen: View {
                     Button { searchPresented = false } label: { Image(systemName: "chevron.left") }.buttonStyle(.plain).accessibilityLabel("Back to Music")
                     TextField("Search music", text: $searchText).textFieldStyle(.plain).padding(10).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
                     ForEach([MusicProvider.spotify, .youtubeMusic, .soundCloud], id: \.self) { provider in
-                        Button { toggle(provider) } label: { providerLogo(provider).padding(6).frame(width: 34, height: 34).background(enabledProviders.contains(provider) ? orange.opacity(0.25) : Theme.surface2, in: Circle()) }.buttonStyle(.plain).accessibilityLabel("Search \(provider.displayName)")
+                        Button { toggle(provider) } label: {
+                            providerLogo(provider).padding(6).frame(width: 34, height: 34)
+                        }
+                        .buttonStyle(TimeMasterActionButtonStyle(prominent: enabledProviders.contains(provider), circular: true))
+                        .accessibilityLabel("Search \(provider.displayName)")
                     }
                 }.padding(.horizontal, 14).padding(.top, 10)
                 ScrollView {
@@ -442,7 +452,7 @@ struct MusicLibraryScreen: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack { providerLogo(provider).frame(width: 22, height: 22); Text(provider.displayName).font(.headline) }
             Text("Connect \(provider.displayName) to search its available catalog.").font(.caption).foregroundStyle(Theme.textSecondary)
-            Button("Connect") { providerTapped(provider) }.buttonStyle(.bordered).tint(orange)
+            Button("Connect") { providerTapped(provider) }.buttonStyle(TimeMasterActionButtonStyle(prominent: true))
         }.padding(12).background(Theme.surface, in: RoundedRectangle(cornerRadius: 18)).overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.separator, lineWidth: 1))
     }
 
@@ -463,7 +473,14 @@ struct MusicLibraryScreen: View {
             VStack(spacing: 12) {
                 Text("Move or Duplicate?").font(.headline)
                 Text("\(library.item(id: transfer.itemID)?.title ?? "Music") → \(library.destinationName(transfer.destination))").font(.caption).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
-                HStack { Button("Cancel") { pendingTransfer = nil }; Button("Move") { library.commitWorkoutTransfer(transfer, choice: .move); pendingTransfer = nil }.buttonStyle(.bordered); Button("Duplicate") { library.commitWorkoutTransfer(transfer, choice: .duplicate); pendingTransfer = nil }.buttonStyle(.borderedProminent).tint(orange) }
+                HStack {
+                    Button("Cancel") { pendingTransfer = nil }
+                        .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
+                    Button("Move") { library.commitWorkoutTransfer(transfer, choice: .move); pendingTransfer = nil }
+                        .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
+                    Button("Duplicate") { library.commitWorkoutTransfer(transfer, choice: .duplicate); pendingTransfer = nil }
+                        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
+                }
             }.padding(18).background(Theme.surface, in: RoundedRectangle(cornerRadius: 22)).padding(30)
         }
     }

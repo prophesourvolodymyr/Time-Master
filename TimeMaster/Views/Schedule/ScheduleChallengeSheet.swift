@@ -36,7 +36,7 @@ struct ScheduleChallengeSheet: View {
                                 .padding(.vertical, 14)
                                 .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 16 : 0)
                                 .foregroundStyle(weekdays.contains(day) ? .white : .secondary)
-                                .modifier(TimeMasterPrivateGlassSurface(
+                                .modifier(TimeMasterGlassSurface(
                                     cornerRadius: 14,
                                     isInteractive: true,
                                     tint: weekdays.contains(day) ? Theme.toolbarOrange : Theme.surface2,

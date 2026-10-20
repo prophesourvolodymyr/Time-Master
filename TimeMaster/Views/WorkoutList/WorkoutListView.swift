@@ -304,7 +304,7 @@ struct WorkoutListView: View {
                 height: height
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel(title)
         .help(title)
     }
@@ -578,11 +578,8 @@ struct WorkoutListView: View {
             } label: {
                 Label("Create Workout", systemImage: "plus")
                     .font(.headline)
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
-                    .background(Color.white, in: Capsule())
             }
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -603,17 +600,17 @@ struct WorkoutListView: View {
                                 showingAddWorkout = false
                                 activeOutdoorKind = .run
                             } label: { Label("Run", systemImage: "figure.run") }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(TimeMasterActionButtonStyle())
                             Button {
                                 showingAddWorkout = false
                                 activeOutdoorKind = .walk
                             } label: { Label("Walk", systemImage: "figure.walk") }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(TimeMasterActionButtonStyle())
                             Button {
                                 showingAddWorkout = false
                                 activeOutdoorKind = .bike
                             } label: { Label("Bike", systemImage: "bicycle") }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(TimeMasterActionButtonStyle())
                         }
                     }
                     }

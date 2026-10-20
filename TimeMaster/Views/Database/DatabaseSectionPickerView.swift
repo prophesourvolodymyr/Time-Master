@@ -111,11 +111,11 @@ struct PickerExerciseRow: View {
                         .font(.caption).foregroundColor(Theme.textSecondary).lineLimit(1)
                 }
                 Text("\(exercise.duration)s · \(exercise.restAfter)s rest")
-                    .font(.caption2).foregroundColor(Theme.primary)
+                    .font(.caption2).foregroundColor(Theme.toolbarOrange)
             }
             Spacer()
             Image(systemName: "plus.circle")
-                .foregroundColor(Theme.primary)
+                .foregroundColor(Theme.toolbarOrange)
         }
     }
 

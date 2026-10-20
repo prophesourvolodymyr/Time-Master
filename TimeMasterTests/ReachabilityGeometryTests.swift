@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 @testable import TimeMaster
 
 final class ReachabilityGeometryTests: XCTestCase {
@@ -89,30 +90,186 @@ final class ReachabilityGeometryTests: XCTestCase {
                                                     translation: CGSize(width: 10, height: 120), width: 390))
     }
 
-    func testNavigationRestsCompactAndExpandsOnlyWhileInUse() {
-        for flags in 0..<16 {
-            XCTAssertEqual(SlotNavigationBarLayout.resolve(
-                isExpanded: flags & 1 != 0,
-                isInteracting: flags & 2 != 0,
-                isEditing: flags & 4 != 0,
-                isOverlayVisible: flags & 8 != 0
-            ), flags == 0 ? .inline : .full, "Interaction flags: \(flags)")
+    func testMeasuredFooterClippingIsSymmetricAndIgnoresOnePointRounding() {
+        for placement in SlotNavigationPlacement.allCases {
+            let content = placement.contentBounds(in: bounds, reservedHeight: 160)
+            let edge = placement == .bottom ? content.maxY : content.minY
+            let clearY = placement == .bottom ? edge - 52 : edge
+            for (overflow, expected) in [(0.0, false), (1.0, false), (2.0, true), (26.0, true)] {
+                let control = CGRect(x: 20, y: clearY + placement.outwardSign * overflow, width: 350, height: 52)
+                let assessment = SlotNavigationContentClearance.assess(
+                    control: control, contentBounds: content, viewport: bounds,
+                    placement: placement, primaryAction: true, scrollBounds: nil
+                )
+                XCTAssertTrue(assessment.isRelevant)
+                XCTAssertEqual(assessment.hasObstruction, expected)
+                let context = clearanceContext(placement: placement)
+                var state = SlotNavigationClearanceState()
+                state.observe(SlotNavigationContentClearance(
+                    context: context, measuredArchedLayout: true, controlCount: 1, hasObstruction: assessment.hasObstruction
+                ))
+                XCTAssertEqual(SlotNavigationBarLayout.resolve(
+                    isExpanded: false, isInteracting: false, isEditing: false, isOverlayVisible: false,
+                    contentRequiresInline: state.requiresInline(in: context)
+                ), expected ? .inline : .full)
+            }
         }
     }
 
-    func testHiddenOverlayReturnsToCompactAfterItsIdleWindow() {
-        let start = ContinuousClock.now
-        var overlay = SlotNavigationOverlayState()
-        overlay.reveal(at: start, interacting: false)
-        XCTAssertEqual(SlotNavigationBarLayout.resolve(
-            isExpanded: false, isInteracting: false, isEditing: false,
-            isOverlayVisible: overlay.isVisible
-        ), .full)
-        XCTAssertTrue(overlay.dismissIfExpired(at: start.advanced(by: .seconds(2))))
-        XCTAssertEqual(SlotNavigationBarLayout.resolve(
-            isExpanded: false, isInteracting: false, isEditing: false,
-            isOverlayVisible: overlay.isVisible
-        ), .inline)
+    func testOrdinaryScrollRowsNeverFlattenButPartiallyClippedPrimaryActionsDo() {
+        for placement in SlotNavigationPlacement.allCases {
+            let content = placement.contentBounds(in: bounds, reservedHeight: 160)
+            let y = placement == .bottom ? content.maxY - 26 : content.minY - 26
+            let control = CGRect(x: 20, y: y, width: 350, height: 52)
+            for primary in [false, true] {
+                let assessment = SlotNavigationContentClearance.assess(
+                    control: control, contentBounds: content, viewport: bounds,
+                    placement: placement, primaryAction: primary, scrollBounds: content
+                )
+                XCTAssertEqual(assessment.isRelevant, primary)
+                XCTAssertEqual(assessment.hasObstruction, primary)
+            }
+            let offscreen = control.offsetBy(dx: 0, dy: placement.outwardSign * 500)
+            let assessment = SlotNavigationContentClearance.assess(
+                control: offscreen, contentBounds: content, viewport: bounds,
+                placement: placement, primaryAction: true, scrollBounds: content
+            )
+            XCTAssertFalse(assessment.isRelevant)
+            XCTAssertFalse(assessment.hasObstruction)
+        }
+    }
+
+    func testInnerScrollClippingDoesNotImplicateNavigation() {
+        let content = SlotNavigationPlacement.bottom.contentBounds(in: bounds, reservedHeight: 160)
+        let innerScroll = CGRect(x: 0, y: 100, width: 390, height: 200)
+        let assessment = SlotNavigationContentClearance.assess(
+            control: CGRect(x: 20, y: 280, width: 350, height: 300),
+            contentBounds: content, viewport: bounds, placement: .bottom,
+            primaryAction: true, scrollBounds: innerScroll
+        )
+        XCTAssertTrue(assessment.isRelevant)
+        XCTAssertFalse(assessment.hasObstruction)
+    }
+
+    func testInvalidAndUnrelatedControlMeasurementsDoNotChangeNavigation() {
+        let content = SlotNavigationPlacement.bottom.contentBounds(in: bounds, reservedHeight: 160)
+        for control in [
+            CGRect.null, CGRect.infinite, CGRect.zero,
+            CGRect(x: CGFloat.nan, y: 520, width: 100, height: 52),
+            CGRect(x: 500, y: 520, width: 100, height: 52),
+            CGRect(x: 20, y: 900, width: 100, height: 52)
+        ] {
+            let assessment = SlotNavigationContentClearance.assess(
+                control: control, contentBounds: content, viewport: bounds,
+                placement: .bottom, primaryAction: true, scrollBounds: nil
+            )
+            XCTAssertFalse(assessment.isRelevant, "\(control)")
+            XCTAssertFalse(assessment.hasObstruction, "\(control)")
+        }
+    }
+
+    func testFallbackStaysLatchedWhenFlatteningGainsSpaceAndChangesControlLayout() {
+        let context = clearanceContext()
+        var state = SlotNavigationClearanceState()
+        state.observe(SlotNavigationContentClearance(
+            context: context, measuredArchedLayout: true, controlCount: 2,
+            controlSize: CGSize(width: 700, height: 104), hasObstruction: false
+        ))
+        XCTAssertFalse(state.requiresInline(in: context))
+        state.observe(SlotNavigationContentClearance(
+            context: context, measuredArchedLayout: true, controlCount: 2,
+            controlSize: CGSize(width: 700, height: 104), hasObstruction: true
+        ))
+        XCTAssertTrue(state.requiresInline(in: context))
+        let gainedSpace = SlotNavigationContentClearance(
+            context: context, measuredArchedLayout: false, controlCount: 3,
+            controlSize: CGSize(width: 1050, height: 156), hasObstruction: false
+        )
+        state.observe(gainedSpace)
+        state.observe(gainedSpace)
+        XCTAssertTrue(state.requiresInline(in: context))
+    }
+
+    func testRemovingTheLastProtectedActionReleasesCompactionDuringReflow() {
+        let context = clearanceContext()
+        var state = SlotNavigationClearanceState()
+        state.observe(SlotNavigationContentClearance(
+            context: context, measuredArchedLayout: true, controlCount: 1,
+            controlSize: CGSize(width: 350, height: 52), hasObstruction: true
+        ))
+        XCTAssertTrue(state.requiresInline(in: context))
+        state.observe(SlotNavigationContentClearance(
+            context: context, measuredArchedLayout: false, controlCount: 0
+        ))
+        XCTAssertFalse(state.requiresInline(in: context))
+    }
+
+    func testPageViewportPlacementAndDynamicTypeChangesReevaluateClearance() {
+        let original = clearanceContext()
+        for changed in [
+            clearanceContext(page: "second"),
+            clearanceContext(viewport: CGRect(x: 0, y: 0, width: 700, height: 390)),
+            clearanceContext(placement: .top),
+            clearanceContext(dynamicType: .accessibility3)
+        ] {
+            var state = SlotNavigationClearanceState()
+            state.observe(SlotNavigationContentClearance(
+                context: original, measuredArchedLayout: true, controlCount: 1, hasObstruction: true
+            ))
+            XCTAssertFalse(state.requiresInline(in: changed))
+            state.observe(SlotNavigationContentClearance(
+                context: changed, measuredArchedLayout: true, controlCount: 1, hasObstruction: false
+            ))
+            XCTAssertFalse(state.requiresInline(in: changed))
+        }
+    }
+
+    func testRemovingOrResizingActionsInStableCompactLayoutReevaluatesClearance() {
+        let context = clearanceContext()
+        for revised in [
+            SlotNavigationContentClearance(context: context, measuredArchedLayout: false, controlCount: 0),
+            SlotNavigationContentClearance(
+                context: context, measuredArchedLayout: false, controlCount: 1,
+                controlSize: CGSize(width: 350, height: 52)
+            )
+        ] {
+            var state = SlotNavigationClearanceState()
+            state.observe(SlotNavigationContentClearance(
+                context: context, measuredArchedLayout: true, controlCount: 1,
+                controlSize: CGSize(width: 350, height: 104), hasObstruction: true
+            ))
+            state.observe(SlotNavigationContentClearance(
+                context: context, measuredArchedLayout: false, controlCount: 1,
+                controlSize: CGSize(width: 350, height: 104), hasObstruction: false
+            ))
+            state.observe(revised)
+            XCTAssertFalse(state.requiresInline(in: context))
+        }
+    }
+
+    func testInteractionAndEditingCanExpandAnObstructedMenuWithoutClearingItsFallback() {
+        let context = clearanceContext()
+        var state = SlotNavigationClearanceState()
+        state.observe(SlotNavigationContentClearance(
+            context: context, measuredArchedLayout: true, controlCount: 1, hasObstruction: true
+        ))
+        for flags in 0..<16 {
+            XCTAssertEqual(SlotNavigationBarLayout.resolve(
+                isExpanded: flags & 1 != 0, isInteracting: flags & 2 != 0,
+                isEditing: flags & 4 != 0, isOverlayVisible: flags & 8 != 0,
+                contentRequiresInline: state.requiresInline(in: context)
+            ), flags == 0 ? .inline : .full)
+        }
+        XCTAssertTrue(state.requiresInline(in: context))
+    }
+
+    private func clearanceContext(
+        page: String = "first", viewport: CGRect? = nil,
+        placement: SlotNavigationPlacement = .bottom, dynamicType: DynamicTypeSize = .large
+    ) -> SlotNavigationClearanceContext {
+        SlotNavigationClearanceContext(
+            page: page, viewport: viewport ?? bounds, placement: placement, dynamicTypeSize: dynamicType
+        )
     }
 
     func testNavigationReservesOnlyItsSelectedEdge() {

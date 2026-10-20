@@ -13,19 +13,14 @@ struct OutdoorChoicePicker<Value: Hashable>: View {
     @Binding var selection: Value
     let options: [OutdoorChoiceOption<Value>]
     var compact = false
+    var prominent = false
 
     private var selected: OutdoorChoiceOption<Value>? {
         options.first { $0.id == selection }
     }
 
     var body: some View {
-        Group {
-            if compact {
-                menu.buttonStyle(SpotlightCircleButtonStyle())
-            } else {
-                menu.buttonStyle(OutdoorAccessoryButtonStyle())
-            }
-        }
+        menu.buttonStyle(TimeMasterActionButtonStyle(prominent: prominent, circular: compact))
         .accessibilityLabel(title)
         .accessibilityValue(selected?.title ?? "")
         .accessibilityHint("Open choices")
@@ -60,23 +55,6 @@ struct OutdoorChoicePicker<Value: Hashable>: View {
     }
 }
 
-struct OutdoorAccessoryButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Theme.textPrimary)
-            .padding(.horizontal, 12)
-            .frame(minWidth: 44, minHeight: 44)
-            .background(reduceTransparency ? Theme.surface2 : Color.white.opacity(0.07), in: Capsule())
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
-            .contentShape(Capsule())
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.95 : 1)
-            .opacity(configuration.isPressed ? 0.75 : 1)
-            .animation(reduceMotion ? .none : .spring(response: 0.24, dampingFraction: 0.82), value: configuration.isPressed)
-    }
-}
 
 struct OutdoorActivityTypePicker: View {
     @Binding var kind: OutdoorActivityKind
@@ -103,9 +81,9 @@ struct OutdoorVisibilityPicker: View {
             options: [
                 OutdoorChoiceOption(id: .privateVisibility, title: "Private", systemImage: "lock.fill"),
                 OutdoorChoiceOption(id: .publicVisibility, title: "Public", systemImage: "globe")
-            ]
+            ],
+            prominent: prominent
         )
-        .background(prominent ? Theme.restAccent.opacity(0.85) : .clear, in: Capsule())
     }
 }
 #endif

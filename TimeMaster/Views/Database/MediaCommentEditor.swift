@@ -136,10 +136,8 @@ struct MediaCommentEditor: View {
             Button(action: save) {
                 Image(systemName: "arrow.up")
                     .font(.body.weight(.bold))
-                    .foregroundStyle(hasChanges ? Color.black : Theme.textSecondary)
-                    .frame(width: controlSize, height: controlSize)
-                    .background(hasChanges ? Theme.toolbarOrange : Theme.surface2, in: Circle())
             }
+            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, circular: true, minimumSize: controlSize))
             .accessibilityLabel(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Remove media comment" : "Save media comment")
             .keyboardShortcut(.return, modifiers: .command)
             .disabled(!hasChanges)

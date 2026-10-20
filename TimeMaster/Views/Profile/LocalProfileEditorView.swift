@@ -93,12 +93,12 @@ struct LocalProfileEditorView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") {
                         if hasChanges { showsDiscard = true } else { cancel() }
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
+                AppToolbar.item(placement: .confirmationAction) {
                     Button("Save", action: save)
                         .disabled(isImporting || !hasLoaded || profileStore.isReadOnly)
                         .accessibilityIdentifier("profile-edit-save")
