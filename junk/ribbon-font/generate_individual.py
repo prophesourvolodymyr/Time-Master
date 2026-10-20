@@ -11,60 +11,7 @@ from scipy import ndimage
 
 HERE = Path(__file__).resolve().parent
 REFERENCE = HERE.parents[1] / "genesis/REFERENCE/ribbon-font/individual-m"
-CONSTRUCTIONS = {
-    "A": "Capital A: two asymmetric rising and falling ribbon legs, a softly rounded crest, and the original M's curved right foot. A SHORT crossbar grows rightward from the left leg but STOPS WELL BEFORE the right leg: its rounded tip must remain visibly separated from the right leg by black space. The internal triangular negative space is OPEN to the outside through this gap, not a fully enclosed triangular hole. This open, incomplete crossbar is essential; do not use a conventional closed-counter A. Keep the main left rise near the M's 61-degree diagonal, not an upright rounded-sans A.",
-    "B": "Capital B: a gently leaning ribbon spine and two compact asymmetric bowls. The upper bowl is smaller; the lower bowl flows into the M-like curved foot. Two clean black counters. Avoid a thick rectangular stem or balloon-like bowls.",
-    "C": "Capital C: a single open flowing ribbon, slightly oblique and softly asymmetric rather than a perfect oval. The upper and lower cut ends share M's subtly flattened round terminals. A generous clean opening on the right.",
-    "D": "Capital D: a gently leaning ribbon spine flowing through one broad asymmetric outside bowl. One clean open black counter. The lower-right curve should feel like M's relaxed terminal turn, not a rigid geometric semicircle.",
-    "E": "Capital E: a subtly leaning, softly bending spine with three restrained ribbon arms. The middle arm is shorter. Keep rounded internal joins and M-like soft-cut terminals, without slab serifs or inflated pill-shaped bars.",
-    "F": "Capital F: the same gently moving ribbon spine and short soft-cut upper and middle arms as E, without a bottom arm. Natural width, restrained crossbars, no slabs or serifs.",
-    "G": "Capital G: C's open asymmetric ribbon bowl with a short inward curl or restrained horizontal bar at the lower-right opening. The opening stays clear; avoid a generic geometric rounded G or a swollen circular bowl.",
-    "H": "Capital H: two slightly asymmetric ribbon uprights, with the rising direction and soft terminal cuts borrowed from M, joined by one restrained curved crossbar. Keep open black spaces above and below it. No sharp corners.",
-    "I": "Capital I: one narrow, gently leaning or softly bent ribbon stroke with M's rounded-flat top and bottom cuts. NO top bar, NO bottom bar, NO serifs. Keep it narrow; do not turn it into a slab I.",
-    "J": "Capital J: one gently leaning ribbon descends from cap height and flows left into a relaxed rounded hook near the baseline. Use the M's curved-foot gesture. No top slab, no serif, no decorative loop.",
-    "a": "Lowercase a, single storey: an oblique softly asymmetric bowl with one black counter and a short flowing right-hand foot. Body reaches the lowercase x-height, not cap height. It should echo the original M's curved troughs and terminal sweep, not a round balloon.",
-    "b": "Lowercase b: one softly leaning ascender reaches cap height, flowing into a single x-height bowl on the right. One clean black counter. The shoulder and curved foot are made from M's rising ribbon and relaxed terminal, without a rigid upright or swollen oval.",
-    "c": "Lowercase c: an open, softly oblique ribbon bowl at lowercase x-height. M-like flat-rounded terminals with a generous right-hand opening. Smaller body than uppercase C, with the SAME absolute stroke weight, not a scaled-down thin capital.",
-    "d": "Lowercase d: one asymmetric x-height bowl on the left with a clean black counter, joined smoothly to a leaning ascender that reaches cap height on the right. A restrained M-like curved foot. Same stroke weight as uppercase, not a geometric balloon d.",
-    "e": "Lowercase e: one compact, oblique, open ribbon bowl at x-height with a short soft cross-stroke that flows into its outer curve. A small clean black counter and clear right-hand aperture. No oversized round bowl, no sharp join.",
-    "f": "Lowercase f: one softly bent ribbon ascender reaching cap height, turning gently at its top and ending near the baseline. A short restrained rounded crossbar near x-height. No slab, serif, oversized crossbar, decorative loop, or long descending swash.",
-    "g": "Lowercase g, SINGLE STOREY: a softly oblique x-height bowl with one clean black counter, flowing into one relaxed right-side descender and a simple open leftward hook below the baseline. No second lower bowl, no double-storey g, no decorative loop.",
-    "h": "Lowercase h: a gently leaning cap-height ascender, then one soft x-height shoulder descending into M's relaxed curved foot. The shoulder should come from one wave of M. Exactly one arch, not an m. Keep negative space open and the stroke weight unchanged.",
-    "i": "Lowercase i: a narrow subtly leaning ribbon body ending at the baseline and reaching x-height, plus ONE small separate white dot above it. The dot is a softly rounded compact square or round shape, sized in proportion to M's ribbon width. No serif or baseline slab.",
-    "j": "Lowercase j, correcting a rejected generic rounded-sans design. Build the body from the original M's broad LEFT RISING DIAGONAL: approximately 61 degrees above horizontal, with the top distinctly to the RIGHT of the baseline. The descending stroke therefore sweeps DOWN AND LEFT, not nearly vertically. Carry M's subtle taper, crisp smooth ribbon edges and softly flattened cuts. The body begins at lowercase x-height, passes the baseline, and finishes only 146 pixels below it with a SHORT restrained LEFTWARD exit. Keep the lower turn compact and shallow, not a large banana-shaped U hook, swollen heel or decorative swash. Add ONE separate compact slanted rounded-quadrilateral dot near the cap line; its width is approximately the stem thickness and its height about 80 percent of that width. The dot has softly flattened edges, never an egg, teardrop, circle or pill. Exactly two disconnected white components. No loop, serif, top slab, upright monoline sausage or ball-shaped terminal.",
-    "K": "Capital K: one gently leaning ribbon spine with two asymmetric diagonal arms meeting in a rounded, compact central join. The rising diagonal and the relaxed lower-right foot come from M. Open triangular spaces, no rigid straight mechanical bars.",
-    "L": "Capital L: one softly leaning ribbon spine turning naturally into a low rightward foot. Borrow M's rounded-flat terminal and relaxed curved-foot gesture. No serif, slab, or extra loop.",
-    "M": "Original capital M: retain the supplied design master exactly; this glyph is sourced directly from the reference, not regenerated.",
-    "N": "Capital N, unmistakably the letter N rather than M: exactly TWO tall upright ribbon stems, one on the left and one on the right, connected by ONE long descending diagonal from the TOP of the left stem to the BOTTOM of the right stem. The left and right stems both reach the cap line and baseline. There is NO middle rising arch, NO central peak, NO two-hump M skeleton. Keep the normal capital-N skeleton while borrowing only M's stroke weight, soft bends and terminal cuts. The diagonal must visibly run upper-left to lower-right.",
-    "O": "Capital O: one continuous oblique asymmetric ribbon bowl, with one generous clean black counter. Gentle thick-to-thin flow, softly flattened turns, not a geometric circle or inflated balloon.",
-    "P": "Capital P: one gently leaning full-height ribbon spine and one compact CLOSED upper bowl. The lower return of the bowl MUST JOIN the spine at mid-height, fully enclosing exactly ONE black counter. There must be NO gap between the bowl's lower return and the spine. A recognizable capital P, not an open hook, F or musical symbol. The lower stem ends in M's restrained soft-cut terminal. No lower bowl or serif.",
-    "Q": "Capital Q: O's flowing asymmetric ribbon bowl, one clean counter, and one short diagonal tail exiting the lower-right edge. The tail is restrained and rounded, never a long swash or extra letter.",
-    "R": "Capital R: a softly leaning ribbon spine, one compact upper bowl with a clean counter, and a relaxed diagonal lower-right leg flowing from the middle join. M-like foot, no slab or sharp corner.",
-    "S": "Capital S: one smooth continuous asymmetric ribbon with a smaller upper curve and a broader lower curve. Deep clean internal turns, generous open terminals and controlled M-like thick-to-thin rhythm.",
-    "T": "Capital T: one restrained broad top ribbon and one gently leaning descending spine. Compact rounded joins, softly flattened terminal cuts. No serifs, slab ends or oversized pill-like top bar.",
-    "U": "Capital U: two gently leaning ribbon uprights flowing together through one deep soft bottom turn. Open at the top, asymmetric natural curvature, M-like relaxed right terminal.",
-    "V": "Capital V: two asymmetric diagonal ribbon strokes meet in one softly rounded low turn. Preserve M's broad rising diagonal and deep inner trough, with no sharp pointed vertex.",
-    "W": "Capital W: two connected asymmetric ribbon troughs with a smaller central rise, drawn as a flowing counterpart to M. Natural wide proportions, smooth rounded low turns and soft-cut terminals, no sharp zigzag.",
-    "X": "Capital X: two oblique asymmetric ribbon diagonals cross in one compact rounded join. Preserve M's forward movement and natural stroke modulation; four restrained soft-cut terminals.",
-    "Y": "Capital Y: two asymmetric ribbon branches meet in one compact soft join above a single descending spine. Open upper fork, restrained lower terminal, no extra branch or swash.",
-    "Z": "Capital Z: two restrained horizontal ribbon ends joined by one broad flowing diagonal. Smooth directional turns and M-like rounded-flat terminal cuts, no angular mechanical corners.",
-    "k": "Lowercase k: a softly leaning cap-height ascender and two compact asymmetric diagonal arms confined to the lowercase body area. Rounded central join and relaxed lower-right foot, not a small capital K.",
-    "l": "Lowercase l, correcting a rejected generic rounded-sans design. Make ONE continuous ascender using the original M's broad LEFT RISING DIAGONAL, approximately 61 degrees above horizontal. The top must sit distinctly to the RIGHT of the baseline, with horizontal travel about 55 percent of cap height: an unmistakably oblique sweeping ribbon, NOT a nearly upright straight capsule. Preserve M's controlled thick-to-thin modulation, softly flattened terminal cuts and smooth asymmetric edge rhythm. At the baseline, finish with a SHORT restrained rightward exit borrowed from M's far-right foot. Keep that bottom turn shallow and compact, with no large U/C hook, bulbous heel or inflated foot. Full ascender height, naturally narrow letter proportions. No loop, top hook, serif, slab, second hump, circular cap or generic rounded-sans stem.",
-    "m": "Lowercase m: two compact asymmetric x-height shoulders joined to a gently leaning ribbon stem. Exactly two arches, M-like rounded crests and relaxed feet. The body is distinctly shorter than capitals, not a capital M.",
-    "n": "Lowercase n: one softly leaning x-height stem flowing into exactly one compact shoulder and a relaxed right foot. M-like rising ribbon and soft crest, not h, m or a small capital N.",
-    "o": "Lowercase o: one compact oblique asymmetric x-height bowl with a clean black counter. Same ribbon character as M, natural width, not an inflated circle or a cap-height O.",
-    "p": "Lowercase p: one x-height bowl to the right of a gently leaning stem that continues below the baseline. One clean counter; the bowl must stay inside the lowercase body area and only the stem descends.",
-    "q": "Lowercase q: one compact x-height bowl on the left, one clean counter, and a gently leaning right stem continuing below the baseline with a restrained terminal. No extra lower loop or swash.",
-    "r": "Lowercase r: one short x-height ribbon stem with one compact open rightward shoulder ending in a soft cut. No full arch, bowl, serif or decorative hook.",
-    "s": "Lowercase s: one compact asymmetric x-height ribbon with a smaller upper curve and broader lower curve. Open soft-cut terminals and controlled concave turns, not a capital-height S.",
-    "t": "Lowercase t: one gently leaning short ascender reaching between x-height and cap height, one restrained crossbar near x-height, and a soft curved baseline foot. Clearly shorter than a full cap-height ascender, no slab or serif.",
-    "u": "Lowercase u: two compact x-height ribbon rises joined by one soft low turn and ending in a restrained right foot. Natural asymmetry and open top, not a cap-height U.",
-    "v": "Lowercase v: two compact x-height asymmetric ribbon diagonals join in one rounded low turn. Open top and M-like inner trough, not a pointed geometric V.",
-    "w": "Lowercase w, unmistakably an upright w rather than m or M: four connected short ribbon diagonals travel DOWN, UP, DOWN, UP from left to right. Start at the x-height at the upper-left, descend into the FIRST LOW VALLEY on the baseline, rise to the central x-height, descend into the SECOND LOW VALLEY on the baseline, then rise to the upper-right endpoint at x-height. Both outside endpoints are HIGH, both valleys are LOW, and the form opens upward. There must be NO two upward arches, NO upside-down w and NO M-shaped wave. Borrow only M's stroke character, soft low turns and terminal cuts. The entire body stays at lowercase x-height.",
-    "x": "Lowercase x: two short oblique ribbon diagonals cross in a compact soft join entirely inside the x-height body area. Restrained rounded-flat terminal cuts, not a cap-height X.",
-    "y": "Lowercase y: two compact x-height ribbon arms form a soft open fork, with the right-hand stroke continuing below the baseline into one restrained leftward hook. Only the descender extends below the lowercase body.",
-    "z": "Lowercase z: two short restrained ribbon ends joined by one flowing diagonal entirely inside the x-height body area. Soft directional turns and rounded-flat cuts, not a cap-height Z.",
-}
+CONSTRUCTIONS = json.loads((REFERENCE / "glyph-calculations.json").read_text())["glyphs"]
 
 
 def _letter_frame(letter, canvas):
@@ -113,7 +60,7 @@ def _descender_body_bottom(grayscale, letter):
         if not len(ink) or ink[0] >= (top + bottom) / 2:
             continue
         gaps = np.flatnonzero(~column[ink[0]:])
-        if len(gaps) and ink[0] + gaps[0] < bottom:
+        if len(gaps) and ink[0] + gaps[0] < ink[-1]:
             body_bottoms.append(int(ink[0] + gaps[0]))
     if not body_bottoms:
         raise ValueError("Lowercase y needs a separate upper fork for body alignment.")
@@ -151,8 +98,13 @@ def _normalize_letter(image, letter, canvas):
     if dot_bounds is not None:
         dot = grayscale.crop(dot_bounds)
         dot_scale = min(scale, (top - canvas["cap_line_y"] - canvas["minimum_dot_gap"]) / dot.height)
-        dot_center = ((dot_bounds[0] + dot_bounds[2]) / 2 - bounds[0]) * scale
         dot = dot.resize((max(1, round(dot.width * dot_scale)), max(1, round(dot.height * dot_scale))), Image.Resampling.LANCZOS)
+        body_mask = np.asarray(body) >= 128
+        rows = np.arange(round(body.height * 0.2), round(body.height * 0.6))
+        centers = np.array([np.flatnonzero(body_mask[row]).mean() for row in rows])
+        slope, intercept = np.polyfit(rows, centers, 1)
+        dot_y = canvas["cap_line_y"] + dot.height / 2 - top
+        dot_center = body_left + intercept + slope * dot_y
         layers.append((dot, round(dot_center - dot.width / 2), canvas["cap_line_y"]))
     ink_width = max(layer.width + left for layer, left, _ in layers)
     width = max(canvas["width"], ink_width + 32)
@@ -162,6 +114,41 @@ def _normalize_letter(image, letter, canvas):
     for layer, left, y in layers:
         normalized.paste(layer, (offset + left, y))
     return normalized.convert("RGB")
+
+
+def _match_stem_weight(image, letter, canvas, plan):
+    grayscale = np.asarray(image.convert("L"))
+    labels, _ = ndimage.label(grayscale >= 128)
+    areas = np.bincount(labels.ravel())
+    areas[0] = 0
+    body = labels == areas.argmax()
+    body_rows = np.flatnonzero(body.any(axis=1))
+    top, bottom = int(body_rows[0]), int(body_rows[-1]) + 1
+    span = canvas["lowercase_x_height"] if letter in "ij" else bottom - top
+    fractions = np.asarray(plan["profile_positions_from_top"])
+    target = np.asarray(plan["primary_normal_width_profile"])
+    if letter == "t":
+        target, fractions = target[1:], fractions[1:]
+    fit_start, fit_end = (0.5, 0.8) if letter == "t" else (0.2, 0.6)
+    fit_rows = np.arange(top + round(span * fit_start), top + round(span * fit_end))
+    centers = np.array([np.flatnonzero(body[row]).mean() for row in fit_rows])
+    slope, _ = np.polyfit(fit_rows, centers, 1)
+    rows = top + np.rint((span - 1) * fractions).astype(int)
+    widths = np.array([np.count_nonzero(body[row]) for row in rows]) / np.sqrt(1 + slope * slope)
+    gains = target / widths
+    output = grayscale.copy()
+    grid = np.arange(image.width)
+    for row in range(top, bottom):
+        columns = np.flatnonzero(body[row])
+        if not len(columns):
+            continue
+        center = columns.mean()
+        gain = float(np.interp(row, rows, gains))
+        if letter == "T":
+            gain = 1 + (gain - 1) * np.clip(((row - top) / span - 0.2) / 0.2, 0, 1)
+        source = center + (grid - center) / gain
+        output[row] = np.rint(np.interp(source, grid, grayscale[row], left=0, right=0)).astype("uint8")
+    return Image.fromarray(output).convert("RGB")
 
 
 def _export_preview_metrics():
@@ -198,6 +185,8 @@ def main():
     parser.add_argument("--letters", default="".join(sorted(CONSTRUCTIONS)))
     parser.add_argument("--clean-existing", action="store_true", help="Re-export the saved raw images without calling Fgen.")
     parser.add_argument("--raw-only", action="store_true", help="Save separate Fgen images and prompts without changing the normalized previews.")
+    parser.add_argument("--feedback", help="Apply a measured correction with the current normalized glyph as the editing input beside the original M.")
+    parser.add_argument("--guide", type=Path, help="Attach a calculated geometry guide; the original M remains the style master.")
     arguments = parser.parse_args()
     if any(letter not in CONSTRUCTIONS for letter in arguments.letters):
         parser.error("Only A–Z and a–z are supported.")
@@ -218,16 +207,35 @@ def main():
                 image.convert("RGB").save(raw, format="PNG")
             (REFERENCE / f"{stem}.txt").write_text("Original capital M reused directly from master-M-reference.png. No Fgen generation; the supplied M remains the design master.\n")
         elif not arguments.clean_existing:
-            top, bottom = _letter_frame(letter, canvas)
-            proportions = f"The main {case} form of {letter} occupies y={top} through y={bottom}. Lowercase bowls and short bodies are 406 pixels tall, only 72.5 percent of the 560-pixel capital height. For i/j only, the detached dot sits above the body near the cap line. Do not enlarge a lowercase body to fill the canvas."
-            prompt = template.format(letter=letter, case=case, construction=CONSTRUCTIONS[letter], proportions=proportions)
+            history = raw_directory / "measured" / stem
+            history.mkdir(parents=True, exist_ok=True)
+            if not (history / "before.png").exists():
+                for source, name in ((raw, "before.png"), (destination, "before-normalized.png"), (REFERENCE / f"{stem}.txt", "before.txt")):
+                    if source.exists():
+                        shutil.copyfile(source, history / name)
+            attempt = len(list(history.glob("attempt-*.txt"))) + 1
+            attempt_stem = history / f"attempt-{attempt:03d}"
+            plan = CONSTRUCTIONS[letter]
+            prompt = template.format(
+                letter=letter, case=case, construction=plan["construction"],
+                calculations=json.dumps(plan["calculations"], indent=2, ensure_ascii=False),
+            )
+            images = ["--image", str(REFERENCE / "master-M-reference.png")]
+            if arguments.feedback:
+                images.extend(["--image", str(destination)])
+                prompt += "\n\nMEASURED CORRECTION: Image 1 remains the original M style master. Image 2 is the previous glyph to correct, not a new style reference. Preserve its correct anatomy and case placement while applying this specific measured feedback:\n" + arguments.feedback
+            if arguments.guide:
+                images.extend(["--image", str(arguments.guide)])
+                prompt += "\n\nCALCULATED GEOMETRY GUIDE: The last image is an explicit construction/weight guide calculated for this letter, not a second style master. Preserve its anatomy, broad-to-narrow stroke mass and forward axis. Finish its curves, joins and terminals using the original M's ribbon character; do not copy any guide annotation.\n"
+            attempt_stem.with_suffix(".txt").write_text(prompt)
             print(f"Generating {letter} separately with the original M reference", flush=True)
             result = subprocess.run([
                 executable, "gen", "--prompt", prompt,
-                "--image", str(REFERENCE / "master-M-reference.png"),
+                *images,
                 "--quality", "high", "--size", "1024x1024", "--timeout", "600",
-                "--out", str(raw), "--json",
+                "--out", str(attempt_stem.with_suffix(".png")), "--json",
             ], stdout=subprocess.PIPE, text=True)
+            attempt_stem.with_suffix(".jsonl").write_text(result.stdout)
             print(result.stdout, end="", flush=True)
             result.check_returncode()
             for event in map(json.loads, result.stdout.splitlines()):
@@ -236,12 +244,9 @@ def main():
                     break
             else:
                 raise RuntimeError(f"Fgen did not report a saved image for {letter}.")
-            with Image.open(generated) as image:
-                pixels = image.convert("RGB")
-            pixels.save(raw, format="PNG")
-            (REFERENCE / f"{stem}.txt").write_text(prompt)
             if generated != raw:
-                generated.unlink()
+                shutil.copyfile(generated, raw)
+            (REFERENCE / f"{stem}.txt").write_text(prompt)
         if arguments.raw_only:
             print(f"Saved raw {letter}: {raw}; preview preparation deferred", flush=True)
             continue
@@ -250,6 +255,8 @@ def main():
                 cleaned = image.convert("RGB")
             else:
                 cleaned = _normalize_letter(clean_letter(image), letter, canvas)
+                if letter in "ITijlt":
+                    cleaned = _match_stem_weight(cleaned, letter, canvas, CONSTRUCTIONS[letter]["calculations"])
         cleaned.save(destination, format="PNG")
         print(f"Saved {letter}: {destination} ({cleaned.width} × {cleaned.height}; raw generation retained)", flush=True)
     if not arguments.raw_only:

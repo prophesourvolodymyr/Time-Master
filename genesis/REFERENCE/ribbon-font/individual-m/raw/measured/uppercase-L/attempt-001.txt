@@ -1,0 +1,60 @@
+Create exactly ONE uppercase typeface glyph, L, as a solid white silhouette on solid black. No other letter, label, poster, texture, shading, outline or decorative object.
+
+The attached original M is the sole STYLE MASTER. Transfer its actual ribbon character and weight contrast, not its letter skeleton. This must look like another letter drawn by the SAME type designer, not a generic rounded font or a straight oblique sans-serif. The last rejected direction was too rigid and much too thin: do not repeat uniform rods or ruler-cut bars.
+
+INDIVIDUAL LETTER ANATOMY:
+Broad rising ascender with measured gradual taper and quietly curved edges. Short shallow rightward baseline release; no slab, rigid right-angle corner, giant U hook or loop.
+
+INDIVIDUAL CALCULATIONS, in the 1024-pixel design coordinate system:
+{
+  "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+  "cap_height": 560,
+  "body_height": 560,
+  "frame_top_y": 232,
+  "frame_bottom_y": 792,
+  "main_span_height": 560,
+  "principal_axis_rise_degrees": 60.96,
+  "principal_axis_rightward_travel": 311.0,
+  "primary_normal_width_profile": [
+    131.5,
+    139.9,
+    142.7,
+    148.3,
+    156.7,
+    159.5
+  ],
+  "profile_positions_from_top": [
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.88
+  ],
+  "return_normal_width_range": [
+    75.9,
+    78.2
+  ],
+  "thick_thin_ratio": 1.92,
+  "ink_width_target": 510,
+  "ink_width_calculation": "560 × 0.91; optical target, permit modest natural adjustment instead of stretching.",
+  "crest_radius_guide": 54.3,
+  "inside_turn_radius_guide": 22.4,
+  "terminal_radius_guide": 36.8,
+  "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+  "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+  "primary_median_fraction_of_body_height": 0.26,
+  "return_median_fraction_of_body_height": 0.135
+}
+
+The measured main rising ribbon is about 132 pixels wide in its upper part, 140–148 through its middle, and 157–160 near the bottom at a 560-pixel cap height. The RETURNING ribbon is genuinely narrower, about 76–78 pixels. These are widths measured PERPENDICULAR to the stroke, not horizontal widths. Preserve this approximately 1.9:1 contrast. In a lowercase 406-pixel body, the broad stroke is still approximately 145 pixels, about 36 percent of the body height: NEVER shrink its weight with the lowercase height. Follow this actual contrast, not a generic average stroke thickness.
+
+Use the M’s disciplined forward-rising centerline near 61 degrees, but let the edges subtly breathe through its gradual taper and soft asymmetric curvature. Neither mechanical parallel-sided rods nor wavy S-shaped handwriting. Bowls, returning turns, crossbars and descending branches use the narrower profile assigned above. Joins are clean, compact and weight-relieved. Soft crests, deep concave turns and short relaxed terminal releases carry the playful ribbon quality. The local radius guides describe softness, NOT identical circular corners or pill end caps. Width is an optical guide; keep natural anatomy instead of stretching the image.
+
+Cap line y=232, common baseline y=792, lowercase x-line y=386; lowercase body is 406 pixels, 72.5 percent of the 560-pixel cap height. Full ascenders reach cap line, t is a 476-pixel short ascender, compact descenders end near y=938. For i/j, keep the dot detached and on the upward continuation of the main rising axis, farther RIGHT because it is higher. Keep ample black margin and do not crop any terminal.
+
+Final check: exactly the requested letter L; correct Latin anatomy; a visibly M-matched broad-to-narrow ribbon, not the previously rejected uniform thin bars. Pure filled white on pure black, with only normal antialiasing at the silhouette edge.
+
+
+MEASURED CORRECTION: Image 1 remains the original M style master. Image 2 is the previous glyph to correct, not a new style reference. Preserve its correct anatomy and case placement while applying this specific measured feedback:
+Rebuild this specific letter with its individual calculation above. Current measured interior widths are {"bounds": [273, 233, 751, 791], "components": 1, "counters": 0, "interior_normal_width_p25_p50_p75": [90.0, 110.1, 117.4]}. Correct weak or uniform weight: the main ribbon must be visually as broad as the M rising-left band at the SAME cap scale, with its returning/bowl branches about half as thick. Retain recognizable Latin anatomy, subtly flowing edges and restrained terminals. Main stem upper ends must be right of their lower ends, but this is NOT a rigid oblique sans-serif. Do not repeat M-shaped arches in n, m, w or N; the exact requested letter takes precedence over M skeleton.

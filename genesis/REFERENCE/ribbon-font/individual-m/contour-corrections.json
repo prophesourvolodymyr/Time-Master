@@ -1,0 +1,89 @@
+{
+  "style_master": "Original untouched M; I supplies its measured ribbon profile. Each letter's actual raw Fgen attempts and submitted calculations remain under raw/.",
+  "glyphs": {
+    "l": {
+      "repair": "Replace rejected lambda-like l with the measured single I ribbon, fitted to M axis; same cap height and absolute taper."
+    },
+    "n": {
+      "repair": "Retain generated shoulder; correct both separated shafts to the measured M taper and one forward axis."
+    },
+    "h": {
+      "repair": "Union corrected n shoulder/body with the measured l ascender on its first shaft.",
+      "ascender_offset_x": -69
+    },
+    "m": {
+      "repair": "Union two corrected n components with one shared middle shaft, producing exactly three shafts and two shoulders.",
+      "shared_stem_spacing": 262
+    },
+    "b": {
+      "repair": "Retain generated bowl/arms or y fork; fit the primary ribbon to M axis and absolute weight, fit body features to x-height, and use the common compact descender depth.",
+      "primary_side": "left",
+      "original_axis_degrees": 74.84,
+      "corrected_axis_degrees": 60.96,
+      "body_feature_top_before": 386,
+      "body_feature_top_after": 386,
+      "stem_top": 232,
+      "stem_bottom": 792
+    },
+    "d": {
+      "repair": "Retain generated bowl/arms or y fork; fit the primary ribbon to M axis and absolute weight, fit body features to x-height, and use the common compact descender depth.",
+      "primary_side": "right",
+      "original_axis_degrees": 70.39,
+      "corrected_axis_degrees": 60.96,
+      "body_feature_top_before": 386,
+      "body_feature_top_after": 386,
+      "stem_top": 232,
+      "stem_bottom": 792
+    },
+    "k": {
+      "repair": "Retain generated bowl/arms or y fork; fit the primary ribbon to M axis and absolute weight, fit body features to x-height, and use the common compact descender depth.",
+      "primary_side": "left",
+      "original_axis_degrees": 82.82,
+      "corrected_axis_degrees": 60.96,
+      "body_feature_top_before": 386,
+      "body_feature_top_after": 386,
+      "stem_top": 232,
+      "stem_bottom": 792
+    },
+    "p": {
+      "repair": "Retain generated bowl/arms or y fork; fit the primary ribbon to M axis and absolute weight, fit body features to x-height, and use the common compact descender depth.",
+      "primary_side": "left",
+      "original_axis_degrees": 77.46,
+      "corrected_axis_degrees": 60.96,
+      "body_feature_top_before": 428,
+      "body_feature_top_after": 386,
+      "stem_top": 386,
+      "stem_bottom": 938
+    },
+    "q": {
+      "repair": "Retain generated bowl/arms or y fork; fit the primary ribbon to M axis and absolute weight, fit body features to x-height, and use the common compact descender depth.",
+      "primary_side": "right",
+      "original_axis_degrees": 59.87,
+      "corrected_axis_degrees": 60.96,
+      "body_feature_top_before": 387,
+      "body_feature_top_after": 386,
+      "stem_top": 386,
+      "stem_bottom": 938
+    },
+    "r": {
+      "repair": "Retain generated bowl/arms or y fork; fit the primary ribbon to M axis and absolute weight, fit body features to x-height, and use the common compact descender depth.",
+      "primary_side": "left",
+      "original_axis_degrees": 61.6,
+      "corrected_axis_degrees": 60.96,
+      "body_feature_top_before": 434,
+      "body_feature_top_after": 386,
+      "stem_top": 386,
+      "stem_bottom": 792
+    },
+    "y": {
+      "repair": "Retain generated bowl/arms or y fork; fit the primary ribbon to M axis and absolute weight, fit body features to x-height, and use the common compact descender depth.",
+      "primary_side": "right",
+      "original_axis_degrees": 59.43,
+      "corrected_axis_degrees": 60.96,
+      "body_feature_top_before": 398,
+      "body_feature_top_after": 386,
+      "stem_top": 386,
+      "stem_bottom": 938
+    }
+  }
+}

@@ -1644,6 +1644,96 @@ The user identified lowercase l and j as outside the original M’s style. Repla
 
 Both replacements were generated separately with the unchanged original M as their sole image reference. Their measured rising strokes are approximately 63 degrees, replacing the earlier near-upright stems. Case heights, baseline placement, and j’s two separate components are retained. The other fifty normalized letter images and the earlier installable font files remain byte-unchanged. The hub includes jolly and little examples. Focused HTTP and direct-file checks exercised both examples, corrected-image comparisons, keyboard navigation, the raw j link, Escape, desktop and mobile layouts, and 200% text at 320 pixels; no page errors were observed. The rejected raw images, submitted prompts, and normalized previews are retained for comparison. Both letters are ready for human review; no next prompt is needed for this correction.
 
+### Batch 7 — Strict Right-Leaning Ribbon Family
+
+The user rejected the inconsistent direction, crooked stems and handwritten waviness in the preceding alphabet. Keep the original M as the sole image reference and preserve B, D, E and the other fitting forms. Structural stems must be straight and share a forward-right lean; playful movement belongs in controlled bowls, joins and restrained terminal sweeps, not wavy shafts or cursive flourishes.
+
+The user rejected this pass as too strict and reported that its strokes do not match the original M. It is not accepted. Batch 8 supersedes the remaining plan; rejected raw images, exact prompts and intermediate normalized previews are preserved rather than treated as a finished family.
+
+- [ ] Preserve the original M and the sixteen fitting forms ABCDEFGKMOR and acelo without altering their normalized pixels
+- [ ] Regenerate uppercase H, I, J, L, N, P, Q, S, T, U, V, W, X, Y and Z individually from the original M
+- [ ] Regenerate lowercase b, d, f, g, h, i, j, k, m, n, p, q, r, s, t, u, v, w, x, y and z individually from the original M
+  - [ ] Make t’s shaft and crossbar straight, forward-leaning and restrained
+  - [ ] Make j’s shaft straight with a compact below-baseline terminal and separate dot on the extended stem axis
+  - [ ] Make i’s shaft straight with its separate dot on the same forward-rising axis
+- [ ] Replace the shared prompt’s prohibition of straight stems with one disciplined rightward structural direction, retaining restrained M-like ribbon joins and terminals
+- [ ] Preserve the thirty-six previous raw images, submitted prompts and normalized previews; retain all new raw generations and exact prompts
+- [ ] Normalize the revised alphabet with the existing case heights, shared baseline, unclipped contours and separated i/j dots; correct dot positioning without warping the source shapes
+- [ ] Connect the revised alphabet to the HTML hub, add tilt and just right examples, and exercise actual words, comparisons and mobile layouts
+- [ ] Commit and push the scoped revision and open the updated HTML for human review
+- [ ] Human acceptance of the complete family’s direction, straight stems, restrained playfulness, letter anatomy and word rhythm
+
+### Batch 8 — Measured Ribbon Weight and Individual Letter Verification
+
+The user requires the agent to calculate and send a separate Fgen brief for every letter, then personally inspect every individual glyph. The prior uniform-bar pass lost the M’s ribbon character. Direct measurements distinguish the broad rising profile from the narrow returning stroke; a single average thickness is not an adequate family rule. Preserve the original M, distinguish measured source facts from inferred letter-width targets, and keep human acceptance pending.
+
+- [x] Measure the original M’s primary/return stroke profiles, axis, taper, local crests, inside turns and terminals
+- [x] Store individual calculations and anatomical briefs for all twenty-six capitals and twenty-six lowercase letters
+- [x] Send the calculations and distinct prompt to Fgen for each non-M letter; retain every actual raw output and submitted prompt
+- [x] Inspect and correct each letter personally against the original M, its weight profile and its Latin anatomy
+  - [x] A
+  - [x] B
+  - [x] C
+  - [x] D
+  - [x] E
+  - [x] F
+  - [x] G
+  - [x] H
+  - [x] I
+  - [x] J
+  - [x] K
+  - [x] L
+  - [x] M — original pixels retained, not regenerated
+  - [x] N
+  - [x] O
+  - [x] P
+  - [x] Q
+  - [x] R
+  - [x] S
+  - [x] T
+  - [x] U
+  - [x] V
+  - [x] W
+  - [x] X
+  - [x] Y
+  - [x] Z
+  - [x] a
+  - [x] b
+  - [x] c
+  - [x] d
+  - [x] e
+  - [x] f
+  - [x] g
+  - [x] h
+  - [x] i
+  - [x] j
+  - [x] k
+  - [x] l
+  - [x] m
+  - [x] n
+  - [x] o
+  - [x] p
+  - [x] q
+  - [x] r
+  - [x] s
+  - [x] t
+  - [x] u
+  - [x] v
+  - [x] w
+  - [x] x
+  - [x] y
+  - [x] z
+- [x] Preserve case-aware sizing, baseline alignment, detached i/j dots, open counters and unclipped shapes; check normalizer regressions
+- [x] Exercise mixed-case words, all-letter examples, comparisons and actual desktop/mobile HTML rendering
+- [ ] Commit and push the scoped revision and open the HTML for human review
+- [ ] Human acceptance of the individually reviewed family, weight contrast, ribbon character and word rhythm
+
+The measured M’s broad rising profile is 131.5–159.5 pixels and its narrower return is 75.9–78.2 pixels on the 560-pixel capital-height grid. `glyph-calculations.json` separates those measured facts from each letter’s optical width and anatomy targets. All fifty-one non-M letters have a retained individual Fgen saved event, raw output, and submitted brief; the original M is pixel-identical to its preserved reference. Rejected strict, noisy, and malformed candidates remain under the reference’s raw history rather than being presented as accepted work.
+
+Every capital and lowercase letter was personally inspected beside M. `glyph-inspection.json` records a distinct visual note and final geometry for each letter. The repeatable `correct_outlines.py` pass reconstructs n/l/h/m and b/d/k/p/q/r/y from retained generated contours, correcting primary weight, forward direction, connected bowls, repeated stems, and compact descender depth. It does not modify raw Fgen outputs. I/i/j/T/t receive measured shaft correction in the existing normalizer. The repaired PNGs are byte-identical on a repeated contour-correction run.
+
+Four focused regression tests passed for dot placement, fork-body alignment, measured taper, and connected closed p/q bowls. All fifty-two final PNGs passed component, counter, case-frame, and no-clipping checks. The actual HTTP hub exercised all fifteen presets, both case actions, unsupported-input recovery, native empty-input deletion, Q/y comparisons, arrow paging and Escape. HTTP layouts at 320, 390, 768 and 1440 pixels had no page overflow or broken images; direct-file opening also worked. No browser page errors were observed. Calculations and individual inspection notes are linked from the hub. The earlier installable TTF/OTF/WOFF2 files and app typography remain unchanged. Ready for human verification, not human-approved; no next implementation prompt is needed for this slice.
+
 ## Tmax Rebrand and Loading — 2026-10-19
 
 User-requested visible rebrand and connected loading system. The repository and folder remain Time-Master; bundle IDs, deep links, storage locations, saved data, and user-authored AI prompts retain their existing compatibility.

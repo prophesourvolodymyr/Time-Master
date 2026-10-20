@@ -1,0 +1,2396 @@
+{
+  "master_measurement": {
+    "authority": "Untouched original M, measured directly from master-M.png, not from a generated letter.",
+    "source_sha256": "948ab4188bc17cbfdc74e04ec35cdbbecff4b70ad7394a9b4b3203129b3ff404",
+    "native_width": 275,
+    "native_height": 175,
+    "cap_scale": 3.2,
+    "principal_rise_degrees": 60.96,
+    "principal_rightward_dx_per_dy": 0.5553,
+    "principal_profile_vertical_fractions": [
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.88
+    ],
+    "principal_normal_widths_native": [
+      41.09,
+      43.71,
+      44.59,
+      46.34,
+      48.96,
+      49.83
+    ],
+    "principal_normal_widths_at_cap_560": [
+      131.5,
+      139.9,
+      142.7,
+      148.3,
+      156.7,
+      159.5
+    ],
+    "return_normal_widths_native_p25_p50_p75": [
+      23.71,
+      23.71,
+      24.42
+    ],
+    "return_normal_widths_at_cap_560_p25_p50_p75": [
+      75.9,
+      75.9,
+      78.2
+    ],
+    "curve_fits": {
+      "first_crest": {
+        "radius_native": 16.97,
+        "fit_rms_native": 0.32,
+        "sample_count": 47,
+        "radius_at_cap_560": 54.3,
+        "native_sample_window_xyxy": [
+          95,
+          -1,
+          126,
+          16
+        ]
+      },
+      "concave_turn": {
+        "radius_native": 7.01,
+        "fit_rms_native": 0.29,
+        "sample_count": 17,
+        "radius_at_cap_560": 22.4,
+        "native_sample_window_xyxy": [
+          141,
+          94,
+          169,
+          115
+        ]
+      },
+      "lower_return_tip": {
+        "radius_native": 13.65,
+        "fit_rms_native": 0.36,
+        "sample_count": 54,
+        "radius_at_cap_560": 43.7,
+        "native_sample_window_xyxy": [
+          133,
+          134,
+          162,
+          153
+        ]
+      },
+      "right_terminal": {
+        "radius_native": 11.5,
+        "fit_rms_native": 0.91,
+        "sample_count": 42,
+        "radius_at_cap_560": 36.8,
+        "native_sample_window_xyxy": [
+          254,
+          131,
+          276,
+          149
+        ]
+      }
+    },
+    "measurement_method": "Main ribbon: first separated white interval at native rows 70, 87, 104, 122, 139, 153; normal width = horizontal interval length / sqrt(1 + centerline_slope squared). Return: middle interval at rows 70–95 with its own fitted centerline. Local radii: least-squares circle fits to threshold outline samples in recorded windows; approximate curvature, not literal circular construction."
+  },
+  "glyphs": {
+    "A": {
+      "family": "two-leg",
+      "construction": "Broad rising left leg and narrow descending right leg; soft asymmetric crest and short low rightward foot. Narrow crossbar grows from left and stops clearly before right leg: the triangular counter remains OPEN, never enclosed.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 605,
+        "ink_width_calculation": "560 × 1.08; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "B": {
+      "family": "spine-bowl",
+      "construction": "Broad forward-rising spine with two asymmetric bowls, upper smaller and lower fuller. Bowl returns and bridges use the narrow profile. Exactly two generous counters and a short M-like baseline release.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 650,
+        "ink_width_calculation": "560 × 1.16; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "C": {
+      "family": "bowl",
+      "construction": "Oblique open bowl with broad rising-left flank, narrow upper/lower returns and generous right aperture. Softly flattened rounded terminals, not balls or square cuts.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 571,
+        "ink_width_calculation": "560 × 1.02; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "D": {
+      "family": "spine-bowl",
+      "construction": "Broad rising left spine and one asymmetric bowl with narrow returning-right flank. Exactly one counter. Compact soft bottom turn and restrained rightward release, no slab.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 689,
+        "ink_width_calculation": "560 × 1.23; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "E": {
+      "family": "spine-bars",
+      "construction": "Broad forward-rising spine and three narrow arms, middle shortest. Soft concave weight-relieved joins; baseline arm has a short relaxed finishing sweep, not block corners.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 594,
+        "ink_width_calculation": "560 × 1.06; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "F": {
+      "family": "spine-bars",
+      "construction": "Broad rising spine with narrow upper and middle arms, no lower arm. Upper longer than middle. Soft relieved joins and a quiet lower terminal, not a rigid diagonal capsule.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 571,
+        "ink_width_calculation": "560 × 1.02; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "G": {
+      "family": "bowl",
+      "construction": "Oblique C-like bowl: broad rising-left flank, narrow returning arcs and short narrow inward cross-stroke at lower-right opening. Aperture stays clear; no swollen hook or spiral.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 616,
+        "ink_width_calculation": "560 × 1.1; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "H": {
+      "family": "parallel-spines",
+      "construction": "Two broad forward-rising spines with gradual measured taper, joined by one narrow crossbar. Disciplined centerlines but subtly flowing non-parallel edges. Tiny terminal releases, no S-bent shafts.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 661,
+        "ink_width_calculation": "560 × 1.18; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "I": {
+      "family": "single-spine",
+      "construction": "One broad rising ribbon using M’s first-leg taper, slimmer above and fuller below. Rounded-soft crown and tiny low rightward release. No bars, uniform pill, oversized hook or swash.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 437,
+        "ink_width_calculation": "560 × 0.78; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "J": {
+      "family": "single-spine",
+      "construction": "One broad rising shaft, slimmer above. Only its final short baseline section turns left into a compact soft terminal. No uniform rod, banana or large U hook.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 482,
+        "ink_width_calculation": "560 × 0.86; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "K": {
+      "family": "spine-branches",
+      "construction": "Broad rising spine; broad rising-right upper branch and narrow descending-right lower branch meet at one relieved soft join. Lower branch ends with M’s short relaxed rightward foot.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 661,
+        "ink_width_calculation": "560 × 1.18; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "L": {
+      "family": "single-spine",
+      "construction": "Broad rising ascender with measured gradual taper and quietly curved edges. Short shallow rightward baseline release; no slab, rigid right-angle corner, giant U hook or loop.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 510,
+        "ink_width_calculation": "560 × 0.91; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "M": {
+      "family": "original",
+      "construction": "Reuse the supplied original M pixel-for-pixel; do not generate a replacement.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 880,
+        "ink_width_calculation": "560 × 1.5714; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "N": {
+      "family": "parallel-spines",
+      "construction": "Two broad forward-rising spines joined by one narrow descending diagonal. Same forward direction and measured taper; unmistakable N, no middle hump or M skeleton. Soft relieved joins.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 689,
+        "ink_width_calculation": "560 × 1.23; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "O": {
+      "family": "bowl",
+      "construction": "One asymmetric oblique closed bowl. Broad rising-left flank, narrow returning-right flank and flowing narrower top/bottom turns. One generous counter; no circular tube or uniform oval.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 588,
+        "ink_width_calculation": "560 × 1.05; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "P": {
+      "family": "spine-bowl",
+      "construction": "Broad rising full-height spine and one oblique upper bowl whose narrow return joins firmly at mid-height. Exactly one enclosed counter. Restrained lower terminal; no open F-like bowl.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 627,
+        "ink_width_calculation": "560 × 1.12; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "Q": {
+      "family": "bowl",
+      "construction": "O-like oblique bowl with broad rising-left flank and narrow return, one counter, and one short lower-right identifying tail with a soft end. No giant swash or swollen teardrop.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 661,
+        "ink_width_calculation": "560 × 1.18; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "R": {
+      "family": "spine-bowl",
+      "construction": "Broad rising spine and upper bowl with one counter and narrow returning arc. Narrow descending-right leg leaves the middle join and ends with a short M-like foot. No thick mechanical junction.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 694,
+        "ink_width_calculation": "560 × 1.24; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "S": {
+      "family": "turning-ribbon",
+      "construction": "Continuous asymmetric oblique S: smaller upper curve, fuller lower curve. Broad rising sweeps alternate with genuinely narrow returning turns. Clean soft terminals and concave waist, not a uniform snake.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 582,
+        "ink_width_calculation": "560 × 1.04; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "T": {
+      "family": "spine-bars",
+      "construction": "Broad rising central spine with measured taper and narrow controlled top arm. Subtle flowing edge rhythm and tiny low baseline release. No rigid slab, uniform capsule, giant hook or wavy shaft.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 650,
+        "ink_width_calculation": "560 × 1.16; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "U": {
+      "family": "parallel-spines",
+      "construction": "Two forward-oblique side strokes with compact deep bottom turn. Left/main rising stroke broad, returning right stroke narrower. Shared forward direction, soft inside turn, restrained terminal; no uniform horseshoe.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 638,
+        "ink_width_calculation": "560 × 1.14; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "V": {
+      "family": "diagonals",
+      "construction": "Two disciplined diagonals and one soft low vertex. Rising-right arm broad, descending-left arm narrow. Forward optical lean and natural V anatomy; no upright symmetric monoline or bent banana arms.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 661,
+        "ink_width_calculation": "560 × 1.18; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "W": {
+      "family": "diagonals",
+      "construction": "Exactly four bands travel DOWN-UP-DOWN-UP: two low valleys, high outer endpoints. Rising-right bands broad, descending returns narrow. One compact middle crest, forward direction; no leading upstroke, M humps or loose waves.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 952,
+        "ink_width_calculation": "560 × 1.7; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "X": {
+      "family": "diagonals",
+      "construction": "Two bands cross once. Rising-right stroke broad, descending-right return narrow. Forward endpoint arrangement, soft weight-relieved crossing and quiet terminals. No upright uniform symmetric X or long feet.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 683,
+        "ink_width_calculation": "560 × 1.22; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "Y": {
+      "family": "diagonals",
+      "construction": "Two upper branches meet one forward-rising lower stem. Main rising branch and stem broad; opposite descending branch narrow. Open fork, soft relieved junction, restrained baseline terminal; no backward tail.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 672,
+        "ink_width_calculation": "560 × 1.2; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "Z": {
+      "family": "diagonals",
+      "construction": "Broad rising-right diagonal connects narrow controlled near-horizontal top and baseline arms. Top endpoint group sits forward of bottom group. Soft oblique terminals, no uniform slab Z, curling arm or cursive loop.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 560,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 672,
+        "ink_width_calculation": "560 × 1.2; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.26,
+        "return_median_fraction_of_body_height": 0.135
+      }
+    },
+    "a": {
+      "family": "bowl",
+      "construction": "Single-storey oblique x-height bowl: broad rising-left flank, narrow return, one counter and short rightward exit. Same absolute weights as M, not a thin scaled-down capital.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 526,
+        "ink_width_calculation": "560 × 0.94; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "b": {
+      "family": "spine-bowl",
+      "construction": "Broad full-height forward-rising left ascender and one compact right x-height bowl. Narrow bowl return, one counter, soft join and restrained terminal. No bowed shaft or inflated bowl.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 605,
+        "ink_width_calculation": "560 × 1.08; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "c": {
+      "family": "bowl",
+      "construction": "Open oblique x-height bowl with broad rising-left flank and narrow upper/lower returns. Generous right aperture and soft M-like cut ends. Same absolute weights as capitals, not a thin mini-C.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 482,
+        "ink_width_calculation": "560 × 0.86; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "d": {
+      "family": "spine-bowl",
+      "construction": "One oblique x-height bowl left of a broad full-height right ascender. Narrow bowl return and one generous counter. Ascender follows measured taper; no cursive loop or reverse bend.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 605,
+        "ink_width_calculation": "560 × 1.08; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "e": {
+      "family": "bowl",
+      "construction": "Compact oblique x-height bowl with broad rising-left flank and narrow return. One short narrow cross-stroke, small legible counter and clear right aperture. Soft relieved join, not a uniform geometric e.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 504,
+        "ink_width_calculation": "560 × 0.9; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "f": {
+      "family": "spine-bars",
+      "construction": "Broad full-height forward-rising ascender with small controlled rightward cap turn. One short narrow crossbar near x-height and restrained baseline release. No S-shaped shaft, large swash or loop.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 526,
+        "ink_width_calculation": "560 × 0.94; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "g": {
+      "family": "spine-bowl",
+      "construction": "Single-storey g: one oblique x-height bowl and one counter, with a forward-oblique right descender. Main rise broad; bowl returns and short below-baseline turn narrow. No upper-right ascender, second bowl, down-right tail or giant hook.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 938,
+        "main_span_height": 552,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 306.5,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 571,
+        "ink_width_calculation": "560 × 1.02; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "h": {
+      "family": "parallel-spines",
+      "construction": "Broad full-height left ascender and broad parallel x-height right stroke, joined by ONE compact narrow returning shoulder. Shoulder is a rounded arch, not an M crest; its exit descends down-left into right stroke. Restrained terminals.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 599,
+        "ink_width_calculation": "560 × 1.07; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "i": {
+      "family": "single-spine",
+      "construction": "One broad x-height rising ribbon with M’s 132-to-160-pixel taper, not a 90-pixel uniform rod. Quiet edge curvature and tiny low rightward release. One separate soft oblique dot on the extended rising axis, exactly two components.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 434,
+        "ink_width_calculation": "Extended stem-axis travel to the detached dot + half the lower broad-stroke projection + half dot width, with room for a restrained terminal; no squeeze to the prior narrow box.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "dot": {
+          "width_target": 107,
+          "height_target": 80,
+          "calculation": "0.735 × 145.5 median primary width; height 0.75 × width; separate on extended rising axis."
+        },
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "j": {
+      "family": "single-spine",
+      "construction": "Broad forward-oblique x-height shaft and compact descender, with measured taper. Only below baseline, one short narrow leftward terminal turn. One detached soft oblique dot on extended rising axis; two components. No banana or giant U hook.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 938,
+        "main_span_height": 552,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 306.5,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 576,
+        "ink_width_calculation": "Extended stem-axis travel to the detached dot + half the lower broad-stroke projection + half dot width, with room for a restrained terminal; no squeeze to the prior narrow box.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "dot": {
+          "width_target": 107,
+          "height_target": 80,
+          "calculation": "0.735 × 145.5 median primary width; height 0.75 × width; separate on extended rising axis."
+        },
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "k": {
+      "family": "spine-branches",
+      "construction": "Broad full-height rising ascender; within x-height a broad rising-right arm and narrow descending-right leg meet at a relieved soft join. Short rightward finishing release, no extra loop or mechanical star.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 605,
+        "ink_width_calculation": "560 × 1.08; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "l": {
+      "family": "single-spine",
+      "construction": "One broad full-height rising ribbon following M’s first-leg taper. Edges subtly curve and widen below while centerline stays disciplined. Short shallow rightward terminal release; no uniform pill, giant hook or loop.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 232,
+        "frame_bottom_y": 792,
+        "main_span_height": 560,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 311.0,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 482,
+        "ink_width_calculation": "560 × 0.86; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "m": {
+      "family": "parallel-spines",
+      "construction": "Exactly THREE forward-rising x-height strokes joined by TWO compact rounded shoulders. Main strokes broad, returning shoulder bridges narrow. Same forward direction, measured taper, two open arch spaces. No pointed M skeleton, zigzag, bouncing crest or cursive entry.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 801,
+        "ink_width_calculation": "560 × 1.43; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "n": {
+      "family": "parallel-spines",
+      "construction": "Exactly TWO parallel forward-rising x-height strokes with ONE compact rounded shoulder. Main strokes broad, shoulder return narrow. Real left entry stem, not inverted V or capital-N diagonal. Both lower ends left of corresponding upper ends; soft terminals.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 582,
+        "ink_width_calculation": "560 × 1.04; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "o": {
+      "family": "bowl",
+      "construction": "One compact asymmetric oblique x-height bowl. Broad rising-left flank, narrow returning-right flank and narrower top/bottom turns. One clean counter. Same absolute weights as M, not a uniform oval or thin mini-capital.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 504,
+        "ink_width_calculation": "560 × 0.9; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "p": {
+      "family": "spine-bowl",
+      "construction": "Broad forward-oblique left stem from x-height into compact descender, one right x-height bowl with narrow return and one enclosed counter. No tall projection above body or loop below baseline. Restrained soft lower cut.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 938,
+        "main_span_height": 552,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 306.5,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 577,
+        "ink_width_calculation": "560 × 1.03; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "q": {
+      "family": "spine-bowl",
+      "construction": "One oblique x-height bowl left of broad forward-oblique right descender. Narrow bowl return, one counter and short controlled lower terminal. Descender goes down-left, never down-right or in an S bend.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 938,
+        "main_span_height": 552,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 306.5,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 577,
+        "ink_width_calculation": "560 × 1.03; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "r": {
+      "family": "spine-bars",
+      "construction": "Broad forward-rising x-height entry stroke and one compact narrow rightward shoulder. Generous opening below shoulder, quiet edge modulation and short baseline release. No full n arch, flapping flag, ball or wave.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 437,
+        "ink_width_calculation": "560 × 0.78; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "s": {
+      "family": "turning-ribbon",
+      "construction": "Compact oblique x-height s with broad rising sweeps and distinctly narrow returning turns. Upper curve smaller than lower, waist clean and concave, soft open terminals. No generic uniform snake or script.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 476,
+        "ink_width_calculation": "560 × 0.85; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "t": {
+      "family": "spine-bars",
+      "construction": "Broad forward-rising 476-pixel short ascender using SAME absolute primary profile as M. One short narrow crossbar near x-height and shallow rightward terminal release. No 90-pixel monoline, slab crossbar, giant hook or wavy centerline.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 316,
+        "frame_bottom_y": 792,
+        "main_span_height": 476,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 264.3,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 476,
+        "ink_width_calculation": "560 × 0.85; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "u": {
+      "family": "parallel-spines",
+      "construction": "Two controlled forward-rising x-height strokes join in a compact deep low turn. Main rise broad, returning right stroke narrow, both forward. Soft inside turn and restrained right release; no opposing lean or uniform horseshoe.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 549,
+        "ink_width_calculation": "560 × 0.98; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "v": {
+      "family": "diagonals",
+      "construction": "Two x-height diagonals meet a compact soft low vertex. Rising-right arm broad, descending-left return narrow. Clear forward optical direction, open top, no upright symmetric monoline V, bent arms or swash.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 549,
+        "ink_width_calculation": "560 × 0.98; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "w": {
+      "family": "diagonals",
+      "construction": "Four x-height bands travel DOWN-UP-DOWN-UP, two low valleys and high outer endpoints. Rising-right bands broad, descending returns narrow. Compact soft joins and forward direction, no leading upstroke, M hump or uniform zigzag.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 795,
+        "ink_width_calculation": "560 × 1.42; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "x": {
+      "family": "diagonals",
+      "construction": "Two x-height diagonals cross once with forward optical shear. Rising-right stroke broad, descending return narrow. Soft relieved crossing and small oblique cuts, no upright uniform symmetric X, bowed arm or curled foot.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 560,
+        "ink_width_calculation": "560 × 1.0; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "y": {
+      "family": "diagonals",
+      "construction": "A printed lowercase y, NOT n, N, v or lambda: exactly TWO UPPER endpoints at x-height, one on each side of an open fork; the left branch starts HIGH and descends rightward into the join. The broad right branch rises forward-right from the shared join. ONE short down-left descender continues from that join below baseline, ending only 146 pixels lower. There is NO leading upstroke from baseline to the upper-left endpoint, NO third branch, NO N-shaped zigzag and NO full-height tail. Broad rising main ribbon, narrow returning left branch, softly relieved join and compact cut end.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 938,
+        "main_span_height": 552,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 306.5,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 560,
+        "ink_width_calculation": "560 × 1.0; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    },
+    "z": {
+      "family": "diagonals",
+      "construction": "Broad rising-right x-height diagonal links narrower near-horizontal top and baseline arms. Forward optical shear, tiny soft corner transitions and restrained M-like terminals. No uniform slab Z, waving arms, extra loop or cursive tail.",
+      "calculations": {
+        "target_type": "Design targets from measured M; other-letter widths are optical/anatomical targets, not measurements of nonexistent originals.",
+        "cap_height": 560,
+        "body_height": 406,
+        "frame_top_y": 386,
+        "frame_bottom_y": 792,
+        "main_span_height": 406,
+        "principal_axis_rise_degrees": 60.96,
+        "principal_axis_rightward_travel": 225.4,
+        "primary_normal_width_profile": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "profile_positions_from_top": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "return_normal_width_range": [
+          75.9,
+          78.2
+        ],
+        "thick_thin_ratio": 1.92,
+        "ink_width_target": 560,
+        "ink_width_calculation": "560 × 1.0; optical target, permit modest natural adjustment instead of stretching.",
+        "crest_radius_guide": 54.3,
+        "inside_turn_radius_guide": 22.4,
+        "terminal_radius_guide": 36.8,
+        "weight_rule": "Same absolute main/return weights for both cases; never multiply stroke widths by the 0.725 lowercase-height ratio.",
+        "edge_rule": "Disciplined rightward centerline; subtly flowing non-parallel edges follow M taper. Neither rigid uniform rods nor S-shaped handwriting.",
+        "primary_median_fraction_of_body_height": 0.358,
+        "return_median_fraction_of_body_height": 0.187
+      }
+    }
+  }
+}

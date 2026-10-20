@@ -141,7 +141,7 @@
       <section class="intro" aria-labelledby="page-title">
         <span class="eyebrow mono">One letter. One generation. The same M.</span>
         <h1 id="page-title">See the letters together.</h1>
-        <p>The full M-based alphabet, with lowercase bodies sized to 72.5% of capitals. Ascenders, descenders and separate dots keep their proper reach. Type a word to see the normalized PNGs together, then inspect any shape below. The original M is reused—not regenerated—and the previous font files are unchanged.</p>
+        <p>A measured ribbon family built from your original M: broad rising strokes, narrower returns, softly flowing edges and restrained terminal sweeps. Lowercase bodies stay at 72.5% of capitals without losing stroke weight. Type a word, then inspect any shape below. The original M and the previous installable font files are unchanged.</p>
       </section>
       <section class="composer" id="word-hub" aria-labelledby="word-heading" aria-busy="true">
         <div class="stage-meta mono"><h2 id="word-heading">01 / Word combinations</h2><span id="preview-status" role="status">Loading letters…</span></div>
@@ -164,6 +164,9 @@
             <button class="button" type="button" data-word="TimeMaster" aria-pressed="true">TimeMaster</button>
             <button class="button" type="button" data-word="Aa Bb Cc" aria-pressed="false">Aa Bb Cc</button>
             <button class="button" type="button" data-word="Hh Ii Jj" aria-pressed="false">Hh Ii Jj</button>
+            <button class="button" type="button" data-word="Quality" aria-pressed="false">Quality</button>
+            <button class="button" type="button" data-word="tilt" aria-pressed="false">tilt</button>
+            <button class="button" type="button" data-word="just right" aria-pressed="false">just right</button>
             <button class="button" type="button" data-word="jolly" aria-pressed="false">jolly</button>
             <button class="button" type="button" data-word="little" aria-pressed="false">little</button>
             <button class="button" type="button" data-word="minimum" aria-pressed="false">minimum</button>
@@ -183,12 +186,15 @@
           <dl class="measurements">
             <div><dt>Original bounds</dt><dd>275 × 175 px</dd></div>
             <div><dt>Width / height</dt><dd>1.571</dd></div>
-            <div><dt>Median interior stroke</dt><dd>≈ 22% of height</dd></div>
+            <div><dt>Broad rising ribbon</dt><dd>23.5–28.5% of cap height</dd></div>
+            <div><dt>Narrow returning ribbon</dt><dd>13.6–14.0% of cap height</dd></div>
             <div><dt>Main rising diagonal</dt><dd>≈ 61°</dd></div>
           </dl>
           <p>Soft asymmetric crests, tight inner turns, gently varying ribbon thickness, and rounded-flat terminals. These shape rules are inferred from your M; the numbers above are measured from it.</p>
           <a href="../../genesis/REFERENCE/ribbon-font/individual-m/original-master-row.png">Open your untouched reference ↗</a>
-          <p>Tap a letter for a larger comparison with M. Review PNGs use a common cap line, x-height and baseline, with uniform scaling only. Raw images remain available so you can compare the original generation with its normalized study.</p>
+          <p>Tap a letter for a larger comparison with M and its submitted calculation brief. Review PNGs share a cap line, x-height and baseline. I/i/j/T/t receive measured shaft-weight correction. The n/l ribbons also calibrate h/m; b/d/k/p/q/r/y retain their generated features around a measured primary stem. Raw Fgen attempts remain untouched.</p>
+          <a href="../../genesis/REFERENCE/ribbon-font/individual-m/glyph-calculations.json" target="_blank" rel="noopener">M measurements and all 52 letter calculations ↗</a>
+          <a href="../../genesis/REFERENCE/ribbon-font/individual-m/glyph-inspection.json" target="_blank" rel="noopener">Letter-by-letter agent inspection ↗</a>
         </aside>
         <div>
           <section class="batch" aria-labelledby="uppercase-heading">
@@ -253,7 +259,7 @@
               <button class="glyph-card" type="button" data-glyph="z" aria-label="Inspect lowercase z"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-z.png" width="1024" height="1024" alt="Generated lowercase z"><span class="caption"><span>z</span><span class="mono">Inspect ↗</span></span></button>
             </div>
           </section>
-          <p class="review-note">All 52 letters share case-aware metrics. Short lowercase bodies are 406 pixels tall against 560-pixel capitals; full ascenders reach the cap line, t has a shorter ascender, and g/j/p/q/y extend below the baseline. Each silhouette is scaled uniformly, never stretched. Raw generations remain untouched; spacing is a review control, not final font kerning. The installable font has not been rebuilt.</p>
+          <p class="review-note">All 52 letters share case-aware metrics. Short lowercase bodies are 406 pixels tall against 560-pixel capitals; full ascenders reach the cap line, t has a shorter ascender, and g/j/p/q/y extend below the baseline. Case scaling is uniform. Isolated I/i/j/l/t shaft contours are then adjusted to the measured M taper, preserving their centerlines and detached dots. Raw generations and individual submitted briefs remain available; spacing is a review control, not final font kerning. The installable font has not been rebuilt.</p>
         </div>
       </div>
     </main>
@@ -265,7 +271,7 @@
       <figure><figcaption class="mono">Original M / same reference in every call</figcaption><img src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png" width="1024" height="1024" alt="Original M, uniformly enlarged on the shared reference canvas."></figure>
       <figure><figcaption class="mono" id="current-caption">Generated letter</figcaption><img id="current-image" width="1024" height="1024" alt=""></figure>
     </div>
-    <div class="dialog-footer"><div class="paging"><button class="button" id="previous-letter" type="button">← Previous</button><button class="button" id="next-letter" type="button">Next →</button></div><a id="download-image" download>Download cleaned PNG ↙</a><a id="raw-image" target="_blank" rel="noopener" aria-label="Open the raw Fgen image in a new tab">Raw Fgen PNG ↗</a><span class="mono muted" id="letter-position" role="status"></span></div>
+    <div class="dialog-footer"><div class="paging"><button class="button" id="previous-letter" type="button">← Previous</button><button class="button" id="next-letter" type="button">Next →</button></div><a id="download-image" download>Download cleaned PNG ↙</a><a id="raw-image" target="_blank" rel="noopener" aria-label="Open the raw Fgen image in a new tab">Raw Fgen PNG ↗</a><a id="submitted-prompt" target="_blank" rel="noopener">Submitted Fgen brief ↗</a><span class="mono muted" id="letter-position" role="status"></span></div>
   </dialog>
   <script src="../../genesis/REFERENCE/ribbon-font/individual-m/preview-metrics.js"></script>
   <script>
@@ -287,6 +293,8 @@
       document.getElementById('raw-image').href = image.getAttribute('src').replace('/individual-m/', '/individual-m/raw/');
       document.getElementById('raw-image').textContent = card.dataset.glyph === 'M' ? 'Original M PNG ↗' : 'Raw Fgen PNG ↗';
       document.getElementById('raw-image').setAttribute('aria-label', card.dataset.glyph === 'M' ? 'Open the original M PNG in a new tab' : 'Open the raw Fgen image in a new tab');
+      document.getElementById('submitted-prompt').href = image.getAttribute('src').replace(/\.png$/, '.txt');
+      document.getElementById('submitted-prompt').textContent = card.dataset.glyph === 'M' ? 'Original M source note ↗' : 'Submitted Fgen brief ↗';
       document.getElementById('letter-position').textContent = `${currentIndex + 1} / ${cards.length}`;
       if (!dialog.open) dialog.showModal();
     }

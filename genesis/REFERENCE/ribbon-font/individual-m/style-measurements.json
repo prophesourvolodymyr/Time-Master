@@ -10,14 +10,12 @@
     "M width": 275,
     "M height": 175,
     "width / height": 1.5714,
-    "interior thickness px p25/median/p75": [
-      29.73,
-      38.47,
-      43.27
-    ],
-    "median thickness / height": 0.2198,
-    "left diagonal degrees above horizontal": 60.88,
-    "rightward rise dx / dy": 0.5571,
+    "principal rising normal widths native": [41.09, 43.71, 44.59, 46.34, 48.96, 49.83],
+    "return normal widths native p25/median/p75": [23.71, 23.71, 24.42],
+    "principal / return median width ratio": 1.92,
+    "measurement detail": "glyph-calculations.json records sample positions, local curve fits, source fingerprint, and per-letter calculations.",
+    "left diagonal degrees above horizontal": 60.96,
+    "rightward rise dx / dy": 0.5553,
     "M filled proportion of bounds": 0.3455
   },
   "target_canvas": {
@@ -33,7 +31,7 @@
   },
   "scale_note": "The original M reference is uniformly enlarged by 3.2. Review PNGs use a 560-pixel capital height, 406-pixel lowercase body, 476-pixel short t ascender, and common baseline. Full ascenders reach the cap line; i/j dots remain separate above their short bodies. Looped descenders are aligned by the bowl, and y by the upper fork, rather than shrinking the whole letter into the body height. Their natural tails are preserved on taller canvases where needed. Wide forms receive a wider canvas rather than horizontal compression.",
   "inferred_shape_rules": [
-    "Asymmetric continuous ribbon with gentle thick-to-thin modulation",
+    "Asymmetric continuous ribbon with measured broad rising strokes and distinctly narrower returns, approximately 1.92 to 1",
     "Soft crests and deep clean concave turns",
     "Rounded-flat terminals and relaxed curved feet",
     "Natural proportional widths; no geometric bubble forms"
@@ -42,7 +40,7 @@
     "foreground_threshold": 220,
     "minimum_component_fraction_of_largest": 0.1,
     "smoothing_sigma_pixels": 1,
-    "preservation": "Raw generations remain intact in raw/. Review PNGs isolate the white fill, remove stray components, antialias edges, and uniformly resize each silhouette to its case-aware metrics. Original aspect ratios are retained without stretching. The i/j dots keep their shapes and separate placement above the body. The original M is reused rather than regenerated."
+    "preservation": "Raw generations remain intact in raw/. Review PNGs isolate the white fill, remove stray components, antialias edges, and uniformly resize each silhouette to its case-aware metrics. Original aspect ratios are retained without stretching. The i/j dots retain their shapes and remain separate above the body, centered on the upward continuation of the straight stem axis. The original M is reused rather than regenerated."
   },
   "review_scope": "A–Z and a–z, one Fgen call per generated letter with the same original M reference; uppercase M comes directly from the original. All fifty-two letters are connected to the word hub, with installable font changes deferred until human review."
 }

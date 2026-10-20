@@ -1,0 +1,1397 @@
+{
+  "review_status": "AI geometry and visual inspection complete; human acceptance pending. This is not a claim of human approval.",
+  "master": "Original M, unchanged; the normalized M is pixel-identical to master-M-reference.png.",
+  "units": "Pixels on the shared 560-pixel cap-height design grid. Antialiased visible bounds may sit 1-3 pixels inside the target frame.",
+  "calculation_source": "glyph-calculations.json: source M measurements are distinguished from optical design targets for the other letters.",
+  "measurement_method": "Threshold final PNG luminance at 128; measure bounds, components and closed counter areas. Isolated shaft widths are measured perpendicular to their fitted centerline; curved bowl widths are not represented as exact straight-shaft profiles.",
+  "review_method": "Agent viewed every capital and lowercase PNG next to the original M, inspected regenerated O/Q/y and corrected contour joins, then checked final component/counter/frame invariants.",
+  "glyphs": {
+    "A": {
+      "agent_visual_note": "Two asymmetric legs, soft crest and an intentionally open crossbar gap; no enclosed triangular counter.",
+      "final_png": "uppercase-A.png",
+      "calculation_key": "A",
+      "final_png_sha256": "ca820e4be5c60f4d8b20905bc0073f3c63b1ac6fe4163f42c8746f70e5574c06",
+      "observed_geometry": {
+        "bounds": [
+          165,
+          233,
+          859,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-A.png",
+      "raw_png_sha256": "5c584cb0b13e4a7dc2f38fb361c2f86c8a6b127e8f8d20b645d88be082c8a79c",
+      "individual_fgen_saved_event_present": true
+    },
+    "B": {
+      "agent_visual_note": "Broad forward spine with a smaller upper bowl, fuller lower bowl, two closed counters and a short lower release.",
+      "final_png": "uppercase-B.png",
+      "calculation_key": "B",
+      "final_png_sha256": "dc3c0f8786fb5283d77459cb72ec1f7ede5e3d4c2a6e911f419e7756c0d779ce",
+      "observed_geometry": {
+        "bounds": [
+          169,
+          233,
+          855,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          42757,
+          8066
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-B.png",
+      "raw_png_sha256": "a552577f9648f9be4f2d57b988ed32443ba46bdb3380add0befeabe54a71bcda",
+      "individual_fgen_saved_event_present": true
+    },
+    "C": {
+      "agent_visual_note": "Open oblique bowl with a generous right aperture and softened, restrained terminals.",
+      "final_png": "uppercase-C.png",
+      "calculation_key": "C",
+      "final_png_sha256": "562fbca7d122fbe1d5e2b01a89dc67c3e74f9549d51c7ec66319a6f9cdf79bd7",
+      "observed_geometry": {
+        "bounds": [
+          224,
+          233,
+          799,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-C.png",
+      "raw_png_sha256": "c2e87431c61e9545b8ad0ab7dfadbcf8a86bd18564e935d685029853bc838c92",
+      "individual_fgen_saved_event_present": true
+    },
+    "D": {
+      "agent_visual_note": "Broad forward spine and one fully closed bowl; the earlier open-bottom candidate is not used.",
+      "final_png": "uppercase-D.png",
+      "calculation_key": "D",
+      "final_png_sha256": "ca74bde85968f203c85a71aba8298bdccd81fafa4243397314af5f8a3d76ba82",
+      "observed_geometry": {
+        "bounds": [
+          179,
+          233,
+          844,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          93668
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-D.png",
+      "raw_png_sha256": "60c8968b13405748aa73d13cd1fdf38e270e520585cdfe25a14861de458dddf5",
+      "individual_fgen_saved_event_present": true
+    },
+    "E": {
+      "agent_visual_note": "Three restrained arms, shortest in the middle, with relieved joins and a soft lower release.",
+      "final_png": "uppercase-E.png",
+      "calculation_key": "E",
+      "final_png_sha256": "36307cd7fdab4a472a57759e376db4cb6106b612e7a719f20362caad2c647831",
+      "observed_geometry": {
+        "bounds": [
+          166,
+          233,
+          857,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-E.png",
+      "raw_png_sha256": "49d2cf24ca07d65c9e78d36d89849be9478334e29534e232af3deadfd1956137",
+      "individual_fgen_saved_event_present": true
+    },
+    "F": {
+      "agent_visual_note": "Broad rising spine and two shorter arms; no accidental bottom arm, texture or open fragments.",
+      "final_png": "uppercase-F.png",
+      "calculation_key": "F",
+      "final_png_sha256": "044244815660be77b4dbd31b2a9821803a9ecfa92a93f6486839a8abfca115d1",
+      "observed_geometry": {
+        "bounds": [
+          191,
+          233,
+          832,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-F.png",
+      "raw_png_sha256": "2415002438ea41d5005e819d586da7fa85bebbed3fcaf6999b76aed71755d50a",
+      "individual_fgen_saved_event_present": true
+    },
+    "G": {
+      "agent_visual_note": "Open C-like bowl and one inward spur; the right aperture remains open and the outline is solid.",
+      "final_png": "uppercase-G.png",
+      "calculation_key": "G",
+      "final_png_sha256": "a9659bc4fbabb22375e3a86c206733da67d8400c5b476cb576a01f02baa5c388",
+      "observed_geometry": {
+        "bounds": [
+          224,
+          233,
+          799,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-G.png",
+      "raw_png_sha256": "271a5fff7129d47f697a1eb1374635bb3683c054a664a21771d0a5f5f89debfa",
+      "individual_fgen_saved_event_present": true
+    },
+    "H": {
+      "agent_visual_note": "Two broad forward-rising stems joined by a narrower crossbar; open spaces above and below remain distinct.",
+      "final_png": "uppercase-H.png",
+      "calculation_key": "H",
+      "final_png_sha256": "8d7e243f58e8edbc1f6ac612ee4cb42378ec9dac31ee295f40515337a0c01e18",
+      "observed_geometry": {
+        "bounds": [
+          145,
+          233,
+          878,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-H.png",
+      "raw_png_sha256": "8db0e48a7a1bd709cce104dbc815d00ea4f74eefe1c54528d1661ba9e349fc3e",
+      "individual_fgen_saved_event_present": true
+    },
+    "I": {
+      "agent_visual_note": "One broad, gradually widening ribbon; measured shaft-width correction retains its forward axis and full height.",
+      "final_png": "uppercase-I.png",
+      "calculation_key": "I",
+      "final_png_sha256": "80ae1040235dede8e455c867f78faab82ba20ddfb462733b6ff9ad771ab77171",
+      "observed_geometry": {
+        "bounds": [
+          305,
+          233,
+          711,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "isolated_shaft_measurement": {
+        "axis_degrees_above_horizontal": 62.83,
+        "sample_fractions": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "measured_normal_widths": [
+          130.8,
+          139.7,
+          143.2,
+          149.5,
+          156.6,
+          159.2
+        ],
+        "target_normal_widths": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "maximum_absolute_width_error": 1.2
+      },
+      "retained_raw_png": "raw/uppercase-I.png",
+      "raw_png_sha256": "7d0c24a92730584831d9a764b865eff640397b1126eb48566561e272cc75b379",
+      "individual_fgen_saved_event_present": true
+    },
+    "J": {
+      "agent_visual_note": "One forward-rising shaft with a compact lower-left turn and no extra upper bar or loop.",
+      "final_png": "uppercase-J.png",
+      "calculation_key": "J",
+      "final_png_sha256": "8c4c607265a41cc3596a5dab2c9fb121143d45f7a79f9238298931c6f9d48859",
+      "observed_geometry": {
+        "bounds": [
+          278,
+          233,
+          746,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-J.png",
+      "raw_png_sha256": "6d7eb9e66acceec737af09e4e3d438bcbb389f72aaec80de4f31a9e6c6e171e3",
+      "individual_fgen_saved_event_present": true
+    },
+    "K": {
+      "agent_visual_note": "Broad rising spine with two distinct diagonal branches and a restrained lower-right finishing sweep.",
+      "final_png": "uppercase-K.png",
+      "calculation_key": "K",
+      "final_png_sha256": "33741661c1e2fe7022e0fccf68c3bd0ce558d4309765a8d3a65b779ec98b6207",
+      "observed_geometry": {
+        "bounds": [
+          178,
+          233,
+          845,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-K.png",
+      "raw_png_sha256": "67f33209981df57ea49b76f9da15770491a41ba007eea328612105e637116ca7",
+      "individual_fgen_saved_event_present": true
+    },
+    "L": {
+      "agent_visual_note": "Full-height broad rising spine ending in a short curved baseline arm, without a loop or oversized hook.",
+      "final_png": "uppercase-L.png",
+      "calculation_key": "L",
+      "final_png_sha256": "711e126b32807529e8a178eb1460a226cd1994fac33cba9eb82543c7a6c71c60",
+      "observed_geometry": {
+        "bounds": [
+          279,
+          233,
+          744,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-L.png",
+      "raw_png_sha256": "c5649e2d4b8d729111803e2d24c551630cf2fb47cdbc3ed944a623efe8b27295",
+      "individual_fgen_saved_event_present": true
+    },
+    "M": {
+      "agent_visual_note": "Original M, not regenerated; the source fingerprint and normalized pixels match the preserved master references.",
+      "final_png": "uppercase-M.png",
+      "calculation_key": "M",
+      "final_png_sha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
+      "observed_geometry": {
+        "bounds": [
+          72,
+          232,
+          952,
+          792
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      }
+    },
+    "N": {
+      "agent_visual_note": "Two main strokes joined by one descending diagonal; no extra middle hump or M-like third peak.",
+      "final_png": "uppercase-N.png",
+      "calculation_key": "N",
+      "final_png_sha256": "536463194900c137d0d4d0e8bea5a45313b76e2f380d67bcfea4637389bc10ee",
+      "observed_geometry": {
+        "bounds": [
+          125,
+          233,
+          899,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-N.png",
+      "raw_png_sha256": "ebd89372b63e23b0dd91360f87ca5d8d5bf800ea21ab50e502880861eac3fe6b",
+      "individual_fgen_saved_event_present": true
+    },
+    "O": {
+      "agent_visual_note": "One asymmetric oblique bowl with a broad rising flank, narrower returning side and one clean counter.",
+      "final_png": "uppercase-O.png",
+      "calculation_key": "O",
+      "final_png_sha256": "4a2051b2f7f009e02d9359f925fa241078cffff8bdeeae928a25ad0d4fd2f9e2",
+      "observed_geometry": {
+        "bounds": [
+          264,
+          233,
+          760,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          88404
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-O.png",
+      "raw_png_sha256": "6923edf8f56d230c95c1dc687689e51140966e21fce65d1c640571dfc6aaf7e9",
+      "individual_fgen_saved_event_present": true
+    },
+    "P": {
+      "agent_visual_note": "Broad full-height spine and one closed upper bowl; its counter remains enclosed.",
+      "final_png": "uppercase-P.png",
+      "calculation_key": "P",
+      "final_png_sha256": "5a500e766528eed36839607e2b27de2ec8632cc79f4e511f56f70cdf5c07a690",
+      "observed_geometry": {
+        "bounds": [
+          239,
+          233,
+          784,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          23584
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-P.png",
+      "raw_png_sha256": "65a679126a1aabea7cbe5657ed2da404ee636ee896531c217d26aefa59f5aacc",
+      "individual_fgen_saved_event_present": true
+    },
+    "Q": {
+      "agent_visual_note": "Regenerated smooth O-like bowl with one counter and a short slash crossing the lower-right edge; rough outlined attempts are retained but not used.",
+      "final_png": "uppercase-Q.png",
+      "calculation_key": "Q",
+      "final_png_sha256": "d547deb82fd971a27b5a381cc86d5d9c6f8c530125d1f48f8e44e7c8cd2c484d",
+      "observed_geometry": {
+        "bounds": [
+          241,
+          233,
+          782,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          78010
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-Q.png",
+      "raw_png_sha256": "3071ca5e704187aac20c2b41120e94d8a072ff17ebaca157a83d3353a4b9b635",
+      "individual_fgen_saved_event_present": true
+    },
+    "R": {
+      "agent_visual_note": "Broad spine, one upper counter and a distinct descending-right leg with a short soft release.",
+      "final_png": "uppercase-R.png",
+      "calculation_key": "R",
+      "final_png_sha256": "7c63df14075ff311692d5488464aa73025c58e33d10fc20df6a6e9d297a33a7a",
+      "observed_geometry": {
+        "bounds": [
+          178,
+          233,
+          845,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          15444
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-R.png",
+      "raw_png_sha256": "903c7082af1df8d9610a7cba01d3b92256cded3bc591140a031324ba86e8025f",
+      "individual_fgen_saved_event_present": true
+    },
+    "S": {
+      "agent_visual_note": "Continuous asymmetric turning ribbon with a smaller upper curve, fuller lower curve and open terminals.",
+      "final_png": "uppercase-S.png",
+      "calculation_key": "S",
+      "final_png_sha256": "89376a9868b7fb5310cde5f2c06c96b33e2bfbece17da4aaf54725e1dc107e75",
+      "observed_geometry": {
+        "bounds": [
+          296,
+          233,
+          727,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-S.png",
+      "raw_png_sha256": "705f83fbf8d8362dd6a4a15b57cec1ea786f5a66ae2cc36970548e12688f5157",
+      "individual_fgen_saved_event_present": true
+    },
+    "T": {
+      "agent_visual_note": "A restrained upper crossbar above one broad forward stem; shaft-weight correction leaves the upper bar intact.",
+      "final_png": "uppercase-T.png",
+      "calculation_key": "T",
+      "final_png_sha256": "aa8fb91c9df6bffaeaefb1e7e516d98384820279b079ef58ce997a76953ed4d1",
+      "observed_geometry": {
+        "bounds": [
+          186,
+          233,
+          840,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "isolated_shaft_measurement": {
+        "axis_degrees_above_horizontal": 61.36,
+        "sample_fractions": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "measured_normal_widths": [
+          131.6,
+          140.4,
+          142.2,
+          147.4,
+          156.2,
+          159.7
+        ],
+        "target_normal_widths": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "maximum_absolute_width_error": 0.9
+      },
+      "retained_raw_png": "raw/uppercase-T.png",
+      "raw_png_sha256": "ea1ce86bdf8d406e601b1802fb6bd2cf744e48cf939b3c849b67e98e658c70b7",
+      "individual_fgen_saved_event_present": true
+    },
+    "U": {
+      "agent_visual_note": "Two forward-leaning flanks meet one rounded lower turn; the returning right flank stays narrower.",
+      "final_png": "uppercase-U.png",
+      "calculation_key": "U",
+      "final_png_sha256": "961ae5523fae614445c20b7870841623d5cf48afd7b21635beaf8cd35158864a",
+      "observed_geometry": {
+        "bounds": [
+          268,
+          233,
+          755,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-U.png",
+      "raw_png_sha256": "78a9671f5047fc1311902fbfadae7a6c3e36cc270dfbe43ca42585b779519391",
+      "individual_fgen_saved_event_present": true
+    },
+    "V": {
+      "agent_visual_note": "Two diagonal arms meet one rounded low vertex; the rising-right arm is broader than the descending return.",
+      "final_png": "uppercase-V.png",
+      "calculation_key": "V",
+      "final_png_sha256": "73dc23752fd2387f4bb08c6a4ccb6f2f3ad4b72d252ff706f8e363a1bc6575bf",
+      "observed_geometry": {
+        "bounds": [
+          185,
+          233,
+          838,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-V.png",
+      "raw_png_sha256": "93dde31de134dde44a52482814a7467aafdea4ddc8deaa5319b9a40cd7bff0d9",
+      "individual_fgen_saved_event_present": true
+    },
+    "W": {
+      "agent_visual_note": "Four bands move down-up-down-up through two low valleys; both outer ends are high, without an extra leading stroke.",
+      "final_png": "uppercase-W.png",
+      "calculation_key": "W",
+      "final_png_sha256": "7afaaf4416692efd010bab1394b22e5ec715cfaaf1f4ef8a79378b0fe79dff02",
+      "observed_geometry": {
+        "bounds": [
+          25,
+          233,
+          999,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-W.png",
+      "raw_png_sha256": "b838e1a52b29c58d0a2c39d003628b9e72702ceec8e0b8f3345449a441aa7c9d",
+      "individual_fgen_saved_event_present": true
+    },
+    "X": {
+      "agent_visual_note": "Two bands cross once; a broad rising diagonal meets a narrower descending return at a relieved center.",
+      "final_png": "uppercase-X.png",
+      "calculation_key": "X",
+      "final_png_sha256": "54cebe82c801aa83897761d2e1516b52732ba0527e786c00b72b04bc5bc3b8a3",
+      "observed_geometry": {
+        "bounds": [
+          232,
+          233,
+          792,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-X.png",
+      "raw_png_sha256": "835fd5b27d0222de9847eca05c4c4ea7c040007f75c460b1db677f02d150f8e5",
+      "individual_fgen_saved_event_present": true
+    },
+    "Y": {
+      "agent_visual_note": "Two upper branches form an open fork and meet one forward-rising lower stem; no extra arm, loop or tail.",
+      "final_png": "uppercase-Y.png",
+      "calculation_key": "Y",
+      "final_png_sha256": "0f38d7de81c14206fe995f33d978ff1f0120b58d0ddff11f526adacdc406df60",
+      "observed_geometry": {
+        "bounds": [
+          287,
+          233,
+          736,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-Y.png",
+      "raw_png_sha256": "40968ef92e9fc675ba37a8e4e3725f5e455bc69501d863a1f66a42e14d2d0239",
+      "individual_fgen_saved_event_present": true
+    },
+    "Z": {
+      "agent_visual_note": "One broad diagonal joins short upper and baseline arms; the anatomy remains Z rather than 2 or a loop.",
+      "final_png": "uppercase-Z.png",
+      "calculation_key": "Z",
+      "final_png_sha256": "9deffb07dbce9866e8d514db780b8523c3bdfb5727f65eb1b56de59d524d382f",
+      "observed_geometry": {
+        "bounds": [
+          224,
+          233,
+          799,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/uppercase-Z.png",
+      "raw_png_sha256": "87df09ccce1c9e1a0751d44dac6ba3103139ef1e0559e1fbe1d6199364e8be97",
+      "individual_fgen_saved_event_present": true
+    },
+    "a": {
+      "agent_visual_note": "Single-storey x-height bowl with one counter and a short rightward terminal; no extra ascender.",
+      "final_png": "lowercase-a.png",
+      "calculation_key": "a",
+      "final_png_sha256": "6c5e8d308ffed07d1dac7a1cd65ed64399e510f0e74915f0e502f0739374880a",
+      "observed_geometry": {
+        "bounds": [
+          224,
+          387,
+          799,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          13889
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-a.png",
+      "raw_png_sha256": "940ab1b5080ffb7b9e2a8852651a42954b1673e0b2f8779f8ce33ee1ea8b1cdc",
+      "individual_fgen_saved_event_present": true
+    },
+    "b": {
+      "agent_visual_note": "Full-height measured left ascender joins one x-height bowl; one counter remains closed and attached.",
+      "final_png": "lowercase-b.png",
+      "calculation_key": "b",
+      "final_png_sha256": "ecdb355abccb60a87f65acb36515d492e78f432116c030fd279d31a10dabfc82",
+      "observed_geometry": {
+        "bounds": [
+          263,
+          232,
+          759,
+          792
+        ],
+        "components": 1,
+        "counter_areas": [
+          19371
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-b.png",
+      "raw_png_sha256": "0812d659dc243fc41562b6ee20ee1ee85a1a59d842d86e544064de05c28a5803",
+      "individual_fgen_saved_event_present": true
+    },
+    "c": {
+      "agent_visual_note": "Compact x-height bowl with a clear right aperture and restrained upper/lower terminal turns.",
+      "final_png": "lowercase-c.png",
+      "calculation_key": "c",
+      "final_png_sha256": "657c9755016c0e1c1444e40d8d70549ee8fc02c2869b574dc7df422ab3a0b866",
+      "observed_geometry": {
+        "bounds": [
+          316,
+          387,
+          707,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-c.png",
+      "raw_png_sha256": "bc9e830df5537b9a61b445ce59d6fa9e6c0d4fca4e6a7934a78cabacba6f0b59",
+      "individual_fgen_saved_event_present": true
+    },
+    "d": {
+      "agent_visual_note": "One x-height bowl sits left of a full-height measured right ascender; one counter remains closed.",
+      "final_png": "lowercase-d.png",
+      "calculation_key": "d",
+      "final_png_sha256": "feaed775db9f0aaa20fa03ad0349981c6aeb96acb55e1cc1644914af1cd48256",
+      "observed_geometry": {
+        "bounds": [
+          224,
+          232,
+          800,
+          792
+        ],
+        "components": 1,
+        "counter_areas": [
+          16740
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-d.png",
+      "raw_png_sha256": "595b687a3da6199ce868494a270e905791c67e0b7e33e906c48ab4ffbc85298e",
+      "individual_fgen_saved_event_present": true
+    },
+    "e": {
+      "agent_visual_note": "Compact x-height bowl with one small counter, a short cross-stroke and an open right aperture.",
+      "final_png": "lowercase-e.png",
+      "calculation_key": "e",
+      "final_png_sha256": "f0224bb21959c88fe2f55102f90e113a305e44ac744323f6555ec53c46d62788",
+      "observed_geometry": {
+        "bounds": [
+          262,
+          387,
+          761,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          5792
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-e.png",
+      "raw_png_sha256": "c260d6f492f858b84d3636ee636567c535a85dc0432ef491e3b3e71e185bf41d",
+      "individual_fgen_saved_event_present": true
+    },
+    "f": {
+      "agent_visual_note": "Full-height forward-rising stem with one short crossbar and a compact cap turn; no extra loop.",
+      "final_png": "lowercase-f.png",
+      "calculation_key": "f",
+      "final_png_sha256": "6dbcec140fd9f6a8859bccc819c01a0629e396f938f05a83131ea32618cd4645",
+      "observed_geometry": {
+        "bounds": [
+          315,
+          233,
+          709,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-f.png",
+      "raw_png_sha256": "015e201200e50422976fa86aa77f21cdfc5cf27ad9020f9d6d5dadce9b1e7233",
+      "individual_fgen_saved_event_present": true
+    },
+    "g": {
+      "agent_visual_note": "Single-storey x-height bowl, one counter and one compact lower-right descender returning left at its end.",
+      "final_png": "lowercase-g.png",
+      "calculation_key": "g",
+      "final_png_sha256": "0a7dae03a2f5a2023fbe8f1fc61e23fa649bc07e9383e6d13eed413243ce5701",
+      "observed_geometry": {
+        "bounds": [
+          276,
+          387,
+          748,
+          935
+        ],
+        "components": 1,
+        "counter_areas": [
+          18717
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-g.png",
+      "raw_png_sha256": "ae7a5cd827878554348e5261756f13b7c9fc1db3147028f270659ee29faad377",
+      "individual_fgen_saved_event_present": true
+    },
+    "h": {
+      "agent_visual_note": "The corrected n shoulder and right stroke meet a full-height measured left ascender; no reversed right stem.",
+      "final_png": "lowercase-h.png",
+      "calculation_key": "h",
+      "final_png_sha256": "146ad257b82a3ee47ee0da24813b2dcd833ee49a1f29bafed353f6baef9e97af",
+      "observed_geometry": {
+        "bounds": [
+          234,
+          232,
+          789,
+          792
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-h.png",
+      "raw_png_sha256": "8c5134b8ce0e4e45eb9b5530c5b3bc72fdbdc4b9666c3a65bf7ace9cbc55aaf0",
+      "individual_fgen_saved_event_present": true
+    },
+    "i": {
+      "agent_visual_note": "One broad x-height stem and one separate compact oblique dot aligned with its extended forward axis.",
+      "final_png": "lowercase-i.png",
+      "calculation_key": "i",
+      "final_png_sha256": "c6564b96736549adc16a8f78b5329ebd2b7d1a2caab32c34499b45267ce85b77",
+      "observed_geometry": {
+        "bounds": [
+          293,
+          233,
+          727,
+          791
+        ],
+        "components": 2,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "isolated_shaft_measurement": {
+        "axis_degrees_above_horizontal": 60.72,
+        "sample_fractions": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "measured_normal_widths": [
+          130.8,
+          139.6,
+          142.2,
+          149.2,
+          156.1,
+          159.6
+        ],
+        "target_normal_widths": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "maximum_absolute_width_error": 0.9
+      },
+      "retained_raw_png": "raw/lowercase-i.png",
+      "raw_png_sha256": "401ec8312df46900cb1bf139e1e17fee79387fde2845d8e6db97f749ae74671b",
+      "individual_fgen_saved_event_present": true
+    },
+    "j": {
+      "agent_visual_note": "One broad forward shaft, compact below-baseline left turn and one separate dot aligned with the stem extension.",
+      "final_png": "lowercase-j.png",
+      "calculation_key": "j",
+      "final_png_sha256": "45a5450208616e54968c51d6909f48cfdff5ecd76c8092dceddbe7203d7e9f03",
+      "observed_geometry": {
+        "bounds": [
+          225,
+          233,
+          776,
+          937
+        ],
+        "components": 2,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "isolated_shaft_measurement": {
+        "axis_degrees_above_horizontal": 65.45,
+        "sample_fractions": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "measured_normal_widths": [
+          131.0,
+          140.1,
+          141.9,
+          148.3,
+          155.5,
+          160.1
+        ],
+        "target_normal_widths": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "maximum_absolute_width_error": 1.2
+      },
+      "retained_raw_png": "raw/lowercase-j.png",
+      "raw_png_sha256": "b4794fd225f1c8eb51f59711067653dcb0794be5d80a2d73a3f16d2a6fb40160",
+      "individual_fgen_saved_event_present": true
+    },
+    "k": {
+      "agent_visual_note": "Full-height measured spine with two x-height branches and a short lower-right release; no extra loop.",
+      "final_png": "lowercase-k.png",
+      "calculation_key": "k",
+      "final_png_sha256": "ca454e9374aea04fbe4696da513728904ddd1673a7a4b8c1d3ad8e7e85b689ac",
+      "observed_geometry": {
+        "bounds": [
+          227,
+          232,
+          796,
+          792
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-k.png",
+      "raw_png_sha256": "8b607a5b0c1e2aa5684fc03875a99883bf938230ea1594ddb7e12e1f4cb47415",
+      "individual_fgen_saved_event_present": true
+    },
+    "l": {
+      "agent_visual_note": "One full-height measured rising ribbon, replacing the lambda-like output; no extra branch or large hook.",
+      "final_png": "lowercase-l.png",
+      "calculation_key": "l",
+      "final_png_sha256": "04a41481ada4c0561ff7f4b9ac7094a1b4421379726208a86b039dc0d3f10d4d",
+      "observed_geometry": {
+        "bounds": [
+          299,
+          232,
+          725,
+          792
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "isolated_shaft_measurement": {
+        "axis_degrees_above_horizontal": 60.96,
+        "sample_fractions": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "measured_normal_widths": [
+          125.9,
+          135.5,
+          139.0,
+          144.3,
+          152.1,
+          154.7
+        ],
+        "target_normal_widths": [
+          131.5,
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "maximum_absolute_width_error": 5.6
+      },
+      "retained_raw_png": "raw/lowercase-l.png",
+      "raw_png_sha256": "9b54b3d9d92fd914afdc8cca42f3f16bc9468052af3ca19c21ba4f165a466fee",
+      "individual_fgen_saved_event_present": true
+    },
+    "m": {
+      "agent_visual_note": "Three forward-rising x-height strokes and two open shoulders, assembled from the corrected n contours; no M-shaped zigzag.",
+      "final_png": "lowercase-m.png",
+      "calculation_key": "m",
+      "final_png_sha256": "b93fc6c0225d9db0ee1a28854dce6bec15ac9c1ffafc346e143dd47c3be178ea",
+      "observed_geometry": {
+        "bounds": [
+          108,
+          387,
+          916,
+          790
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-m.png",
+      "raw_png_sha256": "41e20203551f0fbe21d66b2b5007f3db509aad6f7637674ce62a6f95b81162e3",
+      "individual_fgen_saved_event_present": true
+    },
+    "n": {
+      "agent_visual_note": "Two forward-rising x-height strokes and one open shoulder; both isolated shafts use the measured taper.",
+      "final_png": "lowercase-n.png",
+      "calculation_key": "n",
+      "final_png_sha256": "0103472de056c22638c2838100fbef24225f9741cd811a3c9f28311fd2c70d28",
+      "observed_geometry": {
+        "bounds": [
+          239,
+          387,
+          785,
+          790
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-n.png",
+      "raw_png_sha256": "269019e415b1f81c5beb09a03cba7e3d58559536365cc9719b03cd136f5e9a60",
+      "individual_fgen_saved_event_present": true
+    },
+    "o": {
+      "agent_visual_note": "One compact asymmetric x-height bowl with one open black counter; not a uniform circular tube.",
+      "final_png": "lowercase-o.png",
+      "calculation_key": "o",
+      "final_png_sha256": "683cbd66f8ba9bf50e2e0116a75b4a76a480a498da209c2627ab92f205c67e56",
+      "observed_geometry": {
+        "bounds": [
+          333,
+          387,
+          691,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [
+          25054
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-o.png",
+      "raw_png_sha256": "8536fad95c9bbb1588342955060d60165e753ed1146eb8491635bb5630bd4ee7",
+      "individual_fgen_saved_event_present": true
+    },
+    "p": {
+      "agent_visual_note": "One x-height bowl and one measured left descender; the bowl stays attached and its counter remains closed after weight correction.",
+      "final_png": "lowercase-p.png",
+      "calculation_key": "p",
+      "final_png_sha256": "370577e8007b5dd79bc15104e1220c9b5b01c0bfcc0ab394d1bee6a1eaedf5c6",
+      "observed_geometry": {
+        "bounds": [
+          199,
+          386,
+          825,
+          938
+        ],
+        "components": 1,
+        "counter_areas": [
+          26113
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-p.png",
+      "raw_png_sha256": "868bc2229c05035617b8245a798713d1f8a8f3c730e6bab81348c693c25a885e",
+      "individual_fgen_saved_event_present": true
+    },
+    "q": {
+      "agent_visual_note": "One x-height bowl left of a measured right descender; one closed counter, no disconnected bowl or raster pinhole.",
+      "final_png": "lowercase-q.png",
+      "calculation_key": "q",
+      "final_png_sha256": "89bbceeec2f161d4fa4caf89afa0704dd6d240d52c93bc18267ec0356bab3541",
+      "observed_geometry": {
+        "bounds": [
+          242,
+          386,
+          780,
+          938
+        ],
+        "components": 1,
+        "counter_areas": [
+          24057
+        ],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-q.png",
+      "raw_png_sha256": "6befc2c39888b36fd8df98eef63c9fa46c03186e431946b4938d02b138a9b651",
+      "individual_fgen_saved_event_present": true
+    },
+    "r": {
+      "agent_visual_note": "One measured rising entry stem with a short right shoulder and an open area below it; no second full stem.",
+      "final_png": "lowercase-r.png",
+      "calculation_key": "r",
+      "final_png_sha256": "25673a0799e0089ae105183179f98c7dc9d4d027a7259260fd45ee55fbfc29f8",
+      "observed_geometry": {
+        "bounds": [
+          262,
+          386,
+          763,
+          792
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-r.png",
+      "raw_png_sha256": "71dc416df66c38626abe31f8fb0bf16796c27688a41a10341b9c0d79f0f7a423",
+      "individual_fgen_saved_event_present": true
+    },
+    "s": {
+      "agent_visual_note": "Compact asymmetric x-height turning ribbon with a smaller upper curve and open softened terminals.",
+      "final_png": "lowercase-s.png",
+      "calculation_key": "s",
+      "final_png_sha256": "8dd0b33c7b4ff81ce45ce47328ab3590ba685df937d6b746b8ce743f4f7496c3",
+      "observed_geometry": {
+        "bounds": [
+          322,
+          387,
+          702,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-s.png",
+      "raw_png_sha256": "53e6b59cf44ed6526b4c68729b7bdbc0983cdde16d473c77360754d3f38dda28",
+      "individual_fgen_saved_event_present": true
+    },
+    "t": {
+      "agent_visual_note": "A shorter ascender carries one narrow crossbar; the broad forward shaft is weight-corrected below the crossbar.",
+      "final_png": "lowercase-t.png",
+      "calculation_key": "t",
+      "final_png_sha256": "e2ea31f0c4394b85f753193707a3aea3e93175abc4fcddfc9e073a7185da22da",
+      "observed_geometry": {
+        "bounds": [
+          315,
+          317,
+          736,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "isolated_shaft_measurement": {
+        "axis_degrees_above_horizontal": 62.66,
+        "sample_fractions": [
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.88
+        ],
+        "measured_normal_widths": [
+          140.3,
+          143.0,
+          148.3,
+          155.5,
+          159.0
+        ],
+        "target_normal_widths": [
+          139.9,
+          142.7,
+          148.3,
+          156.7,
+          159.5
+        ],
+        "maximum_absolute_width_error": 1.2
+      },
+      "retained_raw_png": "raw/lowercase-t.png",
+      "raw_png_sha256": "c9fb542248faecae7b01d05c1976443b18a0e7a73f4433e15806d07ff990537b",
+      "individual_fgen_saved_event_present": true
+    },
+    "u": {
+      "agent_visual_note": "Two x-height flanks meet one compact bottom turn; the rising left side is broader than the right return.",
+      "final_png": "lowercase-u.png",
+      "calculation_key": "u",
+      "final_png_sha256": "795fe51e575c50da755ecf19303a6255d4e926237615a00ebf0283df4611123d",
+      "observed_geometry": {
+        "bounds": [
+          280,
+          387,
+          743,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-u.png",
+      "raw_png_sha256": "a32040064ef5dc96ac8bf6906cbf321d996b8346afe4eefb7432d59710191c0e",
+      "individual_fgen_saved_event_present": true
+    },
+    "v": {
+      "agent_visual_note": "Two x-height diagonals meet a rounded low vertex, with one broad rising-right arm and one narrower return.",
+      "final_png": "lowercase-v.png",
+      "calculation_key": "v",
+      "final_png_sha256": "de45027951f24ab3df39b943915bf8c70656bc891cc37cc5a612c71de40399c4",
+      "observed_geometry": {
+        "bounds": [
+          268,
+          387,
+          756,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-v.png",
+      "raw_png_sha256": "1746d2748b3a9d17956da05250e2678f4847ae5263b4856201290585f3fa217e",
+      "individual_fgen_saved_event_present": true
+    },
+    "w": {
+      "agent_visual_note": "Four x-height bands form two low valleys; both outer ends are high and there is no leading upstroke.",
+      "final_png": "lowercase-w.png",
+      "calculation_key": "w",
+      "final_png_sha256": "98337a969cd472e9b734da729ffc86fe2ebd440616761d592c0065fa847e28c1",
+      "observed_geometry": {
+        "bounds": [
+          90,
+          387,
+          933,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-w.png",
+      "raw_png_sha256": "facc9db2e0b584c2fd511aa8f5e8f8c439b0411127b8e276edf0d0bc420a0cd5",
+      "individual_fgen_saved_event_present": true
+    },
+    "x": {
+      "agent_visual_note": "Two x-height diagonals cross once, with a broad rising stroke and a narrower descending return.",
+      "final_png": "lowercase-x.png",
+      "calculation_key": "x",
+      "final_png_sha256": "14d14e2bb72fbe5421640fba5823f5fac24f33aea850d6910cdb100dafae7c27",
+      "observed_geometry": {
+        "bounds": [
+          311,
+          387,
+          714,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-x.png",
+      "raw_png_sha256": "ba6eadb45a71f353ae60944a4626890114f0ce93985513db7e9c2c40a9ad37dd",
+      "individual_fgen_saved_event_present": true
+    },
+    "y": {
+      "agent_visual_note": "Regenerated with two high fork endpoints, then fitted around a measured rising ribbon and a compact shared-depth descender; the rejected N-like output is not used.",
+      "final_png": "lowercase-y.png",
+      "calculation_key": "y",
+      "final_png_sha256": "d32dfc9a5ba4cdcfa904520c7d7686a33d9d55cf370c8704caa9400745810d4c",
+      "observed_geometry": {
+        "bounds": [
+          251,
+          386,
+          771,
+          938
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-y.png",
+      "raw_png_sha256": "67a9c919713b12c654f9c2ffdbd3995401029f60bc1c6e79741bb5fd652d22f4",
+      "individual_fgen_saved_event_present": true
+    },
+    "z": {
+      "agent_visual_note": "Broad rising-right x-height diagonal joins short upper and baseline arms, with no extra loop or trailing flourish.",
+      "final_png": "lowercase-z.png",
+      "calculation_key": "z",
+      "final_png_sha256": "33259423551a1c3eca39717dda18c50f8868bf89b8b6a7b127fa35813483e682",
+      "observed_geometry": {
+        "bounds": [
+          287,
+          387,
+          736,
+          791
+        ],
+        "components": 1,
+        "counter_areas": [],
+        "size": [
+          1024,
+          1024
+        ]
+      },
+      "retained_raw_png": "raw/lowercase-z.png",
+      "raw_png_sha256": "dfdbe11a7385d94df3609159057ce62be3e57b689869a31568e0606e8109b6df",
+      "individual_fgen_saved_event_present": true
+    }
+  }
+}
