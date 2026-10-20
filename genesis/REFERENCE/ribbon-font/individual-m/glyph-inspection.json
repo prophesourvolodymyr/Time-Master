@@ -1,10 +1,11 @@
 {
-  "review_status": "AI geometry and visual inspection complete; human acceptance pending. This is not a claim of human approval.",
+  "review_status": "Rejected by the user for visible bumps and dislike of the overall font design. Prior AI inspection and geometry checks did not establish acceptable contour smoothness or aesthetics.",
   "master": "Original M, unchanged; the normalized M is pixel-identical to master-M-reference.png.",
   "units": "Pixels on the shared 560-pixel cap-height design grid. Antialiased visible bounds may sit 1-3 pixels inside the target frame.",
   "calculation_source": "glyph-calculations.json: source M measurements are distinguished from optical design targets for the other letters.",
   "measurement_method": "Threshold final PNG luminance at 128; measure bounds, components and closed counter areas. Isolated shaft widths are measured perpendicular to their fitted centerline; curved bowl widths are not represented as exact straight-shaft profiles.",
   "review_method": "Agent viewed every capital and lowercase PNG next to the original M, inspected regenerated O/Q/y and corrected contour joins, then checked final component/counter/frame invariants.",
+  "review_limitation": "The raster warping and component-compositing approach can introduce kinks at joins. Component, counter, frame and loading checks are not proof of smooth, well-designed letterforms. No human approval was given.",
   "glyphs": {
     "A": {
       "agent_visual_note": "Two asymmetric legs, soft crest and an intentionally open crossbar gap; no enclosed triangular counter.",

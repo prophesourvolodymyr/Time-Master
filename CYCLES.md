@@ -1550,7 +1550,7 @@ The native smoke used an isolated app-data copy to avoid consuming the original 
 
 ## Ribbon Font Specimen — 2026-10-19
 
-**Standalone typography experiment requested by the user; ready for human review, not human-verified.**
+**Standalone typography experiment requested by the user; the current generated alphabet was rejected for visible bumps and its overall font design.**
 
 ### Batch 1 — Original Five Letters
 
@@ -1667,6 +1667,8 @@ The user rejected this pass as too strict and reported that its strokes do not m
 
 The user requires the agent to calculate and send a separate Fgen brief for every letter, then personally inspect every individual glyph. The prior uniform-bar pass lost the M’s ribbon character. Direct measurements distinguish the broad rising profile from the narrow returning stroke; a single average thickness is not an adequate family rule. Preserve the original M, distinguish measured source facts from inferred letter-width targets, and keep human acceptance pending.
 
+**User review — 2026-10-20: rejected.** The user reports that letters remain bumpy and dislikes the font as a whole. The raster warping and component-compositing approach did not establish smooth, intentional contour construction. The prior geometry and browser checks are engineering history, not evidence of acceptable letter design. Preserve this attempt as rejected reference; the replacement style direction has not been chosen.
+
 - [x] Measure the original M’s primary/return stroke profiles, axis, taper, local crests, inside turns and terminals
 - [x] Store individual calculations and anatomical briefs for all twenty-six capitals and twenty-six lowercase letters
 - [x] Send the calculations and distinct prompt to Fgen for each non-M letter; retain every actual raw output and submitted prompt
@@ -1732,7 +1734,7 @@ The measured M’s broad rising profile is 131.5–159.5 pixels and its narrower
 
 Every capital and lowercase letter was personally inspected beside M. `glyph-inspection.json` records a distinct visual note and final geometry for each letter. The repeatable `correct_outlines.py` pass reconstructs n/l/h/m and b/d/k/p/q/r/y from retained generated contours, correcting primary weight, forward direction, connected bowls, repeated stems, and compact descender depth. It does not modify raw Fgen outputs. I/i/j/T/t receive measured shaft correction in the existing normalizer. The repaired PNGs are byte-identical on a repeated contour-correction run.
 
-Four focused regression tests passed for dot placement, fork-body alignment, measured taper, and connected closed p/q bowls. All fifty-two final PNGs passed component, counter, case-frame, and no-clipping checks. The actual HTTP hub exercised all fifteen presets, both case actions, unsupported-input recovery, native empty-input deletion, Q/y comparisons, arrow paging and Escape. HTTP layouts at 320, 390, 768 and 1440 pixels had no page overflow or broken images; direct-file opening also worked. No browser page errors were observed. Calculations and individual inspection notes are linked from the hub. The earlier installable TTF/OTF/WOFF2 files and app typography remain unchanged. Ready for human verification, not human-approved; no next implementation prompt is needed for this slice.
+Four focused regression tests passed for dot placement, fork-body alignment, measured taper, and connected closed p/q bowls. All fifty-two final PNGs passed component, counter, case-frame, and no-clipping checks. The actual HTTP hub exercised all fifteen presets, both case actions, unsupported-input recovery, native empty-input deletion, Q/y comparisons, arrow paging and Escape. HTTP layouts at 320, 390, 768 and 1440 pixels had no page overflow or broken images; direct-file opening also worked. No browser page errors were observed. Calculations and individual inspection notes are linked from the hub. The earlier installable TTF/OTF/WOFF2 files and app typography remain unchanged. These checks did not establish contour smoothness or aesthetic quality. The user rejected this pass for visible bumps and the overall design; it is not accepted.
 
 ## Tmax Rebrand and Loading — 2026-10-19
 
