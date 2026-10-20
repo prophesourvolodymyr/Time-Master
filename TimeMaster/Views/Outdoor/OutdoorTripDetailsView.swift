@@ -143,11 +143,11 @@ struct OutdoorTripDetailsView: View {
     private var exportCard: some View {
         card("export") {
             Label("Planned Trip image", systemImage: "photo").font(.headline)
-            Text("Your route, known estimates, and the Time-Master mark. Saved locally to Photos for sharing.")
+            Text("Your route, known estimates, and the Tmax mark. Saved locally to Photos for sharing.")
                 .font(.subheadline).foregroundStyle(Theme.textSecondary)
             Button(action: exportImage) {
                 HStack(spacing: 8) {
-                    if exporting { ProgressView().tint(.white) }
+                    if exporting { TmaxLoadingIndicator(size: 20) }
                     Label(exporting ? "Saving…" : saved ? "Save another copy" : "Save image to Photos", systemImage: "square.and.arrow.down")
                 }
                 .font(.subheadline.weight(.semibold))

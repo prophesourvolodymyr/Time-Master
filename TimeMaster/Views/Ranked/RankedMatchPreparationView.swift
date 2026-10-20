@@ -74,7 +74,7 @@ struct RankedSearchView: View {
         VStack(spacing: ProfileStyle.inset * 2) {
             RankedEloBadge(variation: variation, elo: account.rating(for: variation)?.rating)
                 .frame(width: ProfileStyle.touchTarget * 4, height: ProfileStyle.touchTarget * 4)
-            ProgressView().accessibilityLabel("Finding a fair match")
+            TmaxLoadingIndicator().accessibilityLabel("Finding a fair match")
             HStack(spacing: ProfileStyle.inset) {
                 RankedMetric(value: "1V1", unit: "")
                 Image(systemName: "scope").foregroundStyle(Theme.toolbarOrange)
@@ -127,7 +127,7 @@ struct RankedOpponentReadyView: View {
                 RankedInfoButton(label: "Ready room", message: "Both cameras must stay calibrated. Both athletes must be ready before the shared countdown. Cancel before Go without using a slot.", symbol: "person.2")
             }
             if match.you?.ready == true {
-                ProgressView().accessibilityLabel("Waiting for the other athlete")
+                TmaxLoadingIndicator().accessibilityLabel("Waiting for the other athlete")
             } else {
                 Button(action: onReady) {
                     Image(systemName: "checkmark").font(.title2.weight(.bold))

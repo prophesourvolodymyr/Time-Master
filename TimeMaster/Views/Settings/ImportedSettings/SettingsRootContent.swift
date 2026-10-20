@@ -17,7 +17,7 @@ struct SettingsRootContent: View {
                 EverSettingsPage(title: "Settings") {
                     EverSettingsSection(
                         title: "Profile",
-                        detail: "Your TimeMaster profile is stored on this device. There is no online account, login, or profile sync."
+                        detail: "Your Tmax profile is stored on this device. There is no online account, login, or profile sync."
                     ) {
                         SettingsDestinationLink(destination: .profile)
                         SettingsDestinationLink(destination: .privacy)

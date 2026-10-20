@@ -89,7 +89,8 @@ private struct PhotoPreviewPage: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 #endif
             } else {
-                ProgressView().tint(.white)
+                TmaxLoadingState(title: "Loading photo…")
+                    .allowsHitTesting(false)
             }
         }
         .task {
@@ -116,7 +117,8 @@ private struct VideoPreviewPage: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ProgressView().tint(.white)
+                TmaxLoadingState(title: "Loading video…")
+                    .allowsHitTesting(false)
             }
         }
         .onAppear { setupPlayer() }

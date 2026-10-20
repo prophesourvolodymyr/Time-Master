@@ -13,7 +13,7 @@ struct ScrollingChromeMetrics {
     var controlSpacing: CGFloat = 10
     var expandedControlPadding: CGFloat = 8
     /// Widest an expanded control may grow; `.infinity` lets the controls span the content width.
-    var expandedControlWidthCap: CGFloat = 108
+    var expandedControlWidthCap: CGFloat = .infinity
     /// Tallest an expanded control may grow.
     var expandedControlHeightCap: CGFloat = 108
     var controlCount: Int = 3
@@ -58,7 +58,7 @@ struct ScrollingChromeHeader<Controls: View>: View {
     @ViewBuilder let controls: () -> Controls
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var expandedTitleSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .title) private var expandedTitleSize: CGFloat = 30
     @ScaledMetric(relativeTo: .title2) private var compactTitleSize: CGFloat = 22
 
     var body: some View {

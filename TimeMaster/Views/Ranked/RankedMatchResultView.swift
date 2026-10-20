@@ -103,7 +103,7 @@ struct RankedMatchLimitView: View {
                                 .accessibilityLabel("Next slot: \(Date(timeIntervalSince1970: next).formatted(date: .abbreviated, time: .shortened))")
                         }
                     } else if account.loading {
-                        ProgressView().accessibilityLabel("Loading allowance")
+                        TmaxLoadingIndicator().accessibilityLabel("Loading allowance")
                     } else {
                         RankedMetric(value: "—/10", unit: "")
                         RankedIconAction(symbol: "person.badge.key", label: "Sign in to load allowance", id: "ranked-allowance-account") { showsAccount = true }

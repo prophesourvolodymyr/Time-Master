@@ -174,7 +174,7 @@ final class BackupManager {
         try? fm.createDirectory(at: backupsDir, withIntermediateDirectories: true)
         let dateStr = Self.dateString()
         let destURL = backupsDir
-            .appendingPathComponent("TimeMaster-Backup-\(dateStr).zip")
+            .appendingPathComponent("Tmax-Backup-\(dateStr).zip")
         try? fm.removeItem(at: destURL)
 
         // 3. Create archive
@@ -758,7 +758,7 @@ enum BackupError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .archiveCreationFailed: return "Could not create backup archive."
-        case .invalidBackup: return "The selected file is not a valid TimeMaster backup."
+        case .invalidBackup: return "The selected file is not a valid Tmax backup."
         }
     }
 }

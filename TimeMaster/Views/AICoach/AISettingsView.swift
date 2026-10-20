@@ -246,7 +246,7 @@ struct AISettingsView: View {
                             .fill(Color.white.opacity(0.10))
                             .frame(width: 44, height: 44)
                         if store.isFetchingModels {
-                            ProgressView().tint(.white).scaleEffect(0.8)
+                            TmaxLoadingIndicator(size: 18)
                         } else {
                             Image(systemName: "antenna.radiowaves.left.and.right")
                                 .foregroundColor(.white)

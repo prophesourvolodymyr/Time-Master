@@ -114,9 +114,9 @@ public final class DatabaseManager {
 
     private func bootstrapAgentsContent() -> String {
         return """
-# TimeMaster Data Directory
+# Tmax Data Directory
 
-This is the local file-system database for TimeMaster, a fitness app.
+This is the local file-system database for Tmax, a fitness app.
 
 ## Structure
 - **Exercises Database/** — all exercises (folders with manifest.json + guide.md)
@@ -173,7 +173,7 @@ See `skills/` for reusable skill files. Load a skill to get step-by-step instruc
     private func bootstrapCreateExerciseContent() -> String {
         return """
 # create-exercise
-Create a new exercise in the TimeMaster database.
+Create a new exercise in the Tmax database.
 
 ## Steps
 1. Generate a UUID for the exercise ID
@@ -201,7 +201,7 @@ Assemble a workout plan from exercises in the database.
     private func bootstrapSearchDatabaseContent() -> String {
         return """
 # search-database
-Query the TimeMaster exercise database.
+Query the Tmax exercise database.
 
 ## Steps
 1. Use `timemaster-tool search-exercises` with a query string

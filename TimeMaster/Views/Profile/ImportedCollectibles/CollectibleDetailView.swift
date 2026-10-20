@@ -196,7 +196,7 @@ struct CollectibleDetailView: View {
                 VStack(spacing: EverSpacing.x2) {
                     Text("Appearance only")
                         .font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
-                    Text("TimeMaster").font(TimeMasterFont.display())
+                    Text("Tmax").font(TimeMasterFont.display())
                     Text("Stored locally")
                         .font(TimeMasterFont.caption())
                     Text("Cosmetics never grant verification, change statistics, or create an online identity.")

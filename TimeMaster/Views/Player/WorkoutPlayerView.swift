@@ -2047,7 +2047,8 @@ private struct OverlayVideoPlayerView: View {
                 VideoPlayer(player: p)
                     .aspectRatio(contentMode: .fit)
             } else {
-                ProgressView().tint(.white)
+                TmaxLoadingState(title: "Loading video…")
+                    .allowsHitTesting(false)
             }
         }
         .onAppear { setupPlayer() }

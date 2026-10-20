@@ -76,7 +76,7 @@ struct LocalPostComposerView: View {
                             }
                             if isImporting {
                                 HStack(spacing: ProfileStyle.spacing) {
-                                    ProgressView()
+                                    TmaxLoadingIndicator()
                                     Text("Importing photo…").font(TimeMasterFont.secondary())
                                 }
                                 .accessibilityElement(children: .combine)

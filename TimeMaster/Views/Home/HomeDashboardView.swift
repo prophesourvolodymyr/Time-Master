@@ -76,35 +76,17 @@ struct HomeDashboardView: View {
         let morph = metrics.morph(progress)
         let width = metrics.controlWidth(morph)
         let height = metrics.controlHeight(morph)
-        let rowHeight = metrics.collapsedRowHeight
-            + (metrics.expandedControlHeight + metrics.expandedControlPadding * 2) * (1 - progress)
-        let bottomPadding = metrics.expandedControlPadding * (1 - progress)
-            + (metrics.collapsedRowHeight - metrics.compactControlSize) / 2 * progress
-
-        return VStack(spacing: 0) {
-            ZStack(alignment: .topLeading) {
-                Text("Home")
-                    .font(.title2.bold())
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .frame(width: max(0, metrics.contentWidth - metrics.compactGroupWidth - metrics.controlSpacing),
-                           height: metrics.collapsedRowHeight, alignment: .leading)
-                HStack(spacing: metrics.controlSpacing) {
-                    if isEditing {
-                        addWidgetButton(progress: morph, width: width, height: height)
-                        doneEditingButton(progress: morph, width: width, height: height)
-                    } else {
-                        editLayoutButton(progress: morph, width: width, height: height)
-                        settingsButton(progress: morph, width: width, height: height)
-                    }
+        return ScrollingChromeHeader(title: "Home", progress: morph, metrics: metrics) {
+            HStack(spacing: metrics.controlSpacing) {
+                if isEditing {
+                    addWidgetButton(progress: morph, width: width, height: height)
+                    doneEditingButton(progress: morph, width: width, height: height)
+                } else {
+                    editLayoutButton(progress: morph, width: width, height: height)
+                    settingsButton(progress: morph, width: width, height: height)
                 }
-                .offset(x: metrics.groupLeading(morph), y: rowHeight - height - bottomPadding)
-                .oneHandedActionSource()
             }
-            .frame(width: metrics.contentWidth, height: rowHeight, alignment: .topLeading)
         }
-        .padding(.horizontal, metrics.horizontalPadding)
         .background(Theme.background.ignoresSafeArea(edges: .top))
     }
 

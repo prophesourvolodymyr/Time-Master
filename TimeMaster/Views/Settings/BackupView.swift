@@ -104,7 +104,7 @@ struct BackupView: View {
             } label: {
                 HStack(spacing: 10) {
                     if isExporting {
-                        ProgressView().tint(.black).scaleEffect(0.85)
+                        TmaxLoadingIndicator(size: 18)
                         Text("Building backup…")
                     } else {
                         Image(systemName: "square.and.arrow.up")
@@ -167,7 +167,7 @@ struct BackupView: View {
             } label: {
                 HStack(spacing: 10) {
                     if isImporting {
-                        ProgressView().tint(.black).scaleEffect(0.85)
+                        TmaxLoadingIndicator(size: 18)
                         Text("Importing…")
                     } else {
                         Image(systemName: "square.and.arrow.down")

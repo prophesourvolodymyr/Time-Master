@@ -321,7 +321,7 @@ final class MacVideoEditorModel: ObservableObject {
                     MacVideoTimelineSegment(startTime: 0, endTime: seconds)
                 ]
             } catch {
-                self?.message = "TimeMaster could not read this video."
+                self?.message = "Tmax could not read this video."
             }
         }
     }
@@ -347,6 +347,7 @@ final class MacVideoEditorModel: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.isPlaying = false
+
             }
         }
     }

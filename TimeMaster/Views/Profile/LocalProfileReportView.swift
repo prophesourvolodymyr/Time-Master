@@ -13,7 +13,7 @@ struct LocalProfileReportView: View {
         NavigationStack {
             EverSettingsPage(title: "Report profile") {
                 if saved {
-                    ProfileEmptyState(symbol: "doc.text", title: "Report draft saved locally", detail: "Nothing was sent. TimeMaster has no social moderation service connected. You can share the report text yourself.")
+                    ProfileEmptyState(symbol: "doc.text", title: "Report draft saved locally", detail: "Nothing was sent. Tmax has no social moderation service connected. You can share the report text yourself.")
                     ShareLink(item: reportText) {
                         Label("Share report text", systemImage: "square.and.arrow.up")
                     }
@@ -57,6 +57,6 @@ struct LocalProfileReportView: View {
     }
 
     private var reportText: String {
-        "TimeMaster profile report draft\n@\(profileStore.profile.handle)\nReason: \(reason)\n\(details)\nSaved locally; not submitted to a moderation service."
+        "Tmax profile report draft\n@\(profileStore.profile.handle)\nReason: \(reason)\n\(details)\nSaved locally; not submitted to a moderation service."
     }
 }

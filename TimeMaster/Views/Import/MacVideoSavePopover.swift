@@ -557,8 +557,7 @@ struct MacVideoSavePopover: View {
         Button(action: save) {
             HStack {
                 if isSaving {
-                    ProgressView()
-                        .controlSize(.small)
+                    TmaxLoadingIndicator(size: 18)
                 }
                 Text(isSaving ? "Saving…" : "Save Media")
                     .font(.headline)

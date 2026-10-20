@@ -1644,6 +1644,33 @@ The user identified lowercase l and j as outside the original M’s style. Repla
 
 Both replacements were generated separately with the unchanged original M as their sole image reference. Their measured rising strokes are approximately 63 degrees, replacing the earlier near-upright stems. Case heights, baseline placement, and j’s two separate components are retained. The other fifty normalized letter images and the earlier installable font files remain byte-unchanged. The hub includes jolly and little examples. Focused HTTP and direct-file checks exercised both examples, corrected-image comparisons, keyboard navigation, the raw j link, Escape, desktop and mobile layouts, and 200% text at 320 pixels; no page errors were observed. The rejected raw images, submitted prompts, and normalized previews are retained for comparison. Both letters are ready for human review; no next prompt is needed for this correction.
 
+## Tmax Rebrand and Loading — 2026-10-19
+
+User-requested visible rebrand and connected loading system. The repository and folder remain Time-Master; bundle IDs, deep links, storage locations, saved data, and user-authored AI prompts retain their existing compatibility.
+
+- [x] Apply Tmax to iOS, macOS, widget, Settings, notifications, exported files, privacy descriptions, and built-in AI identity
+- [x] Preserve the supplied white M source, trace its actual silhouette, and apply the same mark to app icons and About
+- [x] Connect startup to real asynchronous migration and store preparation with seven actual preparation phases
+- [x] Add 68 offline fitness and resilience quotes, distinguish original Tmax training notes from sourced quotations, avoid adjacent repeats across launches, and rotate quotes during longer startup waits
+- [x] Provide custom determinate and indeterminate progress, compact branded activity indicators, short-wait flash suppression, Reduce Motion support, background pausing, and loading accessibility labels
+- [x] Connect AI response, tool execution, and approval states to honest feedback; remove duplicate loading UI and clear tool activity after failures without delaying AI text
+- [x] Apply shared loading feedback to existing asynchronous database, media, import, player, outdoor, profile, ranked, and settings operations while retaining real training/data progress
+- [x] Build the initial macOS and arm64 iOS Simulator targets and exercise startup preparation, quote selection, and actual AI waiting/tool/approval/error transitions with isolated data
+- [x] Use a separate normal orange circular spinner throughout shared loading states; keep the native launch screen plain black
+- [x] Use the established Inter fonts throughout the loading scene and compact loading labels
+- [x] Fade quotes in on first appearance and after each quote change, respecting Reduce Motion
+- [x] Recompose startup around the supplied animated M logo, circular spinner, real status, and quote
+- [x] Restore the logo's repeating stroke-drawing animation above the separate spinner, using the supplied silhouette and a completed static logo for Reduce Motion
+- [x] Present quotes in bold Inter with typographic quotation marks and a separate attribution while retaining their fade-in animation
+- [x] Thicken the circular spinner's orange stroke across shared loading states
+- [x] Keep the real startup loading scene visible for at least five seconds without delaying AI responses or other page loading
+- [x] Give Discard session the normal button font, a trash icon, and readable destructive styling while retaining explicit confirmation
+- [x] Make shared expanding-header action pairs fill the available content width and make expanded page titles grow slightly and move to the center; use the same header on Home
+- [x] Exercise the final startup timing, quote fade, resume actions, and normal/editing expanded Home headers only on iPhone 16 Pro
+- [ ] Human review of the Tmax identity, official logo drawing animation, bold circular loader, bold quoted Inter typography, quote fades, Discard session button, expanding headers, and connected page-loading behavior
+
+Engineering checks do not constitute human acceptance. Product DOCKS.md updates await the user's review. Final runtime checks use only iPhone 16 Pro with iOS 18.6; all three focused scenarios passed. The restored logo and final bold quote/spinner corrections were then rebuilt and exercised through the drawing cycle, repeat, and Home handoff on that same simulator. No next implementation prompt is needed for this slice.
+
 ---
 
 ## Notes

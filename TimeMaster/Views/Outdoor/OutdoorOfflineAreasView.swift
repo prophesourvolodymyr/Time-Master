@@ -119,9 +119,9 @@ struct OutdoorOfflineAreasView: View {
         SwiftUI.Section {
             Text("Routes, places, addresses, and the planning map stay on this device. No routing account or server is needed.")
                 .foregroundStyle(.secondary)
-            if model.isLoading { ProgressView("Preparing offline areas…") }
+            if model.isLoading { TmaxLoadingIndicator("Preparing offline areas…") }
             else if model.isImporting {
-                ProgressView("Installing and checking area…")
+                TmaxLoadingIndicator("Installing and checking area…")
                 Button("Cancel import", role: .cancel) { model.cancelImport() }
             } else {
                 Button { importing = true } label: { Label("Import area from Files", systemImage: "square.and.arrow.down") }

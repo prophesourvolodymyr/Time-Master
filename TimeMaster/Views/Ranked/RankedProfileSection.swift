@@ -15,7 +15,7 @@ struct RankedProfileSection: View {
                 RankedInfoButton(label: "Earned movement ratings", message: "Every exact movement has a separate server-earned Elo. Your previous local display choices remain preserved in your profile archive; they never become competitive Elo.")
                 RankedIconAction(symbol: "person.badge.key", label: "Ranked account", id: "profile-ranked-account") { showsAccount = true }
             }
-            if account.loading { ProgressView().accessibilityLabel("Loading earned ratings") }
+            if account.loading { TmaxLoadingIndicator().accessibilityLabel("Loading earned ratings") }
             if let error = account.error { RankedServiceNotice(message: error, retry: { Task { await account.refresh() } }) }
             RankedFamilyPicker(family: $family)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: ProfileStyle.touchTarget * 3))], spacing: ProfileStyle.spacing) {

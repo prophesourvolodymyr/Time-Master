@@ -134,7 +134,7 @@ private struct PageGalleryVideoPlayer: View {
                     .aspectRatio(contentMode: .fit)
                 #endif
             } else {
-                ProgressView().tint(.white)
+                TmaxLoadingIndicator()
             }
         }
         .onAppear {

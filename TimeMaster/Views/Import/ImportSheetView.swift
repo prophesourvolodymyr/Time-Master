@@ -140,7 +140,7 @@ struct ImportSheetView: View {
             Button { startDownload() } label: {
                 HStack {
                     if isDownloading {
-                        ProgressView().scaleEffect(0.8).tint(Theme.textPrimary)
+                        TmaxLoadingIndicator(size: 18)
                     } else {
                         Image(systemName: "arrow.down.circle")
                     }

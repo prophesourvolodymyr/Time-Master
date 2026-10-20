@@ -221,7 +221,7 @@ struct EverOperationOutput: View {
 
     var body: some View {
         HStack(spacing: EverSpacing.x3) {
-            ProgressView().tint(EverColor.textSecondary)
+            TmaxLoadingIndicator(size: 20)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
                 Text(previous)

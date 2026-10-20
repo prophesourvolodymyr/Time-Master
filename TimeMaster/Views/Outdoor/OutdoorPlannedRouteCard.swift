@@ -16,7 +16,7 @@ struct OutdoorPlannedRouteCard: View {
                     Group {
                         if let image { Image(uiImage: image).resizable().scaledToFill() }
                         else if mapUnavailable { OutdoorRoutePolylineFallback(points: route.points) }
-                        else { ProgressView().tint(Theme.toolbarOrange).frame(maxWidth: .infinity, maxHeight: .infinity) }
+                        else { TmaxLoadingIndicator().frame(maxWidth: .infinity, maxHeight: .infinity) }
                     }
                     .frame(maxWidth: .infinity)
                     .aspectRatio(1, contentMode: .fit)

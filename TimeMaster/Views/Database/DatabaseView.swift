@@ -1758,7 +1758,8 @@ private struct GalleryVideoPlayer: View {
                     .aspectRatio(contentMode: .fit)
                 #endif
             } else {
-                ProgressView().tint(.white).scaleEffect(1.4)
+                TmaxLoadingState(title: "Loading video…")
+                    .allowsHitTesting(false)
             }
             VStack {
                 HStack {
@@ -1865,8 +1866,7 @@ struct AddExerciseView: View {
                     Button { addSuggestNameWithAI() } label: {
                         HStack(spacing: 4) {
                             if isSuggestingName {
-                                ProgressView().tint(.white).scaleEffect(0.75)
-                                    .frame(width: 14, height: 14)
+                                TmaxLoadingIndicator(size: 14)
                             } else {
                                 Image(systemName: "sparkles")
                                     .font(.caption.weight(.semibold))
@@ -2150,8 +2150,7 @@ struct EditExerciseView: View {
                     Button { editSuggestNameWithAI() } label: {
                         HStack(spacing: 4) {
                             if isSuggestingName {
-                                ProgressView().tint(.white).scaleEffect(0.75)
-                                    .frame(width: 14, height: 14)
+                                TmaxLoadingIndicator(size: 14)
                             } else {
                                 Image(systemName: "sparkles")
                                     .font(.caption.weight(.semibold))
@@ -2656,7 +2655,7 @@ struct FolderExportSheet: View {
         AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
                  }
         AppToolbar.item(placement: .confirmationAction) { Button { startExport() } label: {
-            if isExporting { ProgressView().tint(.white) }
+            if isExporting { TmaxLoadingIndicator(size: 20) }
             else { Text("Export").fontWeight(.semibold) }
         }
         .foregroundColor(.white)

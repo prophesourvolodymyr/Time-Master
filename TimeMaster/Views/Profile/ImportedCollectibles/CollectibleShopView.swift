@@ -101,7 +101,7 @@ struct CollectibleShopView: View {
             }
         }
         .everPopup(isPresented: $showsAbout) {
-            EverPopup(title: "Made for your TimeMaster profile", message: "Preview rings, name finishes, badge skins, and profile entrances. Apply or save any look locally on this device. There are no purchases or transactions.", onEscape: { showsAbout = false }) {
+            EverPopup(title: "Made for your Tmax profile", message: "Preview rings, name finishes, badge skins, and profile entrances. Apply or save any look locally on this device. There are no purchases or transactions.", onEscape: { showsAbout = false }) {
                 Text("Cosmetics never change your statistics or grant verification. Badge artwork is always a preview.")
                     .font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
             } actions: {

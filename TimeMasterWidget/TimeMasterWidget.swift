@@ -136,7 +136,7 @@ struct WorkoutEntityQuery: EntityQuery {
 }
 
 struct SelectWorkoutIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "TimeMaster Widget"
+    static var title: LocalizedStringResource = "Tmax Widget"
     static var description = IntentDescription("Choose the information shown by this widget.")
 
     @Parameter(title: "Content", default: .quickStart)
@@ -464,7 +464,7 @@ struct TimeMasterWidget: Widget {
         ) { entry in
             TimeMasterWidgetView(entry: entry)
         }
-        .configurationDisplayName("TimeMaster")
+        .configurationDisplayName("Tmax")
         .description("Quick start a workout, review Today, or check progress.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }

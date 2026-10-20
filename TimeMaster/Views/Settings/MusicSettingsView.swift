@@ -102,7 +102,7 @@ struct WorkoutMusicImportSheet: View {
                     }
                     Text("Cloud files use the installed locations in Files. Music services use the same connections as Settings.")
                         .font(.caption).foregroundStyle(Theme.textSecondary)
-                    if importing { ProgressView("Importing music…") }
+                    if importing { TmaxLoadingIndicator("Importing music…") }
                 }
                 .listRowBackground(Color.clear)
                 if searching {

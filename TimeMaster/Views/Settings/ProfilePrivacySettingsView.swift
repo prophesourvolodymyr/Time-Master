@@ -13,7 +13,7 @@ struct ProfilePrivacySettingsView: View {
                 Text("Local visitor preview")
                     .font(TimeMasterFont.rowTitle())
                     .frame(minHeight: EverLayout.standardRowMinimum, alignment: .leading)
-                Text("Your TimeMaster profile has no online account or social backend. Changes save immediately on this device.")
+                Text("Your Tmax profile has no online account or social backend. Changes save immediately on this device.")
                     .font(TimeMasterFont.secondary())
                     .foregroundStyle(EverColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

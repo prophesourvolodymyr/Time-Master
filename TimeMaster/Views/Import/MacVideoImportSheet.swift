@@ -80,8 +80,7 @@ struct MacVideoImportSheet: View {
                                     downloadVideo()
                                 } label: {
                                     if isDownloading {
-                                        ProgressView()
-                                            .controlSize(.small)
+                                        TmaxLoadingIndicator(size: 18)
                                         Text("Downloading…")
                                     } else {
                                         Label("Download Video", systemImage: "arrow.down.circle")
@@ -96,7 +95,7 @@ struct MacVideoImportSheet: View {
                         Label("Download with yt-dlp", systemImage: "arrow.down.to.line")
                     }
 
-                    Label("Downloads run directly on this Mac. TimeMaster does not use a server.", systemImage: "lock.shield")
+                    Label("Downloads run directly on this Mac. Tmax does not use a server.", systemImage: "lock.shield")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }

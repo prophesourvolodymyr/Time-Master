@@ -21,7 +21,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .notifications: "Workout Reminders"
         case .privacy: "Privacy"
         case .exerciseAI: "Exercise AI"
-        case .about: "About TimeMaster"
+        case .about: "About Tmax"
         }
     }
 
@@ -30,7 +30,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .profile: "Local identity, collectibles, and verification"
         case .workoutTypes: "Customize and create workout categories"
         case .motivation: "Spoken during workouts"
-        case .backup: "Export or import your TimeMaster data"
+        case .backup: "Export or import your Tmax data"
         case .notifications: "Daily notifications on training days"
         case .privacy: "Choose what appears in your visitor preview"
         case .exerciseAI: "Name exercises from photos with OpenAI"

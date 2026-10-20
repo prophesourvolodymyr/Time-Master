@@ -24,15 +24,15 @@ enum MacVideoDatabaseImporter {
             case .noMedia:
                 return "Add a still or clip before saving."
             case .stillCaptureFailed:
-                return "TimeMaster could not capture the selected still."
+                return "Tmax could not capture the selected still."
             case .clipExportFailed:
-                return "TimeMaster could not export the selected clip."
+                return "Tmax could not export the selected clip."
             case .invalidTarget(let detail):
                 return detail
             case .mediaLimitExceeded:
                 return "This page cannot contain more than 20 media items."
             case .databaseWriteFailed(let detail):
-                return detail.isEmpty ? "TimeMaster could not save this media item." : detail
+                return detail.isEmpty ? "Tmax could not save this media item." : detail
             }
         }
     }
@@ -365,15 +365,15 @@ enum VideoEditorDatabaseImporter {
             case .noMedia:
                 return "Add a still or clip before saving."
             case .stillCaptureFailed:
-                return "TimeMaster could not prepare the selected still."
+                return "Tmax could not prepare the selected still."
             case .clipExportFailed:
-                return "TimeMaster could not export the selected clip."
+                return "Tmax could not export the selected clip."
             case .invalidTarget(let detail):
                 return detail
             case .mediaLimitExceeded:
                 return "This page cannot contain more than 20 media items."
             case .databaseWriteFailed(let detail):
-                return detail.isEmpty ? "TimeMaster could not save this media item." : detail
+                return detail.isEmpty ? "Tmax could not save this media item." : detail
             }
         }
     }

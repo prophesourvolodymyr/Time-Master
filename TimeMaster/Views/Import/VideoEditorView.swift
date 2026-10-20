@@ -112,9 +112,7 @@ struct VideoEditorView: View {
             if vm.isProcessing {
                 Color.black.opacity(0.45)
                     .allowsHitTesting(false)
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.5)
+                TmaxLoadingState(title: "Preparing media…")
                     .allowsHitTesting(false)
             }
         }
@@ -425,7 +423,8 @@ private struct MediaPreviewOverlay: View {
                 .aspectRatio(contentMode: .fit)
             #endif
         } else if case .clip = media {
-            ProgressView().tint(.white).scaleEffect(1.5)
+            TmaxLoadingState(title: "Loading video…")
+                .allowsHitTesting(false)
         }
     }
 

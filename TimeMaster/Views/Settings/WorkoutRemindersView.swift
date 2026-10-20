@@ -164,7 +164,7 @@ struct WorkoutRemindersView: View {
                 commit()
             }
         } message: {
-            Text("Please enable notifications for TimeMaster in Settings to use this feature.")
+            Text("Please enable notifications for Tmax in Settings to use this feature.")
         }
             .onAppear { checkPermissionStatus() }
     }

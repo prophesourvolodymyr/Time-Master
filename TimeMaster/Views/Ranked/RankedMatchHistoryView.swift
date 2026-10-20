@@ -54,7 +54,7 @@ struct RankedMatchHistoryView: View {
                         .accessibilityLabel("\(match.variation.fullTitle), \(match.outcomeTitle)")
                         .accessibilityIdentifier("ranked-history-\(match.id)")
                     }
-                    if loading { ProgressView().frame(maxWidth: .infinity) }
+                    if loading { TmaxLoadingIndicator().frame(maxWidth: .infinity) }
                     if mode == .duel, let error { RankedServiceNotice(message: (matches.isEmpty ? "" : "Last fetched history · ") + error, retry: { Task { await load() } }) }
                     if mode == .duel && cursor != nil {
                         RankedIconAction(symbol: "chevron.down", label: "Load older rounds", id: "ranked-history-more") { Task { await load(more: true) } }.disabled(loading)

@@ -175,7 +175,7 @@ struct OutdoorTripsMenu: View {
     private var nearbyStatus: some View {
         VStack(alignment: .leading, spacing: 10) {
             if nearby.isLoading {
-                ProgressView("Finding roads near you…").tint(Theme.toolbarOrange)
+                TmaxLoadingIndicator("Finding roads near you…")
             } else if nearby.location == nil {
                 Label(nearby.locationDenied ? "Location access is unavailable" : "Waiting for your current location", systemImage: "location")
                 if let message = nearby.errorMessage {
@@ -275,7 +275,7 @@ struct OutdoorTripSearchView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             if loading {
-                ProgressView()
+                TmaxLoadingIndicator()
                     .accessibilityLabel("Searching offline places")
             }
             if let message { Text(message).font(.caption).foregroundStyle(Theme.textSecondary) }

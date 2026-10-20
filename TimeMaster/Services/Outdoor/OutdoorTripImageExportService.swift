@@ -7,15 +7,15 @@ import TimeMasterCore
 struct OutdoorTripImageExportService {
     enum ExportError: LocalizedError {
         case photosDenied
-        var errorDescription: String? { "Allow Time-Master to add photos in Settings, then try saving the trip image again." }
+        var errorDescription: String? { "Allow Tmax to add photos in Settings, then try saving the trip image again." }
     }
 
     func image(for route: PlannedRoute, units: OutdoorUnitSystem) async throws -> UIImage {
         guard route.trip?.isRouted != false, route.points.count > 1 else {
             throw TripServiceError.message("Finish calculating the trip before exporting its map.")
         }
-        guard let logo = UIImage(named: "TimeMasterMark") else {
-            throw TripServiceError.message("The Time-Master logo is missing from the app resources.")
+        guard let logo = UIImage(named: "TmaxLogo") else {
+            throw TripServiceError.message("The Tmax logo is missing from the app resources.")
         }
         let coordinates = route.trip?.stops.map(\.coordinate) ?? route.points.map { TripCoordinate(latitude: $0.latitude, longitude: $0.longitude) }
         let region = try await OutdoorOfflineTripPacks.shared.region(covering: coordinates)
@@ -52,7 +52,7 @@ struct OutdoorTripImageExportService {
                     : "\(trip.kind.displayName) · \(trip.preference.title(for: trip.kind)) · \(trip.effortTitle)"
             } else { note = "Imported track · Road, elevation, and timing estimates unavailable" }
             drawText(note, in: CGRect(x: inset, y: metricsY + inset * 2.5, width: mapSize.width, height: inset * 1.4), size: 23, weight: .regular, color: UIColor(white: 0.7, alpha: 1))
-            drawText("Time-Master · © OpenStreetMap contributors · ODbL 1.0 · openstreetmap.org/copyright", in: CGRect(x: inset, y: size.height - inset * 1.5, width: mapSize.width, height: inset), size: 19, weight: .regular, color: UIColor(white: 0.5, alpha: 1))
+            drawText("Tmax · © OpenStreetMap contributors · ODbL 1.0 · openstreetmap.org/copyright", in: CGRect(x: inset, y: size.height - inset * 1.5, width: mapSize.width, height: inset), size: 19, weight: .regular, color: UIColor(white: 0.5, alpha: 1))
         }
     }
 

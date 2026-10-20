@@ -3,7 +3,13 @@ import SwiftUI
 struct AboutSettingsView: View {
     var body: some View {
         EverSettingsPage(title: "About") {
-            EverSettingsSection(title: "TimeMaster") {
+            EverSettingsSection(title: "Tmax") {
+                TmaxMark()
+                    .fill(EverColor.textPrimary)
+                    .aspectRatio(TmaxMark.aspectRatio, contentMode: .fit)
+                    .frame(maxWidth: EverLayout.minimumTouchTarget * 2)
+                    .padding(.vertical, EverSpacing.x4)
+                    .accessibilityHidden(true)
                 HStack {
                     Text("Version")
                         .font(TimeMasterFont.rowTitle())

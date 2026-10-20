@@ -199,12 +199,13 @@ private struct ChatMessageList: View {
                             .padding(.vertical, 20)
                     }
                     ForEach(visible) { msg in
-                        MessageBubble(message: msg, onReply: onReply)
+                        MessageBubble(
+                            message: msg,
+                            loadingTitle: store.pendingApproval != nil ? "Waiting for your approval" : store.isExecutingTools ? "Running requested tools…" : "Waiting for response…",
+                            isWaitingForApproval: store.pendingApproval != nil,
+                            onReply: onReply
+                        )
                             .id(msg.id)
-                            .transition(.opacity)
-                    }
-                    if store.isExecutingTools {
-                        ToolCallIndicator(count: store.toolCallCount)
                             .transition(.opacity)
                     }
                 }
@@ -287,6 +288,8 @@ private struct EmptyCoachState: View {
 
 private struct MessageBubble: View {
     let message: ChatMessage
+    let loadingTitle: String
+    let isWaitingForApproval: Bool
     let onReply: (ChatMessage) -> Void
 
     private var isUser: Bool { message.role == .user }
@@ -330,9 +333,17 @@ private struct MessageBubble: View {
             }
 
             if message.isLoading {
-                TypingBubble()
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                Group {
+                    if isWaitingForApproval {
+                        Text(loadingTitle)
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    } else {
+                        TmaxLoadingIndicator(loadingTitle, size: 18)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             } else if !message.content.isEmpty {
                 let topPad: CGFloat = (message.replyToContent != nil || message.attachmentName != nil) ? 0 : 10
                 if isUser {
@@ -467,17 +478,6 @@ private struct AttachmentBadgeView: View {
     }
 }
 
-// MARK: - TypingBubble
-
-private struct TypingBubble: View {
-    var body: some View {
-        ProgressView("Thinking…")
-            .controlSize(.small)
-            .font(.caption)
-            .tint(Theme.toolbarOrange)
-            .foregroundStyle(Theme.textSecondary)
-    }
-}
 
 // MARK: - ChatInputBar
 
@@ -532,7 +532,7 @@ private struct ChatInputBar: View {
                 Button(action: onSend) {
                     Group {
                         if isLoading {
-                            ProgressView().tint(Theme.textPrimary)
+                            TmaxLoadingIndicator(size: 20)
                         } else {
                             Image(systemName: isApprovalPending ? "lock.fill" : "arrow.up")
                                 .font(.body.weight(.semibold))
@@ -724,24 +724,6 @@ private struct SessionRowView: View {
 }
 
 
-// MARK: - ToolCallIndicator
-
-private struct ToolCallIndicator: View {
-    let count: Int
-
-    var body: some View {
-        HStack {
-            ProgressView(count == 0 ? "Working…" : "Using \(count) \(count == 1 ? "tool" : "tools")")
-                .controlSize(.small)
-                .font(.caption)
-                .tint(Theme.toolbarOrange)
-                .foregroundStyle(Theme.textSecondary)
-                .padding(12)
-                .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
-            Spacer(minLength: 52)
-        }
-    }
-}
 
 // MARK: - ApprovalCardView
 

@@ -248,7 +248,7 @@ struct RankedProfileSummary: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .overlay(alignment: .topTrailing) {
                     if account.loading {
-                        ProgressView().controlSize(.mini)
+                        TmaxLoadingIndicator(size: 14)
                     } else if account.stale {
                         Image(systemName: "wifi.slash")
                             .font(.caption2)

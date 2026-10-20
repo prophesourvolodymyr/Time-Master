@@ -41,7 +41,7 @@ public enum OutdoorActivityExportService {
         }.joined()
         let content = """
         <?xml version="1.0" encoding="UTF-8"?>
-        <gpx version="1.1" creator="TimeMaster" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 https://www.topografix.com/GPX/1/1/gpx.xsd">
+        <gpx version="1.1" creator="Tmax" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1/gpx.xsd">
           <metadata><name>\(xml(manifest.title))</name><time>\(xml(iso8601.string(from: manifest.startedAt)))</time></metadata>
           \(tracks)
         </gpx>
@@ -404,7 +404,7 @@ public enum OutdoorActivityExportService {
 
     private static func temporaryFile(extension: String, data: Data) throws -> URL {
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TimeMaster-\(UUID().uuidString)")
+            .appendingPathComponent("Tmax-\(UUID().uuidString)")
             .appendingPathExtension(`extension`)
         try data.write(to: url, options: .atomic)
         return url

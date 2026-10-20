@@ -166,8 +166,7 @@ struct OutdoorPinePrimaryAction: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 if loading {
-                    ProgressView()
-                        .controlSize(.small)
+                    TmaxLoadingIndicator(size: 18)
                 } else {
                     Image(systemName: symbol)
                         .font(.headline)

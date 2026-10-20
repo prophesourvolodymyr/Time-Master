@@ -112,7 +112,6 @@ final class AIStore: ObservableObject {
     // Network state
     @Published var isLoading: Bool           = false
     @Published var isExecutingTools: Bool    = false
-    @Published var toolCallCount: Int        = 0
     @Published var availableModels: [String] = []
     @Published var isFetchingModels: Bool    = false
 
@@ -122,7 +121,7 @@ final class AIStore: ObservableObject {
     @Published var model: String             = "gpt-4o"
 
     // Personality + knowledge
-    @Published var soulPrompt: String = "You are an expert fitness coach and training assistant inside the TimeMaster workout app. Be concise, motivating, and practical."
+    @Published var soulPrompt: String = "You are an expert fitness coach and training assistant inside the Tmax workout app. Be concise, motivating, and practical."
     @Published var knowledgeFilenames: [String] = []
 
     // Tool calling
@@ -184,7 +183,13 @@ final class AIStore: ObservableObject {
 
     private func load() {
         model      = UserDefaults.standard.string(forKey: modelKey)      ?? "gpt-4o"
-        soulPrompt = UserDefaults.standard.string(forKey: soulPromptKey) ?? soulPrompt
+        if let savedPrompt = UserDefaults.standard.string(forKey: soulPromptKey) {
+            if savedPrompt == "You are an expert fitness coach and training assistant inside the TimeMaster workout app. Be concise, motivating, and practical." {
+                UserDefaults.standard.set(soulPrompt, forKey: soulPromptKey)
+            } else {
+                soulPrompt = savedPrompt
+            }
+        }
         knowledgeFilenames = UserDefaults.standard.stringArray(forKey: knowledgeFilesKey) ?? []
         customBaseURL = UserDefaults.standard.string(forKey: customBaseURLKey) ?? ""
         activeProviderID  = UserDefaults.standard.string(forKey: activeProviderKey) ?? "openai"
@@ -454,6 +459,7 @@ final class AIStore: ObservableObject {
                 withAnimation {
                     replaceLoadingMessage(id: placeholderID, with: errMsg)
                     isLoading = false
+                    isExecutingTools = false
                 }
             }
         }
@@ -473,10 +479,9 @@ final class AIStore: ObservableObject {
             attachmentContent: attachmentContent
         )
 
-        await MainActor.run { toolCallCount = 0 }
-
         while iteration < maxToolCallIterations {
             iteration += 1
+            await MainActor.run { isExecutingTools = false }
             let provider = activeProvider
             let key = currentAPIKey
             guard !key.isEmpty else { throw AIError.missingAPIKey }
@@ -503,10 +508,7 @@ final class AIStore: ObservableObject {
                 return response.text.isEmpty ? "Done." : response.text
             }
 
-            await MainActor.run { [iteration] in
-                isExecutingTools = true
-                toolCallCount = iteration
-            }
+            await MainActor.run { isExecutingTools = true }
 
             apiMessages.append(["role": "assistant", "content": response.text.isEmpty ? "Calling tools..." : response.text])
 

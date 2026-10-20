@@ -145,7 +145,7 @@ struct OutdoorFinishContent: View {
         .accessibilityLabel("Resume workout")
         OutdoorExportShareControl(activity: exportDraft(activity), points: points, preferences: preferences, compact: true)
         Button { save(activity) } label: {
-            if isSaving { ProgressView().frame(minWidth: 44, minHeight: 44) }
+            if isSaving { TmaxLoadingIndicator(size: 20).frame(minWidth: 44, minHeight: 44) }
             else { OutdoorPaneActionLabel(title: "Save", systemImage: "checkmark", compact: compact) }
         }
         .buttonStyle(TimeMasterActionButtonStyle(prominent: true, circular: compact, minimumSize: compact ? 44 : 52))

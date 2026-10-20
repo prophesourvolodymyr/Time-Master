@@ -37,8 +37,7 @@ struct OutdoorRouteThumbnailView: View {
                 } else if snapshotError != nil {
                     OutdoorRoutePolylineFallback(points: points)
                 } else {
-                    ProgressView()
-                        .tint(Theme.textPrimary)
+                    TmaxLoadingIndicator()
                         .accessibilityLabel("Loading route map preview")
                 }
             }

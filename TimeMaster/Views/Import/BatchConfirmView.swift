@@ -280,8 +280,7 @@ struct BatchConfirmView: View {
             Task { await saveAll() }
         } label: {
             if isSaving {
-                ProgressView()
-                    .tint(Theme.textPrimary)
+                TmaxLoadingIndicator(size: 20)
             } else {
                 Text("Save All")
                     .fontWeight(.semibold)
@@ -663,7 +662,7 @@ struct BatchConfirmView: View {
             Task { await saveAll() }
         } label: {
             if isSaving {
-                ProgressView().tint(Theme.textPrimary)
+                TmaxLoadingIndicator(size: 20)
             } else {
                 Text("Save All").fontWeight(.semibold)
             }

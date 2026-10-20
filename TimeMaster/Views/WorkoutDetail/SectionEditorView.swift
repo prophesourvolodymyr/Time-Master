@@ -250,8 +250,7 @@ struct SectionEditorView: View {
                     Button { suggestNameWithAI() } label: {
                         HStack(spacing: 4) {
                             if isSuggestingName {
-                                ProgressView().tint(.white).scaleEffect(0.75)
-                                    .frame(width: 14, height: 14)
+                                TmaxLoadingIndicator(size: 14)
                             } else {
                                 Image(systemName: "sparkles")
                                     .font(.caption.weight(.semibold))

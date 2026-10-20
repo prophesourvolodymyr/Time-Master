@@ -207,9 +207,9 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
             state = .requestingAuthorization
             locationManager.requestWhenInUseAuthorization()
         case .denied, .restricted:
-            fail("TimeMaster needs location access to record. Allow Location While Using the App in Settings.")
+            fail("Tmax needs location access to record. Allow Location While Using the App in Settings.")
         @unknown default:
-            fail("TimeMaster could not determine location access.")
+            fail("Tmax could not determine location access.")
         }
     }
 
@@ -297,7 +297,7 @@ final class OutdoorLocationRecorder: NSObject, ObservableObject, CLLocationManag
         do {
             let finished = try store.finish(at: date)
             guard let finished else {
-                let message = "TimeMaster could not finish this activity."
+                let message = "Tmax could not finish this activity."
                 fail(message)
                 return .failed(message)
             }

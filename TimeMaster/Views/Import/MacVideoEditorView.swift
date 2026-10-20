@@ -116,9 +116,8 @@ struct MacVideoEditorView: View {
                     }
                     if model.isProcessing {
                         Color.black.opacity(0.35)
-                        ProgressView()
-                            .controlSize(.large)
-                            .tint(.white)
+                        TmaxLoadingState(title: "Preparing media…")
+                            .allowsHitTesting(false)
                     }
 
                     // Overlay controls for max video viewing space (almost full but no clip)

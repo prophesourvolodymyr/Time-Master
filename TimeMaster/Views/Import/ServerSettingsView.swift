@@ -80,7 +80,7 @@ struct ServerSettingsView: View {
 
             if discovery.isSearching {
                 HStack(spacing: 10) {
-                    ProgressView().tint(.white).scaleEffect(0.8)
+                    TmaxLoadingIndicator(size: 18)
                     Text("Scanning local network…")
                         .font(.subheadline).foregroundColor(Theme.textSecondary)
                 }
@@ -160,7 +160,7 @@ struct ServerSettingsView: View {
                 if connectionStatus != .idle {
                     HStack(spacing: 6) {
                         if connectionStatus == .checking {
-                            ProgressView().scaleEffect(0.7).tint(Theme.textPrimary)
+                            TmaxLoadingIndicator(size: 16)
                         }
                         Text(connectionStatus.label)
                             .font(.subheadline)

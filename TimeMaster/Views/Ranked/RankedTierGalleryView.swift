@@ -19,7 +19,7 @@ struct RankedTierGalleryView: View {
                         RankedIconAction(symbol: "square.grid.2x2", label: "Six-tier guide", id: "ranked-tier-guide") { showsTiers = true }
                         RankedIconAction(symbol: "person.badge.key", label: "Ranked account", id: "ranked-ranks-account") { showsAccount = true }
                     }
-                    if account.loading { ProgressView().accessibilityLabel("Loading earned ranks") }
+                    if account.loading { TmaxLoadingIndicator().accessibilityLabel("Loading earned ranks") }
                     if let error = account.error { RankedServiceNotice(message: error, retry: { Task { await account.refresh() } }) }
                     RankedFamilyPicker(family: $family)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: ProfileStyle.touchTarget * 3))], spacing: ProfileStyle.spacing) {

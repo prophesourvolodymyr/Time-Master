@@ -121,12 +121,11 @@ struct WorkoutResumeView: View {
             Button(role: .destructive) {
                 showDiscardConfirmation = true
             } label: {
-                Text("Discard session")
-                    .font(TimeMasterFont.secondary())
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity)
+                Label("Discard session", systemImage: "trash")
+                    .font(TimeMasterFont.label())
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
-            .buttonStyle(TimeMasterSelectionButtonStyle())
+            .buttonStyle(TimeMasterToolbarWideButtonStyle())
             .accessibilityIdentifier("workout-resume-discard")
             .confirmationDialog("Discard this saved session?", isPresented: $showDiscardConfirmation, titleVisibility: .visible) {
                 Button("Discard session", role: .destructive, action: onDiscard)

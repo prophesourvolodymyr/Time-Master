@@ -727,9 +727,7 @@ struct PageCreationSheet: View {
                                     refreshLinkMetadata(for: row.id)
                                 }
                             if row.isLoading {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .tint(Theme.toolbarOrange)
+                                TmaxLoadingIndicator(size: 18)
                             }
                             Button {
                                 linkRows.removeAll { $0.id == row.id }

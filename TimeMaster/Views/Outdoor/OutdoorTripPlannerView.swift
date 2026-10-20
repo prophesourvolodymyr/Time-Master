@@ -418,7 +418,7 @@ struct OutdoorTripPlannerView: View {
                 OutdoorPineGlassSurface(identity: "trip-summary", namespace: namespace, cornerRadius: 22) {
                     OutdoorTripSummaryView(trip: editor.trip, units: units) {
                         if busy || editor.isRouting {
-                            ProgressView().accessibilityLabel("Calculating route")
+                            TmaxLoadingIndicator().accessibilityLabel("Calculating route")
                         } else {
                             OutdoorPineIconAction(
                                 symbol: "chart.xyaxis.line", label: "Route details and directions",

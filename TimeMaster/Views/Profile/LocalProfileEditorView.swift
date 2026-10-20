@@ -49,7 +49,7 @@ struct LocalProfileEditorView: View {
                                 }
                             }
                         }
-                        if isImporting { ProgressView("Importing photo…") }
+                        if isImporting { TmaxLoadingIndicator("Importing photo…") }
                         field("Display name", text: $draft.displayName)
                         field("Handle", text: $draft.handle)
                         field("Location", text: $draft.location)

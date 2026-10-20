@@ -83,7 +83,7 @@ struct RankedLeaderboardView: View {
                                     .disabled(loading)
                             }
                         }
-                        if loading { ProgressView().frame(maxWidth: .infinity) }
+                        if loading { TmaxLoadingIndicator().frame(maxWidth: .infinity) }
                         if let error { RankedServiceNotice(message: (rows.isEmpty ? "" : "Last fetched standings · ") + error, retry: { Task { await load() } }) }
                     }
                     .padding(ProfileStyle.inset).frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)
@@ -142,7 +142,10 @@ struct RankedPublicPlayerView: View {
                                 RankedRatingTile(variation: rating.variation, rating: rating) { selectedVariation = rating.variation }
                             }
                         }
-                    } else if error == nil { ProgressView() }
+                    } else if error == nil {
+                        TmaxLoadingState(title: "Loading player…")
+                            .allowsHitTesting(false)
+                    }
                     if let error { RankedServiceNotice(message: error) }
                 }
                 .padding(ProfileStyle.inset).frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)

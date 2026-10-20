@@ -63,9 +63,10 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-        INFOPLIST_KEY_NSCameraUsageDescription: "TimeMaster uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images."
-        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Time-Master needs photo library access to add photos of your exercises"
-        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Time-Master saves your Planned Trip map image to Photos so you can share it."
+        INFOPLIST_KEY_CFBundleDisplayName: Tmax
+        INFOPLIST_KEY_NSCameraUsageDescription: "Tmax uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images."
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Tmax needs photo library access to add photos of your exercises"
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Tmax saves your Planned Trip map image to Photos so you can share it."
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
@@ -110,6 +111,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: TimeMasterWidget/TimeMasterWidget.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: com.timemaster.TimeMaster.TimeMasterWidget
         PRODUCT_NAME: "$(TARGET_NAME)"
+        INFOPLIST_KEY_CFBundleDisplayName: Tmax
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: NO
@@ -166,6 +168,7 @@ targets:
       base:
         INFOPLIST_FILE: TimeMaster/Info-macOS.plist
         GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_KEY_CFBundleDisplayName: Tmax
         CODE_SIGN_ENTITLEMENTS: TimeMaster/TimeMaster-macOS.entitlements
         PRODUCT_BUNDLE_IDENTIFIER: com.timemaster.macos
         PRODUCT_NAME: "$(TARGET_NAME)"

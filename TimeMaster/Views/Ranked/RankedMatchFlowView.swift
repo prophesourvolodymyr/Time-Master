@@ -119,9 +119,9 @@ struct RankedMatchFlowView: View {
         case .live: EmptyView()
         case .verifying:
             if controller.mode == .practice {
-                ProgressView().accessibilityLabel("Saving your Practice result")
+                TmaxLoadingIndicator().accessibilityLabel("Saving your Practice result")
             } else {
-                ProgressView().accessibilityLabel("Verifying the round")
+                TmaxLoadingIndicator().accessibilityLabel("Verifying the round")
                 RankedInfoButton(label: "Verification pending", message: "The service is checking the movement timeline and finalizing both results. You can close and return from Recent rounds. No winner is guessed while the service is unavailable.", symbol: "checkmark.shield")
                 RankedIconAction(symbol: "arrow.clockwise", label: "Check result", id: "ranked-verification-retry") { Task { await controller.retry() } }
             }

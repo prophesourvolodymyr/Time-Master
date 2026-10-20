@@ -297,7 +297,7 @@ final class NotificationManager {
         c.minute  = minute
 
         let content = UNMutableNotificationContent()
-        content.title = "TimeMaster"
+        content.title = "Tmax"
         content.body  = postWorkoutMessages.randomElement() ?? "Imagine the feeling now."
         content.sound = .default
 

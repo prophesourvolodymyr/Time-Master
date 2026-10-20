@@ -11,7 +11,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Tmax</string>
+	<key>CFBundleDisplayName</key>
+	<string>Tmax</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
@@ -32,7 +34,7 @@
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>TimeMaster uses the camera for on-device exercise tracking. Ranked sends joint estimates, never camera images.</string>
+	<string>Tmax uses the camera for on-device exercise tracking. Ranked sends joint estimates, never camera images.</string>
 	<key>TMRankedServiceURL</key>
 	<string>$(TM_RANKED_SERVICE_URL)</string>
 	<key>NSHumanReadableCopyright</key>

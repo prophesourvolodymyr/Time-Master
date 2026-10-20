@@ -56,7 +56,7 @@ enum OfflineTripResources {
     static func engineRevision() throws -> String {
         let object = try JSONSerialization.jsonObject(with: data("engine.json")) as? [String: String]
         guard let revision = object?["revision"], !revision.isEmpty else {
-            throw TripServiceError.message("Offline routing resources are missing. Reinstall TimeMaster.")
+            throw TripServiceError.message("Offline routing resources are missing. Reinstall Tmax.")
         }
         return revision
     }
@@ -146,11 +146,11 @@ actor OutdoorOfflineTripPacks {
         do {
             archive = try Archive(url: archiveURL, accessMode: .read)
         } catch {
-            throw TripServiceError.message("Choose a TimeMaster offline-area ZIP archive with a valid manifest.")
+            throw TripServiceError.message("Choose a Tmax offline-area ZIP archive with a valid manifest.")
         }
         guard let manifestEntry = archive["manifest.json"], manifestEntry.type == .file,
               manifestEntry.uncompressedSize <= 16_000_000 else {
-            throw TripServiceError.message("Choose a TimeMaster offline-area ZIP archive with a valid manifest.")
+            throw TripServiceError.message("Choose a Tmax offline-area ZIP archive with a valid manifest.")
         }
         var manifestData = Data()
         let manifestCRC = try archive.extract(manifestEntry, bufferSize: 262_144) { chunk in
@@ -162,7 +162,7 @@ actor OutdoorOfflineTripPacks {
         let manifest = try Self.decoder().decode(OfflineTripManifest.self, from: manifestData)
         try validate(manifest)
         guard manifest.engineRevision == (try OfflineTripResources.engineRevision()) else {
-            throw TripServiceError.message("This area was built for a different routing engine. Rebuild or download the matching TimeMaster area pack.")
+            throw TripServiceError.message("This area was built for a different routing engine. Rebuild or download the matching Tmax area pack.")
         }
         let bytes = manifest.files.values.reduce(Int64(0)) { $0 + $1.size }
         let available = try root.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage
@@ -329,10 +329,10 @@ actor OutdoorOfflineTripPacks {
         do {
             archive = try Archive(url: url, accessMode: .read)
         } catch {
-            throw TripServiceError.message("The bundled offline area is damaged. Reinstall TimeMaster.")
+            throw TripServiceError.message("The bundled offline area is damaged. Reinstall Tmax.")
         }
         guard let entry = archive["manifest.json"], entry.type == .file, entry.uncompressedSize <= 16_000_000 else {
-            throw TripServiceError.message("The bundled offline area is damaged. Reinstall TimeMaster.")
+            throw TripServiceError.message("The bundled offline area is damaged. Reinstall Tmax.")
         }
         var data = Data()
         let crc = try archive.extract(entry, bufferSize: 262_144) { chunk in
@@ -345,7 +345,7 @@ actor OutdoorOfflineTripPacks {
         let manifest = try Self.decoder().decode(OfflineTripManifest.self, from: data)
         try validate(manifest)
         guard manifest.engineRevision == (try OfflineTripResources.engineRevision()) else {
-            throw TripServiceError.message("The bundled offline area does not match this version of TimeMaster.")
+            throw TripServiceError.message("The bundled offline area does not match this version of Tmax.")
         }
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
@@ -376,7 +376,7 @@ actor OutdoorOfflineTripPacks {
     private func mapStyle(for region: OfflineTripRegion) throws -> Data {
         guard var style = try JSONSerialization.jsonObject(with: OfflineTripResources.data("map-style.json")) as? [String: Any],
               let glyphs = Bundle.main.url(forResource: "MapGlyphs", withExtension: nil) else {
-            throw TripServiceError.message("Offline map resources are missing. Reinstall TimeMaster.")
+            throw TripServiceError.message("Offline map resources are missing. Reinstall Tmax.")
         }
         style["glyphs"] = glyphs.absoluteString + "/{fontstack}/{range}.pbf"
         let bounds = region.manifest.bounds

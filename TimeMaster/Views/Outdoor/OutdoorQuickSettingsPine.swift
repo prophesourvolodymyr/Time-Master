@@ -297,8 +297,7 @@ struct OutdoorQuickSettingsPine: View {
                             }
                             .font(.caption2.weight(.semibold))
                         }
-                        ProgressView(value: download.fractionCompleted)
-                            .tint(Theme.toolbarOrange)
+                        TmaxProgressBar(value: download.fractionCompleted)
                             .accessibilityLabel("Offline map download progress")
                             .accessibilityValue(Text(download.fractionCompleted, format: .percent))
                     }

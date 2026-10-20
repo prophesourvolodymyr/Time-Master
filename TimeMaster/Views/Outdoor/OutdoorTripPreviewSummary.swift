@@ -37,7 +37,7 @@ struct OutdoorTripPreviewSummary: View {
                     .frame(maxWidth: .infinity)
             }
             if isRouting {
-                ProgressView("Calculating roads…").font(.caption).tint(Theme.toolbarOrange)
+                TmaxLoadingIndicator("Calculating roads…", size: 18).font(.caption)
             } else if route.trip?.hasBus == true {
                 Label("\(outdoorDistanceText(route.trip?.totalDistanceMeters ?? 0, unitSystem: units, precision: true)) total with bus", systemImage: "bus.fill")
                     .font(.caption).foregroundStyle(.yellow)

@@ -101,7 +101,7 @@ struct RankedAccountView: View {
                         .accessibilityIdentifier("ranked-account-submit")
                         .accessibilityLabel(creating ? "Create account" : "Sign in")
                     }
-                    if busy { ProgressView().frame(maxWidth: .infinity) }
+                    if busy { TmaxLoadingIndicator().frame(maxWidth: .infinity) }
                     if let error { RankedServiceNotice(message: error) }
                 }
                 .padding(ProfileStyle.inset)
