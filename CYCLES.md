@@ -1503,6 +1503,20 @@ The real-time service round used derived-joint fixtures, not camera images: 631 
 
 The iOS build used a disposable copy with the user's deleted app entry points recovered only there. Existing native warnings remain; this slice does not claim a new macOS UI run or a successful rerun of the interrupted native test runner. Physical-camera accuracy, advanced competitive verification, container execution, public HTTPS deployment, and human acceptance remain pending as recorded above. The later camera-only/serverless API is intentionally not implemented yet. No next prompt is needed for this requested slice; product DOCKS updates await human acceptance.
 
+### Ranked labels and conventional sign-in — 2026-10-20
+
+**User direction:** keep the approved visual layout, explain the icons and movement artwork with concise visible text, make sign-in conventional, add explicitly unavailable Apple and Google sign-in placeholders, and use bolder primary labels with smaller supporting text.
+
+- [x] Add visible action labels, movement names and setup cues, mode and family names, scoring units, rank names, status explanations, and readable recovery messages across Ranked without redesigning the artwork or shared controls
+- [x] Use a labeled primary sign-in button, persistent login/password labels, create-account selection, and clearly disabled Apple/Google placeholders; preserve the real account, privacy, secure-session, keyboard, and sign-out paths
+- [x] Apply the existing bold Inter hierarchy to headings, movement names, field labels, and primary actions, with smaller secondary captions and guidance
+- [x] Build the scoped iOS Simulator and macOS targets and exercise actual selection, icon guidance, login, recovery, and larger-text layouts with isolated app data and a separate real Rust service
+- [ ] Human review of the added explanations, sign-in form, provider placeholders, and typography
+
+Apple and Google are requested visual placeholders, not connected authentication providers. The Google mark uses the unmodified [official Google sign-in asset](https://developers.google.com/identity/branding-guidelines); the Apple mark uses the native system symbol. Existing account/password authentication remains the functional path. Physical-camera accuracy, advanced rated verification, and authorized public HTTPS deployment remain separate pending requirements above.
+
+Engineering checks used a disposable copy of the committed app baseline plus the scoped changes, isolated Simulator data, and a separate temporary Rust database. Both native targets compiled. iPhone smoke checks exercised movement/mode selection, named guidance/ranks/history/leaderboard controls, camera-unavailable recovery, real account creation, rejected-password recovery without clearing the login, sign-out/sign-in, secure-session restoration across relaunch, and large-text forms. The final large-text test reported one pass and zero failures, but Xcode did not finish runner shutdown and its command timed out. macOS was build-checked, not interactively camera-tested. Existing compiler/toolchain warnings remain. No production data was changed. Human review is pending; product DOCKS remain unchanged until acceptance, and no next prompt is needed.
+
 ---
 
 ## Cycle 37 — Direct EverStore Profile, Collectibles, Verification, and Settings Import

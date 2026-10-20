@@ -16,9 +16,16 @@ struct RankedCameraSetupView: View {
                 RankedMovementArt(variation: controller.variation)
                     .frame(width: ProfileStyle.touchTarget * 2, height: ProfileStyle.touchTarget * 1.5)
                 Spacer()
+                Text(controller.variation.fullTitle)
+                    .font(TimeMasterFont.rowTitle())
                 RankedMetric(value: "60", unit: "s")
             }
             RankedCameraPreview(camera: camera).aspectRatio(4 / 3, contentMode: .fit)
+            Text(camera.status == .running ? camera.tracking.reason : camera.status.message)
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(ProfileStyle.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: ProfileStyle.spacing) {
                 RankedInfoButton(label: "Calibration", message: camera.status == .running ? camera.tracking.reason : camera.status.message, symbol: camera.tracking.calibrated ? "checkmark.circle.fill" : "viewfinder")
                     .accessibilityValue(camera.tracking.calibrated ? "Calibrated" : "Not calibrated")
@@ -44,8 +51,9 @@ struct RankedCameraSetupView: View {
                 }
             }
             Button { Task { await controller.prepare() } } label: {
-                Image(systemName: controller.mode == .practice ? "play.fill" : "person.2")
-                    .font(.title2.weight(.semibold))
+                Label(controller.mode == .practice ? "Start Practice" : "Find opponent",
+                      systemImage: controller.mode == .practice ? "play.fill" : "person.2")
+                    .font(TimeMasterFont.label())
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(TimeMasterToolbarWideButtonStyle())
@@ -74,11 +82,20 @@ struct RankedSearchView: View {
         VStack(spacing: ProfileStyle.inset * 2) {
             RankedEloBadge(variation: variation, elo: account.rating(for: variation)?.rating)
                 .frame(width: ProfileStyle.touchTarget * 4, height: ProfileStyle.touchTarget * 4)
+            VStack(spacing: EverSpacing.x1) {
+                Text("Finding an opponent").font(TimeMasterFont.heading())
+                Text(variation.fullTitle).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+            }
             TmaxLoadingIndicator().accessibilityLabel("Finding a fair match")
             HStack(spacing: ProfileStyle.inset) {
                 RankedMetric(value: "1V1", unit: "")
-                Image(systemName: "scope").foregroundStyle(Theme.toolbarOrange)
-                RankedMetric(value: "90", unit: "s")
+                Label("Near your rating", systemImage: "scope")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.toolbarOrange)
+                VStack(spacing: EverSpacing.x1) {
+                    Text("Search limit").font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
+                    RankedMetric(value: "90", unit: "s")
+                }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Finding an opponent for \(variation.fullTitle) near your earned rating. Search expires after 90 seconds.")
@@ -108,8 +125,9 @@ struct RankedOpponentReadyView: View {
                         VStack(spacing: ProfileStyle.spacing) {
                             Image(systemName: "person.crop.circle.fill").font(.largeTitle).foregroundStyle(ProfileStyle.secondary)
                             Text(participant.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
-                            Image(systemName: participant.ready ? "checkmark.circle.fill" : "viewfinder")
-                                .font(.title2).foregroundStyle(participant.ready ? Theme.toolbarOrange : ProfileStyle.secondary)
+                            Label(participant.ready ? "Ready" : "Calibrating", systemImage: participant.ready ? "checkmark.circle.fill" : "viewfinder")
+                                .font(TimeMasterFont.caption().weight(.semibold))
+                                .foregroundStyle(participant.ready ? Theme.toolbarOrange : ProfileStyle.secondary)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -127,10 +145,16 @@ struct RankedOpponentReadyView: View {
                 RankedInfoButton(label: "Ready room", message: "Both cameras must stay calibrated. Both athletes must be ready before the shared countdown. Cancel before Go without using a slot.", symbol: "person.2")
             }
             if match.you?.ready == true {
-                TmaxLoadingIndicator().accessibilityLabel("Waiting for the other athlete")
+                VStack(spacing: EverSpacing.x2) {
+                    TmaxLoadingIndicator()
+                    Text("Waiting for the other athlete")
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(ProfileStyle.secondary)
+                }
             } else {
                 Button(action: onReady) {
-                    Image(systemName: "checkmark").font(.title2.weight(.bold))
+                    Label("I'm ready", systemImage: "checkmark")
+                        .font(TimeMasterFont.label())
                         .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
                 }
                 .buttonStyle(TimeMasterToolbarWideButtonStyle())

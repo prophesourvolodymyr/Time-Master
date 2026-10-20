@@ -54,7 +54,8 @@ struct RankedMatchResultView: View {
                 RankedIconAction(symbol: "house", label: "Return to lobby", id: "ranked-result-lobby", action: onLobby)
             }
             Button(action: onAnother) {
-                Image(systemName: "arrow.clockwise").font(.title2.weight(.semibold))
+                Label(mode == .practice ? "Practice again" : "Find another match", systemImage: "arrow.clockwise")
+                    .font(TimeMasterFont.label())
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(TimeMasterToolbarWideButtonStyle())
@@ -83,9 +84,12 @@ struct RankedMatchLimitView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ProfileStyle.inset) {
+                    Text("Match allowance").font(TimeMasterFont.heading())
+                    Text(family.title).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                     RankedMovementArt(variation: family.variations[0]).frame(height: ProfileStyle.touchTarget * 3)
                     if family == .core {
                         RankedMetric(value: "∞", unit: "")
+                        Text("No family limit").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                             .accessibilityLabel("Core has no competitive family limit")
                     } else if let allowance = account.allowance(for: family), let remaining = allowance.remaining {
                         RankedMetric(value: "\(remaining)/10", unit: "", emphasized: true)
@@ -97,6 +101,7 @@ struct RankedMatchLimitView: View {
                             }
                         }.accessibilityHidden(true)
                         RankedMetric(value: "4", unit: "h")
+                        Text("Rolling window").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                         if let next = allowance.nextSlot {
                             Label(Date(timeIntervalSince1970: next).formatted(date: .numeric, time: .shortened), systemImage: "clock.arrow.circlepath")
                                 .font(TimeMasterFont.secondary().monospacedDigit())

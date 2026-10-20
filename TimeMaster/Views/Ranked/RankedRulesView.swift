@@ -9,6 +9,13 @@ struct RankedRulesView: View {
                 VStack(spacing: ProfileStyle.inset) {
                     RankedMovementArt(variation: variation)
                         .frame(height: ProfileStyle.touchTarget * 4).frame(maxWidth: .infinity)
+                    Text(variation.fullTitle)
+                        .font(TimeMasterFont.heading())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(variation.cue)
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(ProfileStyle.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     HStack {
                         RankedMetric(value: "60", unit: "s")
                         Spacer()
@@ -20,7 +27,7 @@ struct RankedRulesView: View {
                         guideStep(3, title: variation.isTimedHold ? "Finish the hold" : "Complete the rep", symbol: variation.isTimedHold ? "stop.fill" : "arrow.up", detail: finish)
                     }
                     cameraGuide
-                    HStack(spacing: ProfileStyle.spacing) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: ProfileStyle.touchTarget * 3))], spacing: ProfileStyle.spacing) {
                         ruleCard(title: variation.isTimedHold ? "Longest continuous hold" : "One complete repetition", symbol: variation.isTimedHold ? "stopwatch" : "checkmark.circle", detail: variation.isTimedHold ? "The round lasts 60 seconds. Only the longest uninterrupted valid segment counts, to tenths of a second. A break or unusable observation ends the segment; fragments are never added together. Recalibrate after tracking loss." : "The round lasts 60 seconds. Establish full extension after Go, lower through the required depth, then return to full extension. A partial movement at either boundary does not score. Each endpoint must be observed steadily, not crossed by jitter.")
                         ruleCard(title: "Keep the variation exact", symbol: "scope", detail: variationRule)
                         ruleCard(title: variation.isTimedHold ? "Breaks in form" : "Invalid reps", symbol: "xmark.circle", detail: invalidRule)

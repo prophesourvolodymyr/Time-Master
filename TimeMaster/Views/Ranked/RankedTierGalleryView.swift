@@ -11,8 +11,11 @@ struct RankedTierGalleryView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ProfileStyle.inset) {
+                    Text("Movement ranks")
+                        .font(TimeMasterFont.heading())
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     HStack {
-                        RankedMetric(value: "\(account.placedCount)/\(RankedFamily.allCases.reduce(0) { $0 + $1.variations.count })", unit: "")
+                        RankedMetric(value: "\(account.placedCount)/\(RankedFamily.allCases.reduce(0) { $0 + $1.variations.count })", unit: "ranks")
                             .accessibilityLabel("Earned exact-movement ranks")
                         Spacer()
                         RankedInfoButton(label: "Exercise-specific ranks", message: "Every exact movement has its own earned rating. The first five rated rounds are provisional placement. Unrelated ladders are never averaged. A dash means no earned rating.")
@@ -49,6 +52,7 @@ struct RankedTierGalleryView: View {
                     ForEach(RankedTier.allCases) { tier in
                         VStack(spacing: ProfileStyle.spacing) {
                             Image(tier.assetName).resizable().scaledToFit().aspectRatio(1, contentMode: .fit)
+                            Text(tier.title).font(TimeMasterFont.rowTitle())
                             RankedMetric(value: "\(tier.minimum.formatted())+", unit: "Elo")
                         }
                         .padding(ProfileStyle.spacing)

@@ -85,6 +85,7 @@ struct RankedView: View {
         .padding(ProfileStyle.inset)
         .frame(maxWidth: ProfileStyle.readableWidth, maxHeight: scrolls ? nil : .infinity)
         .frame(maxWidth: .infinity)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private var identityBar: some View {
@@ -111,7 +112,7 @@ struct RankedView: View {
             .accessibilityLabel("Open \(account.identity?.displayName ?? profileStore.profile.displayName)'s profile")
             .accessibilityIdentifier("ranked-profile")
             Spacer(minLength: 0)
-            RankedIconAction(symbol: account.identity == nil ? "person.badge.key" : account.stale ? "wifi.exclamationmark" : "person.crop.circle.badge.checkmark", label: "Ranked account", id: "ranked-account-entry") { sheet = .account }
+            RankedIconAction(symbol: account.identity == nil ? "person.badge.key" : account.stale ? "wifi.exclamationmark" : "person.crop.circle.badge.checkmark", label: account.identity == nil ? "Sign in" : "Account", id: "ranked-account-entry") { sheet = .account }
                 .accessibilityValue(account.identity == nil ? "Signed out" : account.stale ? "Reconnecting" : "Connected")
             RankedIconAction(symbol: "gearshape", label: "Settings", id: "ranked-settings") { sheet = .settings }
         }
@@ -143,11 +144,18 @@ struct RankedView: View {
                     .accessibilityHidden(true)
                 VStack {
                     HStack(alignment: .top) {
-                        RankedMetric(value: "60", unit: "s")
+                        VStack(alignment: .leading, spacing: EverSpacing.x1) {
+                            Text("Round").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+                            RankedMetric(value: "60", unit: "s")
+                        }
                         Spacer(minLength: ProfileStyle.spacing)
                         Button { sheet = .ranks } label: {
-                            RankedEloBadge(variation: selection, elo: account.rating(for: selection)?.rating)
-                                .frame(width: artSize * 1.65, height: artSize * 1.65)
+                            VStack(spacing: EverSpacing.x1) {
+                                RankedEloBadge(variation: selection, elo: account.rating(for: selection)?.rating)
+                                    .frame(width: artSize * 1.65, height: artSize * 1.65)
+                                Text("Movement rank")
+                                    .font(TimeMasterFont.caption().weight(.semibold))
+                            }
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
                         .accessibilityLabel("View \(selection.fullTitle) ranks")
@@ -165,10 +173,19 @@ struct RankedView: View {
         VStack(spacing: ProfileStyle.spacing) {
             Button { sheet = .loadout } label: {
                 HStack(spacing: ProfileStyle.spacing) {
-                    Image(systemName: mode.symbol).font(.title2)
                     RankedMovementArt(variation: selection)
-                        .frame(maxWidth: .infinity).frame(height: artSize)
-                    Image(systemName: "slider.horizontal.3").font(.title3.weight(.semibold))
+                        .frame(width: artSize, height: artSize)
+                    VStack(alignment: .leading, spacing: EverSpacing.x1) {
+                        Text(selection.fullTitle).font(TimeMasterFont.rowTitle())
+                        Label(mode.title, systemImage: mode.symbol)
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(.black)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(spacing: EverSpacing.x1) {
+                        Image(systemName: "slider.horizontal.3").font(.title3.weight(.semibold))
+                        Text("Change").font(TimeMasterFont.micro())
+                    }
                 }
                 .padding(ProfileStyle.spacing)
             }
@@ -177,15 +194,22 @@ struct RankedView: View {
             .accessibilityValue("\(mode.title), \(selection.fullTitle)")
             .accessibilityIdentifier("ranked-loadout")
             HStack(spacing: ProfileStyle.spacing) {
-                RankedIconAction(symbol: "list.bullet.clipboard", label: "Movement rules", id: "ranked-rules") { sheet = .rules }
+                RankedIconAction(symbol: "list.bullet.clipboard", label: "Rules", id: "ranked-rules") { sheet = .rules }
+                    .frame(maxWidth: .infinity)
                 RankedIconAction(symbol: "list.number", label: "Leaderboard", id: "ranked-leaderboard") { sheet = .leaderboard }
-                RankedIconAction(symbol: "clock.arrow.circlepath", label: "Recent rounds", id: "ranked-history") { sheet = .history }
-                Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity)
+                RankedIconAction(symbol: "clock.arrow.circlepath", label: "History", id: "ranked-history") { sheet = .history }
+                    .frame(maxWidth: .infinity)
                 Button { sheet = .limit } label: {
-                    HStack(spacing: EverSpacing.x1) {
-                        Image(systemName: "hourglass")
-                        Text(selection.family == .core ? "∞" : account.allowance(for: selection.family)?.remaining.map { "\($0)/10" } ?? "—/10")
-                            .font(TimeMasterFont.caption().monospacedDigit())
+                    VStack(spacing: EverSpacing.x1) {
+                        HStack(spacing: EverSpacing.x1) {
+                            Image(systemName: "hourglass").font(.caption)
+                            Text(selection.family == .core ? "∞" : account.allowance(for: selection.family)?.remaining.map { "\($0)/10" } ?? "—/10")
+                                .font(TimeMasterFont.caption().weight(.bold).monospacedDigit())
+                        }
+                        Text("Matches").font(TimeMasterFont.micro())
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .buttonStyle(TimeMasterToolbarWideButtonStyle())
@@ -201,8 +225,9 @@ struct RankedView: View {
                     showsBattle = true
                 }
             } label: {
-                Image(systemName: mode == .duel ? account.recoveryMatch == nil ? "bolt.fill" : "arrow.clockwise" : "play.fill")
-                    .font(.title2.weight(.bold))
+                Label(mode == .practice ? "Enter Practice" : account.recoveryMatch != nil ? "Resume match" : account.identity == nil ? "Sign in to compete" : "Find a match",
+                      systemImage: mode == .duel ? account.recoveryMatch == nil ? "bolt.fill" : "arrow.clockwise" : "play.fill")
+                    .font(TimeMasterFont.label())
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(TimeMasterToolbarWideButtonStyle())
@@ -217,16 +242,22 @@ struct RankedView: View {
                 Button {
                     withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) { mode = option }
                 } label: {
-                    Image(option.assetName).resizable().scaledToFit()
-                        .aspectRatio(1.5, contentMode: .fit)
-                        .padding(EverSpacing.x2)
-                        .frame(maxWidth: .infinity)
-                        .overlay(alignment: .topTrailing) {
-                            if mode == option {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.white).padding(EverSpacing.x2)
-                            }
+                    VStack(spacing: EverSpacing.x1) {
+                        Image(option.assetName).resizable().scaledToFit()
+                            .aspectRatio(1.5, contentMode: .fit)
+                        Text(option.title).font(TimeMasterFont.rowTitle())
+                        Text(option == .duel ? "Online · Earn Elo" : "Solo · No Elo")
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(mode == option ? .black : ProfileStyle.secondary)
+                    }
+                    .padding(EverSpacing.x2)
+                    .frame(maxWidth: .infinity)
+                    .overlay(alignment: .topTrailing) {
+                        if mode == option {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.white).padding(EverSpacing.x2)
                         }
+                    }
                 }
                 .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: mode == option))
                 .accessibilityLabel(option.title)
@@ -235,12 +266,16 @@ struct RankedView: View {
                 .accessibilityIdentifier("ranked-mode-\(option.rawValue)")
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private var loadoutSheet: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ProfileStyle.inset) {
+                    Text("Mode & movement")
+                        .font(TimeMasterFont.heading())
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     modePicker
                     RankedFamilyPicker(family: $family)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: ProfileStyle.touchTarget * 3))], spacing: ProfileStyle.spacing) {
@@ -259,8 +294,12 @@ struct RankedView: View {
             .scrollIndicators(.hidden)
             .foregroundStyle(.white)
             .toolbar {
-                AppToolbar.iconItem(placement: .confirmationAction) {
-                    RankedIconAction(symbol: "checkmark", label: "Done", id: "ranked-loadout-done") { sheet = nil }
+                AppToolbar.item(placement: .confirmationAction) {
+                    Button { sheet = nil } label: {
+                        Label("Done", systemImage: "checkmark").font(TimeMasterFont.rowTitle())
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .accessibilityIdentifier("ranked-loadout-done")
                 }
             }
         }

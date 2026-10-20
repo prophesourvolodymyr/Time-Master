@@ -2,27 +2,27 @@ import SwiftUI
 
 extension ProfileView {
     var membershipButton: some View {
-        RankedIconAction(symbol: "checkmark.seal", label: "Checkmark styles", id: "profile-verification") {
+        RankedIconAction(symbol: "checkmark.seal", label: "Checkmark styles", id: "profile-verification", showsLabel: false) {
             sheet = .verification
         }
         .accessibilityValue(profileStore.snapshot.badgePreview == nil ? "Not verified" : "Local style preview, not verification")
     }
 
     var marketplaceButton: some View {
-        RankedIconAction(symbol: "bag.badge.plus", label: "Collectibles", id: "profile-marketplace") {
+        RankedIconAction(symbol: "bag.badge.plus", label: "Collectibles", id: "profile-marketplace", showsLabel: false) {
             sheet = .collectibles
         }
     }
 
     func backButton(size: CGFloat = EverLayout.minimumTouchTarget) -> some View {
-        RankedIconAction(symbol: "chevron.left", label: "Back", id: "profile-back") {
+        RankedIconAction(symbol: "chevron.left", label: "Back", id: "profile-back", showsLabel: false) {
             if let onPreviewClose { onPreviewClose() } else { dismiss() }
         }
         .frame(width: size, height: size)
     }
 
     func profileActions(size: CGFloat = EverLayout.minimumTouchTarget) -> some View {
-        RankedIconAction(symbol: "ellipsis", label: "Profile actions", id: "profile-options") {
+        RankedIconAction(symbol: "ellipsis", label: "Profile actions", id: "profile-options", showsLabel: false) {
             sheet = .actions
         }
         .frame(width: size, height: size)
@@ -61,7 +61,7 @@ extension ProfileView {
             .background(Theme.background.ignoresSafeArea())
             .toolbar {
                 AppToolbar.iconItem(placement: .confirmationAction) {
-                    RankedIconAction(symbol: "xmark", label: "Close Profile actions", id: "profile-actions-close") { sheet = nil }
+                    RankedIconAction(symbol: "xmark", label: "Close Profile actions", id: "profile-actions-close", showsLabel: false) { sheet = nil }
                 }
             }
         }

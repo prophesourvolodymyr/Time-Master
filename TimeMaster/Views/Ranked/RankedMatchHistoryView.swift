@@ -17,6 +17,7 @@ struct RankedMatchHistoryView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: ProfileStyle.inset) {
+                    Text("Recent rounds").font(TimeMasterFont.heading())
                     historyModePicker
                     if mode == .practice { practiceHistory }
                     if mode == .duel && account.identity == nil {
@@ -34,6 +35,8 @@ struct RankedMatchHistoryView: View {
                                     .frame(width: ProfileStyle.touchTarget * 1.5, height: ProfileStyle.touchTarget * 1.5)
                                 VStack(alignment: .leading, spacing: EverSpacing.x1) {
                                     Text(match.opponent?.displayName ?? "—").font(TimeMasterFont.rowTitle()).lineLimit(1)
+                                    Text(match.variation.fullTitle)
+                                        .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                                     Text("\(score(match.you?.score ?? 0, match.variation)) : \(score(match.opponent?.score ?? 0, match.variation))")
                                         .font(TimeMasterFont.title().monospacedDigit())
                                     Text(Date(timeIntervalSince1970: match.createdAt).formatted(date: .numeric, time: .shortened))
@@ -87,7 +90,8 @@ struct RankedMatchHistoryView: View {
         HStack(spacing: ProfileStyle.spacing) {
             ForEach(RankedMode.allCases) { option in
                 Button { mode = option } label: {
-                    Image(systemName: option.symbol)
+                    Label(option.title, systemImage: option.symbol)
+                        .font(TimeMasterFont.rowTitle())
                         .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
                 }
                 .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: mode == option))
@@ -119,8 +123,13 @@ struct RankedMatchHistoryView: View {
                                 .font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        Image(systemName: result.status == .completed ? "checkmark.circle" : "pause.circle")
-                            .foregroundStyle(Theme.toolbarOrange)
+                        VStack(spacing: EverSpacing.x1) {
+                            Image(systemName: result.status == .completed ? "checkmark.circle" : "pause.circle")
+                                .foregroundStyle(Theme.toolbarOrange)
+                            Text(result.status.title)
+                                .font(TimeMasterFont.micro())
+                                .foregroundStyle(ProfileStyle.secondary)
+                        }
                     }
                     .padding(ProfileStyle.inset).modifier(TimeMasterCardSurface(flat: true))
                 }
@@ -179,6 +188,7 @@ struct RankedMatchDetailView: View {
                 }
                 RankedMovementArt(variation: match.variation)
                     .frame(height: ProfileStyle.touchTarget * 3).frame(maxWidth: .infinity)
+                Text(match.variation.fullTitle).font(TimeMasterFont.heading())
                 ForEach(match.participants) { participant in
                     HStack(spacing: ProfileStyle.spacing) {
                         VStack(alignment: .leading, spacing: EverSpacing.x2) {

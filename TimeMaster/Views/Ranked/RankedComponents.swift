@@ -16,6 +16,7 @@ struct RankedIconAction: View {
     let symbol: String
     let label: String
     var id: String? = nil
+    var showsLabel = true
     let action: () -> Void
 
     var body: some View {
@@ -24,10 +25,31 @@ struct RankedIconAction: View {
                 .font(.body.weight(.semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
-        .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        .buttonStyle(RankedIconButtonStyle(label: showsLabel ? label : nil))
         .accessibilityLabel(label)
         .accessibilityIdentifier(id ?? label)
         .help(label)
+    }
+}
+
+private struct RankedIconButtonStyle: ButtonStyle {
+    let label: String?
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(spacing: EverSpacing.x1) {
+            TimeMasterToolbarIconButtonStyle().makeBody(configuration: configuration)
+            if let label {
+                Text(label)
+                    .font(TimeMasterFont.caption().weight(.semibold))
+                    .foregroundStyle(isEnabled ? .white : ProfileStyle.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
+        }
+        .contentShape(Rectangle())
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 
@@ -35,7 +57,13 @@ struct RankedCloseButton: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        RankedIconAction(symbol: "xmark", label: "Close", id: "ranked-sheet-close") { dismiss() }
+        Button { dismiss() } label: {
+            Label("Close", systemImage: "xmark")
+                .labelStyle(.titleAndIcon)
+                .font(TimeMasterFont.caption().weight(.bold))
+        }
+        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+        .accessibilityIdentifier("ranked-sheet-close")
     }
 }
 
@@ -172,22 +200,36 @@ struct RankedMovementTile: View {
             VStack(spacing: ProfileStyle.spacing) {
                 RankedMovementArt(variation: variation)
                     .aspectRatio(1.4, contentMode: .fit)
+                Text(variation.title)
+                    .font(TimeMasterFont.rowTitle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(variation.cue)
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(isSelected ? .black : ProfileStyle.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack {
-                    Image(systemName: variation.isTimedHold ? "timer" : "repeat")
-                        .foregroundStyle(ProfileStyle.secondary)
+                    Label(variation.isTimedHold ? "Best hold" : "Reps", systemImage: variation.isTimedHold ? "timer" : "repeat")
+                        .font(TimeMasterFont.micro())
+                        .foregroundStyle(isSelected ? .black : ProfileStyle.secondary)
                     Spacer(minLength: 0)
                     if mode == .duel {
-                        Text(elo.map { "\($0.formatted()) Elo" } ?? "— Elo")
-                            .font(TimeMasterFont.caption().monospacedDigit())
+                        Text(elo.map { "\($0.formatted()) Elo" } ?? "Unrated")
+                            .font(TimeMasterFont.caption().weight(.semibold).monospacedDigit())
                     } else {
-                        Image(systemName: "person.fill")
-                            .foregroundStyle(ProfileStyle.secondary)
-                    }
-                    if variation.isAdvanced && mode == .duel {
-                        Image(systemName: "lock.fill").foregroundStyle(ProfileStyle.secondary)
+                        Text("Solo")
+                            .font(TimeMasterFont.micro())
+                            .foregroundStyle(isSelected ? .black : ProfileStyle.secondary)
                     }
                 }
+                if variation.isAdvanced {
+                    Label("Practice only", systemImage: "lock.fill")
+                        .font(TimeMasterFont.micro())
+                        .foregroundStyle(isSelected ? .black : ProfileStyle.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
+            .multilineTextAlignment(.leading)
             .padding(ProfileStyle.spacing)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .topTrailing) {
@@ -200,9 +242,10 @@ struct RankedMovementTile: View {
         }
         .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
         .foregroundStyle(.white)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityLabel(variation.fullTitle)
         .accessibilityValue(mode == .practice ? "Practice" : elo.map { "\($0) earned Elo" } ?? "No earned rating")
-        .accessibilityHint(variation.isAdvanced ? "Practice only. Rated verification is unavailable." : "Select this exact movement")
+        .accessibilityHint("\(variation.cue) \(variation.isAdvanced ? "Practice only. Rated verification is unavailable." : "Select this exact movement")")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("ranked-variation-\(variation.rawValue)")
     }
@@ -215,17 +258,20 @@ struct RankedFamilyPicker: View {
         HStack(spacing: ProfileStyle.spacing) {
             ForEach(RankedFamily.allCases) { option in
                 Button { family = option } label: {
-                    RankedMovementArt(variation: option.variations[0])
-                        .frame(height: ProfileStyle.touchTarget)
-                        .frame(maxWidth: .infinity)
-                        .padding(EverSpacing.x2)
-                        .overlay(alignment: .topTrailing) {
-                            if family == option {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.white)
-                                    .padding(EverSpacing.x1)
-                            }
+                    VStack(spacing: EverSpacing.x1) {
+                        RankedMovementArt(variation: option.variations[0])
+                            .frame(height: ProfileStyle.touchTarget)
+                        Text(option.title).font(TimeMasterFont.rowTitle())
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, EverSpacing.x2)
+                    .overlay(alignment: .topTrailing) {
+                        if family == option {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.white)
+                                .padding(EverSpacing.x1)
                         }
+                    }
                 }
                 .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: family == option))
                 .accessibilityLabel(option.title)
@@ -233,6 +279,7 @@ struct RankedFamilyPicker: View {
                 .accessibilityIdentifier("ranked-family-\(option.rawValue)")
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 
@@ -276,10 +323,19 @@ struct RankedRatingTile: View {
             VStack(spacing: EverSpacing.x2) {
                 RankedEloBadge(variation: variation, elo: rating?.rating)
                     .aspectRatio(1, contentMode: .fit)
+                Text(variation.title)
+                    .font(TimeMasterFont.rowTitle())
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                if rating == nil {
+                    Text("Unrated")
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(ProfileStyle.secondary)
+                }
                 if let rating, rating.provisional {
                     HStack(spacing: EverSpacing.x1) {
                         Image(systemName: "flag.checkered")
-                        Text("\(rating.games)/5").monospacedDigit()
+                        Text("Placement \(rating.games)/5").monospacedDigit()
                     }
                     .font(TimeMasterFont.micro())
                     .foregroundStyle(ProfileStyle.secondary)
@@ -306,6 +362,10 @@ struct RankedMovementPicker: View {
             HStack(spacing: EverSpacing.x2) {
                 RankedMovementArt(variation: variation)
                     .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
+                Text(variation.fullTitle)
+                    .font(TimeMasterFont.rowTitle())
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 Image(systemName: "chevron.down").font(.caption.weight(.semibold))
             }
         }
@@ -358,8 +418,13 @@ struct RankedOutcomeIcon: View {
     }
 
     var body: some View {
-        Image(systemName: symbol)
-            .foregroundStyle(Theme.toolbarOrange)
-            .accessibilityLabel(practice ? "Practice complete" : match?.outcomeTitle ?? "Verification pending")
+        VStack(spacing: EverSpacing.x1) {
+            Image(systemName: symbol).foregroundStyle(Theme.toolbarOrange)
+            Text(practice ? "Practice result" : match?.outcomeTitle ?? "Verification pending")
+                .font(TimeMasterFont.caption().weight(.semibold))
+                .multilineTextAlignment(.center)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(practice ? "Practice result" : match?.outcomeTitle ?? "Verification pending")
     }
 }

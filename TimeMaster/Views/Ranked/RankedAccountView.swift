@@ -23,6 +23,7 @@ struct RankedAccountView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: ProfileStyle.inset) {
                     if let identity = account.identity {
+                        Text("Ranked account").font(TimeMasterFont.heading())
                         Label(identity.displayName, systemImage: "person.crop.circle.badge.checkmark")
                             .font(TimeMasterFont.title())
                         HStack {
@@ -32,10 +33,13 @@ struct RankedAccountView: View {
                         }
                         publicIdentity
                         Button { submitPrivacy() } label: {
-                            Image(systemName: "checkmark").frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+                            Label("Save public identity", systemImage: "checkmark")
+                                .font(TimeMasterFont.label())
+                                .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
                         }
-                        .buttonStyle(TimeMasterToolbarWideButtonStyle()).disabled(busy || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        .accessibilityLabel("Save public identity")
+                        .buttonStyle(TimeMasterToolbarWideButtonStyle())
+                        .disabled(busy || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("ranked-account-save")
                         Button(role: .destructive) {
                             Task {
                                 busy = true
@@ -44,72 +48,42 @@ struct RankedAccountView: View {
                                 busy = false
                             }
                         } label: {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                                .font(TimeMasterFont.rowTitle())
                                 .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
                         }
-                        .buttonStyle(TimeMasterToolbarWideButtonStyle()).disabled(busy)
-                        .accessibilityLabel("Sign out")
+                        .buttonStyle(TimeMasterToolbarTextButtonStyle()).disabled(busy)
+                        .accessibilityIdentifier("ranked-account-signout")
                     } else {
-                        RankedInfoButton(label: "Ranked account", message: "Practice needs no account. Competition uses a separate secure identity; your existing local profile is not replaced.", symbol: "person.crop.circle")
+                        VStack(alignment: .leading, spacing: EverSpacing.x2) {
+                            Text(creating ? "Create your account" : "Sign in to Ranked")
+                                .font(TimeMasterFont.display())
+                            Text("Compete, earn Elo and keep your match history. Practice needs no account.")
+                                .font(TimeMasterFont.caption())
+                                .foregroundStyle(ProfileStyle.secondary)
+                        }
                         if !account.configured {
                             RankedServiceNotice(message: "The Ranked service has not been configured for this build. An authorized HTTPS deployment is required before signing in.")
                         }
-                        HStack(spacing: ProfileStyle.spacing) {
-                            ForEach([false, true], id: \.self) { option in
-                                Button { creating = option } label: {
-                                    Image(systemName: option ? "person.badge.plus" : "lock.open")
-                                        .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-                                }
-                                .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: creating == option))
-                                .accessibilityLabel(option ? "Create account" : "Sign in")
-                                .accessibilityAddTraits(creating == option ? .isSelected : [])
-                                .accessibilityIdentifier(option ? "ranked-account-create" : "ranked-account-signin")
-                            }
-                        }
-                        VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                            Text("Private login").font(TimeMasterFont.caption())
-                            TextField("Login", text: $login)
-                                .autocorrectionDisabled()
-                                .focused($focusedField, equals: .login)
-                                .submitLabel(.next)
-                                .onSubmit { focusedField = .password }
-#if os(iOS)
-                                .textInputAutocapitalization(.never)
-                                .textContentType(.username)
-#endif
-                            Text("Password · At least 12 characters").font(TimeMasterFont.caption())
-                            SecureField("Password", text: $password)
-                                .focused($focusedField, equals: .password)
-                                .submitLabel(creating ? .next : .done)
-                                .onSubmit {
-                                    if creating { focusedField = .name }
-                                    else if canSubmit { authenticate() }
-                                }
-#if os(iOS)
-                                .textContentType(creating ? .newPassword : .password)
-#endif
-                            if creating { publicIdentity }
-                        }
-                        .textFieldStyle(.roundedBorder)
-                        .padding(ProfileStyle.inset).modifier(TimeMasterCardSurface(flat: true))
-                        Button { authenticate() } label: {
-                            Image(systemName: creating ? "person.badge.plus" : "lock.open")
-                                .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-                        }
-                        .buttonStyle(TimeMasterToolbarWideButtonStyle())
-                        .disabled(!canSubmit)
-                        .accessibilityIdentifier("ranked-account-submit")
-                        .accessibilityLabel(creating ? "Create account" : "Sign in")
+                        authenticationForm
+                        providerPlaceholders
+                        RankedInfoButton(label: "Your local profile stays yours", message: "Ranked uses a separate secure account. Signing in does not replace your avatar, workouts, posts or local profile.", symbol: "lock.shield")
                     }
-                    if busy { TmaxLoadingIndicator().frame(maxWidth: .infinity) }
-                    if let error { RankedServiceNotice(message: error) }
+                    if busy {
+                        HStack(spacing: ProfileStyle.spacing) {
+                            TmaxLoadingIndicator()
+                            Text("Please wait").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    if let error, account.identity != nil { RankedServiceNotice(message: error).accessibilityIdentifier("ranked-account-error") }
                 }
                 .padding(ProfileStyle.inset)
                 .frame(maxWidth: ProfileStyle.readableWidth).frame(maxWidth: .infinity)
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Theme.background.ignoresSafeArea()).foregroundStyle(.white)
-            .toolbar { AppToolbar.iconItem(placement: .confirmationAction) { RankedCloseButton().disabled(busy) } }
+            .toolbar { AppToolbar.item(placement: .confirmationAction) { RankedCloseButton().disabled(busy) } }
             .interactiveDismissDisabled(busy)
             .task {
                 await account.restore()
@@ -120,11 +94,115 @@ struct RankedAccountView: View {
         .tint(Theme.toolbarOrange)
     }
 
+    private var authenticationForm: some View {
+        VStack(alignment: .leading, spacing: ProfileStyle.inset) {
+            HStack(spacing: ProfileStyle.spacing) {
+                ForEach([false, true], id: \.self) { option in
+                    Button { creating = option; error = nil } label: {
+                        Text(option ? "Create account" : "Sign in")
+                            .font(TimeMasterFont.rowTitle())
+                            .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+                    }
+                    .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: creating == option))
+                    .accessibilityAddTraits(creating == option ? .isSelected : [])
+                    .accessibilityIdentifier(option ? "ranked-account-create" : "ranked-account-signin")
+                }
+            }
+            .disabled(busy)
+            VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
+                Text("Private login").font(TimeMasterFont.rowTitle())
+                TextField("Login", text: $login)
+                    .font(TimeMasterFont.body())
+                    .autocorrectionDisabled()
+                    .focused($focusedField, equals: .login)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .password }
+                    .accessibilityIdentifier("ranked-account-login")
+#if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    .textContentType(.username)
+#endif
+                Text("Password").font(TimeMasterFont.rowTitle())
+                SecureField("Password", text: $password)
+                    .font(TimeMasterFont.body())
+                    .focused($focusedField, equals: .password)
+                    .submitLabel(creating ? .next : .go)
+                    .onSubmit {
+                        if creating { focusedField = .name }
+                        else if canSubmit { authenticate() }
+                    }
+                    .accessibilityIdentifier("ranked-account-password")
+#if os(iOS)
+                    .textContentType(creating ? .newPassword : .password)
+#endif
+                Text("At least 12 characters")
+                    .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+            }
+            .textFieldStyle(.roundedBorder)
+            .padding(ProfileStyle.inset).modifier(TimeMasterCardSurface(flat: true))
+            .disabled(busy)
+            if creating { publicIdentity.disabled(busy) }
+            if let error { RankedServiceNotice(message: error).accessibilityIdentifier("ranked-account-error") }
+            Button { authenticate() } label: {
+                Label(creating ? "Create account" : "Sign in", systemImage: creating ? "person.badge.plus" : "lock.open")
+                    .font(TimeMasterFont.label())
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+            }
+            .buttonStyle(TimeMasterToolbarWideButtonStyle())
+            .disabled(!canSubmit)
+            .accessibilityIdentifier("ranked-account-submit")
+        }
+    }
+
+    private var providerPlaceholders: some View {
+        VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
+            Text("Other sign-in options").font(TimeMasterFont.rowTitle())
+            VStack(spacing: ProfileStyle.spacing) {
+                Button { } label: {
+                    Label {
+                        Text("Continue with Apple").font(TimeMasterFont.rowTitle())
+                    } icon: {
+                        Image(systemName: "apple.logo").font(.title2)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+                    .padding(EverSpacing.x2)
+                    .modifier(TimeMasterCardSurface(flat: true))
+                }
+                .accessibilityIdentifier("ranked-account-apple")
+                .accessibilityLabel("Continue with Apple, not connected")
+                Button { } label: {
+                    Label {
+                        Text("Continue with Google").font(TimeMasterFont.rowTitle())
+                    } icon: {
+                        Image("RankedGoogleSignIn").renderingMode(.original)
+                            .resizable().scaledToFit()
+                            .frame(width: ProfileStyle.touchTarget / 2, height: ProfileStyle.touchTarget / 2)
+                            .padding(EverSpacing.x1)
+                            .background(.white, in: Circle())
+                    }
+                    .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
+                    .padding(EverSpacing.x2)
+                    .modifier(TimeMasterCardSurface(flat: true))
+                }
+                .accessibilityIdentifier("ranked-account-google")
+                .accessibilityLabel("Continue with Google, not connected")
+            }
+            .buttonStyle(TimeMasterCardButtonStyle())
+            .disabled(true)
+            Text("Not connected · Apple and Google are placeholders. Use your login and password above.")
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(ProfileStyle.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var publicIdentity: some View {
         VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-            Text("Competitive alias").font(TimeMasterFont.caption())
+            Text("Competitive alias").font(TimeMasterFont.rowTitle())
             TextField("Public display name", text: $name)
                 .textFieldStyle(.roundedBorder)
+                .font(TimeMasterFont.body())
+                .accessibilityIdentifier("ranked-account-alias")
                 .focused($focusedField, equals: .name)
                 .submitLabel(.done)
                 .onSubmit {
@@ -132,6 +210,7 @@ struct RankedAccountView: View {
                     if creating && canSubmit { authenticate() }
                 }
             Toggle("Appear in public leaderboards", isOn: $listed)
+                .font(TimeMasterFont.secondary())
             RankedInfoButton(label: "Public leaderboard privacy", message: "Opting in shares only this alias and exercise ratings. Opponents see your alias during a match. Camera images, private posts and account login are never shared.", symbol: "lock.shield")
         }
         .padding(ProfileStyle.inset).modifier(TimeMasterCardSurface(flat: true))
@@ -167,10 +246,14 @@ struct RankedServiceNotice: View {
     let message: String
     var retry: (() -> Void)?
     var body: some View {
-        HStack(spacing: ProfileStyle.spacing) {
-            RankedInfoButton(label: "Attention required", message: message, symbol: "exclamationmark.triangle")
-                .accessibilityLabel(message)
-            Spacer(minLength: 0)
+        HStack(alignment: .top, spacing: ProfileStyle.spacing) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(Theme.toolbarOrange)
+                .accessibilityHidden(true)
+            Text(message)
+                .font(TimeMasterFont.caption())
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
             if let retry { RankedIconAction(symbol: "arrow.clockwise", label: "Retry", action: retry) }
         }
         .padding(ProfileStyle.spacing).frame(maxWidth: .infinity)

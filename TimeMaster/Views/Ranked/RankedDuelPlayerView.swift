@@ -54,6 +54,9 @@ struct RankedDuelPlayerView: View {
         HStack(spacing: ProfileStyle.spacing) {
             leaveButton
             Spacer(minLength: 0)
+            Text(variation.fullTitle)
+                .font(TimeMasterFont.rowTitle())
+                .multilineTextAlignment(.trailing)
             RankedMovementArt(variation: variation)
                 .frame(width: ProfileStyle.touchTarget * 1.5, height: ProfileStyle.touchTarget)
                 .accessibilityHidden(false)
@@ -110,9 +113,9 @@ struct RankedDuelPlayerView: View {
                     timer.fixedSize(horizontal: true, vertical: false)
                     if mode == .duel { scoreSide(you: false).frame(maxWidth: .infinity) }
                     else {
-                        Image(systemName: "person.fill")
+                        Label("Solo", systemImage: "person.fill")
+                            .font(TimeMasterFont.caption())
                             .foregroundStyle(ProfileStyle.secondary).frame(maxWidth: .infinity)
-                            .accessibilityLabel("Solo Practice")
                     }
                 }
             }
@@ -141,7 +144,7 @@ struct RankedDuelPlayerView: View {
 
     private var timer: some View {
         VStack(spacing: 2) {
-            Text("60 s").font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
+            Text("Time left").font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
             Text(timerText).font(.custom("Inter-Black", size: 40, relativeTo: .largeTitle).monospacedDigit())
                 .accessibilityIdentifier("ranked-duel-timer")
         }

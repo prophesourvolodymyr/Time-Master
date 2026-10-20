@@ -19,6 +19,7 @@ struct RankedLeaderboardView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: ProfileStyle.inset) {
+                        Text("Leaderboard").font(TimeMasterFont.heading())
                         HStack {
                             RankedMovementPicker(variation: $variation)
                             Spacer()
@@ -38,7 +39,7 @@ struct RankedLeaderboardView: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "scope")
-                                        Text("#\(me.position)").monospacedDigit()
+                                        Text("Your position · #\(me.position)").font(TimeMasterFont.rowTitle()).monospacedDigit()
                                     }
                                 }
                                 .buttonStyle(TimeMasterToolbarWideButtonStyle()).disabled(loading)
@@ -58,11 +59,11 @@ struct RankedLeaderboardView: View {
                                             VStack(alignment: .leading, spacing: EverSpacing.x1) {
                                                 Text(row.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
                                                 if row.games < 5 {
-                                                    Label("\(row.games)/5", systemImage: "flag.checkered")
+                                                    Label("Placement \(row.games)/5", systemImage: "flag.checkered")
                                                         .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                                                 }
                                                 if row.publicID == account.identity?.publicID {
-                                                    Image(systemName: "person.fill").foregroundStyle(Theme.toolbarOrange).accessibilityLabel("You")
+                                                    Text("You").font(TimeMasterFont.micro()).foregroundStyle(Theme.toolbarOrange)
                                                 }
                                             }
                                             .frame(maxWidth: .infinity, alignment: .leading)

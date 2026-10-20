@@ -89,8 +89,9 @@ struct RankedMatchFlowView: View {
             }
             .disabled(controller.busy)
             Spacer(minLength: 0)
-            Image(systemName: controller.mode.symbol).foregroundStyle(Theme.toolbarOrange)
-                .accessibilityLabel(controller.mode.title)
+            Label(controller.mode.title, systemImage: controller.mode.symbol)
+                .font(TimeMasterFont.caption().weight(.semibold))
+                .foregroundStyle(Theme.toolbarOrange)
             Spacer(minLength: 0)
             RankedIconAction(symbol: "list.bullet.clipboard", label: "Movement rules", id: "ranked-flow-rules") { sheet = .rules }
         }.padding(ProfileStyle.inset)
@@ -108,7 +109,7 @@ struct RankedMatchFlowView: View {
             }
         case .countdown:
             if controller.countdown == 0 {
-                Image(systemName: "flag.checkered").font(.largeTitle).accessibilityLabel("Go")
+                Label("Go", systemImage: "flag.checkered").font(TimeMasterFont.heading())
             } else {
                 Text(String(controller.countdown))
                     .font(.custom("Inter-Black", size: 96, relativeTo: .largeTitle))
@@ -120,6 +121,8 @@ struct RankedMatchFlowView: View {
         case .verifying:
             if controller.mode == .practice {
                 TmaxLoadingIndicator().accessibilityLabel("Saving your Practice result")
+                Text("Saving Practice")
+                    .font(TimeMasterFont.rowTitle())
             } else {
                 TmaxLoadingIndicator().accessibilityLabel("Verifying the round")
                 RankedInfoButton(label: "Verification pending", message: "The service is checking the movement timeline and finalizing both results. You can close and return from Recent rounds. No winner is guessed while the service is unavailable.", symbol: "checkmark.shield")
