@@ -37,8 +37,13 @@ struct AnalyticsView: View {
     @EnvironmentObject var store: WorkoutStore
     @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @StateObject private var goalsManager = GoalsManager.shared
+    @Binding var requestedTracker: AnalyticsTracker?
     @State private var selectedType: WorkoutType? = nil
     @State private var showingClearAlert = false
+
+    init(requestedTracker: Binding<AnalyticsTracker?> = .constant(nil)) {
+        _requestedTracker = requestedTracker
+    }
 
     private var filteredEntries: [WorkoutHistoryEntry] {
         guard let type = selectedType else { return store.historyEntries }
@@ -159,36 +164,61 @@ struct AnalyticsView: View {
                     .font(.system(size: 13, weight: .semibold))
             }
         }
-        .buttonStyle(TimeMasterActionButtonStyle(prominent: selected))
+        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: selected))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier("analytics.filter.\(label)")
     }
 
     // MARK: Scroll content
 
     private var analyticsScroll: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                if let type = selectedType, currentGoal == 0 {
-                    inlineGoalSetter(for: type)
+        let week = WorkoutWeekSummary(entries: filteredEntries)
+        return ScrollViewReader { scroll in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 20) {
+                    WeeklyWorkoutTracker(metric: .sessions, summary: week)
+                        .id(AnalyticsTracker.sessions)
+                    WeeklyWorkoutTracker(metric: .trainingTime, summary: week)
+                        .id(AnalyticsTracker.trainingTime)
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(AnalyticsTracker.streak.title)
+                            .font(TimeMasterFont.rowTitle())
+                            .foregroundStyle(Theme.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityIdentifier("analytics.tracker.streak")
+                        StreakCard()
+                    }
+                    .id(AnalyticsTracker.streak)
+                    if let type = selectedType, currentGoal == 0 {
+                        inlineGoalSetter(for: type)
+                    }
+                    if let type = selectedType, currentGoal > 0 {
+                        WeeklyGoalCard(
+                            entries: filteredEntries,
+                            goal: currentGoal,
+                            typeName: type.name
+                        )
+                    }
+                    LifetimeStatsStrip(entries: filteredEntries)
+                    if selectedType == nil, !outdoorStore.establishedActivities.isEmpty {
+                        OutdoorAnalyticsSummary(activities: outdoorStore.establishedActivities)
+                    }
+                    if selectedType == nil {
+                        TypeAnalyticsBreakdown()
+                    }
+                    ActivityHeatmap(entries: filteredEntries, outdoorActivities: outdoorStore.establishedActivities)
+                    HistoryListSection(entries: filteredEntries, store: store)
                 }
-                if let type = selectedType, currentGoal > 0 {
-                    WeeklyGoalCard(
-                        entries: filteredEntries,
-                        goal: currentGoal,
-                        typeName: type.name
-                    )
-                }
-                LifetimeStatsStrip(entries: filteredEntries)
-                if selectedType == nil, !outdoorStore.establishedActivities.isEmpty {
-                    OutdoorAnalyticsSummary(activities: outdoorStore.establishedActivities)
-                }
-                StreakCard()
-                if selectedType == nil {
-                    TypeAnalyticsBreakdown()
-                }
-                ActivityHeatmap(entries: filteredEntries, outdoorActivities: outdoorStore.establishedActivities)
-                HistoryListSection(entries: filteredEntries, store: store)
+                .padding(16)
             }
-            .padding(16)
+            .task(id: requestedTracker) {
+                guard let tracker = requestedTracker else { return }
+                selectedType = nil
+                await Task.yield()
+                guard !Task.isCancelled else { return }
+                scroll.scrollTo(tracker, anchor: .top)
+                requestedTracker = nil
+            }
         }
     }
 

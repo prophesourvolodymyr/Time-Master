@@ -82,11 +82,27 @@ struct TimeMasterCardButtonStyle: ButtonStyle {
 
 struct TimeMasterSelectionButtonStyle: ButtonStyle {
     var isSelected = false
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.colorSchemeContrast) private var contrast
 
     func makeBody(configuration: Configuration) -> some View {
-        TimeMasterActionButtonStyle(prominent: isSelected)
-            .makeBody(configuration: configuration)
-            .font(.subheadline.weight(isSelected ? .semibold : .medium))
+        let shape = RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous)
+        configuration.label
+            .font(TimeMasterFont.label())
+            .foregroundStyle(Theme.textPrimary)
+            .padding(.horizontal, 14)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(shape.fill(isSelected ? Theme.toolbarOrange : .clear))
+            .overlay {
+                shape.strokeBorder(
+                    .white.opacity(isFocused ? 0.75 : (contrast == .increased ? 0.45 : 0.14)),
+                    lineWidth: isFocused ? 2 : 1
+                )
+                .allowsHitTesting(false)
+            }
+            .contentShape(shape)
+            .background(SlotNavigationContentClearanceReader())
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
     }
 }
 

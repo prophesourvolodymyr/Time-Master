@@ -850,19 +850,22 @@ class WorkoutStore: ObservableObject {
         let sessionsThisWeek = entries.filter { $0.completedAt >= weekStart }.count
         let totalSeconds = entries.reduce(0) { $0 + ($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) }
         let daySet = Set(entries.map { calendar.startOfDay(for: $0.completedAt) })
+        let firstRecordedDay = daySet.min()
         let activeSchedule = typeSchedules.last { $0.type.id == type.id && $0.isActive(on: date) }
         var streak = 0
         var cursor = calendar.startOfDay(for: date)
         if !daySet.contains(cursor), let previous = calendar.date(byAdding: .day, value: -1, to: cursor) {
             cursor = previous
         }
-        while true {
+        while let firstRecordedDay, cursor >= firstRecordedDay {
             if daySet.contains(cursor) {
                 streak += 1
-            } else if let schedule = activeSchedule,
+            } else {
+                guard let schedule = activeSchedule,
                       cursor >= calendar.startOfDay(for: schedule.startDate),
-                      schedule.daysOfWeek.contains((calendar.component(.weekday, from: cursor) + 5) % 7 + 1) {
-                break
+                      !schedule.daysOfWeek.contains((calendar.component(.weekday, from: cursor) + 5) % 7 + 1) else {
+                    break
+                }
             }
             guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
             cursor = previous

@@ -1671,6 +1671,24 @@ User-requested visible rebrand and connected loading system. The repository and 
 
 Engineering checks do not constitute human acceptance. Product DOCKS.md updates await the user's review. Final runtime checks use only iPhone 16 Pro with iOS 18.6; all three focused scenarios passed. The restored logo and final bold quote/spinner corrections were then rebuilt and exercised through the drawing cycle, repeat, and Home handoff on that same simulator. No next implementation prompt is needed for this slice.
 
+## Workout Metrics and Navigation Surface — 2026-10-20
+
+User-requested selector, tracking-card, Analytics navigation, and menu-background corrections. Human review remains pending.
+
+- [x] Fill only selected workout-type chips orange and leave inactive chips unfilled
+- [x] Enlarge the three Workouts metric icons
+- [x] Remove visible metric captions while preserving accessible labels and values
+- [x] Make Sessions, Training Time, and Day Streak cards open their corresponding Analytics sections
+- [x] Add weekly Sessions and Training Time charts and a direct destination for the existing streak tracker
+- [x] Share weekly totals between Workouts and Analytics, including elapsed time for partial sessions
+- [x] Bound per-type streak traversal and stop at missed training days so recorded history cannot freeze Analytics
+- [x] Keep navigation content full-size with safe-area clearance and remove the container's rectangular background; retain only the curved menu surface
+- [x] Build, install, and launch the current working-tree app on regular iPhone 16 with iOS 18.6
+- [x] Exercise selected and inactive chips, all three empty and populated metric routes, and Home content continuing behind the menu curve on iPhone 16 with iOS 18.6
+- [ ] Human review of selector states, enlarged caption-free cards, tracker destinations and totals, populated Analytics responsiveness, and the menu background
+
+The populated runtime check used two sessions in the current week: a ten-minute completed workout and a three-minute partial workout. Workouts and Analytics both showed two sessions and thirteen minutes; a previous-week entry stayed outside those totals. All three destinations remained responsive. A separate calendar smoke covered empty weeks, multiple sessions per day, future exclusion, Monday/Sunday week boundaries, and DST. The requested simulator retained its existing data and saved workout; populated-data checks used a disposable same-model iOS 18.6 simulator. Product DOCKS.md updates await human acceptance. No next implementation prompt is needed.
+
 ---
 
 ## Notes

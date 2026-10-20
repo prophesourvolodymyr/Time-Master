@@ -13,6 +13,7 @@ struct WorkoutListView: View {
     @ScaledMetric(relativeTo: .subheadline) private var selectorRowHeight: CGFloat = 56
     @ScaledMetric(relativeTo: .caption) private var statsTileHeight: CGFloat = 72
     @Binding var requestedWorkoutID: UUID?
+    let onOpenAnalytics: (AnalyticsTracker) -> Void
     @State private var navigationPath: [Workout] = []
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
@@ -28,8 +29,12 @@ struct WorkoutListView: View {
     @State private var activeOutdoorKind: OutdoorActivityKind?
     #endif
 
-    init(requestedWorkoutID: Binding<UUID?> = .constant(nil)) {
+    init(
+        requestedWorkoutID: Binding<UUID?> = .constant(nil),
+        onOpenAnalytics: @escaping (AnalyticsTracker) -> Void
+    ) {
         _requestedWorkoutID = requestedWorkoutID
+        self.onOpenAnalytics = onOpenAnalytics
     }
 
     var body: some View {
@@ -140,7 +145,8 @@ struct WorkoutListView: View {
     private static let contentMaxWidth: CGFloat = 980
 
     private var workoutsChrome: some View {
-        ScrollingChrome(metrics: { width in
+        let week = WorkoutWeekSummary(entries: store.historyEntries)
+        return ScrollingChrome(metrics: { width in
             ScrollingChromeMetrics(
                 width: min(width, Self.contentMaxWidth),
                 collapsedRowHeight: 48,
@@ -150,7 +156,7 @@ struct WorkoutListView: View {
         }) { metrics in
             workoutsScrollContent(metrics: metrics)
         } header: { progress, metrics in
-            workoutsHeader(progress: progress, metrics: metrics)
+            workoutsHeader(progress: progress, metrics: metrics, week: week)
         }
     }
 
@@ -235,7 +241,7 @@ struct WorkoutListView: View {
         ]
     }
 
-    private func workoutsHeader(progress: CGFloat, metrics: ScrollingChromeMetrics) -> some View {
+    private func workoutsHeader(progress: CGFloat, metrics: ScrollingChromeMetrics, week: WorkoutWeekSummary) -> some View {
         let morph = metrics.morph(progress)
         let controlWidth = metrics.controlWidth(morph)
         let controlHeight = metrics.controlHeight(morph)
@@ -275,10 +281,10 @@ struct WorkoutListView: View {
                 }
             }
 
-            trackingTiles(metrics: metrics)
+            trackingTiles(metrics: metrics, week: week)
 
             if store.hasWeeklyGoal {
-                weeklyGoalRow(metrics: metrics)
+                weeklyGoalRow(metrics: metrics, sessions: week.sessions)
             }
 
 
@@ -309,24 +315,21 @@ struct WorkoutListView: View {
         .help(title)
     }
 
-    private func trackingTiles(metrics: ScrollingChromeMetrics) -> some View {
+    private func trackingTiles(metrics: ScrollingChromeMetrics, week: WorkoutWeekSummary) -> some View {
         HStack(spacing: metrics.controlSpacing) {
             trackingTile(
-                systemImage: "checkmark.circle",
-                value: "\(completedSessionsThisWeek)",
-                label: "Sessions this week",
+                tracker: .sessions,
+                value: "\(week.sessions)",
                 metrics: metrics
             )
             trackingTile(
-                systemImage: "clock",
-                value: durationText(totalSecondsThisWeek),
-                label: "Training this week",
+                tracker: .trainingTime,
+                value: durationText(week.seconds),
                 metrics: metrics
             )
             trackingTile(
-                systemImage: "flame",
+                tracker: .streak,
                 value: "\(store.streakInfo().current)",
-                label: "Day streak",
                 metrics: metrics
             )
         }
@@ -335,47 +338,45 @@ struct WorkoutListView: View {
     }
 
     private func trackingTile(
-        systemImage: String,
+        tracker: AnalyticsTracker,
         value: String,
-        label: String,
         metrics: ScrollingChromeMetrics
     ) -> some View {
-        VStack(spacing: 5) {
+        Button {
+            onOpenAnalytics(tracker)
+        } label: {
             HStack(spacing: 7) {
-                Image(systemName: systemImage)
-                    .font(.body.weight(.semibold))
+                Image(systemName: tracker.systemImage)
+                    .font(.title.weight(.semibold))
                 Text(value)
-                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .font(TimeMasterFont.heading().monospacedDigit())
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
             .foregroundStyle(Theme.textPrimary)
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(Theme.textSecondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+            .padding(.horizontal, 6)
+            .frame(width: metrics.expandedControlWidth, height: statsTileHeight)
+            .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
         }
-        .padding(.horizontal, 6)
-        .frame(width: metrics.expandedControlWidth, height: statsTileHeight)
-        .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(label)
+        .buttonStyle(TimeMasterCardButtonStyle())
+        .accessibilityLabel(tracker.title)
         .accessibilityValue(value)
+        .accessibilityHint("Opens this tracker in Analytics")
+        .accessibilityIdentifier("workouts.metric.\(tracker.rawValue)")
     }
 
-    private func weeklyGoalRow(metrics: ScrollingChromeMetrics) -> some View {
+    private func weeklyGoalRow(metrics: ScrollingChromeMetrics, sessions: Int) -> some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
                 Text("Weekly goal")
                 Spacer(minLength: 8)
-                Text("\(completedSessionsThisWeek) of \(store.weeklyGoal)")
+                Text("\(sessions) of \(store.weeklyGoal)")
                     .monospacedDigit()
             }
             .font(.footnote.weight(.medium))
             .foregroundStyle(Theme.textSecondary)
 
-            ProgressView(value: weeklyGoalProgress)
+            ProgressView(value: min(1, Double(sessions) / Double(max(1, store.weeklyGoal))))
                 .tint(Theme.toolbarOrange)
         }
         .padding(12)
@@ -385,7 +386,7 @@ struct WorkoutListView: View {
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Weekly goal")
-        .accessibilityValue("\(completedSessionsThisWeek) of \(store.weeklyGoal)")
+        .accessibilityValue("\(sessions) of \(store.weeklyGoal)")
     }
 
     private var searchField: some View {
@@ -487,6 +488,7 @@ struct WorkoutListView: View {
         }
         .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("workouts.filter.\(label)")
     }
 
     private var filteredEmptyState: some View {
@@ -513,27 +515,6 @@ struct WorkoutListView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
-    }
-
-
-
-    private var completedSessionsThisWeek: Int {
-        weekHistoryEntries.count
-    }
-
-    private var totalSecondsThisWeek: Int {
-        weekHistoryEntries.reduce(0) { total, entry in
-            total + (entry.isPartial ? entry.elapsedSeconds : entry.durationCompleted)
-        }
-    }
-
-    private var weeklyGoalProgress: CGFloat {
-        CGFloat(min(1, Double(completedSessionsThisWeek) / Double(max(1, store.weeklyGoal))))
-    }
-
-    private var weekHistoryEntries: [WorkoutHistoryEntry] {
-        let start = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
-        return store.historyEntries.filter { $0.completedAt >= start }
     }
 
     private func entries(for workout: Workout) -> [WorkoutHistoryEntry] {
@@ -724,7 +705,28 @@ struct WorkoutListView: View {
 
 
 #Preview {
-    WorkoutListView()
-        .environmentObject(WorkoutStore())
+    WorkoutListPreview()
+}
+
+private struct WorkoutListPreview: View {
+    @State private var requestedTracker: AnalyticsTracker?
+    @State private var showingAnalytics = false
+    @StateObject private var store = WorkoutStore()
+    @StateObject private var outdoorStore = OutdoorActivityStore()
+    @StateObject private var preferences = OutdoorRecordingPreferencesStore()
+
+    var body: some View {
+        WorkoutListView { tracker in
+            requestedTracker = tracker
+            showingAnalytics = true
+        }
+        .sheet(isPresented: $showingAnalytics) {
+            AnalyticsView(requestedTracker: $requestedTracker)
+        }
+        .environmentObject(store)
+        .environmentObject(outdoorStore)
+        .environmentObject(preferences)
+        .environmentObject(MusicLibraryStore.shared)
         .preferredColorScheme(.dark)
+    }
 }

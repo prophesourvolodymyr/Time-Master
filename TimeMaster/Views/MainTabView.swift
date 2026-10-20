@@ -21,6 +21,7 @@ struct MainTabView: View {
     @State private var scheduleWeek = WeeklyWorkoutSchedule.weekStart(Date())
     @State private var requestedWorkoutID: UUID?
     @State private var requestedRankedVariation: RankedVariation?
+    @State private var requestedAnalyticsTracker: AnalyticsTracker?
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     @State private var activeOutdoorPlannedRoute: PlannedRoute?
@@ -155,7 +156,10 @@ struct MainTabView: View {
         case .home:
             homeDestination
         case .workouts:
-            WorkoutListView(requestedWorkoutID: $requestedWorkoutID)
+            WorkoutListView(requestedWorkoutID: $requestedWorkoutID) { tracker in
+                requestedAnalyticsTracker = tracker
+                openPage(.analytics)
+            }
                 .environmentObject(outdoorStore)
                 .environmentObject(workoutStore)
         case .database:
@@ -164,7 +168,7 @@ struct MainTabView: View {
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
         case .analytics:
-            AnalyticsView()
+            AnalyticsView(requestedTracker: $requestedAnalyticsTracker)
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
         case .schedule:

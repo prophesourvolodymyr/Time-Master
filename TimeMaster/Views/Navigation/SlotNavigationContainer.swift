@@ -144,8 +144,12 @@ struct SlotCarouselNavigation<Content: View>: View {
                     .opacity(isEditing ? 0.48 : 1)
                     .allowsHitTesting(!isEditing)
                     .accessibilityHidden(isEditing)
-                    .frame(width: contentBounds.width, height: contentBounds.height, alignment: .top)
-                    .offset(y: contentBounds.minY - frame.minY)
+                    .safeAreaInset(edge: navigationPlacement == .bottom ? .bottom : .top, spacing: 0) {
+                        Color.clear
+                            .frame(height: reservedHeight)
+                            .allowsHitTesting(false)
+                    }
+                    .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
                     .contentShape(Rectangle())
                     .simultaneousGesture(pageSwipeGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive ? .all : .subviews)
                     .simultaneousGesture(hiddenNavigationRevealGesture(in: proxy.size), including: navigationInteractionEnabled && !isEditing && !pageSwipesDisabled && !reachabilityIsActive ? .all : .subviews)
@@ -178,7 +182,6 @@ struct SlotCarouselNavigation<Content: View>: View {
                         .transition(.opacity)
                 }
             }
-            .background(theme.background.ignoresSafeArea())
             .onPreferenceChange(SlotNavigationContentClearancePreferenceKey.self) { measurement in
                 guard measurement.context == clearanceContext else { return }
                 contentClearance.observe(measurement)
