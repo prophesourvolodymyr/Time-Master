@@ -1816,6 +1816,27 @@ All ten selected outputs are 1254 by 1254 pixels and were inspected separately b
 
 The expanded Fgen tab in `junk/ribbon-font/individual-review.html` now uses all fifteen generated PNGs plus the original M, with fourteen presets including CAMEL, MAGIC, FLASH, JACK, BADGE, the new ten letters and every available glyph. Direct-file opening rendered the new letters, and the actual HTTP browser exercised every preset, typed words, unsupported-input preservation and recovery, native empty deletion, keyboard size and spacing controls, independent Vector/Fgen drafts, and native-vector comparisons. Layouts at 320, 390, 768 and 1440 pixels had no document overflow, broken images or stretched word-preview images; all sixteen available glyphs stayed inside the horizontal scroller on mobile. Blocking the new L image reported the asset failure without disabling Vector, and reloading after asset recovery restored Fgen. Successful direct-file, HTTP and responsive runs recorded no page errors. The earlier five PNGs and original M retain their recorded fingerprints. The new comparison and generation record are retained alongside all raw outputs, including the rejected L. The website integration and ten generated letters are ready for human verification; family consistency and design acceptance remain pending. No next implementation prompt is needed for this slice.
 
+### Batch 12 — Ten More Fgen Capitals from the Original M
+
+The user requested the next batch using the same original-M-only, one-letter-at-a-time process. The next ten missing capitals are N, O, P, Q, R, T, U, V, W and X; S is already available. Generate each separately, inspect its letter anatomy, connected shape, counters, extra marks and clipping before starting the next, and preserve every raw output and any rejected attempt. Save the exact prompts, generation events, dimensions, fingerprints and inspection decisions in `genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/`. Extend the existing PNG-based Fgen tester without changing the original M, earlier glyphs, compiled fonts or app typography.
+
+The user also requested closer letter spacing. All three previews now start at -0.040 em and allow adjustment down to -0.200 em, with the existing positive range and keyboard controls preserved. At the same 240-pixel capital height, CAMEL narrowed from 1624.125 pixels at the previous Fgen default to 1469.9375 pixels at the new default; the new minimum reached 1195.609375 pixels instead of the old minimum's 1469.9375 pixels. The actual browser exercised overlapping PNGs with the existing screen blending, native-vector minimum spacing, the earlier font preview, fit controls, independent tab state and mobile opening without page errors. Letter contours and font files are unchanged; the tighter default and adjustable overlap are ready for human verification.
+
+- [x] Tighten default letter spacing and extend the negative-spacing range in the Vector, Fgen and earlier font previews
+- [ ] Generate and individually inspect uppercase N from the original M
+- [ ] Generate and individually inspect uppercase O from the original M
+- [ ] Generate and individually inspect uppercase P from the original M
+- [ ] Generate and individually inspect uppercase Q from the original M
+- [ ] Generate and individually inspect uppercase R from the original M
+- [ ] Generate and individually inspect uppercase T from the original M
+- [ ] Generate and individually inspect uppercase U from the original M
+- [ ] Generate and individually inspect uppercase V from the original M
+- [ ] Generate and individually inspect uppercase W from the original M
+- [ ] Generate and individually inspect uppercase X from the original M
+- [ ] Add all ten raw PNGs and their word combinations to the existing Fgen tester
+- [ ] Exercise the expanded Fgen tester and hand the letters and changed files to the user for review
+- [ ] Human acceptance of the ten new letter designs and their consistency with the original M
+
 ## Tmax Rebrand and Loading — 2026-10-19
 
 User-requested visible rebrand and connected loading system. The repository and folder remain Time-Master; bundle IDs, deep links, storage locations, saved data, and user-authored AI prompts retain their existing compatibility.

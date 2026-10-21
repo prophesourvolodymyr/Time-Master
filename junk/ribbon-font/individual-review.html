@@ -17,7 +17,7 @@
       --accent: #ff9e64;
       --surface: #151514;
       --study-size: 180px;
-      --study-tracking: .04em;
+      --study-tracking: -.04em;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--background); color: var(--foreground); }
@@ -168,7 +168,7 @@
           <p id="input-message" role="status">A–Z, a–z and spaces. Size sets capital height; letter spacing is in font em. Guides show the cap line, dashed x-height and baseline. Numbers and punctuation are not included.</p>
           <div class="adjustments">
             <div><div class="slider-heading"><label for="size">Cap height</label><output id="size-value" for="size">180 px</output></div><input id="size" type="range" min="24" max="240" value="180" step="1"></div>
-            <div><div class="slider-heading"><label for="tracking">Letter spacing</label><output id="tracking-value" for="tracking">0.040 em</output></div><input id="tracking" type="range" min="-0.04" max="0.16" value="0.04" step="0.005"></div>
+            <div><div class="slider-heading"><label for="tracking">Letter spacing</label><output id="tracking-value" for="tracking">-0.040 em</output></div><input id="tracking" type="range" min="-0.20" max="0.16" value="-0.04" step="0.005"></div>
             <div class="view-buttons" role="group" aria-label="Preview display"><button class="button" id="fit" type="button">Fit word</button><button class="button" id="guides" type="button" aria-pressed="false">Guides</button></div>
           </div>
           <div class="word-presets" role="group" aria-label="Example words">
@@ -286,7 +286,7 @@
             <p id="fgen-message" role="status">Fifteen Fgen samples: A–L, S, a and m, plus your original M and spaces. Missing letters are not replaced with vector glyphs. Images are uniformly sized to shared capital/lowercase heights and aligned to a baseline; their contours are not edited.</p>
             <div class="adjustments">
               <div><div class="slider-heading"><label for="fgen-size">Cap height</label><output id="fgen-size-value" for="fgen-size">180 px</output></div><input id="fgen-size" type="range" min="24" max="240" value="180" step="1"></div>
-              <div><div class="slider-heading"><label for="fgen-tracking">Letter spacing</label><output id="fgen-tracking-value" for="fgen-tracking">0.040 em</output></div><input id="fgen-tracking" type="range" min="-0.04" max="0.16" value="0.04" step="0.005"></div>
+              <div><div class="slider-heading"><label for="fgen-tracking">Letter spacing</label><output id="fgen-tracking-value" for="fgen-tracking">-0.040 em</output></div><input id="fgen-tracking" type="range" min="-0.20" max="0.16" value="-0.04" step="0.005"></div>
               <div class="view-buttons" role="group" aria-label="Fgen preview display"><button class="button" id="fgen-fit" type="button">Fit word</button><button class="button" id="fgen-guides" type="button" aria-pressed="false">Guides</button></div>
             </div>
             <div class="word-presets" role="group" aria-label="Fgen example words">
