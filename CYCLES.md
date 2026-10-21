@@ -1808,11 +1808,13 @@ The user requested ten more letters generated the same way, one at a time with e
 - [x] Generate and individually inspect uppercase J from the original M
 - [x] Generate and individually inspect uppercase K from the original M
 - [x] Generate and individually inspect uppercase L from the original M
-- [ ] Add all ten raw PNGs and their word combinations to the existing Fgen tester
-- [ ] Exercise the expanded Fgen tester and hand the letters and changed files to the user for review
+- [x] Add all ten raw PNGs and their word combinations to the existing Fgen tester
+- [x] Exercise the expanded Fgen tester and hand the letters and changed files to the user for review
 - [ ] Human acceptance of the ten new letter designs and their consistency with the original M
 
 All ten selected outputs are 1254 by 1254 pixels and were inspected separately before proceeding. The first L read as a Greek lambda, so it was rejected and retained unchanged; a second independent call using only the original M produced the Latin L used for review. Both L PNGs, prompts, saved events and inspection decisions remain recorded. I's top and bottom bars are more conventional than the more organic letters and still need human family-consistency review. The existing five samples, original M and compiled font files remain unchanged. This batch extends the image-based review rather than replacing the installed font.
+
+The expanded Fgen tab in `junk/ribbon-font/individual-review.html` now uses all fifteen generated PNGs plus the original M, with fourteen presets including CAMEL, MAGIC, FLASH, JACK, BADGE, the new ten letters and every available glyph. Direct-file opening rendered the new letters, and the actual HTTP browser exercised every preset, typed words, unsupported-input preservation and recovery, native empty deletion, keyboard size and spacing controls, independent Vector/Fgen drafts, and native-vector comparisons. Layouts at 320, 390, 768 and 1440 pixels had no document overflow, broken images or stretched word-preview images; all sixteen available glyphs stayed inside the horizontal scroller on mobile. Blocking the new L image reported the asset failure without disabling Vector, and reloading after asset recovery restored Fgen. Successful direct-file, HTTP and responsive runs recorded no page errors. The earlier five PNGs and original M retain their recorded fingerprints. The new comparison and generation record are retained alongside all raw outputs, including the rejected L. The website integration and ten generated letters are ready for human verification; family consistency and design acceptance remain pending. No next implementation prompt is needed for this slice.
 
 ## Tmax Rebrand and Loading — 2026-10-19
 

@@ -21,10 +21,21 @@
     M: { src: '../../genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png', canvasWidth: 1024, canvasHeight: 1024, left: 72, top: 232, right: 952, bottom: 792 },
     A: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png', canvasWidth: 1254, canvasHeight: 1254, left: 176, top: 278, right: 1057, bottom: 981 },
     B: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png', canvasWidth: 1254, canvasHeight: 1254, left: 155, top: 249, right: 976, bottom: 983 },
+    C: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-C.png', canvasWidth: 1254, canvasHeight: 1254, left: 203, top: 211, right: 1060, bottom: 1054 },
+    D: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-D.png', canvasWidth: 1254, canvasHeight: 1254, left: 241, top: 261, right: 1013, bottom: 987 },
+    E: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-E.png', canvasWidth: 1254, canvasHeight: 1254, left: 149, top: 167, right: 1094, bottom: 1048 },
+    F: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-F.png', canvasWidth: 1254, canvasHeight: 1254, left: 114, top: 191, right: 1139, bottom: 1062 },
+    G: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-G.png', canvasWidth: 1254, canvasHeight: 1254, left: 207, top: 221, right: 1038, bottom: 1044 },
+    H: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png', canvasWidth: 1254, canvasHeight: 1254, left: 164, top: 229, right: 1090, bottom: 1010 },
+    I: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-I.png', canvasWidth: 1254, canvasHeight: 1254, left: 320, top: 259, right: 916, bottom: 991 },
+    J: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png', canvasWidth: 1254, canvasHeight: 1254, left: 252, top: 267, right: 985, bottom: 992 },
+    K: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png', canvasWidth: 1254, canvasHeight: 1254, left: 130, top: 219, right: 1091, bottom: 1044 },
+    L: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png', canvasWidth: 1254, canvasHeight: 1254, left: 276, top: 263, right: 978, bottom: 996 },
     S: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png', canvasWidth: 1254, canvasHeight: 1254, left: 321, top: 220, right: 941, bottom: 1026 },
     a: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png', canvasWidth: 1254, canvasHeight: 1254, left: 299, top: 366, right: 992, bottom: 895 },
     m: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png', canvasWidth: 1254, canvasHeight: 1254, left: 86, top: 358, right: 1168, bottom: 881 },
   };
+  const availableLetters = Object.keys(glyphs).sort().join(', ');
   const templates = new Map();
   const baseline = document.createElement('span');
   baseline.className = 'baseline-marker';
@@ -81,7 +92,7 @@
     input.setAttribute('aria-invalid', String(unsupported.length > 0));
     message.classList.toggle('error', unsupported.length > 0);
     if (unsupported.length) {
-      message.textContent = `Not generated in this sample: ${unsupported.join(' ')}. Available: A, B, S, a, m and original M. Showing your last supported text.`;
+      message.textContent = `Not generated in this sample: ${unsupported.join(' ')}. Available: ${availableLetters} and spaces. Showing your last supported text.`;
       return;
     }
     previewText = input.value;
@@ -161,7 +172,7 @@
     controls.disabled = false;
     composer.classList.add('font-ready');
     composer.setAttribute('aria-busy', 'false');
-    status.textContent = '5 Fgen letters + original M / PNG preview';
+    status.textContent = `${templates.size - 1} Fgen letters + original M / PNG preview`;
     empty.textContent = 'Type a word below';
     updateWord();
   }).catch(() => {
