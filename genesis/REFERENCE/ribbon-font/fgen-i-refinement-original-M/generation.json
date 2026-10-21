@@ -1,5 +1,5 @@
 {
-  "status": "Single-stem ribbon I generated from the original M, inspected individually and in widely spaced TIME. Canonical preview integration pending. The initial S is user-accepted and unchanged; refined I acceptance is pending.",
+  "status": "Single-stem ribbon I generated from the original M and connected to the PNG tester. The user accepted the refined I on 2026-10-21 and requested the remaining uppercase and lowercase alphabet. The accepted initial S and original M remain unchanged.",
   "generator": "fgen",
   "referenceImages": [
     {
@@ -93,7 +93,12 @@
       "majorCounters": 0,
       "inspection": {
         "stage": "Individually inspected as a raw image and in the actual widely spaced TIME surface before integration.",
-        "note": "One heavy, gently curved rising ribbon with an asymmetric rounded crest and rounded-flat foot; no separate slab serifs, enclosed counter, detached dot or clipping. Readable in TIME at the original +0.160 em spacing and 207 px cap height with T, M and E unchanged. Raw PNG retained unchanged. Final I design acceptance remains with the user."
+        "note": "One heavy, gently curved rising ribbon with an asymmetric rounded crest and rounded-flat foot; no separate slab serifs, enclosed counter, detached dot or clipping. Readable in TIME at the original +0.160 em spacing and 207 px cap height with T, M and E unchanged. Raw PNG retained unchanged."
+      },
+      "humanReview": {
+        "accepted": true,
+        "date": "2026-10-21",
+        "decision": "The user said very good and requested completion of the remaining uppercase and lowercase alphabet."
       }
     }
   },

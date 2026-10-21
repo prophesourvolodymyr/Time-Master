@@ -13,7 +13,6 @@
   const tracking = document.getElementById('fgen-tracking');
   const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
   const presets = Array.from(panel.querySelectorAll('[data-fgen-word]'));
-  const sChoices = Array.from(panel.querySelectorAll('input[name="fgen-s"]'));
   const initialMessage = message.textContent;
   const unitsPerEm = 1000;
   const capHeight = 560;
@@ -28,7 +27,7 @@
     F: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-F.png', canvasWidth: 1254, canvasHeight: 1254, left: 114, top: 191, right: 1139, bottom: 1062 },
     G: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-G.png', canvasWidth: 1254, canvasHeight: 1254, left: 207, top: 221, right: 1038, bottom: 1044 },
     H: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png', canvasWidth: 1254, canvasHeight: 1254, left: 164, top: 229, right: 1090, bottom: 1010 },
-    I: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-I.png', canvasWidth: 1254, canvasHeight: 1254, left: 320, top: 259, right: 916, bottom: 991 },
+    I: { src: '../../genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/uppercase-I-v2.png', canvasWidth: 1254, canvasHeight: 1254, left: 345, top: 255, right: 833, bottom: 1006 },
     J: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png', canvasWidth: 1254, canvasHeight: 1254, left: 252, top: 267, right: 985, bottom: 992 },
     K: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png', canvasWidth: 1254, canvasHeight: 1254, left: 130, top: 219, right: 1091, bottom: 1044 },
     L: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png', canvasWidth: 1254, canvasHeight: 1254, left: 276, top: 263, right: 978, bottom: 996 },
@@ -45,12 +44,6 @@
     X: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-X.png', canvasWidth: 1254, canvasHeight: 1254, left: 202, top: 251, right: 1050, bottom: 1015 },
     a: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png', canvasWidth: 1254, canvasHeight: 1254, left: 299, top: 366, right: 992, bottom: 895 },
     m: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png', canvasWidth: 1254, canvasHeight: 1254, left: 86, top: 358, right: 1168, bottom: 881 },
-  };
-  const sVariants = {
-    original: glyphs.S,
-    balanced: { src: '../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-balanced.png', canvasWidth: 1254, canvasHeight: 1254, left: 306, top: 209, right: 952, bottom: 1047 },
-    rounder: { src: '../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-rounder.png', canvasWidth: 1254, canvasHeight: 1254, left: 267, top: 166, right: 992, bottom: 1088 },
-    structured: { src: '../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-structured.png', canvasWidth: 1254, canvasHeight: 1254, left: 260, top: 161, right: 1004, bottom: 1094 },
   };
   const availableLetters = Object.keys(glyphs).sort().join(', ');
   const templates = new Map();
@@ -85,9 +78,6 @@
   for (const [letter, glyph] of Object.entries(glyphs)) {
     templates.set(letter, createGlyph(letter, glyph));
   }
-  const sTemplates = new Map(Object.entries(sVariants).map(([variant, glyph]) => [
-    variant, variant === 'original' ? templates.get('S') : createGlyph('S', glyph),
-  ]));
 
   function updateGuides() {
     if (!stage.clientWidth) return;
@@ -178,11 +168,6 @@
   selectSource(location.hash === '#fgen' ? 'fgen' : 'vector');
 
   input.addEventListener('input', updateWord);
-  sChoices.forEach(choice => choice.addEventListener('change', () => {
-    templates.set('S', sTemplates.get(choice.value));
-    renderWord();
-    status.textContent = `${templates.size - 1} Fgen letters + original M / ${choice.parentElement.textContent.trim()} preview`;
-  }));
   size.addEventListener('input', () => { automaticFit = false; updateSize(size.value); });
   tracking.addEventListener('input', () => {
     composer.style.setProperty('--study-tracking', `${tracking.value}em`);
@@ -197,7 +182,7 @@
 
   composer.style.setProperty('--study-font-scale', unitsPerEm / capHeight);
   composer.style.setProperty('--study-line-height', '.88em');
-  Promise.all([...new Set([...templates.values(), ...sTemplates.values()])].map(template => new Promise((resolve, reject) => {
+  Promise.all([...templates.values()].map(template => new Promise((resolve, reject) => {
     const image = template.querySelector('img');
     image.onload = resolve;
     image.onerror = reject;

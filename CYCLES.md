@@ -1872,12 +1872,12 @@ The user keeps the exact initial generated S and reports that uppercase I does n
 - [x] Record the user's acceptance of the initial S without changing its image
 - [x] Inspect the supplied TIME example and reproduce the current I at +0.160 em spacing in the actual tester
 - [x] Generate and individually inspect a refined I using the original M as the primary style master, preserving the old I and exact generation provenance
-- [ ] Connect the refined I to the PNG tester, retain the accepted S and add I-focused word combinations
-- [ ] Exercise normal, wide and closest letter spacing, input and keyboard controls, responsive layouts and missing-image recovery
-- [ ] Publish the owned changes and hand every changed item to the user for human verification
-- [ ] Human acceptance of the refined I and its fit with the original M
+- [x] Connect the refined I to the PNG tester, retain the accepted S and add I-focused word combinations
+- [x] Exercise normal, wide and closest letter spacing, input and keyboard controls, responsive layouts and missing-image recovery
+- [x] Publish the owned changes and hand every changed item to the user for human verification
+- [x] Human acceptance of the refined I and its fit with the original M
 
-The first I redraw retained the old slab-serif construction and was rejected before integration. The selected second output is one broad forward-rising ribbon with a rounded crest and compact rounded-flat foot, generated using only the original M image. Both raw outputs, the supplied TIME image, exact prompts, reference fingerprints, saved events and the equal-cap-height M/old-I/new-I comparison are retained in `genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/`. The new I was inspected in the actual TIME preview at the original +0.160 em spacing and 207-pixel cap height, with T, M and E unchanged. Canonical preview integration and final I acceptance remain pending.
+The first I redraw retained the old slab-serif construction and was rejected before integration. The selected second output is one broad forward-rising ribbon with a rounded crest and compact rounded-flat foot, generated using only the original M image. Both raw outputs, the supplied TIME image, exact prompts, reference fingerprints, saved events and the equal-cap-height M/old-I/new-I comparison are retained in `genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/`. The connected tester preserves the accepted initial S and uses the new I in TIME, MIMI, MINI, INITIAL and other supported words. Direct-file and HTTP smoke checks exercised normal, +0.160 em and −0.200 em spacing, native empty-input deletion and recovery, unsupported-input preservation, keyboard controls, independent Vector/Fgen drafts, guides and four responsive widths. Blocking the refined I image produced the missing-image state without disabling Vector; restoring the image and reloading recovered TIME. The raw I fingerprint is unchanged. On 2026-10-21 the user accepted the refined I and requested the remaining uppercase and lowercase alphabet.
 
 
 ## Tmax Rebrand and Loading — 2026-10-19

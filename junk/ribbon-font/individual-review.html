@@ -116,15 +116,9 @@
     .fgen-glyph img { position: absolute; max-width: none; mix-blend-mode: screen; pointer-events: none; }
     .fgen-space { display: inline-block; width: .24em; }
     #fgen-panel .glyph-card { display: block; text-decoration: none; }
-    .s-choices { min-width: 0; margin: 0 0 24px; border: 0; padding: 0; }
-    .s-options { display: flex; flex-wrap: wrap; gap: 8px; }
-    .s-options .button { display: inline-flex; align-items: center; gap: 10px; }
-    .s-options input { margin: 0; accent-color: var(--accent); }
-    .s-options .button:has(:checked) { border-color: var(--accent); background: var(--surface); }
-    .s-study { margin-bottom: 36px; }
-    .s-comparison { display: block; margin-block: 20px; }
-    .s-comparison img { display: block; width: 100%; height: auto; }
-    .glyph-grid.s-variant-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .refinement-study { margin-bottom: 36px; }
+    .refinement-comparison { display: block; margin-block: 20px; }
+    .refinement-comparison img { display: block; width: 100%; height: auto; }
     @media (max-width: 1000px) {
       .glyph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
@@ -140,7 +134,6 @@
       .measurements div { display: block; }
       dd { margin-top: 4px; }
       .glyph-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .glyph-grid.s-variant-grid { grid-template-columns: minmax(0, 1fr); }
       .intro { padding-top: 30px; }
       .comparison { gap: 12px; }
       figcaption { font-size: .6875rem; }
@@ -292,17 +285,8 @@
             <div class="stage-line"><div class="study-word fgen-word" id="fgen-live-word" role="img" aria-label="Loading Fgen letter preview"></div><span class="x-height-guide" aria-hidden="true"></span><div class="empty-message" id="fgen-empty">Loading Fgen samples…</div></div>
           </div>
           <fieldset class="word-controls" id="fgen-controls" aria-label="Fgen word controls" disabled>
-            <div class="text-field"><label class="small-label" for="fgen-input">Type using A–X, a and m</label><input id="fgen-input" type="text" value="TIME MASTER" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="fgen-message" aria-invalid="false"></div>
+            <div class="text-field"><label class="small-label" for="fgen-input">Type using A–X, a and m</label><input id="fgen-input" type="text" value="TIME" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="fgen-message" aria-invalid="false"></div>
             <p id="fgen-message" role="status">Twenty-five Fgen samples: A–L, N–X, a and m, plus your original M and spaces. Missing letters are not replaced with vector glyphs. Images are uniformly sized to shared capital/lowercase heights and aligned to a baseline; Q keeps its tail below the bowl baseline. Their contours are not edited.</p>
-            <fieldset class="s-choices">
-              <legend class="small-label">Uppercase S · preview only, no replacement selected</legend>
-              <div class="s-options">
-                <label class="button"><input type="radio" name="fgen-s" value="original" checked>Older S</label>
-                <label class="button"><input type="radio" name="fgen-s" value="balanced">S1 · balanced</label>
-                <label class="button"><input type="radio" name="fgen-s" value="rounder">S2 · softer</label>
-                <label class="button"><input type="radio" name="fgen-s" value="structured">S3 · structured</label>
-              </div>
-            </fieldset>
             <div class="adjustments">
               <div><div class="slider-heading"><label for="fgen-size">Cap height</label><output id="fgen-size-value" for="fgen-size">180 px</output></div><input id="fgen-size" type="range" min="24" max="240" value="180" step="1"></div>
               <div><div class="slider-heading"><label for="fgen-tracking">Letter spacing</label><output id="fgen-tracking-value" for="fgen-tracking">-0.040 em</output></div><input id="fgen-tracking" type="range" min="-0.20" max="0.16" value="-0.04" step="0.005"></div>
@@ -323,7 +307,11 @@
               <button class="button" type="button" data-fgen-word="JACK" aria-pressed="false">JACK</button>
               <button class="button" type="button" data-fgen-word="BADGE" aria-pressed="false">BADGE</button>
               <button class="button" type="button" data-fgen-word="CDEFGHIJKL" aria-pressed="false">Previous ten letters</button>
-              <button class="button" type="button" data-fgen-word="TIME MASTER" aria-pressed="true">TIME MASTER</button>
+              <button class="button" type="button" data-fgen-word="TIME" aria-pressed="true">TIME</button>
+              <button class="button" type="button" data-fgen-word="MIMI" aria-pressed="false">MIMI</button>
+              <button class="button" type="button" data-fgen-word="MINI" aria-pressed="false">MINI</button>
+              <button class="button" type="button" data-fgen-word="INITIAL" aria-pressed="false">INITIAL</button>
+              <button class="button" type="button" data-fgen-word="TIME MASTER" aria-pressed="false">TIME MASTER</button>
               <button class="button" type="button" data-fgen-word="MASS" aria-pressed="false">MASS</button>
               <button class="button" type="button" data-fgen-word="SAME" aria-pressed="false">SAME</button>
               <button class="button" type="button" data-fgen-word="SMASH" aria-pressed="false">SMASH</button>
@@ -340,27 +328,23 @@
             </div>
           </fieldset>
         </section>
-        <section class="batch s-study" aria-labelledby="fgen-s-heading">
-          <div class="batch-header mono"><h2 id="fgen-s-heading">02 / S · three style blends</h2><span>Original M + three review options</span></div>
-          <p class="review-note">These combine the older S's full ribbon body with straighter outside sections and a narrower middle. Use the S choices above to compare TIME MASTER, MASS, SAME, SMASH or your own text. Only S changes; the other letters, your word, size and spacing stay under your control. The older S remains the default, and no replacement has been approved.</p>
-          <a class="s-comparison" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/comparison.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/comparison.png" width="2200" height="650" alt="The original M beside S1 balanced, S2 softer and S3 structured, all uniformly scaled to the same visible cap height."></a>
-          <div class="glyph-grid s-variant-grid">
-            <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-balanced.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-balanced.png" width="1254" height="1254" alt="S1 balanced blend: a full S body with quieter straight outside sections and a slimmer waist."><span class="caption"><span>S1 · balanced</span><span class="mono">Raw PNG ↗</span></span></a>
-            <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-rounder.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-rounder.png" width="1254" height="1254" alt="S2 softer blend: broad organic ribbons with softened asymmetric turns and a narrower middle."><span class="caption"><span>S2 · softer</span><span class="mono">Raw PNG ↗</span></span></a>
-            <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-structured.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-structured.png" width="1254" height="1254" alt="S3 structured blend: heavy soft side ribbons with more disciplined outside sections and a compact middle."><span class="caption"><span>S3 · structured</span><span class="mono">Raw PNG ↗</span></span></a>
-          </div>
-          <p class="review-note">All three are untouched Fgen outputs, generated and inspected one at a time. <a href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/generation.json" target="_blank" rel="noopener">Open their prompts and generation records ↗</a>. The rejected <a href="../../genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/generation.json" target="_blank" rel="noopener">rounded refinement ↗</a> and <a href="../../genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/generation.json" target="_blank" rel="noopener">angular attempts and sketch ↗</a> remain recorded, not active word-preview options. This is still an image-based review; no font file or app typography has changed.</p>
+        <section class="batch refinement-study" aria-labelledby="fgen-i-heading">
+          <div class="batch-header mono"><h2 id="fgen-i-heading">02 / I · ribbon refinement</h2><span>Initial S accepted and kept</span></div>
+          <p class="review-note">The refined I is one broad, forward-rising ribbon with a rounded crest and compact rounded-flat foot, rather than two matching horizontal slabs. Try TIME, MIMI, MINI or INITIAL and spread the letters with the spacing slider. You accepted this I and the initial S on 21 October; both are kept unchanged alongside your original M.</p>
+          <a class="refinement-comparison" href="../../genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/comparison.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/comparison.png" width="1800" height="650" alt="The original M beside the previous slab-capped I and the refined single-stem ribbon I, uniformly scaled to equal visible cap height."></a>
+          <p class="review-note"><a href="../../genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/uppercase-I-v2.png" target="_blank" rel="noopener">Open the refined I PNG ↗</a> · <a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-I.png" target="_blank" rel="noopener">Previous I ↗</a> · <a href="../../genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/generation.json" target="_blank" rel="noopener">Prompts, both attempts and generation records ↗</a>. The first redraw was rejected as still serif-like; the second uses only the original M as its style reference. No source pixels were cleaned, stretched or redrawn after generation.</p>
+          <p class="review-note">The <a href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/comparison.png" target="_blank" rel="noopener">earlier S studies ↗</a> and their <a href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/generation.json" target="_blank" rel="noopener">generation history ↗</a> remain available, but the tester now keeps only the initial S you accepted. This is still a PNG-based review; compiled fonts and app typography are unchanged.</p>
         </section>
         <div class="layout">
           <aside class="master" aria-labelledby="fgen-master-heading">
             <h2 id="fgen-master-heading" class="mono">Your original M</h2>
-            <img class="master-image" src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" width="275" height="175" alt="The original M, the primary style reference for the Fgen letters and S blends.">
-            <p>The twenty-five original samples were generated separately using only this M. The three S blends also reference the older and angular S, with M remaining the style master. This tester displays the saved PNGs directly. It is an image-based review, not a new installable font.</p>
+            <img class="master-image" src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" width="275" height="175" alt="The original M, the style master for the Fgen family and the refined I.">
+            <p>The current I was generated from this original M alone. Your accepted initial S is kept unchanged; the old I and S experiments remain in their linked history. This tester displays the actual saved PNGs, not replacement vector outlines or a new installable font.</p>
             <p>The letter images are cropped for layout and scaled uniformly—never stretched, warped or redrawn. Transparent PNGs are displayed against black.</p>
             <nav class="hub-navigation" aria-label="Fgen trial files"><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/comparison.png" target="_blank" rel="noopener">First five + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/comparison.png" target="_blank" rel="noopener">Previous ten + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/comparison.png" target="_blank" rel="noopener">Latest ten + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json" target="_blank" rel="noopener">First five prompts and records ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json" target="_blank" rel="noopener">Previous ten prompts and individual checks ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json" target="_blank" rel="noopener">Latest ten prompts and individual checks ↗</a></nav>
           </aside>
           <section class="batch" aria-labelledby="fgen-samples-heading">
-            <div class="batch-header mono"><h2 id="fgen-samples-heading">03 / Original Fgen samples</h2><span>25 untouched PNGs / click to open</span></div>
+            <div class="batch-header mono"><h2 id="fgen-samples-heading">03 / Current Fgen samples</h2><span>25 untouched PNGs / click to open</span></div>
             <div class="glyph-grid">
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" width="1254" height="1254" alt="Fgen uppercase A"><span class="caption"><span>A</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" width="1254" height="1254" alt="Fgen uppercase B"><span class="caption"><span>B</span><span class="mono">Raw PNG ↗</span></span></a>
@@ -370,7 +354,7 @@
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-F.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-F.png" width="1254" height="1254" alt="Fgen uppercase F"><span class="caption"><span>F</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-G.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-G.png" width="1254" height="1254" alt="Fgen uppercase G"><span class="caption"><span>G</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png" width="1254" height="1254" alt="Fgen uppercase H"><span class="caption"><span>H</span><span class="mono">Raw PNG ↗</span></span></a>
-              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-I.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-I.png" width="1254" height="1254" alt="Fgen uppercase I"><span class="caption"><span>I</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/uppercase-I-v2.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/uppercase-I-v2.png" width="1254" height="1254" alt="Refined uppercase I: one broad rising ribbon with no separate slab serifs."><span class="caption"><span>I · refined</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png" width="1254" height="1254" alt="Fgen uppercase J"><span class="caption"><span>J</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png" width="1254" height="1254" alt="Fgen uppercase K"><span class="caption"><span>K</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png" width="1254" height="1254" alt="Fgen uppercase L"><span class="caption"><span>L</span><span class="mono">Raw PNG ↗</span></span></a>
@@ -379,7 +363,7 @@
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-P.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-P.png" width="1254" height="1254" alt="Fgen uppercase P"><span class="caption"><span>P</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png" width="1254" height="1254" alt="Fgen uppercase Q"><span class="caption"><span>Q</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-R.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-R.png" width="1254" height="1254" alt="Fgen uppercase R"><span class="caption"><span>R</span><span class="mono">Raw PNG ↗</span></span></a>
-              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" width="1254" height="1254" alt="Fgen uppercase S"><span class="caption"><span>S</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" width="1254" height="1254" alt="The initial generated uppercase S accepted by the user."><span class="caption"><span>S · accepted</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-T.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-T.png" width="1254" height="1254" alt="Fgen uppercase T"><span class="caption"><span>T</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png" width="1254" height="1254" alt="Fgen uppercase U"><span class="caption"><span>U</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-V.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-V.png" width="1254" height="1254" alt="Fgen uppercase V"><span class="caption"><span>V</span><span class="mono">Raw PNG ↗</span></span></a>
@@ -388,7 +372,7 @@
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png" width="1254" height="1254" alt="Fgen lowercase a"><span class="caption"><span>a</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png" width="1254" height="1254" alt="Fgen lowercase m"><span class="caption"><span>m</span><span class="mono">Raw PNG ↗</span></span></a>
             </div>
-            <p class="review-note">A–X, a, m and spaces are available in this tab: twenty-five generated letters plus the original M. Input containing any other letter is marked, and the last supported preview stays visible. Switch to Vector for the separate complete alphabet.</p>
+            <p class="review-note">A–X, a, m and spaces are available in this tab: twenty-five generated letters plus the original M. I uses the new ribbon refinement; S remains the accepted initial design. Input containing any other letter is marked, and the last supported preview stays visible. Switch to Vector for the separate complete alphabet.</p>
             <p class="review-note">The earlier batch was inspected one letter at a time. The first L was rejected as lambda-like; the untouched second generation is displayed here. <a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L.png" target="_blank" rel="noopener">Open the rejected first L ↗</a>. Both attempts and their inspection decisions remain in the generation records.</p>
             <p class="review-note">The latest ten are N, O, P, Q, R, T, U, V, W and X. Each actual output was inspected before advancing. Two Q calls returned no image; the first saved Q is retained unchanged, with its tail below the bowl baseline. W is more regular than the original M, so compare its family character. Prompts, failed calls and individual inspection decisions are linked above.</p>
           </section>
