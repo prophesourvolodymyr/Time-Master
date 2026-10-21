@@ -1,0 +1,310 @@
+{
+  "status": "Five independently generated image samples; human design review pending. Not a replacement font.",
+  "generator": "fgen",
+  "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
+  "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
+  "referenceRole": "The untouched original M uniformly enlarged on its original reference canvas; sole image input for every call.",
+  "requestedQuality": "high",
+  "requestedSize": "1024x1024",
+  "generationOrder": [
+    "A",
+    "B",
+    "S",
+    "a",
+    "m"
+  ],
+  "generationPolicy": "One letter per sequential Fgen invocation. Each call starts from the original M, not another generated letter. No raster warping, thresholding, contour repair, vector replacement or automatic selection from retries.",
+  "outputs": {
+    "A": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase A, as a sibling drawn by the same type designer. Do not redraw M. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed A with two legs and one short crossbar, interpreted in that original ribbon language. Do not substitute a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter A: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGB",
+      "sha256": "205d3bdf40ca8363fb4d3e545fa09a497bd0541d5a3d9cd2215ca128a50b8961",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase A, as a sibling drawn by the same type designer. Do not redraw M. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed A with two legs and one short crossbar, interpreted in that original ribbon language. Do not substitute a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter A: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1289,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 2076,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 20685,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 461359,
+          "elapsed_ms": 21267,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 21268,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png"
+          ]
+        }
+      ]
+    },
+    "B": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase B, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed B: one broad forward-rising spine, two closed counters and two smoothly joined bowls, the lower bowl a little fuller than the upper. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter B: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGBA",
+      "sha256": "0a80c4c78a1fcbbc893a5849d2b0a66250ee878b8cdd8df8ce4645eb2f161f59",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase B, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed B: one broad forward-rising spine, two closed counters and two smoothly joined bowls, the lower bowl a little fuller than the upper. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter B: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 3715,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 5204,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 38701,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 451405,
+          "elapsed_ms": 38857,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 38858,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png"
+          ]
+        }
+      ]
+    },
+    "S": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase S, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed S formed by one continuous smooth ribbon with two opposing bowl curves, a compact central turn and softly cut ends. Carry the actual M's weight contrast and restrained organic movement into the S; do not make a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter S: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGB",
+      "sha256": "2c45158f0da34b99c2e40b450349f3ee82445a58dfc409a064b4669da73fa029",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase S, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed S formed by one continuous smooth ribbon with two opposing bowl curves, a compact central turn and softly cut ends. Carry the actual M's weight contrast and restrained organic movement into the S; do not make a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter S: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 2099,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 3372,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 21584,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 497753,
+          "elapsed_ms": 22021,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 22021,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png"
+          ]
+        }
+      ]
+    },
+    "a": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: lowercase a, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable single-storey printed lowercase a, with one closed counter and a short returning stroke at the right. Its body should be about three quarters of the M's capital height on the same baseline, while keeping the same substantial ribbon weight rather than uniformly shrinking and thinning a capital. Keep the original M's organic ribbon character; do not make a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background with placement comparable to the reference. Only the lowercase letter a: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGB",
+      "sha256": "f21d2715974f1341ff5fcb1458dcad51516041c6800df2373aecac5ed794fb44",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: lowercase a, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable single-storey printed lowercase a, with one closed counter and a short returning stroke at the right. Its body should be about three quarters of the M's capital height on the same baseline, while keeping the same substantial ribbon weight rather than uniformly shrinking and thinning a capital. Keep the original M's organic ribbon character; do not make a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background with placement comparable to the reference. Only the lowercase letter a: no M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 775,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1903,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 22976,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 441668,
+          "elapsed_ms": 23375,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 23375,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png"
+          ]
+        }
+      ]
+    },
+    "m": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: lowercase m, as a sibling drawn by the same type designer. Do not redraw the uppercase M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed lowercase m: one left stem and two joined rounded shoulders, giving three feet at one baseline. Keep both shoulders at the lowercase body height, about three quarters of the supplied M's capital height, without an ascender or a cursive exit tail. Keep the same substantial ribbon weight rather than uniformly shrinking and thinning the capital. Carry the original M's organic ribbon rhythm into a clear lowercase m; do not make a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background with placement comparable to the reference. Only the lowercase letter m: no uppercase M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGBA",
+      "sha256": "de418a9d039c59bbbb8d320267bccdbcaec621dc4d945860833d43399a64aad1",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: lowercase m, as a sibling drawn by the same type designer. Do not redraw the uppercase M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed lowercase m: one left stem and two joined rounded shoulders, giving three feet at one baseline. Keep both shoulders at the lowercase body height, about three quarters of the supplied M's capital height, without an ascender or a cursive exit tail. Keep the same substantial ribbon weight rather than uniformly shrinking and thinning the capital. Carry the original M's organic ribbon rhythm into a clear lowercase m; do not make a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background with placement comparable to the reference. Only the lowercase letter m: no uppercase M, other characters, labels, guides, outlines, texture, gradients, shadows or ornament. Smooth antialiased silhouette. Let the attached original M control the style rather than following any existing font.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 859,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1615,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 33674,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 406870,
+          "elapsed_ms": 34331,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 34331,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png"
+          ]
+        }
+      ]
+    }
+  },
+  "comparisonPolicy": "Original M and complete raw image canvases uniformly resized to equal square tiles for display only; RGBA images are composited on black without changing the saved raw PNGs."
+}

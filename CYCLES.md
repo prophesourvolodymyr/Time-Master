@@ -1767,6 +1767,22 @@ The replacement lives in `junk/ribbon-font/individual-review.html`. Its word com
 
 The focused cubic-join regression test passes. All fifty-two letters render with the intended connected silhouettes, closed counters and detached i/j dots in both TTF and OTF. The actual browser exercised all fifteen presets, case conversion, unsupported-input preservation and recovery, native empty-input deletion, keyboard size/spacing adjustments, fit, guides and comparison arrow/Escape navigation. HTTP layouts at 320, 390, 768 and 1440 pixels had no document overflow or broken images; direct-file opening also rendered the native font. All three download URLs returned the exact compiled files, and neither browser run recorded page errors. The app typography and rejected reference attempts remain unchanged. The replacement is ready for human review, not human-approved; no further implementation prompt is needed for this slice.
 
+### Batch 10 — Five Raw Fgen Letters from the Original M
+
+The user requested another direct image-generation trial instead of code-drawn letters: generate five letters one at a time, referencing the original M, and show the results before changing the font. A, B, S, a and m were each sent in a separate sequential Fgen call with only the original M reference canvas attached. No generated letter, vector reconstruction or geometry guide was supplied as an additional reference.
+
+- [x] Generate uppercase A independently from the original M reference
+- [x] Generate uppercase B independently from the original M reference
+- [x] Generate uppercase S independently from the original M reference
+- [x] Generate lowercase a independently from the original M reference
+- [x] Generate lowercase m independently from the original M reference
+- [x] Retain all five untouched PNGs, exact submitted prompts, saved events, dimensions and file fingerprints
+- [x] Show the original M and the five results together without contour repair, thresholding, warping, vector replacement or retry-based selection
+- [ ] Commit and push the five-letter trial and hand the individual samples to the user for review
+- [ ] Human review of the five generated letters and their fit with the original M
+
+All five Fgen calls reported successful saved images. Each actual output is 1254 by 1254 pixels. The raw samples, `comparison.png` and `generation.json` live in `genesis/REFERENCE/ribbon-font/fgen-five-original-M/`. The comparison uniformly resizes the complete image canvases for display only. B and m have transparency, which is composited over black in the comparison; the saved raw PNG bytes remain unchanged. The original M, current compiled fonts and active HTML preview are untouched. Generation succeeded, but style, weight, proportions and any decision to continue with the family still require the user's review. No next implementation prompt is needed for this five-letter trial.
+
 ## Tmax Rebrand and Loading — 2026-10-19
 
 User-requested visible rebrand and connected loading system. The repository and folder remain Time-Master; bundle IDs, deep links, storage locations, saved data, and user-authored AI prompts retain their existing compatibility.
