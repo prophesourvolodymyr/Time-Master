@@ -1,5 +1,5 @@
 {
-  "status": "Five independently generated image samples; human design review pending. Not a replacement font.",
+  "status": "Five independently generated image samples. The user accepted the initial S on 2026-10-21; other glyph-review decisions are unchanged. Not a replacement font.",
   "generator": "fgen",
   "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
   "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
@@ -141,6 +141,11 @@
       "format": "PNG",
       "mode": "RGB",
       "sha256": "2c45158f0da34b99c2e40b450349f3ee82445a58dfc409a064b4669da73fa029",
+      "humanReview": {
+        "status": "accepted",
+        "date": "2026-10-21",
+        "decision": "The user chose this initial generated S rather than the later rounded, angular or hybrid refinements. Keep this exact raw image unchanged."
+      },
       "fgenEvents": [
         {
           "event": "start",

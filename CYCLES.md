@@ -1857,11 +1857,28 @@ The user rejected the rounded S refinement, then the thin and heavier angular at
 - [x] Create an equal-cap-height comparison of the original M and all three alternatives without changing their source PNGs
 - [x] Connect the three S choices and their word previews without choosing a replacement for the user
 - [x] Exercise the comparison and word controls, publish the owned changes and hand every item to the user for review
-- [ ] Human acceptance of an S design and its consistency with the original M
+- [x] User accepts the initial generated S rather than the later S refinements
 
 The three new alternatives are retained as untouched 1254-by-1254 PNGs in `genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/`. Their generation record names the original M, older S and heavy angular S as the reference inputs. Each new S has one connected shape and no enclosed counter. Earlier attempts and the user's sketch remain in the separate strict-S and sketch-S reference folders. The connected tester keeps the older S as its default and offers all three blends as temporary preview choices; only S changes, without overwriting the entered word or manual size and spacing. MASS, SAME, SMASH and SWISS presets and the equal-height M comparison are available. No replacement or font-file change has been accepted.
 
 Focused JavaScript and actual direct-file/HTTP browser checks passed for all four S choices, the new presets and full available alphabet, unsupported-input preservation, native empty deletion, radio-arrow navigation, independent Vector/Fgen drafts, reload consistency, four responsive widths and closest-spacing horizontal scrolling through eighty S glyphs. Blocking the new S3 image produced the missing-image state without disabling the working Vector preview; restoring the asset and reloading recovered S3. Successful file and HTTP runs reported no page errors, and the responsive runs had no document overflow or broken or stretched images. All ten recorded raw/reference PNG fingerprints match. The app and compiled fonts remain unchanged. Each generated option and changed file is ready for human verification; final S selection and human acceptance remain pending. No next implementation prompt is needed for this slice.
+
+On 2026-10-21 the user accepted the initial S from `genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png`. That decision supersedes the pending S-selection status at the original handoff above. The three hybrid options and rejected attempts remain preserved as history, not selected replacements.
+
+### Batch 14 — Accepted Initial S and Ribbon I Refinement — 2026-10-21
+
+The user keeps the exact initial generated S and reports that uppercase I does not fit the family when TIME is spaced out. The existing I has rigid, matching horizontal caps unlike the flowing T, M and E. Refine the I itself rather than hiding it with tighter tracking; preserve the original M and all other selected glyph shapes.
+
+- [x] Record the user's acceptance of the initial S without changing its image
+- [x] Inspect the supplied TIME example and reproduce the current I at +0.160 em spacing in the actual tester
+- [x] Generate and individually inspect a refined I using the original M as the primary style master, preserving the old I and exact generation provenance
+- [ ] Connect the refined I to the PNG tester, retain the accepted S and add I-focused word combinations
+- [ ] Exercise normal, wide and closest letter spacing, input and keyboard controls, responsive layouts and missing-image recovery
+- [ ] Publish the owned changes and hand every changed item to the user for human verification
+- [ ] Human acceptance of the refined I and its fit with the original M
+
+The first I redraw retained the old slab-serif construction and was rejected before integration. The selected second output is one broad forward-rising ribbon with a rounded crest and compact rounded-flat foot, generated using only the original M image. Both raw outputs, the supplied TIME image, exact prompts, reference fingerprints, saved events and the equal-cap-height M/old-I/new-I comparison are retained in `genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/`. The new I was inspected in the actual TIME preview at the original +0.160 em spacing and 207-pixel cap height, with T, M and E unchanged. Canonical preview integration and final I acceptance remain pending.
+
 
 ## Tmax Rebrand and Loading — 2026-10-19
 
