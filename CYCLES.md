@@ -1799,7 +1799,7 @@ The actual browser exercised all eight Fgen presets, native input deletion, unsu
 The user requested ten more letters generated the same way, one at a time with every output checked. The next missing capitals are C, D, E, F, G, H, I, J, K and L. Every call uses only the original M reference canvas. Raw PNGs and exact prompts, saved events, dimensions, fingerprints and individual inspection notes are retained in `genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/`. Inspection checks letter anatomy, connected shapes, counters, extra marks and clipping; it does not replace human design approval.
 
 - [x] Generate and individually inspect uppercase C from the original M
-- [ ] Generate and individually inspect uppercase D from the original M
+- [x] Generate and individually inspect uppercase D from the original M
 - [ ] Generate and individually inspect uppercase E from the original M
 - [ ] Generate and individually inspect uppercase F from the original M
 - [ ] Generate and individually inspect uppercase G from the original M

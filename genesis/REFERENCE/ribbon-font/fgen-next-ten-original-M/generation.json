@@ -1,5 +1,5 @@
 {
-  "status": "1 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
+  "status": "2 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
   "generator": "fgen",
   "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
   "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
@@ -19,7 +19,8 @@
     "L"
   ],
   "generationOrder": [
-    "C"
+    "C",
+    "D"
   ],
   "generationPolicy": "One letter per sequential Fgen invocation; inspect the saved output before starting the next. Each call references only the original M. No raster warping, thresholding, contour repairs, vector substitutes or automatic selection from retries.",
   "outputs": {
@@ -91,6 +92,77 @@
       "inspection": {
         "stage": "Inspected separately before generating the next letter.",
         "note": "Recognizable open C with one continuous bowl and no closed counter. Broad left/lower arc, rounded upper terminal and clear right aperture. No clipping or extra characters; saved raw pixels retained.",
+        "designApproval": "Human review pending; structural inspection is not family approval."
+      }
+    },
+    "D": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase D, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase D: one broad forward-rising left spine, smoothly joined to a continuous rounded right bowl with exactly one fully closed counter. Keep the lower bowl a little fuller and the inner turns tight but smooth. The result must be one connected letter, not O, B or a loop with a separate stem. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter D: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-D.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGB",
+      "sha256": "6a176865a783b6308e333a76dc13b944afad44df8174e6454766b3f4d833c0fd",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-D.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase D, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase D: one broad forward-rising left spine, smoothly joined to a continuous rounded right bowl with exactly one fully closed counter. Keep the lower bowl a little fuller and the inner turns tight but smooth. The result must be one connected letter, not O, B or a loop with a separate stem. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter D: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 672,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1580,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 22612,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 513791,
+          "elapsed_ms": 22962,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-D.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 22962,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-D.png"
+          ]
+        }
+      ],
+      "layoutBounds": [
+        241,
+        261,
+        1013,
+        987
+      ],
+      "majorComponents": 1,
+      "majorCounters": 1,
+      "inspection": {
+        "stage": "Inspected separately before generating the next letter.",
+        "note": "One connected D with a forward-leaning left spine and exactly one closed counter. Rounded shoulder and fuller lower bowl; no clipping or extra marks. Saved raw pixels retained.",
         "designApproval": "Human review pending; structural inspection is not family approval."
       }
     }
