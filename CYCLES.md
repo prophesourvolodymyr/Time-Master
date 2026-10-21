@@ -1909,10 +1909,14 @@ The user accepted the refined I and requested all remaining capitals and small l
 - [x] Generate and individually inspect lowercase x from the original M
 - [x] Generate and individually inspect lowercase y from the original M
 - [x] Generate and individually inspect lowercase z from the original M
-- [ ] Connect the full fifty-two-letter alphabet, case-height metrics, complete galleries and mixed-case word examples to the tester
-- [ ] Exercise the complete alphabet, word controls, keyboard editing, responsive scrolling and missing-image recovery
-- [ ] Publish the owned changes and hand every new letter and changed file to the user for human verification
+- [x] Connect the full fifty-two-letter alphabet, case-height metrics, complete galleries and mixed-case word examples to the tester
+- [x] Exercise the complete alphabet, word controls, keyboard editing, responsive scrolling and missing-image recovery
+- [x] Publish the owned changes and hand every new letter and changed file to the user for human verification
 - [ ] Human acceptance of the completed uppercase and lowercase alphabet
+
+The complete fifty-two-letter PNG alphabet is connected in `junk/ribbon-font/individual-review.html#fgen`, with uppercase and lowercase galleries, thirty-seven word presets, mixed-case text and the full Aa–Zz sequence. The original M, accepted initial S, accepted refined I and earlier selected letters are preserved. Every new output was inspected individually before the next generation. Earlier u and x outputs with halos or incorrect anatomy and the no-image l/u calls remain in the generation record; the tester uses the clean third u and second x without modifying their pixels.
+
+Direct-file and HTTP browser smoke runs exercised all presets, complete alphabet input, unsupported-character preservation, native empty deletion and recovery, keyboard range controls and tab navigation, independent Vector/Fgen drafts, shared case-body heights and natural ascenders, dots and descenders. At 320, 390, 768 and 1440 pixels, all fifty-two letters remained reachable at maximum size and closest spacing without page overflow, vertical clipping, broken images or stretched PNGs; an eighty-character lowercase word also remained reachable at minimum size. A real HTTP 404 for lowercase j displayed the Fgen missing-image state while leaving Vector enabled, and restoring the asset and reloading recovered the full tester. JavaScript syntax passed, successful file/HTTP runs reported no page errors, and all thirty saved/reference PNG fingerprints matched. The app and compiled font files remain unchanged. Every new letter and changed file is ready for human verification; design acceptance remains pending. No next implementation prompt is needed for this slice.
 
 
 

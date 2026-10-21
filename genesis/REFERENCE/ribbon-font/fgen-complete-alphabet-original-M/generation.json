@@ -1,5 +1,5 @@
 {
-  "status": "All 26 missing letters are generated and individually inspected: uppercase Y and Z, and lowercase b–l and n–z. Complete A–Z / a–z tester integration is pending. The user-accepted original S and refined I remain unchanged; new alphabet designs require human review.",
+  "status": "All 26 missing letters are generated, individually inspected and connected to the complete A–Z / a–z PNG tester: uppercase Y and Z, and lowercase b–l and n–z. The original M, user-accepted initial S, refined I and earlier selected letters remain unchanged. The tester uses shared capital and lowercase-body heights while preserving each raw glyph's proportions, dots, ascenders and descenders. New alphabet designs are ready for human review; no app typography or compiled font file has been replaced.",
   "generator": "fgen",
   "referenceImages": [
     {
