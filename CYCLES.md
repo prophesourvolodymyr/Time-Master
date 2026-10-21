@@ -1823,7 +1823,7 @@ The user requested the next batch using the same original-M-only, one-letter-at-
 The user also requested closer letter spacing. All three previews now start at -0.040 em and allow adjustment down to -0.200 em, with the existing positive range and keyboard controls preserved. At the same 240-pixel capital height, CAMEL narrowed from 1624.125 pixels at the previous Fgen default to 1469.9375 pixels at the new default; the new minimum reached 1195.609375 pixels instead of the old minimum's 1469.9375 pixels. The actual browser exercised overlapping PNGs with the existing screen blending, native-vector minimum spacing, the earlier font preview, fit controls, independent tab state and mobile opening without page errors. Letter contours and font files are unchanged; the tighter default and adjustable overlap are ready for human verification.
 
 - [x] Tighten default letter spacing and extend the negative-spacing range in the Vector, Fgen and earlier font previews
-- [ ] Generate and individually inspect uppercase N from the original M
+- [x] Generate and individually inspect uppercase N from the original M
 - [ ] Generate and individually inspect uppercase O from the original M
 - [ ] Generate and individually inspect uppercase P from the original M
 - [ ] Generate and individually inspect uppercase Q from the original M
