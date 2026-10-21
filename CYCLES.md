@@ -1794,6 +1794,26 @@ The user requested the five generated samples in the website's Fgen tab for word
 
 The actual browser exercised all eight Fgen presets, native input deletion, unsupported-letter preservation and recovery, sizing, spacing, fit, guides and keyboard tab navigation. HTTP layouts at 320, 390, 768 and 1440 pixels had no document overflow or broken images. An 80-letter word remained inside the horizontal preview scroller at minimum size. Blocking one Fgen PNG produced an actionable error without disabling the Vector tester; reloading after asset recovery restored Fgen. The existing index page opens Fgen directly, and direct-file opening also renders the saved PNG words. Successful HTTP and direct-file runs recorded no page errors. The integration is ready for human review; letter design and family acceptance remain pending above. No next implementation prompt is needed.
 
+### Batch 11 — Next Ten Fgen Capitals from the Original M
+
+The user requested ten more letters generated the same way, one at a time with every output checked. The next missing capitals are C, D, E, F, G, H, I, J, K and L. Every call uses only the original M reference canvas. Raw PNGs and exact prompts, saved events, dimensions, fingerprints and individual inspection notes are retained in `genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/`. Inspection checks letter anatomy, connected shapes, counters, extra marks and clipping; it does not replace human design approval.
+
+- [x] Generate and individually inspect uppercase C from the original M
+- [ ] Generate and individually inspect uppercase D from the original M
+- [ ] Generate and individually inspect uppercase E from the original M
+- [ ] Generate and individually inspect uppercase F from the original M
+- [ ] Generate and individually inspect uppercase G from the original M
+- [ ] Generate and individually inspect uppercase H from the original M
+- [ ] Generate and individually inspect uppercase I from the original M
+- [ ] Generate and individually inspect uppercase J from the original M
+- [ ] Generate and individually inspect uppercase K from the original M
+- [ ] Generate and individually inspect uppercase L from the original M
+- [ ] Add all ten raw PNGs and their word combinations to the existing Fgen tester
+- [ ] Exercise the expanded Fgen tester and hand the letters and changed files to the user for review
+- [ ] Human acceptance of the ten new letter designs and their consistency with the original M
+
+The existing five samples, original M and compiled font files remain unchanged. This batch extends the image-based review rather than replacing the installed font.
+
 ## Tmax Rebrand and Loading — 2026-10-19
 
 User-requested visible rebrand and connected loading system. The repository and folder remain Time-Master; bundle IDs, deep links, storage locations, saved data, and user-authored AI prompts retain their existing compatibility.
