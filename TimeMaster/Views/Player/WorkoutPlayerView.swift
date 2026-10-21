@@ -1109,10 +1109,12 @@ struct WorkoutPlayerView: View {
                         .font(.system(size: 80))
                         .foregroundColor(.white)
 
-                    Text("Workout Complete!")
-                        .font(.system(size: 30, weight: .bold))
+                    Text("Workout Complete")
+                        .font(TimeMasterFont.accentTitle())
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, ProfileStyle.inset)
 
                     Text("Great job finishing \(workout.name).")
                         .font(.body)

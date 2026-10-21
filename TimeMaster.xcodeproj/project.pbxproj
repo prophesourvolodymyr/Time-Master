@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7909285B4C9746539F07BE09 /* TmaxRibbon-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 40F898A00D4E4EA198F056FC /* TmaxRibbon-Regular.ttf */; };
+		0A4F1A3334E847D6817DD7D1 /* TmaxRibbon-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 40F898A00D4E4EA198F056FC /* TmaxRibbon-Regular.ttf */; };
 		0030C3AEAED7260705E0127F /* INTER-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8640BA661B18C3C3660EC803 /* INTER-LICENSE.txt */; };
 		00475B10D54B98E90FB9CC20 /* HomeWidgetPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA516C7C1A9687022D33978 /* HomeWidgetPicker.swift */; };
 		005E36B44A5D97B0347339A0 /* OutdoorMapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B252752B4743B22C413C4047 /* OutdoorMapModels.swift */; };
@@ -653,6 +655,7 @@
 		1C43508BAD6948505C29F8E4 /* OutdoorRouteRecordingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRouteRecordingUITests.swift; sourceTree = "<group>"; };
 		1CD355F4E800C9A368C6CE1F /* LocalPostComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalPostComposerView.swift; sourceTree = "<group>"; };
 		1D38FCFE26168FC6DE39D8C6 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
+		40F898A00D4E4EA198F056FC /* TmaxRibbon-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TmaxRibbon-Regular.ttf"; sourceTree = "<group>"; };
 		1FF9944203E54CAB933582B8 /* TimeMasterGlassControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterGlassControls.swift; sourceTree = "<group>"; };
 		211FBA1E3777CB29A3DC4D9A /* SchedulePlansSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulePlansSheet.swift; sourceTree = "<group>"; };
 		21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSectionPickerView.swift; sourceTree = "<group>"; };
@@ -1272,6 +1275,7 @@
 				DA06334D9FD03546F26175ED /* Inter-Black.ttf */,
 				8640BA661B18C3C3660EC803 /* INTER-LICENSE.txt */,
 				1D38FCFE26168FC6DE39D8C6 /* Inter-Regular.ttf */,
+				40F898A00D4E4EA198F056FC /* TmaxRibbon-Regular.ttf */,
 			);
 			path = Fonts;
 			sourceTree = "<group>";
@@ -1705,6 +1709,7 @@
 				693258D2DC5B457B54103D59 /* INTER-LICENSE.txt in Resources */,
 				6939E40A41C55DE00D563AF8 /* Inter-Black.ttf in Resources */,
 				EDA2415D7FEC0A94493BD40C /* Inter-Regular.ttf in Resources */,
+				0A4F1A3334E847D6817DD7D1 /* TmaxRibbon-Regular.ttf in Resources */,
 				928B4C3DBABA2523A7978779 /* ThirdPartyNotices.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1717,6 +1722,7 @@
 				0030C3AEAED7260705E0127F /* INTER-LICENSE.txt in Resources */,
 				1029743E08FFCABCCB3361EE /* Inter-Black.ttf in Resources */,
 				1CF3CD7B5AACD3A491D937AB /* Inter-Regular.ttf in Resources */,
+				7909285B4C9746539F07BE09 /* TmaxRibbon-Regular.ttf in Resources */,
 				83419122FA9E99BB94FE884E /* MapGlyphs in Resources */,
 				775E242445971E281003555A /* OfflineRouting in Resources */,
 				1F274F3E8959E47F959214B8 /* ThirdPartyNotices.txt in Resources */,

@@ -1920,6 +1920,25 @@ Direct-file and HTTP browser smoke runs exercised all presets, complete alphabet
 
 
 
+### Batch 16 — Ribbon Accent Font and Everyday Typography Pairing — 2026-10-21
+
+User direction: the selected ribbon alphabet is an occasional secondary title face, not the everyday heading or body font. Its compact spacing belongs in the real font files. The user has chosen Inter Black for bold titles and prominent numeric indicators, including Duration, Sets and Rest values. The readable small-text companion is still under review.
+
+- [x] Research licensed heavy heading candidates and record the user’s choice of the existing Inter Black
+- [x] Lock the active specimen’s bold/title face to Inter Black rather than continuing to offer competing title choices
+- [x] Render the large Duration, Sets and Rest indicators in genuine Inter Black 900 independently of the small-text selector
+- [x] Research and locally supply Source Sans 3 Regular, IBM Plex Sans Regular, Manrope Regular and the existing Inter Regular for small-text comparison
+- [x] Consolidate the fifty-two selected PNG sources and trace them into installable Tmax Ribbon TTF, OTF and WOFF2 without replacing the accepted letter designs
+- [x] Bake compact side bearings and conservative pair kerning into the ribbon font, keeping word spaces distinct and external tracking at zero
+- [x] Provide an offline interactive typography specimen with real candidate fonts, 12/14/16 px reading comparisons, font downloads, supported-character feedback and zero-tracking kerning comparison
+- [x] Register the ribbon font on iOS and macOS, expose an opt-in accent-title role and apply it to the workout-completion title while preserving everyday app typography
+- [x] Exercise font rendering and spacing, the browser comparison, source PNG review and native workout completion
+- [ ] Publish the owned implementation and hand every item and changed file to the user for human verification
+- [ ] Human acceptance of the compiled ribbon and its accent-title application
+- [ ] Human selection of the small-text companion
+
+Inter Black is the accepted bold/title and prominent-number face. Source Sans 3 Regular is the current small-text recommendation to compare, alongside IBM Plex Sans Regular, Manrope Regular and the existing Inter Regular; no new small-text face has been accepted or applied globally. The app keeps its existing Inter text roles; the ribbon is limited to an opt-in accent role and the completion moment. The generated ribbon alphabet covers A–Z, a–z and spaces only; digits, punctuation and accented letters are outside its current coverage.
+
 ## Tmax Rebrand and Loading — 2026-10-19
 
 User-requested visible rebrand and connected loading system. The repository and folder remain Time-Master; bundle IDs, deep links, storage locations, saved data, and user-authored AI prompts retain their existing compatibility.

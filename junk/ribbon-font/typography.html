@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Inter Black titles and numeric indicators, Tmax Ribbon accents, and four real small-text font candidates: Source Sans 3, IBM Plex Sans, Manrope and Inter Regular.">
+  <title>Tmax — three typographic roles</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-synthesis: none;
+      --background: #090909;
+      --foreground: #f8f7f3;
+      --muted: #aaa9a5;
+      --line: #333330;
+      --surface: #151514;
+      --accent: #ff9e64;
+      --paper: #f4f2eb;
+      --ink: #131312;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-padding-top: 24px; }
+    body { margin: 0; background: var(--background); color: var(--foreground); }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: inherit; text-underline-offset: .25em; }
+    a, button, input, select, summary { touch-action: manipulation; }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, .kern-viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+    button, select, summary { cursor: pointer; }
+    button, input, select { border-radius: 0; }
+    .shell { width: min(1440px, 100%); margin-inline: auto; padding-inline: clamp(16px, 4vw, 64px); }
+    .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: .75rem; line-height: 1.6; }
+    .eyebrow { letter-spacing: .08em; text-transform: uppercase; }
+    .muted { color: var(--muted); }
+    .accent { color: var(--accent); }
+    .masthead { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 16px 28px; padding-block: 25px; border-bottom: 1px solid var(--line); }
+    .brand { font-size: 1.375rem; font-weight: 500; letter-spacing: -.04em; }
+    .masthead nav { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: .875rem; line-height: 1.6; }
+    .intro { display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px 64px; align-items: end; padding-block: clamp(36px, 6vw, 76px) 40px; }
+    h1 { margin: 12px 0 0; max-width: 13ch; font-size: clamp(2.25rem, 5vw, 4.75rem); font-weight: 400; letter-spacing: -.045em; line-height: 1.04; text-wrap: balance; }
+    .intro-copy { max-width: 56ch; }
+    .intro-copy p { margin: 0; font-size: 1rem; line-height: 1.65; color: var(--muted); text-wrap: pretty; }
+    .intro-copy p + p { margin-top: 12px; }
+    .intro-copy strong { color: var(--foreground); font-weight: 500; }
+    .section { border-top: 1px solid var(--line); padding-block: 20px 52px; }
+    .section-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; margin-bottom: 28px; }
+    .section-header h2 { margin: 0; font-size: .75rem; line-height: 1.6; font-weight: 400; letter-spacing: .08em; text-transform: uppercase; }
+    .section-header > span { color: var(--muted); }
+    .pairing-layout { display: grid; grid-template-columns: minmax(240px, .82fr) minmax(0, 2fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
+    .selectors { min-width: 0; }
+    fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+    legend { margin-bottom: 20px; color: var(--accent); font-size: 1rem; }
+    .field + .field { margin-top: 26px; }
+    label { display: block; margin-bottom: 9px; font-size: .875rem; line-height: 1.5; }
+    .field-label { margin: 0 0 9px; font-size: .875rem; line-height: 1.5; }
+    .chosen-face { margin: 0; font-size: 1.5rem; line-height: 1.4; }
+    select, input[type="text"] { display: block; width: 100%; min-width: 0; min-height: 48px; padding: 12px; border: 1px solid #66655e; background: var(--background); font-size: 1rem; }
+    select { padding-right: 30px; }
+    .field-note { margin: 10px 0 0; color: var(--muted); font-size: .875rem; line-height: 1.6; }
+    .font-status { overflow-wrap: anywhere; }
+    .font-status[data-state="error"] { color: var(--accent); }
+    .selection-status { min-height: 1.6em; margin: 8px 0 0; color: var(--muted); font-size: .75rem; line-height: 1.6; }
+    .button { display: inline-block; min-height: 44px; border: 1px solid var(--line); padding: 10px 14px; background: transparent; font-size: .875rem; line-height: 1.5; text-decoration: none; }
+    .button:hover { background: var(--surface); }
+    .reset { margin-top: 26px; }
+    .selection-note { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .selection-note p { margin: 0; color: var(--muted); font-size: .875rem; line-height: 1.65; }
+    .selection-note p + p { margin-top: 14px; }
+    .workout { min-width: 0; padding: clamp(20px, 3.2vw, 48px); background: var(--paper); color: var(--ink); }
+    .example-label { margin: 0 0 28px; color: #5c5a54; }
+    .workout-title { max-width: 12ch; margin: 0 0 18px; font-size: clamp(2.1rem, 5.4vw, 4.6rem); line-height: 1.03; text-wrap: balance; overflow-wrap: anywhere; }
+    .sample-copy { max-width: 58ch; margin: 0; font-size: 1rem; line-height: 1.65; text-wrap: pretty; }
+    .sample-meta { margin: 16px 0 0; color: #5c5a54; font-size: .875rem; line-height: 1.6; }
+    .role-marker { margin: 0 0 10px; color: #5c5a54; }
+    .accent-block { margin-block: 28px; padding-block: 20px 24px; border-top: 1px solid #c9c6bb; border-bottom: 1px solid #c9c6bb; }
+    .accent-title { margin: 0; font-size: clamp(3.6rem, 7.2vw, 7.25rem); line-height: 1.15; overflow-wrap: anywhere; }
+    .ribbon-ink { font-family: "Tmax Ribbon"; font-weight: 400; font-style: normal; font-synthesis: none; font-kerning: normal; font-feature-settings: "kern" 1; font-variant-ligatures: none; letter-spacing: 0; }
+    .sample-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-block: 26px; }
+    .sample-numbers div { min-width: 0; }
+    .sample-numbers dt { color: #5c5a54; font-size: .875rem; line-height: 1.5; }
+    .sample-numbers dd { margin: 6px 0 0; font-size: clamp(1.5rem, 3.8vw, 2.5rem); line-height: 1.1; letter-spacing: 0; }
+    .numerals { font-variant-numeric: tabular-nums lining-nums; }
+    .exercise-list { width: 100%; border-collapse: collapse; font-size: .875rem; line-height: 1.6; }
+    .exercise-list th, .exercise-list td { padding-block: 12px; border-top: 1px solid #c9c6bb; text-align: right; vertical-align: top; }
+    .exercise-list th:first-child, .exercise-list td:first-child { text-align: left; padding-right: 12px; }
+    .exercise-list th { color: #5c5a54; font-weight: 400; }
+    .exercise-list td + td, .exercise-list th + th { padding-left: 10px; }
+    .reading-check { margin: 14px 0 0; color: #5c5a54; font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+    .font-placeholder { margin: 14px 0; color: var(--muted); font-size: .875rem; line-height: 1.6; }
+    .workout .font-placeholder { color: #5c5a54; }
+    .section-copy { max-width: 70ch; margin: 0 0 24px; color: var(--muted); font-size: 1rem; line-height: 1.65; text-wrap: pretty; }
+    .ribbon-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 16px 32px; margin-bottom: 14px; }
+    .ribbon-controls .field { min-width: 0; }
+    .presets { display: flex; flex-wrap: wrap; gap: 8px; }
+    input[aria-invalid="true"] { border-color: var(--accent); }
+    .input-message { min-height: 1.6em; max-width: 80ch; margin: 12px 0 24px; color: var(--muted); font-size: .875rem; line-height: 1.65; overflow-wrap: anywhere; }
+    .input-message.error { color: var(--accent); }
+    .kern-viewport { min-width: 0; overflow-x: auto; background: #000; scrollbar-color: var(--muted) #000; }
+    .kern-rows { width: max-content; min-width: 100%; padding: 24px clamp(16px, 3vw, 40px); }
+    .kern-row { margin: 0; min-width: 0; }
+    .kern-row + .kern-row { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 24px; }
+    .kern-row figcaption { color: var(--muted); }
+    .kern-row:first-child figcaption { color: var(--accent); }
+    .ribbon-line { width: max-content; min-height: 1.15em; margin: 16px 0 0; padding-inline: .05em; font-size: clamp(5rem, 10vw, 10rem); line-height: 1.15; white-space: pre; }
+    .kern-off { font-kerning: none; font-feature-settings: "kern" 0; }
+    .spacing-note { max-width: 76ch; margin: 18px 0 0; color: var(--muted); font-size: .875rem; line-height: 1.65; }
+    .download-bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 24px; margin-top: 26px; }
+    .download-bar .file-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .candidate-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+    .candidate { min-width: 0; padding-top: 18px; border-top: 1px solid var(--line); }
+    .candidate h3 { margin: 0; font-size: 1rem; font-weight: 500; line-height: 1.5; }
+    .candidate .font-status { margin: 9px 0 0; color: var(--muted); font-size: .75rem; line-height: 1.6; }
+    .candidate .font-status[data-state="error"] { color: var(--accent); }
+    .candidate-sample { margin: 22px 0; min-height: 2.3em; font-size: 2rem; line-height: 1.12; overflow-wrap: anywhere; text-wrap: balance; }
+    .candidate-sample.text-sample { font-size: 1rem; line-height: 1.65; }
+    .candidate .candidate-sample p { color: var(--foreground); }
+    .candidate-sample .size-16 { font-size: 1rem; line-height: 1.65; }
+    .candidate-sample .size-14 { font-size: .875rem; line-height: 1.6; }
+    .candidate-sample .size-12 { font-size: .75rem; line-height: 1.6; }
+    .candidate p { margin: 12px 0 0; color: var(--muted); font-size: .875rem; line-height: 1.65; }
+    .source-links { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 18px; font-size: .875rem; line-height: 1.6; }
+    .license-note { margin: 28px 0 0; max-width: 80ch; color: var(--muted); font-size: .875rem; line-height: 1.65; }
+    .local-help { margin-top: 30px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .local-help summary { padding-block: 20px; font-size: 1rem; line-height: 1.5; }
+    .local-help p { max-width: 76ch; margin: 0 0 20px; color: var(--muted); font-size: .875rem; line-height: 1.65; }
+    code { font-size: .875em; overflow-wrap: anywhere; }
+    footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; border-top: 1px solid var(--line); padding-block: 24px 36px; color: var(--muted); font-size: .875rem; line-height: 1.6; }
+    @media (max-width: 1000px) {
+      .intro { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+      .intro h1 { max-width: 18ch; }
+      .intro-copy { max-width: 66ch; }
+      .pairing-layout { grid-template-columns: minmax(220px, .9fr) minmax(0, 1.6fr); gap: 28px; }
+      .ribbon-controls { grid-template-columns: minmax(0, 1fr); }
+      .candidate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 700px) {
+      .pairing-layout { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+      .selectors fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 22px; }
+      .selectors .field + .field { margin-top: 0; }
+      .selectors legend { margin-bottom: 18px; }
+      .workout-title { font-size: clamp(2.1rem, 8vw, 3.5rem); }
+      .accent-title { font-size: clamp(3.6rem, 13vw, 6rem); }
+      .sample-numbers dd { font-size: clamp(1.5rem, 6.5vw, 2rem); }
+    }
+    @media (max-width: 480px) {
+      .intro { padding-top: 34px; }
+      .selectors fieldset, .candidate-grid { grid-template-columns: minmax(0, 1fr); }
+      .selectors .field + .field { margin-top: 24px; }
+      .workout { padding: 20px; }
+      .example-label { margin-bottom: 24px; }
+      .sample-numbers { gap: 8px; }
+      .presets .button { flex: 1; }
+      .candidate-sample { min-height: 0; }
+    }
+    @media (forced-colors: active) {
+      .workout { border: 1px solid CanvasText; }
+      .button, select, input[type="text"] { border-color: ButtonText; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <span class="brand">tmax. <span class="muted">/ type study</span></span>
+      <nav aria-label="Font previews"><a href="individual-review.html#fgen">Alphabet + PNG review ↗</a><a href="index.html">Font overview ↗</a><a href="#sources">Files + sources ↓</a></nav>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div><span class="eyebrow mono accent">Bold decided. Small text under review.</span><h1 id="page-title" data-role-font="primary" hidden>Inter Black.<br>Find its companion.</h1></div>
+        <div class="intro-copy">
+          <p><strong>Inter Black is chosen for titles and prominent numeric indicators. Tmax Ribbon stays an occasional accent.</strong> Duration, Sets and Rest values remain genuinely Black 900, whichever small font you select.</p>
+          <p>Small text is still an open decision. Compare Source Sans 3, IBM Plex Sans, Manrope and Inter Regular at 12, 14 and 16 px. Source Sans 3 is the current recommendation to review—not an accepted app-wide change.</p>
+        </div>
+      </section>
+
+      <section class="section" id="pairing" aria-labelledby="pairing-title">
+        <div class="section-header"><h2 class="mono" id="pairing-title">01 / Choose the small-text companion</h2><span class="mono">Example content · not live workout data</span></div>
+        <div class="pairing-layout">
+          <aside class="selectors" aria-label="Typography selection">
+            <fieldset>
+              <legend>One settled role, one to choose</legend>
+              <div class="field">
+                <p class="field-label" id="primary-note">Chosen bold titles + numeric indicators</p>
+                <p class="chosen-face" data-role-font="primary" hidden>Inter Black</p>
+                <p class="selection-status font-status" id="primary-font-status" role="status">Inter Black · loading bundled font…</p>
+                <p class="field-note">Your chosen bold face. Genuine Black 900 from the existing app font; the small-text selector never changes the large numbers.</p>
+              </div>
+              <div class="field">
+                <label for="body-font">Supporting text / captions / data</label>
+                <select id="body-font" aria-describedby="body-font-status body-note">
+                  <option value="sourceSans3" selected>Source Sans 3 · Regular 400</option>
+                  <option value="ibmPlexSans">IBM Plex Sans · Regular 400</option>
+                  <option value="manrope">Manrope · Regular 400</option>
+                  <option value="inter">Inter · Regular 400 · baseline</option>
+                </select>
+                <p class="selection-status font-status" id="body-font-status" role="status">Source Sans 3 · loading local font…</p>
+                <p class="field-note" id="body-note">Compare body copy at 16 px, labels at 14 px and the 12 px detail checks below. Small text stays Regular 400; prominent values stay Inter Black.</p>
+              </div>
+            </fieldset>
+            <button class="button reset" id="recommended-pairing" type="button">Use recommended small font</button>
+            <div class="selection-note">
+              <p id="primary-rationale">Inter Black is settled: bold everyday titles and prominent numeric values, not paragraphs or small labels.</p>
+              <p id="body-rationale">Source Sans 3 is the current recommendation: a quieter humanist UI face beside Inter Black and the ribbon. Compare its real small-size samples before deciding.</p>
+            </div>
+          </aside>
+          <article class="workout" aria-label="Example workout showing primary, accent and supporting text roles">
+            <p class="example-label mono eyebrow">Tmax / example workout / three type roles</p>
+            <p class="role-marker mono eyebrow">Primary title / selected face</p>
+            <h3 class="workout-title" data-role-font="primary" hidden>Upper body strength</h3>
+            <p class="font-placeholder" data-role-note="primary">Primary-title sample is hidden until its actual font loads.</p>
+            <div data-role-font="body" hidden>
+              <p class="sample-copy">Build a strong, steady foundation. Move with control, keep your shoulders relaxed and leave a little energy for the final set.</p>
+              <p class="sample-meta">Strength · 35 min · 6 exercises · Intermediate</p>
+            </div>
+            <p class="font-placeholder" data-role-note="body">Supporting-text samples are hidden until the selected font loads.</p>
+            <div class="accent-block">
+              <p class="role-marker mono eyebrow">Occasional accent / Tmax Ribbon</p>
+              <p class="accent-title ribbon-ink" data-role-font="ribbon" hidden>Make it count</p>
+              <p class="font-placeholder" data-role-note="ribbon">Accent sample is hidden until the actual ribbon WOFF2 loads.</p>
+            </div>
+            <div class="numerals" data-role-font="body" hidden>
+              <dl class="sample-numbers">
+                <div><dt>Duration</dt><dd data-role-font="metric" hidden>35:00</dd></div>
+                <div><dt>Sets</dt><dd data-role-font="metric" hidden>03</dd></div>
+                <div><dt>Rest</dt><dd data-role-font="metric" hidden>00:45</dd></div>
+              </dl>
+              <p class="font-placeholder" data-role-note="metric">Numeric indicators are hidden until the actual Inter Black font loads.</p>
+              <table class="exercise-list">
+                <thead><tr><th scope="col">Exercise</th><th scope="col">Sets</th><th scope="col">Reps</th><th scope="col">Rest</th></tr></thead>
+                <tbody><tr><td>Incline push-up</td><td>3</td><td>12</td><td>45 s</td></tr><tr><td>Dumbbell row</td><td>3</td><td>10</td><td>60 s</td></tr></tbody>
+              </table>
+              <p class="reading-check">14 px detail check: I l 1 · O 0 · 6 8 9 · 12.5 kg</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="spacing" aria-labelledby="spacing-title" aria-busy="true">
+        <div class="section-header"><h2 class="mono" id="spacing-title">02 / Ribbon, with its own spacing</h2><span class="font-status mono accent" id="ribbon-font-status" role="status">Tmax Ribbon · loading local WOFF2…</span></div>
+        <p class="section-copy">This is the real <strong>Tmax Ribbon</strong> WOFF2, not the PNG compositor or the earlier vector font. The font’s advances and sidebearings set the default spacing; its built-in kerning makes pair-specific adjustments. Both lines below use <strong>zero CSS tracking</strong>.</p>
+        <div class="ribbon-controls">
+          <div class="field"><label for="ribbon-text">Try ribbon letters</label><input id="ribbon-text" type="text" value="TimeMaster" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="ribbon-input-message" aria-invalid="false"></div>
+          <div class="presets" role="group" aria-label="Ribbon text examples"><button class="button" type="button" data-ribbon-text="TimeMaster">TimeMaster</button><button class="button" type="button" data-ribbon-text="AVATAR">AVATAR</button><button class="button" type="button" data-ribbon-text="Stay inspired">Stay inspired</button></div>
+        </div>
+        <p class="input-message" id="ribbon-input-message" role="status">A–Z, a–z and ordinary spaces only. Numbers, punctuation, accented letters and other scripts are not included. Unsupported input keeps the last supported preview.</p>
+        <div class="kern-viewport" tabindex="0" aria-label="Ribbon kerning comparison at zero letter spacing. Long text scrolls horizontally.">
+          <div class="kern-rows">
+            <figure class="kern-row"><figcaption class="mono eyebrow">Kerning on / font default / tracking 0 em</figcaption><p class="ribbon-line ribbon-ink" id="kerning-on" data-role-font="ribbon" hidden>TimeMaster</p><p class="font-placeholder" data-role-note="ribbon">Waiting for Tmax Ribbon. No fallback font is shown.</p></figure>
+            <figure class="kern-row"><figcaption class="mono eyebrow">Kerning off / same font advances / tracking 0 em</figcaption><p class="ribbon-line ribbon-ink kern-off" id="kerning-off" data-role-font="ribbon" hidden>TimeMaster</p><p class="font-placeholder" data-role-note="ribbon">Waiting for Tmax Ribbon. No fallback font is shown.</p></figure>
+          </div>
+        </div>
+        <p class="spacing-note">The text, size and tracking are identical. Only the font’s kerning feature changes. A pair without a kerning adjustment may look the same; the unkerned line still uses the naturally tighter spacing stored in the actual font file. Long phrases scroll rather than being squeezed or silently tracked tighter.</p>
+        <div class="download-bar"><span class="mono eyebrow muted">Download the real ribbon font</span><div class="file-links"><a class="button" href="../../TimeMaster/Resources/Fonts/TmaxRibbon-Regular.ttf" download>Native TTF ↙</a><a class="button" href="tmax-ribbon.otf" download>OTF ↙</a><a class="button" href="tmax-ribbon.woff2" download>Web WOFF2 ↙</a></div></div>
+      </section>
+
+      <section class="section" id="sources" aria-labelledby="sources-title">
+        <div class="section-header"><h2 class="mono" id="sources-title">03 / Four small-text candidates</h2><span class="mono" id="font-load-summary" role="status">Loading local faces…</span></div>
+        <p class="section-copy">The bold font is no longer up for comparison. These four supporting faces are shown at the same real 16, 14 and 12 px sizes, in Regular 400, with no synthetic bold or tightened tracking. Compare instructions, short labels and look-alike characters beside the fixed Inter Black titles and numbers.</p>
+        <div class="candidate-grid">
+          <article class="candidate">
+            <h3>Source Sans 3 Regular · recommended</h3><p class="font-status" id="sourceSans3-status">Loading local font…</p>
+            <div class="candidate-sample text-sample" data-font-sample="sourceSans3" hidden><p class="size-16">Move with control. Keep your shoulders relaxed.</p><p class="size-14">14 px · Duration · Sets · Rest · Intermediate</p><p class="size-12">12 px · I l 1 · O 0 · rn m · 8.5 kg · 03:45</p></div>
+            <p>My first pick to review. Paul D. Hunt’s Adobe family was designed for UI environments. Its humanist text shapes offer a calmer contrast to Inter Black and the expressive ribbon.</p>
+            <p>PS: <code>SourceSans3-Regular</code><br>Unmodified upstream Regular · 400</p>
+            <div class="source-links"><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/source-sans-3/SourceSans3-Regular.ttf" download>TTF ↙</a><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/source-sans-3/SourceSans3-Regular.woff2" download>WOFF2 ↙</a><a href="https://github.com/adobe-fonts/source-sans">Adobe project ↗</a><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/source-sans-3/LICENSE.txt">OFL license</a></div>
+          </article>
+          <article class="candidate">
+            <h3>IBM Plex Sans Regular</h3><p class="font-status" id="ibmPlexSans-status">Loading local font…</p>
+            <div class="candidate-sample text-sample" data-font-sample="ibmPlexSans" hidden><p class="size-16">Move with control. Keep your shoulders relaxed.</p><p class="size-14">14 px · Duration · Sets · Rest · Intermediate</p><p class="size-12">12 px · I l 1 · O 0 · rn m · 8.5 kg · 03:45</p></div>
+            <p>The more technical alternative. IBM designed Plex for UI and other media. Compare its more distinctive letter details against the quieter Source Sans 3 and the existing Inter baseline.</p>
+            <p>PS: <code>IBMPlexSans</code><br>Unmodified upstream Regular · 400</p>
+            <div class="source-links"><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/ibm-plex-sans/IBMPlexSans-Regular.ttf" download>TTF ↙</a><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/ibm-plex-sans/IBMPlexSans-Regular.woff2" download>WOFF2 ↙</a><a href="https://www.ibm.com/plex/">IBM project ↗</a><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/ibm-plex-sans/LICENSE.txt">OFL license</a></div>
+          </article>
+          <article class="candidate">
+            <h3>Inter Regular · existing baseline</h3><p class="font-status" id="inter-status">Loading bundled font…</p>
+            <div class="candidate-sample text-sample" data-font-sample="inter" hidden><p class="size-16">Move with control. Keep your shoulders relaxed.</p><p class="size-14">14 px · Duration · Sets · Rest · Intermediate</p><p class="size-12">12 px · I l 1 · O 0 · rn m · 8.5 kg · 03:45</p></div>
+            <p>The continuity option. It shares its underlying family with Inter Black and already serves the app’s text roles. Keep it as the reference when judging whether another small face is actually better.</p>
+            <p>PS: <code>Inter-Regular</code><br>Existing bundled static Regular · 400</p>
+            <div class="source-links"><a href="../../TimeMaster/Resources/Fonts/Inter-Regular.ttf" download>Regular TTF ↙</a><a href="../../TimeMaster/Resources/Fonts/Inter-Black.ttf" download>Chosen Black TTF ↙</a><a href="https://rsms.me/inter/">Project ↗</a><a href="../../TimeMaster/Resources/Fonts/INTER-LICENSE.txt">OFL license</a></div>
+          </article>
+          <article class="candidate">
+            <h3>Manrope Regular</h3><p class="font-status" id="manrope-status">Loading local font…</p>
+            <div class="candidate-sample text-sample" data-font-sample="manrope" hidden><p class="size-16">Move with control. Keep your shoulders relaxed.</p><p class="size-14">14 px · Duration · Sets · Rest · Intermediate</p><p class="size-12">12 px · I l 1 · O 0 · rn m · 8.5 kg · 03:45</p></div>
+            <p>The more geometric alternative by Mikhail Sharanda. It gives a different text texture beside Inter Black; compare the smallest captions and look-alike characters rather than judging only large words.</p>
+            <p>PS: <code>Manrope-Regular</code><br>Upstream static Regular · 400</p>
+            <div class="source-links"><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/manrope/Manrope-Regular.ttf" download>TTF ↙</a><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/manrope/Manrope-Regular.woff2" download>WOFF2 ↙</a><a href="https://github.com/googlefonts/manrope">Project ↗</a><a href="../../genesis/REFERENCE/ribbon-font/type-pairing/manrope/OFL.txt">OFL license</a></div>
+          </article>
+        </div>
+        <p class="license-note">Inter Black and all four small-text candidates are supplied under the SIL Open Font License 1.1. New font files are unchanged upstream downloads, with their original copyright and licenses retained. Exact revisions, SHA-256 checksums, weight semantics and primary research sources are in the <a href="../../genesis/REFERENCE/ribbon-font/type-pairing/research.json">research JSON</a>.</p>
+        <details class="local-help" id="local-font-help">
+          <summary>Local, offline and font-loading notes</summary>
+          <p>Every preview font comes from a relative local file. No CDN, remote stylesheet or network request is required to render this study. Source links go online only when you follow them. Downloads and licenses are local as well.</p>
+          <p>A specimen appears only after its actual font file loads. If a face is missing or blocked, its sample stays hidden and its status says unavailable; a system fallback is never presented as the selected face. Keep this page within <code>junk/ribbon-font/</code> and retain the repository’s folder structure.</p>
+          <p>Opening the HTML directly works where the browser allows local font URLs. If your browser blocks <code>file://</code> fonts, serve the <code>Time-Master</code> repository folder with a local HTTP server, then open <code>/junk/ribbon-font/typography.html</code>. HTTP still works fully offline. The canonical ribbon files must first be generated; there is no duplicate TTF here.</p>
+        </details>
+        <noscript><p class="license-note">JavaScript is required for the font selectors, loading verification and ribbon input. Samples are intentionally hidden rather than showing an unverified fallback. The local download, license and source links still work.</p></noscript>
+      </section>
+    </main>
+    <footer><span>Inter Black titles and indicators accepted. Small-text selection remains under review; native body typography is unchanged.</span><a href="individual-review.html#fgen">Back to the accepted alphabet + original PNGs ↗</a></footer>
+  </div>
+  <script>
+    const assetRoot = '../../genesis/REFERENCE/ribbon-font/type-pairing/';
+    const fonts = {
+      sourceSans3: { family: 'Source Sans 3', label: 'Source Sans 3 Regular', weight: 400, url: assetRoot + 'source-sans-3/SourceSans3-Regular.woff2', format: 'woff2', state: 'loading', rationale: 'Source Sans 3 is the current recommendation: a quieter humanist UI face beside Inter Black and the ribbon. Compare its real small-size samples before deciding.' },
+      ibmPlexSans: { family: 'IBM Plex Sans', label: 'IBM Plex Sans Regular', weight: 400, url: assetRoot + 'ibm-plex-sans/IBMPlexSans-Regular.woff2', format: 'woff2', state: 'loading', rationale: 'IBM Plex Sans is the more technical alternative. Compare its distinct details in small labels, instructions and look-alike characters.' },
+      interBlack: { family: 'Inter', label: 'Inter Black', weight: 900, url: '../../TimeMaster/Resources/Fonts/Inter-Black.ttf', format: 'truetype', state: 'loading', rationale: 'Inter Black is settled: bold everyday titles and prominent numeric values, not paragraphs or small labels.' },
+      inter: { family: 'Inter', label: 'Inter Regular', weight: 400, url: '../../TimeMaster/Resources/Fonts/Inter-Regular.ttf', format: 'truetype', state: 'loading', rationale: 'Inter Regular is the existing baseline: the same family as the bold face, already bundled and used for app text. Compare before adding a second everyday family.' },
+      manrope: { family: 'Manrope', label: 'Manrope Regular', weight: 400, url: assetRoot + 'manrope/Manrope-Regular.woff2', format: 'woff2', state: 'loading', rationale: 'Manrope makes supporting text more geometric and slightly more compact. Compare its smallest captions with Source Sans 3, IBM Plex Sans and the existing Inter baseline.' },
+      ribbon: { family: 'Tmax Ribbon', label: 'Tmax Ribbon', weight: 400, url: 'tmax-ribbon.woff2', format: 'woff2', state: 'loading' }
+    };
+    const bodySelect = document.getElementById('body-font');
+    const ribbonInput = document.getElementById('ribbon-text');
+    const inputMessage = document.getElementById('ribbon-input-message');
+    const spacingSection = document.getElementById('spacing');
+    let lastSupportedText = ribbonInput.value;
+
+    function statusText(font) {
+      if (font.state === 'ready') return 'Local ' + font.format.toUpperCase() + ' loaded · genuine ' + font.weight;
+      if (font.state === 'error') return 'Unavailable · sample hidden; check the local file and loading notes';
+      return 'Loading local ' + font.format.toUpperCase() + '…';
+    }
+
+    function applyFace(element, font) {
+      element.hidden = font.state !== 'ready';
+      element.style.fontFamily = '"' + font.family + '"';
+      element.style.fontWeight = String(font.weight);
+      element.style.fontStyle = 'normal';
+      element.style.fontSynthesis = 'none';
+      element.dataset.fontState = font.state;
+    }
+
+    function renderRole(role, font) {
+      document.querySelectorAll('[data-role-font="' + role + '"]').forEach(element => applyFace(element, font));
+      document.querySelectorAll('[data-role-note="' + role + '"]').forEach(element => {
+        element.hidden = font.state === 'ready';
+        element.textContent = font.label + (font.state === 'error' ? ' unavailable. No fallback sample is shown; see the local loading notes below.' : ' is loading. No fallback sample is shown.');
+      });
+    }
+
+    function render() {
+      const primary = fonts.interBlack;
+      const body = fonts[bodySelect.value];
+      renderRole('primary', primary);
+      renderRole('body', body);
+      renderRole('ribbon', fonts.ribbon);
+      renderRole('metric', primary);
+      document.getElementById('primary-rationale').textContent = primary.rationale;
+      document.getElementById('body-rationale').textContent = body.rationale;
+      for (const [role, font] of [['primary', primary], ['body', body], ['ribbon', fonts.ribbon]]) {
+        const status = document.getElementById(role + '-font-status');
+        status.textContent = font.label + ' · ' + statusText(font);
+        status.dataset.state = font.state;
+      }
+      document.querySelectorAll('[data-font-sample]').forEach(element => applyFace(element, fonts[element.dataset.fontSample]));
+      for (const [key, font] of Object.entries(fonts)) {
+        const status = document.getElementById(key + '-status');
+        if (!status) continue;
+        status.textContent = statusText(font);
+        status.dataset.state = font.state;
+      }
+      const loaded = Object.values(fonts).filter(font => font.state === 'ready').length;
+      const failed = Object.values(fonts).filter(font => font.state === 'error').length;
+      document.getElementById('font-load-summary').textContent = loaded + ' / ' + Object.keys(fonts).length + ' local faces loaded' + (failed ? ' · ' + failed + ' unavailable' : '');
+      document.documentElement.dataset.primaryFont = 'interBlack';
+      document.documentElement.dataset.bodyFont = bodySelect.value;
+      spacingSection.setAttribute('aria-busy', String(fonts.ribbon.state === 'loading'));
+      if (failed && location.protocol === 'file:') document.getElementById('local-font-help').open = true;
+    }
+
+    function describeCharacter(character) {
+      const code = 'U+' + character.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+      return JSON.stringify(character) + ' (' + code + ')';
+    }
+
+    function updateRibbonText() {
+      const text = ribbonInput.value;
+      const unsupported = [...new Set(Array.from(text).filter(character => !/^[A-Za-z ]$/.test(character)))];
+      ribbonInput.setAttribute('aria-invalid', String(unsupported.length > 0));
+      inputMessage.classList.toggle('error', unsupported.length > 0);
+      if (unsupported.length) {
+        const characters = unsupported.slice(0, 8).map(describeCharacter).join(', ');
+        const remaining = unsupported.length > 8 ? ' and ' + (unsupported.length - 8) + ' more' : '';
+        inputMessage.textContent = 'Unsupported: ' + characters + remaining + '. The preview still shows ' + JSON.stringify(lastSupportedText) + '. Use A–Z, a–z and ordinary spaces; numbers and punctuation are not included.';
+        return;
+      }
+      lastSupportedText = text;
+      document.getElementById('kerning-on').textContent = text;
+      document.getElementById('kerning-off').textContent = text;
+      inputMessage.textContent = text.trim() ? 'A–Z, a–z and ordinary spaces only. Numbers, punctuation, accented letters and other scripts are not included. Unsupported input keeps the last supported preview.' : 'The preview is empty. Type A–Z or a–z to see the ribbon letters; ordinary spaces are also supported.';
+    }
+
+    bodySelect.addEventListener('change', render);
+    document.getElementById('recommended-pairing').addEventListener('click', () => {
+      bodySelect.value = 'sourceSans3';
+      render();
+    });
+    ribbonInput.addEventListener('input', updateRibbonText);
+    document.querySelectorAll('[data-ribbon-text]').forEach(button => button.addEventListener('click', () => {
+      ribbonInput.value = button.dataset.ribbonText;
+      updateRibbonText();
+    }));
+    render();
+    if (typeof FontFace !== 'function' || !document.fonts) {
+      Object.values(fonts).forEach(font => { font.state = 'error'; });
+      render();
+    } else {
+      Object.values(fonts).forEach(font => {
+        const face = new FontFace(font.family, 'url("' + font.url + '") format("' + font.format + '")', { weight: String(font.weight), style: 'normal', display: 'block' });
+        face.load().then(loadedFace => {
+          document.fonts.add(loadedFace);
+          font.state = 'ready';
+          render();
+        }).catch(() => {
+          font.state = 'error';
+          render();
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "researchedOn": "2026-10-21",
+  "scope": "Inter Black is user-accepted for bold titles and prominent numeric indicators. The small-text companion remains a visual selection, not a native body-font replacement. Tmax Ribbon remains an occasional accent title, never a body face.",
+  "recommendation": {
+    "kind": "User-accepted bold face with a subjective small-text recommendation still awaiting selection",
+    "primary": "Inter-Black",
+    "body": "SourceSans3-Regular",
+    "accent": "TmaxRibbon-Regular",
+    "rationale": "The user chose Inter Black for bold titles and prominent Duration, Sets and Rest values. Source Sans 3 Regular is the current small-text recommendation to review: a quieter humanist UI texture beside dense Inter Black and expressive ribbon. IBM Plex Sans Regular, Manrope Regular and the existing Inter Regular remain comparison options. No new small-text face has been accepted or applied globally.",
+    "usage": {
+      "primary": "User-chosen bold titles and prominent numeric indicators",
+      "body": "Regular-weight instructions, captions, small labels and supporting data; not prominent numeric indicators",
+      "accent": "Occasional short expressive headings using supported Latin letters and spaces only"
+    }
+  },
+  "candidates": [
+    {
+      "family": "Source Sans 3",
+      "postScriptName": "SourceSans3-Regular",
+      "cssWeight": 400,
+      "role": "Small-text recommendation awaiting human selection",
+      "rationale": "A quieter humanist UI texture beside Inter Black and Tmax Ribbon. The recommendation is subjective; equal CSS sizes retain the natural x-height of each font.",
+      "upstreamRepository": "https://github.com/adobe-fonts/source-sans",
+      "revision": "87b37a2daaed80fcb8e8ccb0085c4d72ddade12e",
+      "version": "Version 3.052;hotconv 1.1.0;makeotfexe 2.6.0",
+      "license": "SIL Open Font License 1.1",
+      "xHeight": 486,
+      "unitsPerEm": 1000,
+      "assets": [
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/source-sans-3/SourceSans3-Regular.ttf",
+          "source": "https://raw.githubusercontent.com/adobe-fonts/source-sans/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/TTF/SourceSans3-Regular.ttf",
+          "bytes": 431196,
+          "sha256": "4644c81b86ec9caaa76b634889968ed3c4f4f52f054855933acc7c2b21e53b0f"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/source-sans-3/SourceSans3-Regular.woff2",
+          "source": "https://raw.githubusercontent.com/adobe-fonts/source-sans/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/WOFF2/OTF/SourceSans3-Regular.otf.woff2",
+          "bytes": 153800,
+          "sha256": "63de0da0cc05298e2e9c6e5cef506d8454ca665f6e668a99d94f51174b9256ed"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/source-sans-3/LICENSE.txt",
+          "source": "https://raw.githubusercontent.com/adobe-fonts/source-sans/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/LICENSE.md",
+          "bytes": 4486,
+          "sha256": "56af9b9c6715597e458284a474dc118a50a4150e9d547c70f7b4a33c3e6a9328"
+        }
+      ]
+    },
+    {
+      "family": "IBM Plex Sans",
+      "postScriptName": "IBMPlexSans",
+      "cssWeight": 400,
+      "role": "Small-text alternative",
+      "rationale": "A more technical UI character. The original Regular file has PostScript name IBMPlexSans without a Regular suffix.",
+      "upstreamRepository": "https://github.com/IBM/plex",
+      "revision": "71f558992315a12ca1f06a2215d57962a1992162",
+      "version": "Version 3.005",
+      "license": "SIL Open Font License 1.1",
+      "xHeight": 516,
+      "unitsPerEm": 1000,
+      "assets": [
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/ibm-plex-sans/IBMPlexSans-Regular.ttf",
+          "source": "https://raw.githubusercontent.com/IBM/plex/71f558992315a12ca1f06a2215d57962a1992162/packages/plex-sans/fonts/complete/ttf/IBMPlexSans-Regular.ttf",
+          "bytes": 200500,
+          "sha256": "975dcda37d80f038dcd143c22e33ca2d97a0cc5a929aace1c749153b0fe1afa5"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/ibm-plex-sans/IBMPlexSans-Regular.woff2",
+          "source": "https://raw.githubusercontent.com/IBM/plex/71f558992315a12ca1f06a2215d57962a1992162/packages/plex-sans/fonts/complete/woff2/IBMPlexSans-Regular.woff2",
+          "bytes": 63020,
+          "sha256": "ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/ibm-plex-sans/LICENSE.txt",
+          "source": "https://raw.githubusercontent.com/IBM/plex/71f558992315a12ca1f06a2215d57962a1992162/packages/plex-sans/fonts/complete/ttf/license.txt",
+          "bytes": 4360,
+          "sha256": "91c25c350d3cac39da2736d74f7ba37ef648f5237a4e330a240615bc8d8c4360"
+        }
+      ]
+    },
+    {
+      "family": "Archivo Black",
+      "postScriptName": "ArchivoBlack-Regular",
+      "cssWeight": 400,
+      "semanticWeight": "Black-looking standalone headline family, internally Regular/400; do not request 900 or synthesize bold.",
+      "role": "Historical title shortlist, not selected; reference assets retained",
+      "rationale": "Originally researched as a title alternative. The user subsequently chose Inter Black; this face is no longer loaded by the active specimen.",
+      "licenseNote": "Upstream OFL.txt contains pre-existing unresolved merge markers and is preserved byte-for-byte. The same revision also includes a complete clean OFL in LICENSE.md, preserved byte-for-byte here as LICENSE.txt; no license text or font data was edited.",
+      "upstreamRepository": "https://github.com/Omnibus-Type/ArchivoBlack",
+      "revision": "30a0eb7112a7b84e45f922c70bf53644dbfb0c74",
+      "version": "Version 1.101; ttfautohint (v1.8)",
+      "license": "SIL Open Font License 1.1",
+      "assets": [
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/archivo-black/ArchivoBlack-Regular.ttf",
+          "source": "https://raw.githubusercontent.com/Omnibus-Type/ArchivoBlack/30a0eb7112a7b84e45f922c70bf53644dbfb0c74/fonts/ttf/ArchivoBlack-Regular.ttf",
+          "bytes": 107140,
+          "sha256": "3cdaf0609a90ce679499407fc7761f3adb5ae8d3c3237249c2d11f5f095eda7d"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/archivo-black/ArchivoBlack-Regular.woff2",
+          "source": "https://raw.githubusercontent.com/Omnibus-Type/ArchivoBlack/30a0eb7112a7b84e45f922c70bf53644dbfb0c74/fonts/webfonts/woff2/ArchivoBlack-Regular.woff2",
+          "bytes": 38316,
+          "sha256": "0dbc82a813545033b262ec997055417e05375b78f73f4b7779e31895ee02fe92"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/archivo-black/OFL.txt",
+          "source": "https://raw.githubusercontent.com/Omnibus-Type/ArchivoBlack/30a0eb7112a7b84e45f922c70bf53644dbfb0c74/OFL.txt",
+          "bytes": 9142,
+          "sha256": "000a3db5300ab7645fb1f861061987f7a4320939ae733d5c29aab3df6a281447"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/archivo-black/AUTHORS.txt",
+          "source": "https://raw.githubusercontent.com/Omnibus-Type/ArchivoBlack/30a0eb7112a7b84e45f922c70bf53644dbfb0c74/AUTHORS.txt",
+          "bytes": 304,
+          "sha256": "c05b551f655af415eec9ba361f42302c9e7646925b2320a805c07a87a7eab7f8"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/archivo-black/LICENSE.txt",
+          "source": "https://raw.githubusercontent.com/Omnibus-Type/ArchivoBlack/30a0eb7112a7b84e45f922c70bf53644dbfb0c74/LICENSE.md",
+          "bytes": 4294,
+          "sha256": "ef7269860e6475933949d738aec154245c3c1ec3ddb6a7637d9067e697c2ffbd"
+        }
+      ]
+    },
+    {
+      "family": "Bricolage Grotesque",
+      "postScriptName": "BricolageGrotesque-ExtraBold",
+      "cssWeight": 800,
+      "semanticWeight": "Upstream static ExtraBold, normal width; not a variable font and no synthetic weight.",
+      "role": "Historical title shortlist, not selected; reference assets retained",
+      "rationale": "Originally researched as a title alternative. The user subsequently chose Inter Black; this face is no longer loaded by the active specimen.",
+      "upstreamRepository": "https://github.com/ateliertriay/bricolage",
+      "revision": "84745e5b96261ae5f8c6c856e262fe78d1d6efdd",
+      "version": "Version 1.001; ttfautohint (v1.8.4.7-5d5b);gftools[0.9.33.dev8+g029e19f]",
+      "license": "SIL Open Font License 1.1",
+      "assets": [
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/bricolage-grotesque/BricolageGrotesque-ExtraBold.ttf",
+          "source": "https://raw.githubusercontent.com/ateliertriay/bricolage/84745e5b96261ae5f8c6c856e262fe78d1d6efdd/fonts/ttf/BricolageGrotesque-ExtraBold.ttf",
+          "bytes": 118028,
+          "sha256": "20ca28c496aef07993031176c1a02da6959682abbc4cbf73776f83e63ef80c00"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/bricolage-grotesque/BricolageGrotesque-ExtraBold.woff2",
+          "source": "https://raw.githubusercontent.com/ateliertriay/bricolage/84745e5b96261ae5f8c6c856e262fe78d1d6efdd/fonts/webfonts/BricolageGrotesque-ExtraBold.woff2",
+          "bytes": 46872,
+          "sha256": "b19988f07c22c42412d350745a3e26d6c7b8cd409830f607ddcad7d618eaeb12"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/bricolage-grotesque/OFL.txt",
+          "source": "https://raw.githubusercontent.com/ateliertriay/bricolage/84745e5b96261ae5f8c6c856e262fe78d1d6efdd/OFL.txt",
+          "bytes": 4403,
+          "sha256": "4b5a7d8f37f5602621c8a8d7358a6a2e71317e6c231c661e15aef0275d3e07ba"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/bricolage-grotesque/AUTHORS.txt",
+          "source": "https://raw.githubusercontent.com/ateliertriay/bricolage/84745e5b96261ae5f8c6c856e262fe78d1d6efdd/AUTHORS.txt",
+          "bytes": 286,
+          "sha256": "452e4107f01c3d47b9f5cf47f39d962439836dfaeec27e85ec8eb7b9dd87c172"
+        }
+      ]
+    },
+    {
+      "family": "Manrope",
+      "postScriptName": "Manrope-Regular",
+      "cssWeight": 400,
+      "semanticWeight": "Upstream static Regular/400; no synthetic weight.",
+      "role": "body alternative",
+      "rationale": "A geometric, semi-condensed small-text alternative to compare at real 12, 14 and 16 px sizes against Source Sans 3, IBM Plex Sans and the existing Inter baseline.",
+      "upstreamRepository": "https://github.com/googlefonts/manrope",
+      "revision": "468c0dbe38efa331b80bfe9448256abe27be44c3",
+      "version": "Version 4.505; ttfautohint (v1.8.4.16-eb64)",
+      "license": "SIL Open Font License 1.1",
+      "assets": [
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/manrope/Manrope-Regular.ttf",
+          "source": "https://raw.githubusercontent.com/googlefonts/manrope/468c0dbe38efa331b80bfe9448256abe27be44c3/fonts/ttf/manrope-regular.ttf",
+          "bytes": 143112,
+          "sha256": "d23d6eedf51dd495138aa1a83588027d4a63549cdfcc2fa5e0d8e84e09cf4cb1"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/manrope/Manrope-Regular.woff2",
+          "source": "https://raw.githubusercontent.com/googlefonts/manrope/468c0dbe38efa331b80bfe9448256abe27be44c3/fonts/webfonts/Manrope-Regular.woff2",
+          "bytes": 47252,
+          "sha256": "37c93c1ddb69907608c9b81d66e21596daeeb1c302abeba5e1e0759ec4042ab5"
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/manrope/OFL.txt",
+          "source": "https://raw.githubusercontent.com/googlefonts/manrope/468c0dbe38efa331b80bfe9448256abe27be44c3/OFL.txt",
+          "bytes": 4387,
+          "sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b"
+        }
+      ]
+    },
+    {
+      "family": "Inter",
+      "postScriptName": "Inter-Black",
+      "cssWeight": 900,
+      "role": "Everyday bold title and prominent numeric indicators; user accepted",
+      "version": "Version 4.001;git-9221beed3",
+      "source": "https://rsms.me/inter/",
+      "license": "SIL Open Font License 1.1",
+      "licensePath": "TimeMaster/Resources/Fonts/INTER-LICENSE.txt",
+      "asset": {
+        "path": "TimeMaster/Resources/Fonts/Inter-Black.ttf",
+        "sha256": "6342d3ea6dc088b43867f615e807d898adf100c93edb978b8e52c5eb71a264da"
+      },
+      "rationale": "The user explicitly chose Inter Black and requested it for the large Duration, Sets and Rest values independently of the small-text font."
+    },
+    {
+      "family": "Inter",
+      "postScriptName": "Inter-Regular",
+      "cssWeight": 400,
+      "role": "Small-text baseline; existing native app body remains unchanged",
+      "version": "Version 4.001;git-9221beed3",
+      "source": "https://rsms.me/inter/",
+      "license": "SIL Open Font License 1.1",
+      "licensePath": "TimeMaster/Resources/Fonts/INTER-LICENSE.txt",
+      "asset": {
+        "path": "TimeMaster/Resources/Fonts/Inter-Regular.ttf",
+        "sha256": "40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82"
+      },
+      "rationale": "Same-family continuity baseline for judging whether a new small-text face is preferable."
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://github.com/adobe-fonts/source-sans",
+      "publisher": "Adobe Fonts / Paul D. Hunt",
+      "supports": [
+        "Designed to work well in UI environments",
+        "Source Sans 3 family",
+        "Original Regular 400 files",
+        "SIL OFL 1.1"
+      ]
+    },
+    {
+      "url": "https://github.com/IBM/plex",
+      "publisher": "IBM",
+      "supports": [
+        "Designed to work well in UI environments and other media",
+        "IBM Plex Sans family",
+        "Original Regular 400 files",
+        "SIL OFL 1.1"
+      ]
+    },
+    {
+      "url": "https://www.omnibus-type.com/fonts/archivo-black/",
+      "publisher": "Omnibus-Type",
+      "supports": [
+        "Designed for highlights and headlines",
+        "Grotesque sans serif",
+        "Foundry CSS advertises Archivo Black at weight 400",
+        "SIL OFL 1.1"
+      ]
+    },
+    {
+      "url": "https://ateliertriay.github.io/bricolage/",
+      "publisher": "Mathieu Triay / Atelier Triay",
+      "supports": [
+        "Expressive design combining French and British grotesque sources",
+        "Weight, width and optical-size design axes",
+        "Smaller optical sizes are deliberately more neutral",
+        "Free and open source"
+      ]
+    },
+    {
+      "url": "https://github.com/googlefonts/manrope",
+      "publisher": "Manrope project / Google Fonts",
+      "supports": [
+        "Designed by Mikhail Sharanda",
+        "Modern geometric semi-condensed sans serif",
+        "Tabular figures and OpenType features",
+        "SIL OFL 1.1"
+      ]
+    },
+    {
+      "url": "https://rsms.me/inter/",
+      "publisher": "Rasmus Andersson / Inter project",
+      "supports": [
+        "Designed for detailed user interfaces and other applications",
+        "Text designs have tall x-height for lowercase legibility",
+        "Weight 400 is Regular and weight 900 is Black",
+        "Tabular numbers",
+        "SIL OFL 1.1"
+      ]
+    }
+  ],
+  "delivery": {
+    "allPreviewFontsLocal": true,
+    "candidateFilesUnmodified": true,
+    "ribbonTrackingEm": 0,
+    "ribbonSupportedCharacters": "A-Z, a-z, ASCII space",
+    "invalidRibbonInput": "Preserve last fully supported preview text and identify unsupported characters.",
+    "fontReadiness": "Display specimen ink only after the corresponding FontFace.load resolves and that face is added to document.fonts. Loading or failed samples stay hidden, never labeled as the selected font while showing a fallback.",
+    "directFile": "Uses relative FontFace URLs and inline JavaScript; no modules, fetch, CDN or server dependency. Browsers that block file-URL fonts receive explicit unavailable status and local-HTTP instructions rather than a mislabeled fallback.",
+    "ribbonWoff2": "junk/ribbon-font/tmax-ribbon.woff2",
+    "ribbonNativeTtf": "TimeMaster/Resources/Fonts/TmaxRibbon-Regular.ttf",
+    "ribbonOtf": "junk/ribbon-font/tmax-ribbon.otf",
+    "acceptedPrimaryAndMetricFace": "Inter-Black",
+    "smallTextSelectionAccepted": false,
+    "smallTextPreviewDefault": "SourceSans3-Regular",
+    "smallTextComparisonSizesPx": [
+      12,
+      14,
+      16
+    ],
+    "nativeBodyReplacementApplied": false
+  }
+}

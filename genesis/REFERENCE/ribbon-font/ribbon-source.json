@@ -1,0 +1,1008 @@
+{
+  "schemaVersion": 1,
+  "familyName": "Tmax Ribbon",
+  "postScriptName": "TmaxRibbon-Regular",
+  "unitsPerEm": 1000,
+  "capHeight": 560,
+  "xHeight": 406,
+  "coverage": {
+    "letters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+    "space": "U+0020",
+    "unsupported": "Numbers, punctuation, diacritics and symbols are not supplied."
+  },
+  "sourcePolicy": "The 52 selected PNGs are immutable. Trace their white silhouettes after alpha compositing against black; retain all thresholded components and counters without pixel cleanup, redrawing or nonuniform scaling. Preserve the original M, user-accepted initial S, refined I, selected L-v2, clean u-v3 and x-v2.",
+  "raster": {
+    "alphaBackground": "#000000",
+    "threshold": 128,
+    "foregroundComparison": "greater-than-or-equal",
+    "componentConnectivity": 4
+  },
+  "provenanceFiles": [
+    {
+      "path": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+      "sha256": "945c141070baf4fa2cde53c35a6f34b93348ff0672c63fd9b5da5225f3655c1f"
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json",
+      "sha256": "8340c5842bb8840eaa7745c9ac19de0849fddef1150d7efcd3aa5b36aeb233b8"
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/generation.json",
+      "sha256": "6b12174afc8b8bb6f680e0f168afa1de6245ed7881237ac5994acc9809d51d6d"
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+      "sha256": "da909a0e63a2b1d9cf8cc8745ec892f65434ac5be43496909bd1d179c2d2fa87"
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+      "sha256": "e339c1bf79b334e7bafa0376a36a1a032bb77c04620e3ed4d9b54138b3aec918"
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/individual-m/glyph-calculations.json",
+      "sha256": "f4ccb829d566ffff1187b2fdb0d3fce11f24670afb0ca959646e8a6fe4647869"
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/individual-m/master-M.png",
+      "sha256": "948ab4188bc17cbfdc74e04ec35cdbbecff4b70ad7394a9b4b3203129b3ff404"
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/individual-m/style-measurements.json",
+      "sha256": "c46077362cf8111fcac7b59e18d02ccc6e04fcd37606f8845c2b83a74f68389c"
+    }
+  ],
+  "glyphs": {
+    "A": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 176,
+      "top": 278,
+      "right": 1057,
+      "bottom": 981,
+      "sha256": "205d3bdf40ca8363fb4d3e545fa09a497bd0541d5a3d9cd2215ca128a50b8961",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json",
+        "record": "outputs.A"
+      }
+    },
+    "B": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 155,
+      "top": 249,
+      "right": 976,
+      "bottom": 983,
+      "sha256": "0a80c4c78a1fcbbc893a5849d2b0a66250ee878b8cdd8df8ce4645eb2f161f59",
+      "silhouette": {
+        "components": 1,
+        "counters": 2
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json",
+        "record": "outputs.B"
+      }
+    },
+    "C": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-C.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 203,
+      "top": 211,
+      "right": 1060,
+      "bottom": 1054,
+      "sha256": "eba9f4585ea7a68ad388c907c5e9ce209a6c11f8faf8656d7cec6b476060bdfa",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.C"
+      }
+    },
+    "D": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-D.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 241,
+      "top": 261,
+      "right": 1013,
+      "bottom": 987,
+      "sha256": "6a176865a783b6308e333a76dc13b944afad44df8174e6454766b3f4d833c0fd",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.D"
+      }
+    },
+    "E": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-E.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 149,
+      "top": 167,
+      "right": 1094,
+      "bottom": 1048,
+      "sha256": "6d65418211a9aba1160e2eefcd568ec28f2bff7685290fb95e19a313e4d1a59d",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.E"
+      }
+    },
+    "F": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-F.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 114,
+      "top": 191,
+      "right": 1139,
+      "bottom": 1062,
+      "sha256": "1865b03bed164a28c01d749989fecf5ec6d72f9df274185b37e9bbb469453257",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.F"
+      }
+    },
+    "G": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-G.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 207,
+      "top": 221,
+      "right": 1038,
+      "bottom": 1044,
+      "sha256": "8788096566cebd8f20193da9ba104d02ead4a1f33cae7d115ae1b4ae24af4498",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.G"
+      }
+    },
+    "H": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 164,
+      "top": 229,
+      "right": 1090,
+      "bottom": 1010,
+      "sha256": "112628bb6b94ea186690f58145f6d8c238533b6f73e57993948b4f256ac9bd06",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.H"
+      }
+    },
+    "I": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/uppercase-I-v2.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 345,
+      "top": 255,
+      "right": 833,
+      "bottom": 1006,
+      "sha256": "6574c07dd23c25461b99eace3c483adf3a5e294d05ff8e1bb43f19797c3e2a92",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/generation.json",
+        "record": "outputs.I"
+      }
+    },
+    "J": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 252,
+      "top": 267,
+      "right": 985,
+      "bottom": 992,
+      "sha256": "9f2c6eb3fde1c5089cd175ae64d1c844fcae376040e4d489dbe28e22973c8b7a",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.J"
+      }
+    },
+    "K": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 130,
+      "top": 219,
+      "right": 1091,
+      "bottom": 1044,
+      "sha256": "72b040daf7774485f38d57f200b993abdcc8912dad9dec4b8df93b0ed845018c",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.K"
+      }
+    },
+    "L": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 276,
+      "top": 263,
+      "right": 978,
+      "bottom": 996,
+      "sha256": "e0fad0e920b507be1b29e6aeeb2ba4e0da42de59b67c7ffec34d59d36188ec84",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json",
+        "record": "outputs.L"
+      }
+    },
+    "M": {
+      "src": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "left": 72,
+      "top": 232,
+      "right": 952,
+      "bottom": 792,
+      "sha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/individual-m/style-measurements.json",
+        "record": "target_canvas",
+        "role": "Untouched original M reference; no generation."
+      }
+    },
+    "N": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-N.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 149,
+      "top": 268,
+      "right": 1068,
+      "bottom": 979,
+      "sha256": "588836b3fdbec0393a9ccef9ea1be134948d444d9c370119a119593b4aab1762",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.N"
+      }
+    },
+    "O": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-O.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 274,
+      "top": 223,
+      "right": 975,
+      "bottom": 1033,
+      "sha256": "da492ca2e129d4d1b117e958a0135e0f757c83d506a7b693978ec4b1f991a6c0",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.O"
+      }
+    },
+    "P": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-P.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 207,
+      "top": 208,
+      "right": 1051,
+      "bottom": 1045,
+      "sha256": "a7a0fb78e8ce5a60412580c1bb7bc4e0437e8d6f3aec1bfb10097f357680d0a5",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.P"
+      }
+    },
+    "Q": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 305,
+      "top": 273,
+      "right": 1001,
+      "bottom": 979,
+      "baseline": 935,
+      "sha256": "89e5f945dd6f59704479e17ff98b8a31107744cded7f0453295e8d5f6c3ae7cd",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.Q"
+      }
+    },
+    "R": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-R.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 140,
+      "top": 260,
+      "right": 1111,
+      "bottom": 1019,
+      "sha256": "f44154efc286d55c62ab6861566bdc5cbd16b5a0b562f383ec52d14f96d756f3",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.R"
+      }
+    },
+    "S": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 321,
+      "top": 220,
+      "right": 941,
+      "bottom": 1026,
+      "sha256": "2c45158f0da34b99c2e40b450349f3ee82445a58dfc409a064b4669da73fa029",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json",
+        "record": "outputs.S"
+      }
+    },
+    "T": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-T.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 194,
+      "top": 280,
+      "right": 1061,
+      "bottom": 987,
+      "sha256": "7963ffa446b78f01d70bf03cb8ad0dae812ac8884995199b6359afd797095d0e",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.T"
+      }
+    },
+    "U": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 201,
+      "top": 206,
+      "right": 1082,
+      "bottom": 1075,
+      "sha256": "52d1541c86e3bd7a812bebfe7b1acdf72de48c8c21dc52e6326cb3b60e16c690",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.U"
+      }
+    },
+    "V": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-V.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 225,
+      "top": 277,
+      "right": 1053,
+      "bottom": 977,
+      "sha256": "0e266b634dca1ced65dd87fc1d0198d70dc78bb5014d1a1d9d6bfbd1080eae95",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.V"
+      }
+    },
+    "W": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 66,
+      "top": 285,
+      "right": 1181,
+      "bottom": 959,
+      "sha256": "200e2e837dbfa36c36a638e228b51ce63747f1259bac6a4ea60b15fb011b2a70",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.W"
+      }
+    },
+    "X": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-X.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 202,
+      "top": 251,
+      "right": 1050,
+      "bottom": 1015,
+      "sha256": "34dad10d3add1977df5751cb2589d8a79af8007dc077cad2835167632ed0cb15",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json",
+        "record": "outputs.X"
+      }
+    },
+    "Y": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/uppercase-Y.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 297,
+      "top": 240,
+      "right": 994,
+      "bottom": 1011,
+      "sha256": "ad92db79ecfce3665be974e6903d4f984d0c03db54fd3680ff3e9162e81e39b9",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.Y"
+      }
+    },
+    "Z": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/uppercase-Z.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 209,
+      "top": 235,
+      "right": 1044,
+      "bottom": 1016,
+      "sha256": "e41ce9946f9e4f9101bac24ef65b77792697f547972b5909be29ea57116fddfc",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.Z"
+      }
+    },
+    "a": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 299,
+      "top": 366,
+      "right": 992,
+      "bottom": 895,
+      "sha256": "f21d2715974f1341ff5fcb1458dcad51516041c6800df2373aecac5ed794fb44",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json",
+        "record": "outputs.a"
+      }
+    },
+    "b": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-b.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 310,
+      "top": 188,
+      "right": 944,
+      "bottom": 1066,
+      "xTop": 527,
+      "sha256": "fc4b29e5cbdb2f926ea75d66ee46aed340b83b6148ad2bc1cbc746e30d690606",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.b"
+      }
+    },
+    "c": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-c.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 344,
+      "top": 340,
+      "right": 918,
+      "bottom": 934,
+      "sha256": "885d538a72b6030a10dc64c77061e127be107af398512b06fe3cefd31e222307",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.c"
+      }
+    },
+    "d": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-d.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 271,
+      "top": 200,
+      "right": 1015,
+      "bottom": 1050,
+      "xTop": 539,
+      "sha256": "d282beeb3f7c944a336a9d8be165841afea16b8b3290bcb8e9ed51a8531a967f",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.d"
+      }
+    },
+    "e": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-e.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 308,
+      "top": 303,
+      "right": 961,
+      "bottom": 944,
+      "sha256": "80ebf2798d4ac86ba30ad21b4a3c06a02c835e3fe28173e57755b119cbc56031",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.e"
+      }
+    },
+    "f": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-f.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 382,
+      "top": 205,
+      "right": 865,
+      "bottom": 1041,
+      "xTop": 535,
+      "sha256": "4f8fd621782f9cd3beb343754a4b84ffccf2c1693980969d143ca6aa2fc8b2ab",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.f"
+      }
+    },
+    "g": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-g.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 333,
+      "top": 301,
+      "right": 930,
+      "bottom": 1033,
+      "baseline": 755,
+      "sha256": "1ccab2d2e7f0e6120b5c85ffe6d602e9d2facf6c226e37a10e5cf7663677e7e0",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.g"
+      }
+    },
+    "h": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-h.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 164,
+      "top": 169,
+      "right": 1090,
+      "bottom": 1085,
+      "xTop": 493,
+      "sha256": "899148aa0684633746cfd478ff4bd2f2bc93f14e9b44c600d8bb63c12ec3a8c2",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.h"
+      }
+    },
+    "i": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-i.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 440,
+      "top": 269,
+      "right": 734,
+      "bottom": 985,
+      "xTop": 496,
+      "sha256": "c26ffac9b05f4224aef7b9d4416b57727d64904c4337d2206b0ab882611930d4",
+      "silhouette": {
+        "components": 2,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.i"
+      }
+    },
+    "j": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-j.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 400,
+      "top": 232,
+      "right": 787,
+      "bottom": 1032,
+      "xTop": 424,
+      "baseline": 830,
+      "sha256": "cb2c640e40b3b3a48ccf930a877c847f28222a7a0ca043ea588111dd03e00ec1",
+      "silhouette": {
+        "components": 2,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.j"
+      }
+    },
+    "k": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-k.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 221,
+      "top": 210,
+      "right": 1023,
+      "bottom": 1056,
+      "xTop": 473,
+      "sha256": "15478645c8c39ddc76721b7d09493fde68d715dbe5ebaf398710838486bbd439",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.k"
+      }
+    },
+    "l": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-l.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 437,
+      "top": 183,
+      "right": 810,
+      "bottom": 1069,
+      "xTop": 507,
+      "sha256": "9105c9ffefcb9309dff36a4543af3d3c2e6e58efeb83e8a75144fca59656023f",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.l"
+      }
+    },
+    "m": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 86,
+      "top": 358,
+      "right": 1168,
+      "bottom": 881,
+      "sha256": "de418a9d039c59bbbb8d320267bccdbcaec621dc4d945860833d43399a64aad1",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json",
+        "record": "outputs.m"
+      }
+    },
+    "n": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-n.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 215,
+      "top": 319,
+      "right": 1038,
+      "bottom": 953,
+      "sha256": "fd63f74f7e94cec3b198e0862455cc894a8d37fa023a84b7fef4301f5c429882",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.n"
+      }
+    },
+    "o": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-o.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 290,
+      "top": 322,
+      "right": 957,
+      "bottom": 937,
+      "sha256": "1eaec3b7ff71240c96480c8c330a4d22779b9a7dd3c2710dc4e84a8eb9964136",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.o"
+      }
+    },
+    "p": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-p.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 352,
+      "top": 331,
+      "right": 891,
+      "bottom": 972,
+      "baseline": 730,
+      "sha256": "8ed718f71217d0974e4680ac664409c4b7e8bb6512e92ced98e20f7909ec2264",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.p"
+      }
+    },
+    "q": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-q.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 286,
+      "top": 278,
+      "right": 1016,
+      "bottom": 995,
+      "baseline": 825,
+      "sha256": "6dce7404ef192a5dbfb472d017d0f60f78cb6db1a8b2d4ab775e677dccabe9b8",
+      "silhouette": {
+        "components": 1,
+        "counters": 1
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.q"
+      }
+    },
+    "r": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-r.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 331,
+      "top": 343,
+      "right": 917,
+      "bottom": 903,
+      "sha256": "5b5ce83158ad702de95378de0c8c6be1a35e8deb308b2bc025dc299739a2e415",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.r"
+      }
+    },
+    "s": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-s.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 394,
+      "top": 345,
+      "right": 860,
+      "bottom": 910,
+      "sha256": "b319d4d172da26ef2bbf6a7f624a4be11a21047c3b429287ea3c779becb89937",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.s"
+      }
+    },
+    "t": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-t.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 327,
+      "top": 245,
+      "right": 884,
+      "bottom": 1012,
+      "xTop": 478,
+      "sha256": "74bb08840b887b9ceed972e2526846d7bb52384acf8ce32bff771e6112d0f81b",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.t"
+      }
+    },
+    "u": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-u-v3.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 281,
+      "top": 331,
+      "right": 989,
+      "bottom": 950,
+      "sha256": "f08f4ee97caa76e69bddb8ef2b2e92a3482af288a1b3d4914bad82e6c52bb515",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.u"
+      }
+    },
+    "v": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-v.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 268,
+      "top": 355,
+      "right": 1012,
+      "bottom": 943,
+      "sha256": "e10aed0f1d584c76174132b48533fabfd6a0bd27b32a841ae971ede136656a85",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.v"
+      }
+    },
+    "w": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-w.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 79,
+      "top": 432,
+      "right": 1176,
+      "bottom": 878,
+      "sha256": "0cc667c734c688bb276d03d2f8989bf2b3652cb09e33f2b2b3e4ab8d65217345",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.w"
+      }
+    },
+    "x": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-x-v2.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 316,
+      "top": 345,
+      "right": 933,
+      "bottom": 925,
+      "sha256": "e2ce584041811fc419189f1036bc03e3d4e45225ba52f05e6b5ad71a848c986a",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.x"
+      }
+    },
+    "y": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-y.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 323,
+      "top": 290,
+      "right": 951,
+      "bottom": 1026,
+      "baseline": 690,
+      "sha256": "e0b2a600b2d3b9d6f5d34ba9863eb9f29238b9ad740adb4747f6a8fccb8b47e8",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.y"
+      }
+    },
+    "z": {
+      "src": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/lowercase-z.png",
+      "canvasWidth": 1254,
+      "canvasHeight": 1254,
+      "left": 319,
+      "top": 302,
+      "right": 935,
+      "bottom": 952,
+      "sha256": "62e07918e33c367d89144b729b2d4a42eab544e1a475ce34448e1d0b0aeabb41",
+      "silhouette": {
+        "components": 1,
+        "counters": 0
+      },
+      "provenance": {
+        "file": "genesis/REFERENCE/ribbon-font/fgen-complete-alphabet-original-M/generation.json",
+        "record": "outputs.z"
+      }
+    }
+  }
+}
