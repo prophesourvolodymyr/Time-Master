@@ -1886,12 +1886,12 @@ The user accepted the refined I and requested all remaining capitals and small l
 - [x] Generate and individually inspect uppercase Y from the original M
 - [x] Generate and individually inspect uppercase Z from the original M
 - [x] Generate and individually inspect lowercase b from the original M
-- [ ] Generate and individually inspect lowercase c from the original M
-- [ ] Generate and individually inspect lowercase d from the original M
-- [ ] Generate and individually inspect lowercase e from the original M
-- [ ] Generate and individually inspect lowercase f from the original M
-- [ ] Generate and individually inspect lowercase g from the original M
-- [ ] Generate and individually inspect lowercase h from the original M
+- [x] Generate and individually inspect lowercase c from the original M
+- [x] Generate and individually inspect lowercase d from the original M
+- [x] Generate and individually inspect lowercase e from the original M
+- [x] Generate and individually inspect lowercase f from the original M
+- [x] Generate and individually inspect lowercase g from the original M
+- [x] Generate and individually inspect lowercase h from the original M
 - [ ] Generate and individually inspect lowercase i from the original M
 - [ ] Generate and individually inspect lowercase j from the original M
 - [ ] Generate and individually inspect lowercase k from the original M
