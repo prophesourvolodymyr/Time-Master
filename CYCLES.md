@@ -1825,7 +1825,7 @@ The user also requested closer letter spacing. All three previews now start at -
 - [x] Tighten default letter spacing and extend the negative-spacing range in the Vector, Fgen and earlier font previews
 - [x] Generate and individually inspect uppercase N from the original M
 - [x] Generate and individually inspect uppercase O from the original M
-- [ ] Generate and individually inspect uppercase P from the original M
+- [x] Generate and individually inspect uppercase P from the original M
 - [ ] Generate and individually inspect uppercase Q from the original M
 - [ ] Generate and individually inspect uppercase R from the original M
 - [ ] Generate and individually inspect uppercase T from the original M
