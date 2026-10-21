@@ -1879,6 +1879,42 @@ The user keeps the exact initial generated S and reports that uppercase I does n
 
 The first I redraw retained the old slab-serif construction and was rejected before integration. The selected second output is one broad forward-rising ribbon with a rounded crest and compact rounded-flat foot, generated using only the original M image. Both raw outputs, the supplied TIME image, exact prompts, reference fingerprints, saved events and the equal-cap-height M/old-I/new-I comparison are retained in `genesis/REFERENCE/ribbon-font/fgen-i-refinement-original-M/`. The connected tester preserves the accepted initial S and uses the new I in TIME, MIMI, MINI, INITIAL and other supported words. Direct-file and HTTP smoke checks exercised normal, +0.160 em and −0.200 em spacing, native empty-input deletion and recovery, unsupported-input preservation, keyboard controls, independent Vector/Fgen drafts, guides and four responsive widths. Blocking the refined I image produced the missing-image state without disabling Vector; restoring the image and reloading recovered TIME. The raw I fingerprint is unchanged. On 2026-10-21 the user accepted the refined I and requested the remaining uppercase and lowercase alphabet.
 
+### Batch 15 — Complete Uppercase and Lowercase Fgen Alphabet — 2026-10-21
+
+The user accepted the refined I and requested all remaining capitals and small letters. Keep the original M, approved initial S, approved refined I and existing selected letters unchanged. Generate Y, Z and the twenty-four missing lowercase letters one at a time from the original M, inspect each saved image before generating the next, preserve every raw output and exact generation record, and connect the complete A–Z / a–z set to the existing PNG tester. Lowercase bodies share an x-height; ascenders, dots and descenders retain their actual letter anatomy rather than being flattened to the body height.
+
+- [x] Generate and individually inspect uppercase Y from the original M
+- [x] Generate and individually inspect uppercase Z from the original M
+- [x] Generate and individually inspect lowercase b from the original M
+- [ ] Generate and individually inspect lowercase c from the original M
+- [ ] Generate and individually inspect lowercase d from the original M
+- [ ] Generate and individually inspect lowercase e from the original M
+- [ ] Generate and individually inspect lowercase f from the original M
+- [ ] Generate and individually inspect lowercase g from the original M
+- [ ] Generate and individually inspect lowercase h from the original M
+- [ ] Generate and individually inspect lowercase i from the original M
+- [ ] Generate and individually inspect lowercase j from the original M
+- [ ] Generate and individually inspect lowercase k from the original M
+- [ ] Generate and individually inspect lowercase l from the original M
+- [ ] Generate and individually inspect lowercase n from the original M
+- [ ] Generate and individually inspect lowercase o from the original M
+- [ ] Generate and individually inspect lowercase p from the original M
+- [ ] Generate and individually inspect lowercase q from the original M
+- [ ] Generate and individually inspect lowercase r from the original M
+- [ ] Generate and individually inspect lowercase s from the original M
+- [ ] Generate and individually inspect lowercase t from the original M
+- [ ] Generate and individually inspect lowercase u from the original M
+- [ ] Generate and individually inspect lowercase v from the original M
+- [ ] Generate and individually inspect lowercase w from the original M
+- [ ] Generate and individually inspect lowercase x from the original M
+- [ ] Generate and individually inspect lowercase y from the original M
+- [ ] Generate and individually inspect lowercase z from the original M
+- [ ] Connect the full fifty-two-letter alphabet, case-height metrics, complete galleries and mixed-case word examples to the tester
+- [ ] Exercise the complete alphabet, word controls, keyboard editing, responsive scrolling and missing-image recovery
+- [ ] Publish the owned changes and hand every new letter and changed file to the user for human verification
+- [ ] Human acceptance of the completed uppercase and lowercase alphabet
+
+
 
 ## Tmax Rebrand and Loading — 2026-10-19
 
