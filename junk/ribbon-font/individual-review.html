@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Type native text in Ribbon M Vector, inspect all fifty-two Bézier outlines, and compare their construction with the untouched original M. Human acceptance is pending.">
-  <title>Ribbon — vector font review</title>
+  <meta name="description" content="Test the five original-M Fgen letter images in words, switch to the complete vector font, and compare both with the untouched original M.">
+  <title>Ribbon — vector and Fgen letter review</title>
   <style>
     :root {
       color-scheme: dark;
@@ -76,7 +76,7 @@
     .dialog-footer a { font-size: .875rem; }
     .composer { margin-bottom: 44px; border-top: 1px solid var(--line); }
     .stage-meta { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding-block: 16px; }
-    #preview-status { color: var(--accent); }
+    #preview-status, #fgen-status { color: var(--accent); }
     .stage-viewport { overflow-x: auto; padding: 16px 12px; background: #000; scrollbar-color: var(--muted) #000; }
     .stage-line { position: relative; isolation: isolate; width: max-content; min-width: 100%; min-height: var(--study-line-height, .88em); font-size: calc(var(--study-size) * var(--study-font-scale, 1)); }
     .study-word { width: max-content; min-height: var(--study-line-height, .88em); margin-inline: auto; padding-inline: var(--study-left-overhang, 0em) max(var(--study-right-overhang, 0em), calc(var(--study-right-overhang, 0em) - var(--study-tracking))); font-family: "Ribbon M Vector"; font-weight: 400; font-style: normal; font-synthesis: none; line-height: var(--study-line-height, .88em); letter-spacing: var(--study-tracking); white-space: pre; visibility: hidden; }
@@ -94,11 +94,11 @@
     .input-row { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
     .text-field { flex: 1 1 300px; min-width: 0; }
     .small-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: .875rem; }
-    #word-input { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 0; padding: 12px 14px; background: transparent; font-size: 1rem; }
-    #word-input[aria-invalid="true"] { border-color: var(--accent); }
+    #word-input, #fgen-input { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 0; padding: 12px 14px; background: transparent; font-size: 1rem; }
+    #word-input[aria-invalid="true"], #fgen-input[aria-invalid="true"] { border-color: var(--accent); }
     .case-buttons, .view-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-    #input-message { margin: 12px 0 24px; max-width: 75ch; color: var(--muted); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
-    #input-message.error { color: var(--accent); }
+    #input-message, #fgen-message { margin: 12px 0 24px; max-width: 75ch; color: var(--muted); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+    #input-message.error, #fgen-message.error { color: var(--accent); }
     .adjustments { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; gap: 20px 32px; }
     .slider-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px; font-size: .875rem; }
     output { color: var(--muted); }
@@ -108,6 +108,14 @@
     .word-presets .small-label { flex-basis: 100%; margin-bottom: 0; }
     .font-ready .word-example { font-family: "Ribbon M Vector"; font-size: 1.5rem; font-synthesis: none; line-height: 1; }
     .hub-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; }
+    .source-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+    .source-tabs [aria-selected="true"] { border-color: var(--accent); background: var(--surface); }
+    .source-tabs [aria-selected="false"] { color: var(--muted); }
+    .fgen-word { font-family: inherit; letter-spacing: 0; }
+    .fgen-glyph { display: inline-block; position: relative; overflow: hidden; margin-inline: .024em calc(.024em + var(--study-tracking)); }
+    .fgen-glyph img { position: absolute; max-width: none; mix-blend-mode: screen; pointer-events: none; }
+    .fgen-space { display: inline-block; width: .24em; }
+    #fgen-panel .glyph-card { display: block; text-decoration: none; }
     @media (max-width: 1000px) {
       .glyph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
@@ -133,15 +141,20 @@
   <div class="shell">
     <header class="masthead">
       <span class="brand">ribbon.</span>
-      <span class="eyebrow mono">M-based vectors / font review</span>
-      <nav class="hub-navigation" aria-label="Font previews"><a href="#word-hub">Combine letters ↓</a><a href="#uppercase-heading">Inspect letters ↓</a><a href="index.html">Previous font preview ↗</a></nav>
+      <span class="eyebrow mono">Original M / letter review</span>
+      <nav class="hub-navigation" aria-label="Font previews"><a href="#word-hub">Vector tester ↓</a><a href="#fgen">Fgen tester ↓</a><a href="index.html">Previous font preview ↗</a></nav>
     </header>
     <main>
       <section class="intro" aria-labelledby="page-title">
-        <span class="eyebrow mono">Original M. Drawn Bézier outlines.</span>
+        <span class="eyebrow mono">Original M. Vector outlines and Fgen images.</span>
         <h1 id="page-title">See the letters together.</h1>
-        <p>A vector construction guided by your original M, not a new generated alphabet. The composer renders native text from the same outlines shown below. Lowercase bodies are 406 units high against 560-unit capitals, with full-height ascenders and compact descenders. Type a word, then compare the construction letter by letter. Human acceptance is pending; the app and previous font files are unchanged.</p>
+        <p>Switch between the complete code-drawn vector font and the five letters generated individually with Fgen from your original M. Each tab keeps its own word and controls. The Fgen tab uses the actual PNG silhouettes, not vector substitutes. Human design review is pending; the app and existing font files are unchanged.</p>
       </section>
+      <div class="source-tabs" role="tablist" aria-label="Letter source">
+        <button class="button" id="vector-tab" type="button" role="tab" aria-selected="true" aria-controls="vector-panel" data-source="vector">Vector / 52 letters</button>
+        <button class="button" id="fgen-tab" type="button" role="tab" aria-selected="false" aria-controls="fgen-panel" data-source="fgen" tabindex="-1">Fgen / 5 samples</button>
+      </div>
+      <div id="vector-panel" role="tabpanel" aria-labelledby="vector-tab" tabindex="0">
       <section class="composer" id="word-hub" aria-labelledby="word-heading" aria-busy="true">
         <div class="stage-meta mono"><h2 id="word-heading">01 / Word combinations</h2><span id="preview-status" role="status">Loading vector font…</span></div>
         <div class="stage-viewport" id="stage" tabindex="0" aria-label="Native font text preview. Long text scrolls horizontally.">
@@ -261,8 +274,57 @@
           <p class="review-note">The cards, larger comparisons and downloadable fonts use the same Bézier contours. Capitals and full ascenders reach 560 units; lowercase bodies reach 406, t reaches 476, and descenders extend to −146. The i and j dots are separate shapes on the stem axis. A keeps its short crossbar open. Spacing is a review control, not final kerning. Compare the construction with your original M; human acceptance is still pending.</p>
         </div>
       </div>
+      </div>
+      <div id="fgen-panel" role="tabpanel" aria-labelledby="fgen-tab" tabindex="0" hidden>
+        <section class="composer" id="fgen-word-hub" aria-labelledby="fgen-word-heading" aria-busy="true">
+          <div class="stage-meta mono"><h2 id="fgen-word-heading">01 / Fgen word tester</h2><span id="fgen-status" role="status">Loading Fgen samples…</span></div>
+          <div class="stage-viewport" id="fgen-stage" tabindex="0" aria-label="Fgen PNG letter preview. Long text scrolls horizontally.">
+            <div class="stage-line"><div class="study-word fgen-word" id="fgen-live-word" role="img" aria-label="Loading Fgen letter preview"></div><span class="x-height-guide" aria-hidden="true"></span><div class="empty-message" id="fgen-empty">Loading Fgen samples…</div></div>
+          </div>
+          <fieldset class="word-controls" id="fgen-controls" aria-label="Fgen word controls" disabled>
+            <div class="text-field"><label class="small-label" for="fgen-input">Type using A, B, S, a, m and your original M</label><input id="fgen-input" type="text" value="Mamma" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="fgen-message" aria-invalid="false"></div>
+            <p id="fgen-message" role="status">Five Fgen samples: A, B, S, a and m, plus your original M and spaces. Missing letters are not replaced with vector glyphs. Images are uniformly sized to shared capital/lowercase heights and aligned to a baseline; their contours are not edited.</p>
+            <div class="adjustments">
+              <div><div class="slider-heading"><label for="fgen-size">Cap height</label><output id="fgen-size-value" for="fgen-size">180 px</output></div><input id="fgen-size" type="range" min="24" max="240" value="180" step="1"></div>
+              <div><div class="slider-heading"><label for="fgen-tracking">Letter spacing</label><output id="fgen-tracking-value" for="fgen-tracking">0.040 em</output></div><input id="fgen-tracking" type="range" min="-0.04" max="0.16" value="0.04" step="0.005"></div>
+              <div class="view-buttons" role="group" aria-label="Fgen preview display"><button class="button" id="fgen-fit" type="button">Fit word</button><button class="button" id="fgen-guides" type="button" aria-pressed="false">Guides</button></div>
+            </div>
+            <div class="word-presets" role="group" aria-label="Fgen example words">
+              <span class="small-label">Try the generated letters together</span>
+              <button class="button" type="button" data-fgen-word="Mamma" aria-pressed="true">Mamma</button>
+              <button class="button" type="button" data-fgen-word="Mama" aria-pressed="false">Mama</button>
+              <button class="button" type="button" data-fgen-word="mama" aria-pressed="false">mama</button>
+              <button class="button" type="button" data-fgen-word="MAMBA" aria-pressed="false">MAMBA</button>
+              <button class="button" type="button" data-fgen-word="SAMBA" aria-pressed="false">SAMBA</button>
+              <button class="button" type="button" data-fgen-word="BAM" aria-pressed="false">BAM</button>
+              <button class="button" type="button" data-fgen-word="Aa Mm" aria-pressed="false">Aa Mm</button>
+              <button class="button" type="button" data-fgen-word="ABSM am" aria-pressed="false">All available letters</button>
+            </div>
+          </fieldset>
+        </section>
+        <div class="layout">
+          <aside class="master" aria-labelledby="fgen-master-heading">
+            <h2 id="fgen-master-heading" class="mono">Your original M</h2>
+            <img class="master-image" src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" width="275" height="175" alt="The original M used as the sole reference for all five Fgen generations.">
+            <p>Each letter was generated in a separate Fgen call using only this M as the reference. This tester displays the saved PNGs directly. It is an image-based review, not a new installable font.</p>
+            <p>The letter images are cropped for layout and scaled uniformly—never stretched, warped or redrawn. Transparent PNGs are displayed against black.</p>
+            <nav class="hub-navigation" aria-label="Fgen trial files"><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/comparison.png" target="_blank" rel="noopener">Original six-image comparison ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json" target="_blank" rel="noopener">Exact prompts and generation records ↗</a></nav>
+          </aside>
+          <section class="batch" aria-labelledby="fgen-samples-heading">
+            <div class="batch-header mono"><h2 id="fgen-samples-heading">02 / Original Fgen samples</h2><span>5 untouched PNGs / click to open</span></div>
+            <div class="glyph-grid">
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" width="1254" height="1254" alt="Fgen uppercase A"><span class="caption"><span>A</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" width="1254" height="1254" alt="Fgen uppercase B"><span class="caption"><span>B</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" width="1254" height="1254" alt="Fgen uppercase S"><span class="caption"><span>S</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png" width="1254" height="1254" alt="Fgen lowercase a"><span class="caption"><span>a</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png" width="1254" height="1254" alt="Fgen lowercase m"><span class="caption"><span>m</span><span class="mono">Raw PNG ↗</span></span></a>
+            </div>
+            <p class="review-note">Only these five generated letters and the original M are available in this tab. Input containing any other letter is marked, and the last supported preview stays visible. Switch to Vector for the separate complete alphabet.</p>
+          </section>
+        </div>
+      </div>
     </main>
-    <footer class="mono">Standalone vector font experiment. Human acceptance pending. The app, previous attempts and earlier font files remain unchanged.</footer>
+    <footer class="mono">Standalone vector and Fgen letter experiment. Human acceptance pending. The app and existing font files remain unchanged.</footer>
   </div>
   <dialog id="letter-dialog" aria-labelledby="dialog-title">
     <div class="dialog-header"><h2 id="dialog-title">Letter comparison</h2><button class="button" id="close-dialog" type="button" autofocus>Close ×</button></div>
@@ -346,7 +408,7 @@
     }
 
     function fitWord() {
-      if (!word.textContent.trim()) return;
+      if (!word.textContent.trim() || stage.clientWidth <= 24) return;
       const availableWidth = stage.clientWidth - 24;
       const width = word.getBoundingClientRect().width;
       updateSize(Math.max(Number(size.min), Math.min(Number(size.max), Math.floor(Number(size.value) * availableWidth / Math.max(width, 1)))));
@@ -420,5 +482,6 @@
       message.classList.add('error');
     });
   </script>
+  <script src="fgen-preview.js"></script>
 </body>
 </html>

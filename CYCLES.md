@@ -1781,7 +1781,18 @@ The user requested another direct image-generation trial instead of code-drawn l
 - [x] Commit and push the five-letter trial and hand the individual samples to the user for review
 - [ ] Human review of the five generated letters and their fit with the original M
 
-All five Fgen calls reported successful saved images. Each actual output is 1254 by 1254 pixels. The raw samples, `comparison.png` and `generation.json` live in `genesis/REFERENCE/ribbon-font/fgen-five-original-M/`. The comparison uniformly resizes the complete image canvases for display only. B and m have transparency, which is composited over black in the comparison; the saved raw PNG bytes remain unchanged. The original M, current compiled fonts and active HTML preview are untouched. Generation succeeded, but style, weight, proportions and any decision to continue with the family still require the user's review. No next implementation prompt is needed for this five-letter trial.
+All five Fgen calls reported successful saved images. Each actual output is 1254 by 1254 pixels. The raw samples, `comparison.png` and `generation.json` live in `genesis/REFERENCE/ribbon-font/fgen-five-original-M/`. The comparison uniformly resizes the complete image canvases for display only. B and m have transparency, which is composited over black in the comparison; the saved raw PNG bytes remain unchanged. The initial generation trial left the original M, compiled fonts and HTML unchanged; the subsequent website integration below adds the requested Fgen tester without changing the font files. Generation succeeded, but style, weight, proportions and any decision to continue with the family still require the user's review. No next implementation prompt is needed for this five-letter trial.
+
+#### Website Integration — Fgen Tab
+
+The user requested the five generated samples in the website's Fgen tab for word testing. `junk/ribbon-font/individual-review.html` now has separate Vector and Fgen tabs. The Fgen tester uses the actual A, B, S, a and m PNGs plus the original M, crops only the surrounding canvas for layout, scales each image uniformly to the shared case heights and aligns the letters to a baseline. It does not redraw contours or substitute vector glyphs for unavailable letters. This is a PNG review surface, not another compiled font.
+
+- [x] Connect the five original-M Fgen samples and original M to an editable Fgen word tester
+- [x] Add eight sample combinations, capital-height and spacing sliders, Fit word and Guides controls, with independent tab settings
+- [x] Preserve the complete native-vector tester and comparisons, add keyboard tab switching, and link directly to Fgen from the earlier website
+- [x] Exercise direct-file and HTTP opening, presets, unsupported-input preservation and recovery, empty deletion, keyboard controls, tab state, responsive layouts and missing-image handling
+
+The actual browser exercised all eight Fgen presets, native input deletion, unsupported-letter preservation and recovery, sizing, spacing, fit, guides and keyboard tab navigation. HTTP layouts at 320, 390, 768 and 1440 pixels had no document overflow or broken images. An 80-letter word remained inside the horizontal preview scroller at minimum size. Blocking one Fgen PNG produced an actionable error without disabling the Vector tester; reloading after asset recovery restored Fgen. The existing index page opens Fgen directly, and direct-file opening also renders the saved PNG words. Successful HTTP and direct-file runs recorded no page errors. The integration is ready for human review; letter design and family acceptance remain pending above. No next implementation prompt is needed.
 
 ## Tmax Rebrand and Loading — 2026-10-19
 
