@@ -1805,7 +1805,7 @@ The user requested ten more letters generated the same way, one at a time with e
 - [x] Generate and individually inspect uppercase G from the original M
 - [x] Generate and individually inspect uppercase H from the original M
 - [x] Generate and individually inspect uppercase I from the original M
-- [ ] Generate and individually inspect uppercase J from the original M
+- [x] Generate and individually inspect uppercase J from the original M
 - [ ] Generate and individually inspect uppercase K from the original M
 - [ ] Generate and individually inspect uppercase L from the original M
 - [ ] Add all ten raw PNGs and their word combinations to the existing Fgen tester
