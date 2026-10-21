@@ -1828,7 +1828,7 @@ The user also requested closer letter spacing. All three previews now start at -
 - [x] Generate and individually inspect uppercase P from the original M
 - [x] Generate and individually inspect uppercase Q from the original M
 - [x] Generate and individually inspect uppercase R from the original M
-- [ ] Generate and individually inspect uppercase T from the original M
+- [x] Generate and individually inspect uppercase T from the original M
 - [ ] Generate and individually inspect uppercase U from the original M
 - [ ] Generate and individually inspect uppercase V from the original M
 - [ ] Generate and individually inspect uppercase W from the original M
