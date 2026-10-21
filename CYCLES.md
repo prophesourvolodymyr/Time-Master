@@ -1855,11 +1855,13 @@ The user rejected the rounded S refinement, then the thin and heavier angular at
 - [x] Generate and individually inspect S2, the softer older-and-angular blend
 - [x] Generate and individually inspect S3, the more structured older-and-angular blend
 - [x] Create an equal-cap-height comparison of the original M and all three alternatives without changing their source PNGs
-- [ ] Connect the three S choices and their word previews without choosing a replacement for the user
-- [ ] Exercise the comparison and word controls, publish the owned changes and hand every item to the user for review
+- [x] Connect the three S choices and their word previews without choosing a replacement for the user
+- [x] Exercise the comparison and word controls, publish the owned changes and hand every item to the user for review
 - [ ] Human acceptance of an S design and its consistency with the original M
 
-The three new alternatives are retained as untouched 1254-by-1254 PNGs in `genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/`. Their generation record names the original M, older S and heavy angular S as the reference inputs. Each new S has one connected shape and no enclosed counter. Earlier attempts and the user's sketch remain in the separate strict-S and sketch-S reference folders. The word-preview connection remains pending; no replacement or font-file change has been accepted.
+The three new alternatives are retained as untouched 1254-by-1254 PNGs in `genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/`. Their generation record names the original M, older S and heavy angular S as the reference inputs. Each new S has one connected shape and no enclosed counter. Earlier attempts and the user's sketch remain in the separate strict-S and sketch-S reference folders. The connected tester keeps the older S as its default and offers all three blends as temporary preview choices; only S changes, without overwriting the entered word or manual size and spacing. MASS, SAME, SMASH and SWISS presets and the equal-height M comparison are available. No replacement or font-file change has been accepted.
+
+Focused JavaScript and actual direct-file/HTTP browser checks passed for all four S choices, the new presets and full available alphabet, unsupported-input preservation, native empty deletion, radio-arrow navigation, independent Vector/Fgen drafts, reload consistency, four responsive widths and closest-spacing horizontal scrolling through eighty S glyphs. Blocking the new S3 image produced the missing-image state without disabling the working Vector preview; restoring the asset and reloading recovered S3. Successful file and HTTP runs reported no page errors, and the responsive runs had no document overflow or broken or stretched images. All ten recorded raw/reference PNG fingerprints match. The app and compiled fonts remain unchanged. Each generated option and changed file is ready for human verification; final S selection and human acceptance remain pending. No next implementation prompt is needed for this slice.
 
 ## Tmax Rebrand and Loading — 2026-10-19
 

@@ -1,5 +1,5 @@
 {
-  "status": "Three hybrid alternatives generated sequentially and individually inspected. Comparison and word-preview connection pending; no replacement selected or human-approved.",
+  "status": "Three hybrid alternatives generated sequentially, individually inspected and connected to the PNG word tester. The older S remains the default; all three alternatives are preview choices only. No replacement has been selected or human-approved.",
   "generator": "fgen",
   "referenceImages": [
     {

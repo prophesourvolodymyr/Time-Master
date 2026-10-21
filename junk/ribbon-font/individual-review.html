@@ -116,6 +116,15 @@
     .fgen-glyph img { position: absolute; max-width: none; mix-blend-mode: screen; pointer-events: none; }
     .fgen-space { display: inline-block; width: .24em; }
     #fgen-panel .glyph-card { display: block; text-decoration: none; }
+    .s-choices { min-width: 0; margin: 0 0 24px; border: 0; padding: 0; }
+    .s-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .s-options .button { display: inline-flex; align-items: center; gap: 10px; }
+    .s-options input { margin: 0; accent-color: var(--accent); }
+    .s-options .button:has(:checked) { border-color: var(--accent); background: var(--surface); }
+    .s-study { margin-bottom: 36px; }
+    .s-comparison { display: block; margin-block: 20px; }
+    .s-comparison img { display: block; width: 100%; height: auto; }
+    .glyph-grid.s-variant-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     @media (max-width: 1000px) {
       .glyph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
@@ -131,6 +140,7 @@
       .measurements div { display: block; }
       dd { margin-top: 4px; }
       .glyph-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .glyph-grid.s-variant-grid { grid-template-columns: minmax(0, 1fr); }
       .intro { padding-top: 30px; }
       .comparison { gap: 12px; }
       figcaption { font-size: .6875rem; }
@@ -284,6 +294,15 @@
           <fieldset class="word-controls" id="fgen-controls" aria-label="Fgen word controls" disabled>
             <div class="text-field"><label class="small-label" for="fgen-input">Type using A–X, a and m</label><input id="fgen-input" type="text" value="TIME MASTER" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="fgen-message" aria-invalid="false"></div>
             <p id="fgen-message" role="status">Twenty-five Fgen samples: A–L, N–X, a and m, plus your original M and spaces. Missing letters are not replaced with vector glyphs. Images are uniformly sized to shared capital/lowercase heights and aligned to a baseline; Q keeps its tail below the bowl baseline. Their contours are not edited.</p>
+            <fieldset class="s-choices">
+              <legend class="small-label">Uppercase S · preview only, no replacement selected</legend>
+              <div class="s-options">
+                <label class="button"><input type="radio" name="fgen-s" value="original" checked>Older S</label>
+                <label class="button"><input type="radio" name="fgen-s" value="balanced">S1 · balanced</label>
+                <label class="button"><input type="radio" name="fgen-s" value="rounder">S2 · softer</label>
+                <label class="button"><input type="radio" name="fgen-s" value="structured">S3 · structured</label>
+              </div>
+            </fieldset>
             <div class="adjustments">
               <div><div class="slider-heading"><label for="fgen-size">Cap height</label><output id="fgen-size-value" for="fgen-size">180 px</output></div><input id="fgen-size" type="range" min="24" max="240" value="180" step="1"></div>
               <div><div class="slider-heading"><label for="fgen-tracking">Letter spacing</label><output id="fgen-tracking-value" for="fgen-tracking">-0.040 em</output></div><input id="fgen-tracking" type="range" min="-0.20" max="0.16" value="-0.04" step="0.005"></div>
@@ -305,6 +324,10 @@
               <button class="button" type="button" data-fgen-word="BADGE" aria-pressed="false">BADGE</button>
               <button class="button" type="button" data-fgen-word="CDEFGHIJKL" aria-pressed="false">Previous ten letters</button>
               <button class="button" type="button" data-fgen-word="TIME MASTER" aria-pressed="true">TIME MASTER</button>
+              <button class="button" type="button" data-fgen-word="MASS" aria-pressed="false">MASS</button>
+              <button class="button" type="button" data-fgen-word="SAME" aria-pressed="false">SAME</button>
+              <button class="button" type="button" data-fgen-word="SMASH" aria-pressed="false">SMASH</button>
+              <button class="button" type="button" data-fgen-word="SWISS" aria-pressed="false">SWISS</button>
               <button class="button" type="button" data-fgen-word="WORKOUT" aria-pressed="false">WORKOUT</button>
               <button class="button" type="button" data-fgen-word="QUICK" aria-pressed="false">QUICK</button>
               <button class="button" type="button" data-fgen-word="RIBBON" aria-pressed="false">RIBBON</button>
@@ -317,16 +340,27 @@
             </div>
           </fieldset>
         </section>
+        <section class="batch s-study" aria-labelledby="fgen-s-heading">
+          <div class="batch-header mono"><h2 id="fgen-s-heading">02 / S · three style blends</h2><span>Original M + three review options</span></div>
+          <p class="review-note">These combine the older S's full ribbon body with straighter outside sections and a narrower middle. Use the S choices above to compare TIME MASTER, MASS, SAME, SMASH or your own text. Only S changes; the other letters, your word, size and spacing stay under your control. The older S remains the default, and no replacement has been approved.</p>
+          <a class="s-comparison" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/comparison.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/comparison.png" width="2200" height="650" alt="The original M beside S1 balanced, S2 softer and S3 structured, all uniformly scaled to the same visible cap height."></a>
+          <div class="glyph-grid s-variant-grid">
+            <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-balanced.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-balanced.png" width="1254" height="1254" alt="S1 balanced blend: a full S body with quieter straight outside sections and a slimmer waist."><span class="caption"><span>S1 · balanced</span><span class="mono">Raw PNG ↗</span></span></a>
+            <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-rounder.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-rounder.png" width="1254" height="1254" alt="S2 softer blend: broad organic ribbons with softened asymmetric turns and a narrower middle."><span class="caption"><span>S2 · softer</span><span class="mono">Raw PNG ↗</span></span></a>
+            <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-structured.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-structured.png" width="1254" height="1254" alt="S3 structured blend: heavy soft side ribbons with more disciplined outside sections and a compact middle."><span class="caption"><span>S3 · structured</span><span class="mono">Raw PNG ↗</span></span></a>
+          </div>
+          <p class="review-note">All three are untouched Fgen outputs, generated and inspected one at a time. <a href="../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/generation.json" target="_blank" rel="noopener">Open their prompts and generation records ↗</a>. The rejected <a href="../../genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/generation.json" target="_blank" rel="noopener">rounded refinement ↗</a> and <a href="../../genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/generation.json" target="_blank" rel="noopener">angular attempts and sketch ↗</a> remain recorded, not active word-preview options. This is still an image-based review; no font file or app typography has changed.</p>
+        </section>
         <div class="layout">
           <aside class="master" aria-labelledby="fgen-master-heading">
             <h2 id="fgen-master-heading" class="mono">Your original M</h2>
-            <img class="master-image" src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" width="275" height="175" alt="The original M used as the sole reference for every Fgen generation.">
-            <p>Each letter was generated in a separate Fgen call using only this M as the reference. This tester displays the saved PNGs directly. It is an image-based review, not a new installable font.</p>
+            <img class="master-image" src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" width="275" height="175" alt="The original M, the primary style reference for the Fgen letters and S blends.">
+            <p>The twenty-five original samples were generated separately using only this M. The three S blends also reference the older and angular S, with M remaining the style master. This tester displays the saved PNGs directly. It is an image-based review, not a new installable font.</p>
             <p>The letter images are cropped for layout and scaled uniformly—never stretched, warped or redrawn. Transparent PNGs are displayed against black.</p>
             <nav class="hub-navigation" aria-label="Fgen trial files"><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/comparison.png" target="_blank" rel="noopener">First five + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/comparison.png" target="_blank" rel="noopener">Previous ten + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/comparison.png" target="_blank" rel="noopener">Latest ten + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json" target="_blank" rel="noopener">First five prompts and records ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json" target="_blank" rel="noopener">Previous ten prompts and individual checks ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json" target="_blank" rel="noopener">Latest ten prompts and individual checks ↗</a></nav>
           </aside>
           <section class="batch" aria-labelledby="fgen-samples-heading">
-            <div class="batch-header mono"><h2 id="fgen-samples-heading">02 / Original Fgen samples</h2><span>25 untouched PNGs / click to open</span></div>
+            <div class="batch-header mono"><h2 id="fgen-samples-heading">03 / Original Fgen samples</h2><span>25 untouched PNGs / click to open</span></div>
             <div class="glyph-grid">
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" width="1254" height="1254" alt="Fgen uppercase A"><span class="caption"><span>A</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" width="1254" height="1254" alt="Fgen uppercase B"><span class="caption"><span>B</span><span class="mono">Raw PNG ↗</span></span></a>

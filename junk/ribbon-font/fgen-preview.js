@@ -13,6 +13,7 @@
   const tracking = document.getElementById('fgen-tracking');
   const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
   const presets = Array.from(panel.querySelectorAll('[data-fgen-word]'));
+  const sChoices = Array.from(panel.querySelectorAll('input[name="fgen-s"]'));
   const initialMessage = message.textContent;
   const unitsPerEm = 1000;
   const capHeight = 560;
@@ -45,6 +46,12 @@
     a: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png', canvasWidth: 1254, canvasHeight: 1254, left: 299, top: 366, right: 992, bottom: 895 },
     m: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png', canvasWidth: 1254, canvasHeight: 1254, left: 86, top: 358, right: 1168, bottom: 881 },
   };
+  const sVariants = {
+    original: glyphs.S,
+    balanced: { src: '../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-balanced.png', canvasWidth: 1254, canvasHeight: 1254, left: 306, top: 209, right: 952, bottom: 1047 },
+    rounder: { src: '../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-rounder.png', canvasWidth: 1254, canvasHeight: 1254, left: 267, top: 166, right: 992, bottom: 1088 },
+    structured: { src: '../../genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/uppercase-S-structured.png', canvasWidth: 1254, canvasHeight: 1254, left: 260, top: 161, right: 1004, bottom: 1094 },
+  };
   const availableLetters = Object.keys(glyphs).sort().join(', ');
   const templates = new Map();
   const baseline = document.createElement('span');
@@ -53,7 +60,7 @@
   let automaticFit = true;
   let previewText = '';
 
-  for (const [letter, glyph] of Object.entries(glyphs)) {
+  function createGlyph(letter, glyph) {
     const glyphBaseline = glyph.baseline ?? glyph.bottom;
     const scale = (letter === letter.toUpperCase() ? capHeight : xHeight) / (glyphBaseline - glyph.top);
     const left = Math.max(0, glyph.left - 8);
@@ -72,8 +79,15 @@
     image.draggable = false;
     Object.assign(image.style, { width: em(glyph.canvasWidth), height: em(glyph.canvasHeight), left: em(-left), top: em(-top) });
     wrapper.append(image);
-    templates.set(letter, wrapper);
+    return wrapper;
   }
+
+  for (const [letter, glyph] of Object.entries(glyphs)) {
+    templates.set(letter, createGlyph(letter, glyph));
+  }
+  const sTemplates = new Map(Object.entries(sVariants).map(([variant, glyph]) => [
+    variant, variant === 'original' ? templates.get('S') : createGlyph('S', glyph),
+  ]));
 
   function updateGuides() {
     if (!stage.clientWidth) return;
@@ -98,15 +112,7 @@
     updateSize(Math.max(Number(size.min), Math.min(Number(size.max), Math.floor(Number(size.value) * (stage.clientWidth - 24) / Math.max(width, 1)))));
   }
 
-  function updateWord() {
-    const unsupported = [...new Set([...input.value].filter(letter => letter !== ' ' && !templates.has(letter)))];
-    input.setAttribute('aria-invalid', String(unsupported.length > 0));
-    message.classList.toggle('error', unsupported.length > 0);
-    if (unsupported.length) {
-      message.textContent = `Not generated in this sample: ${unsupported.join(' ')}. Available: ${availableLetters} and spaces. Showing your last supported text.`;
-      return;
-    }
-    previewText = input.value;
+  function renderWord() {
     const fragment = document.createDocumentFragment();
     for (const letter of previewText) {
       if (letter === ' ') {
@@ -122,10 +128,22 @@
     word.replaceChildren(fragment);
     word.setAttribute('aria-label', previewText.trim() ? `Fgen letter combination: ${previewText}` : 'No Fgen preview text');
     empty.hidden = Boolean(previewText.trim());
-    message.textContent = initialMessage;
-    presets.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.fgenWord === previewText)));
     if (automaticFit) fitWord();
     updateGuides();
+  }
+
+  function updateWord() {
+    const unsupported = [...new Set([...input.value].filter(letter => letter !== ' ' && !templates.has(letter)))];
+    input.setAttribute('aria-invalid', String(unsupported.length > 0));
+    message.classList.toggle('error', unsupported.length > 0);
+    if (unsupported.length) {
+      message.textContent = `Not generated in this sample: ${unsupported.join(' ')}. Available: ${availableLetters} and spaces. Showing your last supported text.`;
+      return;
+    }
+    previewText = input.value;
+    renderWord();
+    message.textContent = initialMessage;
+    presets.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.fgenWord === previewText)));
   }
 
   function selectSource(source, updateUrl = false) {
@@ -160,6 +178,11 @@
   selectSource(location.hash === '#fgen' ? 'fgen' : 'vector');
 
   input.addEventListener('input', updateWord);
+  sChoices.forEach(choice => choice.addEventListener('change', () => {
+    templates.set('S', sTemplates.get(choice.value));
+    renderWord();
+    status.textContent = `${templates.size - 1} Fgen letters + original M / ${choice.parentElement.textContent.trim()} preview`;
+  }));
   size.addEventListener('input', () => { automaticFit = false; updateSize(size.value); });
   tracking.addEventListener('input', () => {
     composer.style.setProperty('--study-tracking', `${tracking.value}em`);
@@ -174,7 +197,7 @@
 
   composer.style.setProperty('--study-font-scale', unitsPerEm / capHeight);
   composer.style.setProperty('--study-line-height', '.88em');
-  Promise.all([...templates.values()].map(template => new Promise((resolve, reject) => {
+  Promise.all([...new Set([...templates.values(), ...sTemplates.values()])].map(template => new Promise((resolve, reject) => {
     const image = template.querySelector('img');
     image.onload = resolve;
     image.onerror = reject;
