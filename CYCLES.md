@@ -1760,7 +1760,7 @@ The user chose “Keep the original M” after rejecting the bumpy generated alp
 - [x] Replace PNG word assembly in the active HTML with actual-font text, exact vector letter comparisons and working font downloads
 - [x] Personally inspect every capital and lowercase outline against M and inspect actual mixed-case words
 - [x] Exercise font rendering, counters, detached dots, contour joins, editable words, controls, comparison navigation and desktop/mobile/direct-file layouts
-- [ ] Commit and push the connected replacement and hand every implemented item to the user for review
+- [x] Commit and push the connected replacement and hand every implemented item to the user for review
 - [ ] Human acceptance of the replacement alphabet’s letter design, smoothness, weight, spacing and word rhythm
 
 The replacement lives in `junk/ribbon-font/individual-review.html`. Its word composer renders native font text using an embedded WOFF2; the fifty-two SVG comparisons and downloadable TTF/OTF/WOFF2 files come from the same outlined family. The untouched original M source retains its recorded fingerprint; its actual TTF silhouette overlaps the native-size source by 99.544 percent. Its optical advance keeps every M/letter pair at least 24 units apart at zero tracking.
