@@ -1,5 +1,5 @@
 {
-  "status": "5 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
+  "status": "6 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
   "generator": "fgen",
   "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
   "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
@@ -23,7 +23,8 @@
     "D",
     "E",
     "F",
-    "G"
+    "G",
+    "H"
   ],
   "generationPolicy": "One letter per sequential Fgen invocation; inspect the saved output before starting the next. Each call references only the original M. No raster warping, thresholding, contour repairs, vector substitutes or automatic selection from retries.",
   "outputs": {
@@ -379,6 +380,77 @@
       "inspection": {
         "stage": "Inspected separately before generating the next letter.",
         "note": "One connected G with an open right aperture and a clearly connected inward horizontal crossbar. No accidental closed counter or second loop. Broad lower/left bowl and narrower upper return; no clipping or extra characters. Raw PNG retained.",
+        "designApproval": "Human review pending; structural inspection is not family approval."
+      }
+    },
+    "H": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase H, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase H: two gently forward-leaning upright stems joined by one clear horizontal crossbar around middle height. Use a broader main left stem and a restrained narrower right return, carrying the M's rising ribbon and rounded-flat feet. Keep the upper and lower spaces open. The crossbar must be horizontal, not a full-height diagonal that would make N; do not add arches or loops. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter H: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGB",
+      "sha256": "112628bb6b94ea186690f58145f6d8c238533b6f73e57993948b4f256ac9bd06",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase H, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase H: two gently forward-leaning upright stems joined by one clear horizontal crossbar around middle height. Use a broader main left stem and a restrained narrower right return, carrying the M's rising ribbon and rounded-flat feet. Keep the upper and lower spaces open. The crossbar must be horizontal, not a full-height diagonal that would make N; do not add arches or loops. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter H: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 768,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1912,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 24123,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 501717,
+          "elapsed_ms": 24292,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 24292,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-H.png"
+          ]
+        }
+      ],
+      "layoutBounds": [
+        164,
+        229,
+        1090,
+        1010
+      ],
+      "majorComponents": 1,
+      "majorCounters": 0,
+      "inspection": {
+        "stage": "Inspected separately before generating the next letter.",
+        "note": "Clear uppercase H: two stems joined by a horizontal mid-height crossbar, with open spaces above and below. Broad rising left stem and curved right return with a flared foot echo the M. No enclosed counter, clipping or extra characters; raw pixels retained.",
         "designApproval": "Human review pending; structural inspection is not family approval."
       }
     }
