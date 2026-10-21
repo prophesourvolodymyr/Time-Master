@@ -1807,12 +1807,12 @@ The user requested ten more letters generated the same way, one at a time with e
 - [x] Generate and individually inspect uppercase I from the original M
 - [x] Generate and individually inspect uppercase J from the original M
 - [x] Generate and individually inspect uppercase K from the original M
-- [ ] Generate and individually inspect uppercase L from the original M
+- [x] Generate and individually inspect uppercase L from the original M
 - [ ] Add all ten raw PNGs and their word combinations to the existing Fgen tester
 - [ ] Exercise the expanded Fgen tester and hand the letters and changed files to the user for review
 - [ ] Human acceptance of the ten new letter designs and their consistency with the original M
 
-The existing five samples, original M and compiled font files remain unchanged. This batch extends the image-based review rather than replacing the installed font.
+All ten selected outputs are 1254 by 1254 pixels and were inspected separately before proceeding. The first L read as a Greek lambda, so it was rejected and retained unchanged; a second independent call using only the original M produced the Latin L used for review. Both L PNGs, prompts, saved events and inspection decisions remain recorded. I's top and bottom bars are more conventional than the more organic letters and still need human family-consistency review. The existing five samples, original M and compiled font files remain unchanged. This batch extends the image-based review rather than replacing the installed font.
 
 ## Tmax Rebrand and Loading — 2026-10-19
 
