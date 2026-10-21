@@ -1971,7 +1971,7 @@ The populated runtime check used two sessions in the current week: a ten-minute 
 
 **Requested by the user on 2026-10-21: document a new native page with AI physique analysis, separate physique-only Elo, complete UI states, reporting, and nudity rules that permit nonsexual shirtless adult men. The user explicitly requires direct placement in features, with no incubation stage. Documentation only; app implementation is not authorized by this record.**
 
-Product context: [features/F29-physique-duels/DOCKS.md](features/F29-physique-duels/DOCKS.md). The five child contexts own page flow, AI metrics, the independent ladder, safety, and privacy/service behavior. Detailed numerical defaults are proposals for review, not accepted or measured behavior. This cycle does not reorder earlier work or claim human acceptance of the shared Ranked foundation.
+Product context: [features/F29-physique-duels/DOCKS.md](features/F29-physique-duels/DOCKS.md). F29-A through F29-E own page flow, AI metrics, independent competition, safety, and privacy/service behavior. The user's subsequent UI direction adds F29-F identity/badges and F29-G shared animated native components, with dedicated view contexts under F29-A and equal native iPhone/macOS scope. Numerical defaults remain proposals, not measured or human-accepted behavior. This cycle does not reorder earlier work or approve the Ranked foundation by implication.
 
 - [x] Document F29 directly in the feature tree
   - [x] Write the parent product context and existing-app boundaries
@@ -1986,7 +1986,7 @@ Product context: [features/F29-physique-duels/DOCKS.md](features/F29-physique-du
 - [x] Place the complete specification directly in features as explicitly requested by the user
 - [ ] F29 — Implement and connect the documented Physique Duels feature
   - [ ] Confirm human-reviewed account/navigation foundations, authorized persistent HTTPS service, model access, and operational moderation
-  - [ ] F29-A — Build the native destination and connected capture-to-result flow
+  - [ ] F29-A — Build the native iPhone and macOS destination and connected capture-to-result flow
     - [ ] Preserve saved navigation, Profile shape, existing exercise privacy, and ordinary app access after declined consent
     - [ ] Connect account/age/consent, camera/redaction, readiness, timed poses, retakes, upload, recovery, and every unavailable/empty/error state
     - [ ] Connect result/media/history/safety routes, accessibility, focus, large text, and reduced-motion behavior
@@ -2010,6 +2010,58 @@ Product context: [features/F29-physique-duels/DOCKS.md](features/F29-physique-du
   - [ ] Exercise complete physical-camera matches with two authenticated consenting adults and focused relevant checks
   - [ ] Human review and acceptance of every implemented F29 area before public rated use
 
+
+### Native UI Direction and Dedicated Specialist Plan — 2026-10-21
+
+The user requests a top timer, all public user badges above two large vertically stacked player panels, country-flag identity treatment, less visible prose, and deeply designed motion for the timer, icons, active background, results, and score counters. Native macOS is explicitly required alongside iPhone. This extension authorizes complete requirements and worker briefs; no production UI, backend, artwork generation, model-quality validation, measured performance, or human acceptance is claimed by planning it.
+
+Dispatch and ownership: [F29 native UI orchestration](prompts/F29-physique-duels/F29-phase-2-native-ui-orchestration.md). Thirty-one specialists cover twenty-five views and six advanced identity/component slices. Ordinary views use GPT-6.1 Sol with max reasoning; the battle stage and advanced components use GPT-6 Astra with max reasoning. Each owns one distinct pair of product context and implementation brief, with one integration owner for shared files. This is one coordinated UI slice with real review dependencies, not thirty-one compulsory sequential sessions. Required models are not silently substituted, and these coding-agent assignments do not change the in-app judge.
+
+- [x] Document the approved vertical battle hierarchy, complete badge rails, concise copy rules, and native Mac scope in the parent and shared view contexts
+- [x] F29-F — Specify optional country, truthful badge earning/corrections, top-rail composition, and accessible identity details
+- [x] F29-G — Specify timer, panels/icons, background, counters, and native Mac shell with complete animation and interruption behavior
+- [x] Write one dedicated deep-design product context and future implementation brief for each of the twenty-five custom views
+- [x] Write one dedicated advanced-component brief for identity/badges and each of the five F29-G components
+- [x] Register the UI hierarchy, preserve the supplied reference, validate every new link and model assignment, and publish only owned documentation changes
+- [ ] Human review of the detailed UI composition, badge milestones, motion treatment, and per-view requirements
+- [ ] Optional interactive battle-to-results mockup only if the user chooses it; no production dependency or implied mockup acceptance
+- [ ] Implement the shared native component foundation after its real contracts and required reviews
+  - [ ] F29-F — Real public identity, optional self-declared country, earned badge facts, complete rails, and correction/removal behavior
+  - [ ] F29-G-a — Phase clocks, start/self-timer distinction, tactile digits, resumption, and authoritative deadlines
+  - [ ] F29-G-b — Large vertical player panels, clean camera/avatar states, original safe pose icons, and readable adaptive geometry
+  - [ ] F29-G-c — State-driven battle atmosphere with reduced-motion, inactive, energy, and thermal behavior
+  - [ ] F29-G-d — Validated numeric counters, signed Elo and once-only result/badge choreography without fake intermediate outcomes
+  - [ ] F29-G-e — Native Mac window/input/camera/privacy shell, current minimum-size support, and one active match across windows
+- [ ] Implement every connected native iPhone and macOS view under the reviewed shared contracts
+  - [ ] F29-A-a — Lobby
+  - [ ] F29-A-b — Account entry and return to the intended Physique action
+  - [ ] F29-A-c — Eligibility and separate informed sharing consent
+  - [ ] F29-A-d — Rules and rubric
+  - [ ] F29-A-e — Local pose guide
+  - [ ] F29-A-f — Camera setup and real device/permission states
+  - [ ] F29-A-g — Match search and honest cancellation/no-opponent recovery
+  - [ ] F29-A-h — Ready room and synchronized start
+  - [ ] F29-A-i — Vertical battle stage and guided capture
+  - [ ] F29-A-j — Exact pose review, checks, replacement, and bounded retakes
+  - [ ] F29-A-k — Submission, waiting, judging, and authoritative recovery
+  - [ ] F29-A-l — Final result, earned rating, and safe next actions
+  - [ ] F29-A-m — Complete score breakdown and version/evidence meaning
+  - [ ] F29-A-n — Intentional protected pose gallery and per-image safety
+  - [ ] F29-A-o — Private match history and stable paging
+  - [ ] F29-A-p — Physique-only standings, ties, and listing/privacy states
+  - [ ] F29-A-q — Permitted player identity and badge summary
+  - [ ] F29-A-r — Safety hub, support, and explicit block management
+  - [ ] F29-A-s — Contextual report composer and real receipts
+  - [ ] F29-A-t — Private case center
+  - [ ] F29-A-u — Case details, decisions, and reviewed corrections
+  - [ ] F29-A-v — Explicit safety-appeal/outcome-dispute composer
+  - [ ] F29-A-w — Privacy, sharing, listing, and image removal
+  - [ ] F29-A-x — Existing global deletion entry and truthful deletion status
+  - [ ] F29-A-y — Complete badge collection and optional country controls
+- [ ] Exercise the connected actual native iPhone surface, including full-size/large-text battle, finality, safety, privacy, and reduced settings
+- [ ] Exercise the connected actual native Mac surface at minimum/laptop/full-screen sizes, with live resizing, keyboard/pointer, window lifecycle, and camera availability
+- [ ] Exercise all-badge/long-name/missing-flag states and ensure clean judged images exclude all identity/timer/score UI chrome
+- [ ] Human review of every implemented view/component and acceptance of both native platform experiences
 ---
 
 ## Notes

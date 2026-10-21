@@ -82,6 +82,8 @@ Find opponent is available only after the parent eligibility checks: authenticat
 
 Pairing uses the current settled Physique rating, or the 1000 seed for an unplaced account. Provisional status is disclosed honestly; it is not a hidden higher or lower seed derived from exercise performance. An unplaced or provisional player can meet an established player inside the allowed rating range. There is no separate placement-only ladder and no demographic or attire filter.
 
+Optional self-declared country/region and earned battle badges are presentation, not pairing preferences, rating inputs, a new ladder, or evidence of identity verification. [F29-F](../F29-F-battle-identity-and-badges/DOCKS.md) defines their truthful ownership and corrections. The service-owned effective record, not editable local cosmetic previews, establishes an earned badge. New UI must not disclose those fields to the physique judge.
+
 Only real, eligible accounts can be paired. Same-account pairing is forbidden, including the same account open on another device. A block in either direction excludes the pair before Go. Suspended or otherwise ineligible accounts, accounts already in another active physique match, and unavailable participants cannot be used to make a queue appear populated. Substantiated account abuse follows F29-D; an IP address, device similarity, or appearance guess alone is not presented as proof of account identity or cheating.
 
 ### Bounded Skill Expansion
@@ -168,6 +170,8 @@ The list is ordered by current Physique Elo, not AI body score, best historical 
 
 A public row contains only permitted public identity, shared standing, current Physique Elo, current Physique tier, and clearly labeled competitive record information permitted by the listing choice. It never contains physique pose thumbnails, private match galleries, age or gender declarations, reports, enforcement details, exact location, or medical interpretations. A profile avatar is not permission to publish a submitted body image. Public profile access continues to respect the account's existing visibility rules.
 
+The permitted public identity may include the person's explicitly chosen country/region flag and legitimate public battle badges under F29-F. Country remains optional and self-declared; there is no inferred location or verified nationality. A complete battle rail can wrap above the player panels, while a compact standings row remains legible and opens an authorized complete player summary. Neither surface publishes private eligibility, reported evidence, or body thumbnails.
+
 Deleted accounts, accounts no longer publicly listed, and banned accounts do not remain as discoverable active leaderboard entries. A ban alone does not automatically invalidate every earlier match or create free wins for former opponents. Existing valid records remain effective unless a supported correction says otherwise. A successful restriction appeal can restore listing only after eligibility, placement, and the public-listing choice are confirmed; it does not invent a place during the appeal.
 
 A block in either direction removes the corresponding person's discoverable row and profile action from the viewer's board. Displayed positions still refer to the full eligible public standings, not a personally renumbered ladder. The page can explain that safety settings hide some players; gaps are not filled with invented rows. The service does not reveal another person's identity merely because it is needed to make twenty visible rows.
@@ -232,6 +236,8 @@ Dynamic Type can expand a row without truncating the rating scope or outcome. Nu
 A confirmed own-rating change may animate once after authoritative settlement, with before and after values also available immediately as text. No celebratory points animate while a result or correction is pending. Returning to a saved result does not award or animate the same points again. Standings refreshes do not race rows past the reader, use a slot-machine rank reveal, or imply a measured rise from absent data.
 
 Reduce Motion uses static final values or restrained opacity changes instead of number rolling, scale, spring travel, or repeated decorative motion. Reduce Transparency preserves readable opaque rows. Haptics and sound are optional reinforcement, not the only indication of an outcome or deadline. Losses, forfeits, and no-contests do not shake or humiliate an opponent's name or image.
+
+The [F29-A view contexts](../F29-A-page-and-match-flow/DOCKS.md) apply these same rating meanings on native iPhone and macOS. [F29-G](../F29-G-native-ui-components/DOCKS.md) owns the shared counter, crest, and desktop behavior. More expressive animation does not turn a historical result into a new award, expose private transactions, or recalculate rank from an interpolated value. All complete badge rails are above the actual vertically stacked battle participants, without changing the existing Profile shape.
 
 ## File Ownership and Dependencies
 

@@ -2,13 +2,13 @@
 
 Physique Duels is a new, separately named page in Tmax for adult, one-versus-one physique comparisons using guided camera poses and AI image analysis. It is not another push-up, squat, plank, or workout-performance variation. It has its own earned Elo, matchmaking, standings, results, and history.
 
-This product specification lives directly in the feature tree at the user's explicit request. The user has requested documentation, not production implementation. CYCLES.md owns implementation planning and human-review tracking. Nothing in this document grants App Store approval or claims a measured judging accuracy or response time.
+This product specification lives directly in the feature tree at the user's explicit request. The current request defines the complete native iPhone and macOS UI direction and dedicated specialist requirements; it does not authorize claiming an unbuilt interface or backend as complete. CYCLES.md owns implementation planning and human-review tracking. Nothing in this document grants App Store approval or claims measured judging accuracy, response time, accessibility, or animation performance.
 
 ## User-Directed Decisions
 
 The feature is a new page in the existing native app. Its competitive Elo is separate from every existing exercise rating. An image-understanding AI, with GPT-6.1 Sol as the current starting candidate, compares the participants' poses. The complete experience includes UI states, capture, other scoring metrics, reporting, blocking, nudity moderation, privacy, and failure recovery. Adult men may participate shirtless in a nonsexual fitness context; the permission does not extend to unrestricted nudity or to other participants.
 
-The remaining numerical rules, detailed visual decisions, media-sharing behavior, and operational limits in this specification are proposed defaults for product review. They are explicit so the feature can be discussed without an implementer inventing missing behavior. Placement in features does not claim that every default has already been accepted or implemented.
+The user has additionally directed a highly animated but concise native UI: a top timer, all public user battle badges above the players, two large player panels stacked vertically, optional country-flag identity treatment, expressive backgrounds and icons, and animated final score counters. Both native iPhone and native macOS are required. The supplied screenshot establishes directness and hierarchy, not its horizontal player layout or permission to reuse its people. Detailed numerical competition rules, badge milestones, motion timings, media-sharing behavior, and operational limits remain explicit proposals or selected design details for human review; placement in features is not implementation acceptance.
 
 ## What We Build
 
@@ -21,6 +21,9 @@ The remaining numerical rules, detailed visual decisions, media-sharing behavior
 - Reporting of media, profiles, cheating, and unsafe generated explanations; blocking; human review; enforcement; and outcome disputes.
 - Explicit consent for AI sharing and paired-opponent still-image access, minimal retention, account deletion, and honest provider-retention disclosures.
 - Complete empty, loading, denied, offline, limited, interrupted, rejected, disputed, expired-media, and unavailable-service states.
+- A complete battle identity and badge system with optional self-declared country/region flags, truthful earned milestones, all eligible public badges above the player panels, and no imitation of identity verification.
+- A shared native UI component family for phase clocks, large vertical player panels, pose icons, battle atmosphere, final numeric counters, and Mac window/input behavior.
+- A dedicated deep-design and connected-implementation brief for each custom view and complex component, with explicit model and maximum-reasoning assignments rather than a generic instruction to make the UI attractive.
 
 There is no public body-photo feed, attractiveness voting, spectator gallery, open comments, direct messaging, wagering, cash prizes, or automatic publication of a participant's images. The page does not diagnose health, measure actual muscle mass, infer steroid use, or prescribe weight loss.
 
@@ -33,8 +36,10 @@ There is no public body-photo feed, attractiveness voting, spectator gallery, op
 | Independent Elo, matchmaking, standings, and records | F29-C | [Physique rating and matchmaking](F29-C-physique-rating-and-matchmaking/DOCKS.md) |
 | Attire, nudity, moderation, reports, blocks, and appeals | F29-D | [Safety and reporting](F29-D-safety-and-reporting/DOCKS.md) |
 | Permissions, data lifetime, service operation, cost, and latency | F29-E | [Privacy and service operation](F29-E-privacy-and-service-operation/DOCKS.md) |
+| Public battle identity, country flags, badges, and complete top rails | F29-F | [Battle identity and badges](F29-F-battle-identity-and-badges/DOCKS.md) |
+| Shared animated native components and Mac presentation | F29-G | [Native UI components](F29-G-native-ui-components/DOCKS.md) |
 
-The parent owns shared decisions and terminology. Each child owns the complete behavior of its named area. These areas share one match lifecycle; they are not independently releasable competitive features.
+The parent owns shared decisions and terminology. Each child owns the complete behavior of its named area. F29-A's view contexts and F29-G's component contexts are independently assignable design-writing areas under a fixed shared contract, not independently releasable competitive features. Their implementation briefs preserve real service, privacy, safety, and human-review dependencies.
 
 ## Architecture and Existing-App Boundaries
 
@@ -130,15 +135,17 @@ F29-A specifies each screen's detailed layout, actions, focus behavior, transiti
 
 ## Visual and Emotional Direction
 
-Use the app's existing native dark visual language, Inter typography, orange shared action styles, readable spacing, and familiar expanding headers. The reference colors are the existing near-black background, dark elevated surfaces, white primary text, and toolbar orange; they are reused theme values, not an unrelated design system.
+Use the app's existing native dark visual language, Inter typography, orange shared action styles, readable spacing, familiar headers, and original orange-and-ivory sports illustrations. The reference colors are the existing near-black background, dark elevated surfaces, white primary text, and toolbar orange; they are reused theme values, not an unrelated design system. Public native material fallbacks preserve current iOS and macOS compatibility.
 
-Physique must feel like a clear sports comparison with private evidence and respectful feedback. It must not resemble a sexualized swipe feed or a humiliating body-rating game. Names, metrics, units, and safety actions remain legible; important controls are not icon-only. A future interactive mockup may cover the entire capture-to-report flow to validate composition before production work, but this document does not imply one has been created or accepted.
+The active battle reads from top to bottom as timer, the two clearly owner-grouped complete badge/identity rails, then a large You panel above a large Opponent panel. Players remain vertical at every Mac width. Secondary details may use a Mac inspector; they do not replace the requested vertical matchup with side-by-side people. Badge rows wrap without a hidden-count cap and never cover faces, limbs, or evidence. Short windows and large text can scroll the stage rather than reduce the players to tiny icons. Only authorized local camera or counterpart-media states appear.
+
+Physique must feel like a clear sports comparison with private evidence and respectful feedback. It must not resemble a sexualized swipe feed or a humiliating body-rating game. Minimal text means concise task labels and deliberate details, not missing units, consent, error recovery, or safety consequences. A future interactive battle-to-results mockup can reduce composition and motion rework; it is optional, has not been created or accepted, and does not replace these requirements.
 
 ## Animation Rules
 
-The app's existing shared press feedback, page navigation, sheets, and loading indicators remain the base. Camera guidance and readiness changes use short, restrained crossfades. A countdown advances once per real second without flashing. Results transition only after finalization; rating changes animate once and never imply an unconfirmed award. Reports hide media immediately instead of waiting for a decorative dismissal.
+The app's existing press feedback, navigation, sheets, and loading indicators remain the base. Real pairing, readiness, countdown ticks, pose acceptance, final results, earned rating, and badge changes receive purposeful tactile motion. The timer keeps stable readable geometry; a quiet state-responsive background adds depth without moving capture framing. A successful final result has one coordinated counter and crest reveal, not four serial delays, a false live score, or an unconfirmed award. The full motion vocabulary and interruption behavior belong to F29-G and its children.
 
-Reduce Motion removes scale, travel, and repeating decorative motion. Reduce Transparency uses readable opaque surfaces. Backgrounding pauses camera activity and decorative animation without pausing the service's authoritative deadlines. F29-A gives the detailed transition behavior; other children identify any additional feedback specific to their area.
+Reduce Motion removes scale, travel, count-up, and repeating decoration while preserving the same meaning. Reduce Transparency uses readable opaque surfaces. Inactive, minimized, background, low-power, and thermal states reduce decorative work as appropriate without pausing authoritative deadlines. Camera stop, privacy shielding, and media hiding are immediate. History, reconnection, and window changes do not replay an award. Both native platforms require their actual input, resizing, focus, availability, and energy behavior, not an iPhone-only animation pasted into a Mac window.
 
 ## Files and Ownership Boundaries
 
@@ -159,6 +166,8 @@ Existing account/session behavior, native navigation, shared styling, and the au
 
 F29-B depends on a valid, consented capture contract from F29-A. F29-C depends on validated results from F29-B. F29-D and F29-E constrain the entire journey, including what can be captured, submitted, displayed, retained, or rated. No child is permission to ship a competitive flow without the others.
 
+F29-F depends on legitimate account presentation and service-owned competitive records, not editable local badge previews. F29-G depends on the same B/C/D/E invariants and supports all F29-A views on both native targets. New country and public badge fields require explicit disclosure and authorized identity handling; they are never image-judge inputs. Independent documentation work does not bypass these dependencies before production integration.
+
 Existing F28 outdoor work is not a product dependency. Physique does not change route recording, workout playback, AI Coach, exercise quotas, or the user's saved navigation choices.
 
 ## Policy and Product Risks
@@ -172,8 +181,11 @@ Visual judging is subjective and sensitive to capture conditions. Model marketin
 ## Reference
 
 - [LarpGPT Battle](https://larpgpt.com/battle) is an interaction and paired-image-judging reference, not a direct licensed code import or proof of its private model provider. Its public experience is not an App Store policy precedent.
+- [User-supplied battle screenshot](../../genesis/REFERENCE/F29-physique-duels/larpgpt-battle-reference.png) supplies direct timer/player/badge hierarchy. The requested adaptation uses vertical players, the app's own styling, no premature opponent imagery, and no imported faces or footage.
 - genesis/REFERENCE/APP IMAGE REFERENCE/push up tracker competition.png is an existing visual reference for a camera-based sports-duel HUD. Its mocking caption, unrestricted footage, and exercise score are not requirements for Physique Duels.
 - [GPT-6.1 Sol model documentation](https://developers.openai.com/api/docs/models/gpt-6.1-sol) describes image input, structured output support, reasoning, and current pricing. It does not establish bodybuilding-judging accuracy.
 - [Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) provide the relevant UGC, objectification, safety, capture-consent, privacy, deletion, and digital-purchase conditions.
 - [Apple Privacy HIG](https://developer.apple.com/design/human-interface-guidelines/privacy) and [Accessibility HIG](https://developer.apple.com/design/human-interface-guidelines/accessibility) inform resource requests, readable states, accessible controls, and reduced-motion behavior.
+- [Apple HIG: Designing for macOS](https://developer.apple.com/design/human-interface-guidelines/designing-for-macos) informs native window resizing, menu/keyboard/pointer behavior, and readable desktop composition.
+- [Apple HIG: Motion](https://developer.apple.com/design/human-interface-guidelines/motion) informs optional, brief, purposeful, interruptible feedback rather than animation that blocks actions.
 - [App Review appointments](https://developer.apple.com/help/app-review/before-submitting-for-review/app-review-appointment/) explain the limits of pre-submission guidance.

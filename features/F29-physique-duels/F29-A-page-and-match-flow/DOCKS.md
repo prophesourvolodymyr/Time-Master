@@ -1,6 +1,6 @@
 # F29-A — Physique Page and Match Flow
 
-This area owns the new native Physique page and every participant-facing step from browsing rules to capturing poses, receiving a result, reporting content, and returning to the app. The [parent specification](../DOCKS.md) owns the shared product contract. The user requested this specification directly in features. Detailed choices remain proposed defaults for review, not an accepted mockup or implemented screen.
+This area owns the new native Physique page and every participant-facing step from browsing rules to capturing poses, receiving a result, reporting content, and returning to the app. The [parent specification](../DOCKS.md) owns the shared product contract. The user requested the specification directly in features and has now directed the vertical, animated, minimal-text interface on both iPhone and native macOS. These are requirements, not an accepted mockup or implemented screen. Existing numerical competition proposals remain subject to review.
 
 ## What We Build
 
@@ -9,6 +9,40 @@ A real page, not a renamed exercise selection, opens from the existing navigatio
 A local illustrated Pose guide explains the three poses without uploading images, awarding scores, inventing a practice opponent, or changing Elo. This is not a second unrequested cloud-analysis mode. Browsing the page and reading rules must not turn on the camera or submit personal data.
 
 The app's normal page catalog, saved page order, top-or-bottom navigation placement, and current selected destination remain intact. Adding Physique must not automatically reinsert a Ranked page the person previously removed. Physique is offered through the usual Add page control; new installations may include it beside Ranked.
+
+## Dedicated View Contexts
+
+Every new custom view below has a dedicated deep-design owner and implementation brief. Related states stay in their owning view instead of creating an unowned custom screen for each error. Framework permission alerts, native pickers, ordinary confirmations, and existing account controls are reused. These are independent specification-writing areas under one shared contract, not permission to ship dependent UI before its real foundations and human review.
+
+| View | Product context | Main responsibility |
+| --- | --- | --- |
+| F29-A-a | [Lobby](F29-A-a-lobby/DOCKS.md) | Earned identity, compact metrics, actual allowance, recent activity, and Find opponent |
+| F29-A-b | [Account entry](F29-A-b-account-entry/DOCKS.md) | Existing real account flows, restoration, and return to the intended action |
+| F29-A-c | [Eligibility and consent](F29-A-c-eligibility-and-consent/DOCKS.md) | Private declarations and separate informed sharing choices |
+| F29-A-d | [Rules and rubric](F29-A-d-rules-and-rubric/DOCKS.md) | Complete readable rules with concise overview and deliberate detail |
+| F29-A-e | [Pose guide](F29-A-e-pose-guide/DOCKS.md) | Local safe illustrations without camera or upload |
+| F29-A-f | [Camera setup](F29-A-f-camera-setup/DOCKS.md) | Permission, framing, camera choice, redaction, and genuine resource failures |
+| F29-A-g | [Match search](F29-A-g-match-search/DOCKS.md) | Real queue, honest clock, cancellation, and no-opponent recovery |
+| F29-A-h | [Ready room](F29-A-h-ready-room/DOCKS.md) | Vertical pair, complete badge rails, explicit readiness, and shared start |
+| F29-A-i | [Battle stage](F29-A-i-battle-stage/DOCKS.md) | Large vertical participants, top clock, guided live capture, and safe controls |
+| F29-A-j | [Pose review](F29-A-j-pose-review/DOCKS.md) | Exact selected redacted still, real checks, replacement, and bounded retakes |
+| F29-A-k | [Submission and judging](F29-A-k-submission-and-judging/DOCKS.md) | Real transfer/check/wait states and authoritative finality |
+| F29-A-l | [Result](F29-A-l-result/DOCKS.md) | Immediate outcome, validated totals, earned rating, and purposeful next actions |
+| F29-A-m | [Score breakdown](F29-A-m-score-breakdown/DOCKS.md) | Complete category meaning, weights, precision, evidence, and version context |
+| F29-A-n | [Pose gallery](F29-A-n-pose-gallery/DOCKS.md) | Intentional protected still access, vertical comparison, per-image safety, and expiry |
+| F29-A-o | [Match history](F29-A-o-match-history/DOCKS.md) | Honest private saved records, paging, and exact match restoration |
+| F29-A-p | [Standings](F29-A-p-standings/DOCKS.md) | Physique-only placed public accounts, ties, visibility, and actual positions |
+| F29-A-q | [Player summary](F29-A-q-player-summary/DOCKS.md) | Permitted public identity and badge details without private data |
+| F29-A-r | [Safety hub](F29-A-r-safety-hub/DOCKS.md) | Support, cases, safe block management, and accessible restricted-account help |
+| F29-A-s | [Report composer](F29-A-s-report-composer/DOCKS.md) | Contextual safe reports and truthful receipt/retry states |
+| F29-A-t | [Case center](F29-A-t-case-center/DOCKS.md) | Only the person's own cases, real states, and private navigation |
+| F29-A-u | [Case detail](F29-A-u-case-detail/DOCKS.md) | Decisions, safe correspondence, next steps, and reviewed corrections |
+| F29-A-v | [Review composer](F29-A-v-review-composer/DOCKS.md) | Explicit safety-appeal or outcome-dispute mode, without model rerolls |
+| F29-A-w | [Privacy and sharing](F29-A-w-privacy-and-sharing/DOCKS.md) | Separate choices, stage-aware withdrawal, listing, and image removal |
+| F29-A-x | [Deletion status](F29-A-x-deletion-status/DOCKS.md) | Existing global deletion entry and honest partial/held/completed states |
+| F29-A-y | [Badges and country](F29-A-y-badges-and-country/DOCKS.md) | Complete legitimate collection and optional self-declared region controls |
+
+The [shared component family](../F29-G-native-ui-components/DOCKS.md) owns clocks, player panels and pose icons, battle atmosphere, score counters, and the Mac shell. [Battle identity and badges](../F29-F-battle-identity-and-badges/DOCKS.md) owns badge semantics and all top rails. Views compose these components rather than inventing a separate timer, badge system, renderer, or motion vocabulary.
 
 ## View Hierarchy and Composition
 
@@ -27,6 +61,14 @@ The metric area contains current Elo, peak Elo, and wins, losses, and draws. Win
 The primary action is Find opponent. Immediately above it, a compact allowance line states the remaining physique matches and the next slot's availability. The line explicitly belongs to Physique, not push-ups or squats. Beneath or alongside it, clearly labeled secondary actions open Pose guide, History, Leaderboard, and Safety. A single short notice explains that AI judges visible physique presentation and that images require consent; the full rules remain one action away.
 
 Recent matches use concise rows showing the opponent's permitted display name, date, outcome, and this person's physique Elo change. A no-contest row states No rating change. A forfeit row does not display invented category scores. A row opens its exact saved match, not a new session or a generic results placeholder.
+
+### Match hierarchy and concise presentation
+
+The active match is deliberately different from the screenshot's horizontal pair. Its top visual anchor is the real phase timer. Under it sit the two clearly owner-grouped identities and their complete public badge rails, followed by the large You panel and then the large Opponent panel. The players stay vertical on iPhone, iPad, and every Mac width. Their imagery is substantial rather than a pair of small profile icons surrounded by prose.
+
+The identity rails include an optional self-declared country/region flag beside a handle when the person has intentionally chosen one. Missing or unsupported flag display has a neutral state and an accessible region name. There is no inferred location, nationality verification, country filter, or effect on judging. All eligible public battle badges appear above the panels; rows wrap instead of hiding badges behind a count or letting them cover faces or capture evidence.
+
+Keep one short current instruction or state label, useful icons, and a clear primary action. Put secondary explanation in intentional details without hiding essential safety, units, privacy, or forfeiture meaning. A short screen or accessibility text may scroll the central stage while keeping the clock and safe actions reachable; do not shrink participants or typography to force a fixed screenshot. A finalized result does not retain a running capture clock.
 
 ### Setup and eligibility
 
@@ -72,7 +114,7 @@ Before Go, an exit is Cancel match and has no rating or allowance consequence. A
 
 ### Pose capture
 
-The capture screen identifies the current pose, the shared time remaining, and three compact pose slots. The local preview remains primary. The opponent is represented by an accepted-pose count and readiness, not live footage or a live appearance score.
+The capture screen identifies the current pose, shared time remaining, and three compact pose slots. The timer and full owner-grouped identity/badge rails sit above two large vertically stacked panels, with You above Opponent. The own panel contains the local aspect-fit preview and safe guide; the opponent panel uses a permitted avatar or neutral athlete with actual stage, accepted-pose count, and readiness. It never shows live footage, an early selected still, or a live appearance score. Badge chrome is not embedded into uploaded evidence.
 
 The order is front double-biceps, side physique, then rear double-biceps. Each pose has an illustrated neutral guide and one short instruction. The side guide avoids sexualized chest or breast framing. The person is never instructed to expose prohibited regions, exert to exhaustion, hold their breath, dehydrate, or continue through pain.
 
@@ -106,7 +148,7 @@ Leaving the visual waiting screen does not issue another judgement or discard an
 
 The final screen opens with Won, Lost, Draw, Forfeit, or No contest as a clear text outcome. An outcome is not conveyed by orange or red alone. Both participants receive the same final result from the service.
 
-For a judged match, the next section shows both weighted totals and the four named category rows. Each row has its unit, meaning, and neutral supporting explanation. Invalid or unobservable evidence never becomes a zero score. A short notice says these are AI judgements of the submitted pose set, not measurements of health or actual muscle mass.
+For a judged match, the primary result shows both accepted weighted totals, the immediate outcome, and this person's earned rating effect without a wall of explanation. A concise Breakdown action opens the four named category rows, their units, meaning, weights, and neutral supporting explanation; those details are complete rather than removed for visual minimalism. Invalid or unobservable evidence never becomes a zero score. A short notice and deliberate details explain that these are AI judgements of the submitted pose set, not measurements of health or actual muscle mass. Shared score and Elo counters animate only confirmed values, together within a short coordinated reveal; final meaning and safe controls are immediately available.
 
 The person's own Physique Elo before, signed change, after, placed tier when available, and provisional progress follow the outcome. The opponent's permitted match-time rating and placement state identify the pairing context; a later public current rating belongs to a separately permitted profile or standings view, not a rewritten historical comparison. The person cannot browse private rating transactions or other private account data. The AI score is not animated into the Elo number and cannot be edited.
 
@@ -116,7 +158,7 @@ Close returns to the same Physique lobby and refreshes its actual rating, allowa
 
 ### Selected-image details
 
-View poses is an intentional action inside a valid AI-judged win, loss, or draw result with the required prior consent. Forfeits and no-contests have no opponent-pose gallery. The viewer does not auto-expand after a win or arrive in a notification. Each player's front, side, and back image is clearly labeled and remains attached to the same pose position. Side-by-side comparison collapses into stacked, consistently scaled sections at large text or narrow width.
+View poses is an intentional action inside a valid AI-judged win, loss, or draw result with the required prior consent. Forfeits and no-contests have no opponent-pose gallery. The viewer does not auto-expand after a win or arrive in a notification. Each player's front, side, and back image is clearly labeled and remains attached to the same pose position. The actual paired people remain vertically ordered on both platforms, with consistent aspect-fit evidence and identity/badge chrome outside the image. Wide Mac space may hold supplementary details, not change the requested matchup into side-by-side players.
 
 Only moderated selected stills from that finalized match can appear. The viewer does not expose live footage, rejected attempts, retakes, background recordings, other matches, or arbitrary library photos. It shows that images expire twenty-four hours after finalization.
 
@@ -197,11 +239,13 @@ Opening external rules or privacy information must not leave an unnoticed camera
 
 ## Responsive and Platform Behavior
 
-The first product surface is native iPhone. Short screens and large text use vertical scrolling and stacked comparison cards, preserving the primary action and exit within safe areas. Existing floating controls and either navigation-menu edge are respected through the app's measured content bounds, not a fixed bottom spacer. The navigation can hide during active capture but remains accessible through explicit exit and restoration behavior.
+Native iPhone and native macOS are required first-class product surfaces. On iPhone, short screens and large text use vertical scrolling and large stacked participant panels, preserving the primary action and safe exit within measured available bounds. Existing floating controls and either page-navigation edge are respected through measured content clearance, not fixed screen positions or a bottom spacer. Navigation may hide during active capture only with explicit exit and reliable restoration.
 
-Lobby metrics wrap into fewer columns as needed. Category labels and reasons can use multiple lines. The report form and account fields remain usable above the keyboard. No body image is stretched nonuniformly, cropped to make a player appear larger, or displayed at a different comparison scale to favor one participant.
+Lobby metrics wrap into fewer columns as needed. Category labels, names, badge rails, consent details, and error reasons grow rather than clamp readable text. Forms stay usable above the keyboard. No body image is distorted, cropped to enlarge someone, differently scaled to favor a participant, or overlaid by a badge across required evidence.
 
-Existing iPad and macOS targets remain functional. Where the feature is offered, wider windows use a centered readable column or balanced two-column comparison, keyboard and pointer focus, and the platform's normal sheets. Camera and provider unavailability are honest states, not a crash or a fake competitor. This documentation does not require an unrelated desktop redesign or claim that every camera has been validated.
+On Mac, support the current eight-hundred-by-six-hundred minimum, laptop and larger windows, full screen, external displays, live resizing, normal title-bar controls, native toolbars/sheets, meaningful pointer and keyboard focus, and a readable optional inspector. Actual players remain You above Opponent at every width. Short windows can scroll the stage; no app-wide minimum increase or phone-sized rigid canvas is required. Existing iPad behavior stays adaptive and functional without turning the Mac requirement into deferred work.
+
+The Mac route must handle camera/TCC permission and absence, busy hardware, external or Continuity camera disconnect, immediate private shielding and camera stop when inactive/minimized/backgrounded, state-aware Escape/window close/quit, and one account's active match/camera ownership across windows. Return restores the same service stage and clock, not another match or charge. A force quit cannot be prevented or mislabeled as a deliberately confirmed forfeit. [F29-G-e](../F29-G-native-ui-components/F29-G-e-macos-shell/DOCKS.md) owns the complete desktop contract.
 
 ## Animation Rules
 
@@ -211,15 +255,15 @@ Existing iPad and macOS targets remain functional. Where the feature is offered,
 | Button press and selected state | Existing shared press feedback and visible selection mark | Direct feedback; release never triggers a second action | No added scale or bounce |
 | Readiness or framing cue | Text, icon, and outline crossfade; camera geometry stays fixed | Approximately 150 milliseconds, latest real state replaces the prior cue | Same short opacity change or immediate update |
 | Pose guide change | Named guide and pose slot crossfade; no moving body scan | Approximately 180 milliseconds after the actual selection changes | Static replacement with readable heading |
-| Countdown | One numeral replaces another once each real second | Approximately 150-millisecond opacity transition; interruption cancels the count | Immediate numeral replacement without scale or flashing |
+| Countdown | One clear numeral per real second with small tactile emphasis; header bounds stay stable | Service-owned start, approximately 220-millisecond settle and at most a small 1.08-scale emphasis; interruption cancels the cue | Immediate numeral replacement without scale or flashing |
 | Transfer and judging feedback | Real transfer progress or existing indeterminate Tmax activity | No artificial minimum wait; pause decoration in background | Static activity indicator plus actual status |
-| Final result | Outcome and detail sections fade into their final layout | Approximately 220 milliseconds only after service finalization | Immediate layout or short opacity fade |
-| Earned Elo change | Own before-and-after number transitions once | Approximately 450 milliseconds; opening history again does not replay an award | Show final value and signed change immediately |
-| Pose image viewer | Native sheet/full-screen viewer and intentional image expansion | Platform transition; close restores the invoking tile's focus | Native reduced-motion transition |
+| Final result and score counters | Immediate final outcome, synchronized accepted totals, and meaningful supporting detail | Supporting score motion around 650 milliseconds within a total reveal no longer than 900 milliseconds; no action waits for it | Immediate final values and outcome |
+| Earned Elo and legitimate badges | Distinct own signed rating transition and once-only confirmed crest/badge response | Own Elo around 450 milliseconds within the same total result window; no replay on history, reconnect, or window change | Final rating, signed change, and badges immediately |
+| Deliberate pose-gallery entry | Native presentation opens the authorized vertical paired-pose reel; images remain aspect-fit rather than opening a second app-owned enlargement/export surface | Platform transition after intentional View poses and current access check; close restores invoking focus | Native reduced-motion transition; OS accessibility magnification remains available |
 | Report or Hide | Sensitive image becomes a placeholder immediately | No decorative delay before protection; acknowledgement follows actual submission | Immediate protection |
 | Case-status or corrected-result update | Updated text, revision label, and relevant metric crossfade | Approximately 180 milliseconds; never show an unconfirmed reversal | Immediate change with an accessible announcement |
 
-These timings are proposed product motion targets, not measured frame-rate evidence or new requirements for a custom renderer. No celebration shakes the opponent, labels their body as inferior, or uses a flashing full-screen effect.
+These timings are selected product-motion targets for review, not measured frame-rate evidence or a demand for a custom renderer. A quiet low-contrast battle atmosphere may animate under the shared F29-G contract, but camera geometry stays fixed and no leader is suggested before finality. Inactive, background, offscreen, minimized, low-power, or thermal conditions reduce decorative work without changing deadlines. No celebration shakes the opponent, labels their body inferior, or flashes the full screen.
 
 ## Files and Ownership
 
@@ -242,4 +286,6 @@ Real rated entry depends on the shared account/service foundation being reviewed
 - [Apple Privacy HIG](https://developer.apple.com/design/human-interface-guidelines/privacy) informs just-in-time camera access, clear data use, and minimization.
 - [Apple Accessibility HIG](https://developer.apple.com/design/human-interface-guidelines/accessibility) informs Dynamic Type, readable contrast, non-color signals, gesture alternatives, focus, and motion alternatives.
 - [LarpGPT Battle](https://larpgpt.com/battle) informs the paired sports-comparison idea, not unrestricted video chat, visual copying, or knowledge of its private judge.
+- [Supplied battle screenshot](../../../genesis/REFERENCE/F29-physique-duels/larpgpt-battle-reference.png) is the user's hierarchy reference; its horizontal layout, web skin, and people are not copied.
+- [Apple HIG: Designing for macOS](https://developer.apple.com/design/human-interface-guidelines/designing-for-macos) and [Motion](https://developer.apple.com/design/human-interface-guidelines/motion) inform the native desktop and interruptible-feedback decisions.
 - genesis/REFERENCE/APP IMAGE REFERENCE/push up tracker competition.png is a pattern reference for a legible camera-duel HUD, not a direct source of code, mocking language, or Physique scoring.
