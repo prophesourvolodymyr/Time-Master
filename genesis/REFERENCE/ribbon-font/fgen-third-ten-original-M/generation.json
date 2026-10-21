@@ -1,5 +1,5 @@
 {
-  "status": "3 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
+  "status": "4 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
   "generator": "fgen",
   "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
   "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
@@ -21,7 +21,8 @@
   "generationOrder": [
     "N",
     "O",
-    "P"
+    "P",
+    "Q"
   ],
   "generationPolicy": "One letter per sequential Fgen invocation; inspect the saved output before starting the next. Each call references only the original M. No raster warping, thresholding, contour repairs, vector substitutes or automatic selection from retries.",
   "outputs": {
@@ -235,6 +236,186 @@
       "inspection": {
         "stage": "Inspected separately before generating the next letter.",
         "note": "Clear connected uppercase P with a broad leaning stem and one rounded upper bowl containing exactly one closed counter. The lower-right region is open with no R leg or second bowl. Rounded crest and restrained stem foot, no clipping or extra marks; raw PNG unchanged.",
+        "designApproval": "Human review pending; structural inspection is not family approval."
+      }
+    },
+    "Q": {
+      "prompt": "Draw one uppercase Latin letter Q on a pure black square. The supplied image is the original M and the only style reference. Match its broad rising ribbon, narrower returning strokes, soft asymmetry, rounded crests and smooth inner turns. Make Q a closed forward-leaning oval with one closed counter and a short connected diagonal tail exiting at the lower right. Use a solid white filled silhouette, generous black margins and approximately the reference M cap height. Show only Q, with no other characters, labels, guides, shadows or texture.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGB",
+      "sha256": "89e5f945dd6f59704479e17ff98b8a31107744cded7f0453295e8d5f6c3ae7cd",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png",
+          "prompt": "Draw one uppercase Latin letter Q on a pure black square. The supplied image is the original M and the only style reference. Match its broad rising ribbon, narrower returning strokes, soft asymmetry, rounded crests and smooth inner turns. Make Q a closed forward-leaning oval with one closed counter and a short connected diagonal tail exiting at the lower right. Use a solid white filled silhouette, generous black margins and approximately the reference M cap height. Show only Q, with no other characters, labels, guides, shadows or texture.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 669,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1562,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 22203,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 464445,
+          "elapsed_ms": 22511,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 22512,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png"
+          ]
+        }
+      ],
+      "layoutBounds": [
+        305,
+        273,
+        1001,
+        979
+      ],
+      "majorComponents": 1,
+      "majorCounters": 1,
+      "failedAttempts": [
+        {
+          "status": "No image saved; backend returned an image call without image data.",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase Q, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase Q: one closed forward-leaning oval ribbon with exactly one closed counter, plus a short clear diagonal tail integrated into the lower-right bowl. The tail must visibly exit the bowl toward the lower right and end slightly below the bowl baseline with a soft rounded-flat finish; it is not a detached stroke. Keep the broad rising outer arc, narrower return and softly asymmetric closed bowl. No aperture or second loop: not O, G, the digit 9 or a circle with a detached slash. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter Q: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+          "fgenEvents": [
+            {
+              "event": "start",
+              "job": 0,
+              "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png",
+              "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase Q, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase Q: one closed forward-leaning oval ribbon with exactly one closed counter, plus a short clear diagonal tail integrated into the lower-right bowl. The tail must visibly exit the bowl toward the lower right and end slightly below the bowl baseline with a soft rounded-flat finish; it is not a detached stroke. Keep the broad rising outer arc, narrower return and softly asymmetric closed bowl. No aperture or second loop: not O, G, the digit 9 or a circle with a detached slash. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter Q: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 825,
+              "event": "phase",
+              "job": 0,
+              "phase": "queued",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 1551,
+              "event": "phase",
+              "job": 0,
+              "phase": "generating",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 21600,
+              "event": "phase",
+              "job": 0,
+              "phase": "finishing",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 21600,
+              "error": "the backend produced an image call without image data",
+              "event": "error",
+              "job": 0,
+              "total": 1
+            },
+            {
+              "elapsed_ms": 21602,
+              "event": "summary",
+              "failed": [
+                {
+                  "error": "the backend produced an image call without image data",
+                  "job": 0
+                }
+              ],
+              "ok": false,
+              "saved": []
+            }
+          ]
+        },
+        {
+          "status": "No image saved; backend returned an image call without image data.",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase Q, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make a clear printed uppercase Q: a closed leaning oval ribbon with one closed counter and a single short diagonal tail connected to its lower-right side. The tail extends just below the bowl and has a softly cut finish. Carry the original M's broad rising curves and narrower returns. Keep the bowl fully closed and the tail clearly visible. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter Q: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+          "fgenEvents": [
+            {
+              "event": "start",
+              "job": 0,
+              "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png",
+              "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase Q, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make a clear printed uppercase Q: a closed leaning oval ribbon with one closed counter and a single short diagonal tail connected to its lower-right side. The tail extends just below the bowl and has a softly cut finish. Carry the original M's broad rising curves and narrower returns. Keep the bowl fully closed and the tail clearly visible. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter Q: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 918,
+              "event": "phase",
+              "job": 0,
+              "phase": "queued",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 1914,
+              "event": "phase",
+              "job": 0,
+              "phase": "generating",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 23935,
+              "event": "phase",
+              "job": 0,
+              "phase": "finishing",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 23935,
+              "error": "the backend produced an image call without image data",
+              "event": "error",
+              "job": 0,
+              "total": 1
+            },
+            {
+              "elapsed_ms": 23935,
+              "event": "summary",
+              "failed": [
+                {
+                  "error": "the backend produced an image call without image data",
+                  "job": 0
+                }
+              ],
+              "ok": false,
+              "saved": []
+            }
+          ]
+        }
+      ],
+      "baseline": 935,
+      "inspection": {
+        "stage": "Inspected separately before generating the next letter.",
+        "note": "One connected uppercase Q with exactly one closed counter and a visible integrated lower-right tail. The closed bowl ends at source row 935 and the tail at row 979; the separate baseline measurement preserves the tail descent in word layout without editing the image. No clipping or extra marks. Two earlier calls returned no image data; both failed event records are retained. The first actual saved Q is used unchanged.",
         "designApproval": "Human review pending; structural inspection is not family approval."
       }
     }
