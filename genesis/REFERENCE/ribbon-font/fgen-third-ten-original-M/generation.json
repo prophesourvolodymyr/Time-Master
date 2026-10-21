@@ -1,5 +1,5 @@
 {
-  "status": "6 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
+  "status": "7 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
   "generator": "fgen",
   "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
   "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
@@ -24,7 +24,8 @@
     "P",
     "Q",
     "R",
-    "T"
+    "T",
+    "U"
   ],
   "generationPolicy": "One letter per sequential Fgen invocation; inspect the saved output before starting the next. Each call references only the original M. No raster warping, thresholding, contour repairs, vector substitutes or automatic selection from retries.",
   "outputs": {
@@ -560,6 +561,77 @@
       "inspection": {
         "stage": "Inspected separately before generating the next letter.",
         "note": "One connected uppercase T with a single softly waved upper crossbar and a broad forward-leaning stem. Smooth shoulder joins, rounded-flat bar terminals and clean stem foot. Both lower spaces stay open; no counter, extra arms, detached marks or clipping. Raw RGBA output retained unchanged.",
+        "designApproval": "Human review pending; structural inspection is not family approval."
+      }
+    },
+    "U": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase U, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase U: two tall gently forward-leaning uprights, both reaching cap height, joined by one deep continuous rounded bottom turn. The left rising ribbon is broad and the right return is narrower, with soft asymmetric curves, clean inner space and rounded-flat open top terminals. Keep the entire top clearly open and the bottom fully connected and rounded. No pointed V vertex, crossbar, closed oval or extra exit stem: not V, O, lowercase u or a horseshoe symbol. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter U: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGBA",
+      "sha256": "52d1541c86e3bd7a812bebfe7b1acdf72de48c8c21dc52e6326cb3b60e16c690",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase U, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase U: two tall gently forward-leaning uprights, both reaching cap height, joined by one deep continuous rounded bottom turn. The left rising ribbon is broad and the right return is narrower, with soft asymmetric curves, clean inner space and rounded-flat open top terminals. Keep the entire top clearly open and the bottom fully connected and rounded. No pointed V vertex, crossbar, closed oval or extra exit stem: not V, O, lowercase u or a horseshoe symbol. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter U: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1160,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1854,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 37911,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 471838,
+          "elapsed_ms": 38142,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 38142,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png"
+          ]
+        }
+      ],
+      "layoutBounds": [
+        201,
+        206,
+        1082,
+        1075
+      ],
+      "majorComponents": 1,
+      "majorCounters": 0,
+      "inspection": {
+        "stage": "Inspected separately before generating the next letter.",
+        "note": "One connected uppercase U with two tall leaning uprights and a deep rounded bottom. Broad left ribbon, narrower right return and an open top; no closed counter, pointed V vertex, extra exit stem, clipping or detached marks. The raw RGBA image is unchanged.",
         "designApproval": "Human review pending; structural inspection is not family approval."
       }
     }
