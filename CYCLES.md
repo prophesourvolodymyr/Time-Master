@@ -1845,6 +1845,22 @@ All ten new capitals were generated sequentially from the original M, inspected 
 
 The Fgen tester now displays all twenty-five generated samples plus the original M, with A–X, a, m and spaces available. It opens on TIME MASTER and includes twenty-three word presets, including WORKOUT, QUICK, RIBBON, NEXT, POWER, MOVE, WAVE and the latest ten letters. Q's bowl shares the other capitals' height and baseline while its tail extends naturally below. Actual direct-file and HTTP browser checks covered all presets, unsupported-input preservation and recovery, native empty deletion, keyboard controls, independent Vector/Fgen drafts, guides, fit, four responsive widths and horizontal scrolling through an eighty-letter word. Blocking the new X reported the missing-image state without disabling Vector; restoring the asset and reloading recovered Fgen. Successful runs recorded no page errors, broken or stretched preview images, or document overflow. The original M and all fifteen earlier selected PNGs retain their recorded fingerprints. The app and compiled font files were not changed by this work. The new letters and connected tester are ready for human verification; design acceptance remains pending, and no next prompt is needed for this batch.
 
+### Batch 13 — Hybrid S Alternatives — 2026-10-21
+
+The user rejected the rounded S refinement, then the thin and heavier angular attempts, and requested a combination of the older S and the angular direction. The original M remains the primary style master: broad ribbons, softened asymmetric turns and rounded-flat terminals. The middle connection should be narrower without making the whole letter thin or turning it into a lightning-bolt symbol.
+
+- [x] Identify the remaining Fgen letters: uppercase Y and Z, and lowercase b–l and n–z
+- [x] Preserve the rejected rounded S, three angular S attempts, the user's construction sketch, exact generation records and rejection decisions
+- [x] Generate and individually inspect S1, the balanced older-and-angular blend
+- [x] Generate and individually inspect S2, the softer older-and-angular blend
+- [x] Generate and individually inspect S3, the more structured older-and-angular blend
+- [x] Create an equal-cap-height comparison of the original M and all three alternatives without changing their source PNGs
+- [ ] Connect the three S choices and their word previews without choosing a replacement for the user
+- [ ] Exercise the comparison and word controls, publish the owned changes and hand every item to the user for review
+- [ ] Human acceptance of an S design and its consistency with the original M
+
+The three new alternatives are retained as untouched 1254-by-1254 PNGs in `genesis/REFERENCE/ribbon-font/fgen-s-hybrid-original-M/`. Their generation record names the original M, older S and heavy angular S as the reference inputs. Each new S has one connected shape and no enclosed counter. Earlier attempts and the user's sketch remain in the separate strict-S and sketch-S reference folders. The word-preview connection remains pending; no replacement or font-file change has been accepted.
+
 ## Tmax Rebrand and Loading — 2026-10-19
 
 User-requested visible rebrand and connected loading system. The repository and folder remain Time-Master; bundle IDs, deep links, storage locations, saved data, and user-authored AI prompts retain their existing compatibility.

@@ -1,0 +1,96 @@
+{
+  "status": "Rejected by the user after the individual preview; not connected to the tester.",
+  "generator": "fgen",
+  "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
+  "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
+  "referenceRole": "The untouched original M on its established uniformly enlarged reference canvas; sole image input. The prior S is retained for comparison, not supplied to Fgen.",
+  "requestedQuality": "high",
+  "requestedSize": "1024x1024",
+  "requestedLetters": [
+    "S"
+  ],
+  "generationOrder": [
+    "S"
+  ],
+  "generationPolicy": "One uppercase S per Fgen invocation. Inspect the saved output before selecting it for the tester. Preserve all raw PNGs and failed calls. No raster cleanup, thresholding, warping, contour repair or vector substitution.",
+  "supersedes": {
+    "S": {
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png",
+      "sha256": "2c45158f0da34b99c2e40b450349f3ee82445a58dfc409a064b4669da73fa029",
+      "reason": "User requested a stricter S generated with Fgen; prior raw S is preserved unchanged."
+    }
+  },
+  "outputs": {
+    "S": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY image reference. Generate exactly ONE new glyph: a stricter, disciplined printed uppercase S from the same ribbon type family. Do not redraw M or use another letter as a reference. Give S a firm, compact typographic construction: two controlled opposing bowls, the upper bowl slightly smaller than the lower, a clean narrow diagonal waist, and a consistent forward-right axis. Preserve the M's broad rising ribbon versus narrower returns, restrained asymmetry, tight smooth inner bends and rounded-flat terminals. Use short clean oblique terminal cuts with softly rounded corners, not swollen pill ends, hooks or flowing cursive swashes. Keep the upper right and lower left apertures clearly open. The S should look precise and assertive rather than soft, wobbly, bubbly or handwritten, but not angular, stencil-like or a generic uniform-width bold italic sans-serif. One continuous connected white silhouette, no enclosed counter, extra stem or detached mark. Only uppercase S, not 5, 8, a word, a label or a sheet of letters. Solid white glyph on a pure black square background, with approximately the original M's cap height and baseline placement and generous black margins. Keep the entire glyph inside the canvas. No outlines, shadows, gradients, texture or ornament.",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/uppercase-S.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY image reference. Generate exactly ONE new glyph: a stricter, disciplined printed uppercase S from the same ribbon type family. Do not redraw M or use another letter as a reference. Give S a firm, compact typographic construction: two controlled opposing bowls, the upper bowl slightly smaller than the lower, a clean narrow diagonal waist, and a consistent forward-right axis. Preserve the M's broad rising ribbon versus narrower returns, restrained asymmetry, tight smooth inner bends and rounded-flat terminals. Use short clean oblique terminal cuts with softly rounded corners, not swollen pill ends, hooks or flowing cursive swashes. Keep the upper right and lower left apertures clearly open. The S should look precise and assertive rather than soft, wobbly, bubbly or handwritten, but not angular, stencil-like or a generic uniform-width bold italic sans-serif. One continuous connected white silhouette, no enclosed counter, extra stem or detached mark. Only uppercase S, not 5, 8, a word, a label or a sheet of letters. Solid white glyph on a pure black square background, with approximately the original M's cap height and baseline placement and generous black margins. Keep the entire glyph inside the canvas. No outlines, shadows, gradients, texture or ornament.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 2599,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 3364,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 37967,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 498766,
+          "elapsed_ms": 38263,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/uppercase-S.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 38263,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/uppercase-S.png"
+          ]
+        }
+      ],
+      "exitCode": 0,
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/uppercase-S.png",
+      "sha256": "bab0bf67132b74d008d00b65c133dcd32d6867d34217ec72ee9fbcc61b7be756",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGBA",
+      "layoutBounds": [
+        260,
+        201,
+        972,
+        1059
+      ],
+      "majorComponents": 1,
+      "majorCounters": 0,
+      "inspection": {
+        "stage": "Rejected by the user.",
+        "note": "The user rejected this rounded-bowl S and supplied a rough angular construction drawing. The replacement alternatives must have strict straight outer segments and a thinner middle connection while keeping the original M ribbon style. This raw output is preserved unchanged and is not selected for the tester."
+      }
+    }
+  }
+}

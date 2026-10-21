@@ -1,0 +1,263 @@
+{
+  "status": "Angular direction rejected by the user; retained as history and geometry reference for an older-and-angular blend. No angular alternative was selected for the tester.",
+  "generator": "fgen",
+  "referenceImages": [
+    {
+      "path": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
+      "sha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
+      "role": "Sole style master: the original M, preserving ribbon weight, forward-right direction and softened terminals."
+    },
+    {
+      "path": "genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/sketch-reference.png",
+      "sha256": "50359c7d7e3932d439e2dd9e5990efc572e68b8a1f801308eb19411589061453",
+      "role": "User drawing: S construction only. Straight upper-left and lower-right outer segments, thinner middle bridge, short upper-right and lower-left returns. Do not copy its thin monoline pen style."
+    }
+  ],
+  "requestedQuality": "high",
+  "requestedSize": "1024x1024",
+  "requestedVariants": [
+    "s1",
+    "s2",
+    "s3"
+  ],
+  "generationOrder": [
+    "s1",
+    "s1",
+    "s1"
+  ],
+  "generationPolicy": "One alternative per sequential Fgen call, with exactly the original M and the user sketch as inputs. Inspect every saved output before generating the next. Preserve all raw outputs and failed attempts. No pixel cleanup, warping, thresholding, redrawing or automatic choice for the user.",
+  "rejectedRoundedAttempt": {
+    "path": "genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/uppercase-S.png",
+    "sha256": "bab0bf67132b74d008d00b65c133dcd32d6867d34217ec72ee9fbcc61b7be756",
+    "record": "genesis/REFERENCE/ribbon-font/fgen-strict-s-original-M/generation.json",
+    "reason": "User rejected rounded-bowl construction and clarified the desired S using a drawing."
+  },
+  "existingTesterS": {
+    "path": "genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png",
+    "sha256": "2c45158f0da34b99c2e40b450349f3ee82445a58dfc409a064b4669da73fa029",
+    "selection": "Remains the comparison baseline until the user chooses an alternative."
+  },
+  "outputs": {
+    "s1": {
+      "label": "S1 / Balanced",
+      "brief": "BALANCED HEAVY version: a wide, substantial angular S with the same broad side-ribbon mass as M. Keep the corners softly rolled like M and the center about two-thirds as thick as the sides. Preserve both open opposing S apertures.",
+      "prompt": "Create ONE HEAVY, WIDE uppercase S in our ORIGINAL M typeface style. Image 1 is the style master: copy its actual broad ribbon thickness, soft asymmetric joins and rounded-flat terminals. Image 2 gives ONLY the angular S skeleton; its thin pen weight must not influence the result. Match M at equal cap height: make both long outside diagonal ribbons very broad, around 25-30 percent of cap height. The middle connecting ribbon stays BOLD too, around 16-18 percent of cap height: only a little thinner than the outside, never a hairline. Make the whole S wider as needed to hold these thick ribbons and keep the open gaps. Follow the drawing's geometry: long straight upper-left and lower-right diagonals; a connecting middle bridge that gently rises left to right; a short downward upper-right return and a short upward lower-left return. Use M's compact soft corners and subtle taper on this strict angular structure. A heavy filled ribbon letter, not a narrow zigzag symbol, outline or thin traced sketch. One connected solid WHITE glyph on pure BLACK. Only the S, fully inside a square with clear margins, no text or decorations. BALANCED HEAVY version: a wide, substantial angular S with the same broad side-ribbon mass as M. Keep the corners softly rolled like M and the center about two-thirds as thick as the sides. Preserve both open opposing S apertures.",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1.png",
+          "prompt": "Create ONE HEAVY, WIDE uppercase S in our ORIGINAL M typeface style. Image 1 is the style master: copy its actual broad ribbon thickness, soft asymmetric joins and rounded-flat terminals. Image 2 gives ONLY the angular S skeleton; its thin pen weight must not influence the result. Match M at equal cap height: make both long outside diagonal ribbons very broad, around 25-30 percent of cap height. The middle connecting ribbon stays BOLD too, around 16-18 percent of cap height: only a little thinner than the outside, never a hairline. Make the whole S wider as needed to hold these thick ribbons and keep the open gaps. Follow the drawing's geometry: long straight upper-left and lower-right diagonals; a connecting middle bridge that gently rises left to right; a short downward upper-right return and a short upward lower-left return. Use M's compact soft corners and subtle taper on this strict angular structure. A heavy filled ribbon letter, not a narrow zigzag symbol, outline or thin traced sketch. One connected solid WHITE glyph on pure BLACK. Only the S, fully inside a square with clear margins, no text or decorations. BALANCED HEAVY version: a wide, substantial angular S with the same broad side-ribbon mass as M. Keep the corners softly rolled like M and the center about two-thirds as thick as the sides. Preserve both open opposing S apertures.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 716,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1519,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 36327,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 433568,
+          "elapsed_ms": 36646,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1-v3.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 36647,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1-v3.png"
+          ]
+        }
+      ],
+      "exitCode": 0,
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1-v3.png",
+      "sha256": "6f18f55ba57db44f11164e81592da465addc627c354dd5a5276068250c5c432d",
+      "previousAttempts": [
+        {
+          "label": "S1 / Balanced",
+          "brief": "BALANCED version: use the drawing's two straight outer diagonals and a middle bridge about 60-65 percent of their thickness. Give the upper and lower open turns compact, softly rounded elbows, preserving the warm ribbon character of M. Clear angular construction without extreme spikes.",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY STYLE MASTER. Image 2 is my rough hand-drawn S construction guide, STRUCTURE ONLY, not its pen-stroke style. Create exactly ONE uppercase S glyph in the original M's bold filled ribbon family, following the angular OPEN construction drawn in Image 2 instead of making a conventional rounded-bowl S. The long upper-left outer segment and lower-right outer segment must be strict, straight, forward-leaning diagonal ribbons, connected by a visibly THINNER middle bridge that rises gently from left to right as in the drawing. Keep the short downward upper-right return and short upward lower-left return so both opposing S openings remain clear. Preserve the original M's broad ribbon weight, restrained asymmetry, subtle taper, softly rounded-flat ends and compact smooth corner joins. The outer strokes are bold, the middle is narrower, never a uniform-width monoline. Translate the skeleton into a real typeface glyph, not a traced pencil drawing. Keep the angular S structure, not a plain Z, number 5, generic rounded sans S or cursive flourish. One connected solid-white silhouette with no enclosed hole or detached marks, on a pure black square canvas. Only this one S: no M, no other glyph, text, label, guide, border, outline, shadow, gradient or texture. Match the M's approximate cap height, baseline and generous clear canvas margins; do not clip the glyph. BALANCED version: use the drawing's two straight outer diagonals and a middle bridge about 60-65 percent of their thickness. Give the upper and lower open turns compact, softly rounded elbows, preserving the warm ribbon character of M. Clear angular construction without extreme spikes.",
+          "fgenEvents": [
+            {
+              "event": "start",
+              "job": 0,
+              "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1.png",
+              "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY STYLE MASTER. Image 2 is my rough hand-drawn S construction guide, STRUCTURE ONLY, not its pen-stroke style. Create exactly ONE uppercase S glyph in the original M's bold filled ribbon family, following the angular OPEN construction drawn in Image 2 instead of making a conventional rounded-bowl S. The long upper-left outer segment and lower-right outer segment must be strict, straight, forward-leaning diagonal ribbons, connected by a visibly THINNER middle bridge that rises gently from left to right as in the drawing. Keep the short downward upper-right return and short upward lower-left return so both opposing S openings remain clear. Preserve the original M's broad ribbon weight, restrained asymmetry, subtle taper, softly rounded-flat ends and compact smooth corner joins. The outer strokes are bold, the middle is narrower, never a uniform-width monoline. Translate the skeleton into a real typeface glyph, not a traced pencil drawing. Keep the angular S structure, not a plain Z, number 5, generic rounded sans S or cursive flourish. One connected solid-white silhouette with no enclosed hole or detached marks, on a pure black square canvas. Only this one S: no M, no other glyph, text, label, guide, border, outline, shadow, gradient or texture. Match the M's approximate cap height, baseline and generous clear canvas margins; do not clip the glyph. BALANCED version: use the drawing's two straight outer diagonals and a middle bridge about 60-65 percent of their thickness. Give the upper and lower open turns compact, softly rounded elbows, preserving the warm ribbon character of M. Clear angular construction without extreme spikes.",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 801,
+              "event": "phase",
+              "job": 0,
+              "phase": "queued",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 1534,
+              "event": "phase",
+              "job": 0,
+              "phase": "generating",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 34284,
+              "event": "phase",
+              "job": 0,
+              "phase": "finishing",
+              "total": 1
+            },
+            {
+              "bytes": 372646,
+              "elapsed_ms": 34697,
+              "event": "saved",
+              "job": 0,
+              "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1.png",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 34698,
+              "event": "summary",
+              "failed": [],
+              "ok": true,
+              "saved": [
+                "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1.png"
+              ]
+            }
+          ],
+          "exitCode": 0,
+          "savedPath": "genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1.png",
+          "sha256": "05feee93d29c3115949b14be46fb641c787ff87aaf68f3f71f1581a4199f06f2",
+          "dimensions": [
+            1254,
+            1254
+          ],
+          "format": "PNG",
+          "mode": "RGBA",
+          "layoutBounds": [
+            304,
+            156,
+            950,
+            1084
+          ],
+          "majorComponents": 1,
+          "majorCounters": 0,
+          "inspection": {
+            "stage": "Rejected during individual style inspection, before generating another option.",
+            "note": "The angular S follows the user sketch and has a narrower middle, straight outer diagonals and open opposing returns, but its side ribbons are visibly too light beside the original M at matched cap height. Retain the raw output unchanged; regenerate with explicit M-weight side ribbons."
+          }
+        },
+        {
+          "label": "S1 / Balanced",
+          "brief": "BALANCED version: use the drawing's two straight outer diagonals and a middle bridge about 60-65 percent of their thickness. Give the upper and lower open turns compact, softly rounded elbows, preserving the warm ribbon character of M. Clear angular construction without extreme spikes.",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY STYLE MASTER. Image 2 is my rough hand-drawn S construction guide, STRUCTURE ONLY, not its pen-stroke style. Create exactly ONE uppercase S glyph in the original M's bold filled ribbon family, following the angular OPEN construction drawn in Image 2 instead of making a conventional rounded-bowl S. The long upper-left outer segment and lower-right outer segment must be strict, straight, forward-leaning diagonal ribbons, connected by a visibly THINNER middle bridge that rises gently from left to right as in the drawing. Keep the short downward upper-right return and short upward lower-left return so both opposing S openings remain clear. Preserve the original M's broad ribbon weight, restrained asymmetry, subtle taper, softly rounded-flat ends and compact smooth corner joins. The outer strokes are bold, the middle is narrower, never a uniform-width monoline. Translate the skeleton into a real typeface glyph, not a traced pencil drawing. Keep the angular S structure, not a plain Z, number 5, generic rounded sans S or cursive flourish. One connected solid-white silhouette with no enclosed hole or detached marks, on a pure black square canvas. Only this one S: no M, no other glyph, text, label, guide, border, outline, shadow, gradient or texture. Match the M's approximate cap height, baseline and generous clear canvas margins; do not clip the glyph.  IMPORTANT WEIGHT CORRECTION: ignore the very thin pen weight in Image 2. At equal cap height, the broad outer diagonal ribbons must be as HEAVY as M's broad rising ribbon, about 22-26 percent of the glyph's cap height, and the middle bridge about 13-15 percent. This is a bold heavy display glyph, not a medium-weight symbol. If space is tight, make the S wider rather than thinning its side ribbons. Preserve clearly open opposing apertures, but use powerful broad outer bands and the same compact softened corners as M. BALANCED version: use the drawing's two straight outer diagonals and a middle bridge about 60-65 percent of their thickness. Give the upper and lower open turns compact, softly rounded elbows, preserving the warm ribbon character of M. Clear angular construction without extreme spikes.",
+          "fgenEvents": [
+            {
+              "event": "start",
+              "job": 0,
+              "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1.png",
+              "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY STYLE MASTER. Image 2 is my rough hand-drawn S construction guide, STRUCTURE ONLY, not its pen-stroke style. Create exactly ONE uppercase S glyph in the original M's bold filled ribbon family, following the angular OPEN construction drawn in Image 2 instead of making a conventional rounded-bowl S. The long upper-left outer segment and lower-right outer segment must be strict, straight, forward-leaning diagonal ribbons, connected by a visibly THINNER middle bridge that rises gently from left to right as in the drawing. Keep the short downward upper-right return and short upward lower-left return so both opposing S openings remain clear. Preserve the original M's broad ribbon weight, restrained asymmetry, subtle taper, softly rounded-flat ends and compact smooth corner joins. The outer strokes are bold, the middle is narrower, never a uniform-width monoline. Translate the skeleton into a real typeface glyph, not a traced pencil drawing. Keep the angular S structure, not a plain Z, number 5, generic rounded sans S or cursive flourish. One connected solid-white silhouette with no enclosed hole or detached marks, on a pure black square canvas. Only this one S: no M, no other glyph, text, label, guide, border, outline, shadow, gradient or texture. Match the M's approximate cap height, baseline and generous clear canvas margins; do not clip the glyph.  IMPORTANT WEIGHT CORRECTION: ignore the very thin pen weight in Image 2. At equal cap height, the broad outer diagonal ribbons must be as HEAVY as M's broad rising ribbon, about 22-26 percent of the glyph's cap height, and the middle bridge about 13-15 percent. This is a bold heavy display glyph, not a medium-weight symbol. If space is tight, make the S wider rather than thinning its side ribbons. Preserve clearly open opposing apertures, but use powerful broad outer bands and the same compact softened corners as M. BALANCED version: use the drawing's two straight outer diagonals and a middle bridge about 60-65 percent of their thickness. Give the upper and lower open turns compact, softly rounded elbows, preserving the warm ribbon character of M. Clear angular construction without extreme spikes.",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 793,
+              "event": "phase",
+              "job": 0,
+              "phase": "queued",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 1482,
+              "event": "phase",
+              "job": 0,
+              "phase": "generating",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 34051,
+              "event": "phase",
+              "job": 0,
+              "phase": "finishing",
+              "total": 1
+            },
+            {
+              "bytes": 361842,
+              "elapsed_ms": 34316,
+              "event": "saved",
+              "job": 0,
+              "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1-v2.png",
+              "total": 1
+            },
+            {
+              "elapsed_ms": 34316,
+              "event": "summary",
+              "failed": [],
+              "ok": true,
+              "saved": [
+                "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1-v2.png"
+              ]
+            }
+          ],
+          "exitCode": 0,
+          "savedPath": "genesis/REFERENCE/ribbon-font/fgen-s-sketch-original-M/uppercase-S-s1-v2.png",
+          "sha256": "f4d9d13e8797d9618359e35cf5fb3bf5b548fe27f0a3d156e2f342294d67d75f",
+          "dimensions": [
+            1254,
+            1254
+          ],
+          "format": "PNG",
+          "mode": "RGBA",
+          "layoutBounds": [
+            319,
+            143,
+            931,
+            1108
+          ],
+          "majorComponents": 1,
+          "majorCounters": 0,
+          "inspection": {
+            "stage": "Rejected by the user as still too thin.",
+            "note": "The user says the angular S is still too thin and requires the actual original-M font style. Preserve this second raw attempt and its earlier attempt. The next generation must use heavy, wide outer ribbons and a middle that is only relatively narrower, never a wire-like drawing."
+          }
+        }
+      ],
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGBA",
+      "layoutBounds": [
+        263,
+        108,
+        981,
+        1136
+      ],
+      "majorComponents": 1,
+      "majorCounters": 0,
+      "inspection": {
+        "stage": "Rejected by the user as still outside the original font style.",
+        "note": "The user rejected the heavy angular take as still not our style and requested a combination of the older rounded S and this angular construction. All angular outputs are retained as unselected history, not promoted into the tester."
+      }
+    }
+  }
+}
