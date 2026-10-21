@@ -1833,9 +1833,13 @@ The user also requested closer letter spacing. All three previews now start at -
 - [x] Generate and individually inspect uppercase V from the original M
 - [x] Generate and individually inspect uppercase W from the original M
 - [x] Generate and individually inspect uppercase X from the original M
-- [ ] Add all ten raw PNGs and their word combinations to the existing Fgen tester
-- [ ] Exercise the expanded Fgen tester and hand the letters and changed files to the user for review
+- [x] Add all ten raw PNGs and their word combinations to the existing Fgen tester
+- [x] Exercise the expanded Fgen tester and hand the letters and changed files to the user for review
 - [ ] Human acceptance of the ten new letter designs and their consistency with the original M
+
+All ten new capitals were generated sequentially from the original M, inspected individually and retained as untouched 1254-by-1254 PNGs. O, P, Q and R each have one closed counter; the other six have none, and every letter has one main connected shape. Two Q calls returned no image; both failure records are preserved, and the first actual saved Q is used unchanged. W is more regular and balanced than the asymmetric M, so its family character remains a human-review point. Exact prompts, generation events, dimensions, fingerprints and individual inspections are retained with the raw-canvas comparison in `genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/`.
+
+The Fgen tester now displays all twenty-five generated samples plus the original M, with A–X, a, m and spaces available. It opens on TIME MASTER and includes twenty-three word presets, including WORKOUT, QUICK, RIBBON, NEXT, POWER, MOVE, WAVE and the latest ten letters. Q's bowl shares the other capitals' height and baseline while its tail extends naturally below. Actual direct-file and HTTP browser checks covered all presets, unsupported-input preservation and recovery, native empty deletion, keyboard controls, independent Vector/Fgen drafts, guides, fit, four responsive widths and horizontal scrolling through an eighty-letter word. Blocking the new X reported the missing-image state without disabling Vector; restoring the asset and reloading recovered Fgen. Successful runs recorded no page errors, broken or stretched preview images, or document overflow. The original M and all fifteen earlier selected PNGs retain their recorded fingerprints. The app and compiled font files were not changed by this work. The new letters and connected tester are ready for human verification; design acceptance remains pending, and no next prompt is needed for this batch.
 
 ## Tmax Rebrand and Loading — 2026-10-19
 

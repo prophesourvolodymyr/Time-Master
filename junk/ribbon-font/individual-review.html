@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Test fifteen original-M Fgen letter images in words, switch to the complete vector font, and compare both with the untouched original M.">
+  <meta name="description" content="Test twenty-five original-M Fgen letter images in words, switch to the complete vector font, and compare both with the untouched original M.">
   <title>Ribbon — vector and Fgen letter review</title>
   <style>
     :root {
@@ -148,11 +148,11 @@
       <section class="intro" aria-labelledby="page-title">
         <span class="eyebrow mono">Original M. Vector outlines and Fgen images.</span>
         <h1 id="page-title">See the letters together.</h1>
-        <p>Switch between the complete code-drawn vector font and the fifteen letters generated individually with Fgen from your original M. Each tab keeps its own word and controls. The Fgen tab uses the actual PNG silhouettes, not vector substitutes. Human design review is pending; the app and existing font files are unchanged.</p>
+        <p>Switch between the complete code-drawn vector font and the twenty-five letters generated individually with Fgen from your original M. Each tab keeps its own word and controls. The Fgen tab uses the actual PNG silhouettes, not vector substitutes. Human design review is pending; the app and existing font files are unchanged.</p>
       </section>
       <div class="source-tabs" role="tablist" aria-label="Letter source">
         <button class="button" id="vector-tab" type="button" role="tab" aria-selected="true" aria-controls="vector-panel" data-source="vector">Vector / 52 letters</button>
-        <button class="button" id="fgen-tab" type="button" role="tab" aria-selected="false" aria-controls="fgen-panel" data-source="fgen" tabindex="-1">Fgen / 15 samples</button>
+        <button class="button" id="fgen-tab" type="button" role="tab" aria-selected="false" aria-controls="fgen-panel" data-source="fgen" tabindex="-1">Fgen / 25 samples</button>
       </div>
       <div id="vector-panel" role="tabpanel" aria-labelledby="vector-tab" tabindex="0">
       <section class="composer" id="word-hub" aria-labelledby="word-heading" aria-busy="true">
@@ -282,8 +282,8 @@
             <div class="stage-line"><div class="study-word fgen-word" id="fgen-live-word" role="img" aria-label="Loading Fgen letter preview"></div><span class="x-height-guide" aria-hidden="true"></span><div class="empty-message" id="fgen-empty">Loading Fgen samples…</div></div>
           </div>
           <fieldset class="word-controls" id="fgen-controls" aria-label="Fgen word controls" disabled>
-            <div class="text-field"><label class="small-label" for="fgen-input">Type using A–M, S, a and m</label><input id="fgen-input" type="text" value="CAMEL" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="fgen-message" aria-invalid="false"></div>
-            <p id="fgen-message" role="status">Fifteen Fgen samples: A–L, S, a and m, plus your original M and spaces. Missing letters are not replaced with vector glyphs. Images are uniformly sized to shared capital/lowercase heights and aligned to a baseline; their contours are not edited.</p>
+            <div class="text-field"><label class="small-label" for="fgen-input">Type using A–X, a and m</label><input id="fgen-input" type="text" value="TIME MASTER" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="fgen-message" aria-invalid="false"></div>
+            <p id="fgen-message" role="status">Twenty-five Fgen samples: A–L, N–X, a and m, plus your original M and spaces. Missing letters are not replaced with vector glyphs. Images are uniformly sized to shared capital/lowercase heights and aligned to a baseline; Q keeps its tail below the bowl baseline. Their contours are not edited.</p>
             <div class="adjustments">
               <div><div class="slider-heading"><label for="fgen-size">Cap height</label><output id="fgen-size-value" for="fgen-size">180 px</output></div><input id="fgen-size" type="range" min="24" max="240" value="180" step="1"></div>
               <div><div class="slider-heading"><label for="fgen-tracking">Letter spacing</label><output id="fgen-tracking-value" for="fgen-tracking">-0.040 em</output></div><input id="fgen-tracking" type="range" min="-0.20" max="0.16" value="-0.04" step="0.005"></div>
@@ -298,13 +298,22 @@
               <button class="button" type="button" data-fgen-word="SAMBA" aria-pressed="false">SAMBA</button>
               <button class="button" type="button" data-fgen-word="BAM" aria-pressed="false">BAM</button>
               <button class="button" type="button" data-fgen-word="Aa Mm" aria-pressed="false">Aa Mm</button>
-              <button class="button" type="button" data-fgen-word="CAMEL" aria-pressed="true">CAMEL</button>
+              <button class="button" type="button" data-fgen-word="CAMEL" aria-pressed="false">CAMEL</button>
               <button class="button" type="button" data-fgen-word="MAGIC" aria-pressed="false">MAGIC</button>
               <button class="button" type="button" data-fgen-word="FLASH" aria-pressed="false">FLASH</button>
               <button class="button" type="button" data-fgen-word="JACK" aria-pressed="false">JACK</button>
               <button class="button" type="button" data-fgen-word="BADGE" aria-pressed="false">BADGE</button>
-              <button class="button" type="button" data-fgen-word="CDEFGHIJKL" aria-pressed="false">New ten letters</button>
-              <button class="button" type="button" data-fgen-word="ABCDEFGHIJKLM S am" aria-pressed="false">All available letters</button>
+              <button class="button" type="button" data-fgen-word="CDEFGHIJKL" aria-pressed="false">Previous ten letters</button>
+              <button class="button" type="button" data-fgen-word="TIME MASTER" aria-pressed="true">TIME MASTER</button>
+              <button class="button" type="button" data-fgen-word="WORKOUT" aria-pressed="false">WORKOUT</button>
+              <button class="button" type="button" data-fgen-word="QUICK" aria-pressed="false">QUICK</button>
+              <button class="button" type="button" data-fgen-word="RIBBON" aria-pressed="false">RIBBON</button>
+              <button class="button" type="button" data-fgen-word="NEXT" aria-pressed="false">NEXT</button>
+              <button class="button" type="button" data-fgen-word="POWER" aria-pressed="false">POWER</button>
+              <button class="button" type="button" data-fgen-word="MOVE" aria-pressed="false">MOVE</button>
+              <button class="button" type="button" data-fgen-word="WAVE" aria-pressed="false">WAVE</button>
+              <button class="button" type="button" data-fgen-word="NOPQRTUVWX" aria-pressed="false">Latest ten letters</button>
+              <button class="button" type="button" data-fgen-word="ABCDEFGHIJKLMNOPQRSTUVWX am" aria-pressed="false">All available letters</button>
             </div>
           </fieldset>
         </section>
@@ -314,10 +323,10 @@
             <img class="master-image" src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" width="275" height="175" alt="The original M used as the sole reference for every Fgen generation.">
             <p>Each letter was generated in a separate Fgen call using only this M as the reference. This tester displays the saved PNGs directly. It is an image-based review, not a new installable font.</p>
             <p>The letter images are cropped for layout and scaled uniformly—never stretched, warped or redrawn. Transparent PNGs are displayed against black.</p>
-            <nav class="hub-navigation" aria-label="Fgen trial files"><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/comparison.png" target="_blank" rel="noopener">First five + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/comparison.png" target="_blank" rel="noopener">Next ten + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json" target="_blank" rel="noopener">First five prompts and records ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json" target="_blank" rel="noopener">Next ten prompts and individual checks ↗</a></nav>
+            <nav class="hub-navigation" aria-label="Fgen trial files"><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/comparison.png" target="_blank" rel="noopener">First five + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/comparison.png" target="_blank" rel="noopener">Previous ten + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/comparison.png" target="_blank" rel="noopener">Latest ten + original M ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/generation.json" target="_blank" rel="noopener">First five prompts and records ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/generation.json" target="_blank" rel="noopener">Previous ten prompts and individual checks ↗</a><a href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/generation.json" target="_blank" rel="noopener">Latest ten prompts and individual checks ↗</a></nav>
           </aside>
           <section class="batch" aria-labelledby="fgen-samples-heading">
-            <div class="batch-header mono"><h2 id="fgen-samples-heading">02 / Original Fgen samples</h2><span>15 untouched PNGs / click to open</span></div>
+            <div class="batch-header mono"><h2 id="fgen-samples-heading">02 / Original Fgen samples</h2><span>25 untouched PNGs / click to open</span></div>
             <div class="glyph-grid">
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-A.png" width="1254" height="1254" alt="Fgen uppercase A"><span class="caption"><span>A</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-B.png" width="1254" height="1254" alt="Fgen uppercase B"><span class="caption"><span>B</span><span class="mono">Raw PNG ↗</span></span></a>
@@ -331,12 +340,23 @@
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png" width="1254" height="1254" alt="Fgen uppercase J"><span class="caption"><span>J</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png" width="1254" height="1254" alt="Fgen uppercase K"><span class="caption"><span>K</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png" width="1254" height="1254" alt="Fgen uppercase L"><span class="caption"><span>L</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-N.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-N.png" width="1254" height="1254" alt="Fgen uppercase N"><span class="caption"><span>N</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-O.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-O.png" width="1254" height="1254" alt="Fgen uppercase O"><span class="caption"><span>O</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-P.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-P.png" width="1254" height="1254" alt="Fgen uppercase P"><span class="caption"><span>P</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png" width="1254" height="1254" alt="Fgen uppercase Q"><span class="caption"><span>Q</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-R.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-R.png" width="1254" height="1254" alt="Fgen uppercase R"><span class="caption"><span>R</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png" width="1254" height="1254" alt="Fgen uppercase S"><span class="caption"><span>S</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-T.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-T.png" width="1254" height="1254" alt="Fgen uppercase T"><span class="caption"><span>T</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png" width="1254" height="1254" alt="Fgen uppercase U"><span class="caption"><span>U</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-V.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-V.png" width="1254" height="1254" alt="Fgen uppercase V"><span class="caption"><span>V</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png" width="1254" height="1254" alt="Fgen uppercase W"><span class="caption"><span>W</span><span class="mono">Raw PNG ↗</span></span></a>
+              <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-X.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-X.png" width="1254" height="1254" alt="Fgen uppercase X"><span class="caption"><span>X</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png" width="1254" height="1254" alt="Fgen lowercase a"><span class="caption"><span>a</span><span class="mono">Raw PNG ↗</span></span></a>
               <a class="glyph-card" href="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png" target="_blank" rel="noopener"><img src="../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png" width="1254" height="1254" alt="Fgen lowercase m"><span class="caption"><span>m</span><span class="mono">Raw PNG ↗</span></span></a>
             </div>
-            <p class="review-note">Only A–M, S, a, m and spaces are available in this tab: fifteen generated letters plus the original M. Input containing any other letter is marked, and the last supported preview stays visible. Switch to Vector for the separate complete alphabet.</p>
-            <p class="review-note">The next ten were inspected one at a time. The first L was rejected as lambda-like; the untouched second generation is displayed here. <a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L.png" target="_blank" rel="noopener">Open the rejected first L ↗</a>. Both attempts and their inspection decisions remain in the generation records.</p>
+            <p class="review-note">A–X, a, m and spaces are available in this tab: twenty-five generated letters plus the original M. Input containing any other letter is marked, and the last supported preview stays visible. Switch to Vector for the separate complete alphabet.</p>
+            <p class="review-note">The earlier batch was inspected one letter at a time. The first L was rejected as lambda-like; the untouched second generation is displayed here. <a href="../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L.png" target="_blank" rel="noopener">Open the rejected first L ↗</a>. Both attempts and their inspection decisions remain in the generation records.</p>
+            <p class="review-note">The latest ten are N, O, P, Q, R, T, U, V, W and X. Each actual output was inspected before advancing. Two Q calls returned no image; the first saved Q is retained unchanged, with its tail below the bowl baseline. W is more regular than the original M, so compare its family character. Prompts, failed calls and individual inspection decisions are linked above.</p>
           </section>
         </div>
       </div>

@@ -31,7 +31,17 @@
     J: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-J.png', canvasWidth: 1254, canvasHeight: 1254, left: 252, top: 267, right: 985, bottom: 992 },
     K: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-K.png', canvasWidth: 1254, canvasHeight: 1254, left: 130, top: 219, right: 1091, bottom: 1044 },
     L: { src: '../../genesis/REFERENCE/ribbon-font/fgen-next-ten-original-M/uppercase-L-v2.png', canvasWidth: 1254, canvasHeight: 1254, left: 276, top: 263, right: 978, bottom: 996 },
+    N: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-N.png', canvasWidth: 1254, canvasHeight: 1254, left: 149, top: 268, right: 1068, bottom: 979 },
+    O: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-O.png', canvasWidth: 1254, canvasHeight: 1254, left: 274, top: 223, right: 975, bottom: 1033 },
+    P: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-P.png', canvasWidth: 1254, canvasHeight: 1254, left: 207, top: 208, right: 1051, bottom: 1045 },
+    Q: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-Q.png', canvasWidth: 1254, canvasHeight: 1254, left: 305, top: 273, right: 1001, bottom: 979, baseline: 935 },
+    R: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-R.png', canvasWidth: 1254, canvasHeight: 1254, left: 140, top: 260, right: 1111, bottom: 1019 },
     S: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/uppercase-S.png', canvasWidth: 1254, canvasHeight: 1254, left: 321, top: 220, right: 941, bottom: 1026 },
+    T: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-T.png', canvasWidth: 1254, canvasHeight: 1254, left: 194, top: 280, right: 1061, bottom: 987 },
+    U: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-U.png', canvasWidth: 1254, canvasHeight: 1254, left: 201, top: 206, right: 1082, bottom: 1075 },
+    V: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-V.png', canvasWidth: 1254, canvasHeight: 1254, left: 225, top: 277, right: 1053, bottom: 977 },
+    W: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png', canvasWidth: 1254, canvasHeight: 1254, left: 66, top: 285, right: 1181, bottom: 959 },
+    X: { src: '../../genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-X.png', canvasWidth: 1254, canvasHeight: 1254, left: 202, top: 251, right: 1050, bottom: 1015 },
     a: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-a.png', canvasWidth: 1254, canvasHeight: 1254, left: 299, top: 366, right: 992, bottom: 895 },
     m: { src: '../../genesis/REFERENCE/ribbon-font/fgen-five-original-M/lowercase-m.png', canvasWidth: 1254, canvasHeight: 1254, left: 86, top: 358, right: 1168, bottom: 881 },
   };
@@ -44,7 +54,8 @@
   let previewText = '';
 
   for (const [letter, glyph] of Object.entries(glyphs)) {
-    const scale = (letter === letter.toUpperCase() ? capHeight : xHeight) / (glyph.bottom - glyph.top);
+    const glyphBaseline = glyph.baseline ?? glyph.bottom;
+    const scale = (letter === letter.toUpperCase() ? capHeight : xHeight) / (glyphBaseline - glyph.top);
     const left = Math.max(0, glyph.left - 8);
     const top = Math.max(0, glyph.top - 8);
     const right = Math.min(glyph.canvasWidth, glyph.right + 8);
@@ -54,7 +65,7 @@
     wrapper.className = 'fgen-glyph';
     wrapper.dataset.fgenGlyph = letter;
     wrapper.setAttribute('aria-hidden', 'true');
-    Object.assign(wrapper.style, { width: em(right - left), height: em(bottom - top), verticalAlign: em(glyph.bottom - bottom) });
+    Object.assign(wrapper.style, { width: em(right - left), height: em(bottom - top), verticalAlign: em(glyphBaseline - bottom) });
     const image = document.createElement('img');
     image.src = glyph.src;
     image.alt = '';
