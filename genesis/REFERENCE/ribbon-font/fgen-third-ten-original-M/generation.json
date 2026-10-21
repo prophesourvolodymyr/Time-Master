@@ -1,5 +1,5 @@
 {
-  "status": "8 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
+  "status": "9 of 10 new uppercase PNGs generated and individually inspected; human design review pending. Not a replacement font.",
   "generator": "fgen",
   "referenceImage": "genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png",
   "referenceSha256": "615416a2c24b403580882db96ea9898e2179dae8c31033da95e717223c4fc75e",
@@ -26,7 +26,8 @@
     "R",
     "T",
     "U",
-    "V"
+    "V",
+    "W"
   ],
   "generationPolicy": "One letter per sequential Fgen invocation; inspect the saved output before starting the next. Each call references only the original M. No raster warping, thresholding, contour repairs, vector substitutes or automatic selection from retries.",
   "outputs": {
@@ -704,6 +705,77 @@
       "inspection": {
         "stage": "Inspected separately before generating the next letter.",
         "note": "Recognizable connected uppercase V with two open cap-height terminals and one compact rounded lower vertex. Broad rising right diagonal and narrower left return; a small left terminal flare remains as generated. No wide U bowl, second vertex, closed counter, extra marks or clipping. Raw RGBA image unchanged.",
+        "designApproval": "Human review pending; structural inspection is not family approval."
+      }
+    },
+    "W": {
+      "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase W, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase W: four connected diagonals form two distinct low rounded vertices and one higher middle crest. Both outer top terminals and the middle crest sit near cap height, while both bottom vertices sit near the baseline. Carry broad rising diagonals and narrower returns, soft asymmetric crests, tight smooth inside turns and rounded-flat top terminals from the M. Keep both upper spaces open. It must read as an upright W, not M, two separate Vs, a lowercase w or a wave symbol; no closed loop or disconnected stroke. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter W: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+      "savedPath": "genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "format": "PNG",
+      "mode": "RGBA",
+      "sha256": "200e2e837dbfa36c36a638e228b51ce63747f1259bac6a4ea60b15fb011b2a70",
+      "fgenEvents": [
+        {
+          "event": "start",
+          "job": 0,
+          "out": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png",
+          "prompt": "Image 1 is my ORIGINAL uppercase M and the ONLY style reference. Generate exactly ONE new letter: uppercase W, as a sibling drawn by the same type designer. Do not redraw M or use any previously generated letter. Preserve the M's soft asymmetric silhouette, broad rising ribbon versus narrower returning strokes, gently flowing edges, rounded crests, tight smooth inner turns and rounded-flat terminals. Make an unmistakable printed uppercase W: four connected diagonals form two distinct low rounded vertices and one higher middle crest. Both outer top terminals and the middle crest sit near cap height, while both bottom vertices sit near the baseline. Carry broad rising diagonals and narrower returns, soft asymmetric crests, tight smooth inside turns and rounded-flat top terminals from the M. Keep both upper spaces open. It must read as an upright W, not M, two separate Vs, a lowercase w or a wave symbol; no closed loop or disconnected stroke. Interpret this anatomy in the original M's ribbon language, not as a generic bold italic sans-serif or a uniform-width rounded font. Use a solid white filled glyph on a pure black square background, at approximately the same cap height and baseline placement as the supplied M. Only the letter W: no M, other characters, words, labels, grids, guides, outlines, shadows or texture. Keep the entire glyph inside the canvas with generous black margins.",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1213,
+          "event": "phase",
+          "job": 0,
+          "phase": "queued",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 1868,
+          "event": "phase",
+          "job": 0,
+          "phase": "generating",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 35011,
+          "event": "phase",
+          "job": 0,
+          "phase": "finishing",
+          "total": 1
+        },
+        {
+          "bytes": 528543,
+          "elapsed_ms": 35254,
+          "event": "saved",
+          "job": 0,
+          "path": "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png",
+          "total": 1
+        },
+        {
+          "elapsed_ms": 35254,
+          "event": "summary",
+          "failed": [],
+          "ok": true,
+          "saved": [
+            "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/ribbon-font/fgen-third-ten-original-M/uppercase-W.png"
+          ]
+        }
+      ],
+      "layoutBounds": [
+        66,
+        285,
+        1181,
+        959
+      ],
+      "majorComponents": 1,
+      "majorCounters": 0,
+      "inspection": {
+        "stage": "Inspected separately before generating the next letter.",
+        "note": "Clear connected uppercase W with four diagonals, two distinct rounded low vertices and a higher middle crest. Both upper spaces stay open, with no closed counter, extra stroke, clipping or disconnected Vs. The W is more regular and balanced than the asymmetric M, so family-consistency review remains important. Raw RGBA output retained unchanged.",
         "designApproval": "Human review pending; structural inspection is not family approval."
       }
     }
