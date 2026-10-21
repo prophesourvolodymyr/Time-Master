@@ -1,0 +1,743 @@
+{
+  "status": "Human design review pending; not human-approved.",
+  "source": "genesis/REFERENCE/ribbon-font/individual-m/master-M.png",
+  "sourceSha256": "948ab4188bc17cbfdc74e04ec35cdbbecff4b70ad7394a9b4b3203129b3ff404",
+  "construction": "M is traced from the untouched original. Other letters are individually drawn closed cubic Bezier contours. Counters use opposite winding; no overlapping positive components or raster outline repairs.",
+  "axisRightwardTravelPerHeight": 0.5553,
+  "curveConversion": "OTF retains cubic outlines on a 1/64-unit coordinate grid, preventing fractional closing drift. TTF and WOFF2 use quadratic conversion with maximum curve-fit error 0.15 design units before integer coordinate rounding.",
+  "unitsPerEm": 1000,
+  "capHeight": 560,
+  "xHeight": 406,
+  "ascender": 680,
+  "descender": 200,
+  "glyphs": {
+    "A": {
+      "advance": 692,
+      "bounds": [
+        34.431,
+        0,
+        698.969,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 11,
+      "note": "Broad rising left limb, narrow right return and a softly crested apex. The short left-rooted crossbar stops before the right limb; its counter remains deliberately open. No cap overshoot."
+    },
+    "B": {
+      "advance": 539,
+      "bounds": [
+        33.056,
+        0,
+        743.279,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 3,
+      "cubicSegments": 15,
+      "note": "Full-weight 174-unit spine with two separate clean counters, an 81-unit middle bridge, a smaller upper bowl and a fuller lower bowl. One smooth concave waist replaces a pinched join."
+    },
+    "C": {
+      "advance": 552,
+      "bounds": [
+        125.438,
+        0,
+        780.533,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "Broad left rise with 82-unit crown and baseline returns. The unequal diagonally cut ends leave a generous aperture, with only their corners rounded."
+    },
+    "D": {
+      "advance": 566,
+      "bounds": [
+        33.056,
+        0,
+        747.412,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 8,
+      "note": "Printed straight-backed D: a 174-unit primary shaft, a single broad-shouldered closed bowl, 78-unit horizontal returns and an 89-unit outer right return."
+    },
+    "E": {
+      "advance": 501,
+      "bounds": [
+        33.056,
+        0,
+        772.402,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "Three unmistakable printed arms: a slightly longer baseline arm, an abbreviated 79-unit middle arm and an 88-unit cap arm. Tight concave roots preserve the broad spine without bulky elbows."
+    },
+    "F": {
+      "advance": 494,
+      "bounds": [
+        33.056,
+        0,
+        772.402,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 10,
+      "note": "The broad primary shaft ends without a hook; the upper arm is longer than the higher-set narrow middle arm. Small concave roots and rounded-flat cuts stay consistent with E."
+    },
+    "G": {
+      "advance": 582,
+      "bounds": [
+        125.438,
+        0.0,
+        780.911,
+        560.0
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 13,
+      "note": "An open C-derived bowl with a clearly horizontal inward bar and an 89-unit right return. The aperture remains open above the bar; no closed counter or oversized lower spur."
+    },
+    "H": {
+      "advance": 574,
+      "bounds": [
+        33.056,
+        0,
+        852.123,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "Two full 174-unit primary risers joined by a narrow 88-unit crossbar. The bar's small smooth concave roots avoid both sharp notches and ballooned junctions."
+    },
+    "I": {
+      "advance": 352,
+      "bounds": [
+        31.306,
+        0,
+        631.662,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "A printed capital I, distinguished from lowercase l by short 80-unit crossheads. The 174-unit central shaft keeps the master's full primary weight; the crossheads have flat cuts rather than pill ends."
+    },
+    "J": {
+      "advance": 418,
+      "bounds": [
+        61.48,
+        0,
+        695.714,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 8,
+      "note": "Full-height broad right shaft turns into a compact baseline hook with an 80-unit lower return. The left terminal rises only to 124, so the hook is restrained and does not become a loop or descender."
+    },
+    "K": {
+      "advance": 580,
+      "bounds": [
+        33.056,
+        0,
+        840.139,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "A real three-part K: broad uninterrupted spine, narrower rising upper arm and a fuller lower leg. The central concave turn is rounded once, without an overlapping diagonal or a decorative hook."
+    },
+    "L": {
+      "advance": 433,
+      "bounds": [
+        33.056,
+        0,
+        500.123,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 6,
+      "note": "A broad primary shaft with an 88-unit baseline arm and one continuous concave heel. The foot has a short rounded-flat release, not a rising hook."
+    },
+    "M": {
+      "advance": 880,
+      "bounds": [
+        24.0,
+        0.0,
+        904.0,
+        559.916
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 170,
+      "note": "The user's original M, uniformly traced at cap height 560. Its outline is not sheared, redesigned or patched. An optical advance of 880 units reduces excess spacing after its right foot while keeping consecutive M letters separate at zero tracking."
+    },
+    "N": {
+      "advance": 608,
+      "bounds": [
+        33.056,
+        0,
+        886.123,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 10,
+      "note": "Two full-weight 174-unit risers joined by a distinctly narrower descending ribbon. The two inside turns are smooth, and the diagonal remains a printed N rather than an arch or handwriting stroke."
+    },
+    "O": {
+      "advance": 582,
+      "bounds": [
+        125.401,
+        0,
+        766.443,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 8,
+      "note": "An asymmetric closed ribbon bowl, not a uniform geometric oval: a broad 169-unit left rise, an 88-unit right return and 80/81-unit lower and upper turns. No optical cap or baseline overshoot."
+    },
+    "P": {
+      "advance": 533,
+      "bounds": [
+        33.056,
+        0,
+        753.502,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 10,
+      "note": "A broad shaft and one closed high bowl with an 89-unit right return. Its lower bridge is 80 units, and the stem-to-bowl underside has a single tight concave turn."
+    },
+    "Q": {
+      "advance": 636,
+      "bounds": [
+        125.401,
+        0,
+        766.443,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 18,
+      "note": "O's closed asymmetric bowl gains a short diagonal slash structurally cut into the one counter and merged into the one outer contour. The external release stays on or above baseline 0 rather than adding a descender."
+    },
+    "R": {
+      "advance": 572,
+      "bounds": [
+        33.056,
+        0,
+        754.46,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 15,
+      "note": "A closed P-like upper bowl and a separate anatomical diagonal leg within the same outer contour. The leg is narrower than the main shaft and finishes at baseline without a hook."
+    },
+    "S": {
+      "advance": 548,
+      "bounds": [
+        87.167,
+        0,
+        761.647,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 16,
+      "note": "A continuous printed S with broad upper-left and lower-right bowl strokes, narrow 79-unit crowns, a clean diagonal waist and modest unequal cut terminals. No stacked circles, overlaps or wavering outline."
+    },
+    "T": {
+      "advance": 554,
+      "bounds": [
+        199.096,
+        0,
+        832.402,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 8,
+      "note": "A centered 174-unit principal shaft under a wide but narrow 88-unit crosshead. Flat terminal cuts and small inner rounds keep the top from becoming a pill or a heavy slab."
+    },
+    "U": {
+      "advance": 558,
+      "bounds": [
+        102.149,
+        0,
+        836.706,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 8,
+      "note": "Broad 174-unit left rise and narrow 88-unit right return flow through an asymmetric 81-unit baseline turn. Both stems stay full height and the open top has no inward curls."
+    },
+    "V": {
+      "advance": 572,
+      "bounds": [
+        249.469,
+        0,
+        849.221,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 7,
+      "note": "A broad left diagonal and a distinctly narrower rising right return meet in a compact soft baseline vertex. The upper inner notch is rounded once; the valley is not a loop or a balloon."
+    },
+    "W": {
+      "advance": 848,
+      "bounds": [
+        195.858,
+        0,
+        1123.973,
+        560
+      ],
+      "canvasWidth": 1025,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 13,
+      "note": "Deliberately wide double-valley W with two broad descending ribbons and two narrower rises. The center crown and the two baseline valleys are individually balanced, not mirrored components or overlapping Vs."
+    },
+    "X": {
+      "advance": 572,
+      "bounds": [
+        38.507,
+        0,
+        845.452,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "One structurally joined crossing: the broad upper-left/lower-right diagonal is primary, while the opposite diagonal is the narrow return. Four small smooth concave turns prevent a swollen or notched crossing."
+    },
+    "Y": {
+      "advance": 583,
+      "bounds": [
+        226.096,
+        0,
+        856.591,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 9,
+      "note": "A printed open fork feeds a full 174-unit lower shaft. The left arm is primary, and the right arm is optically widened only enough to retain a narrow return after the common oblique shear."
+    },
+    "Z": {
+      "advance": 548,
+      "bounds": [
+        32.567,
+        0,
+        826.402,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 10,
+      "note": "Two 88-unit horizontal returns frame a deliberately broader rising diagonal, optically sized for the shear rather than copied from a vertical shaft. Rounded-flat ends and tight inside turns preserve printed Z anatomy."
+    },
+    "a": {
+      "advance": 486,
+      "bounds": [
+        100.776,
+        0,
+        678.886,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 14,
+      "note": "Printed single-storey a; broad left bowl and narrow upright return, with tight smooth stem junctions rather than a tail."
+    },
+    "b": {
+      "advance": 502,
+      "bounds": [
+        32.472,
+        0,
+        629.19,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 14,
+      "note": "Full-height 166-unit main shaft; connected closed bowl has an 88-unit outer return and an ample asymmetric counter."
+    },
+    "c": {
+      "advance": 494,
+      "bounds": [
+        100.776,
+        0.0,
+        642.067,
+        406.0
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "An open asymmetric bowl, not a clipped circle; two short rounded cuts preserve a generous right aperture."
+    },
+    "d": {
+      "advance": 498,
+      "bounds": [
+        102.188,
+        0,
+        776.402,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 14,
+      "note": "Full ascender on the broad right shaft; the bowl reverses b's contrast so the closed counter stays open after shear."
+    },
+    "e": {
+      "advance": 496,
+      "bounds": [
+        101.406,
+        0,
+        614.323,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 10,
+      "note": "Printed e with a level 74-unit cross-ribbon, closed upper counter and an explicitly open mouth above the short lower terminal."
+    },
+    "f": {
+      "advance": 438,
+      "bounds": [
+        112.567,
+        0,
+        698.131,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "Full-height f with an open, shallow hood and a single restrained crossbar; the broad shaft stays straight to baseline."
+    },
+    "g": {
+      "advance": 486,
+      "bounds": [
+        69.25,
+        -146,
+        678.886,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 18,
+      "note": "Single-storey g has a narrow right return that curls left into one compact open descender; it is deliberately unlike q's broad straight tail."
+    },
+    "h": {
+      "advance": 486,
+      "bounds": [
+        32.472,
+        0,
+        625.769,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 11,
+      "note": "A straight full ascender carries a low, broad shoulder; the 88-unit right return is not a scaled copy of the main shaft."
+    },
+    "i": {
+      "advance": 218,
+      "bounds": [
+        32.472,
+        0,
+        489.187,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 8,
+      "note": "Absolute-weight 406-high stem; a separate soft rectangular dot spans 484\u2013560 on the exact extended stem axis."
+    },
+    "j": {
+      "advance": 342,
+      "bounds": [
+        -32.044,
+        -146,
+        613.187,
+        560.0
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 12,
+      "note": "A straight broad stem turns once into a compact -146 hook; its rectangular dot shares the stem's extended axis, not the hook's center."
+    },
+    "k": {
+      "advance": 510,
+      "bounds": [
+        32.472,
+        0,
+        681.149,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 10,
+      "note": "Printed k: straight full ascender, narrow upper arm and broad lower leg; the central diagonal junction is intentionally structural rather than looped."
+    },
+    "l": {
+      "advance": 262,
+      "bounds": [
+        62.924,
+        0,
+        494.402,
+        560
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 6,
+      "note": "Full-height broad l with only a 42-unit baseline release; no loop, hooked cap or extended cursive exit."
+    },
+    "m": {
+      "advance": 778,
+      "bounds": [
+        32.472,
+        0,
+        921.759,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 18,
+      "note": "Wide asymmetric double arch: 164-unit first main, 154-unit shared middle main and 88-unit final return; counters remain open to baseline."
+    },
+    "n": {
+      "advance": 486,
+      "bounds": [
+        32.472,
+        0,
+        625.679,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 11,
+      "note": "The broad straight rising main turns through a tight concavity into one calm arch and an 88-unit straight return."
+    },
+    "o": {
+      "advance": 488,
+      "bounds": [
+        100.913,
+        0,
+        612.118,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 8,
+      "note": "Four-cubic outer bowl with an optically displaced counter: 158-unit left main, 88-unit return and 84-unit crown/base ribbons."
+    },
+    "p": {
+      "advance": 502,
+      "bounds": [
+        -48.599,
+        -146,
+        629.19,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 14,
+      "note": "Closed connected b-family bowl remains at full x-height; the 166-unit primary continues straight to a short -146 descender."
+    },
+    "q": {
+      "advance": 498,
+      "bounds": [
+        102.188,
+        -146,
+        690.886,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 2,
+      "cubicSegments": 14,
+      "note": "Printed q keeps d's broad right shaft and closed bowl, ending in a straight clipped -146 descender instead of g's returning curl."
+    },
+    "r": {
+      "advance": 430,
+      "bounds": [
+        32.472,
+        0,
+        603.161,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 11,
+      "note": "One restrained open shoulder; its short oblique cut ends before any downstroke or handwriting-like flourish can develop."
+    },
+    "s": {
+      "advance": 490,
+      "bounds": [
+        98.129,
+        0.0,
+        627.456,
+        406.0
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 16,
+      "note": "A printed s with broad asymmetric side turns and two unbroken central diagonals; shallow terminals avoid balloon lobes."
+    },
+    "t": {
+      "advance": 410,
+      "bounds": [
+        152.137,
+        0,
+        596.886,
+        476
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "Short 476-high t with an 86-unit crossbar and one contained baseline turn; its shaft retains full lowercase main weight."
+    },
+    "u": {
+      "advance": 486,
+      "bounds": [
+        92.68,
+        0,
+        678.886,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 11,
+      "note": "Two independently cut upper stems and a low continuous turn make u unmistakably open above, unlike n's high shoulder."
+    },
+    "v": {
+      "advance": 488,
+      "bounds": [
+        217.585,
+        0,
+        683.115,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 7,
+      "note": "Broad left diagonal and narrow right return meet in a low soft valley; both upper ends remain distinct and printed."
+    },
+    "w": {
+      "advance": 766,
+      "bounds": [
+        218.737,
+        0,
+        958.493,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 13,
+      "note": "Wide printed double-v with two broad descending ribbons and narrower rising returns; the middle concavity is tight, not a balloon loop."
+    },
+    "x": {
+      "advance": 510,
+      "bounds": [
+        48.927,
+        0,
+        682.65,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 12,
+      "note": "Two printed crossing diagonals in one contour: broad upper-left/lower-right ribbon, narrow opposite return and only short softened crotches."
+    },
+    "y": {
+      "advance": 492,
+      "bounds": [
+        51.052,
+        -146,
+        684.211,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 8,
+      "note": "Two separated upper fork ends meet a single narrow diagonal descender, clipped compactly at -146 with no second tail or loop."
+    },
+    "z": {
+      "advance": 490,
+      "bounds": [
+        32.472,
+        0,
+        683.275,
+        406
+      ],
+      "canvasWidth": 1024,
+      "canvasHeight": 1024,
+      "contours": 1,
+      "cubicSegments": 8,
+      "note": "Printed z with restrained 84-unit horizontal ribbons and a deliberately broad diagonal; open diagonal recesses replace any cursive loop."
+    }
+  }
+}

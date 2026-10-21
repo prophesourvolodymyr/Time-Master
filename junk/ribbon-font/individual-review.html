@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Combine the complete M-based alphabet into words, compare correctly sized lowercase bodies with capitals, and inspect all fifty-two PNG letters.">
-  <title>Ribbon — letter combination hub</title>
+  <meta name="description" content="Type native text in Ribbon M Vector, inspect all fifty-two Bézier outlines, and compare their construction with the untouched original M. Human acceptance is pending.">
+  <title>Ribbon — vector font review</title>
   <style>
     :root {
       color-scheme: dark;
@@ -69,7 +69,7 @@
     .button:hover { background: var(--surface); }
     .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
     figure { min-width: 0; margin: 0; }
-    figure img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; background: #000; }
+    figure img { display: block; width: 100%; height: auto; aspect-ratio: var(--comparison-aspect, 1); object-fit: contain; background: #000; }
     figcaption { color: var(--muted); padding-bottom: 10px; overflow-wrap: anywhere; }
     .dialog-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 22px; }
     .paging { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -78,12 +78,10 @@
     .stage-meta { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding-block: 16px; }
     #preview-status { color: var(--accent); }
     .stage-viewport { overflow-x: auto; padding: 16px 12px; background: #000; scrollbar-color: var(--muted) #000; }
-    .stage-line { position: relative; isolation: isolate; width: max-content; min-width: 100%; min-height: var(--study-line-height, 1.83em); font-size: var(--study-size); }
-    .study-word { display: flex; width: max-content; min-height: var(--study-line-height, 1.83em); margin-inline: auto; }
-    .composed-glyph { position: relative; display: block; flex: none; height: var(--study-line-height); overflow: hidden; margin-inline-end: var(--study-tracking); mix-blend-mode: screen; }
-    .composed-glyph:last-child { margin-inline-end: 0; }
-    .composed-glyph img { position: absolute; top: 0; display: block; max-width: none; height: auto; pointer-events: none; }
-    .study-space { width: .35em; }
+    .stage-line { position: relative; isolation: isolate; width: max-content; min-width: 100%; min-height: var(--study-line-height, .88em); font-size: calc(var(--study-size) * var(--study-font-scale, 1)); }
+    .study-word { width: max-content; min-height: var(--study-line-height, .88em); margin-inline: auto; padding-inline: var(--study-left-overhang, 0em) max(var(--study-right-overhang, 0em), calc(var(--study-right-overhang, 0em) - var(--study-tracking))); font-family: "Ribbon M Vector"; font-weight: 400; font-style: normal; font-synthesis: none; line-height: var(--study-line-height, .88em); letter-spacing: var(--study-tracking); white-space: pre; visibility: hidden; }
+    .font-ready .study-word { visibility: visible; }
+    .baseline-marker { display: inline-block; width: 0; height: 0; vertical-align: baseline; letter-spacing: 0; }
     .empty-message { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 1rem; text-align: center; }
     .empty-message[hidden] { display: none; }
     .guides .stage-line::before, .guides .stage-line::after { content: ""; position: absolute; inset-inline: 0; z-index: 1; border-top: 1px solid var(--accent); opacity: .6; pointer-events: none; }
@@ -108,6 +106,7 @@
     .button[aria-pressed="true"] { border-color: var(--accent); background: var(--surface); }
     .word-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
     .word-presets .small-label { flex-basis: 100%; margin-bottom: 0; }
+    .font-ready .word-example { font-family: "Ribbon M Vector"; font-size: 1.5rem; font-synthesis: none; line-height: 1; }
     .hub-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; }
     @media (max-width: 1000px) {
       .glyph-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -134,46 +133,46 @@
   <div class="shell">
     <header class="masthead">
       <span class="brand">ribbon.</span>
-      <span class="eyebrow mono">M-based studies / combination hub</span>
+      <span class="eyebrow mono">M-based vectors / font review</span>
       <nav class="hub-navigation" aria-label="Font previews"><a href="#word-hub">Combine letters ↓</a><a href="#uppercase-heading">Inspect letters ↓</a><a href="index.html">Previous font preview ↗</a></nav>
     </header>
     <main>
       <section class="intro" aria-labelledby="page-title">
-        <span class="eyebrow mono">One letter. One generation. The same M.</span>
+        <span class="eyebrow mono">Original M. Drawn Bézier outlines.</span>
         <h1 id="page-title">See the letters together.</h1>
-        <p>A measured ribbon family built from your original M: broad rising strokes, narrower returns, softly flowing edges and restrained terminal sweeps. Lowercase bodies stay at 72.5% of capitals without losing stroke weight. Type a word, then inspect any shape below. The original M and the previous installable font files are unchanged.</p>
+        <p>A vector construction guided by your original M, not a new generated alphabet. The composer renders native text from the same outlines shown below. Lowercase bodies are 406 units high against 560-unit capitals, with full-height ascenders and compact descenders. Type a word, then compare the construction letter by letter. Human acceptance is pending; the app and previous font files are unchanged.</p>
       </section>
       <section class="composer" id="word-hub" aria-labelledby="word-heading" aria-busy="true">
-        <div class="stage-meta mono"><h2 id="word-heading">01 / Word combinations</h2><span id="preview-status" role="status">Loading letters…</span></div>
-        <div class="stage-viewport" id="stage" tabindex="0" aria-label="Combined letter preview. Long text scrolls horizontally.">
-          <div class="stage-line"><div class="study-word" id="live-word" role="img" aria-label="Loading letter preview"></div><span class="x-height-guide" aria-hidden="true"></span><div class="empty-message" id="empty-message">Loading letters…</div></div>
+        <div class="stage-meta mono"><h2 id="word-heading">01 / Word combinations</h2><span id="preview-status" role="status">Loading vector font…</span></div>
+        <div class="stage-viewport" id="stage" tabindex="0" aria-label="Native font text preview. Long text scrolls horizontally.">
+          <div class="stage-line"><div class="study-word" id="live-word"></div><span class="x-height-guide" aria-hidden="true"></span><div class="empty-message" id="empty-message">Loading vector font…</div></div>
         </div>
         <fieldset class="word-controls" id="word-controls" aria-label="Word combination controls" disabled>
           <div class="input-row">
             <div class="text-field"><label class="small-label" for="word-input">Type a word or phrase</label><input id="word-input" type="text" value="TimeMaster" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-describedby="input-message" aria-invalid="false"></div>
             <div class="case-buttons" role="group" aria-label="Change letter case"><button class="button" id="uppercase" type="button">UPPERCASE</button><button class="button" id="lowercase" type="button">lowercase</button></div>
           </div>
-          <p id="input-message" role="status">A–Z, a–z and spaces. Lowercase bodies: 72.5% of capital height. Guides show the cap line, dashed x-height and baseline. Numbers and punctuation are not included.</p>
+          <p id="input-message" role="status">A–Z, a–z and spaces. Size sets capital height; letter spacing is in font em. Guides show the cap line, dashed x-height and baseline. Numbers and punctuation are not included.</p>
           <div class="adjustments">
-            <div><div class="slider-heading"><label for="size">Size</label><output id="size-value" for="size">180 px</output></div><input id="size" type="range" min="24" max="240" value="180" step="1"></div>
+            <div><div class="slider-heading"><label for="size">Cap height</label><output id="size-value" for="size">180 px</output></div><input id="size" type="range" min="24" max="240" value="180" step="1"></div>
             <div><div class="slider-heading"><label for="tracking">Letter spacing</label><output id="tracking-value" for="tracking">0.040 em</output></div><input id="tracking" type="range" min="-0.04" max="0.16" value="0.04" step="0.005"></div>
             <div class="view-buttons" role="group" aria-label="Preview display"><button class="button" id="fit" type="button">Fit word</button><button class="button" id="guides" type="button" aria-pressed="false">Guides</button></div>
           </div>
           <div class="word-presets" role="group" aria-label="Example words">
             <span class="small-label">Try a combination</span>
-            <button class="button" type="button" data-word="TimeMaster" aria-pressed="true">TimeMaster</button>
-            <button class="button" type="button" data-word="Aa Bb Cc" aria-pressed="false">Aa Bb Cc</button>
-            <button class="button" type="button" data-word="Hh Ii Jj" aria-pressed="false">Hh Ii Jj</button>
-            <button class="button" type="button" data-word="Quality" aria-pressed="false">Quality</button>
-            <button class="button" type="button" data-word="tilt" aria-pressed="false">tilt</button>
-            <button class="button" type="button" data-word="just right" aria-pressed="false">just right</button>
-            <button class="button" type="button" data-word="jolly" aria-pressed="false">jolly</button>
-            <button class="button" type="button" data-word="little" aria-pressed="false">little</button>
-            <button class="button" type="button" data-word="minimum" aria-pressed="false">minimum</button>
-            <button class="button" type="button" data-word="ribbon" aria-pressed="false">ribbon</button>
-            <button class="button" type="button" data-word="flow" aria-pressed="false">flow</button>
-            <button class="button" type="button" data-word="gypqij" aria-pressed="false">gypqij</button>
-            <button class="button" type="button" data-word="Typography" aria-pressed="false">Typography</button>
+            <button class="button word-example" type="button" data-word="TimeMaster" aria-pressed="true">TimeMaster</button>
+            <button class="button word-example" type="button" data-word="Aa Bb Cc" aria-pressed="false">Aa Bb Cc</button>
+            <button class="button word-example" type="button" data-word="Hh Ii Jj" aria-pressed="false">Hh Ii Jj</button>
+            <button class="button word-example" type="button" data-word="Quality" aria-pressed="false">Quality</button>
+            <button class="button word-example" type="button" data-word="tilt" aria-pressed="false">tilt</button>
+            <button class="button word-example" type="button" data-word="just right" aria-pressed="false">just right</button>
+            <button class="button word-example" type="button" data-word="jolly" aria-pressed="false">jolly</button>
+            <button class="button word-example" type="button" data-word="little" aria-pressed="false">little</button>
+            <button class="button word-example" type="button" data-word="minimum" aria-pressed="false">minimum</button>
+            <button class="button word-example" type="button" data-word="ribbon" aria-pressed="false">ribbon</button>
+            <button class="button word-example" type="button" data-word="flow" aria-pressed="false">flow</button>
+            <button class="button word-example" type="button" data-word="gypqij" aria-pressed="false">gypqij</button>
+            <button class="button word-example" type="button" data-word="Typography" aria-pressed="false">Typography</button>
             <button class="button" type="button" data-word="The quick brown fox jumps over the lazy dog" aria-pressed="false">Every letter</button>
             <button class="button" type="button" data-word="ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz" aria-pressed="false">All 52 letters</button>
           </div>
@@ -191,110 +190,112 @@
             <div><dt>Main rising diagonal</dt><dd>≈ 61°</dd></div>
           </dl>
           <p>Soft asymmetric crests, tight inner turns, gently varying ribbon thickness, and rounded-flat terminals. These shape rules are inferred from your M; the numbers above are measured from it.</p>
-          <a href="../../genesis/REFERENCE/ribbon-font/individual-m/original-master-row.png">Open your untouched reference ↗</a>
-          <p>Tap a letter for a larger comparison with M and its submitted calculation brief. Review PNGs share a cap line, x-height and baseline. I/i/j/T/t receive measured shaft-weight correction. The n/l ribbons also calibrate h/m; b/d/k/p/q/r/y retain their generated features around a measured primary stem. Raw Fgen attempts remain untouched.</p>
-          <a href="../../genesis/REFERENCE/ribbon-font/individual-m/glyph-calculations.json" target="_blank" rel="noopener">M measurements and all 52 letter calculations ↗</a>
-          <a href="../../genesis/REFERENCE/ribbon-font/individual-m/glyph-inspection.json" target="_blank" rel="noopener">Letter-by-letter agent inspection ↗</a>
+          <a href="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" target="_blank" rel="noopener">Open your untouched M source ↗</a>
+          <p>Tap a letter to compare its Bézier outline with the original M. All SVGs use the same font outlines and share a cap line, x-height and baseline. Each letter has an individual construction note. These are review specimens, not an aesthetic approval.</p>
+          <a href="../../genesis/REFERENCE/ribbon-font/vector-m/construction.json" target="_blank" rel="noopener">Vector construction and metrics ↗</a>
+          <nav class="hub-navigation" aria-label="Download vector font"><a href="ribbon-vector.otf" download>Download OTF ↙</a><a href="ribbon-vector.ttf" download>Download TTF ↙</a><a href="ribbon-vector.woff2" download>Download WOFF2 ↙</a></nav>
         </aside>
         <div>
           <section class="batch" aria-labelledby="uppercase-heading">
-            <div class="batch-header mono"><h2 id="uppercase-heading">02 / Uppercase A–Z</h2><span>25 individual generations + your original M</span></div>
+            <div class="batch-header mono"><h2 id="uppercase-heading">02 / Uppercase A–Z</h2><span>26 vector outlines / original M as master</span></div>
             <div class="glyph-grid">
-              <button class="glyph-card" type="button" data-glyph="A" aria-label="Inspect uppercase A"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-A.png" width="1024" height="1024" alt="Generated uppercase A"><span class="caption"><span>A</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="B" aria-label="Inspect uppercase B"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-B.png" width="1024" height="1024" alt="Generated uppercase B"><span class="caption"><span>B</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="C" aria-label="Inspect uppercase C"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-C.png" width="1024" height="1024" alt="Generated uppercase C"><span class="caption"><span>C</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="D" aria-label="Inspect uppercase D"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-D.png" width="1024" height="1024" alt="Generated uppercase D"><span class="caption"><span>D</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="E" aria-label="Inspect uppercase E"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-E.png" width="1024" height="1024" alt="Generated uppercase E"><span class="caption"><span>E</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="F" aria-label="Inspect uppercase F"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-F.png" width="1024" height="1024" alt="Generated uppercase F"><span class="caption"><span>F</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="G" aria-label="Inspect uppercase G"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-G.png" width="1024" height="1024" alt="Generated uppercase G"><span class="caption"><span>G</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="H" aria-label="Inspect uppercase H"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-H.png" width="1024" height="1024" alt="Generated uppercase H"><span class="caption"><span>H</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="I" aria-label="Inspect uppercase I"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-I.png" width="1024" height="1024" alt="Generated uppercase I"><span class="caption"><span>I</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="J" aria-label="Inspect uppercase J"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-J.png" width="1024" height="1024" alt="Generated uppercase J"><span class="caption"><span>J</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="K" aria-label="Inspect uppercase K"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-K.png" width="1024" height="1024" alt="Generated uppercase K"><span class="caption"><span>K</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="L" aria-label="Inspect uppercase L"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-L.png" width="1024" height="1024" alt="Generated uppercase L"><span class="caption"><span>L</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="M" aria-label="Inspect original uppercase M"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-M.png" width="1024" height="1024" alt="Original uppercase M"><span class="caption"><span>M</span><span class="mono">Original ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="N" aria-label="Inspect uppercase N"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-N.png" width="1024" height="1024" alt="Generated uppercase N"><span class="caption"><span>N</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="O" aria-label="Inspect uppercase O"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-O.png" width="1024" height="1024" alt="Generated uppercase O"><span class="caption"><span>O</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="P" aria-label="Inspect uppercase P"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-P.png" width="1024" height="1024" alt="Generated uppercase P"><span class="caption"><span>P</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="Q" aria-label="Inspect uppercase Q"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-Q.png" width="1024" height="1024" alt="Generated uppercase Q"><span class="caption"><span>Q</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="R" aria-label="Inspect uppercase R"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-R.png" width="1024" height="1024" alt="Generated uppercase R"><span class="caption"><span>R</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="S" aria-label="Inspect uppercase S"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-S.png" width="1024" height="1024" alt="Generated uppercase S"><span class="caption"><span>S</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="T" aria-label="Inspect uppercase T"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-T.png" width="1024" height="1024" alt="Generated uppercase T"><span class="caption"><span>T</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="U" aria-label="Inspect uppercase U"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-U.png" width="1024" height="1024" alt="Generated uppercase U"><span class="caption"><span>U</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="V" aria-label="Inspect uppercase V"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-V.png" width="1024" height="1024" alt="Generated uppercase V"><span class="caption"><span>V</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="W" aria-label="Inspect uppercase W"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-W.png" width="1024" height="1024" alt="Generated uppercase W"><span class="caption"><span>W</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="X" aria-label="Inspect uppercase X"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-X.png" width="1024" height="1024" alt="Generated uppercase X"><span class="caption"><span>X</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="Y" aria-label="Inspect uppercase Y"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-Y.png" width="1024" height="1024" alt="Generated uppercase Y"><span class="caption"><span>Y</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="Z" aria-label="Inspect uppercase Z"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/uppercase-Z.png" width="1024" height="1024" alt="Generated uppercase Z"><span class="caption"><span>Z</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="A" aria-label="Inspect uppercase A"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-A.svg" width="1024" height="1024" alt="Vector uppercase A"><span class="caption"><span>A</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="B" aria-label="Inspect uppercase B"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-B.svg" width="1024" height="1024" alt="Vector uppercase B"><span class="caption"><span>B</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="C" aria-label="Inspect uppercase C"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-C.svg" width="1024" height="1024" alt="Vector uppercase C"><span class="caption"><span>C</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="D" aria-label="Inspect uppercase D"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-D.svg" width="1024" height="1024" alt="Vector uppercase D"><span class="caption"><span>D</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="E" aria-label="Inspect uppercase E"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-E.svg" width="1024" height="1024" alt="Vector uppercase E"><span class="caption"><span>E</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="F" aria-label="Inspect uppercase F"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-F.svg" width="1024" height="1024" alt="Vector uppercase F"><span class="caption"><span>F</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="G" aria-label="Inspect uppercase G"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-G.svg" width="1024" height="1024" alt="Vector uppercase G"><span class="caption"><span>G</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="H" aria-label="Inspect uppercase H"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-H.svg" width="1024" height="1024" alt="Vector uppercase H"><span class="caption"><span>H</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="I" aria-label="Inspect uppercase I"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-I.svg" width="1024" height="1024" alt="Vector uppercase I"><span class="caption"><span>I</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="J" aria-label="Inspect uppercase J"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-J.svg" width="1024" height="1024" alt="Vector uppercase J"><span class="caption"><span>J</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="K" aria-label="Inspect uppercase K"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-K.svg" width="1024" height="1024" alt="Vector uppercase K"><span class="caption"><span>K</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="L" aria-label="Inspect uppercase L"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-L.svg" width="1024" height="1024" alt="Vector uppercase L"><span class="caption"><span>L</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="M" aria-label="Inspect vector uppercase M"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-M.svg" width="1024" height="1024" alt="Vector uppercase M"><span class="caption"><span>M</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="N" aria-label="Inspect uppercase N"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-N.svg" width="1024" height="1024" alt="Vector uppercase N"><span class="caption"><span>N</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="O" aria-label="Inspect uppercase O"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-O.svg" width="1024" height="1024" alt="Vector uppercase O"><span class="caption"><span>O</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="P" aria-label="Inspect uppercase P"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-P.svg" width="1024" height="1024" alt="Vector uppercase P"><span class="caption"><span>P</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="Q" aria-label="Inspect uppercase Q"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-Q.svg" width="1024" height="1024" alt="Vector uppercase Q"><span class="caption"><span>Q</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="R" aria-label="Inspect uppercase R"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-R.svg" width="1024" height="1024" alt="Vector uppercase R"><span class="caption"><span>R</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="S" aria-label="Inspect uppercase S"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-S.svg" width="1024" height="1024" alt="Vector uppercase S"><span class="caption"><span>S</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="T" aria-label="Inspect uppercase T"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-T.svg" width="1024" height="1024" alt="Vector uppercase T"><span class="caption"><span>T</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="U" aria-label="Inspect uppercase U"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-U.svg" width="1024" height="1024" alt="Vector uppercase U"><span class="caption"><span>U</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="V" aria-label="Inspect uppercase V"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-V.svg" width="1024" height="1024" alt="Vector uppercase V"><span class="caption"><span>V</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="W" aria-label="Inspect uppercase W"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-W.svg" width="1024" height="1024" alt="Vector uppercase W"><span class="caption"><span>W</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="X" aria-label="Inspect uppercase X"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-X.svg" width="1024" height="1024" alt="Vector uppercase X"><span class="caption"><span>X</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="Y" aria-label="Inspect uppercase Y"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-Y.svg" width="1024" height="1024" alt="Vector uppercase Y"><span class="caption"><span>Y</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="Z" aria-label="Inspect uppercase Z"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/uppercase-Z.svg" width="1024" height="1024" alt="Vector uppercase Z"><span class="caption"><span>Z</span><span class="mono">Inspect ↗</span></span></button>
             </div>
           </section>
           <section class="batch" aria-labelledby="lowercase-heading">
-            <div class="batch-header mono"><h2 id="lowercase-heading">03 / Lowercase a–z</h2><span>26 individually generated images</span></div>
+            <div class="batch-header mono"><h2 id="lowercase-heading">03 / Lowercase a–z</h2><span>26 vector outlines / 406-unit bodies</span></div>
             <div class="glyph-grid">
-              <button class="glyph-card" type="button" data-glyph="a" aria-label="Inspect lowercase a"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-a.png" width="1024" height="1024" alt="Generated lowercase a"><span class="caption"><span>a</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="b" aria-label="Inspect lowercase b"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-b.png" width="1024" height="1024" alt="Generated lowercase b"><span class="caption"><span>b</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="c" aria-label="Inspect lowercase c"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-c.png" width="1024" height="1024" alt="Generated lowercase c"><span class="caption"><span>c</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="d" aria-label="Inspect lowercase d"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-d.png" width="1024" height="1024" alt="Generated lowercase d"><span class="caption"><span>d</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="e" aria-label="Inspect lowercase e"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-e.png" width="1024" height="1024" alt="Generated lowercase e"><span class="caption"><span>e</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="f" aria-label="Inspect lowercase f"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-f.png" width="1024" height="1024" alt="Generated lowercase f"><span class="caption"><span>f</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="g" aria-label="Inspect lowercase g"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-g.png" width="1024" height="1024" alt="Generated lowercase g"><span class="caption"><span>g</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="h" aria-label="Inspect lowercase h"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-h.png" width="1024" height="1024" alt="Generated lowercase h"><span class="caption"><span>h</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="i" aria-label="Inspect lowercase i"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-i.png" width="1024" height="1024" alt="Generated lowercase i"><span class="caption"><span>i</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="j" aria-label="Inspect lowercase j"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-j.png" width="1024" height="1024" alt="Generated lowercase j"><span class="caption"><span>j</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="k" aria-label="Inspect lowercase k"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-k.png" width="1024" height="1024" alt="Generated lowercase k"><span class="caption"><span>k</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="l" aria-label="Inspect lowercase l"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-l.png" width="1024" height="1024" alt="Generated lowercase l"><span class="caption"><span>l</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="m" aria-label="Inspect lowercase m"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-m.png" width="1024" height="1024" alt="Generated lowercase m"><span class="caption"><span>m</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="n" aria-label="Inspect lowercase n"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-n.png" width="1024" height="1024" alt="Generated lowercase n"><span class="caption"><span>n</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="o" aria-label="Inspect lowercase o"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-o.png" width="1024" height="1024" alt="Generated lowercase o"><span class="caption"><span>o</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="p" aria-label="Inspect lowercase p"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-p.png" width="1024" height="1024" alt="Generated lowercase p"><span class="caption"><span>p</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="q" aria-label="Inspect lowercase q"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-q.png" width="1024" height="1024" alt="Generated lowercase q"><span class="caption"><span>q</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="r" aria-label="Inspect lowercase r"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-r.png" width="1024" height="1024" alt="Generated lowercase r"><span class="caption"><span>r</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="s" aria-label="Inspect lowercase s"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-s.png" width="1024" height="1024" alt="Generated lowercase s"><span class="caption"><span>s</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="t" aria-label="Inspect lowercase t"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-t.png" width="1024" height="1024" alt="Generated lowercase t"><span class="caption"><span>t</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="u" aria-label="Inspect lowercase u"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-u.png" width="1024" height="1024" alt="Generated lowercase u"><span class="caption"><span>u</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="v" aria-label="Inspect lowercase v"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-v.png" width="1024" height="1024" alt="Generated lowercase v"><span class="caption"><span>v</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="w" aria-label="Inspect lowercase w"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-w.png" width="1024" height="1024" alt="Generated lowercase w"><span class="caption"><span>w</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="x" aria-label="Inspect lowercase x"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-x.png" width="1024" height="1024" alt="Generated lowercase x"><span class="caption"><span>x</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="y" aria-label="Inspect lowercase y"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-y.png" width="1024" height="1024" alt="Generated lowercase y"><span class="caption"><span>y</span><span class="mono">Inspect ↗</span></span></button>
-              <button class="glyph-card" type="button" data-glyph="z" aria-label="Inspect lowercase z"><img src="../../genesis/REFERENCE/ribbon-font/individual-m/lowercase-z.png" width="1024" height="1024" alt="Generated lowercase z"><span class="caption"><span>z</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="a" aria-label="Inspect lowercase a"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-a.svg" width="1024" height="1024" alt="Vector lowercase a"><span class="caption"><span>a</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="b" aria-label="Inspect lowercase b"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-b.svg" width="1024" height="1024" alt="Vector lowercase b"><span class="caption"><span>b</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="c" aria-label="Inspect lowercase c"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-c.svg" width="1024" height="1024" alt="Vector lowercase c"><span class="caption"><span>c</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="d" aria-label="Inspect lowercase d"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-d.svg" width="1024" height="1024" alt="Vector lowercase d"><span class="caption"><span>d</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="e" aria-label="Inspect lowercase e"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-e.svg" width="1024" height="1024" alt="Vector lowercase e"><span class="caption"><span>e</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="f" aria-label="Inspect lowercase f"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-f.svg" width="1024" height="1024" alt="Vector lowercase f"><span class="caption"><span>f</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="g" aria-label="Inspect lowercase g"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-g.svg" width="1024" height="1024" alt="Vector lowercase g"><span class="caption"><span>g</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="h" aria-label="Inspect lowercase h"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-h.svg" width="1024" height="1024" alt="Vector lowercase h"><span class="caption"><span>h</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="i" aria-label="Inspect lowercase i"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-i.svg" width="1024" height="1024" alt="Vector lowercase i"><span class="caption"><span>i</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="j" aria-label="Inspect lowercase j"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-j.svg" width="1024" height="1024" alt="Vector lowercase j"><span class="caption"><span>j</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="k" aria-label="Inspect lowercase k"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-k.svg" width="1024" height="1024" alt="Vector lowercase k"><span class="caption"><span>k</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="l" aria-label="Inspect lowercase l"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-l.svg" width="1024" height="1024" alt="Vector lowercase l"><span class="caption"><span>l</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="m" aria-label="Inspect lowercase m"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-m.svg" width="1024" height="1024" alt="Vector lowercase m"><span class="caption"><span>m</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="n" aria-label="Inspect lowercase n"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-n.svg" width="1024" height="1024" alt="Vector lowercase n"><span class="caption"><span>n</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="o" aria-label="Inspect lowercase o"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-o.svg" width="1024" height="1024" alt="Vector lowercase o"><span class="caption"><span>o</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="p" aria-label="Inspect lowercase p"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-p.svg" width="1024" height="1024" alt="Vector lowercase p"><span class="caption"><span>p</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="q" aria-label="Inspect lowercase q"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-q.svg" width="1024" height="1024" alt="Vector lowercase q"><span class="caption"><span>q</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="r" aria-label="Inspect lowercase r"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-r.svg" width="1024" height="1024" alt="Vector lowercase r"><span class="caption"><span>r</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="s" aria-label="Inspect lowercase s"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-s.svg" width="1024" height="1024" alt="Vector lowercase s"><span class="caption"><span>s</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="t" aria-label="Inspect lowercase t"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-t.svg" width="1024" height="1024" alt="Vector lowercase t"><span class="caption"><span>t</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="u" aria-label="Inspect lowercase u"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-u.svg" width="1024" height="1024" alt="Vector lowercase u"><span class="caption"><span>u</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="v" aria-label="Inspect lowercase v"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-v.svg" width="1024" height="1024" alt="Vector lowercase v"><span class="caption"><span>v</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="w" aria-label="Inspect lowercase w"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-w.svg" width="1024" height="1024" alt="Vector lowercase w"><span class="caption"><span>w</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="x" aria-label="Inspect lowercase x"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-x.svg" width="1024" height="1024" alt="Vector lowercase x"><span class="caption"><span>x</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="y" aria-label="Inspect lowercase y"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-y.svg" width="1024" height="1024" alt="Vector lowercase y"><span class="caption"><span>y</span><span class="mono">Inspect ↗</span></span></button>
+              <button class="glyph-card" type="button" data-glyph="z" aria-label="Inspect lowercase z"><img src="../../genesis/REFERENCE/ribbon-font/vector-m/lowercase-z.svg" width="1024" height="1024" alt="Vector lowercase z"><span class="caption"><span>z</span><span class="mono">Inspect ↗</span></span></button>
             </div>
           </section>
-          <p class="review-note">All 52 letters share case-aware metrics. Short lowercase bodies are 406 pixels tall against 560-pixel capitals; full ascenders reach the cap line, t has a shorter ascender, and g/j/p/q/y extend below the baseline. Case scaling is uniform. Isolated I/i/j/l/t shaft contours are then adjusted to the measured M taper, preserving their centerlines and detached dots. Raw generations and individual submitted briefs remain available; spacing is a review control, not final font kerning. The installable font has not been rebuilt.</p>
+          <p class="review-note">The cards, larger comparisons and downloadable fonts use the same Bézier contours. Capitals and full ascenders reach 560 units; lowercase bodies reach 406, t reaches 476, and descenders extend to −146. The i and j dots are separate shapes on the stem axis. A keeps its short crossbar open. Spacing is a review control, not final kerning. Compare the construction with your original M; human acceptance is still pending.</p>
         </div>
       </div>
     </main>
-    <footer class="mono">Image studies, not an approved font. The app’s fonts and the previous installable font files remain unchanged.</footer>
+    <footer class="mono">Standalone vector font experiment. Human acceptance pending. The app, previous attempts and earlier font files remain unchanged.</footer>
   </div>
   <dialog id="letter-dialog" aria-labelledby="dialog-title">
     <div class="dialog-header"><h2 id="dialog-title">Letter comparison</h2><button class="button" id="close-dialog" type="button" autofocus>Close ×</button></div>
     <div class="comparison">
-      <figure><figcaption class="mono">Original M / same reference in every call</figcaption><img src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png" width="1024" height="1024" alt="Original M, uniformly enlarged on the shared reference canvas."></figure>
-      <figure><figcaption class="mono" id="current-caption">Generated letter</figcaption><img id="current-image" width="1024" height="1024" alt=""></figure>
+      <figure><figcaption class="mono">Original M / untouched source on reference canvas</figcaption><img src="../../genesis/REFERENCE/ribbon-font/individual-m/master-M-reference.png" width="1024" height="1024" alt="Original M, uniformly enlarged on the shared reference canvas."></figure>
+      <figure><figcaption class="mono" id="current-caption">Vector outline</figcaption><img id="current-image" width="1024" height="1024" alt=""></figure>
     </div>
-    <div class="dialog-footer"><div class="paging"><button class="button" id="previous-letter" type="button">← Previous</button><button class="button" id="next-letter" type="button">Next →</button></div><a id="download-image" download>Download cleaned PNG ↙</a><a id="raw-image" target="_blank" rel="noopener" aria-label="Open the raw Fgen image in a new tab">Raw Fgen PNG ↗</a><a id="submitted-prompt" target="_blank" rel="noopener">Submitted Fgen brief ↗</a><span class="mono muted" id="letter-position" role="status"></span></div>
+    <p class="review-note" id="construction-note" role="status"></p>
+    <p class="mono muted" id="current-metrics"></p>
+    <div class="dialog-footer"><div class="paging"><button class="button" id="previous-letter" type="button">← Previous</button><button class="button" id="next-letter" type="button">Next →</button></div><a id="download-image" download>Download SVG outline ↙</a><a href="../../genesis/REFERENCE/ribbon-font/vector-m/construction.json" target="_blank" rel="noopener">Vector construction and metrics ↗</a><a href="../../genesis/REFERENCE/ribbon-font/individual-m/master-M.png" target="_blank" rel="noopener">Untouched M source ↗</a><span class="mono muted" id="letter-position" role="status"></span></div>
   </dialog>
-  <script src="../../genesis/REFERENCE/ribbon-font/individual-m/preview-metrics.js"></script>
+  <script src="vector-font.js"></script>
   <script>
     const cards = Array.from(document.querySelectorAll('[data-glyph]'));
     const dialog = document.getElementById('letter-dialog');
     const currentImage = document.getElementById('current-image');
+    const metrics = window.ribbonVector;
     let currentIndex = 0;
 
     function showLetter(index) {
       currentIndex = (index + cards.length) % cards.length;
       const card = cards[currentIndex];
       const image = card.querySelector('img');
-      const label = image.alt.replace(/^(Generated|Original) /, '');
+      const label = image.alt.replace(/^Vector /, '');
+      const glyph = metrics?.glyphs[card.dataset.glyph];
+      dialog.style.setProperty('--comparison-aspect', Math.max(1024, glyph?.canvasWidth || 1024) / 1024);
       document.getElementById('dialog-title').textContent = `${label} / original M`;
-      document.getElementById('current-caption').textContent = card.dataset.glyph === 'M' ? 'Your original M / shared cap height' : `Case-normalized Fgen study / ${label}`;
+      document.getElementById('current-caption').textContent = `Font outline / ${label}`;
       currentImage.src = image.getAttribute('src');
       currentImage.alt = image.alt;
       document.getElementById('download-image').href = image.getAttribute('src');
-      document.getElementById('raw-image').href = image.getAttribute('src').replace('/individual-m/', '/individual-m/raw/');
-      document.getElementById('raw-image').textContent = card.dataset.glyph === 'M' ? 'Original M PNG ↗' : 'Raw Fgen PNG ↗';
-      document.getElementById('raw-image').setAttribute('aria-label', card.dataset.glyph === 'M' ? 'Open the original M PNG in a new tab' : 'Open the raw Fgen image in a new tab');
-      document.getElementById('submitted-prompt').href = image.getAttribute('src').replace(/\.png$/, '.txt');
-      document.getElementById('submitted-prompt').textContent = card.dataset.glyph === 'M' ? 'Original M source note ↗' : 'Submitted Fgen brief ↗';
+      document.getElementById('construction-note').textContent = glyph?.note || 'Vector construction notes are unavailable. Keep vector-font.js beside this HTML to load them.';
+      document.getElementById('current-metrics').textContent = glyph ? `Advance ${glyph.advance} units / bounds [${glyph.bounds.join(', ')}] / ${metrics.unitsPerEm} units per em` : '';
       document.getElementById('letter-position').textContent = `${currentIndex + 1} / ${cards.length}`;
       if (!dialog.open) dialog.showModal();
     }
@@ -316,71 +317,56 @@
     const input = document.getElementById('word-input');
     const word = document.getElementById('live-word');
     const stage = document.getElementById('stage');
+    const stageLine = stage.querySelector('.stage-line');
     const message = document.getElementById('input-message');
     const emptyMessage = document.getElementById('empty-message');
     const status = document.getElementById('preview-status');
     const size = document.getElementById('size');
     const tracking = document.getElementById('tracking');
     const initialMessage = message.textContent;
-    const metrics = window.ribbonStudyMetrics;
-    const images = new Map(cards.map(card => [card.dataset.glyph, card.querySelector('img')]));
+    const baselineMarker = document.createElement('span');
+    baselineMarker.className = 'baseline-marker';
+    baselineMarker.setAttribute('aria-hidden', 'true');
     let automaticFit = true;
-    let wordUnits = 0;
-    let letterCount = 0;
+
+    function updateGuides() {
+      const baseline = baselineMarker.getBoundingClientRect().top - stageLine.getBoundingClientRect().top;
+      const pixelsPerUnit = Number(size.value) / metrics.capHeight;
+      composer.style.setProperty('--study-cap-line', `${baseline - metrics.capHeight * pixelsPerUnit}px`);
+      composer.style.setProperty('--study-x-line', `${baseline - metrics.xHeight * pixelsPerUnit}px`);
+      composer.style.setProperty('--study-baseline', `${baseline}px`);
+    }
 
     function updateSize(value) {
       size.value = String(value);
       composer.style.setProperty('--study-size', `${size.value}px`);
       document.getElementById('size-value').textContent = `${size.value} px`;
-      size.setAttribute('aria-valuetext', `${size.value} pixels`);
+      size.setAttribute('aria-valuetext', `${size.value} pixels capital height`);
+      updateGuides();
     }
 
     function fitWord() {
-      if (!letterCount) return;
-      const width = wordUnits + Number(tracking.value) * (letterCount - 1);
-      updateSize(Math.max(Number(size.min), Math.min(Number(size.max), Math.floor((stage.clientWidth - 26) / Math.max(width, .01)))));
+      if (!word.textContent.trim()) return;
+      const availableWidth = stage.clientWidth - 24;
+      const width = word.getBoundingClientRect().width;
+      updateSize(Math.max(Number(size.min), Math.min(Number(size.max), Math.floor(Number(size.value) * availableWidth / Math.max(width, 1)))));
     }
 
     function updateWord() {
-      const characters = [...input.value];
-      const unsupported = [...new Set(characters.filter(character => character !== ' ' && !metrics.glyphs[character]))];
+      const unsupported = [...new Set([...input.value].filter(character => !/^[A-Za-z ]$/.test(character)))];
       input.setAttribute('aria-invalid', String(unsupported.length > 0));
       message.classList.toggle('error', unsupported.length > 0);
       if (unsupported.length) {
         message.textContent = `Not included: ${unsupported.join(' ')}. Use A–Z, a–z and spaces. Showing your last supported text.`;
         return;
       }
-      const fragment = document.createDocumentFragment();
-      wordUnits = 0;
-      letterCount = characters.length;
-      characters.forEach(character => {
-        const span = document.createElement('span');
-        span.className = 'composed-glyph';
-        span.setAttribute('aria-hidden', 'true');
-        if (character === ' ') {
-          span.classList.add('study-space');
-          wordUnits += .35;
-        } else {
-          const glyph = metrics.glyphs[character];
-          const units = metrics.capHeight;
-          span.style.width = `${glyph.width / units}em`;
-          const image = document.createElement('img');
-          image.src = images.get(character).getAttribute('src');
-          image.alt = '';
-          image.style.width = `${glyph.canvasWidth / units}em`;
-          image.style.left = `${-glyph.left / units}em`;
-          span.append(image);
-          wordUnits += glyph.width / units;
-        }
-        fragment.append(span);
-      });
-      word.replaceChildren(fragment);
-      word.setAttribute('aria-label', input.value.trim() ? `Letter combination: ${input.value}` : 'No preview text');
+      word.replaceChildren(document.createTextNode(input.value), baselineMarker);
       emptyMessage.textContent = 'Type a word below';
       emptyMessage.hidden = Boolean(input.value.trim());
       message.textContent = initialMessage;
       document.querySelectorAll('[data-word]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.word === input.value)));
       if (automaticFit) fitWord();
+      updateGuides();
     }
 
     input.addEventListener('input', updateWord);
@@ -403,21 +389,34 @@
     }));
     const resizeObserver = new ResizeObserver(() => { if (!controls.disabled && automaticFit) fitWord(); });
     resizeObserver.observe(stage);
-    Promise.all([...images.values()].map(image => image.decode())).then(() => {
-      if (!metrics || cards.some(card => !metrics.glyphs[card.dataset.glyph])) throw new Error('Combination metrics are missing.');
-      composer.style.setProperty('--study-line-height', `${Math.max(...Object.values(metrics.glyphs).map(glyph => glyph.canvasHeight)) / metrics.capHeight}em`);
-      composer.style.setProperty('--study-cap-line', `${metrics.capLine / metrics.capHeight}em`);
-      composer.style.setProperty('--study-x-line', `${metrics.xLine / metrics.capHeight}em`);
-      composer.style.setProperty('--study-baseline', `${metrics.baseline / metrics.capHeight}em`);
+
+    async function loadVectorFont() {
+      if (!metrics?.font || cards.some(card => !metrics.glyphs[card.dataset.glyph])) throw new Error('Vector font data is missing.');
+      cards.forEach(card => {
+        const note = metrics.glyphs[card.dataset.glyph].note;
+        card.title = note;
+        card.setAttribute('aria-description', note);
+      });
+      const font = new FontFace('Ribbon M Vector', `url(${window.ribbonVector.font})`);
+      await font.load();
+      document.fonts.add(font);
+      const glyphs = cards.map(card => metrics.glyphs[card.dataset.glyph]);
+      composer.style.setProperty('--study-font-scale', metrics.unitsPerEm / metrics.capHeight);
+      composer.style.setProperty('--study-line-height', `${(metrics.ascender + metrics.descender) / metrics.unitsPerEm}em`);
+      composer.style.setProperty('--study-left-overhang', `${Math.max(0, ...glyphs.map(glyph => -glyph.bounds[0])) / metrics.unitsPerEm}em`);
+      composer.style.setProperty('--study-right-overhang', `${Math.max(0, ...glyphs.map(glyph => glyph.bounds[2] - glyph.advance)) / metrics.unitsPerEm}em`);
+      composer.classList.add('font-ready');
       controls.disabled = false;
       composer.setAttribute('aria-busy', 'false');
-      status.textContent = `${images.size} letters / PNG preview`;
+      status.textContent = `${cards.length} letters / native vector font`;
       updateWord();
-    }).catch(() => {
+    }
+
+    loadVectorFont().catch(() => {
       composer.setAttribute('aria-busy', 'false');
-      status.textContent = 'Preview unavailable';
-      emptyMessage.textContent = 'Letter preview unavailable';
-      message.textContent = 'Keep this HTML with the individual-m PNGs and preview-metrics.js, then reopen it. The individual images remain available below.';
+      status.textContent = 'Vector font unavailable';
+      emptyMessage.textContent = 'The vector font could not load';
+      message.textContent = 'Keep the newly built vector-font.js beside this HTML, then reopen it. The SVG outlines and original M comparison below remain available.';
       message.classList.add('error');
     });
   </script>
