@@ -1778,7 +1778,7 @@ The user requested another direct image-generation trial instead of code-drawn l
 - [x] Generate lowercase m independently from the original M reference
 - [x] Retain all five untouched PNGs, exact submitted prompts, saved events, dimensions and file fingerprints
 - [x] Show the original M and the five results together without contour repair, thresholding, warping, vector replacement or retry-based selection
-- [ ] Commit and push the five-letter trial and hand the individual samples to the user for review
+- [x] Commit and push the five-letter trial and hand the individual samples to the user for review
 - [ ] Human review of the five generated letters and their fit with the original M
 
 All five Fgen calls reported successful saved images. Each actual output is 1254 by 1254 pixels. The raw samples, `comparison.png` and `generation.json` live in `genesis/REFERENCE/ribbon-font/fgen-five-original-M/`. The comparison uniformly resizes the complete image canvases for display only. B and m have transparency, which is composited over black in the comparison; the saved raw PNG bytes remain unchanged. The original M, current compiled fonts and active HTML preview are untouched. Generation succeeded, but style, weight, proportions and any decision to continue with the family still require the user's review. No next implementation prompt is needed for this five-letter trial.
