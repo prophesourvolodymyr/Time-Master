@@ -1933,7 +1933,7 @@ User direction: the selected ribbon alphabet is an occasional secondary title fa
 - [x] Provide an offline interactive typography specimen with real candidate fonts, 12/14/16 px reading comparisons, font downloads, supported-character feedback and zero-tracking kerning comparison
 - [x] Register the ribbon font on iOS and macOS, expose an opt-in accent-title role and apply it to the workout-completion title while preserving everyday app typography
 - [x] Exercise font rendering and spacing, the browser comparison, source PNG review and native workout completion
-- [ ] Publish the owned implementation and hand every item and changed file to the user for human verification
+- [x] Publish the owned implementation and hand every item and changed file to the user for human verification
 - [ ] Human acceptance of the compiled ribbon and its accent-title application
 - [ ] Human selection of the small-text companion
 
