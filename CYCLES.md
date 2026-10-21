@@ -31,6 +31,10 @@ F24 Navigation ─────────┤
 F25 Music ──────────────┤
 F26 Liquid Glass ───────┤
 F27 Home ───────────────┘
+
+Existing Ranked accounts + trusted Rust service ──┐
+F24 navigation + shared native styles ────────────┼── F29 (Physique Duels)
+Validated image judge + consent + moderation ─────┘
 ```
 
 ---
@@ -1885,6 +1889,51 @@ User-requested selector, tracking-card, Analytics navigation, and menu-backgroun
 - [ ] Human review of selector states, enlarged caption-free cards, tracker destinations and totals, populated Analytics responsiveness, and the menu background
 
 The populated runtime check used two sessions in the current week: a ten-minute completed workout and a three-minute partial workout. Workouts and Analytics both showed two sessions and thirteen minutes; a previous-week entry stayed outside those totals. All three destinations remained responsive. A separate calendar smoke covered empty weeks, multiple sessions per day, future exclusion, Monday/Sunday week boundaries, and DST. The requested simulator retained its existing data and saved workout; populated-data checks used a disposable same-model iOS 18.6 simulator. Product DOCKS.md updates await human acceptance. No next implementation prompt is needed.
+
+---
+
+## Cycle 39 — F29 Physique Duels Specification
+
+**Requested by the user on 2026-10-21: document a new native page with AI physique analysis, separate physique-only Elo, complete UI states, reporting, and nudity rules that permit nonsexual shirtless adult men. The user explicitly requires direct placement in features, with no incubation stage. Documentation only; app implementation is not authorized by this record.**
+
+Product context: [features/F29-physique-duels/DOCKS.md](features/F29-physique-duels/DOCKS.md). The five child contexts own page flow, AI metrics, the independent ladder, safety, and privacy/service behavior. Detailed numerical defaults are proposals for review, not accepted or measured behavior. This cycle does not reorder earlier work or claim human acceptance of the shared Ranked foundation.
+
+- [x] Document F29 directly in the feature tree
+  - [x] Write the parent product context and existing-app boundaries
+  - [x] F29-A — Describe the dedicated page, guided capture, complete UI states, accessibility, and motion
+  - [x] F29-B — Define AI inputs, visible-physique metrics, rubric, draw/invalid outcomes, and judging-version boundaries
+  - [x] F29-C — Define physique-only Elo, matchmaking, allowances, records, standings, and result corrections
+  - [x] F29-D — Define attire, contextual nudity moderation, reporting, blocking, human enforcement, and appeals
+  - [x] F29-E — Define consent, protected media, retention/deletion, provider operation, costs, and unmeasured latency targets
+  - [x] Register F29 in the feature catalog without restoring deleted legacy feature specifications
+  - [x] Check local links, cross-area contracts, and the boundary between product documentation and implementation claims
+- [ ] Human review of the Physique Duels specification and its proposed defaults
+- [x] Place the complete specification directly in features as explicitly requested by the user
+- [ ] F29 — Implement and connect the documented Physique Duels feature
+  - [ ] Confirm human-reviewed account/navigation foundations, authorized persistent HTTPS service, model access, and operational moderation
+  - [ ] F29-A — Build the native destination and connected capture-to-result flow
+    - [ ] Preserve saved navigation, Profile shape, existing exercise privacy, and ordinary app access after declined consent
+    - [ ] Connect account/age/consent, camera/redaction, readiness, timed poses, retakes, upload, recovery, and every unavailable/empty/error state
+    - [ ] Connect result/media/history/safety routes, accessibility, focus, large text, and reduced-motion behavior
+  - [ ] F29-B — Establish the real paired-image judge and its quality boundary
+    - [ ] Evaluate current candidate models against consenting human-judged comparisons, repeatability, reversed player order, clothing coverage, skin tone, body type, devices, and lighting
+    - [ ] Connect the fixed rubric and evidence checks without medical measurements, hidden anatomy, exposure bonuses, or forced winners
+    - [ ] Preserve per-match model/rubric versions and neutral, validated final output; keep Elo disabled if the quality bar is not met
+  - [ ] F29-C — Connect the authoritative physique-only competition domain
+    - [ ] Isolate earned Elo, provisional placement, tiers, matchmaking, quotas, and competitive records from every exercise and local display level
+    - [ ] Enforce exactly-once results, distinct draws/no-contests/forfeits, reconnect and cancellation rules, and honest paginated standings/history
+    - [ ] Connect audited review corrections without double-applying Elo or inventing missing outcomes
+  - [ ] F29-D — Connect safety and staffed review
+    - [ ] Enforce the explicit shirtless-men exception, required opaque coverage, contextual moderation, and protected media before display
+    - [ ] Connect per-item hide/report, reliable submission status, block exclusions, case status, score disputes, safety appeals, and proportionate enforcement
+    - [ ] Resolve the remaining App Store objectification risk without disguising the core product or promising approval
+  - [ ] F29-E — Connect privacy and service operation
+    - [ ] Protect credentials, consent versions, redacted evidence, participant-only media access, account deletion, bounded retention, and justified report holds
+    - [ ] Match privacy labels and disclosures to actual processor logging, retention, backup expiry, and any provider change
+    - [ ] Measure whole-duel token costs and end-to-end typical/slow latency; keep five seconds a target rather than an invented benchmark
+    - [ ] Exercise provider/permission/network failures, late results, account switching, deletion, expired media, and moderation outages without local fake ratings
+  - [ ] Exercise complete physical-camera matches with two authenticated consenting adults and focused relevant checks
+  - [ ] Human review and acceptance of every implemented F29 area before public rated use
 
 ---
 

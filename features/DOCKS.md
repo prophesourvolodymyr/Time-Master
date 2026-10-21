@@ -31,6 +31,14 @@
 | **F27** | **Home Dashboard Redesign** | **in_progress** | **F01, F03, F04, F07, F12, F22** |
 | **F28** | **Better Maps and Route Recording** | **in_progress (Cycle 23)** | **F09, F24, F25, F26, F27, existing Cycle 11 outdoor data** |
 
+## F29 — Physique Duels
+
+| Code | Feature | Product context | Dependencies |
+| --- | --- | --- | --- |
+| **F29** | **Physique Duels** | [Feature specification](F29-physique-duels/DOCKS.md): a new native page, AI physique analysis, a physique-only Elo ladder, guided poses, contextual shirtless-men and nudity rules, reports, privacy, and complete interaction states | Existing Ranked account and trusted service, native navigation, validated judging, protected media, and operational moderation |
+
+The user explicitly placed F29 directly in features. Implementation remains pending; proposed numerical defaults and the residual App Store policy risk are explicit in the specification. [CYCLES.md](../CYCLES.md#cycle-39--f29-physique-duels-specification) owns the documentation handoff and implementation plan. Earlier catalog entries below and above are retained historical context; registering F29 does not reverify their implementation status or restore their deleted working-tree specifications.
+
 ## Cycle 4 — Bug Fixes & Enhancements (complete)
 
 | Parent | Code | Sub-Feature | Status |
@@ -70,17 +78,17 @@
 
 | Code | Sub-Feature | Status |
 |------|-------------|--------|
-| F13 | Stability & Freeze Investigation (Phase 0 — first) | pending |
+| F13 | Stability & Freeze Investigation | pending |
 | F14 | Database Hierarchy Model (root container vs leaf exercise) | pending |
 | F15 | V2 Workout Management Rework | pending |
 | F16 | V2 Player Rework | pending |
 | F17 | Minimalist Text Cleanup | pending |
-| F18 | macOS Polish (window clip, box artifacts, settings crash) | pending |
-| F19 | Music Behavior (general upload + sequential default) | pending |
-| F20 | Scheduled-Today Home Widget & Missed-Red Indicator | pending |
+| F18 | macOS Polish | pending |
+| F19 | Music Behavior | pending |
+| F20 | Scheduled-Today Home Widget | pending |
 | F21 | Home Quick Settings Access | pending |
 | F22 | Per-Type Time-of-Day Schedule | pending |
-| F23 | Editor Database Picker Fix (old empty DB issue) | pending |
+| F23 | Editor Database Picker Fix | pending |
 
 ## Build Order
 ```
