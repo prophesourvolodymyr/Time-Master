@@ -1897,11 +1897,11 @@ The user accepted the refined I and requested all remaining capitals and small l
 - [x] Generate and individually inspect lowercase k from the original M
 - [x] Generate and individually inspect lowercase l from the original M
 - [x] Generate and individually inspect lowercase n from the original M
-- [ ] Generate and individually inspect lowercase o from the original M
-- [ ] Generate and individually inspect lowercase p from the original M
-- [ ] Generate and individually inspect lowercase q from the original M
-- [ ] Generate and individually inspect lowercase r from the original M
-- [ ] Generate and individually inspect lowercase s from the original M
+- [x] Generate and individually inspect lowercase o from the original M
+- [x] Generate and individually inspect lowercase p from the original M
+- [x] Generate and individually inspect lowercase q from the original M
+- [x] Generate and individually inspect lowercase r from the original M
+- [x] Generate and individually inspect lowercase s from the original M
 - [ ] Generate and individually inspect lowercase t from the original M
 - [ ] Generate and individually inspect lowercase u from the original M
 - [ ] Generate and individually inspect lowercase v from the original M
