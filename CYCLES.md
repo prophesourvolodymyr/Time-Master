@@ -1902,13 +1902,13 @@ The user accepted the refined I and requested all remaining capitals and small l
 - [x] Generate and individually inspect lowercase q from the original M
 - [x] Generate and individually inspect lowercase r from the original M
 - [x] Generate and individually inspect lowercase s from the original M
-- [ ] Generate and individually inspect lowercase t from the original M
-- [ ] Generate and individually inspect lowercase u from the original M
-- [ ] Generate and individually inspect lowercase v from the original M
-- [ ] Generate and individually inspect lowercase w from the original M
-- [ ] Generate and individually inspect lowercase x from the original M
-- [ ] Generate and individually inspect lowercase y from the original M
-- [ ] Generate and individually inspect lowercase z from the original M
+- [x] Generate and individually inspect lowercase t from the original M
+- [x] Generate and individually inspect lowercase u from the original M
+- [x] Generate and individually inspect lowercase v from the original M
+- [x] Generate and individually inspect lowercase w from the original M
+- [x] Generate and individually inspect lowercase x from the original M
+- [x] Generate and individually inspect lowercase y from the original M
+- [x] Generate and individually inspect lowercase z from the original M
 - [ ] Connect the full fifty-two-letter alphabet, case-height metrics, complete galleries and mixed-case word examples to the tester
 - [ ] Exercise the complete alphabet, word controls, keyboard editing, responsive scrolling and missing-image recovery
 - [ ] Publish the owned changes and hand every new letter and changed file to the user for human verification
