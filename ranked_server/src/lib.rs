@@ -3,6 +3,7 @@ mod auth;
 mod cloud;
 mod compat;
 mod model;
+mod physique;
 pub mod rules;
 mod store;
 mod sync;
@@ -163,6 +164,7 @@ pub struct AppState {
     cloud: Option<cloud::Supabase>,
     owner_locks: sync::OwnerLocks,
     sync_work: Arc<tokio::sync::Semaphore>,
+    physique: Arc<physique::Service>,
 }
 
 impl AppState {
@@ -201,6 +203,7 @@ impl AppState {
             cloud,
             owner_locks: sync::OwnerLocks::default(),
             sync_work: sync::work_limit(),
+            physique: Arc::new(physique::Service::new()?),
         })
     }
 
@@ -212,7 +215,8 @@ impl AppState {
                 store::sweep(db, time)?;
                 store::pair(db, time)
             })
-            .await
+            .await?;
+        physique::tick(self).await
     }
 
     fn cloud_service(&self) -> Result<cloud::Supabase> {
@@ -372,6 +376,10 @@ async fn boundary(State(state): State<AppState>, mut request: Request, next: Nex
             && request.uri().path().starts_with("/v1/sync/blobs/")
         {
             cloud::CHUNK_BYTES
+        } else if request.method() == Method::POST
+            && request.uri().path() == "/v1/physique/command"
+        {
+            physique::MAX_COMMAND_BODY
         } else {
             MAX_BODY
         };
@@ -467,6 +475,22 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/history", get(history))
         .route("/v1/leaderboard/{variation}", get(leaderboard))
         .route("/v1/players/{public_id}", get(player))
+        .route("/v1/physique/policy", get(physique::policy))
+        .route("/v1/physique/state", get(physique::state))
+        .route("/v1/physique/command", post(physique::command).layer(axum::extract::DefaultBodyLimit::max(physique::MAX_COMMAND_BODY)))
+        .route("/v1/physique/history", get(physique::history))
+        .route("/v1/physique/standings", get(physique::standings))
+        .route("/v1/physique/players/{id}", get(physique::player))
+        .route("/v1/physique/matches/{id}", get(physique::get_match))
+        .route("/v1/physique/matches/{id}/gallery", get(physique::gallery))
+        .route("/v1/physique/cases", get(physique::case_list))
+        .route("/v1/physique/cases/{id}", get(physique::case_detail))
+        .route("/v1/physique/privacy", get(physique::privacy))
+        .route("/v1/physique/blocks", get(physique::blocks))
+        .route("/v1/physique/admin/cases", get(physique::admin_cases))
+        .route("/v1/physique/admin/cases/{id}", get(physique::admin_case))
+        .route("/v1/physique/admin/cases/{id}/media", get(physique::admin_media))
+        .route("/v1/physique/admin/command", post(physique::admin_command))
         .fallback(|| async { ApiError::new(StatusCode::NOT_FOUND, "Not found") })
         .layer(middleware::from_fn_with_state(state.clone(), boundary))
         .with_state(state)
@@ -622,6 +646,7 @@ async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Result<Jso
     if let Some(cloud) = &state.cloud {
         state
             .authenticated(&headers, |db, uid, time| {
+                physique::signed_out(db, uid, time)?;
                 store::cancel(db, uid, "Signed out", time)
             })
             .await?;
@@ -631,6 +656,7 @@ async fn logout(State(state): State<AppState>, headers: HeaderMap) -> Result<Jso
     let access = access_hash(&headers)?;
     state
         .authenticated(&headers, move |db, uid, time| {
+            physique::signed_out(db, uid, time)?;
             store::logout(db, uid, &access, time)?;
             Ok(OkResponse { ok: true })
         })

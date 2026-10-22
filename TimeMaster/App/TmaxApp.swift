@@ -20,7 +20,7 @@ struct TmaxApp: App {
         }
 #if os(macOS)
         .windowStyle(.titleBar)
-        .commands { TmaxCommands() }
+        .commands { TmaxCommands(); PhysiqueNativeCommands() }
 #endif
     }
 }

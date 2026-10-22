@@ -2092,9 +2092,11 @@ Product context: [features/F29-physique-duels/DOCKS.md](features/F29-physique-du
 
 The user requests a top timer, all public user badges above two large vertically stacked player panels, country-flag identity treatment, less visible prose, and deeply designed motion for the timer, icons, active background, results, and score counters. Native macOS is explicitly required alongside iPhone. This extension authorizes complete requirements and worker briefs; no production UI, backend, artwork generation, model-quality validation, measured performance, or human acceptance is claimed by planning it.
 
-Dispatch and ownership: [F29 native UI orchestration](prompts/F29-physique-duels/F29-phase-2-native-ui-orchestration.md). Thirty-one specialists cover twenty-five views and six advanced identity/component slices. Ordinary views use GPT-6.1 Sol with max reasoning; the battle stage and advanced components use GPT-6 Astra with max reasoning. Each owns one distinct pair of product context and implementation brief, with one integration owner for shared files. This is one coordinated UI slice with real review dependencies, not thirty-one compulsory sequential sessions. Required models are not silently substituted, and these coding-agent assignments do not change the in-app judge.
+Dispatch and ownership: [F29 native UI orchestration](prompts/F29-physique-duels/F29-phase-2-native-ui-orchestration.md). The planned assignment covers twenty-five views and six advanced identity/component slices: GPT-6.1 Sol with max reasoning for ordinary views, and GPT-6 Astra with max reasoning for the battle stage and advanced components. This describes the requested assignment, not verified execution provenance. Available built-in specialists are recorded below; the ordinary-agent dispatcher does not expose per-task model or reasoning overrides. Coding-agent assignments do not change the in-app judge.
 
-**Implementation authorization and dispatch blocker:** The user subsequently authorized actual native iPhone/macOS implementation with “get started” and “continue.” The requested Sol/Astra max implementation workers could not start: Codex returned usage_limit_reached, the alternate OpenCode provider returned api_key_expired, and OpenRouter returned insufficient credits. No implementation task is complete. Unconnected integration source was removed rather than delivered as working UI. Continuing the required per-view agent approach needs restored requested-model access or the user's explicit permission to use available specialist models; the existing briefs remain ready.
+**Implementation authorization and scoped dispatch:** The user subsequently authorized actual native iPhone/macOS implementation and repeatedly requested dedicated, tightly scoped subagents. Earlier CLI attempts hit Codex quota, an expired OpenCode key and insufficient OpenRouter credit. Available built-in specialists produced source; the requested Sol/Astra/max provenance could not be enforced or verified through this dispatcher. Each view/component worker owns only its named Physique file family; camera and service workers have separately scoped Physique ownership. The integration owner alone registers navigation, shared models/store, native commands, target membership and necessary privacy wording. Existing pages and unrelated features are not redesigned. Implementation and focused engineering checks remain separate from human acceptance and unexercised physical or operational scenarios.
+
+**Simulator restriction:** Reuse the existing iOS 18.6 iPhone 16 for all subsequent native checks, with parallel testing and device cloning disabled. View/component workers must not create simulator devices. The four temporary devices named Physique Native Smoke, TimeMaster Final Crest Review and the two OMPP Preview devices were removed at the user's request; existing standard devices and installed runtimes were preserved.
 
 - [x] Document the approved vertical battle hierarchy, complete badge rails, concise copy rules, and native Mac scope in the parent and shared view contexts
 - [x] F29-F — Specify optional country, truthful badge earning/corrections, top-rail composition, and accessible identity details
@@ -2104,43 +2106,64 @@ Dispatch and ownership: [F29 native UI orchestration](prompts/F29-physique-duels
 - [x] Register the UI hierarchy, preserve the supplied reference, validate every new link and model assignment, and publish only owned documentation changes
 - [ ] Human review of the detailed UI composition, badge milestones, motion treatment, and per-view requirements
 - [ ] Optional interactive battle-to-results mockup only if the user chooses it; no production dependency or implied mockup acceptance
-- [ ] Implement the shared native component foundation after its real contracts and required reviews
-  - [ ] F29-F — Real public identity, optional self-declared country, earned badge facts, complete rails, and correction/removal behavior
-  - [ ] F29-G-a — Phase clocks, start/self-timer distinction, tactile digits, resumption, and authoritative deadlines
-  - [ ] F29-G-b — Large vertical player panels, clean camera/avatar states, original safe pose icons, and readable adaptive geometry
-  - [ ] F29-G-c — State-driven battle atmosphere with reduced-motion, inactive, energy, and thermal behavior
-  - [ ] F29-G-d — Validated numeric counters, signed Elo and once-only result/badge choreography without fake intermediate outcomes
-  - [ ] F29-G-e — Native Mac window/input/camera/privacy shell, current minimum-size support, and one active match across windows
-- [ ] Implement every connected native iPhone and macOS view under the reviewed shared contracts
-  - [ ] F29-A-a — Lobby
-  - [ ] F29-A-b — Account entry and return to the intended Physique action
-  - [ ] F29-A-c — Eligibility and separate informed sharing consent
-  - [ ] F29-A-d — Rules and rubric
-  - [ ] F29-A-e — Local pose guide
-  - [ ] F29-A-f — Camera setup and real device/permission states
-  - [ ] F29-A-g — Match search and honest cancellation/no-opponent recovery
-  - [ ] F29-A-h — Ready room and synchronized start
-  - [ ] F29-A-i — Vertical battle stage and guided capture
-  - [ ] F29-A-j — Exact pose review, checks, replacement, and bounded retakes
-  - [ ] F29-A-k — Submission, waiting, judging, and authoritative recovery
-  - [ ] F29-A-l — Final result, earned rating, and safe next actions
-  - [ ] F29-A-m — Complete score breakdown and version/evidence meaning
-  - [ ] F29-A-n — Intentional protected pose gallery and per-image safety
-  - [ ] F29-A-o — Private match history and stable paging
-  - [ ] F29-A-p — Physique-only standings, ties, and listing/privacy states
-  - [ ] F29-A-q — Permitted player identity and badge summary
-  - [ ] F29-A-r — Safety hub, support, and explicit block management
-  - [ ] F29-A-s — Contextual report composer and real receipts
-  - [ ] F29-A-t — Private case center
-  - [ ] F29-A-u — Case details, decisions, and reviewed corrections
-  - [ ] F29-A-v — Explicit safety-appeal/outcome-dispute composer
-  - [ ] F29-A-w — Privacy, sharing, listing, and image removal
-  - [ ] F29-A-x — Existing global deletion entry and truthful deletion status
-  - [ ] F29-A-y — Complete badge collection and optional country controls
+- [x] Implement the shared native component foundation with real contracts; human review remains pending
+  - [x] F29-F — Real public identity, optional self-declared country, earned badge facts, complete rails, and correction/removal behavior
+  - [x] F29-G-a — Phase clocks, start/self-timer distinction, tactile digits, resumption, and authoritative deadlines
+  - [x] F29-G-b — Large vertical player panels, clean camera/avatar states, original safe pose icons, and readable adaptive geometry
+  - [x] F29-G-c — State-driven battle atmosphere with reduced-motion, inactive, energy, and thermal behavior
+  - [x] F29-G-d — Validated numeric counters, signed Elo and once-only result/badge choreography without fake intermediate outcomes
+  - [x] F29-G-e — Native Mac window/input/camera/privacy shell, current minimum-size support, and one active match across windows
+- [x] Implement every connected native iPhone and macOS view with real shared contracts; human review remains pending
+  - [x] F29-A-a — Lobby
+  - [x] F29-A-b — Account entry and return to the intended Physique action
+  - [x] F29-A-c — Eligibility and separate informed sharing consent
+  - [x] F29-A-d — Rules and rubric
+  - [x] F29-A-e — Local pose guide
+  - [x] F29-A-f — Camera setup and real device/permission states
+  - [x] F29-A-g — Match search and honest cancellation/no-opponent recovery
+  - [x] F29-A-h — Ready room and synchronized start
+  - [x] F29-A-i — Vertical battle stage and guided capture
+  - [x] F29-A-j — Exact pose review, checks, replacement, and bounded retakes
+  - [x] F29-A-k — Submission, waiting, judging, and authoritative recovery
+  - [x] F29-A-l — Final result, earned rating, and safe next actions
+  - [x] F29-A-m — Complete score breakdown and version/evidence meaning
+  - [x] F29-A-n — Intentional protected pose gallery and per-image safety
+  - [x] F29-A-o — Private match history and stable paging
+  - [x] F29-A-p — Physique-only standings, ties, and listing/privacy states
+  - [x] F29-A-q — Permitted player identity and badge summary
+  - [x] F29-A-r — Safety hub, support, and explicit block management
+  - [x] F29-A-s — Contextual report composer and real receipts
+  - [x] F29-A-t — Private case center
+  - [x] F29-A-u — Case details, decisions, and reviewed corrections
+  - [x] F29-A-v — Explicit safety-appeal/outcome-dispute composer
+  - [x] F29-A-w — Privacy, sharing, listing, and image removal
+  - [x] F29-A-x — Existing global deletion entry and truthful deletion status
+  - [x] F29-A-y — Complete badge collection and optional country controls
 - [ ] Exercise the connected actual native iPhone surface, including full-size/large-text battle, finality, safety, privacy, and reduced settings
 - [ ] Exercise the connected actual native Mac surface at minimum/laptop/full-screen sizes, with live resizing, keyboard/pointer, window lifecycle, and camera availability
 - [ ] Exercise all-badge/long-name/missing-flag states and ensure clean judged images exclude all identity/timer/score UI chrome
 - [ ] Human review of every implemented view/component and acceptance of both native platform experiences
+
+### Presentation Redesign — 2026-10-22
+
+The user rejected the initial native presentation as information-only and unpresentable. This explicitly authorizes replacing that presentation with an authored, animated sports arena while preserving real match, account, capture, safety and privacy behavior. Eight isolated presentation workers own only the timer/atmosphere, battle composition, player art, verdict, lobby, badges, private intermission, and shared F29 supporting surfaces. No worker owns the whole feature or unrelated pages.
+
+- [x] Recompose the native battle with a dominant clock, complete identity/badge rails, large vertically stacked players and a deliberate arena/pose hierarchy
+- [x] Replace generic timer, player, badge and background presentation with original sports artwork and state-driven, reduced-setting-safe motion
+- [x] Build a choreographed final verdict, congratulations and earned-reward effects gated by actual fresh judged results, with truthful static history/correction alternatives
+- [x] Art-direct the actual iPhone/Mac lobby and opaque camera-off intermission rather than presenting an information wall
+- [x] Refine shared F29 supporting surfaces without altering other app pages or hiding important errors, consent or privacy consequences
+- [x] Exercise redesigned public iPhone entry/rules/pose-guide routes at default and largest accessibility text, plus labelled native Mac component renders; full physical-match, window-lifecycle and human-review checks remain pending
+- [ ] Human review and acceptance of the redesigned native presentation
+
+Engineering handoff, not human acceptance: all twenty-five native routes and six shared component families are connected to the real account/store/capture/service interfaces. The Rust service passed all 63 tests, including 20 focused Physique tests. An isolated real HTTP run exercised public policy, anonymous rejection, registration, state, country mutation, idempotent retry/conflict, unavailable rated entry, gallery ownership and post-logout rejection; real responses also decoded through the native DTOs. No production opponent, judge result or rating fallback was introduced.
+
+The redesigned native Mac components rendered at narrow and desktop widths, including long identity/all-badge/missing-country states, both vertical players, win/loss/draw/no-contest/forfeit/corrected verdicts, and active/checking/error/inactive privacy covers. Actual window content resized to 800×600 and 1100×768 on this display. A native timer render exposed duplicate fallback identities that crashed SwiftUI; the explicit fallback identities were removed. A labelled native motion run under controlled component energy state observed real interpolation and caught a cancellation defect; replacing the animated content on interruption stopped later interpolation and prevented replay. The Mac's system Low Power setting was not changed. The temporary fixture, launch hooks and component power override were removed; the clean native Mac target builds.
+
+The clean iPhone target passed both permanent pose-guide regressions on the existing iPhone 16 / iOS 18.6: named native pose buttons, selected-state changes, and viewport containment at default and largest accessibility text. The tests navigate the actual redesigned lobby and rules to the local guide and dismiss the existing saved-workout prompt with “Not now”; no workout is discarded and no camera starts. Xcode's post-test diagnostic collector timed out, but the result bundle records two passed tests, zero failures and zero skips.
+
+Remaining verification is explicit: full authenticated two-adult physical-camera matches, real provider quality/latency/cost, staffed moderation, broad reduced-setting and window-lifecycle coverage, VoiceOver and complete native Mac keyboard/pointer navigation have not been verified. The unattended Mac public-route AX attempt did not reach the Physique controls; global startup was still visible in one run and external AX/screen-capture permission was unavailable. Rated entry remains closed without the real configured judging, safety, disclosure, quality and operational prerequisites. Product DOCKS stay unchanged until the user accepts the resulting behavior.
+
 ---
 
 ## Cycle 40 — Shared Account and Exercise Database Sync — 2026-10-21

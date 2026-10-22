@@ -69,7 +69,7 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_CFBundleDisplayName: Tmax
-        INFOPLIST_KEY_NSCameraUsageDescription: "Tmax uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images."
+        INFOPLIST_KEY_NSCameraUsageDescription: "Tmax uses the camera for local exercise tracking and guided Physique stills. Exercise Ranked sends joint estimates, never images. Physique shares only selected face-obscured stills after separate consent."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Tmax needs photo library access to add photos of your exercises"
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Tmax saves your Planned Trip map image to Photos so you can share it."
         INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent

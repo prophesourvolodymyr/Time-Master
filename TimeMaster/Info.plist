@@ -38,7 +38,7 @@
 
 	<!-- Privacy usage descriptions -->
 	<key>NSCameraUsageDescription</key>
-	<string>Tmax uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images.</string>
+	<string>Tmax uses the camera for local exercise tracking and guided Physique stills. Exercise Ranked sends joint estimates, never images. Physique shares only selected face-obscured stills after separate consent.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Tmax needs photo library access to add photos of your exercises</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

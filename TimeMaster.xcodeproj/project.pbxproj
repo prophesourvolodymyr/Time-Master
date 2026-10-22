@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F29000000000000000000022 /* PhysiquePoseGuideAccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29000000000000000000021 /* PhysiquePoseGuideAccessibilityTests.swift */; };
+		F29000000000000000000011 /* PhysiqueDuelModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29000000000000000000010 /* PhysiqueDuelModels.swift */; };
+		F29000000000000000000012 /* PhysiqueDuelModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29000000000000000000010 /* PhysiqueDuelModels.swift */; };
 		F73C4FA2BA674E31A1134E91 /* Inter-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9B134532547E4D5AA6F38328 /* Inter-BlackItalic.ttf */; };
 		F2F2C884B99C4FC799AAC4CE /* Inter-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9B134532547E4D5AA6F38328 /* Inter-BlackItalic.ttf */; };
 		8C3DC77818CA47929A5CE249 /* Manrope-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1BA358BF47AF422DB12541C6 /* Manrope-Regular.ttf */; };
@@ -639,6 +642,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F29000000000000000000021 /* PhysiquePoseGuideAccessibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiquePoseGuideAccessibilityTests.swift; sourceTree = "<group>"; };
+		F29000000000000000000010 /* PhysiqueDuelModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueDuelModels.swift; sourceTree = "<group>"; };
 		0008579785FB963981CED211 /* AISettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AISettingsView.swift; sourceTree = "<group>"; };
 		001DA950EC696EBC1C782DF5 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		01618C53E4137D7AC1CB4DCF /* OutdoorActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorActivityStore.swift; sourceTree = "<group>"; };
@@ -952,6 +957,19 @@
 		FF7C3D82BCDAF71304D5E180 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F29000000000000000000001 /* Physique views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Physique;
+			sourceTree = "<group>";
+		};
+		F29000000000000000000002 /* Physique services */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Physique;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		93FCCEEFB9E2109687304D3D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -991,6 +1009,7 @@
 		039FCDF3858D9BE9A8C105BE /* TimeMasterUITests */ = {
 			isa = PBXGroup;
 			children = (
+				F29000000000000000000021 /* PhysiquePoseGuideAccessibilityTests.swift */,
 				0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */,
 				1C43508BAD6948505C29F8E4 /* OutdoorRouteRecordingUITests.swift */,
 			);
@@ -1092,6 +1111,7 @@
 		1FF12E5694591672653BC22B /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				F29000000000000000000010 /* PhysiqueDuelModels.swift */,
 				0A7328C89B0529370A856E55 /* ExerciseDatabase.swift */,
 				1521D9DCA4A8F38702E195D6 /* ExercisePage.swift */,
 				33D8C82460675B498CA3D12A /* HomeToday.swift */,
@@ -1234,6 +1254,7 @@
 				7CB83DA7936F4F5337347E13 /* Player */,
 				1525EBA6A18D8FE0D3FA6E4D /* Profile */,
 				B4F8ECE7CCEE0EC24DF5A1C5 /* Ranked */,
+				F29000000000000000000001 /* Physique views */,
 				7433FE635868E1AB4072B90E /* Schedule */,
 				5FE4E674646659C60F0E0432 /* Settings */,
 				6701375A98AD8D3D135B5394 /* WorkoutDetail */,
@@ -1545,6 +1566,7 @@
 				F76CF67F69BE87701029047F /* Cloud */,
 				F5F90D3D4F86D49C65A0C7F6 /* Outdoor */,
 				446C69C9D8FDAF19DB2ED871 /* Ranked */,
+				F29000000000000000000002 /* Physique services */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1615,6 +1637,10 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F29000000000000000000001 /* Physique views */,
+				F29000000000000000000002 /* Physique services */,
 			);
 			name = "TimeMaster-macOS";
 			packageProductDependencies = (
@@ -1695,6 +1721,10 @@
 			);
 			dependencies = (
 				A5813158C3194A84AB036992 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F29000000000000000000001 /* Physique views */,
+				F29000000000000000000002 /* Physique services */,
 			);
 			name = TimeMaster;
 			packageProductDependencies = (
@@ -1803,6 +1833,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F29000000000000000000011 /* PhysiqueDuelModels.swift in Sources */,
 				2B55D0F00A9F2A54F585FDCC /* AICoachView.swift in Sources */,
 				AE60993DD2ED3AED3CFCDFC1 /* AIProvider.swift in Sources */,
 				FD452ABA07833934841CC4E0 /* AISettingsView.swift in Sources */,
@@ -2092,6 +2123,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F29000000000000000000012 /* PhysiqueDuelModels.swift in Sources */,
 				56E37DD04D21CBCBCEE65195 /* AICoachView.swift in Sources */,
 				AA338139391D16AB2B65CA22 /* AIProvider.swift in Sources */,
 				E4243D9BD9F55DC011375CE8 /* AISettingsView.swift in Sources */,
@@ -2372,6 +2404,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F29000000000000000000022 /* PhysiquePoseGuideAccessibilityTests.swift in Sources */,
 				33B91A2434A40488D46D3D2F /* OutdoorRideEndToEndTests.swift in Sources */,
 				212C12128B809802961F0EFF /* OutdoorRouteRecordingUITests.swift in Sources */,
 			);
@@ -2700,7 +2733,7 @@
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = TimeMaster/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tmax;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Tmax uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Tmax uses the camera for local exercise tracking and guided Physique stills. Exercise Ranked sends joint estimates, never images. Physique shares only selected face-obscured stills after separate consent.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Tmax saves your Planned Trip map image to Photos so you can share it.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Tmax needs photo library access to add photos of your exercises";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -2798,7 +2831,7 @@
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = TimeMaster/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tmax;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Tmax uses the camera for on-device exercise tracking and exercise photos. Ranked sends joint estimates, never camera images.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Tmax uses the camera for local exercise tracking and guided Physique stills. Exercise Ranked sends joint estimates, never images. Physique shares only selected face-obscured stills after separate consent.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Tmax saves your Planned Trip map image to Photos so you can share it.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Tmax needs photo library access to add photos of your exercises";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

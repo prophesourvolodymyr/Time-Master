@@ -77,13 +77,13 @@ pub(crate) fn link(db: &Connection, subject: &Subject, legacy: &str, time: f64) 
     }
     if let Some(current) = current {
         let used: bool = db.query_row(
-            "SELECT EXISTS(SELECT 1 FROM participants WHERE user_id=?1) OR EXISTS(SELECT 1 FROM queue WHERE user_id=?1) OR EXISTS(SELECT 1 FROM ratings WHERE user_id=?1) OR EXISTS(SELECT 1 FROM requests WHERE user_id=?1) OR EXISTS(SELECT 1 FROM starts WHERE user_id=?1) OR EXISTS(SELECT 1 FROM active WHERE user_id=?1)",
+            "SELECT EXISTS(SELECT 1 FROM participants WHERE user_id=?1) OR EXISTS(SELECT 1 FROM queue WHERE user_id=?1) OR EXISTS(SELECT 1 FROM ratings WHERE user_id=?1) OR EXISTS(SELECT 1 FROM requests WHERE user_id=?1) OR EXISTS(SELECT 1 FROM starts WHERE user_id=?1) OR EXISTS(SELECT 1 FROM active WHERE user_id=?1) OR EXISTS(SELECT 1 FROM physique_profiles WHERE user_id=?1)",
             [&current], |row| row.get(0),
         )?;
         if used {
             return Err(ApiError::new(
                 StatusCode::CONFLICT,
-                "Link your existing account before starting Ranked on this TimeMaster account",
+                "Link your existing account before starting Ranked or Physique on this TimeMaster account",
             ));
         }
         db.execute(
@@ -125,6 +125,7 @@ pub(crate) fn begin_deletion(db: &Connection, subject: &Subject, time: f64) -> R
     )?;
     if let Some(uid) = uid {
         store::cancel(db, &uid, "Account deletion requested", time)?;
+        crate::physique::begin_deletion(db, &uid, time)?;
     }
     Ok(true)
 }
@@ -137,6 +138,7 @@ pub(crate) fn finish_deletion(db: &Connection, owner: &str, time: f64) -> Result
     )?;
     if let Some(uid) = uid {
         store::cancel(db, &uid, "Account deleted", time)?;
+        crate::physique::finish_deletion(db, &uid, time)?;
         for table in [
             "sessions", "evidence", "queue", "requests", "starts", "active", "ratings",
         ] {

@@ -174,6 +174,7 @@ final class CloudAccountStore: ObservableObject {
 
     func deleteAccount() async {
         guard !busy, session != nil else { return }
+        PhysiqueStore.shared.suspendCapture()
         busy = true
         error = nil
         notice = nil
@@ -249,6 +250,7 @@ final class CloudAccountStore: ObservableObject {
     }
 
     private func prepareIdentityChange(keepRankedConnection: Bool = false) async {
+        PhysiqueStore.shared.suspendCapture()
         RankedAccountStore.shared.accountWillChange()
         if !keepRankedConnection { await RankedAPI.shared.activateAccount(nil) }
         await DatabaseSyncStore.shared.prepareForIdentityChange()

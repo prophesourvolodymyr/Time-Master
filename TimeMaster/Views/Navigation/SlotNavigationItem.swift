@@ -560,6 +560,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     case coach
     case profile
     case ranked
+    case physique
     case map
     case schedule
     case settings
@@ -575,6 +576,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .coach: "AI Coach"
         case .profile: "Profile"
         case .ranked: "Ranked"
+        case .physique: "Physique"
         case .map: "Map"
         case .schedule: "Schedule"
         case .settings: "Settings"
@@ -590,6 +592,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .coach: .system("brain.head.profile")
         case .profile: .system("person.crop.circle")
         case .ranked: .asset("RankedMenuIcon")
+        case .physique: .system("figure.strengthtraining.traditional")
         case .map: .system("map.fill")
         case .schedule: .system("calendar")
         case .settings: .system("gearshape.fill")
@@ -605,6 +608,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .coach: "Opens your AI coach."
         case .profile: "Shows your profile and history."
         case .ranked: "Shows your Ranked arena and movement loadout."
+        case .physique: "Shows Physique Duels, guided poses and its independent competitive rating."
         case .map: "Opens the live outdoor map and workout start page."
         case .schedule: "Shows your weekly workout Plans and streak."
         case .settings: "Shows app settings."
@@ -627,7 +631,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     }
 
     /// The arrangement the app ships with, before anyone edits the bar.
-    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .home, .map, .ranked, .workouts, .schedule, .database, .analytics, .settings]
+    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .home, .map, .ranked, .physique, .workouts, .schedule, .database, .analytics, .settings]
 }
 
 extension SlotNavigationItem {

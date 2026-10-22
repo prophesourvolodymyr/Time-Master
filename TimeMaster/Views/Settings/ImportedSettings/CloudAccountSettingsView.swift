@@ -89,7 +89,7 @@ struct CloudAccountSettingsView: View {
             Button("Delete cloud account", role: .destructive) { Task { await account.deleteAccount() } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently deletes your cloud exercise database and account, including Ranked-owned account data. The local library stays on this device. Export a ZIP first if you need a separate backup.")
+            Text("This permanently deletes your cloud exercise database and account, including exercise Ranked and Physique records and ordinary shared media. Narrow lawful safety holds may remain under the published policy. Camera collection stops; an active match follows its service-owned finality. The local library stays on this device. Export a ZIP first if you need a separate backup.")
         }
         .accessibilityIdentifier("cloud-account-settings")
     }

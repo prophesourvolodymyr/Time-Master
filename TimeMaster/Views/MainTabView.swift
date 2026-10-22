@@ -186,6 +186,8 @@ struct MainTabView: View {
         case .ranked:
             RankedView(requestedVariation: $requestedRankedVariation, onOpenProfile: { openPage(.profile) })
                 .environmentObject(outdoorStore)
+        case .physique:
+            PhysiqueView()
         case .profile:
             ProfileView(onOpenRanked: { variation in
                 requestedRankedVariation = variation
@@ -283,6 +285,7 @@ struct MainTabView: View {
 
 #if os(macOS)
     private func handleKeyPress(_ keyPress: KeyPress) -> KeyPress.Result {
+        guard selectedPage != .physique else { return .ignored }
         switch keyPress.key {
         case .leftArrow:
             moveSelection(by: -1)
