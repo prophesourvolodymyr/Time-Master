@@ -184,7 +184,8 @@ struct PhysiqueBattleStageView: View {
     }
 
     private func topBand(proxy: ScrollViewProxy) -> some View {
-        Group {
+        VStack(spacing: ProfileStyle.spacing) {
+            PhysiqueBattleBrandHeader()
             #if os(macOS)
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .center, spacing: 28) {
@@ -571,30 +572,11 @@ struct PhysiqueBattleStageView: View {
     }
 
     private var matchupDivider: some View {
-        HStack(spacing: 20) {
-            Rectangle()
-                .fill(Theme.separator)
-                .frame(height: 1)
-            VStack(spacing: 4) {
-                Text("VS")
-                    .font(TimeMasterFont.blackItalic(40, relativeTo: .largeTitle))
-                    .foregroundStyle(Theme.toolbarOrange)
-                Text("\(PhysiquePose.allCases.count) POSES · ONE MATCH")
-                    .font(TimeMasterFont.black(10, relativeTo: .caption2))
-                    .tracking(1.6)
-                    .foregroundStyle(ProfileStyle.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .multilineTextAlignment(.center)
-            }
-            Rectangle()
-                .fill(Theme.separator)
-                .frame(height: 1)
-        }
-        .padding(.vertical, 4)
-        .opacity(visible ? 1 : 0)
-        .scaleEffect(visible ? 1 : 0.96)
-        .animation(stageMotionAllowed ? .easeOut(duration: 0.28) : nil, value: visible)
-        .accessibilityHidden(true)
+        PhysiqueVersusDivider()
+            .opacity(visible ? 1 : 0)
+            .scaleEffect(visible ? 1 : 0.96)
+            .animation(stageMotionAllowed ? .easeOut(duration: 0.28) : nil, value: visible)
+            .accessibilityHidden(true)
     }
 
     private func actionBand(proxy: ScrollViewProxy) -> some View {

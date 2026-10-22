@@ -20,6 +20,7 @@ struct PhysiquePlayerPanel<Media: View>: View {
                     .font(TimeMasterFont.blackItalic(26, relativeTo: .title2))
                     .foregroundStyle(Theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
                     .accessibilityAddTraits(.isHeader)
 
                 Rectangle()
@@ -34,30 +35,32 @@ struct PhysiquePlayerPanel<Media: View>: View {
             }
             .padding(ProfileStyle.inset)
 
-            Rectangle()
-                .fill(Theme.background)
-                .aspectRatio(mediaAspectRatio, contentMode: .fit)
-                .overlay {
-                    GeometryReader { geometry in
-                        media
-                            .frame(width: geometry.size.width, height: geometry.size.height)
+            VStack(spacing: -6) {
+                RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous)
+                    .fill(Theme.background)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        GeometryReader { geometry in
+                            media
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                        }
+                        .padding(ProfileStyle.corner)
+                        .transaction { transaction in
+                            transaction.animation = nil
+                            transaction.disablesAnimations = true
+                        }
                     }
-                    .padding(ProfileStyle.spacing)
-                    .transaction { transaction in
-                        transaction.animation = nil
-                        transaction.disablesAnimations = true
+                    .overlay {
+                        RoundedRectangle(cornerRadius: ProfileStyle.corner, style: .continuous)
+                            .strokeBorder(outline, lineWidth: contrast == .increased ? 2 : 1)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
                     }
-                }
-                .overlay {
-                    PhysiquePlayerCorners()
-                        .stroke(
-                            contrast == .increased ? Theme.textPrimary : ProfileStyle.secondary,
-                            style: StrokeStyle(lineWidth: contrast == .increased ? 2 : 1, lineCap: .square)
-                        )
-                        .padding(5)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
+                    .padding(.horizontal, ProfileStyle.inset)
+                    .zIndex(1)
+
+                supportingBase
+            }
 
             HStack(alignment: .top, spacing: 10) {
                 Rectangle()
@@ -74,26 +77,44 @@ struct PhysiquePlayerPanel<Media: View>: View {
             }
             .padding(ProfileStyle.inset)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface)
-        .overlay {
-            Rectangle()
-                .strokeBorder(
-                    contrast == .increased ? Theme.textPrimary.opacity(0.65) : Theme.separator,
-                    lineWidth: 1
-                )
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        .frame(maxWidth: ProfileStyle.readableWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
         .accessibilityElement(children: .contain)
     }
 
-    private var mediaAspectRatio: CGFloat {
-        #if os(macOS)
-        16.0 / 9.0
-        #else
-        4.0 / 3.0
-        #endif
+    private var outline: Color {
+        contrast == .increased ? Theme.textPrimary.opacity(0.65) : ProfileStyle.secondary.opacity(0.35)
+    }
+
+    private var supportingBase: some View {
+        ZStack(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: ProfileStyle.corner / 2, style: .continuous)
+                .fill(Theme.surface2)
+                .frame(height: ProfileStyle.corner)
+                .overlay {
+                    RoundedRectangle(cornerRadius: ProfileStyle.corner / 2, style: .continuous)
+                        .strokeBorder(outline, lineWidth: 1)
+                }
+                .padding(.horizontal, ProfileStyle.spacing / 2)
+                .padding(.bottom, ProfileStyle.spacing)
+
+            RoundedRectangle(cornerRadius: ProfileStyle.corner / 2, style: .continuous)
+                .fill(Theme.surface)
+                .frame(height: ProfileStyle.corner)
+                .overlay {
+                    RoundedRectangle(cornerRadius: ProfileStyle.corner / 2, style: .continuous)
+                        .strokeBorder(outline, lineWidth: 1)
+                }
+                .overlay(alignment: .top) {
+                    Capsule()
+                        .fill(Theme.toolbarOrange)
+                        .frame(width: 72, height: 3)
+                        .padding(.top, 4)
+                }
+        }
+        .frame(height: ProfileStyle.corner + ProfileStyle.spacing)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -114,22 +135,3 @@ private struct PhysiquePlayerStripe: Shape {
     }
 }
 
-private struct PhysiquePlayerCorners: Shape {
-    func path(in rect: CGRect) -> Path {
-        let length: CGFloat = 14
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY + length))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.minX + length, y: rect.minY))
-        path.move(to: CGPoint(x: rect.maxX - length, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + length))
-        path.move(to: CGPoint(x: rect.minX, y: rect.maxY - length))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX + length, y: rect.maxY))
-        path.move(to: CGPoint(x: rect.maxX - length, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - length))
-        return path
-    }
-}

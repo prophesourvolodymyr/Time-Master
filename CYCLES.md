@@ -2164,6 +2164,20 @@ The clean iPhone target passed both permanent pose-guide regressions on the exis
 
 Remaining verification is explicit: full authenticated two-adult physical-camera matches, real provider quality/latency/cost, staffed moderation, broad reduced-setting and window-lifecycle coverage, VoiceOver and complete native Mac keyboard/pointer navigation have not been verified. The unattended Mac public-route AX attempt did not reach the Physique controls; global startup was still visible in one run and external AX/screen-capture permission was unavailable. Rated entry remains closed without the real configured judging, safety, disclosure, quality and operational prerequisites. Product DOCKS stay unchanged until the user accepts the resulting behavior.
 
+### Recording-Friendly Battle Framing — 2026-10-22
+
+The user wants screen recordings of gameplay to identify the app immediately. The battle content therefore starts with the existing Tmax logo and the app name in a dedicated fixed brand row, followed by the real timer and controls. Complete public badge rails remain above vertically stacked You and Opponent panels. Both player feeds become rounded squares seated on visible supporting bases, with a deliberate separate VS band between the participants. This replaces the earlier sharp landscape wells and timer-first presentation without adding recording or opponent-streaming functionality.
+
+- [x] Place the existing Tmax mark and app name at the absolute top of battle content with dedicated branding space
+- [x] Reframe both large vertical player feeds as rounded squares on visible supporting bases while preserving the entire aspect-fit source
+- [x] Reserve clear balanced VS separation on native iPhone and Mac without changing capture, timer, privacy or match behavior
+- [x] Exercise the actual updated native components, preserve the existing iPhone 16 simulator, and publish only this scoped UI revision
+- [ ] Human review and acceptance of the recording-friendly battle framing
+
+The native framing review ran on Mac and the existing iPhone 16 / iOS 18.6. It rendered the real shared components at 320-, 393-, 800- and 1100-point widths, plus enlarged accessibility text. Both supplied media areas measured equal width and height; the source-edge image retained all four corner labels inside the inset square. The actual static Tmax mark and app name precede the timer, and the branding remains outside participant scrolling. The wider two-layer bases and separate VS band were inspected in the native renders. No new simulator, camera session, recording feature or opponent stream was introduced. The temporary review screen and its launch entry were removed; human review and full authenticated camera-match verification remain separate.
+
+Clean native Mac and iPhone Debug builds passed after removing the review screen. The clean app was installed over the existing iPhone 16 app without uninstalling it or deleting its data. This records scoped implementation and engineering checks, not human acceptance.
+
 ---
 
 ## Cycle 40 — Shared Account and Exercise Database Sync — 2026-10-21
