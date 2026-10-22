@@ -10,12 +10,10 @@ export const theme = {
   },
   fontFamily: "Manrope, Arial, Helvetica, sans-serif",
   headingFontFamily: "Inter, Arial, Helvetica, sans-serif",
-  accentFontFamily: "TimeMaster, Arial, Helvetica, sans-serif",
   fontWeight: { regular: 400, black: 900 },
   fontSize: {
     title: 24,
     display: 28,
-    accentTitle: 44,
     sectionTitle: 17,
     heading: 20,
     rowTitle: 15,
@@ -27,7 +25,6 @@ export const theme = {
   },
   lineHeight: {
     title: 1.25,
-    accentTitle: 1.2,
     heading: 1.3,
     rowTitle: 1.4,
     body: 1.5,

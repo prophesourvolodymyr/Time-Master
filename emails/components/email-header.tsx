@@ -12,14 +12,11 @@ export function EmailHeader({ assetBaseURL, category, detail }: EmailHeaderInfo 
   return (
     <Section style={header}>
       <Row>
-        <Column width="44" style={{ verticalAlign: "middle" }}>
-          <Img src={`${assets}/tmax-logo.png`} alt="Tmax" width={44} height={44}
-            style={{ display: "block", borderRadius: 12 }} />
+        <Column style={{ verticalAlign: "middle" }}>
+          <Img src={`${assets}/brand-mark.png`} alt="Tmax" width={48} height={32}
+            style={{ display: "block", height: "auto" }} />
         </Column>
-        <Column style={{ paddingLeft: theme.space.stack, verticalAlign: "middle" }}>
-          <Text style={wordmark}>Tmax</Text>
-        </Column>
-        <Column style={{ textAlign: "right", verticalAlign: "middle", width: "45%" }}>
+        <Column style={{ textAlign: "right", verticalAlign: "middle" }}>
           <Text style={categoryStyle}>{category}</Text>
           <Text style={detailStyle}>{detail}</Text>
         </Column>
@@ -33,19 +30,11 @@ const header: CSSProperties = {
   paddingBottom: theme.space.inset,
   marginBottom: theme.space.section,
 };
-const wordmark: CSSProperties = {
-  fontFamily: theme.accentFontFamily,
-  color: theme.colors.text,
-  fontSize: 31,
-  fontWeight: theme.fontWeight.regular,
-  lineHeight: "38px",
-  margin: 0,
-};
 const categoryStyle: CSSProperties = {
-  fontFamily: theme.headingFontFamily,
+  fontFamily: theme.fontFamily,
   color: theme.colors.text,
   fontSize: theme.fontSize.caption,
-  fontWeight: theme.fontWeight.black,
+  fontWeight: theme.fontWeight.regular,
   lineHeight: "18px",
   margin: 0,
 };

@@ -7,17 +7,22 @@ const source = new URL("../../TimeMaster/Resources/", import.meta.url);
 const icons = new URL("../node_modules/lucide-static/icons/", import.meta.url);
 
 await mkdir(destination, { recursive: true });
-await Promise.all(["Inter-Regular.ttf", "TmaxRibbon-Regular.ttf"].map((name) =>
+await Promise.all(["Inter-Regular.ttf", "TmaxRibbon-Regular.ttf", "TimeMaster-Regular.ttf", "tmax-logo.png"].map((name) =>
   rm(new URL(name, destination), { force: true })));
 await Promise.all([
-  ["Assets.xcassets/TmaxLogo.imageset/TmaxLogo.png", "tmax-logo.png"],
   ["Fonts/Manrope-Regular.ttf", "Manrope-Regular.ttf"],
   ["Fonts/Inter-Black.ttf", "Inter-Black.ttf"],
   ["Fonts/Inter-BlackItalic.ttf", "Inter-BlackItalic.ttf"],
-  ["Fonts/TimeMaster-Regular.ttf", "TimeMaster-Regular.ttf"],
   ["Fonts/INTER-LICENSE.txt", "INTER-LICENSE.txt"],
   ["Fonts/MANROPE-LICENSE.txt", "MANROPE-LICENSE.txt"],
 ].map(([from, to]) => copyFile(new URL(from, source), new URL(to, destination))));
+const logo = (await readFile(new URL("../../genesis/REFERENCE/tmax-branding/Tmax-logo-outline.svg", import.meta.url), "utf8"))
+  .replace('fill="#000000"', 'fill="#FFFFFF"');
+await sharp(Buffer.from(logo)).trim().resize({ width: 144, height: 96, fit: "inside" }).png()
+  .toFile(fileURLToPath(new URL("brand-mark.png", destination)));
+await sharp(fileURLToPath(new URL("../../genesis/REFERENCE/tmax-branding/email-welcome-mascot.png", import.meta.url)))
+  .resize({ width: 480, withoutEnlargement: true }).png()
+  .toFile(fileURLToPath(new URL("welcome-athlete.png", destination)));
 await copyFile(new URL("../LICENSE", icons), new URL("LUCIDE-LICENSE.txt", destination));
 const iconNames = [
   "activity", "alarm-clock", "archive", "arrow-right", "arrow-up-right", "award", "bell", "book-open",

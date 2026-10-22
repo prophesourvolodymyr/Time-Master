@@ -28,13 +28,6 @@ export function EmailFonts({ assetBaseURL }: EmailFontsProps) {
         mso-font-alt: "Arial";
         src: url(${JSON.stringify(`${assets}/Inter-BlackItalic.ttf`)}) format("truetype");
       }
-      @font-face {
-        font-family: "TimeMaster";
-        font-style: normal;
-        font-weight: 400;
-        mso-font-alt: "Arial";
-        src: url(${JSON.stringify(`${assets}/TimeMaster-Regular.ttf`)}) format("truetype");
-      }
     `}</style>
   );
 }

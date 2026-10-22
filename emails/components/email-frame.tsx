@@ -14,6 +14,7 @@ interface EmailFrameProps {
 interface EmailActionProps {
   href: string;
   iconSrc?: string;
+  align?: "left" | "center";
   children: ReactNode;
 }
 
@@ -29,6 +30,20 @@ export function EmailFrame({ previewText, assetBaseURL, header, children }: Emai
           .tmax-email-action:focus {
             outline: 2px solid #E6D1C1;
             outline-offset: 3px;
+          }
+          @media (max-width: 480px) {
+            .tmax-welcome-copy, .tmax-welcome-art {
+              display: block !important;
+              width: 100% !important;
+            }
+            .tmax-welcome-art {
+              padding-top: 24px !important;
+            }
+            .tmax-welcome-art img {
+              width: 188px !important;
+              height: auto !important;
+              margin: 0 auto !important;
+            }
           }
           @media (prefers-contrast: more) {
             .tmax-email-action {
@@ -64,9 +79,9 @@ export function EmailCard({ children }: { children: ReactNode }) {
   );
 }
 
-export function EmailAction({ href, iconSrc, children }: EmailActionProps) {
+export function EmailAction({ href, iconSrc, align = "center", children }: EmailActionProps) {
   return (
-    <Section style={{ textAlign: "center" }}>
+    <Section style={{ textAlign: align }}>
       <Button href={href} className="tmax-email-action" style={action}>
         <span style={{ lineHeight: "24px", verticalAlign: "middle" }}>{children}</span>
         {iconSrc ? (

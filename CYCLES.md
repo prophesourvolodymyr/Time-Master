@@ -2175,12 +2175,12 @@ Requested scope: prepare React Email and the existing Resend CLI for template de
 
 - [x] Add an independent, pinned React Email/TypeScript workspace in `emails/` with local preview and HTML/plain-text export
 - [x] Reproduce native dark surfaces, orange controls, rounded cards, spacing and typography from the current app source
-- [x] Prepare the current native Manrope Regular, Inter Black, genuine Inter Black Italic, TimeMaster page-title face, app logo and upstream font licenses from canonical resources without duplicate tracked email binaries
-- [x] Use separate styling and font subagents, integrate their changes, and reduce the reference to the original mark, wordmark, one short headline, one supporting line and one action
+- [x] Prepare the current native Manrope Regular, Inter Black, genuine Inter Black Italic, original logo artwork and upstream font licenses without duplicate tracked email binaries
+- [x] Build the initial mark/wordmark reference with styling and font subagents; the later user-requested logo-only redesign below supersedes that presentation
 - [x] Add explicit `tmax` profile readiness and login commands without falling back to the existing `default` Resend credentials
 - [x] Exercise the desktop, 375px and 320px browser previews, original font/asset loading, local action, HTML/plain-text export, TypeScript and dependency audit
 - [x] Replace the flat full-width orange strip with a compact native-style tinted-glass action, a defined light rim, an inset highlight, white Inter Black label and decorative arrow
-- [x] Add an icon-led Train/Focus/Explore composition with meaningful short labels and concise supporting text instead of explanatory paragraphs
+- [x] Build the initial icon-led Train/Focus/Explore reference; the later illustration-led welcome redesign below replaces that reference composition
 - [x] Prepare licensed Lucide PNG icons for email clients, retain their source SVGs and required ISC/Feather MIT attribution, and remove obsolete generated font aliases
 - [x] Exercise keyboard focus, the live local link, images/gradient-off fallback, current native font loading and final desktop/mobile exports after integrating both subagents
 - [ ] Create/authenticate a separate Tmax Resend team and save its team-scoped credential as CLI profile `tmax`
@@ -2199,7 +2199,7 @@ The original fonts are available in supporting clients; Gmail/Outlook and other 
 
 The user approved designing every family in the researched forty-family catalog and asked for the information header in `workspace-preview.tsx` first. This is design and preview authorization, not authorization to send, subscribe recipients, upload private activity or enable future product events.
 
-- [x] Add the shared information header: original mark and TimeMaster title on the left; email category and context on the right; responsive divider and current native typography
+- [x] Add the shared information header: original logo only on the left; email category and context on the right; responsive divider and current native typography
 - [x] Preserve the visual-first hierarchy, concise useful copy, meaningful PNG icons and compact native-style tinted-glass action across all designs
 - [x] Add shared symbols, facts, feature strips, statistics, progress, steps, notices and commercial footer composition without putting sample inputs into runtime defaults
 - [x] Design all account and security families
@@ -2297,6 +2297,28 @@ The design-export command now explicitly renders `PreviewProps` through React Em
 Focused checks passed: TypeScript, all seventy-eight HTML/plain-text exports and npm audit with zero reported vulnerabilities. All seventy-eight designs rendered at both 320px and 960px without horizontal overflow, missing icons or unexpected font families. Desktop responses were valid cached revalidations. The actual React Email sidebar exposed seventy-eight entries, and opening the account-confirmation entry rendered the expected header and action. Keyboard focus and a browser-simulated image/gradient-off fallback retained a readable live-text action and account information.
 
 These are design previews, not deployed notifications or claims that future features/events are available. No emails, contact imports, subscriptions, Resend templates or production resources were sent or mutated. Marketing address/preference links and all action URLs must be supplied with real authorized values before delivery. Future reports require approved activity inputs, and private cases stay discreet. Gmail/Apple Mail/Outlook delivery/rendering has not been exercised; supporting-client fonts and static email-safe glass remain the stated limits. Product-document changes await human acceptance.
+
+### Logo-Only Welcome Redesign — 2026-10-22
+
+The user rejected the pictured welcome email's comparison-card layout and large technical warning, required the logo without a Tmax text title, and explicitly asked the main agent to redesign it without subagents. The user then authorized new character artwork through `fgen`, referencing the original app mascot.
+
+- [x] Remove the text wordmark from every email header and prepare a white PNG directly from the original logo contour
+- [x] Retire unused email-only TimeMaster font faces, ribbon tokens and generated legacy logo/font aliases without modifying native app fonts or brand source artwork
+- [x] Replace the welcome email and workspace reference with an unboxed, left-aligned headline and short introduction, one native-style action and a large illustration
+- [x] Stack the copy and character on narrow screens while retaining the compact logo/context header
+- [x] Preserve the factual local-first/exercise-library-sync boundary in a short supporting line rather than a large warning panel
+- [x] Generate a new welcoming pose with `fgen` using `TimeMaster/Resources/Assets.xcassets/RankedHero.imageset/art.png` as the original-character reference
+- [x] Integrate `genesis/REFERENCE/tmax-branding/email-welcome-mascot.png`, verified as 1024 × 1536 with a real transparent alpha channel, into both welcome previews
+- [x] Reuse the existing commercial footer without removing preference/unsubscribe links or caller-supplied postal-address content
+- [x] Run TypeScript and export all seventy-eight HTML/plain-text designs, then exercise every exported design at 320px and 960px
+- [x] Inspect the new welcome in React Email at desktop and mobile sizes; exercise keyboard focus, image-off readability and the live preview action
+- [ ] Human review of the new illustration-led welcome/reference and logo-only headers
+
+The new shared welcome composition is `emails/components/email-welcome.tsx`. Only the welcome and workspace body layouts were redesigned in this revision; the other catalog entries retain their body designs and receive the shared logo-only header. Manrope and Inter remain the text faces. The TimeMaster font continues to belong to the native app but is no longer needed by email headers.
+
+The generation used the installed, authenticated `fgen` CLI and the user's existing subscription, with the original mascot explicitly supplied as its reference. The generated pose preserves the ivory material, black clothing and orange accents. No coding subagents were used in this revision; no native product files, private user images, contacts, subscriptions or sending resources were changed.
+
+Engineering checks passed: all seventy-eight exports rendered at both widths without horizontal overflow, missing images or unexpected font families. The original wordmark is absent, the welcome character loads, and the live-text action remains usable with images/gradient styling removed. Browser proof does not establish Gmail/Apple Mail/Outlook rendering or human acceptance. Sending remains disconnected and production identity/address/link configuration remains pending.
 
 ---
 

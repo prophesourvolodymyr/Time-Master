@@ -43,21 +43,27 @@ export function EmailMessage({ assetBaseURL, actionURL, preview, category, heade
         <EmailAction href={actionURL} iconSrc={`${assets}/arrow-up-right.png`}>{actionLabel}</EmailAction>
         {note ? <Section style={{ textAlign: "center" }}><EmailCaption>{note}</EmailCaption></Section> : null}
       </EmailCard>
-      {marketing ? (
-        <Section style={footer}>
-          <Text style={footerText}>You chose to receive these emails from Tmax.</Text>
-          <Text style={footerText}>
-            <Link href={marketing.preferencesURL} style={footerLink}>Email preferences</Link>
-            {" · "}<Link href={marketing.unsubscribeURL} style={footerLink}>Unsubscribe</Link>
-          </Text>
-          <Text style={footerText}>{marketing.postalAddress}</Text>
-        </Section>
-      ) : null}
-      {preview ? <Section style={{ textAlign: "center" }}>
-        <EmailCaption>Design preview · Sample content · Not sent</EmailCaption>
-      </Section> : null}
+      <EmailFooter marketing={marketing} preview={preview} />
     </EmailFrame>
   );
+}
+
+export function EmailFooter({ marketing, preview }: { marketing?: MarketingFooter; preview?: boolean }) {
+  return <>
+    {marketing ? (
+      <Section style={footer}>
+        <Text style={footerText}>You chose to receive these emails from Tmax.</Text>
+        <Text style={footerText}>
+          <Link href={marketing.preferencesURL} style={footerLink}>Email preferences</Link>
+          {" · "}<Link href={marketing.unsubscribeURL} style={footerLink}>Unsubscribe</Link>
+        </Text>
+        <Text style={footerText}>{marketing.postalAddress}</Text>
+      </Section>
+    ) : null}
+    {preview ? <Section style={{ textAlign: "center" }}>
+      <EmailCaption>Design preview · Sample content · Not sent</EmailCaption>
+    </Section> : null}
+  </>;
 }
 
 export function EmailSymbol({ assetBaseURL, name }: { assetBaseURL: string; name: string }) {
