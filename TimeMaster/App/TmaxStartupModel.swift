@@ -4,7 +4,12 @@ import TimeMasterCore
 @MainActor
 final class TmaxStartupModel: ObservableObject {
     @Published private(set) var completedSteps = 0
-    @Published private(set) var status = "Preparing your training space…"
+    @Published private(set) var statusHistory = ["Preparing your training space…"]
+    @Published private(set) var status = "Preparing your training space…" {
+        didSet {
+            if statusHistory.last != status { statusHistory.append(status) }
+        }
+    }
     @Published private(set) var workoutStore: WorkoutStore?
     @Published private(set) var databaseStore: DatabaseStore?
     @Published private(set) var isReady = false

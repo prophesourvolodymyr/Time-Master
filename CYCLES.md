@@ -1978,6 +1978,16 @@ Engineering checks do not constitute human acceptance. Product DOCKS.md updates 
 
 The handoff waits for animation completion on supported systems so the full-white frame cannot be skipped by overlapping fade timers. The final app retains the existing startup preparation and five-second minimum; the longer quote-check delay exists only in the disposable build. Builds used committed source plus the scoped startup changes, preserving the separate ongoing typography and other working-tree edits. Physical-device, iOS 16, reduced-motion, large-text, and macOS runtime variants were not exercised. Product documentation awaits human acceptance.
 
+### Compact Startup Loader and Live Log Wheel — 2026-10-22
+
+- [x] Reduce the startup spinner from 36 to 24 points and slow each revolution from 0.95 to 1.3 seconds without changing other loading indicators
+- [x] Retain real preparation messages in order and present them as numbered logs in an alarm-picker-style wheel, with the current message centered, curved neighboring rows, and fading edges
+- [x] Give new log rows a slower upward slide, expose only the current status to accessibility, and remove wheel motion under Reduce Motion
+- [x] Build and exercise the compact spinner, live numbered history, existing whiteout/reveal, resume dismissal, and subsequent page navigation on the existing regular iPhone 16 with iOS 18.6
+- [ ] Human review of the compact size, rotation speed, numbered log wheel, fading, and scroll feel
+
+The numbers count actual preparation messages, not estimated percentages or simulated work. The wheel does not loop fabricated logs or delay startup to play its history. Quote timing, the existing minimum startup duration, and the logo-to-white opening remain unchanged. This follows the truthful progress principle in Apple's [Loading guidance](https://developer.apple.com/design/human-interface-guidelines/loading); the wheel's visual treatment is the user's requested design, not an Apple-required loading control. Checks used committed source plus the scoped changes, preserving ongoing typography and other edits. Physical-device, reduced-motion, large-text, and macOS runtime variants were not exercised.
+
 ## Workout Metrics and Navigation Surface — 2026-10-20
 
 User-requested selector, tracking-card, Analytics navigation, and menu-background corrections. Human review remains pending.

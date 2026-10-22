@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TmaxCircularLoader: View {
+    var rotationDuration: TimeInterval = 0.95
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var startedAt = Date()
@@ -19,7 +20,7 @@ struct TmaxCircularLoader: View {
                             AngularGradient(colors: [Theme.toolbarOrange.opacity(0.15), Theme.toolbarOrange], center: .center),
                             style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                         )
-                        .rotationEffect(.degrees(reduceMotion || scenePhase != .active ? -90 : elapsed / 0.95 * 360 - 90))
+                        .rotationEffect(.degrees(reduceMotion || scenePhase != .active ? -90 : elapsed / rotationDuration * 360 - 90))
                 }
                 .padding(lineWidth / 2)
             }

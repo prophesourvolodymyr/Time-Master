@@ -81,7 +81,8 @@ private struct TmaxRootView: View {
                 TmaxLoadingState(
                     title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Preparing account...") : startup.status,
                     showsQuote: true,
-                    isFinishing: launchPhase == .zooming
+                    isFinishing: launchPhase == .zooming,
+                    logs: startup.statusHistory
                 )
                 .background(Color.black.ignoresSafeArea())
                 .zIndex(1)
