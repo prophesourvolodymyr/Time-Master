@@ -9,6 +9,12 @@ interface EmailFrameProps {
   children: ReactNode;
 }
 
+interface EmailActionProps {
+  href: string;
+  iconSrc?: string;
+  children: ReactNode;
+}
+
 export function EmailFrame({ previewText, assetBaseURL, children }: EmailFrameProps) {
   const assets = assetBaseURL.replace(/\/$/, "");
   return (
@@ -18,13 +24,30 @@ export function EmailFrame({ previewText, assetBaseURL, children }: EmailFramePr
         <meta name="color-scheme" content="dark" />
         <meta name="supported-color-schemes" content="dark" />
         <EmailFonts assetBaseURL={assetBaseURL} />
+        <style>{`
+          .tmax-email-action:focus {
+            outline: 2px solid #E6D1C1;
+            outline-offset: 3px;
+          }
+          @media (prefers-contrast: more) {
+            .tmax-email-action {
+              border-color: #BC8157 !important;
+              background-image: none !important;
+            }
+          }
+          @media (prefers-reduced-transparency: reduce) {
+            .tmax-email-action {
+              background-image: none !important;
+            }
+          }
+        `}</style>
       </Head>
       <Preview>{previewText}</Preview>
       <Body style={body}>
         <Container style={container}>
           <Section style={{ marginBottom: theme.space.section, textAlign: "center" }}>
-            <Img src={`${assets}/tmax-logo.png`} alt="Tmax app logo" width={224} height={224}
-              style={{ display: "block", margin: "0 auto", maxWidth: "100%", height: "auto", borderRadius: theme.radius.card }} />
+            <Img src={`${assets}/tmax-logo.png`} alt="Tmax app logo" width={64} height={64}
+              style={{ display: "block", margin: "0 auto", maxWidth: "100%", height: "auto", borderRadius: theme.radius.button }} />
             <Text style={wordmark}>Tmax</Text>
           </Section>
           {children}
@@ -44,12 +67,23 @@ export function EmailCard({ children }: { children: ReactNode }) {
   );
 }
 
-
-export function EmailAction({ href, children }: { href: string; children: ReactNode }) {
+export function EmailAction({ href, iconSrc, children }: EmailActionProps) {
   return (
-    <Button href={href} style={action}>
-      {children}
-    </Button>
+    <Section style={{ textAlign: "center" }}>
+      <Button href={href} className="tmax-email-action" style={action}>
+        <span style={{ lineHeight: "24px", verticalAlign: "middle" }}>{children}</span>
+        {iconSrc ? (
+          <Img
+            src={iconSrc}
+            alt=""
+            aria-hidden="true"
+            width={20}
+            height={20}
+            style={{ display: "inline-block", marginLeft: theme.space.small, verticalAlign: "middle" }}
+          />
+        ) : null}
+      </Button>
+    </Section>
   );
 }
 
@@ -79,19 +113,24 @@ const card: CSSProperties = {
   border: `1px solid ${theme.colors.border}`,
   borderCollapse: "separate",
   borderRadius: theme.radius.card,
+  width: "100%",
 };
 
 const action: CSSProperties = {
-  backgroundColor: theme.colors.accent,
+  backgroundColor: "#9C4608",
+  backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 44%, rgba(0,0,0,0.07) 100%)",
+  border: "1px solid #AE6734",
   borderRadius: theme.radius.button,
-  color: theme.colors.onAccent,
-  display: "block",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.14), 0 2px 4px rgba(0,0,0,0.18)",
+  color: theme.colors.text,
+  display: "inline-block",
   boxSizing: "border-box",
-  fontFamily: theme.fontFamily,
+  fontFamily: theme.headingFontFamily,
   fontSize: theme.fontSize.label,
   fontWeight: theme.fontWeight.black,
   lineHeight: "24px",
-  padding: `10px ${theme.space.inset}px`,
+  minHeight: 52,
+  padding: `13px ${theme.space.inset}px`,
   textAlign: "center",
   textDecoration: "none",
 };

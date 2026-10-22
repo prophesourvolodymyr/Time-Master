@@ -2131,17 +2131,21 @@ Requested scope: prepare React Email and the existing Resend CLI for template de
 
 - [x] Add an independent, pinned React Email/TypeScript workspace in `emails/` with local preview and HTML/plain-text export
 - [x] Reproduce native dark surfaces, orange controls, rounded cards, spacing and typography from the current app source
-- [x] Prepare the original Inter Regular, Inter Black, Tmax Ribbon, app logo and Inter license from canonical app resources without committing duplicate binaries
+- [x] Prepare the current native Manrope Regular, Inter Black, genuine Inter Black Italic, TimeMaster page-title face, app logo and upstream font licenses from canonical resources without duplicate tracked email binaries
 - [x] Use separate styling and font subagents, integrate their changes, and reduce the reference to the original mark, wordmark, one short headline, one supporting line and one action
 - [x] Add explicit `tmax` profile readiness and login commands without falling back to the existing `default` Resend credentials
 - [x] Exercise the desktop, 375px and 320px browser previews, original font/asset loading, local action, HTML/plain-text export, TypeScript and dependency audit
+- [x] Replace the flat full-width orange strip with a compact native-style tinted-glass action, a defined light rim, an inset highlight, white Inter Black label and decorative arrow
+- [x] Add an icon-led Train/Focus/Explore composition with meaningful short labels and concise supporting text instead of explanatory paragraphs
+- [x] Prepare licensed Lucide PNG icons for email clients, retain their source SVGs and required ISC/Feather MIT attribution, and remove obsolete generated font aliases
+- [x] Exercise keyboard focus, the live local link, images/gradient-off fallback, current native font loading and final desktop/mobile exports after integrating both subagents
 - [ ] Create/authenticate a separate Tmax Resend team and save its team-scoped credential as CLI profile `tmax`
 - [ ] Configure an authorized sending domain and hosted HTTPS brand assets before publishing or sending customer templates
 - [ ] Human review of the minimal visual direction, native style mapping and template workspace
 
 Local commands from the repository root: `npm --prefix emails ci`, `npm --prefix emails run dev`, `npm --prefix emails run typecheck`, `npm --prefix emails run export`, and `npm --prefix emails run resend:status`. Preview: `http://localhost:3002/preview/workspace-preview`. Exports: `emails/out/html` and `emails/out/text`; generated assets and outputs are ignored. Port 3001 belongs to an existing Docker listener and was left untouched.
 
-Engineering checks passed: strict TypeScript, real HTML/plain-text export and full npm audit with zero reported vulnerabilities. The actual preview loaded Inter 400, Inter 900 and TmaxRibbon 400, with HTTP 200 responses for all original brand files. Canonical, preview and exported assets matched by SHA-256. The 320px and 375px layouts had no horizontal overflow, and the action opened the real local preview. No email was sent or published and no live resources were changed.
+Engineering checks passed after the button/icon refinement: strict TypeScript, real HTML/plain-text export and full npm audit with zero reported vulnerabilities. The actual browser loaded original Manrope 400, Inter 900 upright and italic, and TimeMaster 400, plus the logo and four PNG icons, with HTTP 200 responses. Canonical fonts/logo/licenses, preview and exported assets matched by SHA-256. Desktop, 320px and 375px layouts had no horizontal overflow. The compact action had an approximately 54px rendered height, an 18px radius, a visible keyboard focus outline and a working local-preview destination. Its white label measured 6.38:1 contrast on the solid native-tint composite and 5.63:1 at the brightest gradient stop. A browser-simulated image/gradient-off scenario retained readable capability labels and a working live-text action. No real-email-client rendering or delivery is claimed; no email was sent or published and no live resources were changed.
 
 External configuration remains pending: the installed Resend CLI has no team-creation command, its only saved profile is the existing website's `default`, the browser relay is disconnected and the available managed dashboard session requires login. The explicit profile check exits with `Profile "tmax" not found` rather than using the website key. A dedicated team must be created/selected in an authenticated dashboard, then `npm --prefix emails run resend:login` must be run interactively with that team's credential. No secret belongs in source or chat.
 

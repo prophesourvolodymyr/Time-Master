@@ -7,10 +7,10 @@ export const theme = {
     secondaryText: "#A6A6A6",
     border: "#272727",
     accent: "#FF6A00",
-    onAccent: "#000000",
   },
-  fontFamily: "Inter, Arial, Helvetica, sans-serif",
-  accentFontFamily: "TmaxRibbon, Arial, Helvetica, sans-serif",
+  fontFamily: "Manrope, Arial, Helvetica, sans-serif",
+  headingFontFamily: "Inter, Arial, Helvetica, sans-serif",
+  accentFontFamily: "TimeMaster, Arial, Helvetica, sans-serif",
   fontWeight: { regular: 400, black: 900 },
   fontSize: {
     title: 24,

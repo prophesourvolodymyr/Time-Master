@@ -8,11 +8,11 @@ export function EmailFonts({ assetBaseURL }: EmailFontsProps) {
   return (
     <style>{`
       @font-face {
-        font-family: "Inter";
+        font-family: "Manrope";
         font-style: normal;
         font-weight: 400;
         mso-font-alt: "Arial";
-        src: url(${JSON.stringify(`${assets}/Inter-Regular.ttf`)}) format("truetype");
+        src: url(${JSON.stringify(`${assets}/Manrope-Regular.ttf`)}) format("truetype");
       }
       @font-face {
         font-family: "Inter";
@@ -22,11 +22,18 @@ export function EmailFonts({ assetBaseURL }: EmailFontsProps) {
         src: url(${JSON.stringify(`${assets}/Inter-Black.ttf`)}) format("truetype");
       }
       @font-face {
-        font-family: "TmaxRibbon";
+        font-family: "Inter";
+        font-style: italic;
+        font-weight: 900;
+        mso-font-alt: "Arial";
+        src: url(${JSON.stringify(`${assets}/Inter-BlackItalic.ttf`)}) format("truetype");
+      }
+      @font-face {
+        font-family: "TimeMaster";
         font-style: normal;
         font-weight: 400;
         mso-font-alt: "Arial";
-        src: url(${JSON.stringify(`${assets}/TmaxRibbon-Regular.ttf`)}) format("truetype");
+        src: url(${JSON.stringify(`${assets}/TimeMaster-Regular.ttf`)}) format("truetype");
       }
     `}</style>
   );
