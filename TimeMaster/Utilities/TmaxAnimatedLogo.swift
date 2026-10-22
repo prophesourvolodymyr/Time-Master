@@ -10,8 +10,8 @@ struct TmaxAnimatedLogo: View {
         GeometryReader { geometry in
             TimelineView(.animation(minimumInterval: 1.0 / 60, paused: isComplete || reduceMotion || scenePhase != .active)) { context in
                 let isStill = isComplete || reduceMotion || scenePhase != .active
-                let cycle = max(0, context.date.timeIntervalSince(startedAt)).truncatingRemainder(dividingBy: 2.8)
-                let fraction = min(1, cycle / 1.8)
+                let cycle = max(0, context.date.timeIntervalSince(startedAt)).truncatingRemainder(dividingBy: 3.6)
+                let fraction = 1 - abs(cycle / 1.8 - 1)
                 let progress = isStill ? 1 : fraction * fraction * (3 - 2 * fraction)
 
                 TmaxMark()
@@ -25,7 +25,6 @@ struct TmaxAnimatedLogo: View {
                                 .stroke(.white, style: StrokeStyle(lineWidth: geometry.size.width * 0.24, lineCap: .round, lineJoin: .round))
                         }
                     }
-                    .opacity(isStill || cycle <= 2.5 ? 1 : max(0, 1 - (cycle - 2.5) / 0.3))
                     .drawingGroup()
             }
         }

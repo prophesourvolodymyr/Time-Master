@@ -2010,6 +2010,20 @@ The handoff waits for animation completion on supported systems so the full-whit
 
 The numbers count actual preparation messages, not estimated percentages or simulated work. The wheel does not loop fabricated logs or delay startup to play its history. Quote timing, the existing minimum startup duration, and the logo-to-white opening remain unchanged. This follows the truthful progress principle in Apple's [Loading guidance](https://developer.apple.com/design/human-interface-guidelines/loading); the wheel's visual treatment is the user's requested design, not an Apple-required loading control. Checks used committed source plus the scoped changes, preserving ongoing typography and other edits. Physical-device, reduced-motion, large-text, and macOS runtime variants were not exercised.
 
+### Dense Haptic Logs and Reverse Logo Loop — 2026-10-22
+
+- [x] Tighten startup log spacing and expand the faded, curved wheel to show more neighboring recorded messages
+- [x] Use genuine Inter Black Italic for every log and its count, retaining Dynamic Type and the complete current message for accessibility
+- [x] Give every row a bold icon, using a filled check for preceding recorded phases and a bold activity glyph for the latest phase
+- [x] Advance through real log rows individually and request one light mobile selection haptic per row, preserving spacing between ticks when preparation messages arrive together
+- [x] Cancel queued feedback when the loading view is inactive or exiting, and avoid replaying startup history during later account-library switches
+- [x] Make the M draw forward, erase along the same path in reverse, and immediately draw again without the old opacity fade or empty hold
+- [x] Preserve the completed M, zoom-to-white handoff, seven-second quote interval, and existing preparation-based startup timing
+- [x] Build and exercise the actual iPhone 16 iOS 18.6 startup, inspect dense italic/icon rows, observe ten ordered and nonduplicated haptic requests through real preparation and account loading, and exercise the clean reverse-draw build through whiteout, resume dismissal, and navigation
+- [ ] Human review of log density, italic typography, bold symbols, physical-iPhone haptic feel, and the continuous M draw/erase loop
+
+Haptic requests reuse the existing mobile selection-feedback renderer and follow the discrete-event pattern in Apple's [Playing haptics guidance](https://developer.apple.com/design/human-interface-guidelines/playing-haptics). A disposable runtime probe checked the real request sequence and was removed before the final build; the Simulator cannot establish physical vibration strength or feel. The rendered M completed, erased backward, and began another forward stroke without an empty dwell before its normal whiteout exit. Checks used committed source plus only the owned changes, preserving unrelated native-smoke and other working-tree edits. Physical-device, background-interruption, reduced-motion, large-text, and macOS runtime variants were not exercised. Product documentation awaits human acceptance.
+
 ## Workout Metrics and Navigation Surface — 2026-10-20
 
 User-requested selector, tracking-card, Analytics navigation, and menu-background corrections. Human review remains pending.

@@ -53,7 +53,7 @@ struct TmaxLoadingState: View {
                         TmaxCircularLoader(rotationDuration: showsQuote ? 1.3 : 0.95)
                             .frame(width: showsQuote ? 24 : 26, height: showsQuote ? 24 : 26)
                         if showsQuote {
-                            TmaxStartupLogWheel(history: logs, current: title)
+                            TmaxStartupLogWheel(history: logs, current: title, isActive: !isFinishing)
                         } else {
                             Text(title)
                                 .font(TimeMasterFont.caption())
@@ -108,52 +108,83 @@ struct TmaxLoadingState: View {
 private struct TmaxStartupLogWheel: View {
     let history: [String]
     let current: String
+    let isActive: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = 28
+    @Environment(\.scenePhase) private var scenePhase
+    @ScaledMetric(relativeTo: .caption) private var rowHeight: CGFloat = 22
+    @State private var displayedIndex = 0
+    @State private var nextFeedbackIndex = 0
+    @State private var nextStepAt: ContinuousClock.Instant?
+
+    private struct FeedbackContext: Equatable {
+        let index: Int
+        let current: String
+        let active: Bool
+    }
 
     private var currentIndex: Int {
         history.last == current ? max(0, history.count - 1) : history.count
     }
 
     var body: some View {
-        let selected = currentIndex
+        let latest = currentIndex
+        let selected = min(displayedIndex, latest)
         ZStack {
-            ForEach(0...selected, id: \.self) { index in
+            ForEach(0...latest, id: \.self) { index in
                 let distance = index - selected
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: index < latest ? "checkmark.circle.fill" : "arrow.triangle.2.circlepath")
+                        .font(.caption.weight(.black))
+                        .accessibilityHidden(true)
                     Text("\(index + 1)")
                         .monospacedDigit()
                     Text(index < history.count ? history[index] : current)
-                        .lineLimit(2)
+                        .lineLimit(1)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(Theme.textSecondary)
+                .font(TimeMasterFont.blackItalic(12, relativeTo: .caption))
+                .foregroundStyle(Theme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .frame(height: rowHeight)
-                .scaleEffect(reduceMotion || distance == 0 ? 1 : 0.92)
+                .scaleEffect(reduceMotion ? 1 : max(0.82, 1 - CGFloat(abs(distance)) * 0.05))
                 .rotation3DEffect(
                     .degrees(reduceMotion ? 0 : Double(distance) * -18),
                     axis: (x: 1, y: 0, z: 0)
                 )
-                .opacity(distance == 0 ? 1 : abs(distance) == 1 ? 0.5 : 0)
+                .opacity(max(0, 1 - CGFloat(abs(distance)) * 0.25))
                 .offset(y: CGFloat(distance) * rowHeight)
                 .transition(reduceMotion ? .identity : .offset(y: rowHeight).combined(with: .opacity))
             }
         }
-        .frame(height: rowHeight * 3)
+        .frame(height: rowHeight * 7)
         .mask {
             LinearGradient(stops: [
                 .init(color: .clear, location: 0),
-                .init(color: .white, location: 0.35),
-                .init(color: .white, location: 0.65),
+                .init(color: .white, location: 0.22),
+                .init(color: .white, location: 0.78),
                 .init(color: .clear, location: 1)
             ], startPoint: .top, endPoint: .bottom)
         }
         .clipped()
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.85), value: selected)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: selected)
+        .task(id: FeedbackContext(index: latest, current: current, active: isActive && scenePhase == .active)) {
+            guard isActive, scenePhase == .active else { return }
+            AppInteractionHaptics.shared.prepareSelection()
+            do {
+                while nextFeedbackIndex <= latest {
+                    if let nextStepAt {
+                        try await Task.sleep(until: nextStepAt, clock: .continuous)
+                    }
+                    try Task.checkCancellation()
+                    displayedIndex = nextFeedbackIndex
+                    nextFeedbackIndex += 1
+                    nextStepAt = .now.advanced(by: .milliseconds(450))
+                    AppInteractionHaptics.shared.selectionChanged()
+                }
+            } catch {}
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Startup progress")
-        .accessibilityValue("\(selected + 1). \(current)")
+        .accessibilityValue("\(selected + 1). \(selected < history.count ? history[selected] : current)")
     }
 }

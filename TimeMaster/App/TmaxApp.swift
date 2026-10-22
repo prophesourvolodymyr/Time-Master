@@ -82,7 +82,7 @@ private struct TmaxRootView: View {
                     title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Preparing account...") : startup.status,
                     showsQuote: true,
                     isFinishing: launchPhase == .zooming,
-                    logs: startup.statusHistory
+                    logs: launchPhase == .finished ? [] : startup.statusHistory
                 )
                 .background(Color.black.ignoresSafeArea())
                 .zIndex(1)
