@@ -2125,6 +2125,30 @@ Human verification remains pending. Product DOCKS.md changes await acceptance. N
 
 ---
 
+## Cycle 41 — Tmax Email Workspace — 2026-10-22
+
+Requested scope: prepare React Email and the existing Resend CLI for template development, use subagents to reproduce the app's actual style and original fonts, and keep the email visual-first with very little text. This slice does not authorize sending campaigns, changing the existing website integration, or enabling paid features.
+
+- [x] Add an independent, pinned React Email/TypeScript workspace in `emails/` with local preview and HTML/plain-text export
+- [x] Reproduce native dark surfaces, orange controls, rounded cards, spacing and typography from the current app source
+- [x] Prepare the original Inter Regular, Inter Black, Tmax Ribbon, app logo and Inter license from canonical app resources without committing duplicate binaries
+- [x] Use separate styling and font subagents, integrate their changes, and reduce the reference to the original mark, wordmark, one short headline, one supporting line and one action
+- [x] Add explicit `tmax` profile readiness and login commands without falling back to the existing `default` Resend credentials
+- [x] Exercise the desktop, 375px and 320px browser previews, original font/asset loading, local action, HTML/plain-text export, TypeScript and dependency audit
+- [ ] Create/authenticate a separate Tmax Resend team and save its team-scoped credential as CLI profile `tmax`
+- [ ] Configure an authorized sending domain and hosted HTTPS brand assets before publishing or sending customer templates
+- [ ] Human review of the minimal visual direction, native style mapping and template workspace
+
+Local commands from the repository root: `npm --prefix emails ci`, `npm --prefix emails run dev`, `npm --prefix emails run typecheck`, `npm --prefix emails run export`, and `npm --prefix emails run resend:status`. Preview: `http://localhost:3002/preview/workspace-preview`. Exports: `emails/out/html` and `emails/out/text`; generated assets and outputs are ignored. Port 3001 belongs to an existing Docker listener and was left untouched.
+
+Engineering checks passed: strict TypeScript, real HTML/plain-text export and full npm audit with zero reported vulnerabilities. The actual preview loaded Inter 400, Inter 900 and TmaxRibbon 400, with HTTP 200 responses for all original brand files. Canonical, preview and exported assets matched by SHA-256. The 320px and 375px layouts had no horizontal overflow, and the action opened the real local preview. No email was sent or published and no live resources were changed.
+
+External configuration remains pending: the installed Resend CLI has no team-creation command, its only saved profile is the existing website's `default`, the browser relay is disconnected and the available managed dashboard session requires login. The explicit profile check exits with `Profile "tmax" not found` rather than using the website key. A dedicated team must be created/selected in an authenticated dashboard, then `npm --prefix emails run resend:login` must be run interactively with that team's credential. No secret belongs in source or chat.
+
+The original fonts are available in supporting clients; Gmail/Outlook and other clients may ignore custom fonts and use the declared Arial/Helvetica fallbacks. Continuous SwiftUI corners and interactive materials cannot be reproduced exactly by email clients. The reference is local-only, not a customer-ready campaign. Human verification and product documentation acceptance remain pending; no follow-up prompt is needed for the reachable local setup.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

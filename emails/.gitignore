@@ -1,0 +1,8 @@
+node_modules/
+.react-email/
+out/
+templates/static/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo

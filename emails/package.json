@@ -1,0 +1,30 @@
+{
+  "name": "@tmax/emails",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "assets": "node scripts/assets.mjs",
+    "predev": "npm run assets",
+    "dev": "email dev --dir templates --port 3002",
+    "preexport": "npm run assets",
+    "export": "email export --dir templates --outDir out/html && email export --dir templates --outDir out/text --plainText",
+    "typecheck": "tsc --noEmit",
+    "resend:status": "node scripts/resend-status.mjs",
+    "resend:login": "resend login --profile tmax"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-email": "6.11.3"
+  },
+  "devDependencies": {
+    "@react-email/ui": "6.11.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3"
+  }
+}
