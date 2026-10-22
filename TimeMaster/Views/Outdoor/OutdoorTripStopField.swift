@@ -19,7 +19,7 @@ struct OutdoorTripStopField<Field: View, Accessory: View>: View {
                 .accessibilityHidden(true)
             HStack(spacing: 6) {
                 field()
-                    .font(.subheadline.weight(.semibold))
+                    .font(TimeMasterFont.secondary())
                     .frame(maxWidth: .infinity, alignment: .leading)
                 accessory()
             }
@@ -52,7 +52,7 @@ struct OutdoorTripAddDestination: View {
     var body: some View {
         Button(action: action) {
             Label("Add destination", systemImage: "plus")
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .foregroundStyle(Theme.toolbarOrange)
                 .background(Theme.toolbarOrange.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))

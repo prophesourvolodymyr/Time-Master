@@ -623,7 +623,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 label.text = stop.number == 0 ? "S" : String(stop.number)
                 label.textColor = .white
                 label.textAlignment = .center
-                label.font = .preferredFont(forTextStyle: .caption1).withSize(14)
+                label.font = TimeMasterFont.uiBlack(14)
                 marker.bounds = CGRect(x: 0, y: 0, width: 30, height: 30)
                 label.frame = marker.bounds
                 marker.backgroundColor = .systemBlue

@@ -1,8 +1,12 @@
 {
   "schemaVersion": 1,
   "font": {
-    "familyName": "Tmax Ribbon",
-    "postScriptName": "TmaxRibbon-Regular",
+    "familyName": "TimeMaster",
+    "styleName": "Regular",
+    "postScriptName": "TimeMaster-Regular",
+    "copyright": "Copyright \u00a9 2026 cookbambuk. All rights reserved.",
+    "designer": "cookbambuk",
+    "license": "Proprietary original font software. Use, embedding, modification and redistribution require permission from cookbambuk. This notice applies only to the original TimeMaster face; Inter and Manrope retain their unchanged upstream SIL Open Font Licenses.",
     "unitsPerEm": 1000,
     "capHeight": 560,
     "xHeight": 406,
@@ -20,9 +24,9 @@
   },
   "provenance": {
     "mapping": "genesis/REFERENCE/ribbon-font/ribbon-source.json",
-    "mappingSha256": "a30fbd45254cd7d00e35d6a9d166494b51a5f00d0850d1975386df0455a635e4",
+    "mappingSha256": "630b4f955885edcfecdd27861212c1d33e751429860c49c8a1790433373b5ced",
     "builder": "junk/ribbon-font/build_ribbon_font.py",
-    "builderSha256": "de2cf34d1b285e437095a9e52259e1e7d9ecce96f93e7a4eb46a429576719c91",
+    "builderSha256": "93c775766e486940c5ddd3ec57a49eefcf28cba2cca107735e5ac41bd83f2f7c",
     "verifiedImmutableSourceCount": 60,
     "files": [
       {
@@ -18971,17 +18975,17 @@
     }
   },
   "artifacts": {
-    "TimeMaster/Resources/Fonts/TmaxRibbon-Regular.ttf": {
-      "sha256": "0939289935b56f564169e7cc256920f87864d978d2de9ed76a6882c72a7f44ee",
-      "bytes": 52188
+    "TimeMaster/Resources/Fonts/TimeMaster-Regular.ttf": {
+      "sha256": "3a01d7ad876e5c9f1a6d73b11d110d4f4d6e8d63afb5489a8632deda0feaf0c5",
+      "bytes": 53184
     },
-    "junk/ribbon-font/tmax-ribbon.otf": {
-      "sha256": "e3f3f6409edf8c1152cd591c303abb782a920821c32f34dcbcfd955610012347",
-      "bytes": 145980
+    "junk/ribbon-font/timemaster.otf": {
+      "sha256": "6c5af2b98ad742e9aca1837bde90b9666121a5f97b47b1dff1c5261e0ea004e2",
+      "bytes": 147288
     },
-    "junk/ribbon-font/tmax-ribbon.woff2": {
-      "sha256": "e0ebd2adb3119198af387cf47215b2f6e7ced568c485bade0b85324025e5828e",
-      "bytes": 19960
+    "junk/ribbon-font/timemaster.woff2": {
+      "sha256": "5e79310983eeeac7aa2b4bc69b01d3e65025287d49d61fc5ef63b8656b5f0eee",
+      "bytes": 20332
     },
     "junk/ribbon-font/ribbon-source.js": {
       "sha256": "2e39b7c5f07b49b320e10660b5905507970812941ff5b569fe0e23c4ee153407",

@@ -29,7 +29,7 @@ struct ScheduleChallengeSheet: View {
                             } label: {
                                 let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(HStackLayout(spacing: 16)) : AnyLayout(VStackLayout(spacing: 8))
                                 layout {
-                                    Text(dayName(day)).font(.body.weight(.semibold))
+                                    Text(dayName(day)).font(TimeMasterFont.label())
                                     Image(systemName: weekdays.contains(day) ? "checkmark.circle.fill" : "circle")
                                 }
                                 .frame(maxWidth: .infinity)
@@ -60,18 +60,19 @@ struct ScheduleChallengeSheet: View {
                         Label("Vacation freezes your streak", systemImage: "snowflake")
                         Label("Starts this week; past weeks stay unchanged", systemImage: "arrow.right")
                     }
-                    .font(.subheadline)
+                    .font(TimeMasterFont.secondary())
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
                     if let error = store.scheduleError {
-                        Text(error).font(.footnote).foregroundStyle(.red)
+                        Text(error).font(TimeMasterFont.body(13, relativeTo: .footnote)).foregroundStyle(.red)
                     }
                     Button {
                         if store.changeWeeklySchedule({ $0.setChallenge(weekdays: weekdays, from: week) }) { dismiss() }
                     } label: {
                         Label(weekdays.isEmpty ? "Choose days" : "Accept \(weekdays.count)-day challenge", systemImage: "checkmark")
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
+                            .monospacedDigit()
                             .frame(maxWidth: .infinity, minHeight: 48)
                     }
                     .buttonStyle(TimeMasterToolbarWideButtonStyle())
@@ -84,7 +85,8 @@ struct ScheduleChallengeSheet: View {
                 .frame(maxWidth: .infinity)
             }
             .background(Theme.background)
-            .navigationTitle("Streak challenge")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("Streak challenge")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

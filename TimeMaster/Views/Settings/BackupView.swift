@@ -45,7 +45,8 @@ struct BackupView: View {
                 }
             }
         }
-        .navigationTitle("Backup & Transfer")
+        .font(TimeMasterFont.body())
+        .timeMasterNavigationTitle("Backup & Transfer")
         #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -90,10 +91,10 @@ struct BackupView: View {
                 .font(.system(size: 44))
                 .foregroundColor(.white)
             Text("Transfer Everything")
-                .font(.title3).fontWeight(.bold)
+                .font(TimeMasterFont.black(20, relativeTo: .title3))
                 .foregroundColor(.white)
             Text("Export your workouts, exercises, notes, profile, posts and media into one file. AirDrop or share it to another device and import it here.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -106,7 +107,7 @@ struct BackupView: View {
     private var exportCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Export Backup", systemImage: "square.and.arrow.up")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(.white)
 
             statsRow
@@ -123,7 +124,7 @@ struct BackupView: View {
                         Text("Export & Share")
                     }
                 }
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(isExporting ? Color.black.opacity(0.5) : .black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -155,10 +156,10 @@ struct BackupView: View {
     private func statItem(count: Int, label: String) -> some View {
         VStack(spacing: 2) {
             Text("\(count)")
-                .font(.title3).fontWeight(.bold)
+                .font(TimeMasterFont.black(20, relativeTo: .title3))
                 .foregroundColor(.white)
             Text(label)
-                .font(.caption2)
+                .font(TimeMasterFont.body(11, relativeTo: .caption2))
                 .foregroundColor(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -167,11 +168,11 @@ struct BackupView: View {
     private var importCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             Label("Import Backup", systemImage: "square.and.arrow.down")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(.white)
 
             Text("Items already on this device are never duplicated — only new items are added.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
 
             Button {
@@ -186,7 +187,7 @@ struct BackupView: View {
                         Text("Choose Backup File")
                     }
                 }
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(isImporting ? Color.black.opacity(0.5) : .black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -203,7 +204,7 @@ struct BackupView: View {
     private var infoCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("How to transfer", systemImage: "info.circle")
-                .font(.headline).foregroundColor(.white)
+                .font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(.white)
 
             infoRow("1", "Tap Export & Share on your old phone")
             infoRow("2", "AirDrop the file to your new phone (or save to Files / iCloud Drive)")
@@ -218,11 +219,11 @@ struct BackupView: View {
     private func infoRow(_ step: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text(step)
-                .font(.caption).fontWeight(.bold)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(Theme.textSecondary)
                 .frame(width: 16)
             Text(text)
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()

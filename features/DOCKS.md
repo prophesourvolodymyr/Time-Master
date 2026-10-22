@@ -42,6 +42,16 @@
 
 The user explicitly placed F29 directly in features and has now directed the animated vertical-player UI on both native platforms. [The UI orchestration brief](../prompts/F29-physique-duels/F29-phase-2-native-ui-orchestration.md) maps every custom view and complex component to a dedicated maximum-reasoning GPT-6.1 Sol or GPT-6 Astra worker; these worker models are separate from the in-app image judge. Implementation and final human acceptance remain pending. Numerical defaults, unmeasured performance, and residual App Store risk remain explicit. [CYCLES.md](../CYCLES.md#cycle-39--f29-physique-duels-specification) owns the work and review plan. Earlier catalog entries are retained historical context, not reverified or restored legacy specifications.
 
+## App Typography
+
+The user selected Manrope Regular for readable body text and supporting small labels throughout the native iPhone and macOS app. Inter Black supplies content headings, emphasized controls and prominent numbers. Emphasized prose and quotations use the genuine Inter Black Italic design, not a slanted upright face.
+
+TimeMaster is the original ribbon typeface and is reserved for actual top-of-page and navigation titles. Cards, section headings, empty states, completion messages, timers and ordinary controls do not use it. Displayed page titles begin with a capital letter without rewriting stored names, acronyms or the remainder of user-authored casing.
+
+The original typeface carries the credit “Copyright © 2026 cookbambuk. All rights reserved.” This ownership applies to TimeMaster only; Manrope and Inter retain their upstream font licenses. The selected ribbon alphabet contains uppercase and lowercase Latin letters and spaces. Unsupported characters in page titles remain visible in a cap-height-matched Inter Black fallback instead of disappearing or receiving invented ribbon glyphs.
+
+Typography follows native text-size preferences. SF Symbols, provider-rendered maps and system-owned alerts, media controls and pickers retain their native or provider typography. These are accepted product decisions; implementation and human-review status belong in CYCLES.md.
+
 ## Cycle 4 — Bug Fixes & Enhancements (complete)
 
 | Parent | Code | Sub-Feature | Status |

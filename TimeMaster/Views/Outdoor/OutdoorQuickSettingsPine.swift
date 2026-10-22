@@ -73,7 +73,7 @@ struct OutdoorQuickSettingsPine: View {
                         ) {
                             HStack(spacing: 5) {
                                 Text("Manage")
-                                    .font(.caption.weight(.semibold))
+                                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                                 Image(systemName: showOfflineDetails ? "chevron.up" : "chevron.right")
                                     .font(.caption2.weight(.bold))
                             }
@@ -113,7 +113,7 @@ struct OutdoorQuickSettingsPine: View {
                         ) {
                             HStack(spacing: 5) {
                                 Text("Manage")
-                                    .font(.caption.weight(.semibold))
+                                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                                 Image(systemName: "chevron.right")
                                     .font(.caption2.weight(.bold))
                             }
@@ -186,13 +186,13 @@ struct OutdoorQuickSettingsPine: View {
                     ForEach(offlineCapabilities, id: \.mode) { capability in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(capability.mode.displayName)
-                                .font(.caption.weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                             Text(([capability.attribution.providerName] + capability.attribution.notices).joined(separator: " · "))
-                                .font(.caption2)
+                                .font(TimeMasterFont.micro())
                                 .foregroundStyle(Theme.textSecondary)
                             ForEach(capability.attribution.URLs, id: \.absoluteString) { url in
                                 Link(url.host ?? url.absoluteString, destination: url)
-                                    .font(.caption2)
+                                    .font(TimeMasterFont.micro())
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -201,7 +201,7 @@ struct OutdoorQuickSettingsPine: View {
 
                 if let errorMessage {
                     Text(errorMessage)
-                        .font(.caption2)
+                        .font(TimeMasterFont.micro())
                         .foregroundStyle(.yellow)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 4)
@@ -210,6 +210,7 @@ struct OutdoorQuickSettingsPine: View {
             .padding(.horizontal, 12)
             .padding(.bottom, 12)
         }
+        .font(TimeMasterFont.body())
         .scrollIndicators(.hidden)
     }
 
@@ -274,12 +275,12 @@ struct OutdoorQuickSettingsPine: View {
                 ForEach(Array(offlineManager.installedRegions.enumerated()), id: \.offset) { _, region in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(region.provider.rawValue)
-                            .font(.caption.weight(.semibold))
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
                         Text(region.capabilities.map(\.displayName).joined(separator: ", "))
-                            .font(.caption2)
+                            .font(TimeMasterFont.micro())
                             .foregroundStyle(Theme.textSecondary)
                         Text("Downloaded \(region.downloadedAt, style: .date)")
-                            .font(.caption2)
+                            .font(TimeMasterFont.micro())
                             .foregroundStyle(Theme.textSecondary)
                     }
                 }
@@ -290,12 +291,12 @@ struct OutdoorQuickSettingsPine: View {
                     VStack(alignment: .leading, spacing: 5) {
                         HStack {
                             Text(download.modes.map(\.displayName).joined(separator: ", "))
-                                .font(.caption.weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                             Spacer()
                             Button("Cancel", role: .destructive) {
                                 offlineManager.cancelDownload(id: download.id)
                             }
-                            .font(.caption2.weight(.semibold))
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
                         }
                         TmaxProgressBar(value: download.fractionCompleted)
                             .accessibilityLabel("Offline map download progress")
@@ -307,17 +308,17 @@ struct OutdoorQuickSettingsPine: View {
             let eligible = offlineCapabilities.filter { $0.isUsable && $0.cacheRights.offlineInstallationAllowed }
             if eligible.isEmpty {
                 Text("Area selection is unavailable until a provider grants offline installation rights. Existing map data remains discoverable here.")
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Eligible offline layers: \(eligible.map { $0.mode.displayName }.joined(separator: ", "))")
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .font(.caption)
+        .font(TimeMasterFont.caption())
         .padding(.leading, 44)
         .padding(.trailing, 4)
         .accessibilityElement(children: .contain)
@@ -326,7 +327,7 @@ struct OutdoorQuickSettingsPine: View {
     private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title.uppercased())
-                .font(.caption2.weight(.bold))
+                .font(TimeMasterFont.black(11, relativeTo: .caption2))
                 .tracking(0.7)
                 .foregroundStyle(Theme.textSecondary)
                 .padding(.leading, 4)
@@ -384,11 +385,11 @@ struct OutdoorQuickSettingsPine: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(2)
                 Text(subtitle)
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.textSecondary)
                     .lineLimit(2)
             }

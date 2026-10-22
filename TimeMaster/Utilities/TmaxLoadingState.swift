@@ -33,7 +33,7 @@ struct TmaxLoadingState: View {
                         ZStack {
                             if let quote {
                                 Text("“\(quote.text)”")
-                                    .font(TimeMasterFont.heading())
+                                    .font(TimeMasterFont.blackItalic(20, relativeTo: .title3))
                                     .foregroundStyle(Theme.textPrimary)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .id(quote.id)

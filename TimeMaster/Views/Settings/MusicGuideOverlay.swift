@@ -217,7 +217,7 @@ public struct MusicGuideOverlay: View {
         Button("Skip") {
             finish(.skipped)
         }
-        .font(.system(size: 11, weight: .semibold))
+        .font(TimeMasterFont.black(11, relativeTo: .caption2))
         .buttonStyle(TimeMasterActionButtonStyle())
         .accessibilityHint("Closes the Music guide")
         .padding(.top, 50)
@@ -296,7 +296,7 @@ public struct MusicGuideOverlay: View {
             }
             .overlay(alignment: .leading) {
                 Text("iMessage reply")
-                    .font(.system(size: 10, weight: .regular))
+                    .font(TimeMasterFont.body(10, relativeTo: .caption2))
                     .foregroundStyle(Color.white.opacity(0.40))
                     .padding(.leading, 33)
                     .accessibilityHidden(true)
@@ -331,7 +331,7 @@ public struct MusicGuideOverlay: View {
     ) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(TimeMasterFont.black(11, relativeTo: .caption2))
                 .lineLimit(1)
                 .frame(minWidth: title == "More" ? 66 : 62)
         }
@@ -769,7 +769,9 @@ private struct GuideBubbleModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .font(.system(size: 10.5, weight: author == .app ? .regular : .semibold))
+            .font(author == .app
+                ? TimeMasterFont.body(10.5, relativeTo: .caption2)
+                : TimeMasterFont.black(10.5, relativeTo: .caption2))
             .lineSpacing(1)
             .foregroundStyle(author == .app ? Color.white.opacity(0.93) : Color.black)
             .multilineTextAlignment(.leading)

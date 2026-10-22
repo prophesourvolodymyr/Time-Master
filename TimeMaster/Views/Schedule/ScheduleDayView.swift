@@ -47,7 +47,7 @@ struct ScheduleDayView: View {
                         }
                     }
                 }
-                .font(.subheadline)
+                .font(TimeMasterFont.secondary())
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, branchInset)
@@ -105,7 +105,7 @@ struct ScheduleDayView: View {
                 if isVacation { Image(systemName: "pause.fill") }
                 else if complete { Image(systemName: "checkmark") }
                 else if missed { Image(systemName: "xmark") }
-                else { Text(date.formatted(.dateTime.day())).monospacedDigit() }
+                else { Text(date.formatted(.dateTime.day())).font(TimeMasterFont.heading()).monospacedDigit() }
             }
             .font(.title3.weight(.semibold))
             .foregroundStyle(complete ? .green : missed ? .red : isToday ? Theme.toolbarOrange : .white)
@@ -114,7 +114,7 @@ struct ScheduleDayView: View {
                                            accent: complete ? .green : missed ? .red : Theme.toolbarOrange,
                                            emphasized: isToday || complete || missed))
             Text(date.formatted(.dateTime.weekday(.wide)))
-                .font(.title3.weight(.semibold))
+                .font(TimeMasterFont.heading())
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -127,7 +127,7 @@ struct ScheduleDayView: View {
                 Text("\(items.count) Workouts")
                 Text("\(minutes) Minutes")
             }
-            .font(.subheadline.monospacedDigit())
+            .font(TimeMasterFont.black(15, relativeTo: .subheadline)).monospacedDigit()
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         } else {
@@ -140,11 +140,11 @@ struct ScheduleDayView: View {
 
     private func metric(_ value: String, label: String) -> some View {
         VStack(spacing: 3) {
-            Text(value).font(.headline.monospacedDigit())
+            Text(value).font(TimeMasterFont.sectionTitle()).monospacedDigit()
                 .frame(minWidth: statusSize, minHeight: statusSize)
                 .background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 10))
                 .overlay { RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.separator) }
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label).font(TimeMasterFont.micro()).foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
     }
@@ -191,16 +191,20 @@ struct ScheduleDayView: View {
             Button { onEdit(item.entry) } label: {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) {
-                        Text(item.entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                        Text(item.entry.title).font(TimeMasterFont.rowTitle()).foregroundStyle(.white)
                             .fixedSize()
                         Spacer(minLength: 0)
-                        Text(timeLabel(item)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        Text(timeLabel(item))
+                            .font(item.start == nil && item.entry.durationSeconds == nil ? TimeMasterFont.caption() : TimeMasterFont.black(12, relativeTo: .caption))
+                            .monospacedDigit().foregroundStyle(.secondary)
                             .fixedSize()
                     }
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(item.entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                        Text(item.entry.title).font(TimeMasterFont.rowTitle()).foregroundStyle(.white)
                             .multilineTextAlignment(.leading)
-                        Text(timeLabel(item)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        Text(timeLabel(item))
+                            .font(item.start == nil && item.entry.durationSeconds == nil ? TimeMasterFont.caption() : TimeMasterFont.black(12, relativeTo: .caption))
+                            .monospacedDigit().foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .contentShape(Rectangle())

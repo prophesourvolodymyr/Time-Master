@@ -14,6 +14,7 @@ struct MusicSettingsView: View {
 
     var body: some View {
         MusicLibraryScreen(library: library, importLocalMusic: { showFilePicker = true })
+            .font(TimeMasterFont.body())
             .navigationBarBackButtonHidden(false)
 #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
@@ -101,7 +102,7 @@ struct WorkoutMusicImportSheet: View {
                         importOption("Workout Configuration", symbol: "timeline.selection", color: .purple) { showConfigurations = true }
                     }
                     Text("Cloud files use the installed locations in Files. Music services use the same connections as Settings.")
-                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                        .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                     if importing { TmaxLoadingIndicator("Importing music…") }
                 }
                 .listRowBackground(Color.clear)
@@ -114,7 +115,7 @@ struct WorkoutMusicImportSheet: View {
                     if let configurationName {
                         Label("Configuration from \(configurationName)", systemImage: "timeline.selection")
                         Text("Saving replaces this workout's music timeline exactly, including placement, lanes, and durations.")
-                            .font(.caption).foregroundStyle(Theme.textSecondary)
+                            .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                     }
                     if collected.isEmpty {
                         Text("Import music or choose tracks below. You will choose where to save before leaving.")
@@ -142,7 +143,7 @@ struct WorkoutMusicImportSheet: View {
             .scrollContentBackground(.hidden)
             .background(Theme.background)
             .foregroundStyle(Theme.textPrimary)
-            .navigationTitle("Add Music")
+            .timeMasterNavigationTitle("Add Music")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -158,6 +159,7 @@ struct WorkoutMusicImportSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
         .preferredColorScheme(.dark)
         .interactiveDismissDisabled(importing || !collected.isEmpty || configuration != nil)
         .onAppear { library.setWorkouts(workoutStore.workouts) }
@@ -177,7 +179,7 @@ struct WorkoutMusicImportSheet: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: symbol).font(.title2).foregroundStyle(color)
-                Text(title).font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+                Text(title).font(TimeMasterFont.black(12, relativeTo: .caption)).multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, minHeight: cardHeight)
             .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 16))
@@ -191,8 +193,8 @@ struct WorkoutMusicImportSheet: View {
         HStack(spacing: 12) {
             WorkoutMusicCover(artwork: item.artwork, isCollection: item.isCollection, size: 44, tracks: item.tracks)
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.title).font(.subheadline).lineLimit(2)
-                Text(musicTimestamp(item.totalDuration)).font(.caption.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                Text(item.title).font(TimeMasterFont.body(15, relativeTo: .subheadline)).lineLimit(2)
+                Text(musicTimestamp(item.totalDuration)).font(TimeMasterFont.caption()).monospacedDigit().foregroundStyle(Theme.textSecondary)
             }
         }
     }
@@ -201,7 +203,7 @@ struct WorkoutMusicImportSheet: View {
         NavigationStack {
             List {
                 Text("Choose a saved workout to copy its complete music timeline. Your current timeline changes only after you save.")
-                    .font(.subheadline).foregroundStyle(Theme.textSecondary)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundStyle(Theme.textSecondary)
                 ForEach(workoutStore.workouts.filter { $0.id != workout.id }) { source in
                     Button {
                         guard let timeline = source.musicTimeline else { return }
@@ -215,15 +217,16 @@ struct WorkoutMusicImportSheet: View {
                             Text(source.name)
                             Spacer()
                             Text(source.musicTimeline.map { musicTimestamp($0.end) } ?? "No configuration")
-                                .font(.caption.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                                .font(TimeMasterFont.caption()).monospacedDigit().foregroundStyle(Theme.textSecondary)
                         }
                     }
                     .disabled(source.musicTimeline == nil)
                 }
             }
-            .navigationTitle("Import Configuration")
+            .timeMasterNavigationTitle("Import Configuration")
             .toolbar { AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { showConfigurations = false } } }
         }
+        .font(TimeMasterFont.body())
     }
 
     private var destinationPicker: some View {
@@ -239,11 +242,12 @@ struct WorkoutMusicImportSheet: View {
                     }
                 }
                 Text("Workout-only music stays available under this workout in Settings. Existing library items are copied, not removed from their original destination.")
-                    .font(.caption).foregroundStyle(Theme.textSecondary)
+                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
             }
-            .navigationTitle("Save Music")
+            .timeMasterNavigationTitle("Save Music")
             .toolbar { AppToolbar.item(placement: .cancellationAction) { Button("Keep Choosing") { showDestination = false } } }
         }
+        .font(TimeMasterFont.body())
     }
 
     private func destinationButton(_ destination: MusicDestination, title: String) -> some View {

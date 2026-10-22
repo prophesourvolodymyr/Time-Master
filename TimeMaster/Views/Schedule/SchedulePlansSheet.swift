@@ -22,9 +22,9 @@ struct SchedulePlansSheet: View {
                                 HStack(spacing: 14) {
                                     Image(systemName: plan.icon).font(.title2).foregroundStyle(.white)
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(plan.name).font(.headline).foregroundStyle(.white)
+                                        Text(plan.name).font(TimeMasterFont.sectionTitle()).foregroundStyle(.white)
                                         Text("\(plan.entries.count) workouts · \(Set(plan.entries.map(\.weekday)).count) days")
-                                            .font(.caption).foregroundStyle(.secondary)
+                                            .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit().foregroundStyle(.secondary)
                                     }
                                     Spacer()
                                     if selection?.plan?.id == plan.id { Image(systemName: "checkmark").foregroundStyle(.white) }
@@ -45,9 +45,11 @@ struct SchedulePlansSheet: View {
                         editingPlan = WeeklyWorkoutSchedule.Plan(name: "")
                     } label: { Label("New Plan", systemImage: "plus.circle.fill") }
                     .accessibilityIdentifier("schedule.plan.new")
-                } header: { Text("Your Plans") }
+                } header: { Text("Your Plans").font(TimeMasterFont.rowTitle()) }
                 footer: {
                     Text("Choose a Plan for the week of \(week.formatted(date: .abbreviated, time: .omitted)). It repeats until a different Plan or Vacation is selected. Past weeks keep their saved workouts.")
+                        .font(TimeMasterFont.body(13, relativeTo: .footnote))
+                        .monospacedDigit()
                 }
                 SwiftUI.Section {
                     Button {
@@ -56,9 +58,9 @@ struct SchedulePlansSheet: View {
                         HStack(spacing: 14) {
                             Image(systemName: "beach.umbrella.fill").font(.title2)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Vacation").font(.headline)
+                                Text("Vacation").font(TimeMasterFont.sectionTitle())
                                 Text("Empty weeks. Your streak stays frozen.")
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .font(TimeMasterFont.caption()).foregroundStyle(.secondary)
                             }
                             Spacer()
                             if selection?.isVacation == true { Image(systemName: "checkmark") }
@@ -66,14 +68,18 @@ struct SchedulePlansSheet: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("schedule.vacation")
-                } footer: { Text("Vacation applies to the whole selected week and continues until you choose a Plan. Saved workouts and completion records are not deleted.") }
+                } footer: {
+                    Text("Vacation applies to the whole selected week and continues until you choose a Plan. Saved workouts and completion records are not deleted.")
+                        .font(TimeMasterFont.body(13, relativeTo: .footnote))
+                }
                 if let error = store.scheduleError {
                     SwiftUI.Section { Text(error).foregroundStyle(.red) }
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Theme.background)
-            .navigationTitle("Plans")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("Plans")
             .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(item: $editingPlan) { plan in
                 SchedulePlanEditor(plan: plan, week: week)

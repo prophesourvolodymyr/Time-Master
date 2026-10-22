@@ -17,7 +17,7 @@ struct ExerciseAISettingsView: View {
                 SwiftUI.Section {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("OpenAI API Key")
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                             .foregroundColor(Theme.textSecondary)
                         HStack(spacing: 10) {
                             Group {
@@ -49,10 +49,10 @@ struct ExerciseAISettingsView: View {
                 } header: {
                     Text("OpenAI Configuration")
                         .foregroundColor(Theme.textSecondary)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                 } footer: {
                     Text("Your key is stored locally on this device and is never sent anywhere except directly to api.openai.com.")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
                 .listRowBackground(Theme.surface)
@@ -76,10 +76,10 @@ struct ExerciseAISettingsView: View {
                 } header: {
                     Text("Vision Model")
                         .foregroundColor(Theme.textSecondary)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                 } footer: {
                     Text("gpt-4o gives the best results. gpt-4o-mini is faster and cheaper.")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
                 .listRowBackground(Theme.surface)
@@ -92,13 +92,13 @@ struct ExerciseAISettingsView: View {
                         Label("Tap ✦ Suggest in the Name field", systemImage: "sparkles")
                         Label("AI reads the image and fills the name", systemImage: "checkmark.circle")
                     }
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textSecondary)
                     .padding(.vertical, 4)
                 } header: {
                     Text("How It Works")
                         .foregroundColor(Theme.textSecondary)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                 }
                 .listRowBackground(Theme.surface)
                 .listRowSeparatorTint(Theme.separator)
@@ -114,6 +114,8 @@ struct ExerciseAISettingsView: View {
             #endif
             .scrollContentBackground(.hidden)
         }
+        .font(TimeMasterFont.body())
+        .timeMasterNavigationTitle("Exercise AI")
         #if os(iOS)
         #if os(iOS)
 #if os(iOS)

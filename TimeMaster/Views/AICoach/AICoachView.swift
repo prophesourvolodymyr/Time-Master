@@ -53,7 +53,7 @@ struct AICoachView: View {
                     .frame(maxWidth: .infinity)
                 }
             }
-            .navigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
+            .timeMasterNavigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.background, for: .navigationBar)
@@ -88,16 +88,17 @@ struct AICoachView: View {
             .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.82),
                        value: store.pendingApproval != nil)
         }
+        .font(TimeMasterFont.body())
     }
 
     private var coachContextHeader: some View {
         HStack(spacing: 12) {
             Label(store.activeProvider.name, systemImage: "brain.head.profile")
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textPrimary)
             Spacer(minLength: 8)
             Text(store.model)
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -244,10 +245,10 @@ private struct EmptyCoachState: View {
                     .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
                     .accessibilityHidden(true)
                 Text("How can I help?")
-                    .font(.title2.bold())
+                    .font(TimeMasterFont.black(22, relativeTo: .title2))
                     .foregroundStyle(Theme.textPrimary)
                 Text("Plan your week, work on technique, or talk through recovery. Attach a file when you need more context.")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -268,7 +269,7 @@ private struct EmptyCoachState: View {
                     .frame(width: 24)
                     .foregroundStyle(Theme.toolbarOrange)
                 Text(title)
-                    .font(.subheadline.weight(.medium))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "arrow.up.left")
@@ -336,7 +337,7 @@ private struct MessageBubble: View {
                 Group {
                     if isWaitingForApproval {
                         Text(loadingTitle)
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                             .foregroundStyle(Theme.textSecondary)
                     } else {
                         TmaxLoadingIndicator(loadingTitle, size: 18)
@@ -348,7 +349,7 @@ private struct MessageBubble: View {
                 let topPad: CGFloat = (message.replyToContent != nil || message.attachmentName != nil) ? 0 : 10
                 if isUser {
                     Text(message.content)
-                        .font(.body)
+                        .font(TimeMasterFont.body())
                         .foregroundStyle(Theme.textPrimary)
                         .textSelection(.enabled)
                         .padding(.horizontal, 14)
@@ -390,11 +391,11 @@ private struct MessageBubble: View {
     private var timestampLabel: some View {
         HStack(spacing: 4) {
             Text(isUser ? "You" : "AI Coach")
-                .fontWeight(.medium)
+                .font(TimeMasterFont.black(11, relativeTo: .caption2))
             Text("·")
             Text(message.timestamp, style: .time)
         }
-        .font(.caption2)
+        .font(TimeMasterFont.body(11, relativeTo: .caption2))
         .foregroundStyle(Theme.textSecondary)
         .padding(.horizontal, 4)
     }
@@ -410,15 +411,15 @@ private struct SelectableMarkdownText: View {
             markdown: text,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         ) {
-            Text(attr)
+            Text(TimeMasterFont.styledText(attr))
                 .foregroundColor(Theme.textPrimary)
-                .font(.body)
+                .font(TimeMasterFont.body())
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         } else {
             Text(text)
                 .foregroundColor(Theme.textPrimary)
-                .font(.body)
+                .font(TimeMasterFont.body())
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -443,10 +444,10 @@ private struct ReplyQuoteView: View {
                 .cornerRadius(1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(isAuthor ? "You" : "AI Coach")
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundColor(textColor)
                 Text(content)
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(textColor.opacity(0.85))
                     .lineLimit(2)
             }
@@ -467,7 +468,7 @@ private struct AttachmentBadgeView: View {
             Image(systemName: "doc.text.fill")
                 .font(.system(size: 11))
             Text(name)
-                .font(.system(size: 12, weight: .medium))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .lineLimit(1)
         }
         .foregroundStyle(Theme.textPrimary.opacity(0.8))
@@ -514,13 +515,13 @@ private struct ChatInputBar: View {
 
                 if isApprovalPending {
                     Text("Review the changes above to continue.")
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 } else {
                     TextField("Ask your coach…", text: $text, axis: .vertical)
                         .textFieldStyle(.plain)
-                        .font(.body)
+                        .font(TimeMasterFont.body())
                         .lineLimit(1...6)
                         .padding(.vertical, 11)
                         .foregroundStyle(Theme.textPrimary)
@@ -566,10 +567,10 @@ private struct ReplyStripView: View {
                 .cornerRadius(1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(message.role == .user ? "Replying to yourself" : "Replying to AI Coach")
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.textSecondary)
                 Text(message.content)
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(Theme.textPrimary.opacity(0.8))
                     .lineLimit(2)
             }
@@ -597,7 +598,7 @@ private struct PendingAttachmentStrip: View {
                 .foregroundColor(Color.white.opacity(0.6))
                 .font(.system(size: 13))
             Text(name)
-                .font(.caption.weight(.medium))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(Color.white.opacity(0.8))
                 .lineLimit(1)
             Spacer()
@@ -630,7 +631,7 @@ struct SessionsListSheet: View {
                     if store.sessions.isEmpty {
                         VStack(spacing: 12) {
                             Label("No conversations yet", systemImage: "bubble.left.and.bubble.right")
-                                .font(.headline)
+                                .font(TimeMasterFont.black(17, relativeTo: .headline))
                                 .foregroundStyle(Theme.textPrimary)
                             Button("New Chat") {
                                 store.newSession()
@@ -665,7 +666,7 @@ struct SessionsListSheet: View {
                     }
                 }
             }
-            .navigationTitle("Conversations")
+            .timeMasterNavigationTitle("Conversations")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -683,6 +684,7 @@ struct SessionsListSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 }
 
@@ -699,11 +701,11 @@ private struct SessionRowView: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.title.isEmpty ? "New conversation" : session.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundStyle(isCurrent ? Theme.background : Theme.textPrimary)
                     .lineLimit(2)
                 Text(session.lastUserPreview.isEmpty ? "No messages yet" : session.lastUserPreview)
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(isCurrent ? Theme.background.opacity(0.7) : Theme.textSecondary)
                     .lineLimit(2)
             }
@@ -712,7 +714,7 @@ private struct SessionRowView: View {
                 Text(session.createdAt, format: .dateTime.month(.abbreviated).day())
                 Text("\(session.visibleCount) messages")
             }
-            .font(.caption2)
+            .font(TimeMasterFont.body(11, relativeTo: .caption2))
             .foregroundStyle(isCurrent ? Theme.background.opacity(0.7) : Theme.textSecondary)
         }
         .padding(12)
@@ -736,19 +738,19 @@ private struct ApprovalCardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     Label("Review changes", systemImage: iconName)
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundStyle(Theme.toolbarOrange)
                     Text(approval.summary)
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                     ForEach(approval.details.keys.sorted(), id: \.self) { key in
                         VStack(alignment: .leading, spacing: 3) {
                             Text(key)
-                                .font(.caption.weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                                 .foregroundStyle(Theme.textSecondary)
                             Text(approval.details[key] ?? "")
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundStyle(Theme.textPrimary.opacity(0.85))
                                 .fixedSize(horizontal: false, vertical: true)
                                 .textSelection(.enabled)

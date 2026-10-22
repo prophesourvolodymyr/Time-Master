@@ -89,7 +89,8 @@ struct OutdoorOfflineAreasView: View {
                 installedAreasSection
                 attributionSection
             }
-            .navigationTitle("Offline areas")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("Offline areas")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() }.disabled(model.isImporting) } }
             .interactiveDismissDisabled(model.isImporting)
@@ -139,17 +140,17 @@ struct OutdoorOfflineAreasView: View {
             }
             ForEach(model.regions) { region in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(region.manifest.name).font(.headline)
-                    Text(ByteCountFormatter.string(fromByteCount: region.byteCount, countStyle: .file)).font(.subheadline).foregroundStyle(.secondary)
-                    Text(region.manifest.createdAt, style: .date).font(.caption).foregroundStyle(.secondary)
-                    Text(region.manifest.hasElevation ? "Elevation estimates included" : "Hill goals require an elevation-enabled area").font(.caption).foregroundStyle(.secondary)
-                    if !region.compatible { Text("Engine update required: import a matching area version.").font(.caption).foregroundStyle(.red) }
+                    Text(region.manifest.name).font(TimeMasterFont.sectionTitle())
+                    Text(ByteCountFormatter.string(fromByteCount: region.byteCount, countStyle: .file)).font(TimeMasterFont.secondary()).foregroundStyle(.secondary)
+                    Text(region.manifest.createdAt, style: .date).font(TimeMasterFont.caption()).foregroundStyle(.secondary)
+                    Text(region.manifest.hasElevation ? "Elevation estimates included" : "Hill goals require an elevation-enabled area").font(TimeMasterFont.caption()).foregroundStyle(.secondary)
+                    if !region.compatible { Text("Engine update required: import a matching area version.").font(TimeMasterFont.caption()).foregroundStyle(.red) }
                     DisclosureGroup("Data attribution") {
-                        Text(region.manifest.source).font(.caption).textSelection(.enabled)
-                        Text(region.manifest.attribution).font(.caption).textSelection(.enabled)
+                        Text(region.manifest.source).font(TimeMasterFont.caption()).textSelection(.enabled)
+                        Text(region.manifest.attribution).font(TimeMasterFont.caption()).textSelection(.enabled)
                     }
                     Button("Remove area", role: .destructive) { removing = region }
-                        .font(.subheadline).disabled(model.isLoading || model.isImporting)
+                        .font(TimeMasterFont.secondary()).disabled(model.isLoading || model.isImporting)
                 }.padding(.vertical, 4)
             }
         }
@@ -163,12 +164,12 @@ struct OutdoorOfflineAreasView: View {
             Text("Road access and place coverage depend on imported OpenStreetMap data. Bus legs are road estimates, not timetables.")
             if let nativeNotices {
                 DisclosureGroup("Routing engine licenses") {
-                    Text(nativeNotices).font(.caption).textSelection(.enabled)
+                    Text(nativeNotices).font(TimeMasterFont.caption()).textSelection(.enabled)
                 }
             }
             if let noticeError { Text(noticeError).foregroundStyle(.red) }
         }
-        .font(.footnote)
+        .font(TimeMasterFont.body(13, relativeTo: .footnote))
         .foregroundStyle(.secondary)
     }
 }

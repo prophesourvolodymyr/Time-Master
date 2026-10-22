@@ -57,7 +57,7 @@ struct ExercisePageDetailView: View {
                 emptyPageView
             }
         }
-        .navigationTitle(showsHero ? "" : (page?.title ?? "Workout"))
+        .timeMasterNavigationTitle(showsHero ? "" : (page?.title ?? "Workout"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -269,18 +269,22 @@ struct ExercisePageDetailView: View {
             if breadcrumbs.count > 1 {
                 breadcrumbRow
             }
-            Text(page.title)
-                .font(.largeTitle.weight(.bold))
+            TimeMasterPageTitle(page.title)
                 .foregroundStyle(.white)
                 .shadow(color: .black.opacity(0.4), radius: 3)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
                 Text(pageTypeLabel(page))
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(.white.opacity(0.85))
                 if let type = page.effectiveWorkoutType {
-                    Label(type.name, systemImage: type.iconName)
-                        .font(.caption.weight(.medium))
+                    Label {
+                        Text(type.name)
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    } icon: {
+                        Image(systemName: type.iconName)
+                            .font(.caption.weight(.medium))
+                    }
                         .foregroundStyle(.white)
                 }
             }
@@ -319,13 +323,13 @@ struct ExercisePageDetailView: View {
                     if crumb.id != pageID {
                         NavigationLink(value: DatabasePageRoute(pageID: crumb.manifest.id)) {
                             Text(crumb.title)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(TimeMasterFont.black(11, relativeTo: .caption2))
                                 .foregroundStyle(.white.opacity(0.8))
                                 .lineLimit(1)
                         }
                     } else {
                         Text(crumb.title)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
                             .foregroundStyle(.white.opacity(0.6))
                             .lineLimit(1)
                     }
@@ -396,7 +400,7 @@ struct ExercisePageDetailView: View {
     private func markdownSection(page: ExercisePage, title: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             MarkdownTextView(text: guideContent.isEmpty ? page.manifest.markdownBody : guideContent)
         }
@@ -420,7 +424,7 @@ struct ExercisePageDetailView: View {
     private func workoutConfigSection(page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Workout Config")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             HStack(spacing: 10) {
                 configBadge(label: "Duration", value: "\(page.manifest.duration ?? 0)s")
@@ -443,10 +447,10 @@ struct ExercisePageDetailView: View {
     private func configBadge(label: String, value: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.title3.weight(.semibold))
+                .font(TimeMasterFont.heading())
                 .foregroundStyle(.white)
             Text(label)
-                .font(.caption2)
+                .font(TimeMasterFont.micro())
                 .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
@@ -458,15 +462,20 @@ struct ExercisePageDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Child Pages")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Button {
                     childPageParent = page
                     showingAddChildPage = true
                 } label: {
-                    Label("Add", systemImage: "plus")
-                        .font(.subheadline.weight(.semibold))
+                    Label {
+                        Text("Add")
+                            .font(TimeMasterFont.rowTitle())
+                    } icon: {
+                        Image(systemName: "plus")
+                            .font(.subheadline.weight(.semibold))
+                    }
                 }
                 .foregroundStyle(Theme.toolbarOrange)
             }
@@ -485,21 +494,26 @@ struct ExercisePageDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Attached Pages")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Button {
                     showingLinkedPagePicker = true
                 } label: {
-                    Label("Attach", systemImage: "link.badge.plus")
-                        .font(.subheadline.weight(.semibold))
+                    Label {
+                        Text("Attach")
+                            .font(TimeMasterFont.rowTitle())
+                    } icon: {
+                        Image(systemName: "link.badge.plus")
+                            .font(.subheadline.weight(.semibold))
+                    }
                 }
                 .foregroundStyle(Theme.toolbarOrange)
             }
 
             if linkedPages.isEmpty {
                 Text("Attach any existing page as a reference.")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textSecondary)
             } else {
                 ForEach(linkedPages) { linkedPage in
@@ -519,10 +533,10 @@ struct ExercisePageDetailView: View {
                 .font(.system(size: 36))
                 .foregroundStyle(Theme.textSecondary.opacity(0.5))
             Text("This page is empty")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             Text("Tap Edit to add a guide, media, links, and more.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -536,10 +550,10 @@ struct ExercisePageDetailView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(Theme.textSecondary)
             Text("Page not found")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             Text("This page may have been moved or deleted.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -640,7 +654,7 @@ private struct SkillPresentationPicker: View {
                         }
                     } label: {
                         Text(presentation.title)
-                            .font(.subheadline.weight(selection == presentation ? .semibold : .medium))
+                            .font(TimeMasterFont.rowTitle())
                             .foregroundStyle(selection == presentation ? .black : Theme.textPrimary)
                             .padding(.horizontal, 13)
                             .padding(.vertical, 9)
@@ -679,7 +693,7 @@ private struct SkillBoardSectionIconView: View {
                         .font(.system(size: size, weight: .semibold))
                 } else {
                     Text(icon)
-                        .font(.system(size: size))
+                        .font(TimeMasterFont.body(size))
                 }
             } else {
                 Image(systemName: "square.grid.2x2")
@@ -713,7 +727,7 @@ private struct SkillSectionEditorSheet: View {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Section name")
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
                             .foregroundStyle(Theme.textPrimary)
                         TextField("e.g. Foundations", text: $title)
                             .textFieldStyle(.plain)
@@ -724,7 +738,7 @@ private struct SkillSectionEditorSheet: View {
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Section icon")
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
                             .foregroundStyle(Theme.textPrimary)
                         HStack(spacing: 8) {
                             iconTypeButton(.emoji, title: "Emoji")
@@ -734,7 +748,7 @@ private struct SkillSectionEditorSheet: View {
                         if iconType == .emoji {
                             TextField("Choose an emoji", text: $emoji)
                                 .textFieldStyle(.plain)
-                                .font(.system(size: 28))
+                                .font(TimeMasterFont.body(28, relativeTo: .title))
                                 .multilineTextAlignment(.center)
                                 .padding(12)
                                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
@@ -770,7 +784,7 @@ private struct SkillSectionEditorSheet: View {
                 .padding(20)
             }
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("New Section")
+            .timeMasterNavigationTitle("New Section")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -791,7 +805,7 @@ private struct SkillSectionEditorSheet: View {
             iconType = type
         } label: {
             Text(title)
-                .font(.subheadline.weight(iconType == type ? .semibold : .medium))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundStyle(iconType == type ? .black : Theme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -865,7 +879,7 @@ private struct ContainerChildrenTabs: View {
                         selectedTab = tab
                     } label: {
                         Text(tab.title)
-                            .font(.subheadline.weight(selectedTab == tab ? .semibold : .medium))
+                            .font(TimeMasterFont.rowTitle())
                             .foregroundStyle(selectedTab == tab ? .black : Theme.textPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
@@ -898,7 +912,7 @@ private struct ContainerChildrenTabs: View {
 
             if selectedTab == .skills {
                 Text("Skills")
-                    .font(.largeTitle.weight(.bold))
+                    .font(TimeMasterFont.black(34, relativeTo: .largeTitle))
                     .foregroundStyle(Theme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 4)
@@ -953,10 +967,10 @@ private struct ExerciseChildList: View {
             if pages.isEmpty {
                 VStack(spacing: 6) {
                     Text("No exercises")
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundStyle(Theme.textPrimary)
                     Text("Create or move exercises into this container.")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -996,14 +1010,19 @@ private struct SkillSectionList: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("Sections")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Button {
                     isPresentingNewSection = true
                 } label: {
-                    Label("Add Section", systemImage: "plus")
-                        .font(.caption.weight(.semibold))
+                    Label {
+                        Text("Add Section")
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    } icon: {
+                        Image(systemName: "plus")
+                            .font(.caption.weight(.semibold))
+                    }
                 }
                 .foregroundStyle(Theme.toolbarOrange)
             }
@@ -1041,7 +1060,7 @@ private struct SkillSectionList: View {
                         SkillBoardSectionIconView(icon: section.icon, iconType: section.iconType, size: 15)
                     }
                     Text(title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundStyle(Theme.textSecondary)
                     Spacer()
                     if let sectionID {
@@ -1061,7 +1080,7 @@ private struct SkillSectionList: View {
             VStack(spacing: 8) {
                 if grouped.isEmpty {
                     Text(sections.isEmpty ? "Create a section to organize skills." : "Drop skills here")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .overlay(
@@ -1074,7 +1093,7 @@ private struct SkillSectionList: View {
                             HStack(spacing: 10) {
                                 PageCardView(page: page)
                                 Text(skillStatusLabel(page.manifest.skillStatus ?? .notStarted))
-                                    .font(.caption2.weight(.semibold))
+                                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
                                     .foregroundStyle(skillStatusColor(page.manifest.skillStatus ?? .notStarted))
                             }
                             .padding(12)
@@ -1210,14 +1229,19 @@ private struct SkillTableBoardView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Sections")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Button {
                     isPresentingNewSection = true
                 } label: {
-                    Label("Add Section", systemImage: "plus")
-                        .font(.caption.weight(.semibold))
+                    Label {
+                        Text("Add Section")
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    } icon: {
+                        Image(systemName: "plus")
+                            .font(.caption.weight(.semibold))
+                    }
                 }
                 .foregroundStyle(Theme.toolbarOrange)
             }
@@ -1244,11 +1268,11 @@ private struct SkillTableBoardView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(skillStatusLabel(status))
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(skillStatusColor(status))
                 Spacer()
                 Text("\(items.filter { $0.status == status }.count)")
-                    .font(.caption.weight(.bold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.textSecondary)
             }
 
@@ -1280,7 +1304,7 @@ private struct SkillTableBoardView: View {
                         SkillBoardSectionIconView(icon: section.icon, iconType: section.iconType, size: 14)
                     }
                     Text(title)
-                        .font(.caption.weight(.semibold))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                         .foregroundStyle(Theme.textSecondary)
                     Spacer()
                     if let sectionID {
@@ -1300,7 +1324,7 @@ private struct SkillTableBoardView: View {
             VStack(spacing: 8) {
                 if groupItems.isEmpty {
                     Text(sections.isEmpty ? "Create a section to organize skills." : "Drop skills here")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 54)
                         .overlay(
@@ -1329,7 +1353,7 @@ private struct SkillTableBoardView: View {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .top) {
                     Text(item.page.title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(2)
                     Spacer(minLength: 4)
@@ -1339,7 +1363,7 @@ private struct SkillTableBoardView: View {
                 }
                 if !item.page.mediaURLs.isEmpty {
                     Text("\(item.page.mediaURLs.count) attachments")
-                        .font(.caption2)
+                        .font(TimeMasterFont.micro())
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -1472,8 +1496,7 @@ struct ContainerCategoryPage: View {
                 VStack(alignment: .leading, spacing: 14) {
                     if let container {
                         if destination.tab == .skills {
-                            Text("Skills")
-                                .font(.largeTitle.weight(.bold))
+                            TimeMasterPageTitle("Skills")
                                 .foregroundStyle(Theme.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                             HStack(spacing: 10) {
@@ -1492,8 +1515,7 @@ struct ContainerCategoryPage: View {
                                 SkillSectionList(container: container, skills: skills, status: status)
                             }
                         } else {
-                            Text("Exercises")
-                                .font(.largeTitle.weight(.bold))
+                            TimeMasterPageTitle("Exercises")
                                 .foregroundStyle(Theme.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                             ExerciseChildList(pages: exercises)
@@ -1615,7 +1637,7 @@ private struct LinkedPagePickerSheet: View {
                                     Text(candidate.title)
                                         .foregroundStyle(Theme.textPrimary)
                                     Text(pageTypeLabel(candidate))
-                                        .font(.caption)
+                                        .font(TimeMasterFont.caption())
                                         .foregroundStyle(Theme.textSecondary)
                                 }
                                 Spacer()
@@ -1627,7 +1649,7 @@ private struct LinkedPagePickerSheet: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Attach Pages")
+            .timeMasterNavigationTitle("Attach Pages")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -1641,7 +1663,7 @@ private struct LinkedPagePickerSheet: View {
             .overlay(alignment: .bottom) {
                 if let saveError {
                     Text(saveError)
-                        .font(.footnote)
+                        .font(TimeMasterFont.body(13, relativeTo: .footnote))
                         .foregroundStyle(.red)
                         .padding(12)
                         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 10))

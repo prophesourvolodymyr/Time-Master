@@ -19,7 +19,7 @@ struct RankedLeaderboardView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: ProfileStyle.inset) {
-                        Text("Leaderboard").font(TimeMasterFont.heading())
+                        TimeMasterPageTitle("Leaderboard", size: 26, relativeTo: .title3)
                         HStack {
                             RankedMovementPicker(variation: $variation)
                             Spacer()

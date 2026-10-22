@@ -7,7 +7,7 @@ struct OutdoorCompactPlayerView: View {
     let namespace: Namespace.ID
     let onEdit: () -> Void
 
-    @ScaledMetric(relativeTo: .caption2) private var marqueeTitleSize: CGFloat = 9
+    @ScaledMetric(relativeTo: .caption2) private var marqueeTitleScale: CGFloat = 1
 
     init(
         musicManager: MusicManager,
@@ -43,7 +43,7 @@ struct OutdoorCompactPlayerView: View {
                 .overlay(alignment: .bottomLeading) {
                     MusicMarqueeText(
                         text: musicManager.currentTrack?.title ?? "Music",
-                        font: .system(size: min(marqueeTitleSize, 14), weight: .semibold, design: .rounded)
+                        font: TimeMasterFont.black(min(9, 14 / marqueeTitleScale), relativeTo: .caption2)
                     )
                     .padding(.horizontal, 5)
                     .padding(.bottom, 4)

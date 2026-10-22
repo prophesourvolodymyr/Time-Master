@@ -38,8 +38,10 @@ struct OutdoorChoicePicker<Value: Hashable>: View {
             HStack(spacing: 6) {
                 if let selected {
                     Image(systemName: selected.systemImage)
+                        .font(.subheadline.weight(.semibold))
                     if !compact {
                         Text(selected.title)
+                            .font(TimeMasterFont.rowTitle())
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
@@ -50,7 +52,6 @@ struct OutdoorChoicePicker<Value: Hashable>: View {
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
-            .font(.subheadline.weight(.semibold))
         }
     }
 }

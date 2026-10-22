@@ -11,12 +11,12 @@ struct SectionRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(section.name)
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     if section.sets > 1 {
                         Text("\(section.sets)×")
-                            .font(.caption.weight(.semibold))
+                            .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -26,7 +26,7 @@ struct SectionRow: View {
                 }
                 HStack(spacing: 10) {
                     Label("\(section.duration)s", systemImage: "timer")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption().monospacedDigit())
                         .foregroundColor(Theme.textSecondary)
                 }
             }

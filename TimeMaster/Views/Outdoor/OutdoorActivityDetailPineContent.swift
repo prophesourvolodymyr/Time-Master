@@ -26,8 +26,7 @@ struct OutdoorActivityDetailPineContent: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: compact ? 14 : 22) {
                             HStack(spacing: 8) {
-                                Text(activity.title)
-                                    .font(.title2.weight(.bold))
+                                TimeMasterPageTitle(activity.title, size: 29, relativeTo: .title2)
                                     .multilineTextAlignment(.center)
                                 Button {
                                     perform { try store.toggleStarred(for: activity) }
@@ -46,7 +45,7 @@ struct OutdoorActivityDetailPineContent: View {
                                     perform { try store.setVisibility(visibility, for: activity) }
                                 }), prominent: true)
                                 Label(activity.kind.displayName, systemImage: activity.kind.iconName)
-                                    .font(.caption.weight(.medium))
+                                    .font(TimeMasterFont.caption())
                                     .foregroundStyle(Theme.textSecondary)
                             }
                             OutdoorRouteSummary(activity: activity, units: preferences.preferences.unitSystem, compact: compact)
@@ -54,7 +53,7 @@ struct OutdoorActivityDetailPineContent: View {
                                 OutdoorRouteThumbnailView(points: points, cacheKey: activity.id.uuidString)
                                     .overlay(alignment: .bottomTrailing) {
                                         Label("View on map", systemImage: "arrow.up.left.and.arrow.down.right")
-                                            .font(.caption.weight(.semibold))
+                                            .font(TimeMasterFont.black(12, relativeTo: .caption))
                                             .padding(.horizontal, 14)
                                             .frame(minHeight: 44)
                                             .modifier(TimeMasterGlassSurface(cornerRadius: Theme.controlCornerRadius, isInteractive: true))
@@ -164,12 +163,13 @@ struct OutdoorWorkoutEditor: View {
                 }
                 if let errorMessage { SwiftUI.Section { OutdoorInlineError(message: errorMessage) } }
             }
+            .font(TimeMasterFont.body())
             .tint(Theme.toolbarOrange)
-            .navigationTitle("Edit workout")
+            .timeMasterNavigationTitle("Edit workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                AppToolbar.item(placement: .confirmationAction) { Button("Save", action: save).fontWeight(.semibold) }
+                AppToolbar.item(placement: .confirmationAction) { Button("Save", action: save).font(TimeMasterFont.sectionTitle()) }
             }
             .onAppear {
                 title = activity.title

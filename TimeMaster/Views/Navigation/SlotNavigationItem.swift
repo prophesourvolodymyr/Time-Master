@@ -167,13 +167,12 @@ struct SlotNavigationTypography {
         self.secondary = secondary
     }
 
-    /// System fonts at the sizes and weights the EverStore app used with Inter.
     static let standard = SlotNavigationTypography(
-        editorTitle: .system(size: 24, weight: .black),
-        sectionTitle: .system(size: 17, weight: .black),
-        buttonLabel: .system(size: 16, weight: .black),
-        body: .system(size: 16, weight: .regular),
-        secondary: .system(size: 14, weight: .regular)
+        editorTitle: TimeMasterFont.pageTitle(31, relativeTo: .title2),
+        sectionTitle: TimeMasterFont.sectionTitle(),
+        buttonLabel: TimeMasterFont.label(),
+        body: TimeMasterFont.body(),
+        secondary: TimeMasterFont.secondary()
     )
 }
 
@@ -358,7 +357,7 @@ struct SlotNavigationStrings {
     }
 
     static let timeMaster = SlotNavigationStrings(
-        editorTitle: "EDIT MENU BAR",
+        editorTitle: "Edit menu bar",
         guideSteps: [
             SlotNavigationGuideStep(symbol: "\u{2795}", text: "Tap + to add one of the app's pages."),
             SlotNavigationGuideStep(symbol: "\u{1F446}", text: "Hold an icon, then drag it to change its position."),

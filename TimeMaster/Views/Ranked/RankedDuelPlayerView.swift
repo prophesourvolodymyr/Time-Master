@@ -54,8 +54,7 @@ struct RankedDuelPlayerView: View {
         HStack(spacing: ProfileStyle.spacing) {
             leaveButton
             Spacer(minLength: 0)
-            Text(variation.fullTitle)
-                .font(TimeMasterFont.rowTitle())
+            TimeMasterPageTitle(variation.fullTitle, size: 20, relativeTo: .subheadline)
                 .multilineTextAlignment(.trailing)
             RankedMovementArt(variation: variation)
                 .frame(width: ProfileStyle.touchTarget * 1.5, height: ProfileStyle.touchTarget)
@@ -145,7 +144,7 @@ struct RankedDuelPlayerView: View {
     private var timer: some View {
         VStack(spacing: 2) {
             Text("Time left").font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
-            Text(timerText).font(.custom("Inter-Black", size: 40, relativeTo: .largeTitle).monospacedDigit())
+            Text(timerText).font(TimeMasterFont.black(40, relativeTo: .largeTitle).monospacedDigit())
                 .accessibilityIdentifier("ranked-duel-timer")
         }
         .accessibilityElement(children: .ignore).accessibilityLabel("Time remaining").accessibilityValue("\(frame.remaining) seconds")
@@ -159,7 +158,7 @@ struct RankedDuelPlayerView: View {
                 Text(you ? profileStore.profile.displayName : frame.opponentName).font(TimeMasterFont.micro()).lineLimit(1)
             }.foregroundStyle(ProfileStyle.secondary)
             Text(score(you ? frame.yourScore : frame.opponentScore))
-                .font(.custom("Inter-Black", size: 34, relativeTo: .title).monospacedDigit())
+                .font(TimeMasterFont.black(34, relativeTo: .title).monospacedDigit())
                 .foregroundStyle(you ? Theme.toolbarOrange : .white)
             Text(unit).font(TimeMasterFont.micro()).foregroundStyle(ProfileStyle.secondary)
         }

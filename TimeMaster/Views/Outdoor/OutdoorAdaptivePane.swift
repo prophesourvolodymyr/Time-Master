@@ -44,7 +44,7 @@ struct OutdoorPaneActionLabel: View {
                     Image(systemName: systemImage)
                         .font(.system(size: 17 + 5 * labelProgress, weight: .semibold))
                     Text(title)
-                        .font(.caption.weight(.semibold))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
                         .multilineTextAlignment(.center)
@@ -57,9 +57,9 @@ struct OutdoorPaneActionLabel: View {
             } else {
                 HStack(spacing: 6) {
                     Image(systemName: systemImage)
-                    if !compact { Text(title).lineLimit(1).minimumScaleFactor(0.8) }
+                        .font(.subheadline.weight(.semibold))
+                    if !compact { Text(title).font(TimeMasterFont.rowTitle()).lineLimit(1).minimumScaleFactor(0.8) }
                 }
-                .font(.subheadline.weight(.semibold))
                 .frame(width: compact ? 44 : nil)
                 .frame(maxWidth: compact ? nil : .infinity, minHeight: 44)
             }

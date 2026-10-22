@@ -39,7 +39,7 @@ struct MacVideoEditorView: View {
             }
         }
         .frame(minWidth: 1100, minHeight: 760)
-        .navigationTitle("Edit Video")
+        .timeMasterNavigationTitle("Edit Video")
         .toolbar {
             AppToolbar.item(placement: .cancellationAction) { Button("Back", systemImage: "chevron.left", action: onBack)
                          }
@@ -152,7 +152,7 @@ struct MacVideoEditorView: View {
         VStack(spacing: 8) {
             HStack(spacing: 12) {
                 Text(timeString(model.currentTime))
-                    .font(.system(.body, design: .monospaced))
+                    .font(TimeMasterFont.body(17))
                     .monospacedDigit()
 
                 Slider(
@@ -170,7 +170,7 @@ struct MacVideoEditorView: View {
                 .disabled(model.duration == 0)
 
                 Text(timeString(model.duration))
-                    .font(.system(.body, design: .monospaced))
+                    .font(TimeMasterFont.body(17))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
@@ -202,14 +202,24 @@ struct MacVideoEditorView: View {
     private var mediaTray: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("Media Tray", systemImage: "tray.full")
-                    .font(.headline)
+                Label {
+                    Text("Media Tray")
+                        .font(TimeMasterFont.sectionTitle())
+                } icon: {
+                    Image(systemName: "tray.full")
+                        .font(.headline)
+                }
                 Text("\(model.mediaCount) of 20")
                     .foregroundStyle(.secondary)
                 Spacer()
                 if isTrayDropTargeted {
-                    Label("Drop media", systemImage: "arrow.down.to.line")
-                        .font(.caption)
+                    Label {
+                        Text("Drop media")
+                            .font(TimeMasterFont.caption())
+                    } icon: {
+                        Image(systemName: "arrow.down.to.line")
+                            .font(.caption)
+                    }
                         .foregroundStyle(Color.accentColor)
                 }
             }
@@ -265,17 +275,22 @@ struct MacVideoEditorView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label(title, systemImage: systemImage)
-                    .font(.subheadline.weight(.semibold))
+                Label {
+                    Text(title)
+                        .font(TimeMasterFont.rowTitle())
+                } icon: {
+                    Image(systemName: systemImage)
+                        .font(.subheadline.weight(.semibold))
+                }
                 Text("\(drafts.count)")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(.secondary)
                 Spacer()
             }
 
             if drafts.isEmpty {
                 Text(emptyMessage)
-                    .font(.callout)
+                    .font(TimeMasterFont.body(16, relativeTo: .callout))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
@@ -323,16 +338,16 @@ struct MacVideoEditorView: View {
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(draft.rangeLabel)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(.secondary)
                     if draft.mediaCount > 1 {
                         Text("\(draft.mediaCount) grouped")
-                            .font(.caption2)
+                            .font(TimeMasterFont.micro())
                             .foregroundStyle(.secondary)
                     }
                     if draft.isSaved, let target = draft.savedTargetLabel {
                         Text("Saved in \(target)")
-                            .font(.caption2)
+                            .font(TimeMasterFont.micro())
                             .foregroundStyle(.green)
                             .lineLimit(1)
                     }
@@ -360,8 +375,13 @@ struct MacVideoEditorView: View {
                 Spacer()
 
                 if draft.mediaItems.contains(where: { $0.sourceSegmentID != nil }) {
-                    Label("Timeline clip", systemImage: "scissors")
-                        .font(.caption2)
+                    Label {
+                        Text("Timeline clip")
+                            .font(TimeMasterFont.micro())
+                    } icon: {
+                        Image(systemName: "scissors")
+                            .font(.caption2)
+                    }
                         .foregroundStyle(.secondary)
                 }
             }
@@ -398,17 +418,22 @@ struct MacVideoEditorView: View {
     private var timeline: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label("Timeline", systemImage: "scissors")
-                    .font(.headline)
+                Label {
+                    Text("Timeline")
+                        .font(TimeMasterFont.sectionTitle())
+                } icon: {
+                    Image(systemName: "scissors")
+                        .font(.headline)
+                }
                 Text("\(model.segments.count) segments")
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(.secondary)
                 Spacer()
 
                 if let selectedSegmentID,
                    let selectedSegment = model.segments.first(where: { $0.id == selectedSegmentID }) {
                     Text("Selected \(timeString(selectedSegment.startTime)) – \(timeString(selectedSegment.endTime))")
-                        .font(.caption2)
+                        .font(TimeMasterFont.micro().monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
 
@@ -452,7 +477,7 @@ struct MacVideoEditorView: View {
                         .fill(Color.secondary.opacity(0.55))
                         .frame(width: 1, height: 6)
                     Text(timeString(model.duration * Double(index) / Double(tickCount)))
-                        .font(.caption2)
+                        .font(TimeMasterFont.micro())
                         .foregroundStyle(.secondary)
                         .frame(
                             maxWidth: .infinity,
@@ -518,10 +543,10 @@ struct MacVideoEditorView: View {
 
             VStack(spacing: 2) {
                 Text("Segment \(segmentNumber(segment.id))")
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .lineLimit(1)
                 Text("\(timeString(segment.startTime)) – \(timeString(segment.endTime))")
-                    .font(.caption2.monospacedDigit())
+                    .font(TimeMasterFont.micro().monospacedDigit())
                     .lineLimit(1)
             }
             .foregroundStyle(.white)

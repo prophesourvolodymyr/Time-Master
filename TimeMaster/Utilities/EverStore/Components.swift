@@ -9,8 +9,7 @@ struct EverScreenHeader: View {
     var body: some View {
         HStack(alignment: .top, spacing: EverSpacing.x4) {
             VStack(alignment: .leading, spacing: EverSpacing.x1) {
-                Text(title)
-                    .font(TimeMasterFont.title())
+                TimeMasterPageTitle(title, size: 31, relativeTo: .title2)
                     .foregroundStyle(EverColor.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                 if let context {
@@ -72,6 +71,7 @@ struct EverActionRow<Trailing: View>: View {
         HStack(alignment: .center, spacing: EverSpacing.x3) {
             Image(systemName: symbol)
                 .font(.body)
+                .dynamicTypeSize(.large)
                 .foregroundStyle(EverColor.textPrimary)
                 .frame(width: 28)
                 .frame(minHeight: EverLayout.minimumTouchTarget)
@@ -213,7 +213,8 @@ struct EverSettingsPage<Content: View>: View {
             .scrollIndicators(.hidden)
         }
         .everScreenBackground()
-        .navigationTitle(title)
+        .font(TimeMasterFont.body())
+        .timeMasterNavigationTitle(title)
             #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
             #endif

@@ -123,7 +123,7 @@ struct RankedView: View {
             ZStack {
                 if mode == .duel {
                     Text("1V1")
-                        .font(.custom("Inter-Black", size: geometry.size.width * 0.38))
+                        .font(TimeMasterFont.black(geometry.size.width * 0.38))
                         .foregroundStyle(.white.opacity(0.035))
                         .rotationEffect(.degrees(-12))
                         .offset(y: -geometry.size.height * 0.12)
@@ -154,7 +154,7 @@ struct RankedView: View {
                                 RankedEloBadge(variation: selection, elo: account.rating(for: selection)?.rating)
                                     .frame(width: artSize * 1.65, height: artSize * 1.65)
                                 Text("Movement rank")
-                                    .font(TimeMasterFont.caption().weight(.semibold))
+                                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                             }
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
@@ -205,7 +205,7 @@ struct RankedView: View {
                         HStack(spacing: EverSpacing.x1) {
                             Image(systemName: "hourglass").font(.caption)
                             Text(selection.family == .core ? "∞" : account.allowance(for: selection.family)?.remaining.map { "\($0)/10" } ?? "—/10")
-                                .font(TimeMasterFont.caption().weight(.bold).monospacedDigit())
+                                .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
                         }
                         Text("Matches").font(TimeMasterFont.micro())
                             .lineLimit(nil)
@@ -273,8 +273,7 @@ struct RankedView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ProfileStyle.inset) {
-                    Text("Mode & movement")
-                        .font(TimeMasterFont.heading())
+                    TimeMasterPageTitle("Mode & movement", size: 26, relativeTo: .title3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     modePicker
                     RankedFamilyPicker(family: $family)

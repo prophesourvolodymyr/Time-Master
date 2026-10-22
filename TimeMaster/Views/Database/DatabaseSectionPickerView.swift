@@ -21,7 +21,7 @@ struct DatabaseSectionPickerView: View {
                     }
                 )
             }
-            .navigationTitle("Exercise Database")
+            .timeMasterNavigationTitle("Exercise Database")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -62,7 +62,7 @@ struct PickerFolderLevel: View {
     @ViewBuilder
     private var pickerFoldersSection: some View {
         if !folders.isEmpty {
-            SwiftUI.Section("Folders") {
+            SwiftUI.Section {
                 ForEach(folders) { folder in
                     NavigationLink(
                         destination: PickerFolderLevel(
@@ -70,12 +70,15 @@ struct PickerFolderLevel: View {
                             exercises: folder.exercises,
                             onSelect:  onSelect
                         )
-                        .navigationTitle(folder.name)
+                        .timeMasterNavigationTitle(folder.name)
                     ) {
                         FolderRowView(folder: folder)
                     }
                     .listRowBackground(Theme.surface)
                 }
+            } header: {
+                Text("Folders")
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
             }
         }
     }
@@ -83,13 +86,16 @@ struct PickerFolderLevel: View {
     @ViewBuilder
     private var pickerExercisesSection: some View {
         if !exercises.isEmpty {
-            SwiftUI.Section("Exercises") {
+            SwiftUI.Section {
                 ForEach(exercises) { exercise in
                     Button(action: { onSelect(exercise.toSection()) }) {
                         PickerExerciseRow(exercise: exercise)
                     }
                     .listRowBackground(Theme.surface)
                 }
+            } header: {
+                Text("Exercises")
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
             }
         }
     }
@@ -105,13 +111,13 @@ struct PickerExerciseRow: View {
             thumbnailView
             VStack(alignment: .leading, spacing: 3) {
                 Text(exercise.name)
-                    .font(.subheadline).fontWeight(.medium).foregroundColor(Theme.textPrimary)
+                    .font(TimeMasterFont.rowTitle()).foregroundColor(Theme.textPrimary)
                 if !exercise.details.isEmpty {
                     Text(exercise.details)
-                        .font(.caption).foregroundColor(Theme.textSecondary).lineLimit(1)
+                        .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary).lineLimit(1)
                 }
                 Text("\(exercise.duration)s · \(exercise.restAfter)s rest")
-                    .font(.caption2).foregroundColor(Theme.toolbarOrange)
+                    .font(TimeMasterFont.micro()).foregroundColor(Theme.toolbarOrange)
             }
             Spacer()
             Image(systemName: "plus.circle")

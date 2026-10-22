@@ -106,14 +106,13 @@ struct OutdoorMapControls: View, Animatable {
             }
             if !noticeText.isEmpty {
                 Text(noticeText)
-                    .font(.caption2.weight(.regular))
+                    .font(TimeMasterFont.micro())
             }
         }
-        .font(.caption2.weight(.semibold))
+        .font(TimeMasterFont.micro())
         .foregroundStyle(Theme.textSecondary)
         .lineLimit(1)
         .minimumScaleFactor(0.8)
-        .font(.custom("Inter Light", size: 11, relativeTo: .caption2))
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: 170, alignment: .trailing)
         .padding(.horizontal, 6)
@@ -135,7 +134,7 @@ struct OutdoorMapControls: View, Animatable {
                         .frame(width: 68, height: 16)
                 } else {
                     Text(attribution.serviceName)
-                        .font(.caption2.weight(.semibold))
+                        .font(TimeMasterFont.micro())
                         .lineLimit(2)
                         .multilineTextAlignment(.trailing)
                         .fixedSize(horizontal: false, vertical: true)
@@ -173,7 +172,8 @@ struct OutdoorMapControls: View, Animatable {
                 Image(systemName: presentation.symbolName)
                     .font(.body.weight(.medium))
                 Text(presentation.temperatureText)
-                    .font(.custom("Inter Black", size: 12, relativeTo: .caption2))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption2))
+                    .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -194,7 +194,7 @@ struct OutdoorMapControls: View, Animatable {
                 Image(systemName: systemImage)
                     .font(.body.weight(.medium))
                 Text(value)
-                    .font(.caption2.weight(.semibold))
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
             }
             .foregroundStyle(Theme.textSecondary)
             .padding(.horizontal, 8)
@@ -246,7 +246,7 @@ struct OutdoorRouteNotification: View {
                 .accessibilityHidden(true)
 
             Text(message)
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundStyle(Theme.textPrimary)
                 .multilineTextAlignment(.leading)
                 .lineLimit(3)
@@ -334,7 +334,7 @@ struct OutdoorLiveWorkoutStatusWidget: View {
                             .fill(recorder.state == .recording ? Color.green : Theme.toolbarOrange)
                             .frame(width: 7, height: 7)
                         Text(recorder.state == .recording ? "LIVE" : "PAUSED")
-                            .font(.caption2.weight(.bold))
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
                             .tracking(0.8)
                             .foregroundStyle(Theme.textSecondary)
                         Spacer(minLength: 4)
@@ -391,11 +391,11 @@ struct OutdoorLiveWorkoutStatusWidget: View {
     private func metric(value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(value)
-                .font(.system(size: 21, weight: .bold, design: .rounded))
+                .font(TimeMasterFont.black(21, relativeTo: .title2))
                 .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary)
             Text(label)
-                .font(.caption2.weight(.medium))
+                .font(TimeMasterFont.micro())
                 .foregroundStyle(Theme.textSecondary)
         }
     }

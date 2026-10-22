@@ -64,7 +64,8 @@ struct AnalyticsView: View {
                     analyticsScroll
                 }
             }
-            .navigationTitle("Analytics")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("Analytics")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -161,7 +162,7 @@ struct AnalyticsView: View {
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: .semibold))
                 Text(label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(TimeMasterFont.black(13, relativeTo: .subheadline))
             }
         }
         .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: selected))
@@ -232,7 +233,7 @@ struct AnalyticsView: View {
                     .background(Color(hex: type.colorHex))
                     .cornerRadius(8)
                 Text("Set your weekly goal for \(type.name)")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.secondary())
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
             }
@@ -242,7 +243,8 @@ struct AnalyticsView: View {
                         goalsManager.setGoal(n, for: type)
                     } label: {
                         Text("\(n)")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                            .monospacedDigit()
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 38)
@@ -252,7 +254,7 @@ struct AnalyticsView: View {
                 }
             }
             Text("You can also set goals in Settings → Workout Types.")
-                .font(.caption2)
+                .font(TimeMasterFont.micro())
                 .foregroundColor(Theme.textSecondary.opacity(0.5))
         }
         .padding(16)
@@ -282,8 +284,8 @@ private struct OutdoorAnalyticsSummary: View {
     private func cell(icon: String, value: String, label: String) -> some View {
         VStack(spacing: 5) {
             Image(systemName: icon).foregroundColor(.cyan)
-            Text(value).font(.headline.monospacedDigit()).foregroundColor(Theme.textPrimary)
-            Text(label).font(.caption2).foregroundColor(Theme.textSecondary)
+            Text(value).font(TimeMasterFont.sectionTitle()).monospacedDigit().foregroundColor(Theme.textPrimary)
+            Text(label).font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -329,7 +331,7 @@ private struct WeeklyGoalCard: View {
         VStack(spacing: 20) {
             ringView
             Text(statusInfo.text)
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundColor(statusInfo.color)
         }
         .frame(maxWidth: .infinity)
@@ -352,10 +354,12 @@ private struct WeeklyGoalCard: View {
                 .animation(.easeOut(duration: 0.7), value: progress)
             VStack(spacing: 2) {
                 Text("\(sessionsThisWeek)")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(48, relativeTo: .largeTitle))
+                    .monospacedDigit()
                     .foregroundColor(Theme.textPrimary)
                 Text("of \(goal) this week")
-                    .font(.caption)
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    .monospacedDigit()
                     .foregroundColor(Theme.textSecondary)
             }
         }
@@ -384,8 +388,8 @@ private struct LifetimeStatsStrip: View {
     private func statCell(icon: String, value: String, label: String) -> some View {
         VStack(spacing: 6) {
             Image(systemName: icon).font(.title3).foregroundColor(Color.white.opacity(0.7))
-            Text(value).font(.title2.bold()).foregroundColor(Theme.textPrimary)
-            Text(label).font(.caption).foregroundColor(Theme.textSecondary)
+            Text(value).font(TimeMasterFont.black(22, relativeTo: .title2)).monospacedDigit().foregroundColor(Theme.textPrimary)
+            Text(label).font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -427,13 +431,14 @@ private struct StreakCard: View {
                         .scaleEffect(flamePulse && value > 0 ? 1.14 : 0.94)
                 }
                 Text("\(value)")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(36, relativeTo: .largeTitle))
+                    .monospacedDigit()
                     .foregroundStyle(isFlame && value > 0 ? AnyShapeStyle(LinearGradient(colors: [.red, .orange, .yellow], startPoint: .bottom, endPoint: .top)) : AnyShapeStyle(Theme.textPrimary))
                 Text(value == 1 ? "day" : "days")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.secondary())
                     .foregroundColor(Theme.textSecondary)
             }
-            Text(label).font(.caption).foregroundColor(Theme.textSecondary)
+            Text(label).font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -453,10 +458,10 @@ private struct TypeAnalyticsBreakdown: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("By Workout Type")
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             if types.isEmpty {
                 Text("Complete a workout or set a type schedule to see a breakdown.")
-                    .font(.subheadline).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.secondary()).foregroundColor(Theme.textSecondary)
             } else {
                 ForEach(types, id: \.id) { type in
                     row(for: type)
@@ -477,21 +482,21 @@ private struct TypeAnalyticsBreakdown: View {
                     .frame(width: 32, height: 32)
                     .background(Color(hex: type.colorHex)).cornerRadius(9)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(type.name).font(.subheadline.weight(.semibold)).foregroundColor(Theme.textPrimary)
+                    Text(type.name).font(TimeMasterFont.rowTitle()).foregroundColor(Theme.textPrimary)
                     Text("\(stats.sessionsThisWeek) this week · \(stats.totalSeconds / 60)m total · \(stats.streak)d streak")
-                        .font(.caption).foregroundColor(Theme.textSecondary)
+                        .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit().foregroundColor(Theme.textSecondary)
                 }
                 Spacer()
                 if let adherence = stats.adherence {
                     Text("\(Int((adherence * 100).rounded()))%")
-                        .font(.caption.weight(.bold)).foregroundColor(Color(hex: type.colorHex))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit().foregroundColor(Color(hex: type.colorHex))
                 }
             }
             if goal > 0 {
                 ProgressView(value: progress)
                     .tint(Color(hex: type.colorHex))
                 Text("\(stats.sessionsThisWeek) of \(goal) weekly goal")
-                    .font(.caption2).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2)).monospacedDigit().foregroundColor(Theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -510,11 +515,12 @@ private struct TrainingScheduleCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Weekly Schedule")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Text("\(store.trainingDurationMonths) mo")
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    .monospacedDigit()
                     .foregroundColor(Theme.textSecondary)
             }
 
@@ -528,7 +534,7 @@ private struct TrainingScheduleCard: View {
                         store.saveTrainingSchedule()
                     } label: {
                         Text(label)
-                            .font(.system(size: 12, weight: isActive ? .bold : .medium))
+                            .font(isActive ? TimeMasterFont.black(12, relativeTo: .caption) : TimeMasterFont.body(12, relativeTo: .caption))
                             .foregroundColor(isActive ? .black : .white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 36)
@@ -540,12 +546,13 @@ private struct TrainingScheduleCard: View {
 
             HStack {
                 Text("Duration")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
                 Stepper(value: $store.trainingDurationMonths, in: 1...12) {
                     Text("\(store.trainingDurationMonths) month\(store.trainingDurationMonths == 1 ? "" : "s")")
-                        .font(.caption.monospacedDigit())
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
+                        .monospacedDigit()
                         .foregroundColor(Theme.textPrimary)
                 }
                 .onChange(of: store.trainingDurationMonths) { _ in store.saveTrainingSchedule() }
@@ -594,7 +601,7 @@ struct ActivityHeatmap: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(onSelectDate == nil ? "Activity" : "Last 24 weeks")
-                    .font(onSelectDate == nil ? .headline : .subheadline.weight(.medium))
+                    .font(onSelectDate == nil ? TimeMasterFont.sectionTitle() : TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 if onSelectDate == nil {
@@ -615,7 +622,7 @@ struct ActivityHeatmap: View {
                                         let date = dateFor(week: week, day: 0)
                                         let startsMonth = week == 0 || !Calendar.current.isDate(date, equalTo: dateFor(week: week - 1, day: 0), toGranularity: .month)
                                         Text(startsMonth ? date.formatted(.dateTime.month(.abbreviated)) : "")
-                                            .font(.caption2)
+                                            .font(TimeMasterFont.micro())
                                             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                             .foregroundStyle(.secondary)
                                             .frame(width: 44, height: monthLabelHeight)
@@ -639,7 +646,7 @@ struct ActivityHeatmap: View {
         VStack(spacing: gap) {
             ForEach(0..<7, id: \.self) { i in
                 Text(dayLabels[i])
-                    .font(.system(size: 9, weight: .medium))
+                    .font(TimeMasterFont.body(9, relativeTo: .caption2))
                     .foregroundColor(Theme.textSecondary)
                     .frame(width: 12, height: onSelectDate == nil ? cellSize : 44, alignment: .center)
             }
@@ -665,7 +672,8 @@ struct ActivityHeatmap: View {
                                 .fill(cellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasActivity, count: count, isScheduled: isScheduled))
                                 .overlay {
                                     Text(date.formatted(.dateTime.day()))
-                                        .font(.caption2.monospacedDigit())
+                                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                                        .monospacedDigit()
                                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                                         .foregroundStyle(.white)
                                 }
@@ -760,7 +768,8 @@ private struct CalendarActivitySheet: View {
                 .frame(maxWidth: .infinity)
             }
             .background(Theme.background)
-            .navigationTitle("Activity")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("Activity")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -856,6 +865,7 @@ struct CalendarPage: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .font(TimeMasterFont.body())
             .background(Theme.background)
             #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
@@ -883,12 +893,12 @@ struct CalendarPage: View {
     private var calendarHeader: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 16) {
-                Text("Calendar").font(.title2.bold()).fixedSize()
+                TimeMasterPageTitle("Calendar", size: 29, relativeTo: .title2).fixedSize()
                 Spacer(minLength: 0)
                 calendarControls
             }
             VStack(alignment: .leading, spacing: 16) {
-                Text("Calendar").font(.title2.bold())
+                TimeMasterPageTitle("Calendar", size: 29, relativeTo: .title2)
                 calendarControls
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -932,7 +942,8 @@ struct CalendarPage: View {
             .buttonStyle(TimeMasterToolbarIconButtonStyle())
             .accessibilityIdentifier("calendar.previous")
             Text(showYearView ? String(currentYear) : monthTitle)
-                .font(.title3.weight(.semibold))
+                .font(TimeMasterFont.heading())
+                .monospacedDigit()
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("calendar.period")
@@ -984,25 +995,25 @@ struct CalendarPage: View {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(monthName)
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                     HStack(spacing: 8) {
                         if workoutDays > 0 {
                             HStack(spacing: 3) {
                                 Circle().fill(Color(red: 0.1, green: 0.6, blue: 0.25)).frame(width: 6, height: 6)
-                                Text("\(workoutDays)").font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                                Text("\(workoutDays)").font(TimeMasterFont.black(11, relativeTo: .caption2)).monospacedDigit().foregroundColor(Theme.textSecondary)
                             }
                         }
                         if restDaysCount > 0 {
                             HStack(spacing: 3) {
                                 Circle().fill(Color(red: 0.3, green: 0.55, blue: 0.85)).frame(width: 6, height: 6)
-                                Text("\(restDaysCount)").font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                                Text("\(restDaysCount)").font(TimeMasterFont.black(11, relativeTo: .caption2)).monospacedDigit().foregroundColor(Theme.textSecondary)
                             }
                         }
                         if missCount > 0 {
                             HStack(spacing: 3) {
                                 Circle().fill(Color.red).frame(width: 6, height: 6)
-                                Text("\(missCount)").font(.system(size: 11)).foregroundColor(Theme.textSecondary)
+                                Text("\(missCount)").font(TimeMasterFont.black(11, relativeTo: .caption2)).monospacedDigit().foregroundColor(Theme.textSecondary)
                             }
                         }
                     }
@@ -1075,7 +1086,7 @@ struct CalendarPage: View {
                 HStack(spacing: 4) {
                     ForEach(0..<7, id: \.self) { day in
                         Text(calendar.veryShortStandaloneWeekdaySymbols[(day + 1) % 7])
-                            .font(.caption.weight(.semibold))
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
                     }
@@ -1097,7 +1108,8 @@ struct CalendarPage: View {
             let workoutDays = workoutDaysInMonth(month: calendar.component(.month, from: currentMonth), year: currentYear)
             if workoutDays > 0 {
                 Label("\(workoutDays) workout day\(workoutDays == 1 ? "" : "s")", systemImage: "figure.strengthtraining.traditional")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.secondary())
+                    .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -1136,10 +1148,12 @@ struct CalendarPage: View {
         } label: {
             VStack(spacing: 3) {
                 Text("\(calendar.component(.day, from: date))")
-                    .font(.callout.weight(isToday ? .bold : .medium))
+                    .font(TimeMasterFont.black(16, relativeTo: .callout))
+                    .monospacedDigit()
                     .foregroundStyle(isFuture && onSelectWeek == nil ? Theme.textSecondary : .white)
                 Text(count > 0 ? "\(count)" : " ")
-                    .font(.caption2.monospacedDigit())
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                    .monospacedDigit()
                     .foregroundStyle(.white.opacity(0.8))
             }
             .frame(maxWidth: .infinity, minHeight: 52)
@@ -1176,7 +1190,7 @@ struct CalendarPage: View {
             legendItem(color: Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5), label: "Rest day")
             legendItem(color: Color.red.opacity(0.35), label: "Missed")
         }
-        .font(.caption)
+        .font(TimeMasterFont.caption())
         .foregroundColor(Theme.textSecondary)
         .padding(.bottom, 8)
     }
@@ -1282,7 +1296,8 @@ private struct DayInfoSheet: View {
                 VStack(spacing: 20) {
                     VStack(spacing: 16) {
                         Text(formatFullDate(date))
-                            .font(.title2.bold())
+                            .font(TimeMasterFont.black(22, relativeTo: .title2))
+                            .monospacedDigit()
                             .multilineTextAlignment(.center)
                         let statsLayout = dynamicTypeSize.isAccessibilitySize
                             ? AnyLayout(VStackLayout(spacing: 16))
@@ -1304,7 +1319,7 @@ private struct DayInfoSheet: View {
                                     .foregroundStyle(.red)
                             }
                         }
-                        .font(.subheadline)
+                        .font(TimeMasterFont.secondary())
                     }
                     .frame(maxWidth: .infinity)
                     .padding(20)
@@ -1313,7 +1328,7 @@ private struct DayInfoSheet: View {
                     if dayEntries.isEmpty && manualEntries.isEmpty && dayOutdoorActivities.isEmpty {
                         Label(isRest ? "Rest day" : "No workout logged",
                               systemImage: isRest ? "moon.zzz" : "figure.walk")
-                            .font(.subheadline)
+                            .font(TimeMasterFont.secondary())
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 24)
                     } else {
@@ -1326,14 +1341,14 @@ private struct DayInfoSheet: View {
                             ForEach(manualEntries) { item in
                                 VStack(alignment: .leading, spacing: 8) {
                                     Label(item.entry.title, systemImage: item.entry.icon)
-                                        .font(.headline)
+                                        .font(TimeMasterFont.sectionTitle())
                                     Text(item.entry.workoutID == nil ? "Custom workout" : "Completed manually")
-                                        .font(.caption).foregroundStyle(.secondary)
+                                        .font(TimeMasterFont.caption()).foregroundStyle(.secondary)
                                     if let seconds = item.entry.durationSeconds {
-                                        Text("\(seconds / 60) min").font(.caption.monospacedDigit())
+                                        Text("\(seconds / 60) min").font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit()
                                     }
                                     if !item.entry.notes.isEmpty {
-                                        Text(item.entry.notes).font(.subheadline).foregroundStyle(.secondary)
+                                        Text(item.entry.notes).font(TimeMasterFont.secondary()).foregroundStyle(.secondary)
                                     }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1343,12 +1358,13 @@ private struct DayInfoSheet: View {
                             ForEach(dayOutdoorActivities) { activity in
                                 VStack(alignment: .leading, spacing: 8) {
                                     Label(activity.title, systemImage: activity.kind.iconName)
-                                        .font(.headline)
+                                        .font(TimeMasterFont.sectionTitle())
                                     Text("\(activity.elapsedSeconds / 60) min")
-                                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                                        .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit().foregroundStyle(.secondary)
                                     Text(Measurement(value: activity.distanceMeters, unit: UnitLength.meters)
                                         .formatted(.measurement(width: .abbreviated, usage: .road)))
-                                        .font(.subheadline)
+                                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                                        .monospacedDigit()
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(16)
@@ -1369,7 +1385,8 @@ private struct DayInfoSheet: View {
                 .frame(maxWidth: .infinity)
             }
             .background(Theme.background)
-            .navigationTitle("Day details")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("Day details")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -1391,8 +1408,8 @@ private struct DayInfoSheet: View {
 
     private func statChip(value: String, label: String) -> some View {
         VStack(spacing: 2) {
-            Text(value).font(.title3.bold()).foregroundColor(Theme.textPrimary)
-            Text(label).font(.caption2).foregroundColor(Theme.textSecondary)
+            Text(value).font(TimeMasterFont.heading()).monospacedDigit().foregroundColor(Theme.textPrimary)
+            Text(label).font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary)
         }
     }
 
@@ -1427,29 +1444,31 @@ private struct VacationSheet: View {
                 ScrollView {
                     VStack(spacing: 22) {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Duration").font(.headline).foregroundColor(Theme.textPrimary)
+                            Text("Duration").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("From").font(.caption).foregroundColor(Theme.textSecondary)
+                                    Text("From").font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
                                     DatePicker("", selection: $startMonth, displayedComponents: .date)
                                         .labelsHidden().colorScheme(.dark)
+                                        .monospacedDigit()
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 4) {
-                                    Text("To").font(.caption).foregroundColor(Theme.textSecondary)
+                                    Text("To").font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
                                     DatePicker("", selection: $endMonth, displayedComponents: .date)
                                         .labelsHidden().colorScheme(.dark)
+                                        .monospacedDigit()
                                 }
                             }
                             .padding(14).background(Theme.surface).cornerRadius(10)
 
                             Text("\(monthsInRange) month\(monthsInRange == 1 ? "" : "s") selected")
-                                .font(.caption).foregroundColor(Theme.textSecondary)
+                                .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit().foregroundColor(Theme.textSecondary)
                         }
 
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Workout Types").font(.headline).foregroundColor(Theme.textPrimary)
-                            Text("Select which types to pause during vacation.").font(.caption).foregroundColor(Theme.textSecondary)
+                            Text("Workout Types").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
+                            Text("Select which types to pause during vacation.").font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                 ForEach(WorkoutType.all(custom: store.customWorkoutTypes), id: \.id) { type in
                                     Button {
@@ -1459,8 +1478,8 @@ private struct VacationSheet: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: type.icon).font(.system(size: 11))
                                             Text(type.name)
+                                                .font(selectedTypes.contains(type) ? TimeMasterFont.rowTitle() : TimeMasterFont.secondary())
                                         }
-                                        .font(.subheadline.weight(selectedTypes.contains(type) ? .semibold : .regular))
                                         .foregroundColor(selectedTypes.contains(type) ? .black : .white)
                                         .padding(.vertical, 10)
                                         .frame(maxWidth: .infinity)
@@ -1474,7 +1493,8 @@ private struct VacationSheet: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Set Vacation")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("Set Vacation")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -1531,17 +1551,17 @@ private struct HistoryListSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("History").font(.headline).foregroundColor(Theme.textPrimary)
+                Text("History").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 Spacer()
                 if !entries.isEmpty {
                     let n = entries.count
                     Text("\(n) session\(n == 1 ? "" : "s")")
-                        .font(.caption).foregroundColor(Theme.textSecondary)
+                        .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit().foregroundColor(Theme.textSecondary)
                 }
             }
             if entries.isEmpty {
                 Text("No sessions recorded yet.")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.secondary())
                     .foregroundColor(Theme.textSecondary)
                     .padding(.vertical, 8)
             } else {

@@ -9,8 +9,7 @@ struct RankedRulesView: View {
                 VStack(spacing: ProfileStyle.inset) {
                     RankedMovementArt(variation: variation)
                         .frame(height: ProfileStyle.touchTarget * 4).frame(maxWidth: .infinity)
-                    Text(variation.fullTitle)
-                        .font(TimeMasterFont.heading())
+                    TimeMasterPageTitle(variation.fullTitle, size: 26, relativeTo: .title3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text(variation.cue)
                         .font(TimeMasterFont.caption())

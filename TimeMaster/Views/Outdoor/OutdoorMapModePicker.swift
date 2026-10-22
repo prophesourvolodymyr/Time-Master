@@ -55,13 +55,7 @@ struct OutdoorMapModePicker: View {
                     .font(.system(size: isBase ? 22 : 18, weight: .semibold))
                     .frame(height: isBase ? 28 : 22)
                 Text(mode.displayName)
-                    .font(
-                        .custom(
-                            isBase ? "Inter Black" : "Inter Light",
-                            size: isBase ? 14 : 12,
-                            relativeTo: .caption2
-                        )
-                    )
+                    .font(isBase ? TimeMasterFont.black(14, relativeTo: .caption2) : TimeMasterFont.body(12, relativeTo: .caption2))
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
             }

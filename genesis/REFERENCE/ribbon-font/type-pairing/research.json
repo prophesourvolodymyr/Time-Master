@@ -1,17 +1,19 @@
 {
   "schemaVersion": 1,
-  "researchedOn": "2026-10-21",
-  "scope": "Inter Black is user-accepted for bold titles and prominent numeric indicators. The small-text companion remains a visual selection, not a native body-font replacement. Tmax Ribbon remains an occasional accent title, never a body face.",
+  "researchedOn": "2026-10-22",
+  "scope": "User-accepted typography for iOS and macOS: Manrope Regular for body and small text; Inter Black for other headings, emphasized labels and prominent numbers; genuine Inter Black Italic for italic emphasis; original custom TimeMaster only for top-of-page and navigation titles. Historical candidates are not selected app faces.",
   "recommendation": {
-    "kind": "User-accepted bold face with a subjective small-text recommendation still awaiting selection",
+    "kind": "User-accepted typography selection, superseding the earlier Source Sans recommendation and occasional-accent direction",
     "primary": "Inter-Black",
-    "body": "SourceSans3-Regular",
-    "accent": "TmaxRibbon-Regular",
-    "rationale": "The user chose Inter Black for bold titles and prominent Duration, Sets and Rest values. Source Sans 3 Regular is the current small-text recommendation to review: a quieter humanist UI texture beside dense Inter Black and expressive ribbon. IBM Plex Sans Regular, Manrope Regular and the existing Inter Regular remain comparison options. No new small-text face has been accepted or applied globally.",
+    "emphasis": "Inter-BlackItalic",
+    "body": "Manrope-Regular",
+    "pageTitle": "TimeMaster-Regular",
+    "rationale": "The user selected Manrope for small and body text, genuine Inter Black and Black Italic for other headings and emphasis, and the custom 52-letter TimeMaster family only for page and navigation titles.",
     "usage": {
-      "primary": "User-chosen bold titles and prominent numeric indicators",
-      "body": "Regular-weight instructions, captions, small labels and supporting data; not prominent numeric indicators",
-      "accent": "Occasional short expressive headings using supported Latin letters and spaces only"
+      "primary": "Other headings, emphasized labels and prominent numeric indicators; not regular supporting text",
+      "emphasis": "Existing italic emphasis rendered with the genuine static Inter Black Italic design, never synthetic slant",
+      "body": "Regular-weight body copy, instructions, captions, small labels and supporting data",
+      "pageTitle": "Actual top-of-page and navigation titles only; A-Z, a-z and ASCII space in the custom face. Preserve unsupported characters with an appropriate genuine text face rather than inventing glyphs. Never use for completion states, card headings, body, buttons or numbers."
     }
   },
   "candidates": [
@@ -19,8 +21,8 @@
       "family": "Source Sans 3",
       "postScriptName": "SourceSans3-Regular",
       "cssWeight": 400,
-      "role": "Small-text recommendation awaiting human selection",
-      "rationale": "A quieter humanist UI texture beside Inter Black and Tmax Ribbon. The recommendation is subjective; equal CSS sizes retain the natural x-height of each font.",
+      "role": "Historical small-text candidate; not selected",
+      "rationale": "The earlier subjective Source Sans 3 recommendation was superseded by the user-accepted Manrope Regular. Original pinned comparison files and licensing remain unchanged.",
       "upstreamRepository": "https://github.com/adobe-fonts/source-sans",
       "revision": "87b37a2daaed80fcb8e8ccb0085c4d72ddade12e",
       "version": "Version 3.052;hotconv 1.1.0;makeotfexe 2.6.0",
@@ -52,8 +54,8 @@
       "family": "IBM Plex Sans",
       "postScriptName": "IBMPlexSans",
       "cssWeight": 400,
-      "role": "Small-text alternative",
-      "rationale": "A more technical UI character. The original Regular file has PostScript name IBMPlexSans without a Regular suffix.",
+      "role": "Historical small-text candidate; not selected",
+      "rationale": "A previously compared technical UI character. Manrope was selected instead. The original Regular file has PostScript name IBMPlexSans without a Regular suffix.",
       "upstreamRepository": "https://github.com/IBM/plex",
       "revision": "71f558992315a12ca1f06a2215d57962a1992162",
       "version": "Version 3.005",
@@ -169,8 +171,8 @@
       "postScriptName": "Manrope-Regular",
       "cssWeight": 400,
       "semanticWeight": "Upstream static Regular/400; no synthetic weight.",
-      "role": "body alternative",
-      "rationale": "A geometric, semi-condensed small-text alternative to compare at real 12, 14 and 16 px sizes against Source Sans 3, IBM Plex Sans and the existing Inter baseline.",
+      "role": "User-accepted body and small text",
+      "rationale": "The user selected Manrope Regular for everyday supporting text. The native font is copied byte-for-byte from the already pinned upstream reference; no re-encoding, renaming, weight synthesis or relicensing.",
       "upstreamRepository": "https://github.com/googlefonts/manrope",
       "revision": "468c0dbe38efa331b80bfe9448256abe27be44c3",
       "version": "Version 4.505; ttfautohint (v1.8.4.16-eb64)",
@@ -193,38 +195,140 @@
           "source": "https://raw.githubusercontent.com/googlefonts/manrope/468c0dbe38efa331b80bfe9448256abe27be44c3/OFL.txt",
           "bytes": 4387,
           "sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b"
+        },
+        {
+          "path": "TimeMaster/Resources/Fonts/Manrope-Regular.ttf",
+          "source": "https://raw.githubusercontent.com/googlefonts/manrope/468c0dbe38efa331b80bfe9448256abe27be44c3/fonts/ttf/manrope-regular.ttf",
+          "copiedFrom": "genesis/REFERENCE/ribbon-font/type-pairing/manrope/Manrope-Regular.ttf",
+          "bytes": 143112,
+          "sha256": "d23d6eedf51dd495138aa1a83588027d4a63549cdfcc2fa5e0d8e84e09cf4cb1"
+        },
+        {
+          "path": "TimeMaster/Resources/Fonts/MANROPE-LICENSE.txt",
+          "source": "https://raw.githubusercontent.com/googlefonts/manrope/468c0dbe38efa331b80bfe9448256abe27be44c3/OFL.txt",
+          "copiedFrom": "genesis/REFERENCE/ribbon-font/type-pairing/manrope/OFL.txt",
+          "bytes": 4387,
+          "sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b"
         }
-      ]
+      ],
+      "nativeLicensePath": "TimeMaster/Resources/Fonts/MANROPE-LICENSE.txt"
     },
     {
       "family": "Inter",
       "postScriptName": "Inter-Black",
       "cssWeight": 900,
-      "role": "Everyday bold title and prominent numeric indicators; user accepted",
+      "role": "User-accepted other headings, emphasized labels and prominent numeric indicators",
       "version": "Version 4.001;git-9221beed3",
-      "source": "https://rsms.me/inter/",
+      "source": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
       "license": "SIL Open Font License 1.1",
       "licensePath": "TimeMaster/Resources/Fonts/INTER-LICENSE.txt",
       "asset": {
         "path": "TimeMaster/Resources/Fonts/Inter-Black.ttf",
-        "sha256": "6342d3ea6dc088b43867f615e807d898adf100c93edb978b8e52c5eb71a264da"
+        "sha256": "6342d3ea6dc088b43867f615e807d898adf100c93edb978b8e52c5eb71a264da",
+        "archiveMember": "extras/ttf/Inter-Black.ttf",
+        "bytes": 419968,
+        "unmodifiedReleaseMember": true
       },
-      "rationale": "The user explicitly chose Inter Black and requested it for the large Duration, Sets and Rest values independently of the small-text font."
+      "rationale": "The user chose Inter Black and requested genuine 900-weight headings and large Duration, Sets and Rest values. The existing native file is byte-identical to the official Inter 4.1 release member, with internal Version 4.001;git-9221beed3.",
+      "upstreamRepository": "https://github.com/rsms/inter",
+      "releaseTag": "v4.1",
+      "releaseUrl": "https://github.com/rsms/inter/releases/tag/v4.1"
+    },
+    {
+      "family": "Inter",
+      "postScriptName": "Inter-BlackItalic",
+      "cssWeight": 900,
+      "cssStyle": "italic",
+      "semanticWeight": "Official unmodified static Black Italic/900; native italic outlines, not a transformed upright font or a locally generated variable-font instance.",
+      "role": "User-accepted italic emphasis",
+      "rationale": "The official Inter 4.1 release carries internal Version 4.001;git-9221beed3, matching the existing Inter Black and Regular. The font is copied unchanged to native resources and the upstream WOFF2 is used in the specimen.",
+      "upstreamRepository": "https://github.com/rsms/inter",
+      "releaseTag": "v4.1",
+      "releaseUrl": "https://github.com/rsms/inter/releases/tag/v4.1",
+      "version": "Version 4.001;git-9221beed3",
+      "license": "SIL Open Font License 1.1",
+      "licensePath": "genesis/REFERENCE/ribbon-font/type-pairing/inter/LICENSE.txt",
+      "nativeLicensePath": "TimeMaster/Resources/Fonts/INTER-LICENSE.txt",
+      "metadata": {
+        "legacyFamily": "Inter Black",
+        "legacySubfamily": "Italic",
+        "typographicFamily": "Inter",
+        "typographicSubfamily": "Black Italic",
+        "weightClass": 900,
+        "italicAngle": -9.399993896484375,
+        "fsSelection": 129,
+        "macStyle": 2,
+        "variableFont": false,
+        "outlineFormat": "TrueType glyf",
+        "genuineItalicEvidence": "Official static release member preserved byte-for-byte. Italic flags and angle are native. The f descender differs vertically from upright Black, proving this is not merely an affine shear of its upright outline.",
+        "uprightBlackFBounds": [
+          20,
+          0,
+          854,
+          1560
+        ],
+        "blackItalicFBounds": [
+          -194,
+          -456,
+          1039,
+          1558
+        ]
+      },
+      "assets": [
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/inter/Inter-BlackItalic.ttf",
+          "source": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+          "archiveMember": "extras/ttf/Inter-BlackItalic.ttf",
+          "bytes": 428036,
+          "sha256": "1737f7d5b391520e9adcc3ea8c730a0854fe6fdd9b9c93c4100c89beb215a931",
+          "unmodifiedReleaseMember": true
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/inter/Inter-BlackItalic.woff2",
+          "source": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+          "archiveMember": "web/Inter-BlackItalic.woff2",
+          "bytes": 118420,
+          "sha256": "308e101141e9dee3b6b121614da03969eb8179886975a9eeb5348021b04368fe",
+          "unmodifiedReleaseMember": true
+        },
+        {
+          "path": "genesis/REFERENCE/ribbon-font/type-pairing/inter/LICENSE.txt",
+          "source": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+          "archiveMember": "LICENSE.txt",
+          "bytes": 4380,
+          "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
+          "unmodifiedReleaseMember": true
+        },
+        {
+          "path": "TimeMaster/Resources/Fonts/Inter-BlackItalic.ttf",
+          "source": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+          "archiveMember": "extras/ttf/Inter-BlackItalic.ttf",
+          "bytes": 428036,
+          "sha256": "1737f7d5b391520e9adcc3ea8c730a0854fe6fdd9b9c93c4100c89beb215a931",
+          "unmodifiedReleaseMember": true
+        }
+      ]
     },
     {
       "family": "Inter",
       "postScriptName": "Inter-Regular",
       "cssWeight": 400,
-      "role": "Small-text baseline; existing native app body remains unchanged",
+      "role": "Historical body baseline; not selected for active body roles",
       "version": "Version 4.001;git-9221beed3",
-      "source": "https://rsms.me/inter/",
+      "source": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
       "license": "SIL Open Font License 1.1",
       "licensePath": "TimeMaster/Resources/Fonts/INTER-LICENSE.txt",
       "asset": {
         "path": "TimeMaster/Resources/Fonts/Inter-Regular.ttf",
-        "sha256": "40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82"
+        "sha256": "40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82",
+        "archiveMember": "extras/ttf/Inter-Regular.ttf",
+        "bytes": 411640,
+        "unmodifiedReleaseMember": true
       },
-      "rationale": "Same-family continuity baseline for judging whether a new small-text face is preferable."
+      "rationale": "Former same-family native body baseline retained as historical comparison. Manrope Regular is the accepted small-text and body face.",
+      "upstreamRepository": "https://github.com/rsms/inter",
+      "releaseTag": "v4.1",
+      "releaseUrl": "https://github.com/rsms/inter/releases/tag/v4.1"
     }
   ],
   "sources": [
@@ -288,6 +392,15 @@
         "Tabular numbers",
         "SIL OFL 1.1"
       ]
+    },
+    {
+      "url": "https://github.com/rsms/inter/releases/tag/v4.1",
+      "publisher": "Rasmus Andersson / official Inter project release",
+      "supports": [
+        "Static TrueType Inter Black Italic and original WOFF2 supplied in the official release archive",
+        "Internal font Version 4.001;git-9221beed3 matches existing native Inter files",
+        "Original SIL OFL 1.1 license preserved unchanged"
+      ]
     }
   ],
   "delivery": {
@@ -298,17 +411,46 @@
     "invalidRibbonInput": "Preserve last fully supported preview text and identify unsupported characters.",
     "fontReadiness": "Display specimen ink only after the corresponding FontFace.load resolves and that face is added to document.fonts. Loading or failed samples stay hidden, never labeled as the selected font while showing a fallback.",
     "directFile": "Uses relative FontFace URLs and inline JavaScript; no modules, fetch, CDN or server dependency. Browsers that block file-URL fonts receive explicit unavailable status and local-HTTP instructions rather than a mislabeled fallback.",
-    "ribbonWoff2": "junk/ribbon-font/tmax-ribbon.woff2",
-    "ribbonNativeTtf": "TimeMaster/Resources/Fonts/TmaxRibbon-Regular.ttf",
-    "ribbonOtf": "junk/ribbon-font/tmax-ribbon.otf",
+    "ribbonWoff2": "junk/ribbon-font/timemaster.woff2",
+    "ribbonNativeTtf": "TimeMaster/Resources/Fonts/TimeMaster-Regular.ttf",
+    "ribbonOtf": "junk/ribbon-font/timemaster.otf",
     "acceptedPrimaryAndMetricFace": "Inter-Black",
-    "smallTextSelectionAccepted": false,
-    "smallTextPreviewDefault": "SourceSans3-Regular",
+    "smallTextSelectionAccepted": true,
+    "smallTextPreviewDefault": "Manrope-Regular",
     "smallTextComparisonSizesPx": [
       12,
       14,
       16
     ],
-    "nativeBodyReplacementApplied": false
+    "acceptedItalicEmphasisFace": "Inter-BlackItalic",
+    "acceptedPageTitleFace": "TimeMaster-Regular",
+    "historicalComparisonsExplicitlySeparated": true,
+    "nativeBodySelection": "Manrope-Regular"
+  },
+  "officialInterRelease": {
+    "publisher": "Rasmus Andersson / Inter project",
+    "releaseUrl": "https://github.com/rsms/inter/releases/tag/v4.1",
+    "archiveUrl": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+    "releaseTag": "v4.1",
+    "internalFontVersion": "Version 4.001;git-9221beed3",
+    "archiveBytes": 33707794,
+    "archiveSha256": "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e",
+    "licenseArchiveMember": "LICENSE.txt",
+    "licenseSha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
+    "existingNativeBlackMatchesRelease": true,
+    "existingNativeRegularMatchesRelease": true,
+    "existingNativeLicenseMatchesRelease": true,
+    "releaseEvidence": "The official Inter 4.0 release introduced humanist-style italic designs; v4.1 supplies the matching 4.001 static Black Italic release file."
+  },
+  "originalCustomFace": {
+    "family": "TimeMaster",
+    "style": "Regular",
+    "postScriptName": "TimeMaster-Regular",
+    "copyright": "Copyright © 2026 cookbambuk. All rights reserved.",
+    "license": "Proprietary original font software. Use, embedding, modification and redistribution require permission from cookbambuk.",
+    "licenseScope": "The original custom TimeMaster face only. Third-party Inter, Manrope and historical comparison fonts retain their unchanged upstream copyrights and SIL Open Font Licenses.",
+    "canonicalSource": "genesis/REFERENCE/ribbon-font/ribbon-source.json",
+    "immutableSourcePolicy": "Naming and licensing metadata change only; all 52 selected PNGs, their geometry and per-file provenance fingerprints remain unchanged.",
+    "embeddingMetadata": "OS/2 fsType 0x0002: Restricted License embedding; authorization is required from the copyright holder."
   }
 }

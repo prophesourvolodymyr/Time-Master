@@ -95,6 +95,7 @@ struct WorkoutListView: View {
                 showingAddWorkout = true
             }
         }
+        .font(TimeMasterFont.body())
     }
 
     private func openRequestedWorkout(_ workoutID: UUID?) {
@@ -373,7 +374,7 @@ struct WorkoutListView: View {
                 Text("\(sessions) of \(store.weeklyGoal)")
                     .monospacedDigit()
             }
-            .font(.footnote.weight(.medium))
+            .font(TimeMasterFont.body(13, relativeTo: .footnote))
             .foregroundStyle(Theme.textSecondary)
 
             ProgressView(value: min(1, Double(sessions) / Double(max(1, store.weeklyGoal))))
@@ -426,10 +427,10 @@ struct WorkoutListView: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Continue \(workout.name)")
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textPrimary)
                     Text("\(state.sectionName) · \(durationText(state.timeRemaining)) remaining")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                 }
 
@@ -497,18 +498,18 @@ struct WorkoutListView: View {
                 .font(.system(size: 30))
                 .foregroundStyle(Theme.textSecondary)
             Text(showingTodayOnly ? "Nothing scheduled today" : "No matching workouts")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundStyle(Theme.textPrimary)
             Text(showingTodayOnly
                  ? "Switch to All to browse every saved workout."
                  : "Try another name or workout type.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textSecondary)
             if showingTodayOnly {
                 Button("Show all workouts") {
                     showingTodayOnly = false
                 }
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textPrimary)
                 .padding(.top, 4)
             }
@@ -547,10 +548,10 @@ struct WorkoutListView: View {
                 .font(.system(size: 54))
                 .foregroundStyle(Theme.textSecondary)
             Text("No Workouts Yet")
-                .font(.title2.weight(.semibold))
+                .font(TimeMasterFont.black(22, relativeTo: .title2))
                 .foregroundStyle(Theme.textPrimary)
             Text("Create a workout, then add exercises from your database.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
@@ -558,7 +559,7 @@ struct WorkoutListView: View {
                 showingAddWorkout = true
             } label: {
                 Label("Create Workout", systemImage: "plus")
-                    .font(.headline)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
             }
             .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .padding(.top, 4)
@@ -575,7 +576,7 @@ struct WorkoutListView: View {
                     #if os(iOS)
                     if UIDevice.current.userInterfaceIdiom == .phone {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Outdoor activity").font(.headline).foregroundColor(Theme.textPrimary)
+                        Text("Outdoor activity").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
                         HStack(spacing: 10) {
                             Button {
                                 showingAddWorkout = false
@@ -598,7 +599,7 @@ struct WorkoutListView: View {
                     #endif
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Name")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(Theme.textPrimary)
                         TextField("e.g., Morning HIIT", text: $newWorkoutName)
                             .padding(16)
@@ -609,7 +610,7 @@ struct WorkoutListView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Type")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(Theme.textPrimary)
 
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -619,10 +620,12 @@ struct WorkoutListView: View {
                                  } label: {
                                      HStack {
                                          Image(systemName: type.icon)
+                                             .font(.subheadline.weight(newWorkoutType == type ? .semibold : .regular))
                                          Text(type.name)
                                      }
-                                    .font(.subheadline)
-                                    .fontWeight(newWorkoutType == type ? .semibold : .regular)
+                                    .font(newWorkoutType == type
+                                          ? TimeMasterFont.black(15, relativeTo: .subheadline)
+                                          : TimeMasterFont.body(15, relativeTo: .subheadline))
                                     .foregroundColor(.white)
                                     .padding(.vertical, 12)
                                     .frame(maxWidth: .infinity)
@@ -639,7 +642,7 @@ struct WorkoutListView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Icon Color")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(Theme.textPrimary)
                         IconColorPicker(selectedHex: $newWorkoutColor)
                     }
@@ -664,7 +667,7 @@ struct WorkoutListView: View {
                         }
                     } label: {
                         Text("Create Workout")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(newWorkoutName.isEmpty ? Color.white.opacity(0.3) : .black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -675,7 +678,7 @@ struct WorkoutListView: View {
                 }
                 .padding(16)
             }
-            .navigationTitle("New Workout")
+            .timeMasterNavigationTitle("New Workout")
 #if os(iOS)
 .navigationBarTitleDisplayMode(.inline)
 #endif

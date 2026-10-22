@@ -68,7 +68,7 @@ struct OutdoorTripsMenu: View {
                             }
                             if !canSelect {
                                 Label("Finish the workout before starting another route.", systemImage: "figure.run.circle")
-                                    .font(.caption).foregroundStyle(Theme.textSecondary)
+                                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                             }
                         }
                         .padding(.horizontal, 14)
@@ -93,7 +93,7 @@ struct OutdoorTripsMenu: View {
         HStack(spacing: 8) {
             if library != nil, !searchPresented {
                 OutdoorPineIconAction(symbol: "chevron.left", label: "Back to Routes", size: 44) { library = nil }
-                Text(library?.title ?? "Routes").font(.headline).lineLimit(1)
+                TimeMasterPageTitle(library?.title ?? "Routes", size: 22, relativeTo: .headline).lineLimit(1)
             }
             Spacer(minLength: 0)
             SpotlightSearchBar(text: $query, isPresented: $searchPresented, placeholder: "Search routes") {
@@ -133,7 +133,7 @@ struct OutdoorTripsMenu: View {
     }
 
     private func sectionTitle(_ title: String) -> some View {
-        Text(title).font(.title3.weight(.semibold))
+        Text(title).font(TimeMasterFont.heading())
             .frame(maxWidth: .infinity, alignment: .center)
             .accessibilityAddTraits(.isHeader)
     }
@@ -179,7 +179,7 @@ struct OutdoorTripsMenu: View {
             } else if nearby.location == nil {
                 Label(nearby.locationDenied ? "Location access is unavailable" : "Waiting for your current location", systemImage: "location")
                 if let message = nearby.errorMessage {
-                    Text(message).font(.caption).foregroundStyle(Theme.textSecondary)
+                    Text(message).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 }
                 Button(nearby.locationDenied ? "Location settings" : "Use current location") {
                     if nearby.locationDenied, let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
@@ -187,7 +187,7 @@ struct OutdoorTripsMenu: View {
                 }
                 .frame(minHeight: 44)
             } else if let message = nearby.errorMessage {
-                Text(message).font(.caption).foregroundStyle(Theme.textSecondary)
+                Text(message).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 HStack {
                     Button("Try again") { nearby.refresh(kind: kind) }.frame(minHeight: 44)
                     Spacer()
@@ -195,14 +195,14 @@ struct OutdoorTripsMenu: View {
                 }
             } else {
                 Text(query.isEmpty ? "No nearby routes available in the installed area." : "No matching nearby routes")
-                    .font(.caption).foregroundStyle(Theme.textSecondary)
+                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
     }
 
     private func emptyState(_ title: String) -> some View {
-        Text(title).font(.subheadline).foregroundStyle(Theme.textSecondary)
+        Text(title).font(TimeMasterFont.secondary()).foregroundStyle(Theme.textSecondary)
             .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
     }
 
@@ -271,15 +271,15 @@ struct OutdoorTripSearchView: View {
                 }
                 Spacer(minLength: 8)
                 Label("Offline", systemImage: "iphone")
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.textSecondary)
             }
             if loading {
                 TmaxLoadingIndicator()
                     .accessibilityLabel("Searching offline places")
             }
-            if let message { Text(message).font(.caption).foregroundStyle(Theme.textSecondary) }
-            if query.isEmpty { Text("Search stays on this device. Places come from your installed areas.").font(.caption).foregroundStyle(Theme.textSecondary) }
+            if let message { Text(message).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary) }
+            if query.isEmpty { Text("Search stays on this device. Places come from your installed areas.").font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary) }
             ForEach(results) { place in
                 Button { onSelect(place) } label: {
                     HStack(spacing: 10) {
@@ -288,11 +288,11 @@ struct OutdoorTripSearchView: View {
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(place.name)
-                                .font(.subheadline.weight(.semibold))
+                                .font(TimeMasterFont.rowTitle())
                                 .foregroundStyle(Theme.textPrimary)
                             if !place.detail.isEmpty {
                                 Text(place.detail)
-                                    .font(.caption)
+                                    .font(TimeMasterFont.caption())
                                     .foregroundStyle(Theme.textSecondary)
                             }
                         }

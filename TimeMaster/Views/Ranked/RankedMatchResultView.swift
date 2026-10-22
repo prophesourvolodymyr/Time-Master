@@ -84,7 +84,7 @@ struct RankedMatchLimitView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ProfileStyle.inset) {
-                    Text("Match allowance").font(TimeMasterFont.heading())
+                    TimeMasterPageTitle("Match allowance", size: 26, relativeTo: .title3)
                     Text(family.title).font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                     RankedMovementArt(variation: family.variations[0]).frame(height: ProfileStyle.touchTarget * 3)
                     if family == .core {

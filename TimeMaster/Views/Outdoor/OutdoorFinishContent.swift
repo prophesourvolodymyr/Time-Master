@@ -52,7 +52,7 @@ struct OutdoorFinishContent: View {
                         VStack(alignment: .leading, spacing: compact ? 12 : 18) {
                             HStack {
                                 Label("Workout complete", systemImage: "checkmark.circle.fill")
-                                    .font(.caption.weight(.semibold))
+                                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                                     .foregroundStyle(Theme.toolbarOrange)
                                 Spacer()
                                 Menu {
@@ -65,7 +65,7 @@ struct OutdoorFinishContent: View {
                             }
                             HStack(spacing: 10) {
                                 TextField("Name your workout", text: $title)
-                                    .font(compact ? .headline : .title2.weight(.bold))
+                                    .font(TimeMasterFont.black(compact ? 17 : 22, relativeTo: compact ? .headline : .title2))
                                     .textInputAutocapitalization(.sentences)
                                     .submitLabel(.done)
                                     .onSubmit { saveTitle() }
@@ -87,7 +87,7 @@ struct OutdoorFinishContent: View {
                                 )
                                 .padding(.top, 16)
                             }
-                            .font(.subheadline.weight(.semibold))
+                            .font(TimeMasterFont.rowTitle())
                             .tint(Theme.toolbarOrange)
                             if !compact, expansion >= 0.4 {
                                 OutdoorRouteThumbnailView(points: points, cacheKey: activity.id.uuidString)
@@ -300,8 +300,9 @@ struct OutdoorExportShareControl: View {
                         }
                     }
                 }
+                .font(TimeMasterFont.body())
                 .tint(Theme.toolbarOrange)
-                .navigationTitle("Export workout")
+                .timeMasterNavigationTitle("Export workout")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     AppToolbar.item(placement: .confirmationAction) { Button("Done") { showingPicker = false }

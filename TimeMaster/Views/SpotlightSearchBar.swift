@@ -38,7 +38,7 @@ struct SpotlightSearchBar<Accessory: View>: View {
                         .accessibilityLabel("Clear search")
                     }
                 }
-                .font(.body)
+                .font(TimeMasterFont.body(17))
                 .padding(.leading, 16)
                 .padding(.trailing, text.isEmpty ? 16 : 2)
                 .frame(minHeight: 48)

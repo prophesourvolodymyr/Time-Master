@@ -110,7 +110,7 @@ struct TimeMasterInsetControlStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         TimeMasterActionButtonStyle()
             .makeBody(configuration: configuration)
-            .font(.subheadline.weight(.semibold))
+            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
     }
 }
 
@@ -232,7 +232,7 @@ struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         TimeMasterActionButtonStyle()
             .makeBody(configuration: configuration)
-            .font(.subheadline.weight(.semibold))
+            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
     }
 }
 
@@ -240,7 +240,7 @@ struct TimeMasterToolbarWideButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         TimeMasterActionButtonStyle(prominent: true)
             .makeBody(configuration: configuration)
-            .font(.body.weight(.semibold))
+            .font(TimeMasterFont.black(17, relativeTo: .body))
     }
 }
 

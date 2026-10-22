@@ -13,17 +13,17 @@ struct OutdoorTripSummaryView<Action: View, Footer: View>: View {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(trip.isRouted ? outdoorDistanceText(trip.activeDistanceMeters, unitSystem: units, precision: true) : "—")
-                        .font(.title2.weight(.bold)).monospacedDigit()
+                        .font(TimeMasterFont.black(22, relativeTo: .title2)).monospacedDigit()
                     Text(trip.kind == .bike ? "Riding distance" : "On-foot distance")
-                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                        .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 }
                 Spacer(minLength: 0)
                 if trip.hasBus {
                     VStack(alignment: .trailing, spacing: 3) {
                         Text(outdoorDistanceText(trip.totalDistanceMeters, unitSystem: units, precision: true))
-                            .font(.subheadline.weight(.semibold)).monospacedDigit()
+                            .font(TimeMasterFont.rowTitle()).monospacedDigit()
                         Label("Total with bus", systemImage: "bus.fill")
-                            .font(.caption2).foregroundStyle(.yellow)
+                            .font(TimeMasterFont.micro()).foregroundStyle(.yellow)
                     }
                 }
                 action()
@@ -41,7 +41,7 @@ struct OutdoorTripSummaryView<Action: View, Footer: View>: View {
                         Label("\(fraction.formatted(.percent.precision(.fractionLength(0)))) major roads", systemImage: "road.lanes")
                     }
                 }
-                .font(.caption2).foregroundStyle(Theme.textSecondary)
+                .font(TimeMasterFont.micro()).foregroundStyle(Theme.textSecondary)
             }
             footer()
         }
@@ -56,7 +56,7 @@ struct OutdoorTripSummaryView<Action: View, Footer: View>: View {
                 .accessibilityLabel("Elevation gain \(trip.isRouted ? outdoorElevationText(trip.ascentMeters, unitSystem: units) : "unknown")")
             Label(trip.isRouted ? trip.effortTitle : "—", systemImage: "gauge.with.dots.needle.50percent")
         }
-        .font(.caption.weight(.semibold)).monospacedDigit()
+        .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit()
     }
 }
 
@@ -74,10 +74,10 @@ struct OutdoorTripRoadInfo: View {
     private func fractionRow(_ title: String, symbol: String, fraction: Double?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Label(title, systemImage: symbol).font(.subheadline)
+                Label(title, systemImage: symbol).font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 Spacer(minLength: 8)
                 Text(fraction.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? "Unknown")
-                    .font(.subheadline.weight(.semibold)).monospacedDigit()
+                    .font(TimeMasterFont.rowTitle()).monospacedDigit()
             }
             if let fraction {
                 GeometryReader { proxy in

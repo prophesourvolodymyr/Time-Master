@@ -62,6 +62,7 @@ struct MusicLibraryScreen: View {
                 if let transfer = pendingTransfer { transferConfirmation(transfer) }
                 if searchPresented { searchOverlay }
         }
+        .font(TimeMasterFont.body())
         .animation(reduceMotion ? .none : .spring(response: 0.58, dampingFraction: 0.86), value: isWorkoutFocused)
         .animation(reduceMotion ? .none : .spring(response: 0.42, dampingFraction: 0.88), value: playingItem?.id)
         .alert("Remove Music", isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } })) {
@@ -115,8 +116,7 @@ struct MusicLibraryScreen: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Close Music")
-            Text("Music")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+            TimeMasterPageTitle("Music", size: 36, relativeTo: .title)
                 .foregroundStyle(.white)
             Spacer(minLength: 0)
             floatingControls
@@ -234,11 +234,11 @@ struct MusicLibraryScreen: View {
             VStack(spacing: 0) {
                 HStack(spacing: 8) {
                     Text(family == .type ? "Workout Type" : "My Workouts")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(TimeMasterFont.black(13, relativeTo: .footnote))
                     Spacer(minLength: 0)
                     familySwitch
                     Text(destination.map(library.formattedDuration(for:)) ?? "0m")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(TimeMasterFont.black(10, relativeTo: .caption2))
                         .foregroundStyle(orange)
                         .padding(.horizontal, 7).padding(.vertical, 4)
                         .background(orange.opacity(0.12), in: Capsule())
@@ -288,7 +288,7 @@ struct MusicLibraryScreen: View {
     private func familyButton(_ title: String, _ value: MusicDestinationFamily) -> some View {
         Button { family = value } label: {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .frame(minWidth: 44, minHeight: 44)
         }
         .buttonStyle(TimeMasterActionButtonStyle(prominent: family == value, horizontalPadding: 0))
@@ -306,7 +306,7 @@ struct MusicLibraryScreen: View {
         } label: {
             VStack(spacing: 5) {
                 Image(systemName: folderIcon(destination)).font(.system(size: 19, weight: .semibold))
-                Text(library.destinationName(destination)).lineLimit(1).font(.system(size: 9, weight: .semibold))
+                Text(library.destinationName(destination)).lineLimit(1).font(TimeMasterFont.black(9, relativeTo: .caption2))
             }
             .foregroundStyle(selected ? orange : Color.white.opacity(0.82))
             .frame(width: 76, height: 68)
@@ -328,12 +328,12 @@ struct MusicLibraryScreen: View {
                 cover(for: item)
                 Button { itemTapped(item, destination: destination) } label: {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(item.title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                        Text(item.title).font(TimeMasterFont.black(13, relativeTo: .footnote)).lineLimit(1)
                         Text(item.isCollection ? item.kind.rawValue.capitalized : item.source.provider?.displayName ?? "Local")
-                            .font(.system(size: 10)).foregroundStyle(Theme.textSecondary).lineLimit(1)
+                            .font(TimeMasterFont.body(10, relativeTo: .caption2)).foregroundStyle(Theme.textSecondary).lineLimit(1)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.buttonStyle(.plain)
-                Text(library.formattedDuration(item.totalDuration)).font(.system(size: 10, weight: .medium)).foregroundStyle(Theme.textSecondary)
+                Text(library.formattedDuration(item.totalDuration)).font(TimeMasterFont.black(10, relativeTo: .caption2)).foregroundStyle(Theme.textSecondary)
                 Button { selectingItem = item } label: { Image(systemName: "plus").frame(width: 24, height: 24) }
                     .buttonStyle(.plain).foregroundStyle(.white).accessibilityLabel("Add \(item.title) to a workout")
                 if item.isCollection {
@@ -351,7 +351,7 @@ struct MusicLibraryScreen: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(item.tracks.enumerated()), id: \.element.id) { offset, track in
                         HStack { Text("\(offset + 1)").foregroundStyle(Theme.textSecondary); Text(track.title).lineLimit(1); Spacer(); Text(library.formattedDuration(track.duration)).foregroundStyle(Theme.textSecondary) }
-                            .font(.system(size: 11)).padding(.vertical, 8).padding(.horizontal, 12)
+                            .font(TimeMasterFont.body(11, relativeTo: .caption2)).padding(.vertical, 8).padding(.horizontal, 12)
                             .overlay(alignment: .top) { Divider().overlay(Theme.separator) }
                     }
                 }
@@ -391,8 +391,8 @@ struct MusicLibraryScreen: View {
     private func selectMode(for item: MusicLibraryItem) -> some View {
         Color.black.opacity(0.55).ignoresSafeArea().overlay(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Add \(item.title)").font(.headline)
-                Text("Choose one or more workout destinations. Drag and drop also works.").font(.caption).foregroundStyle(Theme.textSecondary)
+                Text("Add \(item.title)").font(TimeMasterFont.black(17, relativeTo: .headline))
+                Text("Choose one or more workout destinations. Drag and drop also works.").font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 ScrollView {
                     LazyVStack(spacing: 7) {
                         ForEach(library.destinations(for: family), id: \.id) { destination in
@@ -440,7 +440,7 @@ struct MusicLibraryScreen: View {
                             ForEach(enabledProviders.sorted(by: { $0.displayName < $1.displayName }), id: \.self) { provider in providerSearchPane(provider) }
                         }
                         let results = library.search(searchText)
-                        if !results.isEmpty { Text("Your Music").font(.headline).padding(.top, 4); ForEach(results) { result in searchResult(result) } }
+                        if !results.isEmpty { Text("Your Music").font(TimeMasterFont.black(17, relativeTo: .headline)).padding(.top, 4); ForEach(results) { result in searchResult(result) } }
                         if searchText.isEmpty { empty("Search General, workout types, and your workouts") }
                     }.padding(.horizontal, 12).padding(.bottom, 16)
                 }.scrollEdgeFade(.vertical)
@@ -450,8 +450,8 @@ struct MusicLibraryScreen: View {
 
     private func providerSearchPane(_ provider: MusicProvider) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            HStack { providerLogo(provider).frame(width: 22, height: 22); Text(provider.displayName).font(.headline) }
-            Text("Connect \(provider.displayName) to search its available catalog.").font(.caption).foregroundStyle(Theme.textSecondary)
+            HStack { providerLogo(provider).frame(width: 22, height: 22); Text(provider.displayName).font(TimeMasterFont.black(17, relativeTo: .headline)) }
+            Text("Connect \(provider.displayName) to search its available catalog.").font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
             Button("Connect") { providerTapped(provider) }.buttonStyle(TimeMasterActionButtonStyle(prominent: true))
         }.padding(12).background(Theme.surface, in: RoundedRectangle(cornerRadius: 18)).overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.separator, lineWidth: 1))
     }
@@ -463,7 +463,7 @@ struct MusicLibraryScreen: View {
             isWorkoutFocused = result.destination != .general
             if result.item.isCollection { expandedItems.insert(result.item.id) }
         } label: {
-            HStack { cover(for: result.item); VStack(alignment: .leading) { Text(result.item.title); Text(library.destinationName(result.destination)).font(.caption).foregroundStyle(Theme.textSecondary) }; Spacer(); Image(systemName: "arrow.right") }
+            HStack { cover(for: result.item); VStack(alignment: .leading) { Text(result.item.title); Text(library.destinationName(result.destination)).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary) }; Spacer(); Image(systemName: "arrow.right") }
                 .padding(9).foregroundStyle(.white).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 16))
         }.buttonStyle(.plain)
     }
@@ -471,8 +471,8 @@ struct MusicLibraryScreen: View {
     private func transferConfirmation(_ transfer: MusicTransfer) -> some View {
         Color.black.opacity(0.6).ignoresSafeArea().overlay {
             VStack(spacing: 12) {
-                Text("Move or Duplicate?").font(.headline)
-                Text("\(library.item(id: transfer.itemID)?.title ?? "Music") → \(library.destinationName(transfer.destination))").font(.caption).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
+                Text("Move or Duplicate?").font(TimeMasterFont.black(17, relativeTo: .headline))
+                Text("\(library.item(id: transfer.itemID)?.title ?? "Music") → \(library.destinationName(transfer.destination))").font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
                 HStack {
                     Button("Cancel") { pendingTransfer = nil }
                         .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
@@ -515,10 +515,10 @@ struct MusicLibraryScreen: View {
             .shadow(color: border ? orange.opacity(0.10) : Color.black.opacity(0.22), radius: border ? 14 : 8, y: 4)
             .clipShape(RoundedRectangle(cornerRadius: 25))
     }
-    private func paneHeader(_ title: String, detail: String?) -> some View { HStack { Text(title).font(.system(size: 13, weight: .bold)); Spacer(); if let detail { Text(detail).font(.system(size: 10, weight: .bold)).foregroundStyle(orange).padding(.horizontal, 7).padding(.vertical, 4).background(orange.opacity(0.12), in: Capsule()) } }.padding(.horizontal, 13).padding(.top, 8).padding(.bottom, 5).foregroundStyle(.white) }
-    private func sourceCard(title: String, systemImage: String? = nil, asset: String? = nil, action: @escaping () -> Void) -> some View { Button(action: action) { VStack(spacing: 6) { if let asset { Image(asset).resizable().scaledToFit().frame(width: 46, height: 46) } else { Image(systemName: systemImage ?? "music.note").font(.system(size: 30, weight: .medium)) }; Text(title).font(.system(size: 10, weight: .bold)).lineLimit(1) }.foregroundStyle(.white).frame(width: 104, height: 95).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 19)).overlay(RoundedRectangle(cornerRadius: 19).stroke(Theme.separator, lineWidth: 1)) }.buttonStyle(.plain).accessibilityLabel(title) }
+    private func paneHeader(_ title: String, detail: String?) -> some View { HStack { Text(title).font(TimeMasterFont.black(13, relativeTo: .footnote)); Spacer(); if let detail { Text(detail).font(TimeMasterFont.black(10, relativeTo: .caption2)).foregroundStyle(orange).padding(.horizontal, 7).padding(.vertical, 4).background(orange.opacity(0.12), in: Capsule()) } }.padding(.horizontal, 13).padding(.top, 8).padding(.bottom, 5).foregroundStyle(.white) }
+    private func sourceCard(title: String, systemImage: String? = nil, asset: String? = nil, action: @escaping () -> Void) -> some View { Button(action: action) { VStack(spacing: 6) { if let asset { Image(asset).resizable().scaledToFit().frame(width: 46, height: 46) } else { Image(systemName: systemImage ?? "music.note").font(.system(size: 30, weight: .medium)) }; Text(title).font(TimeMasterFont.black(10, relativeTo: .caption2)).lineLimit(1) }.foregroundStyle(.white).frame(width: 104, height: 95).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 19)).overlay(RoundedRectangle(cornerRadius: 19).stroke(Theme.separator, lineWidth: 1)) }.buttonStyle(.plain).accessibilityLabel(title) }
     private func providerLogo(_ provider: MusicProvider) -> some View { Group { switch provider { case .spotify: Image("SpotifyLogo").resizable().scaledToFit(); case .youtubeMusic: Image("YouTubeMusicLogo").resizable().scaledToFit(); case .soundCloud: Image("SoundCloudLogo").resizable().scaledToFit(); default: Image(systemName: "music.note") } } }
-    private func empty(_ text: String) -> some View { Text(text).font(.caption).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 68).padding(.horizontal, 16).multilineTextAlignment(.center) }
+    private func empty(_ text: String) -> some View { Text(text).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 68).padding(.horizontal, 16).multilineTextAlignment(.center) }
     private func folderIcon(_ destination: MusicDestination) -> String { switch destination { case .general: return "music.note.list"; case .workoutType(let id): return library.workoutType(for: id)?.iconName ?? "figure.run"; case .workout: return "figure.strengthtraining.traditional" } }
     private func toggleExpanded(_ id: UUID) { withAnimation(reduceMotion ? .none : .spring(response: 0.38, dampingFraction: 0.86)) { if expandedItems.contains(id) { expandedItems.remove(id) } else { expandedItems.insert(id) } } }
     private func itemTapped(_ item: MusicLibraryItem, destination: MusicDestination) {

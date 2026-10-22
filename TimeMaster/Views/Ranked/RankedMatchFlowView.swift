@@ -89,8 +89,12 @@ struct RankedMatchFlowView: View {
             }
             .disabled(controller.busy)
             Spacer(minLength: 0)
-            Label(controller.mode.title, systemImage: controller.mode.symbol)
-                .font(TimeMasterFont.caption().weight(.semibold))
+            Label {
+                TimeMasterPageTitle(controller.mode.title, size: 16, relativeTo: .caption)
+            } icon: {
+                Image(systemName: controller.mode.symbol)
+                    .font(.caption.weight(.semibold))
+            }
                 .foregroundStyle(Theme.toolbarOrange)
             Spacer(minLength: 0)
             RankedIconAction(symbol: "list.bullet.clipboard", label: "Movement rules", id: "ranked-flow-rules") { sheet = .rules }
@@ -112,7 +116,7 @@ struct RankedMatchFlowView: View {
                 Label("Go", systemImage: "flag.checkered").font(TimeMasterFont.heading())
             } else {
                 Text(String(controller.countdown))
-                    .font(.custom("Inter-Black", size: 96, relativeTo: .largeTitle))
+                    .font(TimeMasterFont.black(96, relativeTo: .largeTitle))
                     .accessibilityLabel("Countdown \(controller.countdown)")
             }
             RankedCameraPreview(camera: controller.camera).aspectRatio(4 / 3, contentMode: .fit)

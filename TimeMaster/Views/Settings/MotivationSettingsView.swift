@@ -30,7 +30,8 @@ struct MotivationSettingsView: View {
             #endif
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Motivational Quotes")
+        .font(TimeMasterFont.body())
+        .timeMasterNavigationTitle("Motivational Quotes")
         #if os(iOS)
         #if os(iOS)
         #if os(iOS)
@@ -49,7 +50,7 @@ struct MotivationSettingsView: View {
                     Text("Speak quotes during workout")
                         .foregroundColor(.white)
                     Text("Random quotes are spoken while a section timer runs")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
             }
@@ -69,11 +70,12 @@ struct MotivationSettingsView: View {
                     Text("Minimum interval")
                         .foregroundColor(.white)
                     Text("Quotes won't repeat more often than this")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
                 Spacer()
                 Text("\(interval)s")
+                    .font(TimeMasterFont.black(16, relativeTo: .body))
                     .foregroundColor(Theme.textSecondary)
                     .monospacedDigit()
             }
@@ -92,7 +94,7 @@ struct MotivationSettingsView: View {
         } header: {
             Text("Frequency")
                 .foregroundColor(Theme.textSecondary)
-                .font(.caption)
+                .font(TimeMasterFont.caption())
         }
         .listRowBackground(Theme.surface)
         .listRowSeparatorTint(Theme.separator)
@@ -117,7 +119,7 @@ struct MotivationSettingsView: View {
             ForEach(quotes, id: \.self) { quote in
                 Text(quote)
                     .foregroundColor(.white)
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
             }
             .onDelete { indexSet in
                 quotes.remove(atOffsets: indexSet)
@@ -127,7 +129,7 @@ struct MotivationSettingsView: View {
             HStack {
                 Text("Quotes pool (\(quotes.count))")
                     .foregroundColor(Theme.textSecondary)
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                 Spacer()
                 // Add / Reset buttons
                 Button {
@@ -146,7 +148,7 @@ struct MotivationSettingsView: View {
                     resetToDefaults()
                 } label: {
                     Text("Reset")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
                 .padding(.leading, 8)

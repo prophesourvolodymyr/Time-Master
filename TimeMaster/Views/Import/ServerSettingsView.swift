@@ -40,7 +40,7 @@ struct ServerSettingsView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Server Settings")
+            .timeMasterNavigationTitle("Server Settings")
             #if os(iOS)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -74,7 +74,7 @@ struct ServerSettingsView: View {
                 Image(systemName: "antenna.radiowaves.left.and.right")
                     .foregroundColor(.white)
                 Text("Auto-Detect Server")
-                    .font(.headline).foregroundColor(Theme.textPrimary)
+                    .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 Spacer()
             }
 
@@ -82,28 +82,28 @@ struct ServerSettingsView: View {
                 HStack(spacing: 10) {
                     TmaxLoadingIndicator(size: 18)
                     Text("Scanning local network…")
-                        .font(.subheadline).foregroundColor(Theme.textSecondary)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary)
                 }
             } else if let host = discovery.lastDetectedHost {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                     Text("Found at \(host)")
-                        .font(.subheadline).foregroundColor(.green)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundColor(.green)
                     Spacer()
                     Button("Scan again") {
                         discovery.lastDetectedHost = nil
                         ServerDiscovery.shared.start()
                     }
-                    .font(.caption).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
                 }
             } else {
                 HStack(spacing: 8) {
                     Image(systemName: "xmark.circle").foregroundColor(Theme.textSecondary)
                     Text("No server found — make sure server.py is running")
-                        .font(.subheadline).foregroundColor(Theme.textSecondary)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary)
                     Spacer()
                     Button("Retry") { ServerDiscovery.shared.start() }
-                        .font(.caption).foregroundColor(.white)
+                        .font(TimeMasterFont.caption()).foregroundColor(.white)
                 }
             }
         }
@@ -117,7 +117,7 @@ struct ServerSettingsView: View {
     private var connectionCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Manual Override")
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
 
             VStack(spacing: 8) {
                 HStack {
@@ -151,7 +151,7 @@ struct ServerSettingsView: View {
             HStack(spacing: 12) {
                 Button { testConnection() } label: {
                     Text("Test Connection")
-                        .font(.subheadline).fontWeight(.medium)
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                         .padding(.horizontal, 16).padding(.vertical, 10)
                         .background(Theme.surface2).cornerRadius(8)
@@ -163,7 +163,7 @@ struct ServerSettingsView: View {
                             TmaxLoadingIndicator(size: 16)
                         }
                         Text(connectionStatus.label)
-                            .font(.subheadline)
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             .foregroundColor(connectionStatus.color)
                     }
                 }
@@ -180,7 +180,7 @@ struct ServerSettingsView: View {
     private var instructionsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Setup Instructions")
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
 
             VStack(alignment: .leading, spacing: 10) {
                 instructionRow("1", "Install yt-dlp:  pip3 install yt-dlp")
@@ -197,11 +197,11 @@ struct ServerSettingsView: View {
     private func instructionRow(_ step: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text(step)
-                .font(.caption).fontWeight(.bold)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(Theme.textSecondary)
                 .frame(width: 16)
             Text(text)
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()

@@ -141,6 +141,7 @@ struct WorkoutDetailView: View {
             .clipped()
             .animation(editorAnimation, value: musicConfigurationOpen)
         }
+        .font(TimeMasterFont.body())
         .background(Theme.background.ignoresSafeArea())
         .modifier(WorkoutFloatingControlsOverlay(workoutName: workout.name, context: liveContext, library: musicLibrary))
         .navigationTitle("")
@@ -313,11 +314,10 @@ struct WorkoutDetailView: View {
                 .font(.system(size: 60))
                 .foregroundColor(Theme.textSecondary)
             Text("No Sections Yet")
-                .font(.title2)
-                .fontWeight(.semibold)
+                .font(TimeMasterFont.black(22, relativeTo: .title2))
                 .foregroundColor(Theme.textPrimary)
             Text("Exercises define the structure of your workout.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
@@ -328,7 +328,7 @@ struct WorkoutDetailView: View {
                     Image(systemName: "plus.circle.fill")
                     Text("Add First Exercise")
                 }
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
             }
             .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .padding(.top, 8)
@@ -339,7 +339,7 @@ struct WorkoutDetailView: View {
                     Image(systemName: "folder.fill.badge.plus")
                     Text("Browse Exercises")
                 }
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(.white.opacity(0.7))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -365,17 +365,17 @@ struct WorkoutDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     if !isCompact {
                         Text(current.type.name)
-                            .font(.caption.weight(.semibold))
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
                             .foregroundStyle(Theme.textSecondary)
                             .transition(.opacity)
                     }
                     Text(current.name)
-                        .font(isCompact ? .subheadline.weight(.semibold) : .headline)
+                        .font(TimeMasterFont.black(isCompact ? 15 : 17, relativeTo: isCompact ? .subheadline : .headline))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(2)
                     if isCompact {
                         Text("\(sectionCount) sections · \(setCount) sets · \(duration) · \(completed) completed")
-                            .font(.caption.monospacedDigit())
+                            .font(TimeMasterFont.caption().monospacedDigit())
                             .foregroundStyle(Theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                             .transition(.opacity)
@@ -408,10 +408,10 @@ struct WorkoutDetailView: View {
     private func detailMetric(value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(value)
-                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline).monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
             Text(label)
-                .font(.caption2)
+                .font(TimeMasterFont.micro())
                 .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -901,7 +901,7 @@ struct WorkoutDetailView: View {
                     .frame(width: 12)
 
                 Text(formatCompactDuration(section.calculatedDuration))
-                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
                     .foregroundColor(Theme.textSecondary)
 
                 pageThumbnailButton(
@@ -917,12 +917,12 @@ struct WorkoutDetailView: View {
             } label: {
                 VStack(spacing: 3) {
                     Text(section.name)
-                        .font(.headline.weight(.medium))
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
 
                     Text(sectionSummary(section))
-                        .font(.caption.monospacedDigit())
+                        .font(TimeMasterFont.caption().monospacedDigit())
                         .foregroundColor(Theme.textSecondary)
                         .lineLimit(1)
                 }
@@ -1031,13 +1031,13 @@ struct WorkoutDetailView: View {
                 Image(systemName: "timer")
                     .font(.caption.weight(.semibold))
                 Text(formatCompactDuration(seconds))
-                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
             }
             .foregroundColor(Theme.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("Preparation for that set")
-                .font(.caption.weight(.medium))
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textPrimary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
@@ -1089,11 +1089,11 @@ struct WorkoutDetailView: View {
             } label: {
                 VStack(spacing: 2) {
                     Text(slot.displayName)
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     Text("Set \(index + 1)")
-                        .font(.caption2.weight(.medium))
+                        .font(TimeMasterFont.micro())
                         .foregroundColor(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -1175,11 +1175,11 @@ struct WorkoutDetailView: View {
             } label: {
                 VStack(spacing: 2) {
                     Text(drop.displayName)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     Text("Drop")
-                        .font(.caption2.weight(.medium))
+                        .font(TimeMasterFont.micro())
                         .foregroundColor(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -1213,7 +1213,7 @@ struct WorkoutDetailView: View {
     ) -> some View {
         Button(action: action) {
             Text(text)
-                .font(.caption.weight(.semibold).monospacedDigit())
+                .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
                 .foregroundColor(foreground)
                 .lineLimit(1)
         }
@@ -1273,7 +1273,7 @@ struct WorkoutDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(row.kind == .big ? "Big Rest" : "Rest")
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
                 .frame(maxWidth: .infinity)
 
@@ -1329,7 +1329,7 @@ struct WorkoutDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(databaseStore.page(id: pageID)?.title ?? "Rest exercise")
-                .font(.caption.weight(.medium))
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
@@ -1343,7 +1343,7 @@ struct WorkoutDetailView: View {
 
     private var restEmptyHint: some View {
         Text("Add a note, stretch, or rest exercise")
-            .font(.caption)
+            .font(TimeMasterFont.caption())
             .foregroundColor(Theme.textSecondary)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 12)
@@ -1433,7 +1433,7 @@ struct WorkoutDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(content.text.isEmpty ? (content.kind == .stretch ? "Stretch" : "Note") : content.text)
-                .font(.caption.weight(.medium))
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
@@ -1485,13 +1485,13 @@ struct WorkoutDetailView: View {
                 Image(systemName: "slider.horizontal.3")
                     .foregroundColor(Theme.textSecondary)
                 Text("Configure New Section")
-                    .font(.subheadline.weight(.semibold))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
             }
 
             Text(pending.name)
-                .font(.callout.weight(.medium))
+                .font(TimeMasterFont.black(16, relativeTo: .callout))
                 .foregroundColor(.white)
                 .lineLimit(2)
 
@@ -1532,7 +1532,7 @@ struct WorkoutDetailView: View {
                     }
                 } label: {
                     Text("Cancel")
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
@@ -1541,7 +1541,7 @@ struct WorkoutDetailView: View {
                     confirmPendingSection(pending)
                 } label: {
                     Text("Confirm")
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
@@ -1555,7 +1555,7 @@ struct WorkoutDetailView: View {
     private func inlineStepper(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
         VStack(spacing: 2) {
             Text(label)
-                .font(.system(size: 8))
+                .font(TimeMasterFont.body(8, relativeTo: .caption2))
                 .foregroundColor(Theme.textSecondary)
             if unit == "s" {
                 DurationPickerView(
@@ -1567,7 +1567,7 @@ struct WorkoutDetailView: View {
                 .frame(maxWidth: .infinity)
             } else {
                 Text("\(value.wrappedValue)\(unit)")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(TimeMasterFont.black(10, relativeTo: .caption2).monospacedDigit())
                     .foregroundColor(.white)
                 HStack(spacing: 3) {
                     Button {
@@ -1640,7 +1640,7 @@ struct WorkoutDetailView: View {
                     Image(systemName: "play.fill")
                     Text("Start Workout")
                 }
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
@@ -2159,7 +2159,7 @@ private struct WorkoutAddContentSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Choose what to add to this workout.")
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .foregroundColor(Theme.textSecondary)
 
                     option(
@@ -2190,7 +2190,7 @@ private struct WorkoutAddContentSheet: View {
                 .padding(20)
             }
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Add to Workout")
+            .timeMasterNavigationTitle("Add to Workout")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2201,6 +2201,7 @@ private struct WorkoutAddContentSheet: View {
                 }
             }
         }
+        .font(TimeMasterFont.body())
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 430)
         #endif
@@ -2225,10 +2226,10 @@ private struct WorkoutAddContentSheet: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(.white)
                     Text(subtitle)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
 
@@ -2285,10 +2286,10 @@ private struct SavedWorkoutPickerSheet: View {
 
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(savedWorkout.name)
-                                                .font(.headline)
+                                                .font(TimeMasterFont.black(17, relativeTo: .headline))
                                                 .foregroundColor(Theme.textPrimary)
                                             Text("\(savedWorkout.sections.count) sections · \(formatDuration(savedWorkout.totalDuration))")
-                                                .font(.caption)
+                                                .font(TimeMasterFont.caption())
                                                 .foregroundColor(Theme.textSecondary)
                                         }
 
@@ -2310,7 +2311,7 @@ private struct SavedWorkoutPickerSheet: View {
                 }
             }
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Add Saved Workout")
+            .timeMasterNavigationTitle("Add Saved Workout")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2321,6 +2322,7 @@ private struct SavedWorkoutPickerSheet: View {
                 }
             }
         }
+        .font(TimeMasterFont.body())
         #if os(macOS)
         .frame(minWidth: 460, minHeight: 420)
         #endif
@@ -2332,11 +2334,11 @@ private struct SavedWorkoutPickerSheet: View {
                 .font(.system(size: 58))
                 .foregroundColor(Theme.textSecondary)
             Text("No saved workouts yet")
-                .font(.title2.weight(.semibold))
+                .font(TimeMasterFont.black(22, relativeTo: .title2))
                 .foregroundColor(Theme.textPrimary)
                 .multilineTextAlignment(.center)
             Text("Create a workout first, then add it here as a nested section.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 320)
@@ -2345,7 +2347,7 @@ private struct SavedWorkoutPickerSheet: View {
                 NotificationCenter.default.post(name: .newWorkoutCommand, object: nil)
             } label: {
                 Text("Create New Workout")
-                    .font(.headline)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
             }
             .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
         }
@@ -2420,13 +2422,13 @@ private struct DurationEditorSheet: View {
             VStack(spacing: 20) {
                 DurationPickerView(seconds: $seconds, range: 5...3600, step: 5)
                 Text("Changes apply to this row only.")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
             }
             .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle(title)
+            .timeMasterNavigationTitle(title)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2440,6 +2442,7 @@ private struct DurationEditorSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 }
 
@@ -2459,7 +2462,7 @@ private struct RestNoteEditorSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Write a short cue for this rest interval.")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
                 TextEditor(text: $text)
                     .scrollContentBackground(.hidden)
@@ -2470,7 +2473,7 @@ private struct RestNoteEditorSheet: View {
             .padding(16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Rest Note")
+            .timeMasterNavigationTitle("Rest Note")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2484,6 +2487,7 @@ private struct RestNoteEditorSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 }
 
@@ -2497,7 +2501,7 @@ private struct RestSeparatorRow: View {
                 .font(.system(size: 11))
                 .foregroundColor(Theme.textSecondary)
             Text("Rest")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
             Spacer()
             Button {
@@ -2510,7 +2514,7 @@ private struct RestSeparatorRow: View {
             .disabled(rest <= 0)
             .buttonStyle(.plain)
             Text("\(rest)s")
-                .font(.caption.monospacedDigit().weight(.semibold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
                 .foregroundColor(rest == defaultRest ? Theme.textSecondary : .white)
                 .frame(minWidth: 32)
             Button {
@@ -2596,7 +2600,7 @@ private struct WorkoutSettingsView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Workout Settings")
+            .timeMasterNavigationTitle("Workout Settings")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2608,17 +2612,17 @@ private struct WorkoutSettingsView: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 
     private var restSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Rest Between Sections")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             HStack {
                 Text("\(restBetweenSections)s")
-                    .font(.title2.monospacedDigit())
-                    .fontWeight(.semibold)
+                    .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Stepper("", value: $restBetweenSections, in: 0...300, step: 5).labelsHidden()
@@ -2627,7 +2631,7 @@ private struct WorkoutSettingsView: View {
             .background(Theme.surface)
             .cornerRadius(12)
             Text("Default rest applied between sections unless overridden per-section.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
         }
     }
@@ -2635,7 +2639,7 @@ private struct WorkoutSettingsView: View {
     private var colorSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Icon Color")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             IconColorPicker(selectedHex: $colorHex)
         }
@@ -2644,7 +2648,7 @@ private struct WorkoutSettingsView: View {
     private var coverSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Workout Cover")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
 
             Picker("Cover style", selection: $coverStyle) {
@@ -2690,11 +2694,11 @@ private struct WorkoutSettingsView: View {
     private var musicSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Workout Music")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             if musicManager.trackFilenames.isEmpty {
                 Text("No music tracks added. Add tracks in Settings → Background Music.")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textSecondary)
             } else {
                 Toggle("Use entire music library", isOn: Binding(
@@ -2713,7 +2717,7 @@ private struct WorkoutSettingsView: View {
                                 .font(.title3)
                                 .foregroundColor(selectedTrackIndices.contains(index) ? .white : Color.white.opacity(0.28))
                              Text(musicManager.displayName(for: filename))
-                                .font(.subheadline)
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                                 .foregroundColor(Theme.textPrimary)
                                 .lineLimit(1)
                             Spacer()
@@ -2734,7 +2738,7 @@ private struct WorkoutSettingsView: View {
                 .background(Theme.surface)
                 .cornerRadius(12)
                 Text("Turn this off to choose a specific playlist for this workout.")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
             }
         }
@@ -2759,7 +2763,7 @@ private struct WorkoutSettingsView: View {
             Text(value)
                 .foregroundColor(Theme.textPrimary)
         }
-        .font(.subheadline)
+        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
     }
 
     private func formatDuration(_ seconds: Int) -> String {

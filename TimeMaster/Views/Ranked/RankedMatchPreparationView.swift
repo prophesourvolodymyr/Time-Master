@@ -126,7 +126,7 @@ struct RankedOpponentReadyView: View {
                             Image(systemName: "person.crop.circle.fill").font(.largeTitle).foregroundStyle(ProfileStyle.secondary)
                             Text(participant.displayName).font(TimeMasterFont.rowTitle()).lineLimit(1)
                             Label(participant.ready ? "Ready" : "Calibrating", systemImage: participant.ready ? "checkmark.circle.fill" : "viewfinder")
-                                .font(TimeMasterFont.caption().weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                                 .foregroundStyle(participant.ready ? Theme.toolbarOrange : ProfileStyle.secondary)
                         }
                         .frame(maxWidth: .infinity)

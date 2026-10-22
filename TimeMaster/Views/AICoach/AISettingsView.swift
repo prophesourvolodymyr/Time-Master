@@ -30,7 +30,7 @@ struct AISettingsView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("AI Settings")
+            .timeMasterNavigationTitle("AI Settings")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -41,7 +41,7 @@ struct AISettingsView: View {
             .toolbar {
                 AppToolbar.item(placement: .confirmationAction) { Button("Done") { applyAndDismiss() }
                     .foregroundColor(.white)
-                    .fontWeight(.semibold)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
                                  }
             }
             .onAppear { reloadAPIKeyDraft() }
@@ -80,6 +80,7 @@ struct AISettingsView: View {
                 ProviderPickerSheet(activeID: $store.activeProviderID)
             }
         }
+        .font(TimeMasterFont.body())
     }
 
     // MARK: - Provider + API Key (combined)
@@ -120,11 +121,11 @@ struct AISettingsView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(store.activeProvider.name)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(.white)
                 if !store.activeProvider.apiKeyHint.isEmpty {
                     Text("Key format: \(store.activeProvider.apiKeyHint)")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Color.white.opacity(0.38))
                 }
             }
@@ -132,7 +133,7 @@ struct AISettingsView: View {
             Spacer()
 
             Button("Switch") { showProviderPicker = true }
-                .font(.system(size: 13, weight: .semibold))
+                .font(TimeMasterFont.black(13, relativeTo: .footnote))
                 .buttonStyle(TimeMasterActionButtonStyle())
         }
     }
@@ -169,14 +170,14 @@ struct AISettingsView: View {
                 .foregroundColor(Color.white.opacity(0.65))
                 .font(.caption)
             Text("This looks like a \(detected.name) key.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Color.white.opacity(0.65))
             Spacer()
             Button("Switch") {
                 applyCurrentKeyDraft()
                 store.activeProviderID = detected.id
             }
-            .font(.caption.weight(.semibold))
+            .font(TimeMasterFont.black(12, relativeTo: .caption))
             .buttonStyle(TimeMasterActionButtonStyle())
         }
         .padding(10)
@@ -187,7 +188,7 @@ struct AISettingsView: View {
     private var customURLField: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Base URL")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Color.white.opacity(0.45))
             TextField("http://localhost:11434/v1", text: $store.customBaseURL)
                 .padding(13)
@@ -202,7 +203,7 @@ struct AISettingsView: View {
                 .keyboardType(.URL)
                 #endif
             Text("Works with Ollama, LM Studio, or any OpenAI-compatible endpoint.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Color.white.opacity(0.35))
         }
     }
@@ -215,7 +216,7 @@ struct AISettingsView: View {
             Text(apiKeyDraft.isEmpty
                  ? "No key set — the AI won't respond without one."
                  : "Key entered. Tap Done to save securely.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Color.white.opacity(0.45))
         }
     }
@@ -263,7 +264,7 @@ struct AISettingsView: View {
                         .foregroundColor(.green.opacity(0.8))
                         .font(.caption)
                     Text("\(store.availableModels.count) models detected. Tap the antenna icon to pick.")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Color.white.opacity(0.45))
                 }
             } else {
@@ -278,13 +279,13 @@ struct AISettingsView: View {
         if !models.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Known models for \(store.activeProvider.name):")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Color.white.opacity(0.38))
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(models, id: \.self) { m in
                             Button(m) { store.model = m }
-                                .font(.system(size: 12, weight: .medium))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                                 .buttonStyle(TimeMasterActionButtonStyle())
                         }
                     }
@@ -292,7 +293,7 @@ struct AISettingsView: View {
             }
         } else {
             Text("Tap the antenna icon to auto-detect available models.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Color.white.opacity(0.35))
         }
     }
@@ -329,7 +330,7 @@ struct AISettingsView: View {
                     Image(systemName: "doc.badge.plus")
                         .foregroundColor(Color.white.opacity(0.25))
                     Text("Upload .txt, .md, or .pdf to give the AI extra context about you or your goals.")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Color.white.opacity(0.4))
                 }
                 .padding(10)
@@ -341,7 +342,7 @@ struct AISettingsView: View {
                                 .foregroundColor(Color.white.opacity(0.5))
                                 .frame(width: 24)
                             Text(filename)
-                                .font(.subheadline)
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                             Spacer()
@@ -366,7 +367,7 @@ struct AISettingsView: View {
 
             Button { showingFilePicker = true } label: {
                 Label("Add File", systemImage: "plus.circle.fill")
-                    .font(.subheadline.weight(.medium))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(12)
@@ -382,7 +383,7 @@ struct AISettingsView: View {
         SettingsCard(title: "Data", icon: "trash.fill") {
             Button { showClearConfirm = true } label: {
                 Text("Clear Chat History")
-                    .font(.subheadline.weight(.medium))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(.red.opacity(0.85))
                     .frame(maxWidth: .infinity)
                     .padding(13)
@@ -439,7 +440,7 @@ struct ProviderPickerSheet: View {
                             }
                         } header: {
                             Text(section.group)
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(TimeMasterFont.black(11, relativeTo: .caption2))
                                 .foregroundColor(Color.white.opacity(0.38))
                                 .textCase(.uppercase)
                                 .kerning(0.5)
@@ -448,7 +449,7 @@ struct ProviderPickerSheet: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Choose Provider")
+            .timeMasterNavigationTitle("Choose Provider")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -462,6 +463,7 @@ struct ProviderPickerSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 }
 
@@ -483,10 +485,10 @@ private struct ProviderRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(provider.name)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(.white)
                 Text(provider.apiKeyHint.isEmpty ? "No key required" : "Key: \(provider.apiKeyHint)")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Color.white.opacity(0.38))
             }
 
@@ -522,7 +524,7 @@ private struct SettingsCard<Content: View>: View {
                     .foregroundColor(Color.white.opacity(0.55))
                     .frame(width: 20)
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
                     .foregroundColor(Color.white.opacity(0.55))
                     .textCase(.uppercase)
                     .kerning(0.5)
@@ -558,10 +560,10 @@ struct ModelPickerSheet: View {
                                 .font(.system(size: 44))
                                 .foregroundColor(Color.white.opacity(0.15))
                             Text("No models detected")
-                                .font(.headline)
+                                .font(TimeMasterFont.black(17, relativeTo: .headline))
                                 .foregroundColor(Color.white.opacity(0.5))
                             Text("Make sure your API key is correct, then tap the antenna icon again.")
-                                .font(.subheadline)
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                                 .foregroundColor(Color.white.opacity(0.35))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
@@ -576,10 +578,10 @@ struct ModelPickerSheet: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(modelID)
-                                            .font(.system(size: 14, weight: .medium))
+                                            .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                                             .foregroundColor(.white)
                                         Text(modelCategory(modelID))
-                                            .font(.caption)
+                                            .font(TimeMasterFont.caption())
                                             .foregroundColor(Color.white.opacity(0.38))
                                     }
                                     Spacer()
@@ -602,7 +604,7 @@ struct ModelPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Choose Model")
+            .timeMasterNavigationTitle("Choose Model")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -616,6 +618,7 @@ struct ModelPickerSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 
     private func modelCategory(_ id: String) -> String {

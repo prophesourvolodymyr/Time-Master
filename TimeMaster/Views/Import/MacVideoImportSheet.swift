@@ -43,10 +43,14 @@ struct MacVideoImportSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Video Import", systemImage: "video.badge.plus")
-                            .font(.title.bold())
+                        Label {
+                            TimeMasterPageTitle("Video Import", size: 36, relativeTo: .title)
+                        } icon: {
+                            Image(systemName: "video.badge.plus")
+                                .font(.title.bold())
+                        }
                         Text("Add a source video, trim the moments you need, and save the result as a page in your exercise database.")
-                            .font(.body)
+                            .font(TimeMasterFont.body(17))
                             .foregroundStyle(.secondary)
                     }
 
@@ -61,7 +65,12 @@ struct MacVideoImportSheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 4)
                     } label: {
-                        Label("From a File", systemImage: "folder")
+                        Label {
+                            Text("From a File")
+                                .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                        } icon: {
+                            Image(systemName: "folder")
+                        }
                     }
 
                     GroupBox {
@@ -92,17 +101,27 @@ struct MacVideoImportSheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 4)
                     } label: {
-                        Label("Download with yt-dlp", systemImage: "arrow.down.to.line")
+                        Label {
+                            Text("Download with yt-dlp")
+                                .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                        } icon: {
+                            Image(systemName: "arrow.down.to.line")
+                        }
                     }
 
-                    Label("Downloads run directly on this Mac. Tmax does not use a server.", systemImage: "lock.shield")
-                        .font(.callout)
+                    Label {
+                        Text("Downloads run directly on this Mac. Tmax does not use a server.")
+                            .font(TimeMasterFont.body(16, relativeTo: .callout))
+                    } icon: {
+                        Image(systemName: "lock.shield")
+                            .font(.callout)
+                    }
                         .foregroundStyle(.secondary)
                 }
                 .padding(28)
                 .frame(maxWidth: 760, alignment: .leading)
             }
-            .navigationTitle("Import Video")
+            .timeMasterNavigationTitle("Import Video")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel", action: dismiss.callAsFunction)
                                  }

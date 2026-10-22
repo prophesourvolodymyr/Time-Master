@@ -21,6 +21,7 @@ struct HomeWidgetContent: View {
 
     var body: some View {
         content
+            .font(TimeMasterFont.body())
     }
 
     @ViewBuilder
@@ -72,12 +73,13 @@ struct HomeWidgetContent: View {
     private var greeting: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(greetingText)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .font(TimeMasterFont.black(26, relativeTo: .title))
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Text(now, style: .date)
-                .font(.caption)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                .monospacedDigit()
                 .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,12 +108,13 @@ struct HomeWidgetContent: View {
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(workout.name)
-                                .font(.title3.weight(.bold))
+                                .font(TimeMasterFont.heading())
                                 .foregroundStyle(.white)
                                 .lineLimit(2)
                             if widget.configuration.showDetails && widget.footprint != .compact {
                                 Text("\(workout.sectionCount) sections · \(durationText(workout.totalDuration))")
-                                    .font(.caption)
+                                    .font(TimeMasterFont.caption())
+                                    .monospacedDigit()
                                     .foregroundStyle(Theme.textSecondary)
                             }
                         }
@@ -121,7 +124,7 @@ struct HomeWidgetContent: View {
                         onStartWorkout(workout)
                     } label: {
                         Label("Start", systemImage: "play.fill")
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
@@ -175,13 +178,14 @@ struct HomeWidgetContent: View {
                                     .fill(Color(hex: entry.workoutType.colorHex))
                                     .frame(width: 8, height: 8)
                                 Text(entry.workoutName)
-                                    .font(.subheadline.weight(.medium))
+                                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                     .foregroundStyle(.white)
                                     .lineLimit(1)
                                 Spacer(minLength: 6)
                                 if widget.footprint != .compact {
                                     Text(entry.completedAt, style: .relative)
-                                        .font(.caption)
+                                        .font(TimeMasterFont.black(12, relativeTo: .caption))
+                                        .monospacedDigit()
                                         .foregroundStyle(Theme.textSecondary)
                                 }
                             }
@@ -199,17 +203,18 @@ struct HomeWidgetContent: View {
                let workout = workoutStore.workout(id: state.workoutId) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(state.workoutName)
-                        .font(.headline)
+                        .font(TimeMasterFont.sectionTitle())
                         .foregroundStyle(.white)
                         .lineLimit(2)
                     Text("\(state.sectionName) · \(durationText(state.elapsedSeconds)) elapsed")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textSecondary)
                     Button {
                         onStartWorkout(workout)
                     } label: {
                         Label("Resume", systemImage: "play.fill")
-                            .font(.subheadline.weight(.semibold))
+                            .font(TimeMasterFont.rowTitle())
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 9)
@@ -237,11 +242,12 @@ struct HomeWidgetContent: View {
                             .background(Color(hex: workout.colorHex), in: RoundedRectangle(cornerRadius: 10))
                         VStack(alignment: .leading, spacing: 3) {
                             Text(workout.name)
-                                .font(.subheadline.weight(.semibold))
+                                .font(TimeMasterFont.rowTitle())
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                             Text(durationText(workout.totalDuration))
-                                .font(.caption)
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                                .monospacedDigit()
                                 .foregroundStyle(Theme.textSecondary)
                         }
                         Spacer()
@@ -271,15 +277,16 @@ struct HomeWidgetContent: View {
         return HomeWidgetChrome(title: "Streak", surface: true) {
             VStack(spacing: 4) {
                 Text("\(streak.current)")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(48, relativeTo: .largeTitle))
                     .monospacedDigit()
                     .foregroundStyle(.white)
                 Text(streak.current == 1 ? "day" : "days")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.secondary())
                     .foregroundStyle(Theme.textSecondary)
                 if widget.footprint == .square {
                     Text("Best · \(streak.best)")
-                        .font(.caption.weight(.medium))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -303,12 +310,13 @@ struct HomeWidgetContent: View {
                                 .frame(width: 27, height: 27)
                                 .background(Color(hex: type.colorHex), in: RoundedRectangle(cornerRadius: 8))
                             Text(type.name)
-                                .font(.caption.weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                                 .foregroundStyle(.white)
                             ProgressView(value: min(Double(stats.sessionsThisWeek) / Double(goal), 1))
                                 .tint(Color(hex: type.colorHex))
                             Text("\(stats.sessionsThisWeek)/\(goal)")
-                                .font(.caption.monospacedDigit())
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                                .monospacedDigit()
                                 .foregroundStyle(Theme.textSecondary)
                         }
                     }
@@ -350,11 +358,12 @@ struct HomeWidgetContent: View {
                             Image(systemName: type.iconName)
                                 .foregroundStyle(Color(hex: type.colorHex))
                             Text(type.name)
-                                .font(.subheadline.weight(.semibold))
+                                .font(TimeMasterFont.rowTitle())
                                 .foregroundStyle(.white)
                             Spacer()
                             Text("\(stats.sessionsThisWeek) · \(stats.totalSeconds / 60)m")
-                                .font(.caption.monospacedDigit())
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                                .monospacedDigit()
                                 .foregroundStyle(Theme.textSecondary)
                         }
                     }
@@ -383,7 +392,7 @@ struct HomeWidgetContent: View {
                         .font(.largeTitle)
                         .foregroundStyle(.cyan)
                     Text("Explore")
-                        .font(.title3.bold())
+                        .font(TimeMasterFont.heading())
                         .foregroundStyle(Theme.textPrimary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -399,10 +408,10 @@ struct HomeWidgetContent: View {
             if let activity = outdoorStore.recoverableActivities.first {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(activity.title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundStyle(.white)
                     Text(activity.finished ? "Ready to save" : "Paused")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                     #if os(iOS)
                     if UIDevice.current.userInterfaceIdiom == .phone {
@@ -414,12 +423,12 @@ struct HomeWidgetContent: View {
                         .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
                     } else {
                         Text("Resume on iPhone")
-                            .font(.caption.weight(.semibold))
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
                             .foregroundStyle(Theme.textSecondary)
                     }
                     #else
                     Text("Resume on iPhone")
-                        .font(.caption.weight(.semibold))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                         .foregroundStyle(Theme.textSecondary)
                     #endif
                 }
@@ -462,10 +471,10 @@ struct HomeWidgetContent: View {
             Button(action: onBrowseDatabase) {
                 VStack(spacing: 6) {
                     Text("\(databaseCount)")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(TimeMasterFont.black(36, relativeTo: .largeTitle))
                         .monospacedDigit()
                     Text("Open database")
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -503,7 +512,7 @@ struct HomeWidgetContent: View {
 
     private func quietEmpty(_ text: String) -> some View {
         Text(text)
-            .font(.title3.weight(.bold))
+            .font(TimeMasterFont.heading())
             .multilineTextAlignment(.center)
             .foregroundStyle(Theme.textPrimary)
             .fixedSize(horizontal: false, vertical: true)
@@ -582,12 +591,13 @@ struct HomeWidgetContent: View {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(item.workout.name)
-                        .font(.headline)
+                        .font(TimeMasterFont.sectionTitle())
                         .foregroundStyle(.white)
                         .lineLimit(1)
                     if widget.configuration.showScheduledTime {
                         Text(item.timeRangeText)
-                            .font(.caption)
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                            .monospacedDigit()
                             .foregroundStyle(Theme.textSecondary)
                     }
                 }
@@ -625,13 +635,13 @@ struct HomeWidgetContent: View {
             : AnyLayout(VStackLayout(spacing: 6))
         return layout {
             Text(value)
-                .font(widget.footprint == .compact ? .headline : .title.bold())
+                .font(widget.footprint == .compact ? TimeMasterFont.sectionTitle() : TimeMasterFont.black(28, relativeTo: .title))
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -651,7 +661,7 @@ struct HomeWidgetContent: View {
     private func emptyAction(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -687,12 +697,13 @@ struct HomeWidgetContent: View {
             Image(systemName: "map")
                 .foregroundStyle(.cyan)
             Text(route.title)
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundStyle(.white)
                 .lineLimit(1)
             Spacer()
             Text("\(route.points.count) pts")
-                .font(.caption)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                .monospacedDigit()
                 .foregroundStyle(Theme.textSecondary)
         }
     }
@@ -717,7 +728,7 @@ private struct HomeActivityShortcutCircle: View {
                 Image(systemName: shortcut.systemImage)
                     .font(.title2.weight(.semibold))
                 Text(shortcut.title)
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .multilineTextAlignment(.center)
             }
             .foregroundStyle(.white)
@@ -767,7 +778,7 @@ struct HomeWidgetChrome<Content: View>: View {
         VStack(spacing: 12) {
             if let title {
                 Text(title)
-                    .font(.headline.weight(.bold))
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

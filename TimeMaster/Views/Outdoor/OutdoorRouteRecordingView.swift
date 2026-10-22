@@ -272,7 +272,7 @@ struct OutdoorRouteRecordingView: View {
                 if libraryMapReturnHeight != nil {
                     Button(action: closeLibraryMap) {
                         Label("Back to workout", systemImage: "chevron.up")
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
                     }
                     .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                     .padding(.bottom, layout.lowerInset)
@@ -418,6 +418,7 @@ struct OutdoorRouteRecordingView: View {
                 musicSession.stop()
             }
         }
+        .font(TimeMasterFont.body())
         .ignoresSafeArea(.container, edges: .bottom)
         .task { await tripAreas.reload() }
         .sheet(isPresented: $offlineAreasPresented, onDismiss: {
@@ -910,8 +911,7 @@ struct OutdoorRouteRecordingView: View {
                         }
                         .buttonStyle(.plain)
                     } else if isMaxDrawer {
-                        Text(selectedFeature.title)
-                            .font(.headline.weight(.semibold))
+                        TimeMasterPageTitle(selectedFeature.title, size: 22, relativeTo: .headline)
                             .accessibilityAddTraits(.isHeader)
                     } else if selectedFeature == .type {
                         Button { closeFeature() } label: {

@@ -113,7 +113,7 @@ struct PageCardView: View {
                             Image(systemName: "rectangle.stack")
                                 .font(.system(size: 7))
                             Text("\(page.totalChildCount)")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(TimeMasterFont.black(8, relativeTo: .caption2))
                         }
                         .foregroundStyle(.white.opacity(0.8))
                         .padding(.horizontal, 5)
@@ -122,7 +122,7 @@ struct PageCardView: View {
                     }
                     if let type = page.effectiveWorkoutType {
                         Text(type.name)
-                            .font(.system(size: 8, weight: .bold))
+                            .font(TimeMasterFont.black(8, relativeTo: .caption2))
                             .foregroundStyle(Color(hex: type.colorHex))
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -162,7 +162,7 @@ struct PageCardView: View {
     private var infoGrid: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(page.title)
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(2)
 
@@ -179,7 +179,7 @@ struct PageCardView: View {
                     Text("\(page.mediaURLs.count) media")
                 }
             }
-            .font(.caption)
+            .font(TimeMasterFont.caption())
             .foregroundStyle(Theme.textSecondary)
         }
         .padding(12)
@@ -216,13 +216,13 @@ struct PageCardView: View {
     private var infoArea: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(page.title)
-                .font(.body.weight(.semibold))
+                .font(TimeMasterFont.black(17))
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(2)
 
             if !listMetadata.isEmpty {
                 Text(listMetadata)
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textSecondary)
                     .lineLimit(2)
             }

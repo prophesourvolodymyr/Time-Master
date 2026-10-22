@@ -8,7 +8,7 @@ struct OutdoorTripPreviewSummary: View {
     let units: OutdoorUnitSystem
     let isRouting: Bool
     var compact = false
-    @ScaledMetric(relativeTo: .largeTitle) private var distanceSize: CGFloat = 40
+    private let distanceSize: CGFloat = 40
     @ScaledMetric(relativeTo: .title) private var activitySize: CGFloat = 64
 
     var body: some View {
@@ -27,9 +27,9 @@ struct OutdoorTripPreviewSummary: View {
                     .frame(maxWidth: .infinity)
                 let distance = outdoorRouteDistanceParts(route.distanceMeters, units: units)
                 VStack(spacing: 2) {
-                    Text(distance.value).font(.system(size: distanceSize, weight: .bold, design: .rounded))
+                    Text(distance.value).font(TimeMasterFont.black(distanceSize, relativeTo: .largeTitle))
                         .monospacedDigit().lineLimit(1).minimumScaleFactor(0.65)
-                    Text(distance.unit).font(.caption.weight(.semibold)).foregroundStyle(Theme.textSecondary)
+                    Text(distance.unit).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 }
                 .layoutPriority(1)
                 .accessibilityElement(children: .combine)
@@ -37,13 +37,13 @@ struct OutdoorTripPreviewSummary: View {
                     .frame(maxWidth: .infinity)
             }
             if isRouting {
-                TmaxLoadingIndicator("Calculating roads…", size: 18).font(.caption)
+                TmaxLoadingIndicator("Calculating roads…", size: 18).font(TimeMasterFont.caption())
             } else if route.trip?.hasBus == true {
                 Label("\(outdoorDistanceText(route.trip?.totalDistanceMeters ?? 0, unitSystem: units, precision: true)) total with bus", systemImage: "bus.fill")
-                    .font(.caption).foregroundStyle(.yellow)
+                    .font(TimeMasterFont.caption()).foregroundStyle(.yellow)
             } else if route.trip == nil {
                 Text("Imported track · Editing stops recalculates the roads locally")
-                    .font(.caption).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
+                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
             }
         }
         .padding(.horizontal, 14)
@@ -52,8 +52,8 @@ struct OutdoorTripPreviewSummary: View {
 
     private func metric(_ value: String, label: String) -> some View {
         VStack(spacing: 4) {
-            Text(value).font(.subheadline.weight(.semibold)).monospacedDigit()
-            Text(label).font(.caption2).foregroundStyle(Theme.textSecondary)
+            Text(value).font(TimeMasterFont.rowTitle()).monospacedDigit()
+            Text(label).font(TimeMasterFont.micro()).foregroundStyle(Theme.textSecondary)
         }
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .combine)

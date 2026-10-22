@@ -49,8 +49,8 @@ struct MediaCommentEditor: View {
                     if !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         MediaCommentBubble(text: draft)
                     }
-                    Text("Supports **bold**, *italic*, ~~strikethrough~~, `code`, and links. Line breaks are preserved.")
-                        .font(.caption)
+                    Text(TimeMasterFont.styledText(AttributedString(localized: "Supports **bold**, *italic*, ~~strikethrough~~, `code`, and links. Line breaks are preserved."), size: 12, relativeTo: .caption))
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                 }
                 .padding(16)
@@ -60,7 +60,7 @@ struct MediaCommentEditor: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 composer
             }
-            .navigationTitle("Media comment")
+            .timeMasterNavigationTitle("Media comment")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -109,7 +109,7 @@ struct MediaCommentEditor: View {
                 Text("Use a web link beginning with http:// or https://.")
             }
             Text(draft.isEmpty || draft.hasSuffix("\n") ? draft + " " : draft)
-                .font(.body)
+                .font(TimeMasterFont.body(17))
                 .lineLimit(1...6)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 8)
@@ -117,7 +117,7 @@ struct MediaCommentEditor: View {
                 .hidden()
                 .overlay {
                     TextEditor(text: $draft)
-                        .font(.body)
+                        .font(TimeMasterFont.body(17))
                         .scrollContentBackground(.hidden)
                         .focused($composerFocused)
                         .accessibilityLabel("Media comment")
@@ -125,7 +125,7 @@ struct MediaCommentEditor: View {
                 .overlay(alignment: .topLeading) {
                     if draft.isEmpty {
                         Text("Add a comment…")
-                            .font(.body)
+                            .font(TimeMasterFont.body(17))
                             .foregroundStyle(Theme.textSecondary)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 8)

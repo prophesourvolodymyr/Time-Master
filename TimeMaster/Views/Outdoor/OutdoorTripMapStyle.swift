@@ -63,7 +63,7 @@ enum OutdoorTripMapStyle {
             context.setLineWidth(2)
             context.strokeEllipse(in: marker)
             let text = "\(index + 1)" as NSString
-            let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 12), .foregroundColor: UIColor.white]
+            let attributes: [NSAttributedString.Key: Any] = [.font: TimeMasterFont.uiBlack(12), .foregroundColor: UIColor.white]
             let size = text.size(withAttributes: attributes)
             text.draw(at: CGPoint(x: point.x - size.width / 2, y: point.y - size.height / 2), withAttributes: attributes)
         }

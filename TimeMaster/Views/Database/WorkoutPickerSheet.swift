@@ -39,7 +39,7 @@ struct WorkoutPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Add to Workout")
+            .timeMasterNavigationTitle("Add to Workout")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -60,11 +60,11 @@ struct WorkoutPickerSheet: View {
         VStack(spacing: 10) {
             HStack {
                 Text("Section Config")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Text(page.title)
-                    .font(.subheadline.weight(.medium))
+                    .font(TimeMasterFont.rowTitle())
                     .foregroundColor(Theme.textSecondary)
                     .lineLimit(1)
             }
@@ -85,10 +85,10 @@ struct WorkoutPickerSheet: View {
     private func compactStepper(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
         VStack(spacing: 2) {
             Text(label)
-                .font(.system(size: 9))
+                .font(TimeMasterFont.body(9, relativeTo: .caption2))
                 .foregroundColor(Theme.textSecondary)
             Text("\(value.wrappedValue)\(unit)")
-                .font(.caption.weight(.semibold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(.white)
             HStack(spacing: 4) {
                 Button {
@@ -141,10 +141,10 @@ struct WorkoutPickerSheet: View {
                     )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(workout.name)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                     Text("\(workout.sectionCount) sections · \(workout.type.name)")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
                 Spacer()
@@ -182,7 +182,7 @@ struct WorkoutPickerSheet: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(.green)
             Text("Added to \(toastWorkoutName)")
-                .font(.subheadline.weight(.medium))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundColor(.white)
             Spacer()
         }
@@ -200,10 +200,10 @@ struct WorkoutPickerSheet: View {
                 .font(.system(size: 40))
                 .foregroundColor(Theme.textSecondary.opacity(0.5))
             Text("No Workouts")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundColor(Theme.textPrimary)
             Text("Create a workout first to add pages to it.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }

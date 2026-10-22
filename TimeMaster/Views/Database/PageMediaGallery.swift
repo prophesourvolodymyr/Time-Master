@@ -61,8 +61,13 @@ struct PageMediaGallery: View {
                                 Button {
                                     editingComment = true
                                 } label: {
-                                    Label(comments[url] == nil ? "Add comment" : "Edit comment", systemImage: "bubble.left")
-                                        .font(.subheadline.weight(.semibold))
+                                    Label {
+                                        Text(comments[url] == nil ? "Add comment" : "Edit comment")
+                                            .font(TimeMasterFont.rowTitle())
+                                    } icon: {
+                                        Image(systemName: "bubble.left")
+                                            .font(.subheadline.weight(.semibold))
+                                    }
                                 }
                                 .buttonStyle(TimeMasterActionButtonStyle())
                                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -168,7 +173,7 @@ private struct macOSMediaViewer: View {
 
                     Text("\(selectedIndex + 1) / \(urls.count)")
                         .foregroundStyle(.white)
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
 
                     Button { selectedIndex = min(urls.count - 1, selectedIndex + 1) } label: {
                         Image(systemName: "chevron.right.circle.fill")
@@ -283,11 +288,11 @@ struct PageMediaGalleryGrid: View {
             if !title.isEmpty {
                 HStack(alignment: .firstTextBaseline) {
                     Text(title)
-                        .font(.headline)
+                        .font(TimeMasterFont.sectionTitle())
                         .foregroundStyle(Theme.textPrimary)
                     Spacer()
                     Text("\(urls.count)")
-                        .font(.caption.monospacedDigit())
+                        .font(TimeMasterFont.caption().monospacedDigit())
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -330,8 +335,13 @@ struct PageMediaGalleryGrid: View {
             }
             .overlay(alignment: .topLeading) {
                 if isCover {
-                    Label("Cover", systemImage: "pin.fill")
-                        .font(.caption2.weight(.semibold))
+                    Label {
+                        Text("Cover")
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                    } icon: {
+                        Image(systemName: "pin.fill")
+                            .font(.caption2.weight(.semibold))
+                    }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 4)

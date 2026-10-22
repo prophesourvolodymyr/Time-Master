@@ -44,6 +44,7 @@ struct DurationPickerView: View {
             macOSDurationControl
             #endif
         }
+        .font(TimeMasterFont.body())
         #if os(macOS)
         .onChange(of: seconds) { _, _ in
             synchronizeDurationState()
@@ -86,7 +87,7 @@ struct DurationPickerView: View {
             .accessibilityLabel("Decrease duration")
 
             Text(clockString)
-                .font(.caption.weight(.semibold).monospacedDigit())
+                .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
                 .frame(minWidth: 38)
 
             Button {
@@ -109,7 +110,7 @@ struct DurationPickerView: View {
             minuteWheel
 
             Text(":")
-                .font(.system(size: 36, weight: .medium, design: .rounded).monospacedDigit())
+                .font(TimeMasterFont.black(36, relativeTo: .largeTitle).monospacedDigit())
                 .foregroundStyle(Theme.textSecondary)
 
             secondWheel
@@ -124,7 +125,10 @@ struct DurationPickerView: View {
                 set: { update(minutes: $0, seconds: remainder) }
             )) {
                 ForEach(0...maximumMinutes, id: \.self) { value in
-                    Text("\(value)").tag(value)
+                    Text("\(value)")
+                        .font(TimeMasterFont.black(23, relativeTo: .title2))
+                        .monospacedDigit()
+                        .tag(value)
                 }
             }
             .labelsHidden()
@@ -150,7 +154,10 @@ struct DurationPickerView: View {
                 set: { update(minutes: minutes, seconds: $0) }
             )) {
                 ForEach(selectableSeconds, id: \.self) { value in
-                    Text(String(format: "%02d", value)).tag(value)
+                    Text(String(format: "%02d", value))
+                        .font(TimeMasterFont.black(23, relativeTo: .title2))
+                        .monospacedDigit()
+                        .tag(value)
                 }
             }
             .labelsHidden()
@@ -175,12 +182,13 @@ struct DurationPickerView: View {
             ZStack {
                 if directEntryText.isEmpty {
                     Text(displayValue(for: component))
+                        .font(TimeMasterFont.black(34, relativeTo: .largeTitle).monospacedDigit())
                         .foregroundStyle(Theme.textPrimary)
                 }
 
                 TextField("", text: $directEntryText)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 34, weight: .semibold, design: .rounded).monospacedDigit())
+                    .font(TimeMasterFont.black(34, relativeTo: .largeTitle).monospacedDigit())
                     .foregroundStyle(Theme.textPrimary)
                     .multilineTextAlignment(.center)
                     .keyboardType(.numberPad)
@@ -250,7 +258,7 @@ struct DurationPickerView: View {
     private var macOSCompactDurationControl: some View {
         HStack(spacing: 6) {
             Text(clockString)
-                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .font(TimeMasterFont.black(13, relativeTo: .footnote).monospacedDigit())
                 .frame(minWidth: 80, alignment: .trailing)
                 .accessibilityLabel("Duration")
 
@@ -265,7 +273,7 @@ struct DurationPickerView: View {
             macOSDigitEditor(for: .minutes, label: "MINUTES")
 
             Text(":")
-                .font(.system(size: 58, weight: .medium, design: .rounded).monospacedDigit())
+                .font(TimeMasterFont.black(58, relativeTo: .largeTitle).monospacedDigit())
                 .foregroundStyle(Theme.textSecondary)
                 .padding(.bottom, 18)
 
@@ -286,12 +294,13 @@ struct DurationPickerView: View {
             ZStack {
                 if text.wrappedValue.isEmpty {
                     Text(displayValue(for: component))
+                        .font(TimeMasterFont.black(58, relativeTo: .largeTitle).monospacedDigit())
                         .foregroundStyle(Theme.textPrimary)
                 }
 
                 TextField("", text: text)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 58, weight: .medium, design: .rounded).monospacedDigit())
+                    .font(TimeMasterFont.black(58, relativeTo: .largeTitle).monospacedDigit())
                     .foregroundStyle(Theme.textPrimary)
                     .multilineTextAlignment(.center)
                     .focused($focusedMacComponent, equals: component)
@@ -323,7 +332,7 @@ struct DurationPickerView: View {
             }
 
             Text(label)
-                .font(.caption.weight(.semibold))
+                .font(TimeMasterFont.caption())
                 .tracking(1.2)
                 .foregroundStyle(Theme.textSecondary)
         }

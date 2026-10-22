@@ -111,7 +111,7 @@ struct VideoEmbedCard: View {
                         .font(.system(size: 36))
                         .foregroundColor(platformColor.opacity(0.6))
                     Text(platformName)
-                        .font(.caption.weight(.medium))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                         .foregroundColor(platformColor.opacity(0.6))
                 }
             )
@@ -131,17 +131,17 @@ struct VideoEmbedCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 if let title = metadata.title {
                     Text(title)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(2)
                 } else {
                     Text(platformName)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                 }
                 if let desc = metadata.description {
                     Text(desc)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                         .lineLimit(1)
                 }
@@ -215,7 +215,7 @@ struct VideoEmbedListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Links")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundColor(Theme.textPrimary)
 
             ForEach(Array(urls.enumerated()), id: \.offset) { index, urlString in
@@ -251,18 +251,18 @@ struct VideoEmbedListView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     if let title = metadata?.title {
                         Text(title)
-                            .font(.subheadline.weight(.medium))
+                            .font(TimeMasterFont.rowTitle())
                             .foregroundColor(Theme.textPrimary)
                             .lineLimit(1)
                     } else {
                         Text(URL(string: urlString)?.host ?? urlString)
-                            .font(.subheadline.weight(.medium))
+                            .font(TimeMasterFont.rowTitle())
                             .foregroundColor(Theme.textPrimary)
                             .lineLimit(1)
                     }
                     if let desc = metadata?.description {
                         Text(desc)
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                             .foregroundColor(Theme.textSecondary)
                             .lineLimit(1)
                     }

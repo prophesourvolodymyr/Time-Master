@@ -22,7 +22,7 @@ struct OutdoorPlannedRouteCard: View {
                     .aspectRatio(1, contentMode: .fit)
                     .clipped()
                     HStack(alignment: .top, spacing: 4) {
-                        Text(route.title).font(.caption.weight(.semibold)).lineLimit(2)
+                        Text(route.title).font(TimeMasterFont.black(12, relativeTo: .caption)).lineLimit(2)
                         if route.starred { Image(systemName: "star.fill").foregroundStyle(Theme.toolbarOrange) }
                     }
                     .padding(8)
@@ -31,13 +31,13 @@ struct OutdoorPlannedRouteCard: View {
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(route.trip.map { outdoorDurationText(Int($0.activeDurationSeconds.rounded())) } ?? "—")
-                        .font(.caption2).foregroundStyle(Theme.textSecondary)
+                        .font(TimeMasterFont.micro()).monospacedDigit().foregroundStyle(Theme.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text(outdoorDistanceText(route.distanceMeters, unitSystem: units, precision: true))
-                        .font(.subheadline.weight(.bold)).monospacedDigit().lineLimit(1).minimumScaleFactor(0.75)
+                        .font(TimeMasterFont.rowTitle()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.75)
                         .layoutPriority(1)
                     Text(route.trip?.kind.displayName ?? "Track")
-                        .font(.caption).frame(maxWidth: .infinity, alignment: .trailing)
+                        .font(TimeMasterFont.caption()).frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 12)

@@ -132,7 +132,7 @@ struct DatabasePageBrowserSheet: View {
                     }
                 }
             }
-            .navigationTitle(isBundleMode ? "Bundle Mode" : "Browse Pages")
+            .timeMasterNavigationTitle(isBundleMode ? "Bundle Mode" : "Browse Pages")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -215,6 +215,7 @@ struct DatabasePageBrowserSheet: View {
                 store.reload()
             }
         }
+        .font(TimeMasterFont.body())
     }
 
     private var searchBarView: some View {
@@ -262,7 +263,7 @@ struct DatabasePageBrowserSheet: View {
             withAnimation(.easeInOut(duration: 0.15)) { filterOption = option }
         } label: {
             Text(label)
-                .font(.system(size: 11, weight: isActive ? .semibold : .regular))
+                .font(isActive ? TimeMasterFont.black(11, relativeTo: .caption2) : TimeMasterFont.micro())
                 .foregroundColor(isActive ? .black : Theme.textSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
@@ -277,7 +278,7 @@ struct DatabasePageBrowserSheet: View {
                 .font(.system(size: 36))
                 .foregroundColor(Theme.textSecondary.opacity(0.4))
             Text("No pages found")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             if let onNewExercise {
                 Button {
@@ -285,7 +286,7 @@ struct DatabasePageBrowserSheet: View {
                     onNewExercise()
                 } label: {
                     Label("New Exercise", systemImage: "plus.circle.fill")
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             }
@@ -370,12 +371,12 @@ struct DatabasePageBrowserSheet: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(page.title)
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(2)
                 if let type = page.effectiveWorkoutType {
                     Text(type.name)
-                        .font(.system(size: 8, weight: .bold))
+                        .font(TimeMasterFont.black(8, relativeTo: .caption2))
                         .foregroundStyle(Color(hex: type.colorHex))
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
@@ -399,7 +400,7 @@ struct DatabasePageBrowserSheet: View {
             coverThumb(page)
             VStack(alignment: .leading, spacing: 2) {
                 Text(page.title)
-                    .font(.subheadline.weight(.medium))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textPrimary)
                     .lineLimit(1)
                 HStack(spacing: 6) {
@@ -413,7 +414,7 @@ struct DatabasePageBrowserSheet: View {
                         Text(wt.name)
                     }
                 }
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
             }
             Spacer()
@@ -465,7 +466,7 @@ struct DatabasePageBrowserSheet: View {
                 if let page = previewPage {
                     HStack {
                         Text(page.title)
-                            .font(.subheadline.weight(.semibold))
+                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                             .foregroundColor(Theme.textPrimary)
                             .lineLimit(1)
                         Spacer()
@@ -493,7 +494,7 @@ struct DatabasePageBrowserSheet: View {
                             Image(systemName: page.isWorkoutAddable ? "plus.circle.fill" : "folder")
                             Text(page.isWorkoutAddable ? "Add Section" : "This page cannot be added")
                         }
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
@@ -518,7 +519,7 @@ struct DatabasePageBrowserSheet: View {
             VStack(spacing: 8) {
                 let selectedSources = selectedBundleSources
                 Text("\(selectedSources.count) items selected")
-                    .font(.subheadline.weight(.medium))
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textPrimary)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
@@ -538,7 +539,7 @@ struct DatabasePageBrowserSheet: View {
                                     Image(systemName: "line.3.horizontal")
                                         .font(.caption2)
                                     Text(source.title)
-                                        .font(.caption)
+                                        .font(TimeMasterFont.caption())
                                         .lineLimit(1)
                                     Button {
                                         toggleBundleSelection(source)
@@ -581,7 +582,7 @@ struct DatabasePageBrowserSheet: View {
                         Image(systemName: "rectangle.stack.fill")
                         Text("Create Bundle Section")
                     }
-                    .font(.subheadline.weight(.semibold))
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -642,10 +643,10 @@ struct DatabasePageBrowserSheet: View {
     private func compactStepper(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
         VStack(spacing: 2) {
             Text(label)
-                .font(.system(size: 8))
+                .font(TimeMasterFont.body(8, relativeTo: .caption2))
                 .foregroundColor(Theme.textSecondary)
             Text("\(value.wrappedValue)\(unit)")
-                .font(.system(size: 10, weight: .semibold))
+                .font(TimeMasterFont.black(10, relativeTo: .caption2).monospacedDigit())
                 .foregroundColor(.white)
             HStack(spacing: 3) {
                 Button {
@@ -684,7 +685,7 @@ struct DatabasePageBrowserSheet: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(.green)
             Text("Added to \(workout.name)")
-                .font(.subheadline.weight(.medium))
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(.white)
             Spacer()
         }
@@ -719,8 +720,7 @@ private struct ExercisePageQuickPreview: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(page.title)
-                            .font(.title2.weight(.bold))
+                        TimeMasterPageTitle(page.title, size: 29, relativeTo: .title2)
                             .foregroundColor(Theme.textPrimary)
 
                         HStack(spacing: 8) {
@@ -739,7 +739,7 @@ private struct ExercisePageQuickPreview: View {
                         Text(page.manifest.markdownBody
                             .replacingOccurrences(of: "#", with: "")
                             .trimmingCharacters(in: .whitespacesAndNewlines))
-                            .font(.subheadline)
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             .foregroundColor(Theme.textSecondary)
                             .lineLimit(6)
                     }
@@ -757,20 +757,20 @@ private struct ExercisePageQuickPreview: View {
                             dismiss()
                         } label: {
                             Label("Add to Workout", systemImage: "plus.circle.fill")
-                                .font(.headline)
+                                .font(TimeMasterFont.black(17, relativeTo: .headline))
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
                     } else {
                         Text("Containers organize exercises and cannot be added as workout sections.")
-                            .font(.subheadline)
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             .foregroundStyle(Theme.textSecondary)
                     }
                 }
                 .padding(16)
             }
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Preview")
+            .timeMasterNavigationTitle("Preview")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -780,6 +780,7 @@ private struct ExercisePageQuickPreview: View {
                 }
             }
         }
+        .font(TimeMasterFont.body())
         .sheet(isPresented: $showingMedia) {
             PageMediaGallery(
                 urls: page.mediaURLs,
@@ -793,7 +794,7 @@ private struct ExercisePageQuickPreview: View {
 
     private func metadataBadge(_ text: String, systemImage: String) -> some View {
         Label(text, systemImage: systemImage)
-            .font(.caption2)
+            .font(TimeMasterFont.micro())
             .foregroundColor(Theme.textSecondary)
             .padding(.horizontal, 7)
             .padding(.vertical, 5)

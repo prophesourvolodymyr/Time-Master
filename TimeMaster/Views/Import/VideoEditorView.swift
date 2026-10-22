@@ -125,8 +125,7 @@ struct VideoEditorView: View {
             Button("Cancel") { onClose() }
                 .buttonStyle(TimeMasterToolbarTextButtonStyle())
             Spacer()
-            Text("Edit Video")
-                .font(.headline)
+            TimeMasterPageTitle("Edit Video", size: 22, relativeTo: .headline)
                 .foregroundColor(.white)
             Spacer()
             reviewButton
@@ -141,7 +140,7 @@ struct VideoEditorView: View {
         return Button("Review") {
             if hasMedia { showBatchConfirm = true }
         }
-        .font(.subheadline.weight(.semibold))
+        .font(TimeMasterFont.rowTitle())
         .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
         .disabled(!hasMedia || vm.isProcessing)
     }
@@ -171,16 +170,16 @@ struct VideoEditorView: View {
     private var timeLabelsRow: some View {
         HStack {
             Text(formatTime(vm.currentTime))
-                .font(.system(.caption2, design: .monospaced))
+                .font(TimeMasterFont.technical())
                 .foregroundColor(Theme.textSecondary)
             if let segment = vm.selectedSegment {
                 Text("  ·  \(formatTime(segment.startTime)) → \(formatTime(segment.endTime))")
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(TimeMasterFont.technical())
                     .foregroundColor(Theme.textSecondary.opacity(0.55))
             }
             Spacer()
             Text(formatTime(vm.duration))
-                .font(.system(.caption2, design: .monospaced))
+                .font(TimeMasterFont.technical())
                 .foregroundColor(Theme.textSecondary)
         }
         .padding(.horizontal, 18)
@@ -230,7 +229,7 @@ struct VideoEditorView: View {
     private func modeButton(label: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.caption).fontWeight(.semibold)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(selected ? Theme.textPrimary : Theme.textSecondary)
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .background(selected ? Theme.surface2 : Color.clear)
@@ -287,7 +286,7 @@ struct VideoEditorView: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon).font(.caption)
-                Text(label).font(.caption).fontWeight(.medium)
+                Text(label).font(TimeMasterFont.black(12, relativeTo: .caption))
             }
             .foregroundColor(Theme.textPrimary)
             .padding(.horizontal, 14).padding(.vertical, 10)
@@ -311,17 +310,17 @@ struct VideoEditorView: View {
     private var trayHeader: some View {
         HStack(spacing: 8) {
             Text("TRAY")
-                .font(.caption2).fontWeight(.semibold).tracking(1)
+                .font(TimeMasterFont.black(11, relativeTo: .caption2)).tracking(1)
                 .foregroundColor(Theme.textSecondary)
             Text("\(vm.mediaCount)/20")
-                .font(.caption2.monospacedDigit())
+                .font(TimeMasterFont.micro().monospacedDigit())
                 .foregroundColor(Theme.textSecondary)
             if !vm.statusMessage.isEmpty {
                 Text("· \(vm.statusMessage)")
-                    .font(.caption2).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary)
             } else if vm.trayItems.count > 1 {
                 Text("· Drag media onto another to group")
-                    .font(.caption2).foregroundColor(Theme.textSecondary.opacity(0.7))
+                    .font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary.opacity(0.7))
             }
             Spacer()
         }
@@ -334,7 +333,7 @@ struct VideoEditorView: View {
             HStack(spacing: 10) {
                 if vm.trayItems.isEmpty {
                     Text("Add a clip or still to start")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                         .frame(height: 90)
                 } else {

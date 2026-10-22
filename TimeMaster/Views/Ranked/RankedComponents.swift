@@ -41,7 +41,7 @@ private struct RankedIconButtonStyle: ButtonStyle {
             TimeMasterToolbarIconButtonStyle().makeBody(configuration: configuration)
             if let label {
                 Text(label)
-                    .font(TimeMasterFont.caption().weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(isEnabled ? .white : ProfileStyle.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -60,7 +60,7 @@ struct RankedCloseButton: View {
         Button { dismiss() } label: {
             Label("Close", systemImage: "xmark")
                 .labelStyle(.titleAndIcon)
-                .font(TimeMasterFont.caption().weight(.bold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
         }
         .buttonStyle(TimeMasterToolbarTextButtonStyle())
         .accessibilityIdentifier("ranked-sheet-close")
@@ -163,7 +163,8 @@ struct RankedEloBadge: View {
                     RankedMovementArt(variation: variation)
                         .frame(width: side * 0.48, height: side * 0.25)
                     Text(elo.map { $0.formatted() } ?? "—")
-                        .font(.custom("Inter-Black", fixedSize: side * (compact ? 0.25 : 0.19)).monospacedDigit())
+                        .font(TimeMasterFont.black(side * (compact ? 0.25 : 0.19)).monospacedDigit())
+                        .dynamicTypeSize(.medium)
                         .foregroundStyle(rankedMetricInk)
                         .tracking(-side * 0.003)
                         .contentTransition(.opacity)
@@ -172,7 +173,8 @@ struct RankedEloBadge: View {
                         .minimumScaleFactor(0.6)
                     if !compact {
                         Text("Elo")
-                            .font(.custom("Inter-Regular", fixedSize: side * 0.08))
+                            .font(TimeMasterFont.body(side * 0.08))
+                            .dynamicTypeSize(.medium)
                             .tracking(side * 0.006)
                             .foregroundStyle(.white.opacity(0.7))
                     }
@@ -215,7 +217,7 @@ struct RankedMovementTile: View {
                     Spacer(minLength: 0)
                     if mode == .duel {
                         Text(elo.map { "\($0.formatted()) Elo" } ?? "Unrated")
-                            .font(TimeMasterFont.caption().weight(.semibold).monospacedDigit())
+                            .font(TimeMasterFont.black(12, relativeTo: .caption).monospacedDigit())
                     } else {
                         Text("Solo")
                             .font(TimeMasterFont.micro())
@@ -421,7 +423,7 @@ struct RankedOutcomeIcon: View {
         VStack(spacing: EverSpacing.x1) {
             Image(systemName: symbol).foregroundStyle(Theme.toolbarOrange)
             Text(practice ? "Practice result" : match?.outcomeTitle ?? "Verification pending")
-                .font(TimeMasterFont.caption().weight(.semibold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .multilineTextAlignment(.center)
         }
         .accessibilityElement(children: .ignore)

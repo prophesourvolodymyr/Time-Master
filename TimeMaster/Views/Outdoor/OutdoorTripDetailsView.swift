@@ -22,11 +22,11 @@ struct OutdoorTripDetailsView: View {
             ScrollView {
                 if let trip = route.trip {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text(route.title).font(.title2.weight(.bold)).padding(.horizontal, 4)
+                        TimeMasterPageTitle(route.title, size: 29, relativeTo: .title2).padding(.horizontal, 4)
                         card("summary") {
                             OutdoorTripSummaryView(trip: trip, units: units, action: { EmptyView() }) {
                                 Text("Time and effort are route estimates, not a promised finish time.")
-                                    .font(.caption).foregroundStyle(Theme.textSecondary)
+                                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                             }
                         }
                         card("roads") {
@@ -34,23 +34,23 @@ struct OutdoorTripDetailsView: View {
                                 OutdoorTripRoadInfo(unpavedFraction: trip.unpavedFraction, majorRoadFraction: trip.majorRoadFraction)
                                     .padding(.top, 10)
                                 Text("Road exposure comes from mapped road classes, not live traffic or a safety rating. Missing surface data stays unknown.")
-                                    .font(.caption).foregroundStyle(Theme.textSecondary).padding(.top, 8)
+                                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary).padding(.top, 8)
                             } label: {
-                                Label("Roads & terrain", systemImage: "road.lanes").font(.headline)
+                                Label("Roads & terrain", systemImage: "road.lanes").font(TimeMasterFont.sectionTitle())
                             }
                             DisclosureGroup {
                                 Text(trip.ascentMeters == nil
                                      ? "This route has incomplete elevation coverage. Its climbing and difficulty cannot be reliably assessed."
                                      : "Climbing uses elevation data in the installed area. Riding or running elevation excludes bus legs. \(trip.effortTitle) combines active distance and climbing; it is not a technical trail grade.")
-                                    .font(.subheadline).foregroundStyle(Theme.textSecondary).padding(.top, 8)
+                                    .font(TimeMasterFont.secondary()).foregroundStyle(Theme.textSecondary).padding(.top, 8)
                                 if trip.kind != .bike {
-                                    Label(trip.runningGoal.title, systemImage: "figure.run").font(.subheadline).padding(.top, 6)
+                                    Label(trip.runningGoal.title, systemImage: "figure.run").font(TimeMasterFont.body(15, relativeTo: .subheadline)).padding(.top, 6)
                                 }
                             } label: {
-                                Label("Elevation & effort", systemImage: "mountain.2").font(.headline)
+                                Label("Elevation & effort", systemImage: "mountain.2").font(TimeMasterFont.sectionTitle())
                             }
                         }
-                        Text("Itinerary").font(.headline).padding(.horizontal, 4)
+                        Text("Itinerary").font(TimeMasterFont.sectionTitle()).padding(.horizontal, 4)
                         ForEach(Array(trip.legs.enumerated()), id: \.element.id) { index, leg in
                             legCard(leg, index: index, trip: trip)
                         }
@@ -59,18 +59,19 @@ struct OutdoorTripDetailsView: View {
                     .padding(16)
                 } else {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text(route.title).font(.title2.weight(.bold))
-                        Text(outdoorDistanceText(route.distanceMeters, unitSystem: units, precision: true)).font(.largeTitle.weight(.bold))
+                        TimeMasterPageTitle(route.title, size: 29, relativeTo: .title2)
+                        Text(outdoorDistanceText(route.distanceMeters, unitSystem: units, precision: true)).font(TimeMasterFont.black(34, relativeTo: .largeTitle)).monospacedDigit()
                         Text("Imported track. Road, elevation, and time estimates are unavailable until you edit and calculate its stops.")
-                            .font(.subheadline).foregroundStyle(Theme.textSecondary)
+                            .font(TimeMasterFont.secondary()).foregroundStyle(Theme.textSecondary)
                         exportCard
                     }
                     .padding(16)
                 }
             }
+            .font(TimeMasterFont.body())
             .background(Theme.background)
             .foregroundStyle(Theme.textPrimary)
-            .navigationTitle("Trip details")
+            .timeMasterNavigationTitle("Trip details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.background, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -88,9 +89,9 @@ struct OutdoorTripDetailsView: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(trip.stops.indices.contains(index + 1) ? trip.stops[index + 1].name : "Destination \(index + 1)")
-                        .font(.headline)
+                        .font(TimeMasterFont.sectionTitle())
                     Text(leg.mode == .bus ? "Bus road estimate" : trip.kind.displayName)
-                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                        .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 }
                 Spacer(minLength: 0)
                 OutdoorPineIconAction(symbol: "map", label: "Show leg \(index + 1) on map") { onShowLeg(leg) }
@@ -101,7 +102,7 @@ struct OutdoorTripDetailsView: View {
             }
             if leg.mode == .bus {
                 Text("Yellow dashed route: a road estimate, not a timetabled bus service. Check stops, service, and bike carriage with the operator.")
-                    .font(.caption).foregroundStyle(Theme.textSecondary)
+                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
             }
             DisclosureGroup(isExpanded: Binding(get: { expandedLegs.contains(leg.id) }, set: {
                 if $0 { expandedLegs.insert(leg.id) } else { expandedLegs.remove(leg.id) }
@@ -111,14 +112,14 @@ struct OutdoorTripDetailsView: View {
                 }
                 ForEach(Array(leg.instructions.enumerated()), id: \.offset) { number, instruction in
                     HStack(alignment: .top, spacing: 12) {
-                        Text("\(number + 1)").font(.caption.weight(.semibold)).monospacedDigit()
+                        Text("\(number + 1)").font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit()
                             .foregroundStyle(Theme.toolbarOrange).frame(minWidth: 22)
-                        Text(instruction).font(.subheadline).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(instruction).font(TimeMasterFont.secondary()).frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.vertical, 7)
                 }
             } label: {
-                Label("Directions & road details", systemImage: "arrow.triangle.turn.up.right.diamond").font(.subheadline.weight(.semibold))
+                Label("Directions & road details", systemImage: "arrow.triangle.turn.up.right.diamond").font(TimeMasterFont.rowTitle())
             }
             .accessibilityIdentifier("trip.leg.\(index)")
         }
@@ -130,7 +131,7 @@ struct OutdoorTripDetailsView: View {
             Label(outdoorDurationText(Int(leg.durationSeconds.rounded())), systemImage: "clock")
             if leg.mode == .active { Label(outdoorElevationText(leg.ascentMeters, unitSystem: units), systemImage: "mountain.2") }
         }
-        .font(.caption.weight(.semibold)).monospacedDigit()
+        .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit()
     }
 
     private func card<Content: View>(_ identity: String, @ViewBuilder content: @escaping () -> Content) -> some View {
@@ -142,27 +143,27 @@ struct OutdoorTripDetailsView: View {
 
     private var exportCard: some View {
         card("export") {
-            Label("Planned Trip image", systemImage: "photo").font(.headline)
+            Label("Planned Trip image", systemImage: "photo").font(TimeMasterFont.sectionTitle())
             Text("Your route, known estimates, and the Tmax mark. Saved locally to Photos for sharing.")
-                .font(.subheadline).foregroundStyle(Theme.textSecondary)
+                .font(TimeMasterFont.secondary()).foregroundStyle(Theme.textSecondary)
             Button(action: exportImage) {
                 HStack(spacing: 8) {
                     if exporting { TmaxLoadingIndicator(size: 20) }
                     Label(exporting ? "Saving…" : saved ? "Save another copy" : "Save image to Photos", systemImage: "square.and.arrow.down")
                 }
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .frame(maxWidth: .infinity, minHeight: 48)
             }
             .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .disabled(exporting || route.trip?.isRouted == false || route.points.count < 2)
             .accessibilityIdentifier("trip.exportImage")
             if saved {
-                Label("Saved to Photos", systemImage: "checkmark.circle.fill").font(.subheadline).foregroundStyle(.green)
+                Label("Saved to Photos", systemImage: "checkmark.circle.fill").font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundStyle(.green)
             }
             if let exportError {
-                Text(exportError).font(.caption).foregroundStyle(Theme.textSecondary)
+                Text(exportError).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 if photosDenied, let settings = URL(string: UIApplication.openSettingsURLString) {
-                    Button("Open Settings") { openURL(settings) }.font(.subheadline.weight(.semibold))
+                    Button("Open Settings") { openURL(settings) }.font(TimeMasterFont.rowTitle())
                 }
             }
             if let image {

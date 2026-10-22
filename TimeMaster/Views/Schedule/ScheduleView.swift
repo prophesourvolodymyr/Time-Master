@@ -45,6 +45,7 @@ struct ScheduleView: View {
                     loadError
                 }
             }
+            .font(TimeMasterFont.body())
             .background(Theme.background)
             .navigationTitle("")
             #if os(iOS)
@@ -154,7 +155,7 @@ struct ScheduleView: View {
                 VStack(spacing: 24) {
                     weekHeader.id("scheduleTop")
                     if let error = store.scheduleError {
-                        Text(error).font(.footnote).foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(error).font(TimeMasterFont.body(13, relativeTo: .footnote)).foregroundStyle(.red).frame(maxWidth: .infinity, alignment: .leading)
                     }
                     VStack(spacing: 12) {
                         ForEach(days, id: \.self) { day in
@@ -218,10 +219,10 @@ struct ScheduleView: View {
                     }
                 }
             }
-            Text(weekRange).font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+            Text(weekRange).font(TimeMasterFont.black(15, relativeTo: .subheadline)).monospacedDigit().foregroundStyle(.secondary)
             if week != currentWeek {
                 Button("This week", systemImage: "arrow.uturn.backward") { move(to: currentWeek) }
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .buttonStyle(TimeMasterToolbarWideButtonStyle())
             }
         }
@@ -231,7 +232,7 @@ struct ScheduleView: View {
         let layout = stacked ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 4))
         return layout {
             Text(week > currentWeek ? "Upcoming" : "Week \(number)")
-                .font(.largeTitle.weight(.bold)).monospacedDigit()
+                .font(TimeMasterFont.black(34, relativeTo: .largeTitle)).monospacedDigit()
                 .contentTransition(.numericText())
             if isVacation {
                 Image(systemName: "snowflake").font(.largeTitle).foregroundStyle(.cyan)
@@ -264,7 +265,7 @@ struct ScheduleView: View {
     private var loadError: some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.icloud").font(.largeTitle)
-            Text("Schedule unavailable").font(.title2.bold())
+            Text("Schedule unavailable").font(TimeMasterFont.black(22, relativeTo: .title2))
             Text(store.scheduleError ?? "Your saved schedule could not be loaded.")
                 .foregroundStyle(.secondary).multilineTextAlignment(.center)
             Button("Try again") {

@@ -136,7 +136,7 @@ struct PageCreationSheet: View {
                         titleCard
                         if let saveErrorMessage {
                             Text(saveErrorMessage)
-                                .font(.footnote)
+                                .font(TimeMasterFont.body(13, relativeTo: .footnote))
                                 .foregroundStyle(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -167,7 +167,7 @@ struct PageCreationSheet: View {
             .overlay(alignment: .bottom) {
                 if let draftSavedMessage {
                     Text(draftSavedMessage)
-                        .font(.footnote.weight(.semibold))
+                        .font(TimeMasterFont.black(13, relativeTo: .footnote))
                         .foregroundStyle(Theme.textPrimary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
@@ -177,7 +177,7 @@ struct PageCreationSheet: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .navigationTitle(existingPage == nil ? "New Page" : "Edit Page")
+            .timeMasterNavigationTitle(existingPage == nil ? "New Page" : "Edit Page")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -326,8 +326,13 @@ struct PageCreationSheet: View {
                 }
             }
         } label: {
-            Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(isSelected ? .semibold : .regular))
+            Label {
+                Text(title)
+                    .font(isSelected ? TimeMasterFont.rowTitle() : TimeMasterFont.body(15, relativeTo: .subheadline))
+            } icon: {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
+            }
                 .foregroundStyle(isSelected ? .black : Theme.textPrimary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
@@ -402,8 +407,13 @@ struct PageCreationSheet: View {
             }
 
             if isCover {
-                Label("Cover", systemImage: "pin.fill")
-                    .font(.caption2.weight(.bold))
+                Label {
+                    Text("Cover")
+                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                } icon: {
+                    Image(systemName: "pin.fill")
+                        .font(.caption2.weight(.bold))
+                }
                     .foregroundStyle(.black)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 4)
@@ -432,7 +442,7 @@ struct PageCreationSheet: View {
             sectionHeading("Workout Type", optional: true)
             if let inheritedWorkoutType {
                 Text("Uses \(inheritedWorkoutType.name) from the container by default.")
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
@@ -622,11 +632,11 @@ struct PageCreationSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
             HStack(spacing: 4) {
                 Text("\(value.wrappedValue)\(unit)")
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.toolbarOrange)
                     .monospacedDigit()
                 Stepper("", value: value, in: range, step: step)
@@ -646,13 +656,14 @@ struct PageCreationSheet: View {
                 ZStack(alignment: .topLeading) {
                     if markdownBody.isEmpty {
                         Text("Write a guide here…")
-                            .font(.body)
+                            .font(TimeMasterFont.body(17))
                             .foregroundStyle(Theme.textSecondary.opacity(0.65))
                             .padding(.top, 14)
                             .padding(.horizontal, 14)
                             .allowsHitTesting(false)
                     }
                     TextEditor(text: $markdownBody)
+                        .font(TimeMasterFont.body(17))
                         .frame(height: markdownEditorHeight)
                         .padding(10)
                         .scrollContentBackground(.hidden)
@@ -745,14 +756,19 @@ struct PageCreationSheet: View {
                             PageCreationLinkPreview(metadata: metadata)
                         } else if !row.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !row.isLoading {
                             Text("Enter a valid http(s) link to load its preview.")
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundStyle(.orange)
                         }
                         Button {
                             insertLink(after: row.id)
                         } label: {
-                            Label("Add link below", systemImage: "plus")
-                                .font(.caption.weight(.semibold))
+                            Label {
+                                Text("Add link below")
+                                    .font(TimeMasterFont.black(12, relativeTo: .caption))
+                            } icon: {
+                                Image(systemName: "plus")
+                                    .font(.caption.weight(.semibold))
+                            }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(TimeMasterActionButtonStyle())
@@ -767,7 +783,7 @@ struct PageCreationSheet: View {
             showDeleteConfirm = true
         } label: {
             Text("Delete Page")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
         }
@@ -892,7 +908,7 @@ struct PageCreationSheet: View {
         HStack(spacing: 4) {
             Spacer(minLength: 0)
             Text(title)
-                .font(.title3.weight(.semibold))
+                .font(TimeMasterFont.heading())
                 .foregroundStyle(Theme.textPrimary)
             statusMark(required: required, optional: optional)
             Spacer(minLength: 0)
@@ -903,11 +919,11 @@ struct PageCreationSheet: View {
     private func statusMark(required: Bool, optional: Bool) -> some View {
         if required {
             Text("*")
-                .font(.caption.weight(.bold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundStyle(Theme.toolbarOrange)
         } else if optional {
             Text("opt")
-                .font(.system(size: 9, weight: .semibold))
+                .font(TimeMasterFont.black(9, relativeTo: .caption2))
                 .foregroundStyle(Theme.textSecondary)
         }
     }
@@ -915,7 +931,7 @@ struct PageCreationSheet: View {
     private func formHeading(_ title: String, required: Bool = false, optional: Bool = false) -> some View {
         HStack(spacing: 4) {
             Text(title)
-                .font(.body.weight(.semibold))
+                .font(TimeMasterFont.black(17))
                 .foregroundStyle(Theme.textPrimary)
             statusMark(required: required, optional: optional)
         }
@@ -1421,17 +1437,17 @@ private struct PageCreationLinkPreview: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(metadata.title ?? URL(string: metadata.url)?.host ?? metadata.url)
-                    .font(.subheadline.weight(.semibold))
+                    .font(TimeMasterFont.rowTitle())
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(2)
                 if let description = metadata.description, !description.isEmpty {
                     Text(description)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                         .lineLimit(2)
                 }
                 Text(metadata.url)
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.toolbarOrange)
                     .lineLimit(1)
             }
@@ -1472,10 +1488,10 @@ private struct PageCreationDraftListSheet: View {
                             .font(.system(size: 38))
                             .foregroundStyle(Theme.toolbarOrange)
                         Text("No drafts")
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
                             .foregroundStyle(Theme.textPrimary)
                         Text("Drafts are kept for 30 days.")
-                            .font(.subheadline)
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             .foregroundStyle(Theme.textSecondary)
                     }
                 } else {
@@ -1490,16 +1506,16 @@ private struct PageCreationDraftListSheet: View {
                                         .frame(width: 44, height: 44)
                                         .overlay {
                                             Text(draft.pageKind == .leaf ? "E" : "C")
-                                                .font(.headline.weight(.bold))
+                                                .font(TimeMasterFont.sectionTitle())
                                                 .foregroundStyle(Theme.toolbarOrange)
                                         }
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(draft.title.isEmpty ? "Untitled page" : draft.title)
-                                            .font(.subheadline.weight(.semibold))
+                                            .font(TimeMasterFont.rowTitle())
                                             .foregroundStyle(Theme.textPrimary)
                                             .lineLimit(1)
                                         Text("\(draft.pageKind == .leaf ? "Exercise" : "Container") · \(draft.mediaFilenames.count) media · \(draft.updatedAt, style: .relative)")
-                                            .font(.caption)
+                                            .font(TimeMasterFont.caption())
                                             .foregroundStyle(Theme.textSecondary)
                                             .lineLimit(1)
                                     }
@@ -1524,7 +1540,7 @@ private struct PageCreationDraftListSheet: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .navigationTitle("Drafts")
+            .timeMasterNavigationTitle("Drafts")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

@@ -1922,7 +1922,7 @@ Direct-file and HTTP browser smoke runs exercised all presets, complete alphabet
 
 ### Batch 16 — Ribbon Accent Font and Everyday Typography Pairing — 2026-10-21
 
-User direction: the selected ribbon alphabet is an occasional secondary title face, not the everyday heading or body font. Its compact spacing belongs in the real font files. The user has chosen Inter Black for bold titles and prominent numeric indicators, including Duration, Sets and Rest values. The readable small-text companion is still under review.
+Historical Batch 16 direction: the selected ribbon alphabet was an occasional secondary title face with compact spacing in the font files. Inter Black was accepted for bold titles and prominent numeric indicators while the small-text companion was still under review. Batch 17 supersedes the accent/completion application and records the accepted Manrope selection.
 
 - [x] Research licensed heavy heading candidates and record the user’s choice of the existing Inter Black
 - [x] Lock the active specimen’s bold/title face to Inter Black rather than continuing to offer competing title choices
@@ -1934,10 +1934,32 @@ User direction: the selected ribbon alphabet is an occasional secondary title fa
 - [x] Register the ribbon font on iOS and macOS, expose an opt-in accent-title role and apply it to the workout-completion title while preserving everyday app typography
 - [x] Exercise font rendering and spacing, the browser comparison, source PNG review and native workout completion
 - [x] Publish the owned implementation and hand every item and changed file to the user for human verification
-- [ ] Human acceptance of the compiled ribbon and its accent-title application
-- [ ] Human selection of the small-text companion
+- [x] Human selection of Manrope Regular as the small-text companion
 
-Inter Black is the accepted bold/title and prominent-number face. Source Sans 3 Regular is the current small-text recommendation to compare, alongside IBM Plex Sans Regular, Manrope Regular and the existing Inter Regular; no new small-text face has been accepted or applied globally. The app keeps its existing Inter text roles; the ribbon is limited to an opt-in accent role and the completion moment. The generated ribbon alphabet covers A–Z, a–z and spaces only; digits, punctuation and accented letters are outside its current coverage.
+The generated ribbon alphabet covers A–Z, a–z and spaces only. The previous Source Sans 3 recommendation and opt-in completion/accent role are historical, not the current product direction. Review of the renamed TimeMaster face and its app-wide page-title application is tracked in Batch 17.
+
+### Batch 17 — App-Wide TimeMaster, Manrope and Genuine Inter Typography — 2026-10-22
+
+User direction: apply the selected fonts across every native app page using agents. Rename the original custom font TimeMaster and credit cookbambuk. Reserve it for actual top-of-page and navigation titles, whose first letter is capitalized for display. Manrope Regular supplies readable body and small supporting text; Inter Black supplies other headings, emphasis and prominent numbers; Inter Black Italic must be a genuine supplied italic face.
+
+- [x] Bundle licensed Manrope Regular and genuine matching Inter Black Italic for both native app targets
+- [x] Rename the custom font family and outputs to TimeMaster while preserving every accepted glyph and the built-in spacing
+- [x] Credit cookbambuk in the custom TimeMaster font’s copyright and proprietary metadata without changing upstream Inter or Manrope rights
+- [x] Apply shared page-title-only styling, initial capitalization, unsupported-character preservation and readable dynamic text roles
+- [x] Migrate workout lists, workout detail, editing, music timelines, player, resume and completion surfaces
+- [x] Migrate the exercise database, notes, comments, markdown, pickers, import and native video editors
+- [x] Migrate profile, posts, collectibles, achievements, Ranked and shared account surfaces
+- [x] Migrate settings, music, backup, forms, AI Coach and genuine formatted-text emphasis
+- [x] Migrate Outdoor maps, planning, trip details, recording, playback, offline and finish surfaces
+- [x] Migrate Home widgets, analytics, history, schedules, plans, challenges and related editors
+- [x] Update the local typography review to the accepted font roles and renamed downloadable assets
+- [x] Run focused native builds and actual native/font-preview smoke scenarios, preserving unrelated ongoing work
+- [ ] Commit and push the owned migration and hand every implemented item and changed file to the user for human verification
+- [ ] Human acceptance of the app-wide typography and renamed TimeMaster face
+
+Both native targets built from the scoped publication source. CoreText registered all four production faces and confirmed genuine Inter Black Italic, the TimeMaster family name, cookbambuk copyright and cap-height-matched fallback. The compiler preserved sixty source fingerprints and generated 1,781 kerning pairs. The real browser loaded the local faces and downloads at desktop and phone widths without horizontal overflow.
+
+The isolated iPhone app exercised Home, Settings, Tmax Account, Analytics, the empty database and page creation, including an accessibility text-size variant. A saved mixed-case Unicode title displayed an initial capital with visible digit, punctuation and accented-character fallback while its stored title remained unchanged. The actual notes view rendered Manrope body text, Inter Black headings and genuine italic emphasis. macOS launched a real app window, but desktop accessibility/screen-capture permissions were unavailable, so no macOS visual-review claim is made. Existing native build warnings remain; human acceptance is pending.
 
 ## Tmax Rebrand and Loading — 2026-10-19
 

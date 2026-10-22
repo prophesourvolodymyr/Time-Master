@@ -41,8 +41,8 @@ struct HistoryView: View {
                 if items.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "clock").font(.system(size: 60)).foregroundColor(Theme.textSecondary)
-                        Text("No History Yet").font(.title2).fontWeight(.semibold).foregroundColor(Theme.textPrimary)
-                        Text("Complete a workout or outdoor activity to see it here").font(.subheadline).foregroundColor(Theme.textSecondary)
+                        Text("No History Yet").font(TimeMasterFont.black(22, relativeTo: .title2)).foregroundColor(Theme.textPrimary)
+                        Text("Complete a workout or outdoor activity to see it here").font(TimeMasterFont.secondary()).foregroundColor(Theme.textSecondary)
                     }
                 } else {
                     List {
@@ -83,7 +83,8 @@ struct HistoryView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .navigationTitle("History")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle("History")
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -148,15 +149,17 @@ private struct OutdoorHistoryRow: View {
         HStack(spacing: 12) {
             Image(systemName: activity.kind.iconName).font(.title2).foregroundColor(.cyan).frame(width: 40)
             VStack(alignment: .leading, spacing: 4) {
-                Text(activity.title).font(.headline).foregroundColor(Theme.textPrimary)
+                Text(activity.title).font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 HStack(spacing: 6) {
                     Text(activity.startedAt, style: .date)
                     Text("·")
                     Text(String(format: "%.2f km", activity.distanceMeters / 1000))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                     Text("·")
                     Text(formatDuration(activity.elapsedSeconds))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                 }
-                .font(.caption).foregroundColor(Theme.textSecondary)
+                .font(TimeMasterFont.caption()).monospacedDigit().foregroundColor(Theme.textSecondary)
             }
             Spacer()
         }
@@ -181,12 +184,12 @@ struct HistoryRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(entry.workoutName)
-                        .font(.headline)
+                        .font(TimeMasterFont.sectionTitle())
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     if entry.isPartial {
                         Text("[Partial]")
-                            .font(.caption2.weight(.bold))
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
                             .foregroundColor(.orange)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -197,23 +200,28 @@ struct HistoryRow: View {
 
                 HStack(spacing: 6) {
                     Text(formatDate(entry.completedAt))
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
+                        .monospacedDigit()
                         .foregroundColor(Theme.textSecondary)
                     Text("·")
                         .foregroundColor(Theme.textSecondary)
                     if entry.isPartial {
                         Text(formatDuration(entry.elapsedSeconds))
-                            .font(.caption)
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                            .monospacedDigit()
                             .foregroundColor(Theme.textSecondary)
                         Text("of \(formatDuration(entry.durationCompleted))")
-                            .font(.caption)
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                            .monospacedDigit()
                             .foregroundColor(Theme.textSecondary.opacity(0.5))
                     } else {
                         Text(formatDuration(entry.durationCompleted))
-                            .font(.caption)
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                            .monospacedDigit()
                             .foregroundColor(Theme.textSecondary)
                     }
                 }
+                .font(TimeMasterFont.caption())
             }
 
             Spacer()

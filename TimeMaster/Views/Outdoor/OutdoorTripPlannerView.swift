@@ -69,7 +69,7 @@ struct OutdoorTripPlannerView: View {
                                     .foregroundStyle(Theme.toolbarOrange)
                                     .accessibilityHidden(true)
                                 Text("Tap a road or path")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(TimeMasterFont.rowTitle())
                                 Spacer(minLength: 8)
                                 OutdoorPineIconAction(symbol: "xmark", label: "Cancel map selection", size: 38) {
                                     editor.picking = false
@@ -98,6 +98,7 @@ struct OutdoorTripPlannerView: View {
             .padding(.vertical, 8)
             }
         }
+        .font(TimeMasterFont.body())
         .foregroundStyle(Theme.textPrimary)
         .tint(Theme.toolbarOrange)
         .onPreferenceChange(TripPanelHeightKey.self, perform: onPanelHeight)
@@ -178,7 +179,7 @@ struct OutdoorTripPlannerView: View {
                     }
                     routingPreferences
                     TextField("Trip name", text: Binding(get: { editor.route.title }, set: editor.rename))
-                        .font(.headline)
+                        .font(TimeMasterFont.sectionTitle())
                         .submitLabel(.done)
                         .accessibilityIdentifier("trip.title")
                     OutdoorPineIconAction(
@@ -213,7 +214,7 @@ struct OutdoorTripPlannerView: View {
                         Button(action: onFit) { Image(systemName: "map").frame(width: 44, height: 44) }
                             .accessibilityLabel("Fit road on map")
                     }
-                    .font(.caption.weight(.semibold)).padding(.horizontal, 14)
+                    .font(TimeMasterFont.black(12, relativeTo: .caption)).padding(.horizontal, 14)
                     }
                 }
                 if expanded, !compact {
@@ -263,7 +264,7 @@ struct OutdoorTripPlannerView: View {
                     }
                 } else if !compact {
                     Text(editor.trip.stops.isEmpty ? "Choose a start" : editor.trip.stops.map(\.name).joined(separator: " → "))
-                        .font(.subheadline).lineLimit(1).padding(.horizontal, 16)
+                        .font(TimeMasterFont.secondary()).lineLimit(1).padding(.horizontal, 16)
                 }
             }.padding(.bottom, 10)
     }
@@ -275,9 +276,11 @@ struct OutdoorTripPlannerView: View {
                     .foregroundStyle(Theme.toolbarOrange)
                     .accessibilityHidden(true)
                 Text("Distance")
-                    .font(.subheadline.weight(.semibold))
+                    .font(TimeMasterFont.secondary())
                 Spacer(minLength: 4)
                 TextField(units == .metric ? "km" : "mi", value: $distance, format: .number)
+                    .font(TimeMasterFont.rowTitle())
+                    .monospacedDigit()
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(maxWidth: 92)
@@ -309,7 +312,7 @@ struct OutdoorTripPlannerView: View {
                 }
             }
         }
-        .font(.subheadline)
+        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
         .padding(.horizontal, 14)
     }
 
@@ -340,7 +343,7 @@ struct OutdoorTripPlannerView: View {
         OutdoorTripStopField(index: index, isBus: index > 0 && stop.incomingMode == .bus, connectsBelow: !showsConfiguration) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(index == 0 ? "Start" : "Destination \(index)")
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.textSecondary)
                 TextField(index == 0 ? "Starting location" : "Destination", text: Binding(
                     get: { focusedField == .stop(stop.id) ? query : stop.name },
@@ -353,7 +356,7 @@ struct OutdoorTripPlannerView: View {
                 .accessibilityIdentifier(focusedField == .stop(stop.id) ? "trip.search" : "trip.stop.\(index)")
                 if index > 0, focusedField != .stop(stop.id) {
                     Text(stop.incomingMode == .bus ? "Bus road estimate" : (stop.incomingPreference ?? editor.trip.preference).title(for: editor.trip.kind))
-                        .font(.caption2)
+                        .font(TimeMasterFont.micro())
                         .foregroundStyle(stop.incomingMode == .bus ? Color.yellow : Theme.textSecondary)
                 }
             }
@@ -401,7 +404,7 @@ struct OutdoorTripPlannerView: View {
                             .foregroundStyle(Theme.toolbarOrange)
                             .accessibilityHidden(true)
                         Text(message)
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 4)
                         OutdoorPineIconAction(symbol: "arrow.clockwise", label: "Retry route", size: 38) {
@@ -427,7 +430,7 @@ struct OutdoorTripPlannerView: View {
                         }
                     } footer: {
                         Text(busy ? "Finding offline routes…" : editor.isRouting ? "Snapping to accessible roads…" : editor.trip.isRouted ? "Hold and drag the blue route" : "Add destinations to build your trip")
-                            .font(.caption).foregroundStyle(Theme.textSecondary)
+                            .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                     }
                     .padding(14)
                 }
@@ -443,7 +446,7 @@ struct OutdoorTripPlannerView: View {
                         ) { chooseSuggestion(selectedSuggestion - 1) }
                         Spacer(minLength: 0)
                         Text("\(selectedSuggestion + 1) / \(suggestions.count)")
-                            .font(.subheadline.weight(.semibold))
+                            .font(TimeMasterFont.rowTitle())
                             .monospacedDigit()
                             .accessibilityLabel("Route \(selectedSuggestion + 1) of \(suggestions.count)")
                         Spacer(minLength: 0)
@@ -565,7 +568,7 @@ struct OutdoorTripPlannerView: View {
                     destinationPanel(maximumHeight: max(44, height * (searching ? 0.72 : 0.38)), compact: fraction < 0.55)
                     Spacer(minLength: 0)
                     if let message = editor.errorMessage {
-                        Text(message).font(.caption).foregroundStyle(.red).padding(.horizontal, 14)
+                        Text(message).font(TimeMasterFont.caption()).foregroundStyle(.red).padding(.horizontal, 14)
                     }
                     if !searching {
                         OutdoorPineConnectedActions {

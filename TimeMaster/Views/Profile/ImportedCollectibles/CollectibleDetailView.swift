@@ -182,7 +182,7 @@ struct CollectibleDetailView: View {
         VStack(spacing: EverSpacing.x4) {
             VStack(spacing: EverSpacing.x3) {
                 Text("Preview")
-                    .font(.custom("Inter-Black", size: 48, relativeTo: .largeTitle))
+                    .font(TimeMasterFont.black(48, relativeTo: .largeTitle))
                 VStack(spacing: 0) {
                     Text("Style").font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
                     Text(item.category.title).font(TimeMasterFont.display())

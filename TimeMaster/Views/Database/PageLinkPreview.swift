@@ -10,18 +10,18 @@ struct PageLinkPreviewView: View {
             VStack(alignment: .leading, spacing: 3) {
                 if let title = metadata.title {
                     Text(title)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(2)
                 } else {
                     Text(shortURL)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                 }
                 if let desc = metadata.description {
                     Text(desc)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                         .lineLimit(2)
                 }
@@ -80,7 +80,7 @@ struct PageLinkList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Links")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundColor(Theme.textPrimary)
 
             ForEach(Array(urls.enumerated()), id: \.offset) { index, urlString in
@@ -105,7 +105,7 @@ struct PageLinkList: View {
                                         .foregroundColor(Theme.textSecondary)
                                 )
                             Text(URL(string: urlString)?.host ?? urlString)
-                                .font(.subheadline.weight(.medium))
+                                .font(TimeMasterFont.rowTitle())
                                 .foregroundColor(Theme.textPrimary)
                                 .lineLimit(1)
                             Spacer()

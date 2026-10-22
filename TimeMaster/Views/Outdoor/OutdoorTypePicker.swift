@@ -14,7 +14,7 @@ struct OutdoorTypePicker: View {
         VStack(spacing: 8) {
             if let prompt {
                 Text(prompt == .choose ? "What are you heading out for?" : "Ready for a \(previewKind.displayName.lowercased())?")
-                    .font(.headline.weight(.bold))
+                    .font(TimeMasterFont.sectionTitle())
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -29,7 +29,7 @@ struct OutdoorTypePicker: View {
             .clipped()
             Button(action: onCommit) {
                 Label("Accept", systemImage: "checkmark")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
@@ -94,7 +94,7 @@ private struct OutdoorActivityCarousel: UIViewRepresentable {
         func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
             let option = Self.choices[row]
             let label = view as? UILabel ?? UILabel()
-            let font = UIFont.systemFont(ofSize: rowHeight * 0.68, weight: .bold)
+            let font = TimeMasterFont.uiBlack(rowHeight * 0.68)
             let color = UIColor(Theme.textPrimary)
             let attachment = NSTextAttachment()
             attachment.image = UIImage(systemName: option.iconName, withConfiguration: UIImage.SymbolConfiguration(pointSize: font.pointSize * 0.8))?.withTintColor(color, renderingMode: .alwaysOriginal)

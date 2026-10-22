@@ -72,7 +72,7 @@ struct SectionEditorView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle(section == nil ? "New Section" : "Edit Section")
+            .timeMasterNavigationTitle(section == nil ? "New Section" : "Edit Section")
             #if os(iOS)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -95,6 +95,7 @@ struct SectionEditorView: View {
             }
             #endif
         }
+        .font(TimeMasterFont.body())
         #if os(iOS)
         .photosPicker(
             isPresented: $showingPicker,
@@ -183,12 +184,12 @@ struct SectionEditorView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Media")
-                    .font(.headline)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 if !mediaItems.isEmpty {
                     Text("\(mediaItems.count)/5")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
             }
@@ -204,7 +205,7 @@ struct SectionEditorView: View {
                             Image(systemName: "photo.badge.plus")
                             Text(mediaItems.isEmpty ? "Photo Library" : "Add More")
                         }
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .foregroundColor(Theme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -220,7 +221,7 @@ struct SectionEditorView: View {
                             Image(systemName: "folder.badge.plus")
                             Text("Files")
                         }
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .foregroundColor(Theme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -242,7 +243,7 @@ struct SectionEditorView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
                 Text("Exercise Name")
-                    .font(.headline)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 // Suggest button — only when at least one photo is present
@@ -256,7 +257,7 @@ struct SectionEditorView: View {
                                     .font(.caption.weight(.semibold))
                             }
                             Text("Suggest")
-                                .font(.caption.weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                         }
                         .foregroundColor(isSuggestingName ? Color.white.opacity(0.35) : .white)
                         .padding(.horizontal, 10)
@@ -274,7 +275,7 @@ struct SectionEditorView: View {
                 .foregroundColor(Theme.textPrimary)
             if let err = aiErrorMessage {
                 Text(err)
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(.red.opacity(0.85))
             }
         }
@@ -285,7 +286,7 @@ struct SectionEditorView: View {
     private var fromDatabaseSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("From Database")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             Button { showingDatabasePicker = true } label: {
                 HStack {
@@ -310,10 +311,10 @@ struct SectionEditorView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Timer")
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(Theme.textPrimary)
                     Text(isTimerEnabled ? "Countdown enabled" : "No countdown — sets only")
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
                 Spacer()
@@ -326,8 +327,7 @@ struct SectionEditorView: View {
             if isTimerEnabled {
                 HStack {
                     Text("\(duration)s")
-                        .font(.title2.monospacedDigit())
-                        .fontWeight(.semibold)
+                        .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
                     Stepper("", value: $duration, in: 5...300, step: 5).labelsHidden()
@@ -344,15 +344,14 @@ struct SectionEditorView: View {
     private var prepareTimeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Prepare Time")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             Text("Countdown before this exercise starts.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundColor(Theme.textSecondary)
             HStack {
                 Text("\(prepareTime)s")
-                    .font(.title2.monospacedDigit())
-                    .fontWeight(.semibold)
+                    .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Stepper("", value: $prepareTime, in: 0...30, step: 1).labelsHidden()
@@ -368,12 +367,11 @@ struct SectionEditorView: View {
     private var setsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Sets")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             HStack {
                 Text(sets == 1 ? "1 set" : "\(sets) sets")
-                    .font(.title2.monospacedDigit())
-                    .fontWeight(.semibold)
+                    .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Stepper("", value: $sets, in: 1...20).labelsHidden()
@@ -389,12 +387,11 @@ struct SectionEditorView: View {
     private var restBetweenSetsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Rest Between Sets")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             HStack {
                 Text("\(restBetweenSets)s")
-                    .font(.title2.monospacedDigit())
-                    .fontWeight(.semibold)
+                    .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Stepper("", value: $restBetweenSets, in: 5...120, step: 5).labelsHidden()
@@ -412,11 +409,11 @@ struct SectionEditorView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Custom Rest After Section")
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(Theme.textPrimary)
                     if !useCustomRest {
                         Text("Uses workout default")
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                             .foregroundColor(Theme.textSecondary)
                     }
                 }
@@ -428,8 +425,7 @@ struct SectionEditorView: View {
             if useCustomRest {
                 HStack {
                     Text("\(customRestAfter)s")
-                        .font(.title2.monospacedDigit())
-                        .fontWeight(.semibold)
+                        .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
                     Stepper("", value: $customRestAfter, in: 0...300, step: 5).labelsHidden()

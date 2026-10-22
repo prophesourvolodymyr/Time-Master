@@ -59,6 +59,7 @@ struct FloatingControlsBar: View {
                 }
             }
         }
+        .font(TimeMasterFont.body())
         .padding(4)
         .modifier(WorkoutFloatingSurface())
         .alert("Stop Workout?", isPresented: $confirmingStop) {
@@ -74,9 +75,9 @@ struct FloatingControlsBar: View {
             }
             .accessibilityLabel("Stop workout")
             VStack(alignment: .leading, spacing: 2) {
-                Text(workoutName).font(.caption.weight(.semibold)).lineLimit(1)
+                Text(workoutName).font(TimeMasterFont.black(12, relativeTo: .caption)).lineLimit(1)
                 Text(musicTimestamp(Double(context.progress.remaining > 0 ? context.progress.remaining : context.progress.elapsed)))
-                    .font(.caption2.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                    .font(TimeMasterFont.micro().monospacedDigit()).foregroundStyle(Theme.textSecondary)
             }
             .frame(minWidth: controlSize, maxWidth: .infinity, alignment: .leading)
             Button(action: context.onPause) {

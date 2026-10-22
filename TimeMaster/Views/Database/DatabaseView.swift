@@ -150,20 +150,20 @@ struct MarkdownTextView: View {
     private func markdownLine(_ line: String) -> some View {
         if line.hasPrefix("# ") {
             Text(String(line.dropFirst(2)))
-                .font(.title2.bold()).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.black(22, relativeTo: .title2)).foregroundColor(Theme.textPrimary)
         } else if line.hasPrefix("## ") {
             Text(String(line.dropFirst(3)))
-                .font(.title3.weight(.semibold)).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.heading()).foregroundColor(Theme.textPrimary)
         } else if line.hasPrefix("### ") {
             Text(String(line.dropFirst(4)))
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
         } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
             HStack(alignment: .top, spacing: 8) {
                 Text("•").foregroundColor(Theme.textSecondary).frame(width: 12)
                 inlineMarkdownView(String(line.dropFirst(2)))
             }
         } else if line.isEmpty {
-            Text(" ").font(.caption2)
+            Text(" ").font(TimeMasterFont.micro())
         } else {
             inlineMarkdownView(line)
         }
@@ -173,9 +173,9 @@ struct MarkdownTextView: View {
     private func inlineMarkdownView(_ s: String) -> some View {
         if let attr = try? AttributedString(markdown: s,
                                             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
-            Text(attr).foregroundColor(Theme.textPrimary).font(.body)
+            Text(TimeMasterFont.styledText(attr, size: 17)).foregroundColor(Theme.textPrimary)
         } else {
-            Text(s).foregroundColor(Theme.textPrimary).font(.body)
+            Text(s).foregroundColor(Theme.textPrimary).font(TimeMasterFont.body(17))
         }
     }
 }
@@ -191,11 +191,11 @@ struct NoteRowView: View {
                 .font(.title3).foregroundColor(Theme.textSecondary).frame(width: 32)
             VStack(alignment: .leading, spacing: 3) {
                 Text(note.title)
-                    .font(.subheadline).fontWeight(.medium).foregroundColor(Theme.textPrimary)
+                    .font(TimeMasterFont.rowTitle()).foregroundColor(Theme.textPrimary)
                     .lineLimit(1)
                 if !note.body.isEmpty {
                     Text(note.body)
-                        .font(.caption).foregroundColor(Theme.textSecondary).lineLimit(2)
+                        .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary).lineLimit(2)
                 }
             }
             Spacer()
@@ -234,7 +234,7 @@ struct NoteDetailView: View {
                 VStack(spacing: 0) {
                     // Title field
                     TextField("Title", text: $title)
-                        .font(.title2.weight(.semibold))
+                        .font(TimeMasterFont.black(22, relativeTo: .title2))
                         .foregroundColor(Theme.textPrimary)
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
@@ -244,7 +244,7 @@ struct NoteDetailView: View {
 
                     // Body editor — fills remaining space
                     TextEditor(text: $noteBody)
-                        .font(.body)
+                        .font(TimeMasterFont.body(17))
                         .foregroundColor(Theme.textPrimary)
                         .scrollContentBackground(.hidden)
                         .padding(.horizontal, 16)
@@ -321,7 +321,7 @@ struct NoteEditorView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle(existingNote == nil ? "New Note" : "Edit Note")
+            .timeMasterNavigationTitle(existingNote == nil ? "New Note" : "Edit Note")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -336,7 +336,7 @@ struct NoteEditorView: View {
 
     private var titleCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Title").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Title").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             TextField("Note title…", text: $title)
                 .padding(14).background(Theme.surface).cornerRadius(10).foregroundColor(Theme.textPrimary)
         }
@@ -345,20 +345,21 @@ struct NoteEditorView: View {
     private var bodyCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Content").font(.headline).foregroundColor(Theme.textPrimary)
+                Text("Content").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 Spacer()
                 Text("Markdown supported")
-                    .font(.caption2).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary)
             }
             ZStack(alignment: .topLeading) {
                 if noteBody.isEmpty {
-                    Text("Write your note here…\n\nSupports **bold**, *italic*, `code`, # Headings, - lists")
+                    Text(TimeMasterFont.styledText(AttributedString(localized: "Write your note here…\n\nSupports **bold**, *italic*, `code`, # Headings, - lists"), size: 17))
                         .foregroundColor(Theme.textSecondary.opacity(0.6))
                         .padding(.top, 14).padding(.leading, 14)
                         .allowsHitTesting(false)
-                        .font(.body)
+                        .font(TimeMasterFont.body(17))
                 }
                 TextEditor(text: $noteBody)
+                    .font(TimeMasterFont.body(17))
                     .frame(minHeight: 200).padding(10)
                     .scrollContentBackground(.hidden).foregroundColor(Theme.textPrimary)
             }
@@ -756,13 +757,13 @@ struct DatabaseView: View {
     @ViewBuilder
     private var rootExercisesSection: some View {
         if !store.rootExercises.isEmpty {
-            SwiftUI.Section("Ungrouped") {
+            SwiftUI.Section {
                 ForEach(store.rootExercises) { exercise in
                     HStack {
                         ExerciseRowView(exercise: exercise)
                         Spacer()
                         Text("Ungrouped")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(TimeMasterFont.black(9, relativeTo: .caption2))
                             .foregroundColor(Theme.textSecondary.opacity(0.6))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
@@ -788,6 +789,9 @@ struct DatabaseView: View {
                     }
                 }
                 .onMove { store.moveRootExercise(from: $0, to: $1) }
+            } header: {
+                Text("Ungrouped")
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
             }
         }
     }
@@ -795,7 +799,7 @@ struct DatabaseView: View {
     @ViewBuilder
     private var rootNotesSection: some View {
         if !store.rootNotes.isEmpty {
-            SwiftUI.Section("Notes") {
+            SwiftUI.Section {
                 ForEach(store.rootNotes) { note in
                     NoteRowView(note: note)
                         .contentShape(Rectangle())
@@ -817,6 +821,9 @@ struct DatabaseView: View {
                         }
                 }
                 .onMove { store.moveRootNote(from: $0, to: $1) }
+            } header: {
+                Text("Notes")
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
             }
         }
     }
@@ -824,7 +831,7 @@ struct DatabaseView: View {
     @ViewBuilder
     private var rootFoldersSection: some View {
         if !store.rootFolders.isEmpty {
-            SwiftUI.Section("Folders") {
+            SwiftUI.Section {
                 ForEach(store.rootFolders) { folder in
                     NavigationLink(destination: FolderDetailView(folderID: folder.id)) {
                         FolderRowView(folder: folder)
@@ -846,6 +853,9 @@ struct DatabaseView: View {
                     }
                 }
                 .onMove { store.moveRootFolder(from: $0, to: $1) }
+            } header: {
+                Text("Folders")
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
             }
         }
     }
@@ -856,10 +866,10 @@ struct DatabaseView: View {
                 .font(.system(size: 44))
                 .foregroundColor(Theme.textSecondary)
             Text("Nothing here yet")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundColor(Theme.textPrimary)
             Text("Tap + to add a folder, note, or exercise.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -983,7 +993,7 @@ struct DatabaseView: View {
                 .font(.system(size: 36))
                 .foregroundStyle(Theme.textSecondary.opacity(0.4))
             Text("No exercises match this type")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
         }
         .frame(maxWidth: .infinity)
@@ -1136,10 +1146,10 @@ struct DatabaseView: View {
                 .font(.system(size: 44))
                 .foregroundColor(Theme.textSecondary)
             Text("No pages yet")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundColor(Theme.textPrimary)
             Text("Tap + to create your first page.")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             Button {
@@ -1147,7 +1157,7 @@ struct DatabaseView: View {
                 showingCreatePage = true
             } label: {
                 Text("Create First Page")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
             }
             .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
             .padding(.top, 8)
@@ -1218,10 +1228,10 @@ private struct DatabaseSearchSheet: View {
                                 .font(.system(size: 34))
                                 .foregroundStyle(Theme.toolbarOrange.opacity(0.8))
                             Text("Search the full database")
-                                .font(.headline)
+                                .font(TimeMasterFont.sectionTitle())
                                 .foregroundStyle(Theme.textPrimary)
                             Text("Results include pages nested inside any container.")
-                                .font(.subheadline)
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                                 .foregroundStyle(Theme.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
@@ -1233,7 +1243,7 @@ private struct DatabaseSearchSheet: View {
                                 .font(.system(size: 34))
                                 .foregroundStyle(Theme.textSecondary)
                             Text("No matching pages")
-                                .font(.headline)
+                                .font(TimeMasterFont.sectionTitle())
                                 .foregroundStyle(Theme.textPrimary)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1249,7 +1259,7 @@ private struct DatabaseSearchSheet: View {
                                             Text(page.title)
                                                 .foregroundStyle(Theme.textPrimary)
                                             Text(searchTypeLabel(page))
-                                                .font(.caption)
+                                                .font(TimeMasterFont.caption())
                                                 .foregroundStyle(Theme.textSecondary)
                                         }
                                         Spacer()
@@ -1263,7 +1273,7 @@ private struct DatabaseSearchSheet: View {
                     }
                 }
             }
-            .navigationTitle("Search Database")
+            .timeMasterNavigationTitle("Search Database")
             .navigationDestination(for: DatabasePageRoute.self) { route in
                 if let pageID = UUID(uuidString: route.pageID) {
                     ExercisePageDetailView(pageID: pageID)
@@ -1338,7 +1348,7 @@ struct FolderDetailView: View {
                 }
             }
         }
-        .navigationTitle(folder?.name ?? "")
+        .timeMasterNavigationTitle(folder?.name ?? "")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -1394,7 +1404,7 @@ struct FolderDetailView: View {
     @ViewBuilder
     private func subfoldersSection(_ folder: ExerciseFolder) -> some View {
         if !folder.subfolders.isEmpty {
-            SwiftUI.Section("Folders") {
+            SwiftUI.Section {
                 ForEach(folder.subfolders) { sub in
                     NavigationLink(destination: FolderDetailView(folderID: sub.id)) {
                         FolderRowView(folder: sub)
@@ -1410,6 +1420,9 @@ struct FolderDetailView: View {
                     }
                 }
                 .onMove { store.moveSubfolder(from: $0, to: $1, inParentID: folderID) }
+            } header: {
+                Text("Folders")
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
             }
         }
     }
@@ -1417,7 +1430,7 @@ struct FolderDetailView: View {
     @ViewBuilder
     private func notesSection(_ folder: ExerciseFolder) -> some View {
         if !folder.notes.isEmpty {
-            SwiftUI.Section("Notes") {
+            SwiftUI.Section {
                 ForEach(folder.notes) { note in
                     NoteRowView(note: note)
                         .contentShape(Rectangle())
@@ -1439,16 +1452,19 @@ struct FolderDetailView: View {
                         }
                 }
                 .onMove { store.moveFolderNote(from: $0, to: $1, inFolderID: folderID) }
+            } header: {
+                Text("Notes")
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
             }
         }
     }
 
     @ViewBuilder
     private func exercisesSection(_ folder: ExerciseFolder) -> some View {
-        SwiftUI.Section("Exercises") {
+        SwiftUI.Section {
             if folder.exercises.isEmpty {
                 Text("No exercises — tap + to add one")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textSecondary)
                     .listRowBackground(Color.clear)
             } else {
@@ -1474,6 +1490,9 @@ struct FolderDetailView: View {
                 }
                 .onMove { store.moveFolderExercise(from: $0, to: $1, inFolderID: folderID) }
             }
+        } header: {
+            Text("Exercises")
+                .font(TimeMasterFont.black(13, relativeTo: .footnote))
         }
     }
 
@@ -1497,7 +1516,7 @@ struct FolderDetailView: View {
     private func galleryFoldersSection(_ subfolders: [ExerciseFolder]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("FOLDERS")
-                .font(.caption).fontWeight(.semibold).tracking(1)
+                .font(TimeMasterFont.black(12, relativeTo: .caption)).tracking(1)
                 .foregroundColor(Theme.textSecondary)
                 .padding(.horizontal, 16)
             ForEach(subfolders) { sub in
@@ -1516,7 +1535,7 @@ struct FolderDetailView: View {
     private func galleryNotesSection(_ notes: [DatabaseNote]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("NOTES")
-                .font(.caption).fontWeight(.semibold).tracking(1)
+                .font(TimeMasterFont.black(12, relativeTo: .caption)).tracking(1)
                 .foregroundColor(Theme.textSecondary)
                 .padding(.horizontal, 16)
             ForEach(notes) { note in
@@ -1535,12 +1554,12 @@ struct FolderDetailView: View {
     private func galleryExercisesSection(_ exercises: [Exercise]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("EXERCISES")
-                .font(.caption).fontWeight(.semibold).tracking(1)
+                .font(TimeMasterFont.black(12, relativeTo: .caption)).tracking(1)
                 .foregroundColor(Theme.textSecondary)
                 .padding(.horizontal, 16)
             if exercises.isEmpty {
                 Text("No exercises — tap + to add one")
-                    .font(.subheadline).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary)
                     .frame(maxWidth: .infinity).padding(.top, 24)
             } else {
                 LazyVGrid(columns: gridColumns, spacing: 12) {
@@ -1610,8 +1629,8 @@ struct FolderRowView: View {
                         .foregroundColor(folder.colorHex == "FFFFFF" ? .black : .white)
                 )
             VStack(alignment: .leading, spacing: 2) {
-                Text(folder.name).font(.headline).foregroundColor(Theme.textPrimary)
-                Text(subtitleText).font(.caption).foregroundColor(Theme.textSecondary)
+                Text(folder.name).font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
+                Text(subtitleText).font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
             }
         }
         .padding(.vertical, 2)
@@ -1643,13 +1662,13 @@ struct ExerciseRowView: View {
                 }
             VStack(alignment: .leading, spacing: 3) {
                 Text(exercise.name)
-                    .font(.subheadline).fontWeight(.medium).foregroundColor(Theme.textPrimary)
+                    .font(TimeMasterFont.rowTitle()).foregroundColor(Theme.textPrimary)
                 if !exercise.details.isEmpty {
                     Text(exercise.details)
-                        .font(.caption).foregroundColor(Theme.textSecondary).lineLimit(1)
+                        .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary).lineLimit(1)
                 }
                 Text("\(exercise.duration)s work · \(exercise.restAfter)s rest")
-                    .font(.caption2).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary)
             }
             Spacer()
             Image(systemName: "chevron.right")
@@ -1734,10 +1753,10 @@ struct ExerciseGalleryCard: View {
     private var infoBottom: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(exercise.name)
-                .font(.subheadline).fontWeight(.semibold)
+                .font(TimeMasterFont.rowTitle())
                 .foregroundColor(Theme.textPrimary).lineLimit(1)
             Text("\(exercise.duration)s · \(exercise.restAfter)s rest")
-                .font(.caption).foregroundColor(Theme.textSecondary)
+                .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
     }
@@ -1826,7 +1845,7 @@ struct AddExerciseView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("New Exercise")
+            .timeMasterNavigationTitle("New Exercise")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -1863,7 +1882,7 @@ struct AddExerciseView: View {
     private var addNameCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center) {
-                Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+                Text("Name").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 Spacer()
                 if mediaItems.contains(where: { $0.type == .photo }) {
                     Button { addSuggestNameWithAI() } label: {
@@ -1875,7 +1894,7 @@ struct AddExerciseView: View {
                                     .font(.caption.weight(.semibold))
                             }
                             Text("Suggest")
-                                .font(.caption.weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                         }
                         .foregroundColor(isSuggestingName ? Color.white.opacity(0.35) : .white)
                         .padding(.horizontal, 10)
@@ -1889,14 +1908,14 @@ struct AddExerciseView: View {
             TextField("e.g., Push-ups", text: $name)
                 .padding(14).background(Theme.surface).cornerRadius(10).foregroundColor(Theme.textPrimary)
             if let err = aiErrorMessage {
-                Text(err).font(.caption).foregroundColor(.red.opacity(0.85))
+                Text(err).font(TimeMasterFont.caption()).foregroundColor(.red.opacity(0.85))
             }
         }
     }
 
     private var addDescriptionCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Description").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Description").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             ZStack(alignment: .topLeading) {
                 if details.isEmpty {
                     Text("How to perform this exercise…")
@@ -1905,6 +1924,7 @@ struct AddExerciseView: View {
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $details)
+                    .font(TimeMasterFont.body(17))
                     .frame(minHeight: 80).padding(10)
                     .scrollContentBackground(.hidden).foregroundColor(Theme.textPrimary)
             }
@@ -1914,7 +1934,7 @@ struct AddExerciseView: View {
 
     private var addTimingCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Timing").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Timing").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             VStack(spacing: 8) {
                 HStack {
                     Text("Duration").foregroundColor(Theme.textPrimary)
@@ -1937,17 +1957,22 @@ struct AddExerciseView: View {
     private var addMediaCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Photos & Videos").font(.headline).foregroundColor(Theme.textPrimary)
+                Text("Photos & Videos").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 Spacer()
                 if !mediaItems.isEmpty {
-                    Text("\(mediaItems.count)/\(maxMedia)").font(.caption).foregroundColor(Theme.textSecondary)
+                    Text("\(mediaItems.count)/\(maxMedia)").font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
                 }
             }
             mediaScrollRow(items: mediaItems, onRemove: removeMedia)
             HStack(spacing: 10) {
                 Button { showingPicker = true } label: {
-                    Label("Photos", systemImage: "photo.badge.plus")
-                        .font(.subheadline)
+                    Label {
+                        Text("Photos")
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                    } icon: {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.subheadline)
+                    }
                         .foregroundColor(Theme.textPrimary)
                         .padding(12)
                         .frame(maxWidth: .infinity)
@@ -1956,8 +1981,13 @@ struct AddExerciseView: View {
                 }
                 .disabled(mediaItems.count >= maxMedia)
                 Button { showingFilePicker = true } label: {
-                    Label("Files", systemImage: "folder.badge.plus")
-                        .font(.subheadline)
+                    Label {
+                        Text("Files")
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                    } icon: {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.subheadline)
+                    }
                         .foregroundColor(Theme.textPrimary)
                         .padding(12)
                         .frame(maxWidth: .infinity)
@@ -2093,7 +2123,7 @@ struct EditExerciseView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Edit Exercise")
+            .timeMasterNavigationTitle("Edit Exercise")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2147,7 +2177,7 @@ struct EditExerciseView: View {
     private var editNameCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center) {
-                Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+                Text("Name").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 Spacer()
                 if mediaItems.contains(where: { $0.type == .photo }) {
                     Button { editSuggestNameWithAI() } label: {
@@ -2159,7 +2189,7 @@ struct EditExerciseView: View {
                                     .font(.caption.weight(.semibold))
                             }
                             Text("Suggest")
-                                .font(.caption.weight(.semibold))
+                                .font(TimeMasterFont.black(12, relativeTo: .caption))
                         }
                         .foregroundColor(isSuggestingName ? Color.white.opacity(0.35) : .white)
                         .padding(.horizontal, 10)
@@ -2173,14 +2203,14 @@ struct EditExerciseView: View {
             TextField("e.g., Push-ups", text: $name)
                 .padding(14).background(Theme.surface).cornerRadius(10).foregroundColor(Theme.textPrimary)
             if let err = aiErrorMessage {
-                Text(err).font(.caption).foregroundColor(.red.opacity(0.85))
+                Text(err).font(TimeMasterFont.caption()).foregroundColor(.red.opacity(0.85))
             }
         }
     }
 
     private var editDescriptionCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Description").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Description").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             ZStack(alignment: .topLeading) {
                 if details.isEmpty {
                     Text("How to perform this exercise…")
@@ -2189,6 +2219,7 @@ struct EditExerciseView: View {
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $details)
+                    .font(TimeMasterFont.body(17))
                     .frame(minHeight: 80).padding(10)
                     .scrollContentBackground(.hidden).foregroundColor(Theme.textPrimary)
             }
@@ -2198,7 +2229,7 @@ struct EditExerciseView: View {
 
     private var editTimingCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Timing").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Timing").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             VStack(spacing: 8) {
                 HStack {
                     Text("Duration").foregroundColor(Theme.textPrimary)
@@ -2221,17 +2252,22 @@ struct EditExerciseView: View {
     private var editMediaCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Photos & Videos").font(.headline).foregroundColor(Theme.textPrimary)
+                Text("Photos & Videos").font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
                 Spacer()
                 if !mediaItems.isEmpty {
-                    Text("\(mediaItems.count)/\(maxMedia)").font(.caption).foregroundColor(Theme.textSecondary)
+                    Text("\(mediaItems.count)/\(maxMedia)").font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
                 }
             }
             mediaScrollRow(items: mediaItems, onRemove: editRemoveMedia)
             HStack(spacing: 10) {
                 Button { showingPicker = true } label: {
-                    Label("Photos", systemImage: "photo.badge.plus")
-                        .font(.subheadline)
+                    Label {
+                        Text("Photos")
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                    } icon: {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.subheadline)
+                    }
                         .foregroundColor(Theme.textPrimary)
                         .padding(12)
                         .frame(maxWidth: .infinity)
@@ -2240,8 +2276,13 @@ struct EditExerciseView: View {
                 }
                 .disabled(mediaItems.count >= maxMedia)
                 Button { showingFilePicker = true } label: {
-                    Label("Files", systemImage: "folder.badge.plus")
-                        .font(.subheadline)
+                    Label {
+                        Text("Files")
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                    } icon: {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.subheadline)
+                    }
                         .foregroundColor(Theme.textPrimary)
                         .padding(12)
                         .frame(maxWidth: .infinity)
@@ -2258,7 +2299,7 @@ struct EditExerciseView: View {
             showingDeleteConfirm = true
         } label: {
             Text("Delete Exercise")
-                .font(.headline).foregroundColor(.red)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(.red)
                 .frame(maxWidth: .infinity).padding(16)
                 .background(Theme.surface).cornerRadius(12)
         }
@@ -2418,7 +2459,7 @@ struct NewFolderSheet: View {
                     VStack(spacing: 24) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Name")
-                                .font(.headline)
+                                .font(TimeMasterFont.sectionTitle())
                                 .foregroundColor(Theme.textPrimary)
                             TextField("Folder name", text: $name)
                                 .padding(14)
@@ -2429,21 +2470,21 @@ struct NewFolderSheet: View {
 
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Icon Color")
-                                .font(.headline)
+                                .font(TimeMasterFont.sectionTitle())
                                 .foregroundColor(Theme.textPrimary)
                             IconColorPicker(selectedHex: $colorHex)
                         }
 
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Workout Type")
-                                .font(.headline)
+                                .font(TimeMasterFont.sectionTitle())
                                 .foregroundColor(Theme.textPrimary)
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                                 Button {
                                     workoutType = nil
                                 } label: {
                                     Text("None")
-                                        .font(.subheadline.weight(workoutType == nil ? .semibold : .regular))
+                                        .font(workoutType == nil ? TimeMasterFont.rowTitle() : TimeMasterFont.body(15, relativeTo: .subheadline))
                                         .foregroundColor(.white)
                                         .padding(.vertical, 10)
                                         .frame(maxWidth: .infinity)
@@ -2458,7 +2499,7 @@ struct NewFolderSheet: View {
                                             Image(systemName: type.icon).font(.system(size: 11))
                                             Text(type.name)
                                         }
-                                        .font(.subheadline.weight(workoutType == type ? .semibold : .regular))
+                                        .font(workoutType == type ? TimeMasterFont.rowTitle() : TimeMasterFont.body(15, relativeTo: .subheadline))
                                         .foregroundColor(.white)
                                         .padding(.vertical, 10)
                                         .frame(maxWidth: .infinity)
@@ -2476,7 +2517,7 @@ struct NewFolderSheet: View {
                             dismiss()
                         } label: {
                             Text("Create Folder")
-                                .font(.headline)
+                                .font(TimeMasterFont.sectionTitle())
                                 .foregroundColor(trimmed.isEmpty ? Color.white.opacity(0.3) : .black)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
@@ -2488,7 +2529,7 @@ struct NewFolderSheet: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("New Folder")
+            .timeMasterNavigationTitle("New Folder")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2573,7 +2614,7 @@ struct FolderPickerSheet: View {
                 #endif
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Move To")
+            .timeMasterNavigationTitle("Move To")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2631,7 +2672,7 @@ struct FolderExportSheet: View {
                 Theme.background.ignoresSafeArea()
                 exportList
             }
-            .navigationTitle("Export Folder")
+            .timeMasterNavigationTitle("Export Folder")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2659,7 +2700,7 @@ struct FolderExportSheet: View {
                  }
         AppToolbar.item(placement: .confirmationAction) { Button { startExport() } label: {
             if isExporting { TmaxLoadingIndicator(size: 20) }
-            else { Text("Export").fontWeight(.semibold) }
+            else { Text("Export").font(TimeMasterFont.black(17)) }
         }
         .foregroundColor(.white)
         .disabled(isExporting || selectedCount == 0
@@ -2688,7 +2729,9 @@ struct FolderExportSheet: View {
                 .autocorrectionDisabled()
                 .listRowBackground(Theme.surface)
         } header: {
-            Text("File Name (.zip)").foregroundColor(Theme.textSecondary)
+            Text("File Name (.zip)")
+                .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                .foregroundColor(Theme.textSecondary)
         }
     }
 
@@ -2781,7 +2824,7 @@ struct FolderExportSheet: View {
         return SwiftUI.Section {
             HStack {
                 Text("\(selectedCount) item\(selectedCount == 1 ? "" : "s") selected")
-                    .font(.subheadline).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary)
                 Spacer()
                 Button(allOn ? "Deselect All" : "Select All") {
                     if allOn {
@@ -2794,7 +2837,7 @@ struct FolderExportSheet: View {
                         selectedSubfolderIDs = Set(folder.subfolders.map(\.id))
                     }
                 }
-                .font(.subheadline).foregroundColor(.white)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundColor(.white)
             }
             .listRowBackground(Theme.surface)
         }
@@ -2857,11 +2900,11 @@ private struct ExportToggleRow: View {
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.rowTitle())
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     Text(subtitle)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                         .lineLimit(1)
                 }
@@ -2884,9 +2927,10 @@ private struct ExportSectionHeader: View {
     var body: some View {
         HStack {
             Text(title)
+                .font(TimeMasterFont.black(13, relativeTo: .footnote))
             Spacer()
             Button(allSelected ? "Deselect All" : "Select All", action: onToggleAll)
-                .font(.caption).foregroundColor(.white).textCase(nil)
+                .font(TimeMasterFont.caption()).foregroundColor(.white).textCase(nil)
         }
     }
 }

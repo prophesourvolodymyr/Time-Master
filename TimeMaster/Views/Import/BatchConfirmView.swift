@@ -100,10 +100,10 @@ struct BatchConfirmView: View {
                                     .font(.title2)
                                     .foregroundColor(Theme.textSecondary)
                                 Text("Create a Database Container First")
-                                    .font(.headline)
+                                    .font(TimeMasterFont.sectionTitle())
                                     .foregroundColor(Theme.textPrimary)
                                 Text("Create a container here or in the Database to save the video media.")
-                                    .font(.caption)
+                                    .font(TimeMasterFont.caption())
                                     .foregroundColor(Theme.textSecondary)
                                     .multilineTextAlignment(.center)
                             }
@@ -118,7 +118,7 @@ struct BatchConfirmView: View {
 
                         if let saveError {
                             Text(saveError)
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundColor(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 16)
@@ -128,7 +128,7 @@ struct BatchConfirmView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Save Video Media")
+            .timeMasterNavigationTitle("Save Video Media")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Back") { dismiss() }
@@ -164,8 +164,13 @@ struct BatchConfirmView: View {
                 Button {
                     onPreview(time)
                 } label: {
-                    Label("Preview Clip", systemImage: "play.circle")
-                        .font(.caption)
+                    Label {
+                        Text("Preview Clip")
+                            .font(TimeMasterFont.caption())
+                    } icon: {
+                        Image(systemName: "play.circle")
+                            .font(.caption)
+                    }
                         .foregroundColor(Theme.textSecondary)
                 }
             }
@@ -177,33 +182,44 @@ struct BatchConfirmView: View {
 
     private func destinationRow(_ item: TrayItem) -> some View {
         HStack {
-            Label("Save in", systemImage: "folder")
-                .font(.subheadline)
+            Label {
+                Text("Save in")
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+            } icon: {
+                Image(systemName: "folder")
+                    .font(.subheadline)
+            }
                 .foregroundColor(Theme.textPrimary)
             Spacer()
             if destinations.isEmpty {
                 Text("No pages")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(.red)
             } else {
                 Picker("Save in", selection: destinationBinding(item)) {
                     Text("Select…").tag(String?.none)
                     let existing = destinations.filter { $0.kind == .existing }
                     if !existing.isEmpty {
-                        SwiftUI.Section("Add to existing exercise") {
+                        SwiftUI.Section {
                             ForEach(existing) { destination in
                                 Text(destination.label)
                                     .tag(Optional(destination.id))
                             }
+                        } header: {
+                            Text("Add to existing exercise")
+                                .font(TimeMasterFont.black(13, relativeTo: .footnote))
                         }
                     }
                     let new = destinations.filter { $0.kind == .new }
                     if !new.isEmpty {
-                        SwiftUI.Section("Create new exercise in") {
+                        SwiftUI.Section {
                             ForEach(new) { destination in
                                 Text(destination.label)
                                     .tag(Optional(destination.id))
                             }
+                        } header: {
+                            Text("Create new exercise in")
+                                .font(TimeMasterFont.black(13, relativeTo: .footnote))
                         }
                     }
                 }
@@ -219,7 +235,7 @@ struct BatchConfirmView: View {
     private func durationRow(_ item: TrayItem) -> some View {
         HStack {
             Text("Duration")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
             Spacer()
             Text("\(cardDurations[item.id] ?? 30)s")
@@ -235,7 +251,7 @@ struct BatchConfirmView: View {
     private func restAfterRow(_ item: TrayItem) -> some View {
         HStack {
             Text("Rest After")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
             Spacer()
             Text("\(cardRestAfter[item.id] ?? 10)s")
@@ -284,7 +300,7 @@ struct BatchConfirmView: View {
                 TmaxLoadingIndicator(size: 20)
             } else {
                 Text("Save All")
-                    .fontWeight(.semibold)
+                    .font(TimeMasterFont.black(17))
             }
         }
         .disabled(!canSave)
@@ -526,7 +542,7 @@ struct BatchConfirmView: View {
                         }
                         if let saveError {
                             Text(saveError)
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundColor(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 16)
@@ -535,7 +551,7 @@ struct BatchConfirmView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Review & Save")
+            .timeMasterNavigationTitle("Review & Save")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Back") { dismiss() }
                                  }
@@ -564,8 +580,13 @@ struct BatchConfirmView: View {
             restAfterRow(item)
             if let t = item.firstClipStartTime {
                 Button { onPreview(t) } label: {
-                    Label("Preview Clip", systemImage: "play.circle")
-                        .font(.caption)
+                    Label {
+                        Text("Preview Clip")
+                            .font(TimeMasterFont.caption())
+                    } icon: {
+                        Image(systemName: "play.circle")
+                            .font(.caption)
+                    }
                         .foregroundColor(Theme.textSecondary)
                 }
             }
@@ -578,12 +599,12 @@ struct BatchConfirmView: View {
     private func folderRow(_ item: TrayItem) -> some View {
         HStack {
             Text("Folder")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
             Spacer()
             if flatFolders.isEmpty {
                 Text("Create a folder first")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(.red)
             } else {
                 Picker("Folder", selection: folderIDBinding(item)) {
@@ -604,7 +625,7 @@ struct BatchConfirmView: View {
     private func durationRow(_ item: TrayItem) -> some View {
         HStack {
             Text("Duration")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
             Spacer()
             Text("\(cardDurations[item.id] ?? 30)s")
@@ -620,7 +641,7 @@ struct BatchConfirmView: View {
     private func restAfterRow(_ item: TrayItem) -> some View {
         HStack {
             Text("Rest After")
-                .font(.subheadline)
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
             Spacer()
             Text("\(cardRestAfter[item.id] ?? 10)s")
@@ -667,7 +688,7 @@ struct BatchConfirmView: View {
             if isSaving {
                 TmaxLoadingIndicator(size: 20)
             } else {
-                Text("Save All").fontWeight(.semibold)
+                Text("Save All").font(TimeMasterFont.black(17))
             }
         }
         .disabled(!canSave)

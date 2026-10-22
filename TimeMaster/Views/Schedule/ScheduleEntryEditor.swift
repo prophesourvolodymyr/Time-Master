@@ -55,7 +55,8 @@ struct ScheduleEntryEditor: View {
                 else { workoutPicker }
             }
             .background(Theme.background)
-            .navigationTitle(configuring ? (custom ? "Custom workout" : "Set workout time") : "Choose workout")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle(configuring ? (custom ? "Custom workout" : "Set workout time") : "Choose workout")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -100,7 +101,7 @@ struct ScheduleEntryEditor: View {
                 if store.workouts.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "dumbbell").font(.largeTitle)
-                        Text("No workouts yet").font(.headline)
+                        Text("No workouts yet").font(TimeMasterFont.sectionTitle())
                         Text("Create a workout in Workouts, then add it to your plan.")
                             .foregroundStyle(.secondary).multilineTextAlignment(.center)
                     }.padding(.vertical, 24)
@@ -134,7 +135,7 @@ struct ScheduleEntryEditor: View {
                     if custom {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Title (required)")
-                                .font(.subheadline.weight(.medium))
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             TextField("Title (required)", text: $title,
                                       prompt: Text("Workout title").foregroundColor(Theme.textSecondary))
                                 .focused($focusedField, equals: .title)
@@ -143,12 +144,12 @@ struct ScheduleEntryEditor: View {
                                 .accessibilityIdentifier("schedule.custom.title")
                         }
                         Text("Only a title is required. This logs what you did outside the app; it does not create a library workout.")
-                            .font(.footnote)
+                            .font(TimeMasterFont.body(13, relativeTo: .footnote))
                             .foregroundStyle(Theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     } else if let workoutID, let workout = store.workout(id: workoutID) {
                         Label(workout.name, systemImage: workout.type.iconName)
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
                             .fixedSize(horizontal: false, vertical: true)
                         if original == nil {
                             Button("Choose a different workout") { configuring = false }
@@ -157,10 +158,10 @@ struct ScheduleEntryEditor: View {
                         }
                     } else {
                         Label(title, systemImage: original?.icon ?? "dumbbell.fill")
-                            .font(.headline)
+                            .font(TimeMasterFont.sectionTitle())
                             .fixedSize(horizontal: false, vertical: true)
                         Text("This workout is no longer in your library. Its schedule and completion record are preserved.")
-                            .font(.footnote)
+                            .font(TimeMasterFont.body(13, relativeTo: .footnote))
                             .foregroundStyle(Theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -179,13 +180,14 @@ struct ScheduleEntryEditor: View {
                     if hasTime {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Start time")
-                                .font(.subheadline)
+                                .font(TimeMasterFont.secondary())
                                 .foregroundStyle(Theme.textSecondary)
                             DatePicker("Start time", selection: $time, displayedComponents: .hourAndMinute)
                                 #if os(iOS)
                                 .datePickerStyle(.wheel)
                                 #endif
                                 .labelsHidden()
+                                .monospacedDigit()
                                 .accessibilityLabel("Start time")
                                 .accessibilityIdentifier("schedule.entry.startTime")
                         }
@@ -206,6 +208,8 @@ struct ScheduleEntryEditor: View {
                                 set: { duration = min(86400, $0 * 3600 + duration % 3600) }
                             ), in: 0...24) {
                                 Text("Hours: \(duration / 3600)")
+                                    .font(TimeMasterFont.label())
+                                    .monospacedDigit()
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .frame(minHeight: 44)
@@ -218,9 +222,10 @@ struct ScheduleEntryEditor: View {
                             if hasTime {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Finishes")
-                                        .font(.subheadline)
+                                        .font(TimeMasterFont.secondary())
                                         .foregroundStyle(Theme.textSecondary)
                                     Text(time.addingTimeInterval(Double(duration)).formatted(date: .omitted, time: .shortened))
+                                        .font(TimeMasterFont.label())
                                         .monospacedDigit()
                                 }
                                 .accessibilityElement(children: .combine)
@@ -235,7 +240,7 @@ struct ScheduleEntryEditor: View {
                         sectionHeading("Optional details")
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Description")
-                                .font(.subheadline.weight(.medium))
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             TextField("Description", text: $notes, axis: .vertical)
                                 .lineLimit(3...6)
                                 .focused($focusedField, equals: .notes)
@@ -244,9 +249,11 @@ struct ScheduleEntryEditor: View {
                         }
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Exercise count")
-                                .font(.subheadline.weight(.medium))
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             TextField("Exercise count", text: $exerciseCount,
                                       prompt: Text("Optional").foregroundColor(Theme.textSecondary))
+                                .font(TimeMasterFont.label())
+                                .monospacedDigit()
                                 #if os(iOS)
                                 .keyboardType(.numberPad)
                                 #endif
@@ -265,7 +272,7 @@ struct ScheduleEntryEditor: View {
                         .modifier(ScheduleEntryFieldSurface())
                         .accessibilityIdentifier("schedule.entry.repeats")
                         Text(repeats ? "Updates the Plan from this week onward. Previous weeks stay unchanged." : "Changes only this date. The repeating Plan stays unchanged.")
-                            .font(.footnote)
+                            .font(TimeMasterFont.body(13, relativeTo: .footnote))
                             .foregroundStyle(Theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -286,7 +293,8 @@ struct ScheduleEntryEditor: View {
 
     private func sectionHeading(_ title: String) -> some View {
         Text(title)
-            .font(.subheadline.weight(.semibold))
+            .font(TimeMasterFont.rowTitle())
+            .monospacedDigit()
             .foregroundStyle(Theme.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)

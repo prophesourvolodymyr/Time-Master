@@ -13,7 +13,7 @@ struct OutdoorMusicEditorView: View {
     @ObservedObject private var musicManager: MusicManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @ScaledMetric(relativeTo: .caption2) private var compactTitleSize: CGFloat = 9
+    @ScaledMetric(relativeTo: .caption2) private var compactTitleScale: CGFloat = 1
 
     @State private var destinationID = ""
     @State private var destinationPreviewID = ""
@@ -77,6 +77,7 @@ struct OutdoorMusicEditorView: View {
                 transferPanel(for: pendingTransfer)
             }
         }
+        .font(TimeMasterFont.body())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .overlay(alignment: .topLeading) {
             if showingMainPicker {
@@ -155,7 +156,7 @@ struct OutdoorMusicEditorView: View {
                     showingMainPicker.toggle()
                 } label: {
                     Text(library.destinationName(activeDestination).uppercased())
-                        .font(.caption.weight(.semibold))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
                         .frame(minWidth: 60, maxWidth: 118, minHeight: 44)
@@ -195,7 +196,7 @@ struct OutdoorMusicEditorView: View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
                 Text("Music section")
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer(minLength: 0)
                 Button {
@@ -272,10 +273,10 @@ struct OutdoorMusicEditorView: View {
                 .font(.system(size: 23, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
             Text("No music in \(library.destinationName(activeDestination))")
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .foregroundStyle(Theme.textPrimary)
             Text(onImportLocalMusic == nil ? "Add real music in Music Settings, or search another section." : "Import local music or add a real item from another section.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             if let onImportLocalMusic {
@@ -296,16 +297,16 @@ struct OutdoorMusicEditorView: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(item.title)
-                            .font(.subheadline.weight(.semibold))
+                            .font(TimeMasterFont.rowTitle())
                             .foregroundStyle(Theme.textPrimary)
                             .lineLimit(1)
                         Text(item.isCollection ? item.kind.rawValue.capitalized : sourceName(for: item))
-                            .font(.caption2.weight(.medium))
+                            .font(TimeMasterFont.micro())
                             .foregroundStyle(Theme.textSecondary)
                             .lineLimit(1)
                         if let status = unavailableStatus(for: item) {
                             Text(status)
-                                .font(.caption2.weight(.semibold))
+                                .font(TimeMasterFont.black(11, relativeTo: .caption2))
                                 .foregroundStyle(Theme.toolbarOrange)
                                 .lineLimit(1)
                         }
@@ -315,7 +316,7 @@ struct OutdoorMusicEditorView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(item.isCollection ? "Open \(item.title)" : "Play \(item.title)")
                 Text(library.formattedDuration(item.totalDuration))
-                    .font(.caption2.weight(.medium).monospacedDigit())
+                    .font(TimeMasterFont.micro().monospacedDigit())
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize()
                 Image(systemName: "line.3.horizontal")
@@ -381,7 +382,7 @@ struct OutdoorMusicEditorView: View {
         .overlay(alignment: .topTrailing) {
             if folderTargetID == item.id {
                 Text("Group")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(9, relativeTo: .caption2))
                     .foregroundStyle(Theme.toolbarOrange)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
@@ -399,7 +400,7 @@ struct OutdoorMusicEditorView: View {
         } preview: {
             HStack(spacing: 8) {
                 OutdoorMusicArtworkView(artworkReference: artworkString(item.artwork), size: 40)
-                Text(item.title).font(.caption.weight(.semibold)).foregroundStyle(Theme.textPrimary).lineLimit(1)
+                Text(item.title).font(TimeMasterFont.black(12, relativeTo: .caption)).foregroundStyle(Theme.textPrimary).lineLimit(1)
             }
             .padding(7)
             .frame(width: 210, alignment: .leading)
@@ -415,18 +416,18 @@ struct OutdoorMusicEditorView: View {
             Button { play(collection, startingAt: index) } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.title)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.secondary())
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(1)
                     Text("Track \(index + 1)")
-                        .font(.caption2.weight(.medium))
+                        .font(TimeMasterFont.micro())
                         .foregroundStyle(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
             Text(library.formattedDuration(track.duration))
-                .font(.caption2.weight(.medium).monospacedDigit())
+                .font(TimeMasterFont.micro().monospacedDigit())
                 .foregroundStyle(Theme.textSecondary)
             Button { play(collection, startingAt: index) } label: {
                 Image(systemName: musicManager.currentTrackID == track.id.uuidString.lowercased() && musicManager.isPlaying ? "pause.fill" : "play.fill")
@@ -452,8 +453,7 @@ struct OutdoorMusicEditorView: View {
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(circular: true))
                 .accessibilityLabel("Back to music destination")
-                Text(library.item(id: id)?.title ?? "Collection")
-                    .font(.headline.weight(.semibold))
+                TimeMasterPageTitle(library.item(id: id)?.title ?? "Collection", size: 22, relativeTo: .headline)
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -463,7 +463,7 @@ struct OutdoorMusicEditorView: View {
                     VStack(spacing: 7) {
                         if collection.tracks.isEmpty {
                             Text("This collection has no real tracks yet.")
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundStyle(Theme.textSecondary)
                                 .frame(maxWidth: .infinity, minHeight: 90)
                         } else {
@@ -497,7 +497,7 @@ struct OutdoorMusicEditorView: View {
                         ? "Search \(library.destinationName(searchSourceDestination)) music."
                         : "No matching music in \(library.destinationName(searchSourceDestination))."
                 )
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .frame(maxWidth: .infinity, minHeight: 34)
                 .multilineTextAlignment(.center)
@@ -565,7 +565,7 @@ struct OutdoorMusicEditorView: View {
                 )
                 MusicMarqueeText(
                     text: result.item.title,
-                    font: .system(size: min(compactTitleSize, 15), weight: .semibold, design: .rounded)
+                    font: TimeMasterFont.black(min(9, 15 / compactTitleScale), relativeTo: .caption2)
                 )
                 .frame(width: 76)
             }
@@ -587,7 +587,7 @@ struct OutdoorMusicEditorView: View {
             HStack(spacing: 8) {
                 OutdoorMusicArtworkView(artworkReference: artworkString(result.item.artwork), size: 40)
                 Text(result.item.title)
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
             }
@@ -710,9 +710,9 @@ struct OutdoorMusicEditorView: View {
     private func transferPanel(for transfer: MusicTransfer) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Move \(library.item(id: transfer.itemID)?.title ?? "music")?")
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
             Text("Choose whether to remove it from \(library.destinationName(transfer.source)) or keep it in both sections.")
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
             HStack(spacing: 8) {
                 Button("Move") {

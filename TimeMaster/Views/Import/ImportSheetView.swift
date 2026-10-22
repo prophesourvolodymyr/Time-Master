@@ -33,7 +33,7 @@ struct ImportSheetView: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Import Video")
+            .timeMasterNavigationTitle("Import Video")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -91,13 +91,13 @@ struct ImportSheetView: View {
         VStack(alignment: .leading, spacing: 12) {
             #if os(iOS)
             Text("From Camera Roll")
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             PhotosPicker(selection: $pickerItem, matching: .videos) {
                 pickerRow(title: "Choose Video", systemImage: "photo.on.rectangle")
             }
             #else
             Text("From This Mac")
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             Button { showingFilePicker = true } label: {
                 pickerRow(title: "Choose Video", systemImage: "folder")
             }
@@ -110,7 +110,7 @@ struct ImportSheetView: View {
             Image(systemName: systemImage)
                 .font(.title2).foregroundColor(Theme.textPrimary)
             Text(title)
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             Spacer()
             Image(systemName: "chevron.right")
                 .foregroundColor(Theme.textSecondary)
@@ -123,9 +123,9 @@ struct ImportSheetView: View {
     private var downloadCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Download from URL")
-                .font(.headline).foregroundColor(Theme.textPrimary)
+                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
             Text("Paste a link from Instagram, YouTube, TikTok, or any yt-dlp supported site.")
-                .font(.caption).foregroundColor(Theme.textSecondary)
+                .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
 
             TextField("https://…", text: $urlText)
                 .padding(14)
@@ -145,7 +145,7 @@ struct ImportSheetView: View {
                         Image(systemName: "arrow.down.circle")
                     }
                     Text(isDownloading ? "Downloading…" : "Download")
-                        .font(.headline)
+                        .font(TimeMasterFont.sectionTitle())
                 }
                 .foregroundColor(Theme.textPrimary)
                 .frame(maxWidth: .infinity)
@@ -159,7 +159,7 @@ struct ImportSheetView: View {
 
     private func errorLabel(_ msg: String) -> some View {
         Text(msg)
-            .font(.caption)
+            .font(TimeMasterFont.caption())
             .foregroundColor(.red)
             .frame(maxWidth: .infinity, alignment: .leading)
     }

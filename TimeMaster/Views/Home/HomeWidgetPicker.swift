@@ -24,8 +24,9 @@ struct HomeWidgetPicker: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 20)
             }
+            .font(TimeMasterFont.body())
             .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Add Widget")
+            .timeMasterNavigationTitle("Add Widget")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -42,7 +43,7 @@ struct HomeWidgetPicker: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(category.title)
-                .font(.system(size: 23, weight: .bold, design: .rounded))
+                .font(TimeMasterFont.black(23, relativeTo: .title2))
                 .foregroundStyle(Theme.textPrimary)
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {

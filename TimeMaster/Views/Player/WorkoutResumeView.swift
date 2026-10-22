@@ -22,7 +22,7 @@ struct WorkoutResumeView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 actions
             }
-            .navigationTitle("Resume workout")
+            .timeMasterNavigationTitle("Resume workout")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -36,6 +36,7 @@ struct WorkoutResumeView: View {
                 }
             }
         }
+        .font(TimeMasterFont.body())
         .tint(Theme.toolbarOrange)
         .preferredColorScheme(.dark)
         #if os(iOS)
@@ -48,8 +49,7 @@ struct WorkoutResumeView: View {
 
     private var summary: some View {
         VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-            Text(state.workoutName)
-                .font(TimeMasterFont.title())
+            TimeMasterPageTitle(state.workoutName, size: 31, relativeTo: .title2)
                 .foregroundStyle(Theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

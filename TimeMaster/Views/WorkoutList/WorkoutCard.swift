@@ -28,7 +28,7 @@ struct WorkoutCard: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 7) {
                     Text(workout.name)
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(2)
                     ViewThatFits(in: .horizontal) {
@@ -45,7 +45,7 @@ struct WorkoutCard: View {
                         scheduleBadge(schedule)
                     } else if isResumable {
                         Text("Ready to resume")
-                            .font(.caption.weight(.medium))
+                            .font(TimeMasterFont.caption())
                             .foregroundStyle(Theme.toolbarOrange)
                     }
                 }
@@ -75,7 +75,7 @@ struct WorkoutCard: View {
                 .font(.system(size: 9, weight: .bold))
             Text(workout.type.name)
         }
-        .font(.caption2.weight(.semibold))
+        .font(TimeMasterFont.black(11, relativeTo: .caption2))
         .foregroundStyle(Theme.textPrimary)
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
@@ -84,7 +84,7 @@ struct WorkoutCard: View {
 
     private var durationBadge: some View {
         Text(durationText(workout.totalDuration))
-            .font(.caption2.weight(.semibold).monospacedDigit())
+            .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
             .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
@@ -94,10 +94,10 @@ struct WorkoutCard: View {
     private func metricBox(value: String, label: String) -> some View {
         HStack(spacing: 6) {
             Text(value)
-                .font(.headline.weight(.semibold).monospacedDigit())
+                .font(TimeMasterFont.black(17, relativeTo: .headline).monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
             Text(label)
-                .font(.caption)
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(2)
         }
@@ -106,7 +106,7 @@ struct WorkoutCard: View {
 
     private func scheduleBadge(_ schedule: ScheduledWorkout) -> some View {
         Text(schedule.status == .completed ? "Completed · \(schedule.timeRangeText)" : schedule.timeRangeText)
-            .font(.caption2.weight(.semibold))
+            .font(TimeMasterFont.black(11, relativeTo: .caption2))
             .foregroundStyle(schedule.status == .missed ? .red : Theme.textSecondary)
             .lineLimit(1)
     }

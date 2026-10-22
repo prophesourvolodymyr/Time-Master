@@ -34,8 +34,7 @@ struct OutdoorUpperQuickPine: View {
     }
     private var header: some View {
         HStack(spacing: 8) {
-            Text(feature == .map ? "Map" : feature.title)
-                .font(.headline.weight(.semibold))
+            TimeMasterPageTitle(feature == .map ? "Map" : feature.title, size: 22, relativeTo: .headline)
                 .lineLimit(1)
                 .foregroundStyle(Theme.textPrimary)
 

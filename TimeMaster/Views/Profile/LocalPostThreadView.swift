@@ -63,7 +63,7 @@ struct LocalPostThreadView: View {
                 }
                 .background(Theme.background.ignoresSafeArea())
             }
-            .navigationTitle("Discussion")
+            .timeMasterNavigationTitle("Discussion")
 #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
 #endif

@@ -111,12 +111,12 @@ struct MusicPlayerPane: View {
                     .frame(height: 20)
 
                 Text(showsAddToWorkout ? "Add" : destinationName)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(TimeMasterFont.black(10, relativeTo: .caption2))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
                 Text(showsAddToWorkout ? "To workout" : "Destination")
-                    .font(.system(size: 8, weight: .regular))
+                    .font(TimeMasterFont.body(8, relativeTo: .caption2))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -198,7 +198,7 @@ private struct MusicPlayerMarqueeTitle: View {
         .frame(height: 14)
         .background {
             Text(text)
-                .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                .font(TimeMasterFont.black(8.5, relativeTo: .caption2))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
                 .hidden()
@@ -227,7 +227,7 @@ private struct MusicPlayerMarqueeTitle: View {
 
     private var titleText: some View {
         Text(text)
-            .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+            .font(TimeMasterFont.black(8.5, relativeTo: .caption2))
             .foregroundStyle(Color.white.opacity(0.96))
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)

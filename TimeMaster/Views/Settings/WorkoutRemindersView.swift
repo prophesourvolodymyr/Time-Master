@@ -37,10 +37,10 @@ struct WorkoutRemindersView: View {
                         }
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Workout Reminders")
-                                .font(.body)
+                                .font(TimeMasterFont.body())
                                 .foregroundColor(.white)
                             Text("Warm, schedule-aware reminders")
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundColor(Theme.textSecondary)
                         }
                         Spacer()
@@ -55,7 +55,7 @@ struct WorkoutRemindersView: View {
                 } header: {
                     Text("Reminders")
                         .foregroundColor(Theme.textSecondary)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                 }
                 .listRowBackground(Theme.surface)
                 .listRowSeparatorTint(Theme.separator)
@@ -80,7 +80,7 @@ struct WorkoutRemindersView: View {
                     } header: {
                         Text("Workout Time")
                             .foregroundColor(Theme.textSecondary)
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                     }
                     .listRowBackground(Theme.surface)
                     .listRowSeparatorTint(Theme.separator)
@@ -100,7 +100,7 @@ struct WorkoutRemindersView: View {
                     } header: {
                         Text("Notification Style")
                             .foregroundColor(Theme.textSecondary)
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                     }
                     .tint(.white)
                     .listRowBackground(Theme.surface)
@@ -111,7 +111,7 @@ struct WorkoutRemindersView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Label {
                                 Text("Training days come from your per-type schedules.")
-                                    .font(.caption)
+                                    .font(TimeMasterFont.caption())
                                     .foregroundColor(Theme.textSecondary)
                             } icon: {
                                 Image(systemName: "bell")
@@ -120,7 +120,7 @@ struct WorkoutRemindersView: View {
                             }
                             Label {
                                 Text("Missed-day nudges are checked against completed workouts.")
-                                    .font(.caption)
+                                    .font(TimeMasterFont.caption())
                                     .foregroundColor(Theme.textSecondary)
                             } icon: {
                                 Image(systemName: "bell.badge")
@@ -143,7 +143,8 @@ struct WorkoutRemindersView: View {
 #endif
             .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Workout Reminders")
+        .font(TimeMasterFont.body())
+        .timeMasterNavigationTitle("Workout Reminders")
         #if os(iOS)
 #if os(iOS)
 #if os(iOS)

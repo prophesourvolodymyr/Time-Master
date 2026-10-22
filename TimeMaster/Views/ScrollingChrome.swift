@@ -72,8 +72,7 @@ struct ScrollingChromeHeader<Controls: View>: View {
             leadingControlWidth: leadingControlWidth,
             stacksControls: dynamicTypeSize.isAccessibilitySize
         ) {
-            Text(title)
-                .font(.system(size: expandedTitleSize, weight: .bold))
+            TimeMasterPageTitle(title, size: 39, relativeTo: .title)
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -183,7 +182,7 @@ struct ScrollingChromeControl: View {
                 .font(.system(size: 22, weight: .semibold))
                 .offset(y: -12 * (1 - labelProgress))
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
                 .multilineTextAlignment(.center)

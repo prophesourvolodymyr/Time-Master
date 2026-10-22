@@ -636,7 +636,7 @@ struct SlotCarouselNavigation<Content: View>: View {
 
             HStack(spacing: 8) {
                 Text("Position")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(theme.textSecondary)
                 ForEach(SlotNavigationPlacement.allCases, id: \.self) { placement in
                     Button {
@@ -646,7 +646,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                             placement == .top ? "Top" : "Bottom",
                             systemImage: placement == .top ? "rectangle.topthird.inset.filled" : "rectangle.bottomthird.inset.filled"
                         )
-                        .font(.subheadline.weight(.semibold))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(Rectangle())
                     }

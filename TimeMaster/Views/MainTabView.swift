@@ -110,6 +110,7 @@ struct MainTabView: View {
             }
             #endif
         }
+        .font(TimeMasterFont.body())
         .environmentObject(musicLibraryStore)
         .environmentObject(outdoorPreferencesStore)
         .environmentObject(profileStore)

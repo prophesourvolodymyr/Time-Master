@@ -11,8 +11,7 @@ struct RankedTierGalleryView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: ProfileStyle.inset) {
-                    Text("Movement ranks")
-                        .font(TimeMasterFont.heading())
+                    TimeMasterPageTitle("Movement ranks", size: 26, relativeTo: .title3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     HStack {
                         RankedMetric(value: "\(account.placedCount)/\(RankedFamily.allCases.reduce(0) { $0 + $1.variations.count })", unit: "ranks")

@@ -25,7 +25,7 @@ struct WorkoutMusicPlaybackSheet: View {
             VStack(spacing: 0) {
                 if isContinuationPrompt {
                     Text("Your configured music has finished. Add music, repeat a selection, or continue in silence.")
-                        .font(.subheadline).foregroundStyle(Theme.textSecondary)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline)).foregroundStyle(Theme.textSecondary)
                         .padding()
                 }
                 WorkoutMusicTimelineView(
@@ -53,9 +53,9 @@ struct WorkoutMusicPlaybackSheet: View {
                         WorkoutMusicCover(artwork: session.artwork(in: library), size: 44, rotates: session.isPlaying)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(session.title ?? (session.exhausted ? "Music finished" : "No music playing"))
-                                .font(.headline).lineLimit(1)
+                                .font(TimeMasterFont.black(17, relativeTo: .headline)).lineLimit(1)
                             Text(session.isSilenced ? "Music stopped · workout continues" : musicTimestamp(session.elapsed))
-                                .font(.caption.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                                .font(TimeMasterFont.caption().monospacedDigit()).foregroundStyle(Theme.textSecondary)
                         }
                         Spacer(minLength: 0)
                         WorkoutMusicTransportButtons(session: session)
@@ -77,14 +77,14 @@ struct WorkoutMusicPlaybackSheet: View {
                             Label("Play a selection", systemImage: "music.note.list")
                         }
                     }
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 }
                 .padding()
                 .background(Theme.surface)
             }
             .background(Theme.background)
             .foregroundStyle(Theme.textPrimary)
-            .navigationTitle("Live Music")
+            .timeMasterNavigationTitle("Live Music")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -99,6 +99,7 @@ struct WorkoutMusicPlaybackSheet: View {
                 AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
+        .font(TimeMasterFont.body())
         .preferredColorScheme(.dark)
         .task { await library.refreshLocalDurations() }
     }
@@ -154,7 +155,7 @@ struct WorkoutFloatingMusicControls: View {
                             HStack(spacing: 10) {
                                 cover
                                 Text(session.title ?? session.activeClip?.title ?? "Music")
-                                    .font(.subheadline.weight(.medium))
+                                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                     .lineLimit(1)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -300,15 +301,15 @@ struct WorkoutMusicPreviewSheet: View {
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(manager.currentTrack?.title ?? item.title)
-                                .font(.title2.bold())
+                                .font(TimeMasterFont.black(22, relativeTo: .title2))
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(subtitle)
-                                .font(.subheadline)
+                                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                                 .foregroundStyle(Theme.textSecondary)
                         }
 
                         if let error {
-                            Text(error).font(.callout).foregroundStyle(Theme.textSecondary)
+                            Text(error).font(TimeMasterFont.body(16, relativeTo: .callout)).foregroundStyle(Theme.textSecondary)
                         } else {
                             playbackControls
                         }
@@ -320,7 +321,7 @@ struct WorkoutMusicPreviewSheet: View {
             }
             .background(Theme.background)
             .foregroundStyle(Theme.textPrimary)
-            .navigationTitle("Music Preview")
+            .timeMasterNavigationTitle("Music Preview")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -330,6 +331,7 @@ struct WorkoutMusicPreviewSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
         .tint(Theme.textPrimary)
         .preferredColorScheme(.dark)
         .task {
@@ -355,7 +357,7 @@ struct WorkoutMusicPreviewSheet: View {
                     Spacer()
                     Text("−\(musicTimestamp(duration * (1 - manager.playbackProgress)))")
                 }
-                .font(.caption.monospacedDigit())
+                .font(TimeMasterFont.caption().monospacedDigit())
                 .foregroundStyle(Theme.textSecondary)
                 .accessibilityElement(children: .combine)
             }
@@ -391,7 +393,7 @@ struct WorkoutMusicPreviewSheet: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Music volume")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                 HStack(spacing: 12) {
                     Image(systemName: "speaker.fill").font(.footnote)
                     Slider(value: $manager.volume, in: 0...1)

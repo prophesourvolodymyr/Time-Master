@@ -19,7 +19,7 @@ struct SchedulePlanEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                SwiftUI.Section("Plan") {
+                SwiftUI.Section {
                     TextField("Plan name", text: $plan.name)
                         .accessibilityIdentifier("schedule.plan.name")
                     Picker("Icon", selection: $plan.icon) {
@@ -27,9 +27,11 @@ struct SchedulePlanEditor: View {
                             Image(systemName: icon).tag(icon)
                         }
                     }
+                } header: {
+                    Text("Plan").font(TimeMasterFont.rowTitle())
                 }
                 ForEach(1...7, id: \.self) { day in
-                    SwiftUI.Section(Calendar.current.weekdaySymbols[day % 7]) {
+                    SwiftUI.Section {
                         ForEach(plan.entries.filter { $0.weekday == day }.sorted { ($0.startMinute ?? 1440) < ($1.startMinute ?? 1440) }) { entry in
                             HStack {
                                 Button {
@@ -37,9 +39,10 @@ struct SchedulePlanEditor: View {
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Label(entry.title, systemImage: entry.icon)
+                                            .font(TimeMasterFont.rowTitle())
                                             .foregroundStyle(.primary)
                                         if let minute = entry.startMinute {
-                                            Text(timeLabel(minute, day: day)).font(.caption).foregroundStyle(.secondary)
+                                            Text(timeLabel(minute, day: day)).font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit().foregroundStyle(.secondary)
                                         }
                                     }.frame(maxWidth: .infinity, alignment: .leading)
                                 }.buttonStyle(.plain)
@@ -52,17 +55,20 @@ struct SchedulePlanEditor: View {
                         Button {
                             editingEntry = EntryDraft(day: day, entry: nil)
                         } label: { Label("Add workout", systemImage: "plus") }
+                    } header: {
+                        Text(Calendar.current.weekdaySymbols[day % 7]).font(TimeMasterFont.rowTitle())
                     }
                 }
                 SwiftUI.Section {
                     Text("Saving equips this Plan from the selected week onward. Changes never rewrite earlier weeks. Date-only changes stay on their original dates.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                        .font(TimeMasterFont.body(13, relativeTo: .footnote)).foregroundStyle(.secondary)
                     if let error { Text(error).foregroundStyle(.red) }
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Theme.background)
-            .navigationTitle(plan.name.isEmpty ? "New Plan" : "Edit Plan")
+            .font(TimeMasterFont.body())
+            .timeMasterNavigationTitle(plan.name.isEmpty ? "New Plan" : "Edit Plan")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 AppToolbar.item(placement: .confirmationAction) {

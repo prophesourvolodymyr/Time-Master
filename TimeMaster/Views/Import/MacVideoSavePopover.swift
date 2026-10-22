@@ -66,7 +66,7 @@ struct MacVideoSavePopover: View {
                     form
                 }
             }
-            .navigationTitle(step == .target ? "Save Media" : "Exercise Details")
+            .timeMasterNavigationTitle(step == .target ? "Save Media" : "Exercise Details")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button(step == .target ? "Cancel" : "Back") {
                     if step == .target {
@@ -137,7 +137,7 @@ struct MacVideoSavePopover: View {
         VStack(alignment: .leading, spacing: 12) {
             if saveChoice == nil {
                 Text("Save to?")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                 Button {
                     saveChoice = "existing"
                     saveErrorMessage = nil
@@ -187,7 +187,7 @@ struct MacVideoSavePopover: View {
 
             if let saveErrorMessage {
                 Text(saveErrorMessage)
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(.red)
             }
         }
@@ -213,11 +213,11 @@ struct MacVideoSavePopover: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(page.title)
-                        .font(.body.weight(.semibold))
+                        .font(TimeMasterFont.black(17))
                         .foregroundStyle(isSelected ? .white : Theme.textPrimary)
                         .lineLimit(1)
                     Text(pathLabel.isEmpty ? page.title : pathLabel)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(isSelected ? .white.opacity(0.75) : Theme.textSecondary)
                         .lineLimit(1)
                 }
@@ -225,7 +225,7 @@ struct MacVideoSavePopover: View {
                 Spacer(minLength: 8)
 
                 Text(page.isContainer ? "New child" : "Attach")
-                    .font(.caption.weight(.medium))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(isSelected ? .white.opacity(0.85) : Theme.textSecondary)
             }
             .padding(12)
@@ -242,7 +242,7 @@ struct MacVideoSavePopover: View {
                 titleCard
                 if let saveErrorMessage {
                     Text(saveErrorMessage)
-                        .font(.footnote)
+                        .font(TimeMasterFont.body(13, relativeTo: .footnote))
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -262,7 +262,7 @@ struct MacVideoSavePopover: View {
     private var titleCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Title")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             TextField("Page title", text: $title)
                 .textFieldStyle(.roundedBorder)
@@ -272,7 +272,7 @@ struct MacVideoSavePopover: View {
     private var targetSummaryCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Destination")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             HStack(spacing: 10) {
                 Image(systemName: targetPage?.isContainer == true ? "folder.fill" : "figure.run")
@@ -281,7 +281,7 @@ struct MacVideoSavePopover: View {
                     Text(targetPage?.title ?? "No destination")
                         .foregroundStyle(Theme.textPrimary)
                     Text(targetLabel)
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                         .lineLimit(1)
                 }
@@ -302,7 +302,7 @@ struct MacVideoSavePopover: View {
     private var selectedMediaCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Selected Media")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             HStack(spacing: 14) {
                 Image(nsImage: draft.thumbnail)
@@ -312,15 +312,20 @@ struct MacVideoSavePopover: View {
                     .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 VStack(alignment: .leading, spacing: 5) {
-                    Label(draft.title, systemImage: draft.systemImage)
-                        .font(.body.weight(.semibold))
+                    Label {
+                        Text(draft.title)
+                            .font(TimeMasterFont.black(17))
+                    } icon: {
+                        Image(systemName: draft.systemImage)
+                            .font(.body.weight(.semibold))
+                    }
                         .foregroundStyle(Theme.textPrimary)
                     Text(
                         draft.mediaCount == 1
                             ? "First attachment."
                             : "\(draft.mediaCount) grouped attachments."
                     )
-                        .font(.caption)
+                        .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                 }
                 Spacer(minLength: 0)
@@ -335,17 +340,17 @@ struct MacVideoSavePopover: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Additional Media")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text("\(existingMediaCount + draft.mediaCount + pendingAdditionalMedia.count)/20")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(Theme.textSecondary)
             }
 
             if pendingAdditionalMedia.isEmpty {
                 Text("Optional images or movies copied into this page with the selected media.")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textSecondary)
             } else {
                 LazyVGrid(
@@ -401,7 +406,7 @@ struct MacVideoSavePopover: View {
         }
         .overlay(alignment: .bottomLeading) {
             Text(media.displayName)
-                .font(.caption2)
+                .font(TimeMasterFont.micro())
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .padding(4)
@@ -414,7 +419,7 @@ struct MacVideoSavePopover: View {
     private var timingCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Workout Config")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             VStack(spacing: 8) {
                 stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s")
@@ -452,7 +457,7 @@ struct MacVideoSavePopover: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Drop Sets")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Button {
@@ -468,7 +473,7 @@ struct MacVideoSavePopover: View {
 
             if dropSetTemplates.isEmpty {
                 Text("Add a drop-set exercise from the database, then choose the set it follows.")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textSecondary)
             } else {
                 ForEach($dropSetTemplates) { $template in
@@ -506,7 +511,7 @@ struct MacVideoSavePopover: View {
                         }
 
                         Text("Duration \(template.duration)s · Rest \(template.restAfter)s")
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                             .foregroundStyle(Theme.textSecondary)
                     }
                     .padding(12)
@@ -521,14 +526,15 @@ struct MacVideoSavePopover: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Guide (Markdown)")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
                 Text("CommonMark")
-                    .font(.caption2)
+                    .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.textSecondary)
             }
             TextEditor(text: $markdownBody)
+                .font(TimeMasterFont.body(17))
                 .frame(minHeight: 160)
                 .padding(10)
                 .scrollContentBackground(.hidden)
@@ -541,9 +547,10 @@ struct MacVideoSavePopover: View {
     private var linksCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("External Links")
-                .font(.headline)
+                .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
             TextEditor(text: $linkURLsText)
+                .font(TimeMasterFont.body(17))
                 .frame(minHeight: 80)
                 .padding(10)
                 .scrollContentBackground(.hidden)
@@ -560,7 +567,7 @@ struct MacVideoSavePopover: View {
                     TmaxLoadingIndicator(size: 18)
                 }
                 Text(isSaving ? "Saving…" : "Save Media")
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
             }
             .foregroundStyle(canSave && !isSaving ? .black : .white.opacity(0.35))
             .frame(maxWidth: .infinity)

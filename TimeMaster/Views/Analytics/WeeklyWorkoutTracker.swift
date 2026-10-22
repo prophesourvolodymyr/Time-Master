@@ -46,12 +46,14 @@ struct WeeklyWorkoutTracker: View {
                     AxisGridLine()
                     if let number = value.as(Double.self), metric != .sessions || number.rounded() == number {
                         AxisValueLabel()
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
                     }
                 }
             }
             .chartXAxis {
                 AxisMarks(values: summary.days.map(\.date)) { _ in
                     AxisValueLabel(format: .dateTime.weekday(.narrow))
+                        .font(TimeMasterFont.micro())
                 }
             }
             .frame(height: chartHeight)

@@ -31,7 +31,7 @@ struct CollectibleArtwork: View {
                         CollectibleName(text: profile.displayName, item: item, active: active)
                             .opacity(personalization)
                     }
-                        .font(.custom("Inter-Black", size: max(EverSpacing.x4, min(geometry.size.width * 0.15, geometry.size.height * 0.6)), relativeTo: .headline))
+                        .font(TimeMasterFont.black(max(EverSpacing.x4, min(geometry.size.width * 0.15, geometry.size.height * 0.6)), relativeTo: .headline))
                         .lineLimit(1)
                         .minimumScaleFactor(0.55)
                         .padding(.horizontal, geometry.size.width * 0.06)

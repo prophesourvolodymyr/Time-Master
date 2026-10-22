@@ -134,7 +134,7 @@ struct OutdoorPineTileAction: View {
                         .frame(width: 32, height: 30)
                     if let badge {
                         Text(badge)
-                            .font(.caption2.weight(.bold))
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
                             .monospacedDigit()
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -143,7 +143,7 @@ struct OutdoorPineTileAction: View {
                     }
                 }
                 Text(title)
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }
@@ -172,7 +172,7 @@ struct OutdoorPinePrimaryAction: View {
                         .font(.headline)
                 }
                 Text(title)
-                    .font(.headline)
+                    .font(TimeMasterFont.sectionTitle())
             }
             .frame(maxWidth: .infinity, minHeight: 52)
         }

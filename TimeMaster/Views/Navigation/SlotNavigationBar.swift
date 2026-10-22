@@ -14,7 +14,7 @@ struct SlotNavigationEditorHeader: View {
     let theme: SlotNavigationTheme
 
     var body: some View {
-        Text(title)
+        Text(TimeMasterFont.initialCapitalizedTitle(title))
             .font(theme.typography.editorTitle)
             .foregroundStyle(theme.textPrimary)
             .accessibilityAddTraits(.isHeader)
@@ -433,7 +433,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 }
                 .accessibilityHidden(true)
             Text(add ? "" : item.title.uppercased())
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                .dynamicTypeSize(.large)
                 .tracking(1.6)
                 .foregroundStyle(theme.textPrimary)
                 .lineLimit(1)
@@ -701,7 +702,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     }
                 }
             Text(lifted.item.title.uppercased())
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                .dynamicTypeSize(.large)
                 .tracking(1.6)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -927,7 +929,8 @@ private struct SlotCarouselNotificationBadge: View {
                         .opacity(1 - absorption)
 
                     Text("\(min(count, 99))")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .font(TimeMasterFont.black(10, relativeTo: .caption2))
+                        .dynamicTypeSize(.large)
                         .monospacedDigit()
                         .foregroundStyle(labelColor)
                         .opacity(max(0, 1 - stretch * 4))

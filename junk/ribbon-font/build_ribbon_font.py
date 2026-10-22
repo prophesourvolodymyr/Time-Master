@@ -44,9 +44,6 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 SOURCE = ROOT / "genesis/REFERENCE/ribbon-font/ribbon-source.json"
 METRICS = ROOT / "genesis/REFERENCE/ribbon-font/ribbon-font-metrics.json"
-NATIVE_TTF = ROOT / "TimeMaster/Resources/Fonts/TmaxRibbon-Regular.ttf"
-SPECIMEN_OTF = HERE / "tmax-ribbon.otf"
-WEB_WOFF2 = HERE / "tmax-ribbon.woff2"
 RUNTIME_SOURCE = HERE / "ribbon-source.js"
 LETTERS = string.ascii_uppercase + string.ascii_lowercase
 SIDE_BEARING = 14
@@ -401,8 +398,9 @@ def compile_font(source, source_hash, recordings, quadratics, advances, kerning,
             charstrings[name] = pen.getCharString()
         builder.setupCFF(
             source["postScriptName"],
-            {"FullName": source["familyName"] + " Regular", "FamilyName": source["familyName"],
-             "Weight": "Regular", "version": "1.000"},
+            {"FullName": source["familyName"] + " " + source["styleName"], "FamilyName": source["familyName"],
+             "Weight": source["styleName"], "version": "1.000", "Copyright": source["copyright"],
+             "Notice": source["license"]},
             charstrings, {},
         )
         builder.setupHorizontalMetrics({
@@ -411,12 +409,15 @@ def compile_font(source, source_hash, recordings, quadratics, advances, kerning,
         })
     builder.setupHorizontalHeader(ascent=ascent, descent=-descent, lineGap=0)
     builder.setupNameTable({
+        "copyright": source["copyright"],
+        "designer": source["designer"],
+        "licenseDescription": source["license"],
         "familyName": source["familyName"],
-        "styleName": "Regular",
+        "styleName": source["styleName"],
         "typographicFamily": source["familyName"],
-        "typographicSubfamily": "Regular",
+        "typographicSubfamily": source["styleName"],
         "uniqueFontIdentifier": f"{source['postScriptName']};1.000;{source_hash[:16]}",
-        "fullName": source["familyName"] + " Regular",
+        "fullName": source["familyName"] + " " + source["styleName"],
         "psName": source["postScriptName"],
         "version": "Version 1.000",
         "description": "The 52 selected original-M ribbon PNG silhouettes, uniformly scaled and traced without pixel cleanup. "
@@ -427,7 +428,7 @@ def compile_font(source, source_hash, recordings, quadratics, advances, kerning,
         version=4, sTypoAscender=ascent, sTypoDescender=-descent, sTypoLineGap=0,
         usWinAscent=ascent, usWinDescent=descent,
         sCapHeight=source["capHeight"], sxHeight=source["xHeight"], usWeightClass=400,
-        fsSelection=0xC0, fsType=0,
+        fsSelection=0xC0, fsType=0x0002,
     )
     builder.setupPost()
     features = ["languagesystem DFLT dflt;", "languagesystem latn dflt;", "feature kern {"]
@@ -533,7 +534,7 @@ def runtime_source(source):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build Tmax Ribbon TTF, OTF, WOFF2, runtime PNG mapping and provenance/spacing metrics from the canonical source JSON.",
+        description="Build TimeMaster TTF, OTF, WOFF2, runtime PNG mapping and provenance/spacing metrics from the canonical source JSON.",
         epilog="Run from any directory. Requires Potrace (macOS: brew install potrace), Pillow, NumPy, SciPy and fonttools[woff]. "
         "Coverage: A-Z, a-z and space only; no numbers, punctuation, diacritics or symbols.",
     )
@@ -543,6 +544,9 @@ def main():
     require(haveBrotli, "WOFF2 compression requires Brotli. Install with: python3 -m pip install 'fonttools[woff]'")
     require(SOURCE.is_file(), f"Missing canonical source mapping: {SOURCE}")
     source = json.loads(SOURCE.read_text(encoding="utf-8"))
+    NATIVE_TTF = project_path(source["outputs"]["nativeTtf"])
+    SPECIMEN_OTF = project_path(source["outputs"]["specimenOtf"])
+    WEB_WOFF2 = project_path(source["outputs"]["webWoff2"])
     require(source["schemaVersion"] == 1, "Unsupported canonical source schema")
     require(set(source["glyphs"]) == set(LETTERS), "Canonical source must contain exactly A-Z and a-z")
     require((source["unitsPerEm"], source["capHeight"], source["xHeight"]) == (1000, 560, 406), "Canonical shared heights must be 1000/560/406")
@@ -550,7 +554,7 @@ def main():
     source_hash = fingerprint(SOURCE)
     verified_source_count = verify_sources(source)
     version = subprocess.run([tracer, "--version"], check=True, capture_output=True, text=True).stdout.splitlines()[0].strip()
-    with tempfile.TemporaryDirectory(prefix="tmax-ribbon-") as directory:
+    with tempfile.TemporaryDirectory(prefix="timemaster-font-") as directory:
         temporary = Path(directory)
         outlines, glyph_metrics = {}, {}
         for letter in LETTERS:
@@ -607,7 +611,8 @@ def main():
         metrics = {
             "schemaVersion": 1,
             "font": {
-                "familyName": source["familyName"], "postScriptName": source["postScriptName"],
+                "familyName": source["familyName"], "styleName": source["styleName"], "postScriptName": source["postScriptName"],
+                "copyright": source["copyright"], "designer": source["designer"], "license": source["license"],
                 "unitsPerEm": source["unitsPerEm"], "capHeight": source["capHeight"], "xHeight": source["xHeight"],
                 "ascent": ascent, "descent": descent, "lineGap": 0,
                 "coverage": source["coverage"], "mappedCodePointCount": len(LETTERS) + 1,
@@ -662,4 +667,4 @@ if __name__ == "__main__":
     try:
         main()
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError, ET.ParseError) as error:
-        raise SystemExit(f"Tmax Ribbon build failed: {error}") from None
+        raise SystemExit(f"TimeMaster font build failed: {error}") from None

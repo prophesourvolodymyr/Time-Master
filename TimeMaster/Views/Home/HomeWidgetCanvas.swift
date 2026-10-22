@@ -142,7 +142,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                 .overlay {
                     if widgetStore.widgets.isEmpty {
                         Text("Make yourself at home.\nAdd your first widget.")
-                            .font(.title2.bold())
+                            .font(TimeMasterFont.black(22, relativeTo: .title2))
                             .multilineTextAlignment(.center)
                             .foregroundStyle(Theme.textSecondary)
                             .padding()

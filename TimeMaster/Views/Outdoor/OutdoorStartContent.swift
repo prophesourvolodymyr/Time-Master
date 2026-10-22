@@ -57,7 +57,7 @@ struct OutdoorStartContent: View, Animatable {
                                     .frame(width: sideSize, height: sideSize)
                                     .modifier(TimeMasterGlassSurface(cornerRadius: sideSize / 2, isInteractive: true))
                                     Text("Library")
-                                        .font(.caption.weight(.semibold))
+                                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.5)
                                         .frame(width: sideSize, height: labelHeight * labelProgress)
@@ -71,8 +71,8 @@ struct OutdoorStartContent: View, Animatable {
 
                             Button(action: onStart) {
                                 VStack(spacing: 4) {
-                                    Text("Start").font(.system(size: 24 + 8 * expansion, weight: .bold, design: .rounded))
-                                    Text(committedKind.displayName).font(.system(size: 16 + 4 * expansion, weight: .semibold, design: .rounded))
+                                    Text("Start").font(TimeMasterFont.black(24 + 8 * expansion, relativeTo: .title2))
+                                    Text(committedKind.displayName).font(TimeMasterFont.black(16 + 4 * expansion, relativeTo: .body))
                                 }
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.4)
@@ -90,7 +90,7 @@ struct OutdoorStartContent: View, Animatable {
                                         .frame(width: sideSize, height: sideSize)
                                         .modifier(TimeMasterGlassSurface(cornerRadius: sideSize / 2, isInteractive: true))
                                     Text("Routes")
-                                        .font(.caption.weight(.semibold))
+                                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.5)
                                         .frame(width: sideSize, height: labelHeight * labelProgress)
@@ -146,7 +146,7 @@ struct OutdoorStartContent: View, Animatable {
                 Image(systemName: feature == .type ? committedKind.iconName : feature.systemImage)
                     .font(.system(size: 17 + 5 * expansion, weight: .semibold))
                 Text(feature.title)
-                    .font(.caption.weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                     .frame(height: labelHeight * labelProgress)

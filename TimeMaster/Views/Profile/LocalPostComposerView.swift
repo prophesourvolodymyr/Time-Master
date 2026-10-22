@@ -118,7 +118,7 @@ struct LocalPostComposerView: View {
                 }
             }
             .background(Theme.background)
-            .navigationTitle(postID == nil ? "New post" : "Edit post")
+            .timeMasterNavigationTitle(postID == nil ? "New post" : "Edit post")
 #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
 #endif

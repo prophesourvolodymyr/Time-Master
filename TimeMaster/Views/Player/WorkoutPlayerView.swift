@@ -218,6 +218,7 @@ struct WorkoutPlayerView: View {
 
     var body: some View {
         contentLayer
+            .font(TimeMasterFont.body())
             .accessibilityHidden(showWorkoutManagement || showPageOverlay)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { backgroundLayer }
@@ -399,11 +400,10 @@ struct WorkoutPlayerView: View {
 
             VStack(spacing: 28) {
                 VStack(spacing: 8) {
-                    Text("Warm Up")
-                        .font(.system(size: 32, weight: .bold))
+                    TimeMasterPageTitle("Warm Up", size: 42, relativeTo: .title)
                         .foregroundColor(.white)
                     Text("Choose your warm-up duration")
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .foregroundColor(.white.opacity(0.5))
                 }
                 .multilineTextAlignment(.center)
@@ -429,7 +429,7 @@ struct WorkoutPlayerView: View {
                         startWarmUp()
                     } label: {
                         Text("Start Warm Up")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
@@ -441,7 +441,7 @@ struct WorkoutPlayerView: View {
                         startWorkout()
                     } label: {
                         Text("Skip Warm Up")
-                            .font(.subheadline)
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             .foregroundColor(.white.opacity(0.5))
                             .frame(height: 44)
                     }
@@ -457,7 +457,10 @@ struct WorkoutPlayerView: View {
     private func warmUpButton(value: Int, label: String) -> some View {
         Button { warmUpDuration = value } label: {
             Text(label)
-                .font(.system(size: 15, weight: warmUpDuration == value ? .bold : .regular))
+                .font(warmUpDuration == value
+                      ? TimeMasterFont.black(15, relativeTo: .subheadline)
+                      : TimeMasterFont.body(15, relativeTo: .subheadline))
+                .monospacedDigit()
                 .foregroundColor(warmUpDuration == value ? .black : .white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
@@ -482,12 +485,12 @@ struct WorkoutPlayerView: View {
 
             VStack(spacing: 18) {
                 Text("WARM UP")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .tracking(5)
                     .foregroundColor(.white.opacity(0.5))
 
                 Text(formatTime(timeRemaining))
-                    .font(.system(size: 84, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(84, relativeTo: .largeTitle))
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -496,7 +499,7 @@ struct WorkoutPlayerView: View {
 
                 Button { skipWarmUp() } label: {
                     Text("Skip Warm Up")
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(.black)
                         .frame(width: 180, height: 48)
                         .background(Color.white)
@@ -524,18 +527,18 @@ struct WorkoutPlayerView: View {
 
             VStack(spacing: 18) {
                 Text("PREPARATION")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .tracking(5)
                     .foregroundColor(.white.opacity(0.5))
 
                 Text(currentSlot?.name ?? currentSection?.name ?? "")
-                    .font(.title3.weight(.semibold))
+                    .font(TimeMasterFont.black(20, relativeTo: .title3))
                     .foregroundColor(.white.opacity(0.65))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
                 Text(formatTime(timeRemaining))
-                    .font(.system(size: 84, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(84, relativeTo: .largeTitle))
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -544,7 +547,7 @@ struct WorkoutPlayerView: View {
 
                 Button { skipPreparation() } label: {
                     Text("Skip Preparation")
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(.black)
                         .frame(width: 180, height: 48)
                         .background(Color.white)
@@ -596,7 +599,7 @@ struct WorkoutPlayerView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Text(currentSlot?.name ?? section.name)
-                                    .font(.system(size: 26, weight: .bold))
+                                    .font(TimeMasterFont.black(26, relativeTo: .title2))
                                     .foregroundColor(.white)
                                 Image(systemName: "book.pages")
                                     .font(.system(size: 12, weight: .medium))
@@ -609,7 +612,7 @@ struct WorkoutPlayerView: View {
                         .padding(.horizontal, 32)
                     } else {
                         Text(currentSlot?.name ?? currentSection?.name ?? "")
-                            .font(.system(size: 26, weight: .bold))
+                            .font(TimeMasterFont.black(26, relativeTo: .title2))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -619,23 +622,23 @@ struct WorkoutPlayerView: View {
                     if let section = currentSection, section.slotCount > 1 {
                         VStack(spacing: 2) {
                             Text("Set \(currentSetIndex + 1) / \(section.slotCount)")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(TimeMasterFont.black(13, relativeTo: .footnote).monospacedDigit())
                                 .foregroundColor(.white.opacity(0.55))
                             if let reps = currentSlot?.repCount ?? section.repCount {
                                 Text("\(reps) reps")
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(TimeMasterFont.micro().monospacedDigit())
                                     .foregroundColor(.white.opacity(0.4))
                             }
                         }
                     } else if let section = currentSection, let reps = currentSlot?.repCount ?? section.repCount {
                         Text("\(reps) reps")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(TimeMasterFont.body(13, relativeTo: .footnote).monospacedDigit())
                             .foregroundColor(.white.opacity(0.5))
                     }
                 }
 
                 Text(formatTime(timeRemaining))
-                    .font(.system(size: 68, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(68, relativeTo: .largeTitle))
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -663,7 +666,7 @@ struct WorkoutPlayerView: View {
 
             VStack(spacing: 18) {
                 Text("BUNDLE · SELF-PACED")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .tracking(2)
                     .foregroundColor(.white.opacity(0.55))
 
@@ -675,7 +678,7 @@ struct WorkoutPlayerView: View {
                             VStack(spacing: 12) {
                                 bundleCover(for: slot)
                                 Text(slot.name)
-                                    .font(.system(size: 28, weight: .bold))
+                                    .font(TimeMasterFont.black(28, relativeTo: .title))
                                     .foregroundColor(.white)
                                     .multilineTextAlignment(.center)
                                 if let pageID = slot.exercisePageID,
@@ -684,7 +687,7 @@ struct WorkoutPlayerView: View {
                                     Text(String(page.manifest.markdownBody
                                         .replacingOccurrences(of: "#", with: "")
                                         .prefix(140)))
-                                        .font(.subheadline)
+                                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                                         .foregroundColor(.white.opacity(0.65))
                                         .multilineTextAlignment(.center)
                                         .lineLimit(3)
@@ -693,7 +696,7 @@ struct WorkoutPlayerView: View {
                                     showBundleInlinePreview ? "Hide Preview" : "Preview Media",
                                     systemImage: showBundleInlinePreview ? "chevron.up" : "photo"
                                 )
-                                .font(.subheadline.weight(.semibold))
+                                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                 .foregroundColor(.white.opacity(0.7))
                             }
                             .frame(maxWidth: .infinity)
@@ -714,7 +717,7 @@ struct WorkoutPlayerView: View {
                                 .padding(.horizontal, 8)
                             } else {
                                 Text("This exercise has no media yet.")
-                                    .font(.caption)
+                                    .font(TimeMasterFont.caption())
                                     .foregroundColor(.white.opacity(0.5))
                             }
                         }
@@ -724,7 +727,7 @@ struct WorkoutPlayerView: View {
                                 openPageOverlay(id: slot.exercisePageID, name: slot.name)
                             } label: {
                                 Label("Open Page", systemImage: "book.pages")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                     .foregroundColor(.white.opacity(0.7))
                             }
                             .buttonStyle(.plain)
@@ -733,7 +736,7 @@ struct WorkoutPlayerView: View {
                 }
 
                 Text("\(currentSetIndex + 1) / \(currentSection?.slotCount ?? 1)")
-                    .font(.headline.monospacedDigit())
+                    .font(TimeMasterFont.black(17, relativeTo: .headline).monospacedDigit())
                     .foregroundColor(.white.opacity(0.65))
 
                 Button {
@@ -743,7 +746,7 @@ struct WorkoutPlayerView: View {
                         currentSetIndex + 1 < (currentSection?.slotCount ?? 1) ? "Next Technique" : "Complete Bundle",
                         systemImage: "arrow.right.circle.fill"
                     )
-                    .font(.headline)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -755,7 +758,7 @@ struct WorkoutPlayerView: View {
                     showBundleReorder = true
                 } label: {
                     Label("Reorder Techniques", systemImage: "line.3.horizontal")
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundColor(.white.opacity(0.7))
                 }
             }
@@ -814,7 +817,7 @@ struct WorkoutPlayerView: View {
 
     private var sectionBadge: some View {
         Text("\(currentSectionIndex + 1) / \(workout.sections.count)")
-            .font(.system(size: 13, weight: .semibold))
+            .font(TimeMasterFont.black(13, relativeTo: .footnote).monospacedDigit())
             .foregroundColor(.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -942,7 +945,7 @@ struct WorkoutPlayerView: View {
 
             VStack(spacing: 12) {
                 Text(isSetRest ? "REST BETWEEN SETS" : "REST")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .tracking(5)
                     .foregroundColor(.white.opacity(0.5))
 
@@ -955,7 +958,7 @@ struct WorkoutPlayerView: View {
                         openPageOverlay(id: pageID, name: page.title)
                     } label: {
                         Label("Rest exercise: \(page.title)", systemImage: "figure.cooldown")
-                            .font(.subheadline.weight(.semibold))
+                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                             .lineLimit(1)
                     }
                     .buttonStyle(TimeMasterActionButtonStyle())
@@ -963,13 +966,13 @@ struct WorkoutPlayerView: View {
 
             if !restExtensionText.isEmpty {
                 Text(restExtensionText)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(TimeMasterFont.black(14, relativeTo: .subheadline).monospacedDigit())
                     .foregroundColor(.white)
                     .transition(.opacity.animation(.easeInOut(duration: 0.3)))
             }
 
                 Text(formatTime(timeRemaining))
-                    .font(.system(size: 84, weight: .bold, design: .rounded))
+                    .font(TimeMasterFont.black(84, relativeTo: .largeTitle))
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -986,7 +989,7 @@ struct WorkoutPlayerView: View {
 
                     Button { skipRest() } label: {
                         Text("Skip Rest")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(.black)
                             .frame(width: 100, height: 48)
                             .background(Color.white)
@@ -1006,13 +1009,13 @@ struct WorkoutPlayerView: View {
     private var restContextLabel: some View {
         if isSetRest, let section = currentSection {
             Text("Set \(currentSetIndex) of \(section.slotCount)")
-                .font(.title3)
+                .font(TimeMasterFont.black(20, relativeTo: .title3).monospacedDigit())
                 .foregroundColor(.white.opacity(0.65))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         } else if isSectionRest, currentSectionIndex + 1 < workout.sections.count {
             Text("Next: \(workout.sections[currentSectionIndex + 1].name)")
-                .font(.title3)
+                .font(TimeMasterFont.black(20, relativeTo: .title3))
                 .foregroundColor(.white.opacity(0.65))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -1048,7 +1051,7 @@ struct WorkoutPlayerView: View {
                         .font(.system(size: 32))
                         .foregroundColor(.white.opacity(0.3))
                     Text("Workout Almost Done")
-                        .font(.subheadline)
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                         .foregroundColor(Theme.textSecondary)
                 }
                 .frame(width: 200, height: 200)
@@ -1075,7 +1078,7 @@ struct WorkoutPlayerView: View {
         let canExtend = restExtensionTotal + seconds <= 120
         return Button { extendRest(by: seconds) } label: {
             Text("+\(seconds)s")
-                .font(.system(size: 14, weight: .semibold))
+                .font(TimeMasterFont.black(14, relativeTo: .subheadline).monospacedDigit())
                 .frame(width: 56)
         }
         .buttonStyle(TimeMasterActionButtonStyle())
@@ -1110,14 +1113,14 @@ struct WorkoutPlayerView: View {
                         .foregroundColor(.white)
 
                     Text("Workout Complete")
-                        .font(TimeMasterFont.accentTitle())
+                        .font(TimeMasterFont.black(34, relativeTo: .largeTitle))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, ProfileStyle.inset)
 
                     Text("Great job finishing \(workout.name).")
-                        .font(.body)
+                        .font(TimeMasterFont.body(17))
                         .foregroundColor(.white.opacity(0.6))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 48)
@@ -1128,7 +1131,7 @@ struct WorkoutPlayerView: View {
 
                 Button { dismiss() } label: {
                     Text("Done")
-                        .font(.headline)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 60))
@@ -1841,7 +1844,7 @@ struct WorkoutPlayerView: View {
                 HStack {
                     Spacer()
                     Text(formatTime(timeRemaining))
-                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .font(TimeMasterFont.black(20, relativeTo: .title3).monospacedDigit())
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
@@ -2009,16 +2012,16 @@ private struct BundleReorderSheet: View {
                             .foregroundColor(.secondary)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(slot.name)
-                                .font(.headline)
+                                .font(TimeMasterFont.black(17, relativeTo: .headline))
                             Text("Technique \(slots.firstIndex(where: { $0.id == slot.id }).map { $0 + 1 } ?? 0)")
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundColor(.secondary)
                         }
                     }
                 }
                 .onMove(perform: onMove)
             }
-            .navigationTitle("Reorder Techniques")
+            .timeMasterNavigationTitle("Reorder Techniques")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -2033,6 +2036,7 @@ private struct BundleReorderSheet: View {
                 #endif
             }
         }
+        .font(TimeMasterFont.body())
     }
 }
 

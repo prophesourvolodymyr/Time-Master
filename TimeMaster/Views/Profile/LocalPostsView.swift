@@ -295,7 +295,7 @@ private struct LocalPostReactionPicker: View {
                             ForEach(reactions, id: \.self) { reaction in
                                 Button { toggle(reaction) } label: {
                                     Text(reaction)
-                                        .font(.system(size: 30))
+                                        .font(TimeMasterFont.body(30, relativeTo: .title))
                                         .frame(maxWidth: .infinity, minHeight: 64)
                                         .background(post.reactions.contains(reaction) ? Color.white.opacity(0.2) : Theme.surface2, in: RoundedRectangle(cornerRadius: 16))
                                 }
@@ -317,7 +317,7 @@ private struct LocalPostReactionPicker: View {
                 .frame(maxWidth: .infinity)
             }
             .background(Theme.background)
-            .navigationTitle("React")
+            .timeMasterNavigationTitle("React")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Done") { dismiss() } }
             }
@@ -368,7 +368,7 @@ private struct LocalPostImageViewer: View {
                 }
             }
             .background(Theme.background)
-            .navigationTitle("Photo")
+            .timeMasterNavigationTitle("Photo")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Done") { dismiss() } }
                 ToolbarItemGroup(placement: .primaryAction) {

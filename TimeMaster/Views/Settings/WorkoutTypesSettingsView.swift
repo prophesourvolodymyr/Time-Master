@@ -21,7 +21,8 @@ struct WorkoutTypesSettingsView: View {
                 .padding(16)
             }
         }
-        .navigationTitle("Workout Types")
+        .font(TimeMasterFont.body())
+        .timeMasterNavigationTitle("Workout Types")
         .sheet(isPresented: $showAddSheet) {
             TypeEditorSheet { name, icon, color in
                 store.addCustomType(name: name, iconName: icon, colorHex: color)
@@ -42,7 +43,7 @@ struct WorkoutTypesSettingsView: View {
     private var builtInGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Built-in")
-                .font(.caption.weight(.semibold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(Theme.textSecondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(Array(WorkoutType.builtIn), id: \.id) { type in
@@ -57,7 +58,7 @@ struct WorkoutTypesSettingsView: View {
     private var customGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Custom")
-                .font(.caption.weight(.semibold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(Theme.textSecondary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(Array(store.customWorkoutTypes), id: \.id) { type in
@@ -89,19 +90,19 @@ struct WorkoutTypesSettingsView: View {
                     .cornerRadius(10)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(type.name)
-                        .font(.subheadline.weight(.medium))
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundColor(Theme.textPrimary)
                         .lineLimit(1)
                     if goal > 0 {
                         Text("\(goal)×/week")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(TimeMasterFont.black(10, relativeTo: .caption2))
                             .foregroundColor(Theme.textSecondary)
                     }
                 }
                 Spacer(minLength: 0)
                 if goal == 0 {
                     Text("Set goal")
-                        .font(.system(size: 9))
+                        .font(TimeMasterFont.body(9, relativeTo: .caption2))
                         .foregroundColor(Theme.textSecondary.opacity(0.6))
                 }
             }
@@ -116,11 +117,13 @@ struct WorkoutTypesSettingsView: View {
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: activeSchedule(for: type) == nil ? "calendar.badge.plus" : "calendar")
+                        .font(.system(size: 11, weight: .semibold))
                     Text(activeSchedule(for: type) == nil ? "Set Schedule" : scheduleSummary(for: type))
+                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
                     Spacer()
                     Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
                 }
-                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(Theme.textSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -149,7 +152,7 @@ struct WorkoutTypesSettingsView: View {
             HStack(spacing: 8) {
                 Image(systemName: "plus.circle.fill").font(.system(size: 18))
                 Text("Create New Type")
-                    .font(.headline)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
@@ -205,7 +208,7 @@ private struct TypeScheduleSheet: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("\(type.name) Schedule")
+            .timeMasterNavigationTitle("\(type.name) Schedule")
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
                                  }
@@ -216,6 +219,7 @@ private struct TypeScheduleSheet: View {
             }
             .onAppear { loadActiveSchedule() }
         }
+        .font(TimeMasterFont.body())
     }
 
     private var header: some View {
@@ -227,16 +231,16 @@ private struct TypeScheduleSheet: View {
                 .background(Color(hex: type.colorHex))
                 .cornerRadius(16)
             VStack(alignment: .leading, spacing: 3) {
-                Text(type.name).font(.title3.bold()).foregroundColor(Theme.textPrimary)
+                Text(type.name).font(TimeMasterFont.black(20, relativeTo: .title3)).foregroundColor(Theme.textPrimary)
                 Text("Starting a new schedule archives the active one.")
-                    .font(.caption).foregroundColor(Theme.textSecondary)
+                    .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
             }
         }
     }
 
     private var dayPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Training Days").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Training Days").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             HStack(spacing: 6) {
                 ForEach(1...7, id: \.self) { day in
                     Button {
@@ -244,7 +248,7 @@ private struct TypeScheduleSheet: View {
                         else { selectedDays.insert(day) }
                     } label: {
                         Text(dayLabels[day - 1])
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
                             .foregroundColor(selectedDays.contains(day) ? .black : .white)
                             .frame(maxWidth: .infinity, minHeight: 38)
                             .background(selectedDays.contains(day) ? Color.white : Theme.surface)
@@ -258,7 +262,7 @@ private struct TypeScheduleSheet: View {
 
     private var dateSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Schedule Window").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Schedule Window").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             DatePicker("Starts", selection: $startDate, displayedComponents: .date)
                 .colorScheme(.dark).foregroundColor(Theme.textPrimary)
             Stepper(value: $durationMonths, in: 0...24) {
@@ -271,7 +275,7 @@ private struct TypeScheduleSheet: View {
     private var scheduleTimeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Daily Window")
-                .font(.headline)
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             Toggle("Set a start time", isOn: $hasStartTime)
                 .foregroundColor(Theme.textPrimary)
@@ -288,7 +292,7 @@ private struct TypeScheduleSheet: View {
                         .foregroundColor(Theme.textPrimary)
                 }
                 Text(scheduleWindowText)
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
             }
         }
@@ -308,7 +312,7 @@ private struct TypeScheduleSheet: View {
 
     private var templateSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Quick Templates").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Quick Templates").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 templateButton("Daily", days: Set(1...7))
                 templateButton("Weekdays", days: [1, 2, 3, 4, 5])
@@ -331,7 +335,7 @@ private struct TypeScheduleSheet: View {
             weeklyGoal = min(max(days.count, 1), 7)
         } label: {
             Text(label)
-                .font(.caption.weight(.semibold))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -343,7 +347,7 @@ private struct TypeScheduleSheet: View {
 
     private func durationButton(_ label: String, months: Int) -> some View {
         Button(label) { durationMonths = months }
-            .font(.caption.weight(.semibold))
+            .font(TimeMasterFont.black(12, relativeTo: .caption))
             .foregroundColor(durationMonths == months ? .black : .white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
@@ -354,12 +358,12 @@ private struct TypeScheduleSheet: View {
 
     private var goalSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Weekly Goal").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Weekly Goal").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             HStack(spacing: 8) {
                 ForEach(1...7, id: \.self) { value in
                     Button { weeklyGoal = value } label: {
                         Text("\(value)")
-                            .font(.subheadline.weight(.bold))
+                            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                             .foregroundColor(weeklyGoal == value ? .black : .white)
                             .frame(maxWidth: .infinity, minHeight: 38)
                             .background(weeklyGoal == value ? Color.white : Theme.background)
@@ -377,10 +381,10 @@ private struct TypeScheduleSheet: View {
         return Group {
             if !history.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Previous Schedules").font(.headline).foregroundColor(Theme.textPrimary)
+                    Text("Previous Schedules").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
                     ForEach(history) { schedule in
                         Text("\(schedule.startDate.formatted(date: .abbreviated, time: .omitted)) - \(schedule.endedAt?.formatted(date: .abbreviated, time: .omitted) ?? schedule.endDate.formatted(date: .abbreviated, time: .omitted))")
-                            .font(.caption).foregroundColor(Theme.textSecondary)
+                            .font(TimeMasterFont.caption()).foregroundColor(Theme.textSecondary)
                     }
                 }
                 .padding(14).background(Theme.surface).cornerRadius(12)
@@ -468,7 +472,7 @@ private struct TypeEditorSheet: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("New Type")
+            .timeMasterNavigationTitle("New Type")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -487,6 +491,7 @@ private struct TypeEditorSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 
     // MARK: - Preview
@@ -501,10 +506,10 @@ private struct TypeEditorSheet: View {
                 .cornerRadius(12)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name.isEmpty ? "Type Name" : name)
-                    .font(.headline)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
                     .foregroundColor(name.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                 Text("Preview")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
             }
             Spacer()
@@ -518,7 +523,7 @@ private struct TypeEditorSheet: View {
 
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Name").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Name").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             TextField("e.g., Boxing", text: $name)
                 .padding(14).background(Theme.surface).cornerRadius(10)
                 .foregroundColor(Theme.textPrimary)
@@ -529,7 +534,7 @@ private struct TypeEditorSheet: View {
 
     private var colorSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Icon Color").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Icon Color").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             IconColorPicker(selectedHex: $colorHex)
         }
     }
@@ -538,7 +543,7 @@ private struct TypeEditorSheet: View {
 
     private var iconSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Icon").font(.headline).foregroundColor(Theme.textPrimary)
+            Text("Icon").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             LazyVGrid(columns: columns, spacing: 6) {
                 ForEach(sfIcons, id: \.self) { icon in
                     Button {
@@ -583,18 +588,18 @@ private struct TypeGoalSheet: View {
                             .background(Color(hex: type.colorHex).opacity(0.15))
                             .cornerRadius(20)
                         Text(type.name)
-                            .font(.title2.bold())
+                            .font(TimeMasterFont.black(22, relativeTo: .title2))
                             .foregroundColor(Theme.textPrimary)
                     }
                     VStack(spacing: 10) {
                         Text("Weekly Goal")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(Theme.textSecondary)
                         HStack(spacing: 8) {
                             ForEach(1...7, id: \.self) { n in
                                 Button { draft = n } label: {
                                     Text("\(n)")
-                                        .font(.title3.weight(draft == n ? .bold : .medium))
+                                        .font(TimeMasterFont.black(20, relativeTo: .title3))
                                         .foregroundColor(draft == n ? .black : .white)
                                         .frame(width: 44, height: 44)
                                         .background(draft == n ? Color.white : Theme.surface)
@@ -603,7 +608,7 @@ private struct TypeGoalSheet: View {
                             }
                         }
                         Text(draft == 1 ? "Once a week" : "\(draft) times a week")
-                            .font(.subheadline)
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             .foregroundColor(Theme.textSecondary)
                     }
                     Spacer()
@@ -612,7 +617,7 @@ private struct TypeGoalSheet: View {
                         dismiss()
                     } label: {
                         Text("Save Goal")
-                            .font(.headline)
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -623,7 +628,7 @@ private struct TypeGoalSheet: View {
                 }
                 .padding(32)
             }
-            .navigationTitle("Edit Goal")
+            .timeMasterNavigationTitle("Edit Goal")
             #if os(iOS)
 #if os(iOS)
 #if os(iOS)
@@ -636,6 +641,7 @@ private struct TypeGoalSheet: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
     }
 }
 

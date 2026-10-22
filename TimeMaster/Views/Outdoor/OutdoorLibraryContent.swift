@@ -78,8 +78,7 @@ struct OutdoorLibraryContent<Handle: View>: View {
                 handle()
                 ZStack {
                     if !searchPresented {
-                        Text(starred.isEmpty ? "Recent" : "Starred")
-                            .font(.title2.weight(.bold))
+                        TimeMasterPageTitle(starred.isEmpty ? "Recent" : "Starred", size: 29, relativeTo: .title2)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                             .frame(maxWidth: .infinity)
@@ -160,7 +159,7 @@ struct OutdoorLibraryContent<Handle: View>: View {
 
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
-            .font(.title2.weight(.bold))
+            .font(TimeMasterFont.black(22, relativeTo: .title2))
             .frame(maxWidth: .infinity)
             .accessibilityAddTraits(.isHeader)
     }
@@ -253,7 +252,7 @@ struct OutdoorLibraryCard: View {
                 if showsDistance {
                     let distance = outdoorRouteDistanceParts(activity.distanceMeters, units: units)
                     Text("\(distance.value) \(distance.unit)")
-                        .font(.headline.monospacedDigit())
+                        .font(TimeMasterFont.sectionTitle().monospacedDigit())
                         .foregroundStyle(Theme.textPrimary)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .background(.regularMaterial)
@@ -278,8 +277,8 @@ struct OutdoorLibraryEmptyState: View {
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: systemImage).font(.title2).foregroundStyle(Theme.toolbarOrange)
-            Text(title).font(.headline)
-            Text(message).font(.subheadline).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
+            Text(title).font(TimeMasterFont.sectionTitle())
+            Text(message).font(TimeMasterFont.secondary()).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)

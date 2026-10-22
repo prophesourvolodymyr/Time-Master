@@ -7,7 +7,7 @@ struct MediaCommentBubble: View {
 
     var body: some View {
         Text(Self.render(text))
-            .font(.body)
+            .font(TimeMasterFont.body(17))
             .foregroundStyle(Theme.textPrimary)
             .tint(.blue)
             .textSelection(.enabled)
@@ -39,6 +39,6 @@ struct MediaCommentBubble: View {
                   }) else { continue }
             rendered[attributedRange].link = url
         }
-        return rendered
+        return TimeMasterFont.styledText(rendered, size: 17)
     }
 }

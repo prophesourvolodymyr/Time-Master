@@ -101,7 +101,7 @@ struct TrayCardView: View {
             // Media count badge (bottom-left)
             if item.mediaList.count > 1 {
                 Text("\(item.mediaList.count)")
-                    .font(.caption2).fontWeight(.bold)
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
                     .foregroundColor(Theme.textPrimary)
                     .padding(.horizontal, 5).padding(.vertical, 2)
                     .background(Color.black.opacity(0.75))

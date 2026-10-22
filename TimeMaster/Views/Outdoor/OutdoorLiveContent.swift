@@ -45,7 +45,7 @@ struct OutdoorLiveContent: View, Animatable {
                         if let activity = recorder.activeActivity,
                            activity.tripDistanceMeters > activity.distanceMeters + 1 || recorder.isOnBus {
                             Text("Total incl. bus · \(outdoorDistanceText(activity.tripDistanceMeters, unitSystem: preferences.preferences.unitSystem, precision: true))")
-                                .font(.caption)
+                                .font(TimeMasterFont.caption())
                                 .foregroundStyle(Theme.textSecondary)
                                 .accessibilityIdentifier("trip.totalDistance")
                         }
@@ -165,17 +165,17 @@ struct OutdoorLiveContent: View, Animatable {
     ) -> some View {
         VStack(spacing: 3) {
             Text(title)
-                .font(.headline.weight(.semibold))
+                .font(TimeMasterFont.body(17, relativeTo: .headline))
                 .foregroundStyle(Theme.textPrimary.opacity(0.72))
             VStack(spacing: 3) {
                 Text(value)
-                    .font((prominent ? Font.largeTitle : Font.title2).weight(.semibold))
+                    .font(TimeMasterFont.black(prominent ? 34 : 22, relativeTo: prominent ? .largeTitle : .title2))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 if let unit {
                     Text(unit)
-                        .font(.headline)
+                        .font(TimeMasterFont.body(17, relativeTo: .headline))
                         .foregroundStyle(Theme.textPrimary.opacity(0.62))
                 }
             }
@@ -187,7 +187,7 @@ struct OutdoorLiveContent: View, Animatable {
 
     private func statusPill(_ status: String) -> some View {
         Text(status)
-            .font(.caption.weight(.semibold))
+            .font(TimeMasterFont.black(12, relativeTo: .caption))
             .foregroundStyle(Theme.textPrimary.opacity(0.88))
             .padding(.horizontal, 11)
             .frame(minHeight: 28)
@@ -210,14 +210,14 @@ struct OutdoorLiveContent: View, Animatable {
         VStack(alignment: alignment, spacing: 4) {
             if let title {
                 Text(title)
-                    .font(.system(size: labelSize * liveLabelScale, weight: .semibold))
+                    .font(TimeMasterFont.body(labelSize, relativeTo: .caption))
                     .foregroundStyle(Theme.textPrimary.opacity(0.72))
             }
             if unitBelow, let unit {
                 VStack(alignment: alignment, spacing: 2) {
                     metricValueText(value, size: valueSize)
                     Text(unit)
-                        .font(.system(size: max(10, valueSize * 0.30) * liveLabelScale, weight: .medium))
+                        .font(TimeMasterFont.body(max(10, valueSize * 0.30), relativeTo: .caption))
                         .foregroundStyle(Theme.textPrimary.opacity(0.62))
                 }
             } else {
@@ -225,7 +225,7 @@ struct OutdoorLiveContent: View, Animatable {
                     metricValueText(value, size: valueSize)
                     if let unit {
                         Text(unit)
-                            .font(.system(size: max(9, valueSize * 0.42) * liveLabelScale, weight: .medium))
+                            .font(TimeMasterFont.body(max(9, valueSize * 0.42), relativeTo: .caption))
                             .foregroundStyle(Theme.textPrimary.opacity(0.62))
                     }
                 }
@@ -240,13 +240,13 @@ struct OutdoorLiveContent: View, Animatable {
     private func metricValueText(_ value: String, size: CGFloat) -> some View {
         if #available(iOS 17.0, *) {
             Text(value)
-                .font(.system(size: size * liveValueScale, weight: .semibold, design: .rounded))
+                .font(TimeMasterFont.black(size, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .animation(reduceMotion ? .none : .snappy, value: value)
         } else {
             Text(value)
-                .font(.system(size: size * liveValueScale, weight: .semibold, design: .rounded))
+                .font(TimeMasterFont.black(size, relativeTo: .largeTitle))
                 .monospacedDigit()
         }
     }
@@ -287,7 +287,7 @@ struct OutdoorLiveContent: View, Animatable {
             Image(systemName: "location.slash")
                 .font(.title2)
             Text(message)
-                .font(.subheadline.weight(.semibold))
+                .font(TimeMasterFont.rowTitle())
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 280)

@@ -80,6 +80,7 @@ struct WorkoutMusicTimelineView: View {
                 }
             }
         }
+        .font(TimeMasterFont.body())
         .padding(.trailing, 8)
         .padding(.vertical, 8)
         .background(Theme.background)
@@ -120,7 +121,7 @@ struct WorkoutMusicTimelineView: View {
                 .accessibilityLabel("Zoom out timeline")
             if showScale {
                 Text("\(Int(zoom / 2 * 100))%")
-                    .font(.caption2.weight(.semibold).monospacedDigit())
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize()
                     .accessibilityLabel("Timeline zoom")
@@ -185,7 +186,7 @@ struct WorkoutMusicTimelineView: View {
                 Text("Primary").frame(maxWidth: .infinity)
                 Text("Background").frame(maxWidth: .infinity)
             }
-            .font(.caption2.weight(.semibold))
+            .font(TimeMasterFont.black(11, relativeTo: .caption2))
             .foregroundStyle(Theme.textSecondary)
             pinchable {
             ScrollView(.vertical) {
@@ -201,7 +202,7 @@ struct WorkoutMusicTimelineView: View {
                                 lines.move(to: CGPoint(x: 0, y: y))
                                 lines.addLine(to: CGPoint(x: size.width, y: y))
                                 context.draw(Text(musicTimestamp(seconds))
-                                    .font(.caption2.monospacedDigit()).foregroundColor(.gray),
+                                    .font(TimeMasterFont.micro().monospacedDigit()).foregroundColor(.gray),
                                     at: CGPoint(x: 3, y: y + 2), anchor: .topLeading)
                             }
                             lines.move(to: CGPoint(x: laneWidth, y: 0))
@@ -240,7 +241,7 @@ struct WorkoutMusicTimelineView: View {
                         VStack(spacing: 3) {
                             Rectangle().fill(Theme.textSecondary).frame(height: 1)
                             Text("Fallback · \(musicTimestamp(plannedEnd))")
-                                .font(.caption2).foregroundStyle(Theme.textSecondary)
+                                .font(TimeMasterFont.micro()).foregroundStyle(Theme.textSecondary)
                                 .padding(.horizontal, 4).background(Theme.background)
                         }
                         .offset(y: plannedEnd * zoom)
@@ -249,7 +250,7 @@ struct WorkoutMusicTimelineView: View {
                             HStack(spacing: 4) {
                                 Circle().frame(width: 8, height: 8)
                                 Rectangle().frame(height: 2)
-                                Text(musicTimestamp(playhead)).font(.caption2.monospacedDigit())
+                                Text(musicTimestamp(playhead)).font(TimeMasterFont.micro().monospacedDigit())
                                     .padding(4).background(Theme.background)
                             }
                             .foregroundStyle(Theme.toolbarOrange)
@@ -262,7 +263,7 @@ struct WorkoutMusicTimelineView: View {
                             let duration = resizeID == clip.id ? resizeDuration ?? clip.duration : clip.duration
                             Button { duplicateBelow(clip) } label: {
                                 Label("Duplicate below", systemImage: "plus.square.on.square")
-                                    .font(.caption2.weight(.semibold))
+                                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
                                     .multilineTextAlignment(.center)
                                     .padding(6)
                                     .frame(width: max(0, laneWidth - 6))
@@ -363,7 +364,7 @@ struct WorkoutMusicTimelineView: View {
         .overlay(alignment: .top) {
             if resizeID == clip.id && height < controlSize {
                 Text(musicTimestamp(duration))
-                    .font(.caption2.weight(.semibold).monospacedDigit())
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
                     .padding(4)
                     .background(Theme.surface2, in: Capsule())
                     .offset(y: -controlSize * 0.6)
@@ -398,7 +399,7 @@ struct WorkoutMusicTimelineView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if items.isEmpty {
-                        Text(searchText.isEmpty ? "No music" : "No matches").font(.caption2).foregroundStyle(Theme.textSecondary)
+                        Text(searchText.isEmpty ? "No music" : "No matches").font(TimeMasterFont.micro()).foregroundStyle(Theme.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     ForEach(items) { item in
@@ -406,10 +407,10 @@ struct WorkoutMusicTimelineView: View {
                             VStack(spacing: 4) {
                                 WorkoutMusicCover(artwork: item.artwork ?? item.tracks.first?.artwork,
                                                   isCollection: item.isCollection, size: controlSize, tracks: item.tracks)
-                                MusicMarqueeText(text: item.title, font: .caption2)
+                                MusicMarqueeText(text: item.title, font: TimeMasterFont.micro())
                                     .id(item.title)
                                 Text(musicTimestamp(item.totalDuration))
-                                    .font(.caption2.monospacedDigit())
+                                    .font(TimeMasterFont.micro().monospacedDigit())
                                     .foregroundStyle(Theme.textSecondary)
                             }
                             .frame(maxWidth: .infinity)
@@ -498,11 +499,11 @@ struct WorkoutMusicTimelineView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 sourceChoice(.general)
-                Text("Workout types").font(.caption).foregroundStyle(Theme.textSecondary)
+                Text("Workout types").font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 ForEach(library.destinations(for: .type)) { sourceChoice($0) }
-                Text("Workouts").font(.caption).foregroundStyle(Theme.textSecondary)
+                Text("Workouts").font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 ForEach(library.destinations(for: .mine)) { sourceChoice($0) }
-                Text("Outdoor").font(.caption).foregroundStyle(Theme.textSecondary)
+                Text("Outdoor").font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 ForEach(library.destinations(for: .route)) { sourceChoice($0) }
                 Divider()
                 Button {
@@ -530,7 +531,7 @@ struct WorkoutMusicTimelineView: View {
         } label: {
             HStack(spacing: 10) {
                 sourceBadge(destination)
-                Text(library.destinationName(destination)).font(.subheadline)
+                Text(library.destinationName(destination)).font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if source == destination {
                     Image(systemName: "checkmark").font(.body.weight(.semibold))
@@ -597,8 +598,8 @@ struct WorkoutMusicTimelineView: View {
             WorkoutMusicCover(artwork: item?.artwork ?? item?.tracks.first?.artwork,
                               isCollection: clip.tracks.count > 1, size: controlSize, tracks: item?.tracks ?? [])
             VStack(alignment: .leading, spacing: 3) {
-                Text(clip.title).font(.caption.weight(.semibold)).lineLimit(1)
-                Text(musicTimestamp(clip.duration)).font(.caption2.monospacedDigit())
+                Text(clip.title).font(TimeMasterFont.black(12, relativeTo: .caption)).lineLimit(1)
+                Text(musicTimestamp(clip.duration)).font(TimeMasterFont.micro().monospacedDigit())
                     .foregroundStyle(Theme.textSecondary)
             }
         }
@@ -625,8 +626,8 @@ struct WorkoutMusicTimelineView: View {
             layout {
                 cover
                 VStack(spacing: 2) {
-                    Text(clip.title).font(.caption2.weight(.medium)).lineLimit(1)
-                    Text(musicTimestamp(duration)).font(.caption2.monospacedDigit())
+                    Text(clip.title).font(TimeMasterFont.black(11, relativeTo: .caption2)).lineLimit(1)
+                    Text(musicTimestamp(duration)).font(TimeMasterFont.micro().monospacedDigit())
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
@@ -635,7 +636,7 @@ struct WorkoutMusicTimelineView: View {
             .frame(height: max(0, height - 8), alignment: .top)
             .clipped()
         } else {
-            Text(musicTimestamp(duration)).font(.caption2.monospacedDigit())
+            Text(musicTimestamp(duration)).font(TimeMasterFont.micro().monospacedDigit())
                 .foregroundStyle(Theme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
@@ -784,7 +785,7 @@ struct WorkoutMusicClipEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                SwiftUI.Section("Timing") {
+                SwiftUI.Section {
                     Picker("Layer", selection: $clip.lane) {
                         Text("Primary").tag(WorkoutMusicLane.primary)
                         Text("Background").tag(WorkoutMusicLane.background)
@@ -798,30 +799,36 @@ struct WorkoutMusicClipEditor: View {
                             .multilineTextAlignment(.trailing).accessibilityLabel("Duration in seconds")
                     }
                     Text("Primary pauses background music. Background resumes where interrupted, within its remaining timeline space. On the same layer, later-starting clips take priority when they overlap.")
-                        .font(.caption).foregroundStyle(Theme.textSecondary)
+                        .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                     if clip.duration > clip.sourceDuration {
                         Text("This replacement is shorter than the reserved space. Music ends when the audio finishes; the clip’s timing stays unchanged.")
-                            .font(.caption).foregroundStyle(Theme.textSecondary)
+                            .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                     }
-                }.listRowBackground(Theme.surface)
-                SwiftUI.Section("Track order · this clip only") {
+                } header: {
+                    Text("Timing").font(TimeMasterFont.black(13, relativeTo: .footnote))
+                }
+                .listRowBackground(Theme.surface)
+                SwiftUI.Section {
                     ForEach(clip.tracks) { track in
                         HStack {
                             Image(systemName: "music.note")
                             Text(track.title)
                             Spacer()
-                            Text(musicTimestamp(track.duration)).font(.caption.monospacedDigit())
+                            Text(musicTimestamp(track.duration)).font(TimeMasterFont.caption().monospacedDigit())
                         }
                     }
                     .onMove { clip.tracks.move(fromOffsets: $0, toOffset: $1) }
                     .onDelete { clip.tracks.remove(atOffsets: $0) }
-                }.listRowBackground(Theme.surface)
+                } header: {
+                    Text("Track order · this clip only").font(TimeMasterFont.black(13, relativeTo: .footnote))
+                }
+                .listRowBackground(Theme.surface)
             }
             #if os(iOS)
             .environment(\.editMode, .constant(.active))
             #endif
             .scrollContentBackground(.hidden).background(Theme.background)
-            .navigationTitle(clip.title)
+            .timeMasterNavigationTitle(clip.title)
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 AppToolbar.item(placement: .confirmationAction) { Button("Save") { onSave(clip) }
@@ -830,6 +837,7 @@ struct WorkoutMusicClipEditor: View {
                                  }
             }
         }
+        .font(TimeMasterFont.body())
         .preferredColorScheme(.dark)
     }
 }
@@ -850,7 +858,7 @@ struct WorkoutMusicItemPicker: View {
                         Text(item.title).foregroundStyle(Theme.textPrimary)
                         Spacer()
                         Text(item.totalDuration > 0 ? musicTimestamp(item.totalDuration) : "Unavailable")
-                            .font(.caption.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                            .font(TimeMasterFont.caption().monospacedDigit()).foregroundStyle(Theme.textSecondary)
                     }.padding(.vertical, 6)
                 }
                 .disabled(item.totalDuration <= 0)
@@ -864,9 +872,10 @@ struct WorkoutMusicItemPicker: View {
             }
             .searchable(text: $query, prompt: "Music and folders")
             .scrollContentBackground(.hidden).background(Theme.background)
-            .navigationTitle(title)
+            .timeMasterNavigationTitle(title)
             .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Cancel") { dismiss() } } }
         }
+        .font(TimeMasterFont.body())
         .preferredColorScheme(.dark)
     }
 }

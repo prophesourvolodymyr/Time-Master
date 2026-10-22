@@ -62,7 +62,7 @@ struct OutdoorRouteThumbnailView: View {
             Image(systemName: systemImage)
                 .font(compact ? .caption : .title3)
             Text(title)
-                .font(compact ? .caption2 : .caption)
+                .font(compact ? TimeMasterFont.micro() : TimeMasterFont.caption())
         }
         .foregroundStyle(Theme.textSecondary)
     }
@@ -163,11 +163,11 @@ struct OutdoorMetricTile: View {
     var body: some View {
         VStack(alignment: alignment, spacing: 4) {
             Text(label.uppercased())
-                .font(.caption2.weight(.medium))
+                .font(TimeMasterFont.micro())
                 .foregroundStyle(Theme.textSecondary)
                 .tracking(0.4)
             Text(value)
-                .font(.subheadline.weight(.semibold).monospacedDigit())
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline).monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -191,7 +191,7 @@ struct OutdoorWorkoutSummary: View {
             }
             if activity.tripDistanceMeters > activity.distanceMeters + 1 {
                 Text("Total including bus · \(outdoorDistanceText(activity.tripDistanceMeters, unitSystem: units, precision: true))")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(Theme.textSecondary)
             }
             if expanded {
@@ -214,10 +214,10 @@ struct OutdoorWorkoutSummary: View {
     private func headlineMetric(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label)
-                .font(.caption.weight(.medium))
+                .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
             Text(value)
-                .font(.title2.weight(.bold).monospacedDigit())
+                .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
@@ -231,7 +231,7 @@ struct OutdoorRouteSummary: View {
     let units: TimeMasterCore.OutdoorUnitSystem
     var compact = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var distanceSize: CGFloat = 72
+    private let distanceSize: CGFloat = 72
 
     var body: some View {
         VStack(spacing: compact ? 12 : 18) {
@@ -260,12 +260,12 @@ struct OutdoorRouteSummary: View {
         let value = outdoorRouteDistanceParts(activity.distanceMeters, units: units)
         return HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(value.value)
-                .font(.system(size: compact ? distanceSize * 0.7 : distanceSize, weight: .semibold, design: .rounded))
+                .font(TimeMasterFont.black(compact ? distanceSize * 0.7 : distanceSize, relativeTo: .largeTitle))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.45)
             Text(value.unit)
-                .font(.subheadline.weight(.medium))
+                .font(TimeMasterFont.secondary())
                 .foregroundStyle(Theme.textSecondary)
         }
         .accessibilityElement(children: .ignore)
@@ -277,7 +277,7 @@ struct OutdoorRouteSummary: View {
         let value = seconds >= 3_600 ? "\(seconds / 3_600)h \(seconds % 3_600 / 60)min"
             : seconds >= 60 ? "\(seconds / 60) min" : "\(seconds) sec"
         return Text(value)
-            .font(.title.weight(.medium).monospacedDigit())
+            .font(TimeMasterFont.black(28, relativeTo: .title).monospacedDigit())
             .lineLimit(1)
             .minimumScaleFactor(0.65)
             .accessibilityLabel("Duration \(outdoorDurationText(seconds))")
@@ -336,7 +336,7 @@ struct OutdoorPublicDetailsFields: View {
                                 if !tags.contains(tag) { tags.append(tag) }
                                 tagText = tags.joined(separator: ", ")
                             }
-                            .font(.caption)
+                            .font(TimeMasterFont.caption())
                             .buttonStyle(TimeMasterActionButtonStyle())
                             .accessibilityLabel("Add tag \(tag)")
                         }
@@ -364,7 +364,7 @@ struct OutdoorPublicDetailsFields: View {
                 Toggle("Show played tracks", isOn: $showPlayerTracks)
             }
         }
-        .font(.subheadline)
+        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
         .tint(Theme.toolbarOrange)
     }
 }
@@ -383,7 +383,7 @@ struct OutdoorTypeBadge: View {
 
     var body: some View {
         Label(kind.displayName, systemImage: kind.iconName)
-            .font(.caption.weight(.semibold))
+            .font(TimeMasterFont.black(12, relativeTo: .caption))
             .labelStyle(.titleAndIcon)
             .foregroundStyle(Theme.textPrimary)
             .padding(.horizontal, 9)
@@ -436,7 +436,7 @@ struct OutdoorPlayedTrackSummary: View {
                 }
                 .frame(width: tracks.isEmpty ? 32 : 32 + CGFloat(min(tracks.count, 4) - 1) * 10, height: 34)
                 Text(tracks.isEmpty ? "No played tracks" : tracks.count == 1 ? "1 played track" : "\(tracks.count) played tracks")
-                    .font(.caption)
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(Theme.textSecondary)
                     .lineLimit(1)
             }
@@ -451,7 +451,7 @@ struct OutdoorInlineError: View {
 
     var body: some View {
         Label(message, systemImage: "exclamationmark.triangle")
-            .font(.caption)
+            .font(TimeMasterFont.caption())
             .foregroundStyle(.orange)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
@@ -481,9 +481,9 @@ struct OutdoorDeletionConfirmation: View {
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(.red)
                 Text("Delete workout?")
-                    .font(.headline.weight(.semibold))
+                    .font(TimeMasterFont.sectionTitle())
                 Text(significant ? "This significant route requires a continuous 1.2-second hold to delete." : "This removes the saved route and its details from Library.")
-                    .font(.subheadline)
+                    .font(TimeMasterFont.secondary())
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
                 HStack(spacing: 8) {

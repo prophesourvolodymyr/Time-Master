@@ -17,7 +17,7 @@ struct RankedMatchHistoryView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: ProfileStyle.inset) {
-                    Text("Recent rounds").font(TimeMasterFont.heading())
+                    TimeMasterPageTitle("Recent rounds", size: 26, relativeTo: .title3)
                     historyModePicker
                     if mode == .practice { practiceHistory }
                     if mode == .duel && account.identity == nil {
@@ -188,7 +188,7 @@ struct RankedMatchDetailView: View {
                 }
                 RankedMovementArt(variation: match.variation)
                     .frame(height: ProfileStyle.touchTarget * 3).frame(maxWidth: .infinity)
-                Text(match.variation.fullTitle).font(TimeMasterFont.heading())
+                TimeMasterPageTitle(match.variation.fullTitle, size: 26, relativeTo: .title3)
                 ForEach(match.participants) { participant in
                     HStack(spacing: ProfileStyle.spacing) {
                         VStack(alignment: .leading, spacing: EverSpacing.x2) {
@@ -253,7 +253,7 @@ struct RankedPracticeDetailView: View {
         ScrollView {
             VStack(spacing: ProfileStyle.inset) {
                 RankedMovementArt(variation: result.variation).frame(height: ProfileStyle.touchTarget * 3)
-                Text(result.variation.fullTitle).font(TimeMasterFont.heading())
+                TimeMasterPageTitle(result.variation.fullTitle, size: 26, relativeTo: .title3)
                 RankedMetric(value: result.variation.isTimedHold ? result.score.formatted(.number.precision(.fractionLength(1))) : Int(result.score).formatted(),
                              unit: result.variation.isTimedHold ? "s" : "reps")
                 RankedMetric(value: result.duration.formatted(.number.precision(.fractionLength(1))), unit: "s")

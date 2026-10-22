@@ -1,7 +1,16 @@
 {
   "schemaVersion": 1,
-  "familyName": "Tmax Ribbon",
-  "postScriptName": "TmaxRibbon-Regular",
+  "familyName": "TimeMaster",
+  "styleName": "Regular",
+  "postScriptName": "TimeMaster-Regular",
+  "copyright": "Copyright © 2026 cookbambuk. All rights reserved.",
+  "designer": "cookbambuk",
+  "license": "Proprietary original font software. Use, embedding, modification and redistribution require permission from cookbambuk. This notice applies only to the original TimeMaster face; Inter and Manrope retain their unchanged upstream SIL Open Font Licenses.",
+  "outputs": {
+    "nativeTtf": "TimeMaster/Resources/Fonts/TimeMaster-Regular.ttf",
+    "specimenOtf": "junk/ribbon-font/timemaster.otf",
+    "webWoff2": "junk/ribbon-font/timemaster.woff2"
+  },
   "unitsPerEm": 1000,
   "capHeight": 560,
   "xHeight": 406,

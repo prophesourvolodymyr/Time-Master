@@ -55,7 +55,7 @@ struct ReachabilityShelf: View {
                     .accessibilityIdentifier("reachability.previous")
 
                     Text(actions[effectiveIndex].title)
-                        .font(.caption.weight(.semibold))
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity)
                         .accessibilityHidden(true)

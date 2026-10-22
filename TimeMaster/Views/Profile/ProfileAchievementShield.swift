@@ -19,7 +19,7 @@ struct ProfileAchievementShield: View {
             }
             VStack(spacing: EverSpacing.x1) {
                 Text(title.uppercased())
-                    .font(TimeMasterFont.caption().weight(.semibold))
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(palette.secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
