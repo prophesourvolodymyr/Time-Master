@@ -22,7 +22,8 @@ export default function WorkspacePreview({
   const assets = assetBaseURL.replace(/\/+$/, "");
 
   return (
-    <EmailFrame assetBaseURL={assetBaseURL} previewText="Workouts, timers, and routes. At your pace.">
+    <EmailFrame assetBaseURL={assetBaseURL} previewText="Workouts, timers, and routes. At your pace."
+      header={{ category: "Your training, together", detail: "Workouts · Timers · Routes" }}>
       <EmailCard>
         <Heading as="h1" style={headline}>Made to move.</Heading>
         <Text style={introduction}>Workouts, timers, and routes. At your pace.</Text>

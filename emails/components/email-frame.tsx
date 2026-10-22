@@ -2,10 +2,12 @@ import type { CSSProperties, ReactNode } from "react";
 import { Body, Button, Column, Container, Head, Html, Img, Preview, Row, Section, Text } from "react-email";
 import { theme } from "../theme";
 import { EmailFonts } from "./email-fonts";
+import { EmailHeader, type EmailHeaderInfo } from "./email-header";
 
 interface EmailFrameProps {
   previewText: string;
   assetBaseURL: string;
+  header: EmailHeaderInfo;
   children: ReactNode;
 }
 
@@ -15,8 +17,7 @@ interface EmailActionProps {
   children: ReactNode;
 }
 
-export function EmailFrame({ previewText, assetBaseURL, children }: EmailFrameProps) {
-  const assets = assetBaseURL.replace(/\/$/, "");
+export function EmailFrame({ previewText, assetBaseURL, header, children }: EmailFrameProps) {
   return (
     <Html lang="en">
       <Head>
@@ -45,11 +46,7 @@ export function EmailFrame({ previewText, assetBaseURL, children }: EmailFramePr
       <Preview>{previewText}</Preview>
       <Body style={body}>
         <Container style={container}>
-          <Section style={{ marginBottom: theme.space.section, textAlign: "center" }}>
-            <Img src={`${assets}/tmax-logo.png`} alt="Tmax app logo" width={64} height={64}
-              style={{ display: "block", margin: "0 auto", maxWidth: "100%", height: "auto", borderRadius: theme.radius.button }} />
-            <Text style={wordmark}>Tmax</Text>
-          </Section>
+          <EmailHeader assetBaseURL={assetBaseURL} {...header} />
           {children}
         </Container>
       </Body>
@@ -106,6 +103,8 @@ const container: CSSProperties = {
   maxWidth: theme.readableWidth,
   margin: "0 auto",
   width: "100%",
+  fontFamily: theme.fontFamily,
+  color: theme.colors.text,
 };
 
 const card: CSSProperties = {
@@ -144,13 +143,5 @@ const caption: CSSProperties = {
   margin: `${theme.space.stack}px 0 0`,
 };
 
-const wordmark: CSSProperties = {
-  color: theme.colors.text,
-  fontFamily: theme.accentFontFamily,
-  fontSize: theme.fontSize.accentTitle,
-  fontWeight: theme.fontWeight.regular,
-  lineHeight: theme.lineHeight.accentTitle,
-  margin: `${theme.space.stack}px 0 0`,
-};
 
 

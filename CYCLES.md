@@ -2184,7 +2184,7 @@ Requested scope: prepare React Email and the existing Resend CLI for template de
 - [x] Prepare licensed Lucide PNG icons for email clients, retain their source SVGs and required ISC/Feather MIT attribution, and remove obsolete generated font aliases
 - [x] Exercise keyboard focus, the live local link, images/gradient-off fallback, current native font loading and final desktop/mobile exports after integrating both subagents
 - [ ] Create/authenticate a separate Tmax Resend team and save its team-scoped credential as CLI profile `tmax`
-- [ ] Configure an authorized sending domain and hosted HTTPS brand assets before publishing or sending customer templates
+- [ ] Configure an authorized sending domain, sender/reply-to identity, hosted HTTPS brand assets, real postal address, production action links and working email-preference/unsubscribe routes before publishing or sending customer templates
 - [ ] Human review of the minimal visual direction, native style mapping and template workspace
 
 Local commands from the repository root: `npm --prefix emails ci`, `npm --prefix emails run dev`, `npm --prefix emails run typecheck`, `npm --prefix emails run export`, and `npm --prefix emails run resend:status`. Preview: `http://localhost:3002/preview/workspace-preview`. Exports: `emails/out/html` and `emails/out/text`; generated assets and outputs are ignored. Port 3001 belongs to an existing Docker listener and was left untouched.
@@ -2194,6 +2194,109 @@ Engineering checks passed after the button/icon refinement: strict TypeScript, r
 External configuration remains pending: the installed Resend CLI has no team-creation command, its only saved profile is the existing website's `default`, the browser relay is disconnected and the available managed dashboard session requires login. The explicit profile check exits with `Profile "tmax" not found` rather than using the website key. A dedicated team must be created/selected in an authenticated dashboard, then `npm --prefix emails run resend:login` must be run interactively with that team's credential. No secret belongs in source or chat.
 
 The original fonts are available in supporting clients; Gmail/Outlook and other clients may ignore custom fonts and use the declared Arial/Helvetica fallbacks. Continuous SwiftUI corners and interactive materials cannot be reproduced exactly by email clients. The reference is local-only, not a customer-ready campaign. Human verification and product documentation acceptance remain pending; no follow-up prompt is needed for the reachable local setup.
+
+### Complete Email Design Catalog — 2026-10-22
+
+The user approved designing every family in the researched forty-family catalog and asked for the information header in `workspace-preview.tsx` first. This is design and preview authorization, not authorization to send, subscribe recipients, upload private activity or enable future product events.
+
+- [x] Add the shared information header: original mark and TimeMaster title on the left; email category and context on the right; responsive divider and current native typography
+- [x] Preserve the visual-first hierarchy, concise useful copy, meaningful PNG icons and compact native-style tinted-glass action across all designs
+- [x] Add shared symbols, facts, feature strips, statistics, progress, steps, notices and commercial footer composition without putting sample inputs into runtime defaults
+- [x] Design all account and security families
+  - [x] 01 — Confirm email: `account/01-confirm-email.tsx`
+  - [x] 02 — Password recovery: `account/02-reset-password.tsx`
+  - [x] 03 — Password changed: `account/03-password-changed.tsx`
+  - [x] 04 — Ranked account linked: `account/04-ranked-account-linked.tsx`
+  - [x] 05 — Deletion request received: `account/05-deletion-accepted.tsx`
+  - [x] 05 — Deletion pending: `account/05-deletion-pending.tsx`
+  - [x] 05 — Qualified deletion completion: `account/05-deletion-completed.tsx`
+  - [x] 06 — Security notice: `account/06-security-notice.tsx`
+  - [x] 06 — Privacy-policy notice: `account/06-privacy-policy-update.tsx`
+  - [x] 06 — Service interruption: `account/06-service-interruption.tsx`
+  - [x] 06 — Service recovery: `account/06-service-restored.tsx`
+  - [x] 07 — Email address changed: `account/07-email-address-changed.tsx`
+  - [x] 07 — Sign-in method added: `account/07-sign-in-method-added.tsx`
+  - [x] 07 — Sign-in method removed: `account/07-sign-in-method-removed.tsx`
+  - [x] 08 — New-device alert: `account/08-new-device-sign-in.tsx`
+  - [x] 08 — Unusual-sign-in alert: `account/08-unusual-sign-in.tsx`
+- [x] Design all subscription, welcome and education families
+  - [x] 09 — Subscription confirmation: `welcome/09-subscription-confirmation.tsx`
+  - [x] 10 — Welcome: `welcome/10-welcome.tsx`
+  - [x] 11 — First workout: `welcome/11-first-workout.tsx`
+  - [x] 12 — Exercise library: `welcome/12-exercise-library.tsx`
+  - [x] 13 — Scheduling: `welcome/13-player-scheduling.tsx`
+  - [x] 13 — Timer controls: `welcome/13-player-timer-controls.tsx`
+  - [x] 13 — Music: `welcome/13-player-music.tsx`
+  - [x] 13 — Interruption recovery: `welcome/13-player-interruption-recovery.tsx`
+  - [x] 13 — Resume: `welcome/13-player-resume.tsx`
+  - [x] 14 — Devices, exercise sync and ZIPs: `welcome/14-exercise-sync-local-zip.tsx`
+  - [x] 15 — AI provider and approvals: `welcome/15-ai-coach-provider-approval.tsx`
+  - [x] 16 — Outdoor planning, recording and saving: `welcome/16-outdoor-plan-record-save.tsx`
+  - [x] 17 — Practice versus Ranked: `welcome/17-practice-versus-ranked.tsx`
+- [x] Design all progress and retention families
+  - [x] 18 — First complete session: `progress/18-first-completed-session.tsx`
+  - [x] 18 — Session-count milestone: `progress/18-session-count-milestone.tsx`
+  - [x] 19 — Weekly review: `progress/19-weekly-training-summary.tsx`
+  - [x] 20 — Monthly review: `progress/20-monthly-review.tsx`
+  - [x] 20 — Yearly review: `progress/20-yearly-review.tsx`
+  - [x] 21 — Goal reached: `progress/21-goal-reached.tsx`
+  - [x] 21 — Streak milestone: `progress/21-streak-milestone.tsx`
+  - [x] 21 — Personal best: `progress/21-personal-best.tsx`
+  - [x] 22 — Weekly agenda: `progress/22-weekly-agenda.tsx`
+  - [x] 22 — Session reminder: `progress/22-upcoming-session-reminder.tsx`
+  - [x] 23 — Saved session: `progress/23-saved-session-resume.tsx`
+  - [x] 24 — Gentle return invitation: `progress/24-gentle-return-invitation.tsx`
+- [x] Design all library, sync and backup families
+  - [x] 25 — First completed sync: `library/25-first-library-sync-complete.tsx`
+  - [x] 26 — Persistent failure: `library/26-persistent-sync-failure.tsx`
+  - [x] 26 — Preserved conflict: `library/26-preserved-sync-conflict.tsx`
+  - [x] 27 — ZIP reminder: `library/27-optional-zip-backup-reminder.tsx`
+  - [x] 28 — Requested guide: `library/28-requested-guide-ready.tsx`
+  - [x] 28 — Requested workout: `library/28-requested-workout-ready.tsx`
+  - [x] 28 — Requested export: `library/28-requested-export-ready.tsx`
+- [x] Design all Ranked families
+  - [x] 29 — Final result: `ranked/29-final-match-result-ready.tsx`
+  - [x] 30 — Placement: `ranked/30-placement-complete.tsx`
+  - [x] 30 — Tier promotion: `ranked/30-tier-promotion.tsx`
+  - [x] 30 — Earned record: `ranked/30-earned-record.tsx`
+  - [x] 31 — Period summary: `ranked/31-periodic-ranked-summary.tsx`
+- [x] Design all product, lesson and support families
+  - [x] 32 — Release announcement: `product/32-release-announcement.tsx`
+  - [x] 33 — Rest structure: `product/33-lesson-rest-structure.tsx`
+  - [x] 33 — Library organization: `product/33-lesson-library-organization.tsx`
+  - [x] 33 — Offline preparation: `product/33-lesson-offline-routes.tsx`
+  - [x] 33 — Player workflow: `product/33-lesson-player-workflow.tsx`
+  - [x] 34 — Beta: `product/34-beta-invitation.tsx`
+  - [x] 34 — Feedback: `product/34-feedback-request.tsx`
+  - [x] 34 — Research: `product/34-research-invitation.tsx`
+  - [x] 35 — Support received: `support/35-support-received.tsx`
+  - [x] 35 — Support response: `support/35-support-response.tsx`
+  - [x] 35 — Support resolution: `support/35-support-resolution.tsx`
+- [x] Design all discreet private-notification families
+  - [x] 36 — Result availability: `private/36-result-available.tsx`
+  - [x] 37 — Milestone availability: `private/37-earned-milestone-available.tsx`
+  - [x] 38 — Report receipt: `private/38-report-receipt.tsx`
+  - [x] 38 — Dispute receipt: `private/38-dispute-receipt.tsx`
+  - [x] 38 — Appeal receipt: `private/38-appeal-receipt.tsx`
+  - [x] 39 — Information requested: `private/39-information-requested.tsx`
+  - [x] 39 — Decision available: `private/39-decision-available.tsx`
+  - [x] 39 — Restriction update: `private/39-restriction-update.tsx`
+  - [x] 39 — Correction settled: `private/39-correction-settled.tsx`
+  - [x] 40 — Privacy request received: `private/40-privacy-request-received.tsx`
+  - [x] 40 — Processing: `private/40-privacy-request-processing.tsx`
+  - [x] 40 — Limited hold: `private/40-privacy-request-limited-hold.tsx`
+  - [x] 40 — Qualified completion: `private/40-privacy-request-completed.tsx`
+- [x] Export all seventy-seven customer-design variants and the workspace reference as HTML and plain text, preserving their grouped paths
+- [x] Exercise all seventy-eight exported designs in a real browser at 320px and 960px, inspect representative visuals, and verify all seventy-eight sidebar entries in React Email
+- [ ] Human review of the information header and every email family/variant; implementation checkboxes do not record acceptance
+
+Preview paths above are relative to `emails/templates/`. Every runtime component requires its action links and relevant data; illustrative values are assigned only through explicit `PreviewProps`. The shared header lives in `emails/components/email-header.tsx`, the visual primitives in `emails/components/email-message.tsx`, and preview-only fixture links in `emails/components/email-preview.ts`. The reference continues at `workspace-preview.tsx`. The licensed icon dependency prepares email-safe PNGs rather than relying on SVG or a system symbol font.
+
+The design-export command now explicitly renders `PreviewProps` through React Email's renderer and produces HTML/plain text in one pass. The prior CLI export path called required-prop templates without their preview inputs and failed; adding sample runtime defaults was deliberately rejected. Temporary bundles are removed and final exports replace generated outputs only after successful rendering.
+
+Focused checks passed: TypeScript, all seventy-eight HTML/plain-text exports and npm audit with zero reported vulnerabilities. All seventy-eight designs rendered at both 320px and 960px without horizontal overflow, missing icons or unexpected font families. Desktop responses were valid cached revalidations. The actual React Email sidebar exposed seventy-eight entries, and opening the account-confirmation entry rendered the expected header and action. Keyboard focus and a browser-simulated image/gradient-off fallback retained a readable live-text action and account information.
+
+These are design previews, not deployed notifications or claims that future features/events are available. No emails, contact imports, subscriptions, Resend templates or production resources were sent or mutated. Marketing address/preference links and all action URLs must be supplied with real authorized values before delivery. Future reports require approved activity inputs, and private cases stay discreet. Gmail/Apple Mail/Outlook delivery/rendering has not been exercised; supporting-client fonts and static email-safe glass remain the stated limits. Product-document changes await human acceptance.
 
 ---
 
