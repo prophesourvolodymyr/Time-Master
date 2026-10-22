@@ -37,6 +37,22 @@ private struct TmaxRootView: View {
     @State private var pendingURL: URL?
     @State private var didCheckResume = false
     @State private var didPrepareAccount = false
+    @State private var launchPhase = LaunchPhase.loading
+    @State private var whiteOpacity = 0.0
+    @State private var launchGeneration = 0
+
+    private enum LaunchPhase {
+        case loading, zooming, revealing, finished
+    }
+
+    private var contentIsReady: Bool {
+        startup.isReady && didPrepareAccount && !databaseSync.changingAccount
+            && startup.workoutStore != nil && startup.databaseStore != nil
+    }
+
+    private var canFinishLaunch: Bool {
+        contentIsReady && scenePhase == .active
+    }
 
     var body: some View {
         ZStack {
@@ -47,8 +63,10 @@ private struct TmaxRootView: View {
                     .environmentObject(store)
                     .environmentObject(database)
                     .id(databaseSync.libraryGeneration)
-                    .transition(.opacity)
-                    .task {
+                    .allowsHitTesting(launchPhase == .finished)
+                    .accessibilityHidden(launchPhase != .finished)
+                    .task(id: launchPhase == .finished) {
+                        guard launchPhase == .finished else { return }
                         if !didCheckResume {
                             didCheckResume = true
                             showResumePrompt = resumeManager.hasResumableWorkout
@@ -58,12 +76,27 @@ private struct TmaxRootView: View {
                             handleDeepLink(url)
                         }
                     }
-            } else {
-                TmaxLoadingState(title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Preparing account...") : startup.status, showsQuote: true)
-                    .transition(.opacity)
             }
+            if !contentIsReady || launchPhase == .loading || launchPhase == .zooming {
+                TmaxLoadingState(
+                    title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Preparing account...") : startup.status,
+                    showsQuote: true,
+                    isFinishing: launchPhase == .zooming
+                )
+                .background(Color.black.ignoresSafeArea())
+                .zIndex(1)
+            }
+            Color.white
+                .ignoresSafeArea()
+                .opacity(whiteOpacity)
+                .allowsHitTesting(launchPhase != .finished)
+                .accessibilityHidden(true)
+                .zIndex(2)
         }
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: startup.isReady)
+        .task(id: canFinishLaunch) {
+            guard canFinishLaunch, launchPhase != .finished else { return }
+            await finishLaunch()
+        }
         .task {
             await startup.prepare()
             guard startup.isReady else { return }
@@ -76,7 +109,7 @@ private struct TmaxRootView: View {
             didPrepareAccount = true
         }
         .onOpenURL { url in
-            if startup.isReady && didPrepareAccount && !databaseSync.changingAccount { handleDeepLink(url) }
+            if contentIsReady && launchPhase == .finished { handleDeepLink(url) }
             else { pendingURL = url }
         }
         .onChange(of: scenePhase) { phase in
@@ -90,7 +123,7 @@ private struct TmaxRootView: View {
             }
         }
         .sheet(isPresented: Binding(
-            get: { startup.isReady && didPrepareAccount && !databaseSync.changingAccount && resumePlayerWorkout == nil && (showResumePrompt || cloudAccount.presentsRecovery) },
+            get: { contentIsReady && launchPhase == .finished && resumePlayerWorkout == nil && (showResumePrompt || cloudAccount.presentsRecovery) },
             set: { presented in
                 if !presented {
                     showResumePrompt = false
@@ -111,6 +144,50 @@ private struct TmaxRootView: View {
                     .environmentObject(database)
             }
         }
+    }
+
+    private func finishLaunch() async {
+        launchGeneration += 1
+        let generation = launchGeneration
+        do {
+            try await animateLaunch(
+                reduceMotion ? .easeOut(duration: 0.25) : .timingCurve(0.55, 0, 1, 0.45, duration: 0.6),
+                fallbackDuration: reduceMotion ? 300_000_000 : 650_000_000
+            ) {
+                launchPhase = .zooming
+            }
+            try await animateLaunch(.easeIn(duration: 0.2), fallbackDuration: 350_000_000) {
+                whiteOpacity = 1
+            }
+            try await Task.sleep(nanoseconds: 120_000_000)
+            launchPhase = .revealing
+            try await animateLaunch(.easeOut(duration: 0.45), fallbackDuration: 500_000_000) {
+                whiteOpacity = 0
+            }
+            launchPhase = .finished
+        } catch {
+            guard launchGeneration == generation else { return }
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                launchPhase = .loading
+                whiteOpacity = 0
+            }
+        }
+    }
+
+    private func animateLaunch(_ animation: Animation, fallbackDuration: UInt64, changes: () -> Void) async throws {
+        if #available(iOS 17.0, macOS 14.0, *) {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                withAnimation(animation, completionCriteria: .removed, changes) {
+                    continuation.resume()
+                }
+            }
+        } else {
+            withAnimation(animation, changes)
+            try await Task.sleep(nanoseconds: fallbackDuration)
+        }
+        try Task.checkCancellation()
     }
 
     @ViewBuilder

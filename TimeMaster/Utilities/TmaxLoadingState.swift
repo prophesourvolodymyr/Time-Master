@@ -4,24 +4,50 @@ struct TmaxLoadingState: View {
     let title: String
     var detail: String? = nil
     var showsQuote = false
+    var isFinishing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @ScaledMetric(relativeTo: .body) private var spacing = 24
     @ScaledMetric(relativeTo: .title3) private var quoteHeight = 144
     @State private var quote: TmaxQuote?
-    @State private var quoteIsVisible = false
     @State private var isVisible = false
 
     var body: some View {
         GeometryReader { geometry in
+            let contentPadding: CGFloat = showsQuote ? 32 : 20
+            let logoWidth = min(geometry.size.width * 0.44, geometry.size.height * 0.24)
+            let departureScale = max(geometry.size.width, geometry.size.height) / max(1, logoWidth) * 3
             ScrollView {
                 VStack(spacing: spacing) {
                     if showsQuote {
-                        TmaxAnimatedLogo()
-                            .frame(width: min(geometry.size.width * 0.44, geometry.size.height * 0.24))
+                        Spacer(minLength: spacing)
+                        TmaxAnimatedLogo(isComplete: isFinishing)
+                            .frame(width: logoWidth)
+                            .scaleEffect(isFinishing && !reduceMotion ? departureScale : 1)
+                            .zIndex(1)
                             .padding(.bottom, spacing / 2)
                     }
 
+                    if showsQuote {
+                        ZStack {
+                            if let quote {
+                                Text("“\(quote.text)”")
+                                    .font(TimeMasterFont.heading())
+                                    .foregroundStyle(Theme.textPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .id(quote.id)
+                                    .transition(reduceMotion ? .opacity : .asymmetric(
+                                        insertion: .offset(y: 16).combined(with: .opacity),
+                                        removal: .offset(y: -16).combined(with: .opacity)
+                                    ))
+                            }
+                        }
+                        .frame(maxWidth: 320, minHeight: quoteHeight)
+                        .clipped()
+                        .opacity(isFinishing ? 0 : 1)
+                        .accessibilityHidden(isFinishing)
+                        Spacer(minLength: spacing)
+                    }
                     VStack(spacing: 14) {
                         TmaxCircularLoader()
                             .frame(width: showsQuote ? 36 : 26, height: showsQuote ? 36 : 26)
@@ -36,26 +62,13 @@ struct TmaxLoadingState: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-
-                    if showsQuote {
-                        VStack(spacing: 12) {
-                            Text(quote.map { "“\($0.text)”" } ?? " ")
-                                .font(TimeMasterFont.heading())
-                                .foregroundStyle(Theme.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(quote.map { "— \($0.author)" } ?? " ")
-                                .font(TimeMasterFont.caption())
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                        .frame(maxWidth: 320, minHeight: quoteHeight)
-                        .opacity(quoteIsVisible ? 1 : 0)
-                        .accessibilityHidden(!quoteIsVisible)
-                    }
+                    .opacity(isFinishing ? 0 : 1)
+                    .accessibilityHidden(isFinishing)
                 }
                 .multilineTextAlignment(.center)
-                .padding(showsQuote ? 32 : 20)
+                .frame(minHeight: max(0, geometry.size.height - contentPadding * 2))
+                .padding(contentPadding)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: geometry.size.height)
             }
         }
         .opacity(showsQuote || isVisible ? 1 : 0)
@@ -68,23 +81,18 @@ struct TmaxLoadingState: View {
             } catch {}
         }
         .accessibilityIdentifier(showsQuote ? "tmax-startup-loading" : "tmax-page-loading")
-        .task(id: showsQuote && scenePhase == .active) {
-            guard showsQuote, scenePhase == .active else { return }
-            if quote == nil { quote = TmaxQuotes.next() }
-            do {
-                if !reduceMotion { try await Task.sleep(nanoseconds: 100_000_000) }
+        .task(id: showsQuote && scenePhase == .active && !isFinishing) {
+            guard showsQuote, scenePhase == .active, !isFinishing else { return }
+            if quote == nil {
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.65)) {
-                    quoteIsVisible = true
+                    quote = TmaxQuotes.next()
                 }
+            }
+            do {
                 while !Task.isCancelled {
-                    try await Task.sleep(nanoseconds: 8_000_000_000)
-                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
-                        quoteIsVisible = false
-                    }
-                    if !reduceMotion { try await Task.sleep(nanoseconds: 200_000_000) }
-                    quote = TmaxQuotes.next(after: quote?.id)
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.65)) {
-                        quoteIsVisible = true
+                    try await Task.sleep(nanoseconds: 7_000_000_000)
+                    withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .easeInOut(duration: 0.65)) {
+                        quote = TmaxQuotes.next(after: quote?.id)
                     }
                 }
             } catch {}

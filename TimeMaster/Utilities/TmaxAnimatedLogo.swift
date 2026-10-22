@@ -1,14 +1,15 @@
 import SwiftUI
 
 struct TmaxAnimatedLogo: View {
+    var isComplete = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var startedAt = Date()
 
     var body: some View {
         GeometryReader { geometry in
-            TimelineView(.animation(minimumInterval: 1.0 / 60, paused: reduceMotion || scenePhase != .active)) { context in
-                let isStill = reduceMotion || scenePhase != .active
+            TimelineView(.animation(minimumInterval: 1.0 / 60, paused: isComplete || reduceMotion || scenePhase != .active)) { context in
+                let isStill = isComplete || reduceMotion || scenePhase != .active
                 let cycle = max(0, context.date.timeIntervalSince(startedAt)).truncatingRemainder(dividingBy: 2.8)
                 let fraction = min(1, cycle / 1.8)
                 let progress = isStill ? 1 : fraction * fraction * (3 - 2 * fraction)

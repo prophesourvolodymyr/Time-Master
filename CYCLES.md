@@ -1966,6 +1966,18 @@ User-requested visible rebrand and connected loading system. The repository and 
 
 Engineering checks do not constitute human acceptance. Product DOCKS.md updates await the user's review. Final runtime checks use only iPhone 16 Pro with iOS 18.6; all three focused scenarios passed. The restored logo and final bold quote/spinner corrections were then rebuilt and exercised through the drawing cycle, repeat, and Home handoff on that same simulator. No next implementation prompt is needed for this slice.
 
+### Startup Loader and White Reveal — 2026-10-22
+
+- [x] Move the circular loader and preparation status beneath the logo and quote, near the bottom safe area, while retaining scrollable small-screen and large-text layout
+- [x] Remove the visible quote attribution line, including the Tmax Training notes label
+- [x] Rotate quotes every seven seconds with a smooth upward slide and fade, retaining the reduced-motion dissolve and pausing changes in the background or during the exit
+- [x] Complete the animated M, accelerate it toward the viewer, render a full-screen white cover, and fade the cover out to reveal the prepared app
+- [x] Wait for actual store and account preparation; defer navigation, pending links, and resume/recovery presentation until the opening transition finishes
+- [x] Build the scoped iOS app, exercise two seven-second quote changes in a disposable longer-loading build, then restore the existing five-second minimum and exercise the production whiteout, resume dismissal, and page navigation on the existing regular iPhone 16 with iOS 18.6
+- [ ] Human review of the bottom loader placement, attribution-free sliding quotes, logo approach, whiteout, and app reveal
+
+The handoff waits for animation completion on supported systems so the full-white frame cannot be skipped by overlapping fade timers. The final app retains the existing startup preparation and five-second minimum; the longer quote-check delay exists only in the disposable build. Builds used committed source plus the scoped startup changes, preserving the separate ongoing typography and other working-tree edits. Physical-device, iOS 16, reduced-motion, large-text, and macOS runtime variants were not exercised. Product documentation awaits human acceptance.
+
 ## Workout Metrics and Navigation Surface — 2026-10-20
 
 User-requested selector, tracking-card, Analytics navigation, and menu-background corrections. Human review remains pending.
