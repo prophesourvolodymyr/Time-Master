@@ -1954,10 +1954,10 @@ User direction: apply the selected fonts across every native app page using agen
 - [x] Migrate Home widgets, analytics, history, schedules, plans, challenges and related editors
 - [x] Update the local typography review to the accepted font roles and renamed downloadable assets
 - [x] Run focused native builds and actual native/font-preview smoke scenarios, preserving unrelated ongoing work
-- [ ] Commit and push the owned migration and hand every implemented item and changed file to the user for human verification
+- [x] Commit and push the owned migration and hand every implemented item and changed file to the user for human verification
 - [ ] Human acceptance of the app-wide typography and renamed TimeMaster face
 
-Both native targets built from the scoped publication source. CoreText registered all four production faces and confirmed genuine Inter Black Italic, the TimeMaster family name, cookbambuk copyright and cap-height-matched fallback. The compiler preserved sixty source fingerprints and generated 1,781 kerning pairs. The real browser loaded the local faces and downloads at desktop and phone widths without horizontal overflow.
+The published typography source at c07c5a5 built for arm64 iOS Simulator and arm64 macOS after integration with the concurrent startup changes. The generic iOS Simulator build also requested x86_64, which the existing routing binary does not contain; the supported arm64 build passed. CoreText registered all four production faces and confirmed genuine Inter Black Italic, the TimeMaster family name, cookbambuk copyright and cap-height-matched fallback. The compiler preserved sixty source fingerprints and generated 1,781 kerning pairs. The real browser loaded the local faces and downloads at desktop and phone widths without horizontal overflow.
 
 The isolated iPhone app exercised Home, Settings, Tmax Account, Analytics, the empty database and page creation, including an accessibility text-size variant. A saved mixed-case Unicode title displayed an initial capital with visible digit, punctuation and accented-character fallback while its stored title remained unchanged. The actual notes view rendered Manrope body text, Inter Black headings and genuine italic emphasis. macOS launched a real app window, but desktop accessibility/screen-capture permissions were unavailable, so no macOS visual-review claim is made. Existing native build warnings remain; human acceptance is pending.
 
