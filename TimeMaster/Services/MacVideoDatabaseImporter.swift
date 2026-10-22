@@ -42,6 +42,7 @@ enum MacVideoDatabaseImporter {
         asset: AVURLAsset,
         manifest: ExercisePageManifest,
         target: Target,
+        libraryToken: ExerciseLibraryAccess.Token,
         additionalMediaURLs: [URL],
         database: DatabaseManager = .shared,
         reloadDatabase: @escaping @MainActor () -> Void
@@ -64,13 +65,15 @@ enum MacVideoDatabaseImporter {
             let extraURLs = try validatedAdditionalMediaURLs(additionalMediaURLs)
 
             try await Task.detached(priority: .userInitiated) {
-                try persist(
-                    renderedURLs: renderedURLs,
-                    additionalMediaURLs: extraURLs,
-                    manifest: manifest,
-                    target: target,
-                    database: database
-                )
+                try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                    try persist(
+                        renderedURLs: renderedURLs,
+                        additionalMediaURLs: extraURLs,
+                        manifest: manifest,
+                        target: target,
+                        database: database
+                    )
+                }
             }.value
         } catch let error as ImportError {
             throw error
@@ -383,6 +386,7 @@ enum VideoEditorDatabaseImporter {
         asset: AVURLAsset,
         manifest: ExercisePageManifest,
         target: Target,
+        libraryToken: ExerciseLibraryAccess.Token,
         database: DatabaseManager = .shared,
         reloadDatabase: @escaping @MainActor () -> Void
     ) async throws {
@@ -407,12 +411,14 @@ enum VideoEditorDatabaseImporter {
             )
 
             try await Task.detached(priority: .userInitiated) {
-                try persist(
-                    renderedURLs: renderedURLs,
-                    manifest: manifest,
-                    target: target,
-                    database: database
-                )
+                try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                    try persist(
+                        renderedURLs: renderedURLs,
+                        manifest: manifest,
+                        target: target,
+                        database: database
+                    )
+                }
             }.value
         } catch let error as ImportError {
             throw error

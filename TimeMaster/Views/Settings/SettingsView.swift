@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.slotNavigationContentBounds) private var navigationBounds
     private let isPresentedModally: Bool
 
     init(isPresentedModally: Bool = false) {
@@ -22,5 +23,6 @@ struct SettingsView: View {
                     }
                 }
         }
+        .environment(\.slotNavigationContentBounds, isPresentedModally ? nil : navigationBounds)
     }
 }

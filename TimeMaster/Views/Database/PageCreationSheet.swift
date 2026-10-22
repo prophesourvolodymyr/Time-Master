@@ -1145,15 +1145,18 @@ struct PageCreationSheet: View {
         pageID: String,
         mediaData: [(filename: String, data: Data)]
     ) {
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
         DispatchQueue.global(qos: .userInitiated).async {
-            for (_, data) in mediaData {
-                let temporaryURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString + ".jpg")
-                do {
-                    try data.write(to: temporaryURL)
-                    _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
-                } catch {}
-                try? FileManager.default.removeItem(at: temporaryURL)
+            try? ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                for (_, data) in mediaData {
+                    let temporaryURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString + ".jpg")
+                    do {
+                        try data.write(to: temporaryURL)
+                        _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
+                    } catch {}
+                    try? FileManager.default.removeItem(at: temporaryURL)
+                }
             }
             databaseStore.reload()
         }
@@ -1241,13 +1244,19 @@ struct PageCreationSheet: View {
 
     #if os(iOS)
     private func handleMediaPicks(_ items: [PhotosPickerItem]) {
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
         Task { @MainActor in
             for item in items where mediaFilenames.count < 20 {
                 let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .audiovisualContent) }
-                if isVideo, let movie = try? await item.loadTransferable(type: MovieFile.self) {
-                    stageMedia(movie.url)
-                } else if let data = try? await item.loadTransferable(type: Data.self) {
-                    stageMedia(data: data, pathExtension: "jpg")
+                do {
+                    if isVideo, let movie = try? await item.loadTransferable(type: MovieFile.self) {
+                        try ExerciseLibraryAccess.shared.perform(token: libraryToken) { stageMedia(movie.url) }
+                    } else if let data = try? await item.loadTransferable(type: Data.self) {
+                        try ExerciseLibraryAccess.shared.perform(token: libraryToken) { stageMedia(data: data, pathExtension: "jpg") }
+                    }
+                } catch {
+                    saveErrorMessage = error.localizedDescription
+                    return
                 }
             }
             pendingMediaItems = []

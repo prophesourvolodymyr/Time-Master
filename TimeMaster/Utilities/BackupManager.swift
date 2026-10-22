@@ -24,7 +24,7 @@ struct BackupOfflineRegionMetadata: Codable, Equatable {
 }
 
 struct BackupManifest: Codable {
-    var version: Int = 3
+    var version: Int = 4
     var exportedAt: Date = Date()
     var workouts: [Workout]
     var workoutHistory: [WorkoutHistoryEntry]
@@ -85,7 +85,7 @@ struct BackupManifest: Codable {
 
 // MARK: - Import Summary
 
-struct ImportSummary {
+struct ImportSummary: Sendable {
     var exercisesImported: Int = 0
     var foldersCreated: Int = 0
     var workoutsImported: Int = 0
@@ -206,19 +206,13 @@ final class BackupManager {
             let fileURL = photosDir.appendingPathComponent(filename)
             let entryName = "media/\(filename)"
             if fm.fileExists(atPath: fileURL.path) {
-                let fileData = try Data(contentsOf: fileURL)
-                try archive.addEntry(
-                    with: entryName,
-                    type: .file,
-                    uncompressedSize: UInt32(fileData.count),
-                    provider: { position, size in
-                        fileData.subdata(in: Int(position) ..< Int(position) + Int(size))
-                    }
-                )
+                try archive.addEntry(with: entryName, fileURL: fileURL)
             } else {
                 print("[BackupManager] Warning: referenced media file missing: \(filename)")
             }
         }
+        try ExerciseLibraryBackup.add(to: archive, database: db)
+
 
         let routeEncoder = TimeMasterCore.OutdoorTrackPoint.makeJSONEncoder()
         for activity in snapshot.outdoorActivities {
@@ -259,6 +253,8 @@ final class BackupManager {
         try fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: tmpDir) }
 
+        guard let sourceArchive = Archive(url: url, accessMode: .read) else { throw BackupError.invalidBackup }
+        try ExerciseLibraryBackup.validate(sourceArchive)
         try fm.unzipItem(at: url, to: tmpDir)
 
         // 2. Decode manifest
@@ -268,6 +264,7 @@ final class BackupManager {
         }
         let manifestData = try Data(contentsOf: manifestURL)
         let manifest = try JSONDecoder().decode(BackupManifest.self, from: manifestData)
+        guard (1...4).contains(manifest.version) else { throw BackupError.invalidBackup }
         let originalProfile: LocalProfileSnapshot?
         if let profile = manifest.localProfile {
             guard profile.version == 1, profile.mediaFilenames.allSatisfy({
@@ -398,9 +395,10 @@ final class BackupManager {
         }
 
         // 5. Import exercises from folder tree (recursive)
-        var exercisesImported = 0
+        let libraryImport = try ExerciseLibraryBackup.restore(from: tmpDir, database: db)
+        var exercisesImported = libraryImport.pages
         var foldersCreated = 0
-        var duplicatesSkipped = 0
+        var duplicatesSkipped = libraryImport.duplicates
 
         func importFolders(_ folders: [ExerciseFolder], parentPath: String?) {
             for folder in folders {
@@ -618,7 +616,7 @@ final class BackupManager {
             routesImported: routesImported,
             preferencesImported: preferencesImported,
             offlineRegionsImported: offlineRegionsImported,
-            mediaImported: mediaMap.count,
+            mediaImported: mediaMap.count + libraryImport.media,
             duplicatesSkipped: duplicatesSkipped
         )
     }
@@ -677,16 +675,8 @@ final class BackupManager {
         let photosDir = PhotoManager.shared.photosDirectoryURL
         for filename in collectMediaFilenames(from: exportFolder) {
             let fileURL = photosDir.appendingPathComponent(filename)
-            guard fm.fileExists(atPath: fileURL.path),
-                  let fileData = try? Data(contentsOf: fileURL) else { continue }
-            try archive.addEntry(
-                with: "media/\(filename)",
-                type: .file,
-                uncompressedSize: UInt32(fileData.count),
-                provider: { position, size in
-                    fileData.subdata(in: Int(position) ..< Int(position) + Int(size))
-                }
-            )
+            guard fm.fileExists(atPath: fileURL.path) else { continue }
+            try archive.addEntry(with: "media/\(filename)", fileURL: fileURL)
         }
         return destURL
     }

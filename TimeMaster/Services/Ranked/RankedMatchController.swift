@@ -145,7 +145,7 @@ final class RankedMatchController: ObservableObject {
         connected = true
         requestID = UUID().uuidString
         stage = .camera
-        do { try await account.api.rememberMatch(nil) }
+        do { try await account.api.rememberMatch(nil, accountID: CloudAccountStore.shared.accountID) }
         catch { self.error = error.localizedDescription }
         camera.onPose = { [weak self] pose in self?.receive(pose) }
         await run()

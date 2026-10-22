@@ -277,7 +277,8 @@ struct BatchConfirmView: View {
 
     private var saveButton: some View {
         Button {
-            Task { await saveAll() }
+            let libraryToken = ExerciseLibraryAccess.shared.capture()
+            Task { await saveAll(libraryToken: libraryToken) }
         } label: {
             if isSaving {
                 TmaxLoadingIndicator(size: 20)
@@ -290,7 +291,7 @@ struct BatchConfirmView: View {
     }
 
     @MainActor
-    private func saveAll() async {
+    private func saveAll(libraryToken: ExerciseLibraryAccess.Token) async {
         isSaving = true
         saveError = nil
 
@@ -334,6 +335,7 @@ struct BatchConfirmView: View {
                     asset: vm.asset,
                     manifest: manifest,
                     target: target,
+                    libraryToken: libraryToken,
                     reloadDatabase: {
                         databaseStore.reloadImmediately()
                     }
@@ -659,7 +661,8 @@ struct BatchConfirmView: View {
 
     private var saveButton: some View {
         Button {
-            Task { await saveAll() }
+            let libraryToken = ExerciseLibraryAccess.shared.capture()
+            Task { await saveAll(libraryToken: libraryToken) }
         } label: {
             if isSaving {
                 TmaxLoadingIndicator(size: 20)
@@ -670,7 +673,7 @@ struct BatchConfirmView: View {
         .disabled(!canSave)
     }
 
-    private func saveAll() async {
+    private func saveAll(libraryToken: ExerciseLibraryAccess.Token) async {
         isSaving = true
         saveError = nil
 
@@ -701,7 +704,15 @@ struct BatchConfirmView: View {
                 restAfter: cardRestAfter[item.id] ?? 10,
                 mediaItems: saved
             )
-            DatabaseStore.shared.addExercise(exercise, toFolderID: folderID)
+            do {
+                try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                    DatabaseStore.shared.addExercise(exercise, toFolderID: folderID)
+                }
+            } catch {
+                saveError = error.localizedDescription
+                isSaving = false
+                return
+            }
         }
 
         isSaving = false

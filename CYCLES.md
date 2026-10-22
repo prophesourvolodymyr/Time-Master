@@ -2083,6 +2083,46 @@ Dispatch and ownership: [F29 native UI orchestration](prompts/F29-physique-duels
 - [ ] Human review of every implemented view/component and acceptance of both native platform experiences
 ---
 
+## Cycle 40 — Shared Account and Exercise Database Sync — 2026-10-21
+
+Requested scope: one account on native iPhone and Mac; Rust-backed synchronization of the exercise hierarchy, guides and referenced photos/video; a device-wide local-only switch; account-independent ZIP export; free/personal cloud configuration without paid upgrades. This work does not authorize F29 implementation or imply acceptance of other pending features.
+
+- [x] Implement the Rust managed-auth boundary, strict Supabase JWT validation, shared Ranked identity and explicit credential-proven legacy linkage
+- [x] Implement persistent SQLite sync revisions, bounded atomic commits, durable retry receipts, tombstones, owner-isolated private chunks and recoverable account deletion
+- [x] Implement the shared Swift sync engine with streaming chunk transfer, durable cursors, offline journals, conflict preservation and interrupted-transfer recovery
+- [x] Implement per-account local exercise libraries, archived restoration, handoff barriers and rejection of delayed writes from an old account
+- [x] Connect native account entry, signup/confirmation/resend, password reset/change, reconnect/switch, sign-out, deletion and truthful provider availability to the shared auth client
+- [x] Store credentials and PKCE state in Keychain, restore sessions across launches and serialize token refresh
+- [x] Add device-wide sync opt-out, cancellation before local-only status, foreground polling, manual sync and honest errors/transfer status
+- [x] Preserve account-independent ZIP export and add streaming V2 exercise-tree/media backups, legacy asset collision remapping and unsafe ZIP rejection
+- [x] Resolve legacy global-media references in displayed exercise pages after restore
+- [x] Keep Settings and Backup controls reachable around the measured navigation surface and suppress menu interaction while entering account fields
+- [x] Configure the dedicated free Supabase project, private four-MiB chunk bucket, native callback allowlist and confirmed-email password policy without enabling unconfigured social providers
+- [x] Configure the machine-private local server environment and fail closed when managed-auth server credentials are absent
+- [x] Back up the existing Ranked database, migrate it to schema two and start the configured persistent loopback Rust service
+- [x] Exercise real Supabase password auth, Mac Keychain persistence/password updates, native sign-in/relaunch/switch/sign-out, private asset transfer in both directions, conflicts, tombstones, restart recovery, owner isolation and real cloud-account deletion
+- [x] Exercise signed-in local-only mode with zero database-sync requests across a seventeen-second observation window and export a real exercise/media ZIP without an account
+- [x] Run the focused Rust, Swift core and native checks and build the final native iOS and macOS projects
+- [x] Remove both temporary cloud identities and their private stored objects, the disposable UI source and the owned smoke simulator
+- [x] Remove the authorized obsolete TimeMaster/Xcode and other-project Rust build caches while retaining source, installed tools, recent targets and other projects' Xcode data
+- [ ] Deploy the Rust service with persistent storage and an issued public HTTPS address, then configure the production account/sync endpoint and exercise hosted iPhone-to-Mac operation
+- [ ] Configure and exercise Google sign-in with an authorized ordinary OAuth client and authenticated Google Cloud console access
+- [ ] Configure and exercise Apple sign-in with the required Apple provider credentials
+- [ ] Verify confirmation, resend and recovery email delivery with an authorized sender/account
+- [ ] Human review of every account, library-isolation, sync, local-only, ZIP, migration and native UI change
+
+Engineering checks: 43 Rust tests, 133 Swift core tests, five focused native tests and two disposable native UI scenarios passed. The running iPhone app sent a 4,204,135-byte asset to an independent Mac SDK library; valid PNG and playable H.264 MP4 files then reached the iPhone byte-for-byte. Account B saw none of account A's seven synced records. Actual cloud deletion removed both fixture Auth users and all objects in their namespaces and rejected their old tokens.
+
+Verification limits: the Mac SDK exercised real authentication and sync, and the final native Mac build launched into its event loop, but no Mac application-window metadata was observable during the smoke attempt. Accessibility/automation and screen-recording permission are unavailable, so native Mac controls and visual behavior are not claimed verified. The local Linux-container build also remains unproved after Docker encountered disk I/O failures; Docker was stopped normally, without pruning the user's images.
+
+The local schema migration retained both accounts, five session rows, two ratings, one match and 126 evidence records with their original keys/counts/digests. The unchanged twenty-four-hour retention policy cleared expired raw joint-frame bodies; the complete pre-migration SQLite backup is retained in the machine's Ranked Service Backups directory. No real local exercise library was used as a cloud fixture.
+
+External gates remain real: Railway project creation returns “Deploys have been paused temporarily”; no project, persistent volume or public service URL has been issued. Google console browser authentication and ordinary OAuth credentials are unavailable; Apple credentials are unavailable. Supabase's free default sender is restricted, and custom email templates are rejected without custom SMTP or an upgrade. No paid plan, unrelated OAuth client, fake provider enablement or placeholder production hostname was used. Release service addresses remain unset rather than pretending deployment succeeded.
+
+Human verification remains pending. Product DOCKS.md changes await acceptance. No testing-only or commit-only follow-up prompt is created.
+
+---
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

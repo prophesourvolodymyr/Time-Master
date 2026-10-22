@@ -96,6 +96,7 @@ impl Service {
                 database: directory.path().join("ranked.sqlite3"),
                 require_tls: false,
                 trust_proxy: false,
+                supabase: None,
             },
             clock,
         )
@@ -192,6 +193,7 @@ impl Service {
                 database: self.directory.path().join("ranked.sqlite3"),
                 require_tls: false,
                 trust_proxy: false,
+                supabase: None,
             },
             clock(&self.time),
         )
@@ -590,6 +592,7 @@ async fn python_database_password_and_existing_session_remain_usable() {
             database: path,
             require_tls: false,
             trust_proxy: false,
+            supabase: None,
         },
         Arc::new(|| INITIAL_TIME),
     )
@@ -1573,6 +1576,7 @@ async fn tls_requires_explicitly_trusted_proxy_and_rejects_absolute_uri_spoofing
                 database: directory.path().join("tls.sqlite3"),
                 require_tls: true,
                 trust_proxy,
+                supabase: None,
             },
             Arc::new(|| INITIAL_TIME),
         )
@@ -1580,20 +1584,20 @@ async fn tls_requires_explicitly_trusted_proxy_and_rejects_absolute_uri_spoofing
         .unwrap();
         let app = router(state);
         for (uri, forwarded, expected) in [
-            ("http://ranked.test/health", None, 426),
-            ("https://ranked.test/health", None, 426),
+            ("http://ranked.test/v1/catalog", None, 426),
+            ("https://ranked.test/v1/catalog", None, 426),
             (
-                "http://ranked.test/health",
+                "http://ranked.test/v1/catalog",
                 Some("https"),
                 if trust_proxy { 200 } else { 426 },
             ),
-            ("http://ranked.test/health", Some("http"), 426),
+            ("http://ranked.test/v1/catalog", Some("http"), 426),
             (
-                "https://ranked.test/health",
+                "https://ranked.test/v1/catalog",
                 Some("https"),
                 if trust_proxy { 200 } else { 426 },
             ),
-            ("https://ranked.test/health", Some("http"), 426),
+            ("https://ranked.test/v1/catalog", Some("http"), 426),
         ] {
             let mut request = Request::builder().uri(uri);
             if let Some(proto) = forwarded {
@@ -1606,10 +1610,7 @@ async fn tls_requires_explicitly_trusted_proxy_and_rejects_absolute_uri_spoofing
                     .unwrap(),
             )
             .await;
-            let body = response.expect(expected);
-            if expected == 200 {
-                assert_eq!(body["status"], "ok");
-            }
+            response.expect(expected);
         }
     }
 }

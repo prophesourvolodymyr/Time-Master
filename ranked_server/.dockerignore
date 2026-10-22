@@ -3,5 +3,6 @@
 !Cargo.toml
 !Cargo.lock
 !schema.sql
+!entrypoint.sh
 !src/
 !src/**

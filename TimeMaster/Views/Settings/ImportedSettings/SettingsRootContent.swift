@@ -17,10 +17,15 @@ struct SettingsRootContent: View {
                 EverSettingsPage(title: "Settings") {
                     EverSettingsSection(
                         title: "Profile",
-                        detail: "Your Tmax profile is stored on this device. There is no online account, login, or profile sync."
+                        detail: "Your profile is stored on this device. Account sign-in does not synchronize your local profile."
                     ) {
                         SettingsDestinationLink(destination: .profile)
                         SettingsDestinationLink(destination: .privacy)
+                    }
+
+                    EverSettingsSection(title: "Account & Sync") {
+                        SettingsDestinationLink(destination: .account)
+                        SettingsDestinationLink(destination: .databaseSync)
                     }
 
                     EverSettingsSection(title: "Workout") {
@@ -148,6 +153,10 @@ struct SettingsDestinationContent: View {
         switch destination {
         case .profile:
             ProfileSettingsView()
+        case .account:
+            CloudAccountSettingsView()
+        case .databaseSync:
+            DatabaseSyncSettingsView()
         case .workoutTypes:
             WorkoutTypesSettingsView()
         case .motivation:

@@ -48,7 +48,7 @@ impl Database {
                     connection.set_prepared_statement_cache_capacity(64);
                     let version: i64 =
                         connection.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-                    if version > 1 {
+                    if version > 2 {
                         return Err(ApiError::new(
                             StatusCode::INTERNAL_SERVER_ERROR,
                             "Database schema is newer than this service",
@@ -556,7 +556,7 @@ pub(crate) fn pair(db: &Connection, time: f64) -> Result<()> {
     Ok(())
 }
 
-fn cancel(db: &Connection, uid: &str, reason: &str, time: f64) -> Result<()> {
+pub(crate) fn cancel(db: &Connection, uid: &str, reason: &str, time: f64) -> Result<()> {
     sweep(db, time)?;
     db.execute("DELETE FROM queue WHERE user_id=?", [uid])?;
     let active: Option<String> = db

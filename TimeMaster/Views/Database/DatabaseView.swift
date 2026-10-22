@@ -716,14 +716,17 @@ struct DatabaseView: View {
     private func handleDatabaseImport(_ result: Result<[URL], Error>) {
         guard case .success(let urls) = result, let url = urls.first else { return }
         let workoutStore = WorkoutStore()
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
         Task.detached {
             do {
-                let summary = try BackupManager.shared.importBackup(
-                    from: url,
-                    workoutStore: workoutStore,
-                    databaseStore: store,
-                    outdoorStore: outdoorStore
-                )
+                let summary = try await DatabaseSyncStore.shared.performLocalOperation(token: libraryToken) {
+                    try BackupManager.shared.importBackup(
+                        from: url,
+                        workoutStore: workoutStore,
+                        databaseStore: store,
+                        outdoorStore: outdoorStore
+                    )
+                }
                 await MainActor.run {
                     print("[DatabaseView] Import complete: \(summary.exercisesImported) exercises, \(summary.workoutsImported) workouts, \(summary.historyImported) history, \(summary.mediaImported) media, \(summary.duplicatesSkipped) duplicates skipped")
                 }

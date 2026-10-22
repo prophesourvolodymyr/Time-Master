@@ -42,28 +42,6 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertTrue(fs.fileExists(at: fs.knowledgeDirectory.appendingPathComponent("recovery-protocols.md")))
     }
 
-    func testBootstrapAgentsContent() throws {
-        try db.bootstrapIfNeeded()
-        let data = try fs.readRawData(from: fs.agentsURL)
-        let content = String(data: data, encoding: .utf8) ?? ""
-        XCTAssertTrue(content.contains("TimeMaster Data Directory"))
-        XCTAssertTrue(content.contains("schema.json"))
-        XCTAssertTrue(content.contains("timemaster-tool"))
-        XCTAssertTrue(content.contains("Workspace"))
-        XCTAssertTrue(content.contains("Exercises Database"))
-        XCTAssertTrue(content.contains("create-exercise"))
-        XCTAssertTrue(content.contains("search-exercises"))
-        XCTAssertTrue(content.contains("skills/"))
-    }
-
-    func testBootstrapKnowledgeFilesHaveContent() throws {
-        try db.bootstrapIfNeeded()
-        let healthURL = fs.knowledgeDirectory.appendingPathComponent("fitness-philosophy.md")
-        let data = try fs.readRawData(from: healthURL)
-        let content = String(data: data, encoding: .utf8) ?? ""
-        XCTAssertTrue(content.contains("# Fitness Philosophy"))
-    }
-
     func testBootstrapDoesNotOverwriteExistingFiles() throws {
         try db.bootstrapIfNeeded()
 

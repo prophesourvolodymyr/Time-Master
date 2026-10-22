@@ -13,10 +13,15 @@ settings:
     SWIFT_VERSION: "5.9"
     GENERATE_INFOPLIST_FILE: YES
     TM_RANKED_SERVICE_URL: ""
+    TM_SUPABASE_URL: "https://ecvfkthbuxijzeszgiam.supabase.co"
+    TM_SUPABASE_ANON_KEY: "sb_publishable_0S-Uv1TX6TbNoKCDl9pbzQ_Km2EJ2Id"
+    TM_SYNC_SERVICE_URL: ""
   configs:
     Debug:
       "TM_RANKED_SERVICE_URL[sdk=iphonesimulator*]": "http://127.0.0.1:8765"
       "TM_RANKED_SERVICE_URL[sdk=macosx*]": "http://127.0.0.1:8765"
+      "TM_SYNC_SERVICE_URL[sdk=iphonesimulator*]": "http://127.0.0.1:8765"
+      "TM_SYNC_SERVICE_URL[sdk=macosx*]": "http://127.0.0.1:8765"
 
 packages:
   ZIPFoundation:
@@ -127,6 +132,7 @@ targets:
     dependencies:
       - target: TimeMaster
       - package: TimeMasterCore
+      - package: ZIPFoundation
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.timemaster.TimeMasterTests

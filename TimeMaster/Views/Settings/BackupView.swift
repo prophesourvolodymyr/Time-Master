@@ -1,7 +1,12 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import TimeMasterCore
+#if os(macOS)
+import AppKit
+#endif
 
 struct BackupView: View {
+    @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @EnvironmentObject var workoutStore: WorkoutStore
     @EnvironmentObject var outdoorStore: OutdoorActivityStore
     @ObservedObject var databaseStore: DatabaseStore = .shared
@@ -21,16 +26,23 @@ struct BackupView: View {
     @State private var showAlert = false
 
     var body: some View {
-        ZStack {
-            Theme.background.ignoresSafeArea()
-            ScrollView {
-                VStack(spacing: 20) {
-                    headerCard
-                    exportCard
-                    importCard
-                    infoCard
+        GeometryReader { viewport in
+            let frame = viewport.frame(in: .global)
+            let topClearance = max(0, (navigationBounds?.minY ?? frame.minY) - frame.minY - viewport.safeAreaInsets.top)
+            let bottomClearance = max(0, frame.maxY - (navigationBounds?.maxY ?? frame.maxY) - viewport.safeAreaInsets.bottom)
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 20) {
+                        headerCard
+                        exportCard
+                        importCard
+                        infoCard
+                    }
+                    .padding(16)
+                    .padding(.top, topClearance)
+                    .padding(.bottom, bottomClearance)
                 }
-                .padding(16)
             }
         }
         .navigationTitle("Backup & Transfer")
@@ -220,7 +232,10 @@ struct BackupView: View {
     // MARK: - Computed stats
 
     private var totalExercises: Int {
-        databaseStore.rootExercises.count + countExercises(in: databaseStore.rootFolders)
+        if MigrationManager.isV2PageMigrationComplete {
+            return databaseStore.allPagesFlat.reduce(0) { $0 + ($1.isLeaf ? 1 : 0) }
+        }
+        return databaseStore.rootExercises.count + countExercises(in: databaseStore.rootFolders)
     }
 
     private func countExercises(in folders: [ExerciseFolder]) -> Int {
@@ -228,10 +243,15 @@ struct BackupView: View {
     }
 
     private var mediaFileCount: Int {
-        let dir = PhotoManager.shared.photosDirectoryURL
-        return (try? FileManager.default.contentsOfDirectory(
-            at: dir, includingPropertiesForKeys: nil
-        ).count) ?? 0
+        let legacy = (try? FileManager.default.contentsOfDirectory(
+            at: PhotoManager.shared.photosDirectoryURL, includingPropertiesForKeys: nil
+        )) ?? []
+        var files = Set(legacy)
+        for page in databaseStore.allPagesFlat {
+            files.formUnion(page.mediaURLs)
+            if let cover = page.coverImageURL { files.insert(cover) }
+        }
+        return files.count
     }
 
     // MARK: - Actions
@@ -250,13 +270,20 @@ struct BackupView: View {
             show(title: "Export Failed", message: error.localizedDescription)
             return
         }
-        Task.detached(priority: .userInitiated) {
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
+        Task {
             do {
-                let url = try BackupManager.shared.export(snapshot: snap)
+                let url = try await DatabaseSyncStore.shared.performLocalOperation(token: libraryToken) {
+                    try BackupManager.shared.export(snapshot: snap)
+                }
                 await MainActor.run {
                     exportURL = url
                     isExporting = false
+                    #if os(iOS)
                     showShareSheet = true
+                    #else
+                    saveExport(url)
+                    #endif
                 }
             } catch {
                 await MainActor.run {
@@ -266,17 +293,50 @@ struct BackupView: View {
             }
         }
     }
+    #if os(macOS)
+    @MainActor
+    private func saveExport(_ source: URL) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.zip]
+        panel.nameFieldStringValue = source.lastPathComponent
+        panel.canCreateDirectories = true
+        panel.begin { response in
+            guard response == .OK, let destination = panel.url else { return }
+            guard destination.standardizedFileURL != source.standardizedFileURL else { return }
+            Task.detached(priority: .userInitiated) {
+                let access = destination.startAccessingSecurityScopedResource()
+                defer { if access { destination.stopAccessingSecurityScopedResource() } }
+                let staged = destination.deletingLastPathComponent().appendingPathComponent(".tmax-export-" + UUID().uuidString)
+                do {
+                    defer { try? FileManager.default.removeItem(at: staged) }
+                    try FileManager.default.copyItem(at: source, to: staged)
+                    if FileManager.default.fileExists(atPath: destination.path) {
+                        _ = try FileManager.default.replaceItemAt(destination, withItemAt: staged)
+                    } else {
+                        try FileManager.default.moveItem(at: staged, to: destination)
+                    }
+                } catch {
+                    await MainActor.run { show(title: "Export Failed", message: error.localizedDescription) }
+                }
+            }
+        }
+    }
+    #endif
+
 
     private func runImport(from url: URL) {
         isImporting = true
-        Task.detached(priority: .userInitiated) {
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
+        Task {
             do {
-                let summary = try BackupManager.shared.importBackup(
-                    from: url,
-                    workoutStore: workoutStore,
-                    databaseStore: databaseStore,
-                    outdoorStore: outdoorStore
-                )
+                let summary = try await DatabaseSyncStore.shared.performLocalOperation(token: libraryToken) {
+                    try BackupManager.shared.importBackup(
+                        from: url,
+                        workoutStore: workoutStore,
+                        databaseStore: databaseStore,
+                        outdoorStore: outdoorStore
+                    )
+                }
                 await MainActor.run {
                     isImporting = false
                     let msg = "Exercises: \(summary.exercisesImported), Workouts: \(summary.workoutsImported), History: \(summary.historyImported), Outdoor: \(summary.outdoorActivitiesImported)" + (summary.profileImported ? "\nLocal profile and posts imported. Existing profile preferences are retained when merging." : "")

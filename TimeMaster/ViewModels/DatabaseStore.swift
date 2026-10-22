@@ -113,6 +113,7 @@ class DatabaseStore: ObservableObject {
     private func pageSnapshotFromFileSystem() -> (flat: [ExercisePage], roots: [ExercisePage]) {
         let db = DatabaseManager.shared
         let base = db.exercisesDatabaseURL
+        let legacyMediaDirectory = db.dataRoot.appendingPathComponent("Media", isDirectory: true)
         let flatManifests: [(ExercisePageManifest, String)]
 
         do {
@@ -123,7 +124,7 @@ class DatabaseStore: ObservableObject {
 
         let rawPages = flatManifests.map { (manifest, path) in
             let pageURL = base.appendingPathComponent(path, isDirectory: true)
-            return ExercisePage(from: manifest, baseURL: pageURL, path: path)
+            return ExercisePage(from: manifest, baseURL: pageURL, legacyMediaDirectory: legacyMediaDirectory, path: path)
         }
         let lookup = Dictionary(uniqueKeysWithValues: rawPages.map { ($0.id, $0) })
         let flat = rawPages.map { page in
@@ -222,32 +223,37 @@ class DatabaseStore: ObservableObject {
 
         guard !uploads.isEmpty else { return }
         let pageID = persistedManifest.id
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
 
-            for (filename, data) in uploads {
-                let temporaryURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString + "-" + filename)
-                do {
-                    try data.write(to: temporaryURL)
-                    let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
-                        pageID: pageID,
-                        sourceURL: temporaryURL
-                    )
-                    self.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename])
-                } catch {}
-                try? FileManager.default.removeItem(at: temporaryURL)
+            try? ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                for (filename, data) in uploads {
+                    let temporaryURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString + "-" + filename)
+                    do {
+                        try data.write(to: temporaryURL)
+                        let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
+                            pageID: pageID,
+                            sourceURL: temporaryURL
+                        )
+                        self.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename], libraryToken: libraryToken)
+                    } catch {}
+                    try? FileManager.default.removeItem(at: temporaryURL)
+                }
             }
         }
     }
 
 
-    func publishUploadedMedia(
+    private func publishUploadedMedia(
         pageID: String,
         coverFilename: String? = nil,
-        mediaFilenames: [String] = []
+        mediaFilenames: [String] = [],
+        libraryToken: ExerciseLibraryAccess.Token
     ) {
         let update = { [weak self] in
+            guard ExerciseLibraryAccess.shared.isCurrent(libraryToken) else { return }
             guard let self, let index = self.allPagesFlat.firstIndex(where: { $0.manifest.id == pageID }) else { return }
             var manifest = self.allPagesFlat[index].manifest
             if let coverFilename {
@@ -260,7 +266,7 @@ class DatabaseStore: ObservableObject {
             let currentPage = self.allPagesFlat[index]
             let pageURL = self.resolvePageFolderURL(id: pageID)
                 ?? DatabaseManager.shared.exercisesDatabaseURL.appendingPathComponent(currentPage.path, isDirectory: true)
-            let refreshed = ExercisePage(from: manifest, baseURL: pageURL, path: currentPage.path)
+            let refreshed = ExercisePage(from: manifest, baseURL: pageURL, legacyMediaDirectory: DatabaseManager.shared.dataRoot.appendingPathComponent("Media", isDirectory: true), path: currentPage.path)
             self.allPagesFlat[index] = ExercisePage(
                 manifest: refreshed.manifest,
                 coverImageURL: refreshed.coverImageURL,
@@ -286,7 +292,8 @@ class DatabaseStore: ObservableObject {
         publishUploadedMedia(
             pageID: pageID,
             coverFilename: coverFilename,
-            mediaFilenames: mediaFilenames
+            mediaFilenames: mediaFilenames,
+            libraryToken: ExerciseLibraryAccess.shared.capture()
         )
     }
 

@@ -103,4 +103,39 @@ CREATE TABLE IF NOT EXISTS requests (
     at REAL NOT NULL,
     PRIMARY KEY(user_id,request_id)
 );
-PRAGMA user_version = 1;
+CREATE TABLE IF NOT EXISTS cloud_accounts (
+    subject TEXT PRIMARY KEY,
+    ranked_user_id TEXT UNIQUE REFERENCES accounts(id),
+    legacy_linked INTEGER NOT NULL DEFAULT 0,
+    deleting INTEGER NOT NULL DEFAULT 0 CHECK(deleting IN (0,1,2)),
+    created REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sync_revision (
+    singleton INTEGER PRIMARY KEY CHECK(singleton=1),
+    value INTEGER NOT NULL CHECK(value>=0)
+);
+INSERT OR IGNORE INTO sync_revision VALUES (1,0);
+CREATE TABLE IF NOT EXISTS sync_blobs (
+    owner TEXT NOT NULL REFERENCES cloud_accounts(subject),
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL CHECK(size>0 AND size<=4194304),
+    PRIMARY KEY(owner,hash)
+);
+CREATE TABLE IF NOT EXISTS sync_files (
+    owner TEXT NOT NULL REFERENCES cloud_accounts(subject),
+    path TEXT NOT NULL,
+    revision INTEGER NOT NULL UNIQUE,
+    hash TEXT,
+    size INTEGER NOT NULL CHECK(size>=0),
+    chunks TEXT NOT NULL,
+    deleted INTEGER NOT NULL CHECK(deleted IN (0,1)),
+    PRIMARY KEY(owner,path)
+);
+CREATE INDEX IF NOT EXISTS sync_manifest ON sync_files(owner,revision);
+CREATE TABLE IF NOT EXISTS sync_commits (
+    owner TEXT NOT NULL REFERENCES cloud_accounts(subject),
+    request_hash TEXT NOT NULL,
+    response TEXT NOT NULL,
+    PRIMARY KEY(owner,request_hash)
+);
+PRAGMA user_version = 2;

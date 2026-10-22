@@ -2,6 +2,8 @@ import Foundation
 
 enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
     case profile
+    case account
+    case databaseSync
     case workoutTypes
     case motivation
     case backup
@@ -15,6 +17,8 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
     var title: String {
         switch self {
         case .profile: "Profile"
+        case .account: "Tmax Account"
+        case .databaseSync: "Database Sync"
         case .workoutTypes: "Workout Types"
         case .motivation: "Motivational Quotes"
         case .backup: "Backup & Transfer"
@@ -28,6 +32,8 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
     var detail: String {
         switch self {
         case .profile: "Local identity, collectibles, and verification"
+        case .account: "One secure account for database sync and Ranked"
+        case .databaseSync: "Cloud sync or fully local exercise data"
         case .workoutTypes: "Customize and create workout categories"
         case .motivation: "Spoken during workouts"
         case .backup: "Export or import your Tmax data"
@@ -41,6 +47,8 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
     var symbol: String {
         switch self {
         case .profile: "person.text.rectangle"
+        case .account: "person.crop.circle"
+        case .databaseSync: "arrow.triangle.2.circlepath.icloud"
         case .workoutTypes: "list.bullet.rectangle"
         case .motivation: "quote.bubble"
         case .backup: "arrow.triangle.2.circlepath.icloud"

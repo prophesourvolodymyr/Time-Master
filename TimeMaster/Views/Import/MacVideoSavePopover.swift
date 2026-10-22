@@ -692,6 +692,7 @@ struct MacVideoSavePopover: View {
         isSaving = true
         saveErrorMessage = nil
         let extraURLs = pendingAdditionalMedia.map(\.url)
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
         Task {
             do {
                 try await MacVideoDatabaseImporter.save(
@@ -699,6 +700,7 @@ struct MacVideoSavePopover: View {
                     asset: asset,
                     manifest: manifest,
                     target: target,
+                    libraryToken: libraryToken,
                     additionalMediaURLs: extraURLs,
                     reloadDatabase: {
                         databaseStore.reloadImmediately()

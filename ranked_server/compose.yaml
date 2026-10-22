@@ -10,6 +10,10 @@ services:
       RANKED_DATABASE: /data/ranked.sqlite3
       RANKED_REQUIRE_TLS: "true"
       RANKED_TRUST_PROXY: "true"
+      SUPABASE_URL: ${SUPABASE_URL:?Set the Supabase project HTTPS URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?Set the public Supabase API key}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the server-only Supabase service role key}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-tm-exercise-sync}
     networks: [private]
   https:
     image: caddy:2.10-alpine

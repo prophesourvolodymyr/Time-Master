@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import TimeMasterCore
 
 @MainActor
 final class RankedAccountStore: ObservableObject {
@@ -20,6 +21,17 @@ final class RankedAccountStore: ObservableObject {
     func rating(for variation: RankedVariation) -> RankedRating? { ratings.first { $0.variation == variation && $0.games > 0 } }
     func allowance(for family: RankedFamily) -> RankedAllowance? { allowances.first { $0.family == family.rawValue } }
 
+    func accountWillChange() {
+        generation += 1
+        identity = nil
+        ratings = []
+        allowances = []
+        recoveryMatch = nil
+        loading = false
+        stale = false
+        error = nil
+    }
+
     func restore() async {
         configured = await api.configured
         guard !restored else { return }
@@ -29,25 +41,11 @@ final class RankedAccountStore: ObservableObject {
         } catch { self.error = error.localizedDescription }
     }
 
-    func authenticate(login: String, password: String, displayName: String?, listed: Bool) async throws {
-        generation += 1
-        let version = generation
-        try await api.authenticate(login: login, password: password, displayName: displayName, listed: listed)
-        guard version == generation else { throw RankedServiceError.signedOut }
-        identity = nil
-        ratings = []
-        allowances = []
-        recoveryMatch = nil
-        stale = false
-        await refresh()
-        guard version == generation else { throw RankedServiceError.signedOut }
-        if identity == nil { throw RankedServiceError.message(error ?? "Could not load your account") }
-    }
-
     func refresh() async {
+        guard !loading else { return }
         let version = generation
         loading = true
-        defer { loading = false }
+        defer { if version == generation { loading = false } }
         do {
             let snapshot: RankedAccountSnapshot = try await api.request("v1/me")
             let remembered = try await api.restore()
@@ -80,25 +78,22 @@ final class RankedAccountStore: ObservableObject {
     }
 
     func remember(_ match: RankedMatch) async throws {
+        guard let owner = identity?.publicID, match.you?.publicID == owner else { throw RankedServiceError.signedOut }
+        let cloudAccountID = CloudAccountStore.shared.accountID
         recoveryMatch = match.terminal ? nil : match
-        try await api.rememberMatch(match.id)
+        try await api.rememberMatch(match.terminal ? nil : match.id, accountID: cloudAccountID)
     }
 
     func signOut() async {
-        generation += 1
-        identity = nil
-        ratings = []
-        allowances = []
-        recoveryMatch = nil
-        stale = false
-        error = nil
-        do { try await api.logout() }
-        catch { self.error = error.localizedDescription }
+        await CloudAccountStore.shared.signOut()
+        error = CloudAccountStore.shared.error
     }
 
     func updatePublicIdentity(name: String, listed: Bool) async throws {
+        let version = generation
         struct Privacy: Encodable { let displayName: String; let listed: Bool }
         let identity: RankedIdentity = try await api.request("v1/me/privacy", method: "POST", body: JSONEncoder().encode(Privacy(displayName: name, listed: listed)))
+        guard version == generation else { throw CloudAuthError.superseded }
         self.identity = identity
     }
 

@@ -191,21 +191,27 @@ struct EverStaticPlaceholder: View {
 }
 
 struct EverSettingsPage<Content: View>: View {
+    @Environment(\.slotNavigationContentBounds) private var navigationBounds
     let title: String
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: EverSpacing.x5) {
-                content()
+        GeometryReader { viewport in
+            let frame = viewport.frame(in: .global)
+            let topClearance = max(0, (navigationBounds?.minY ?? frame.minY) - frame.minY - viewport.safeAreaInsets.top)
+            let bottomClearance = max(0, frame.maxY - (navigationBounds?.maxY ?? frame.maxY) - viewport.safeAreaInsets.bottom)
+            ScrollView {
+                VStack(alignment: .leading, spacing: EverSpacing.x5) {
+                    content()
+                }
+                .padding(.horizontal, EverSpacing.x5)
+                .padding(.top, EverSpacing.x4 + topClearance)
+                .padding(.bottom, EverSpacing.x8 + bottomClearance)
+                .frame(maxWidth: EverLayout.maximumReadableWidth, alignment: .leading)
             }
-            .padding(.horizontal, EverSpacing.x5)
-            .padding(.top, EverSpacing.x4)
-            .padding(.bottom, EverSpacing.x8)
-            .frame(maxWidth: EverLayout.maximumReadableWidth, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .scrollIndicators(.hidden)
         }
-        .frame(maxWidth: .infinity)
-        .scrollIndicators(.hidden)
         .everScreenBackground()
         .navigationTitle(title)
             #if os(iOS)

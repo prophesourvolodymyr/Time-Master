@@ -557,6 +557,7 @@ struct ExercisePageDetailView: View {
 
     #if os(iOS)
     private func uploadPickedMedia(items: [PhotosPickerItem], pageID: String) {
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
         Task { @MainActor in
             for item in items {
                 let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .audiovisualContent) }
@@ -573,7 +574,9 @@ struct ExercisePageDetailView: View {
 
                 guard let sourceURL else { continue }
                 defer { try? FileManager.default.removeItem(at: sourceURL) }
-                _ = try? DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: sourceURL)
+                try? ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                    _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: sourceURL)
+                }
             }
             store.reload()
             loadGuideContent()

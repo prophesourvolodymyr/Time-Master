@@ -49,6 +49,12 @@
 	<string>Tmax records your active Run, Walk, or Bike route while you exercise.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Tmax uses the barometer to measure elevation gain during your outdoor workout.</string>
+	<key>TMSupabaseURL</key>
+	<string>$(TM_SUPABASE_URL)</string>
+	<key>TMSupabaseAnonKey</key>
+	<string>$(TM_SUPABASE_ANON_KEY)</string>
+	<key>TMSyncServiceURL</key>
+	<string>$(TM_SYNC_SERVICE_URL)</string>
 	<key>TMRankedServiceURL</key>
 	<string>$(TM_RANKED_SERVICE_URL)</string>
 	<key>TMExploreStyleURL</key>

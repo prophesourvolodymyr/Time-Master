@@ -35,6 +35,12 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Tmax uses the camera for on-device exercise tracking. Ranked sends joint estimates, never camera images.</string>
+	<key>TMSupabaseURL</key>
+	<string>$(TM_SUPABASE_URL)</string>
+	<key>TMSupabaseAnonKey</key>
+	<string>$(TM_SUPABASE_ANON_KEY)</string>
+	<key>TMSyncServiceURL</key>
+	<string>$(TM_SYNC_SERVICE_URL)</string>
 	<key>TMRankedServiceURL</key>
 	<string>$(TM_RANKED_SERVICE_URL)</string>
 	<key>NSHumanReadableCopyright</key>
