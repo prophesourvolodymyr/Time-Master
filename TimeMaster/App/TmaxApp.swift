@@ -38,7 +38,8 @@ private struct TmaxRootView: View {
     @State private var didCheckResume = false
     @State private var didPrepareAccount = false
     @State private var launchPhase = LaunchPhase.loading
-    @State private var whiteOpacity = 0.0
+    @State private var loadingOpacity = 1.0
+    @State private var departureProgress: CGFloat = 0
     @State private var launchGeneration = 0
 
     private enum LaunchPhase {
@@ -77,22 +78,18 @@ private struct TmaxRootView: View {
                         }
                     }
             }
-            if !contentIsReady || launchPhase == .loading || launchPhase == .zooming {
+            if !contentIsReady || launchPhase != .finished {
                 TmaxLoadingState(
                     title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Preparing account...") : startup.status,
                     showsQuote: true,
-                    isFinishing: launchPhase == .zooming,
+                    isFinishing: launchPhase == .zooming || launchPhase == .revealing,
+                    departureProgress: departureProgress,
                     logs: launchPhase == .finished ? [] : startup.statusHistory
                 )
                 .background(Color.black.ignoresSafeArea())
+                .opacity(launchPhase == .finished ? 1 : loadingOpacity)
                 .zIndex(1)
             }
-            Color.white
-                .ignoresSafeArea()
-                .opacity(whiteOpacity)
-                .allowsHitTesting(launchPhase != .finished)
-                .accessibilityHidden(true)
-                .zIndex(2)
         }
         .task(id: canFinishLaunch) {
             guard canFinishLaunch, launchPhase != .finished else { return }
@@ -152,18 +149,15 @@ private struct TmaxRootView: View {
         let generation = launchGeneration
         do {
             try await animateLaunch(
-                reduceMotion ? .easeOut(duration: 0.25) : .timingCurve(0.55, 0, 1, 0.45, duration: 0.6),
-                fallbackDuration: reduceMotion ? 300_000_000 : 650_000_000
+                reduceMotion ? .easeOut(duration: 0.25) : .timingCurve(0.15, 0.7, 0.3, 1, duration: 0.4),
+                fallbackDuration: reduceMotion ? 300_000_000 : 450_000_000
             ) {
                 launchPhase = .zooming
+                departureProgress = 1
             }
-            try await animateLaunch(.easeIn(duration: 0.2), fallbackDuration: 350_000_000) {
-                whiteOpacity = 1
-            }
-            try await Task.sleep(nanoseconds: 120_000_000)
             launchPhase = .revealing
-            try await animateLaunch(.easeOut(duration: 0.45), fallbackDuration: 500_000_000) {
-                whiteOpacity = 0
+            try await animateLaunch(.easeOut(duration: 0.42), fallbackDuration: 500_000_000) {
+                loadingOpacity = 0
             }
             launchPhase = .finished
         } catch {
@@ -172,7 +166,8 @@ private struct TmaxRootView: View {
             transaction.disablesAnimations = true
             withTransaction(transaction) {
                 launchPhase = .loading
-                whiteOpacity = 0
+                loadingOpacity = 1
+                departureProgress = 0
             }
         }
     }

@@ -5,6 +5,7 @@ struct TmaxLoadingState: View {
     var detail: String? = nil
     var showsQuote = false
     var isFinishing = false
+    var departureProgress: CGFloat = 0
     var logs: [String] = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -17,14 +18,14 @@ struct TmaxLoadingState: View {
         GeometryReader { geometry in
             let contentPadding: CGFloat = showsQuote ? 32 : 20
             let logoWidth = min(geometry.size.width * 0.44, geometry.size.height * 0.24)
-            let departureScale = max(geometry.size.width, geometry.size.height) / max(1, logoWidth) * 3
             ScrollView {
                 VStack(spacing: spacing) {
                     if showsQuote {
                         Spacer(minLength: spacing)
                         TmaxAnimatedLogo(isComplete: isFinishing)
                             .frame(width: logoWidth)
-                            .scaleEffect(isFinishing && !reduceMotion ? departureScale : 1)
+                            .anchorPreference(key: TmaxStartupLogoFrameKey.self, value: .bounds) { $0 }
+                            .opacity(isFinishing ? 0 : 1)
                             .zIndex(1)
                             .padding(.bottom, spacing / 2)
                     }
@@ -46,6 +47,7 @@ struct TmaxLoadingState: View {
                         .frame(maxWidth: 320, minHeight: quoteHeight)
                         .clipped()
                         .opacity(isFinishing ? 0 : 1)
+                        .animation(.easeOut(duration: 0.12), value: isFinishing)
                         .accessibilityHidden(isFinishing)
                         Spacer(minLength: spacing)
                     }
@@ -68,6 +70,7 @@ struct TmaxLoadingState: View {
                         }
                     }
                     .opacity(isFinishing ? 0 : 1)
+                    .animation(.easeOut(duration: 0.12), value: isFinishing)
                     .accessibilityHidden(isFinishing)
                 }
                 .multilineTextAlignment(.center)
@@ -75,6 +78,17 @@ struct TmaxLoadingState: View {
                 .padding(contentPadding)
                 .frame(maxWidth: .infinity)
             }
+        }
+        .overlayPreferenceValue(TmaxStartupLogoFrameKey.self) { anchor in
+            GeometryReader { proxy in
+                if let anchor {
+                    TmaxStartupDeparture(logoFrame: proxy[anchor], progress: departureProgress)
+                        .opacity(isFinishing ? 1 : 0)
+                }
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .opacity(showsQuote || isVisible ? 1 : 0)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isVisible)
@@ -131,29 +145,27 @@ private struct TmaxStartupLogWheel: View {
         let selected = min(displayedIndex, latest)
         ZStack {
             ForEach(0...latest, id: \.self) { index in
-                let distance = index - selected
-                HStack(spacing: 6) {
-                    Image(systemName: index < latest ? "checkmark.circle.fill" : "arrow.triangle.2.circlepath")
-                        .font(.caption.weight(.black))
-                        .accessibilityHidden(true)
-                    Text("\(index + 1)")
-                        .monospacedDigit()
-                    Text(index < history.count ? history[index] : current)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: false, vertical: true)
+                TmaxStartupLogRowMotion(
+                    distance: CGFloat(index - selected),
+                    rowHeight: rowHeight,
+                    reduceMotion: reduceMotion
+                ) {
+                    HStack(spacing: 6) {
+                        Image(systemName: index < latest ? "checkmark.circle.fill" : "arrow.triangle.2.circlepath")
+                            .font(.caption.weight(.black))
+                            .accessibilityHidden(true)
+                        Text("\(index + 1)")
+                            .monospacedDigit()
+                        Text(index < history.count ? history[index] : current)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(TimeMasterFont.blackItalic(12, relativeTo: .caption))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: rowHeight)
                 }
-                .font(TimeMasterFont.blackItalic(12, relativeTo: .caption))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(height: rowHeight)
-                .scaleEffect(reduceMotion ? 1 : max(0.82, 1 - CGFloat(abs(distance)) * 0.05))
-                .rotation3DEffect(
-                    .degrees(reduceMotion ? 0 : Double(distance) * -18),
-                    axis: (x: 1, y: 0, z: 0)
-                )
-                .opacity(max(0, 1 - CGFloat(abs(distance)) * 0.25))
-                .offset(y: CGFloat(distance) * rowHeight)
-                .transition(reduceMotion ? .identity : .offset(y: rowHeight).combined(with: .opacity))
+                .transition(reduceMotion ? .identity : .opacity)
             }
         }
         .frame(height: rowHeight * 7)
@@ -166,7 +178,7 @@ private struct TmaxStartupLogWheel: View {
             ], startPoint: .top, endPoint: .bottom)
         }
         .clipped()
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: selected)
+        .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 1, blendDuration: 0.12), value: selected)
         .task(id: FeedbackContext(index: latest, current: current, active: isActive && scenePhase == .active)) {
             guard isActive, scenePhase == .active else { return }
             AppInteractionHaptics.shared.prepareSelection()
@@ -186,5 +198,36 @@ private struct TmaxStartupLogWheel: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Startup progress")
         .accessibilityValue("\(selected + 1). \(selected < history.count ? history[selected] : current)")
+    }
+}
+
+private struct TmaxStartupLogoFrameKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>?
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
+    }
+}
+
+private struct TmaxStartupLogRowMotion<Content: View>: View, Animatable {
+    var distance: CGFloat
+    let rowHeight: CGFloat
+    let reduceMotion: Bool
+    @ViewBuilder let content: Content
+
+    var animatableData: CGFloat {
+        get { distance }
+        set { distance = newValue }
+    }
+
+    var body: some View {
+        content
+            .scaleEffect(reduceMotion ? 1 : max(0.82, 1 - abs(distance) * 0.05))
+            .rotation3DEffect(
+                .degrees(reduceMotion ? 0 : Double(distance) * -18),
+                axis: (x: 1, y: 0, z: 0)
+            )
+            .opacity(max(0, 1 - abs(distance) * 0.25))
+            .offset(y: distance * rowHeight)
     }
 }

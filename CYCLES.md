@@ -2024,6 +2024,18 @@ The numbers count actual preparation messages, not estimated percentages or simu
 
 Haptic requests reuse the existing mobile selection-feedback renderer and follow the discrete-event pattern in Apple's [Playing haptics guidance](https://developer.apple.com/design/human-interface-guidelines/playing-haptics). A disposable runtime probe checked the real request sequence and was removed before the final build; the Simulator cannot establish physical vibration strength or feel. The rendered M completed, erased backward, and began another forward stroke without an empty dwell before its normal whiteout exit. Checks used committed source plus only the owned changes, preserving unrelated native-smoke and other working-tree edits. Physical-device, background-interruption, reduced-motion, large-text, and macOS runtime variants were not exercised. Product documentation awaits human acceptance.
 
+### Smooth Log Wheel and Crisp Vector Exit — 2026-10-23
+
+- [x] Smooth log-wheel retargeting with a critically damped spring and one continuous row distance controlling position, tilt, scale, and fading
+- [x] Keep the M's round starting cap visible through the reverse-to-forward turnaround instead of letting the stroke become an empty mask
+- [x] Render the drawing M directly as vector geometry and paint the enlarged departure M at viewport resolution, without enlarging a flattened drawing-group texture
+- [x] Couple the rapid logo expansion to a continuous white bloom, then fade the same loading surface into the interactive app without swapping white cover layers
+- [x] Preserve the renamed macOS product as Tmax.app and retain its TimeMaster-macOS build scheme and existing bundle identity
+- [x] Build iOS and macOS, exercise two final uninstrumented iPhone 16 iOS 18.6 launches through full white and app reveal, retain visible ink through the reverse turnaround, and navigate to Analytics after closing the saved-workout prompt without discarding it
+- [ ] Human review of wheel smoothness, the reverse turnaround, rapid vector expansion, and the white-to-app reveal
+
+The enlarged native Canvas was also rendered at three-times display scale and compared with an independently rendered vector Shape; the visible edges remained native-pixel sharp. Log content, italic fonts, bold symbols, selection-haptic sequencing, seven-second quote timing, and preparation-based readiness remain unchanged. These are engineering checks, not human acceptance. Physical-device haptic feel, reduced-motion and background-interruption variants, and the complete macOS app runtime were not exercised; the installed Mac app was not replaced.
+
 ## Workout Metrics and Navigation Surface — 2026-10-20
 
 User-requested selector, tracking-card, Analytics navigation, and menu-background corrections. Human review remains pending.
