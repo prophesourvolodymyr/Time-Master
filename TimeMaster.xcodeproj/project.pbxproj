@@ -765,7 +765,7 @@
 		5C133EDBB452DFEF8D08CD3C /* RankedCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedCamera.swift; sourceTree = "<group>"; };
 		5D582991CAE01E1427BA7D5B /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		5E287CB0142E9444C0E8CE06 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
-		5F9DFA16477EC88FEF1F13EF /* TimeMaster-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TimeMaster-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F9DFA16477EC88FEF1F13EF /* Tmax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tmax.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FC65261AB128B4346DD0F22 /* DatabasePageBrowserSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePageBrowserSheet.swift; sourceTree = "<group>"; };
 		604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutStore.swift; sourceTree = "<group>"; };
 		6059FE30DDCD5719FCC9FEA3 /* WorkoutMusicSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicSession.swift; sourceTree = "<group>"; };
@@ -1149,7 +1149,7 @@
 		26FA13129B845B5C3499F3CB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5F9DFA16477EC88FEF1F13EF /* TimeMaster-macOS.app */,
+				5F9DFA16477EC88FEF1F13EF /* Tmax.app */,
 				69344764F8B3AC313FF4CBC5 /* TimeMaster.app */,
 				CEF1316E66A8713FE9790891 /* TimeMasterTests.xctest */,
 				F8A200C6E638C14F20D13AED /* TimeMasterUITests.xctest */,
@@ -1648,8 +1648,8 @@
 				318EF0BBBA22FEF901B5BD35 /* SwiftMP3 */,
 				6597294304852DBC80D29D90 /* TimeMasterCore */,
 			);
-			productName = "TimeMaster-macOS";
-			productReference = 5F9DFA16477EC88FEF1F13EF /* TimeMaster-macOS.app */;
+			productName = Tmax;
+			productReference = 5F9DFA16477EC88FEF1F13EF /* Tmax.app */;
 			productType = "com.apple.product-type.application";
 		};
 		33D412B7918145EE15555CA6 /* TimeMasterUITests */ = {
@@ -2542,7 +2542,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.macos;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Tmax;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -2791,7 +2791,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.timemaster.macos;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Tmax;
 				SDKROOT = macosx;
 			};
 			name = Release;

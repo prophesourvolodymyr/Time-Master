@@ -2371,6 +2371,15 @@ The generation used the installed, authenticated `fgen` CLI and the user's exist
 
 Engineering checks passed: all seventy-eight exports rendered at both widths without horizontal overflow, missing images or unexpected font families. The original wordmark is absent, the welcome character loads, and the live-text action remains usable with images/gradient styling removed. Browser proof does not establish Gmail/Apple Mail/Outlook rendering or human acceptance. Sending remains disconnected and production identity/address/link configuration remains pending.
 
+## macOS Tmax Installation — 2026-10-23
+
+The user accepted the newer native Mac build and requested the visible name Tmax, one installed app, and removal of redundant builds without changing saved data.
+
+- [x] Install the accepted native build at `/Applications/Tmax.app` and launch its actual window with the existing bundle identity
+- [x] Name the macOS Debug and Release build products Tmax and update the shared launch scheme and XcodeGen source
+- [x] Remove the two stale installed Mac apps and redundant temporary native Mac build after checking the installed copy
+- [ ] Human review of the renamed Dock entry and installed Tmax app
+
 ---
 
 ## Notes

@@ -42,6 +42,10 @@
 
 The user explicitly placed F29 directly in features and has now directed the animated vertical-player UI on both native platforms. [The UI orchestration brief](../prompts/F29-physique-duels/F29-phase-2-native-ui-orchestration.md) maps every custom view and complex component to a dedicated maximum-reasoning GPT-6.1 Sol or GPT-6 Astra worker; these worker models are separate from the in-app image judge. Implementation and final human acceptance remain pending. Numerical defaults, unmeasured performance, and residual App Store risk remain explicit. [CYCLES.md](../CYCLES.md#cycle-39--f29-physique-duels-specification) owns the work and review plan. Earlier catalog entries are retained historical context, not reverified or restored legacy specifications.
 
+## macOS App Identity
+
+The native Mac app is named Tmax and has one installed application at `/Applications/Tmax.app`. It retains the shared iPhone-style navigation rather than the older Mac sidebar. Its existing application identity and saved library remain unchanged by the visible rename; internal TimeMaster project, module, and data-folder names are compatibility details, not separate installed apps.
+
 ## App Typography
 
 The user selected Manrope Regular for readable body text and supporting small labels throughout the native iPhone and macOS app. Inter Black supplies content headings, emphasized controls and prominent numbers. Emphasized prose and quotations use the genuine Inter Black Italic design, not a slanted upright face.
