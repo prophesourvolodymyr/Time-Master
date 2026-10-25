@@ -22,14 +22,20 @@ struct ScrollingChromeMetrics {
 
     var expandedControlWidth: CGFloat {
         #if os(macOS)
-        let cap = min(expandedControlWidthCap, compactControlSize * 2)
+        let cap = min(expandedControlWidthCap, compactControlSize * 3)
         #else
         let cap = expandedControlWidthCap
         #endif
         return min(cap, max(compactControlSize, (contentWidth - controlSpacing * CGFloat(controlCount - 1)) / CGFloat(controlCount)))
     }
 
-    var expandedControlHeight: CGFloat { min(expandedControlHeightCap, expandedControlWidth) }
+    var expandedControlHeight: CGFloat {
+        #if os(macOS)
+        min(max(expandedControlHeightCap, 120), expandedControlWidth)
+        #else
+        min(expandedControlHeightCap, expandedControlWidth)
+        #endif
+    }
     var expandedGroupWidth: CGFloat { expandedControlWidth * CGFloat(controlCount) + controlSpacing * CGFloat(controlCount - 1) }
     var compactGroupWidth: CGFloat { compactControlSize * CGFloat(controlCount) + controlSpacing * CGFloat(controlCount - 1) }
 

@@ -6,7 +6,13 @@ struct ScheduleChallengeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var weekdays: Set<Int>
+    #if os(macOS)
+    @ScaledMetric(relativeTo: .largeTitle) private var flameSize = 72.0
+    private let rhythm: CGFloat = 18
+    #else
     @ScaledMetric(relativeTo: .largeTitle) private var flameSize = 96.0
+    private let rhythm: CGFloat = 24
+    #endif
     @ScaledMetric(relativeTo: .body) private var dayWidth = 76.0
     private let week: Date
 
@@ -18,7 +24,7 @@ struct ScheduleChallengeSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: rhythm) {
                     ScheduleFlame(difficulty: weekdays.count, isBurning: !weekdays.isEmpty)
                         .frame(width: flameSize, height: flameSize)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: dayWidth))], spacing: 10) {
@@ -80,7 +86,7 @@ struct ScheduleChallengeSheet: View {
                     .disabled(weekdays.isEmpty || !store.scheduleIsLoaded)
                     .accessibilityIdentifier("schedule.challenge.confirm")
                 }
-                .padding(24)
+                .padding(rhythm)
                 .frame(maxWidth: 580)
                 .frame(maxWidth: .infinity)
             }

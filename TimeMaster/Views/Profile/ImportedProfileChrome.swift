@@ -52,10 +52,20 @@ extension ProfileView {
             addWidth: addWidth,
             accessoryCount: accessoryCount
         )
+        #if os(macOS)
+        let stacksIdentity = false
+        let nameGap = EverSpacing.x3
+        let compactNameAlignment = Alignment.leading
+        #else
+        let stacksIdentity = showsRankedIndicator
+        let nameGap = EverSpacing.x1
+        let compactNameAlignment = Alignment.center
+        #endif
         let unusedBackSpace = isProfileRoot ? control + EverSpacing.x1 : 0
         let compactAvatarX = compact.avatarX - unusedBackSpace
-        let compactNameLeading = compactAvatarX + compactAvatar / 2 + EverSpacing.x1
-        let compactNameX = compactNameLeading + compact.titleWidth / 2
+        let compactNameLeading = compactAvatarX + compactAvatar / 2 + nameGap
+        let compactNameWidth = max(1, compact.titleWidth - (nameGap - EverSpacing.x1))
+        let compactNameX = compactNameLeading + compactNameWidth / 2
         let compactSettingsX = compact.addX - addWidth / 2 - EverSpacing.x1 - control / 2
         let compactShieldX = compact.addX - addWidth / 2 - EverSpacing.x1
             - (activeProfile ? control + EverSpacing.x1 : 0) - compactStatWidth / 2
@@ -72,7 +82,7 @@ extension ProfileView {
         let secondaryShieldExit = min(1, layoutProgress * 1.5)
         let shieldParallaxY = reduceMotion ? 0 : -coverHeight * layoutProgress * (1 - shieldDock) * 0.25
         let avatarSize = interpolate(expandedAvatar, compactAvatar, avatarProgress)
-        let compactIdentityY = showsRankedIndicator ? compactHeight / 2 + control / 2 + EverSpacing.x3 : compactHeight / 2
+        let compactIdentityY = stacksIdentity ? compactHeight / 2 + control / 2 + EverSpacing.x3 : compactHeight / 2
         let expandedNameOpacity = max(0, 1 - nameProgress * 2)
         let compactNameOpacity = max(0, (nameProgress - 0.55) / 0.45)
         let identityInk = LinearGradient(
@@ -83,7 +93,7 @@ extension ProfileView {
         let expandedNameWidth = max(1, width - EverLayout.phoneInset * 2)
         let nameWidth = interpolate(expandedNameWidth, compact.titleWidth + unusedBackSpace, avatarProgress)
         let nameX = interpolate(width / 2, compact.titleX - unusedBackSpace / 2, nameProgress)
-        let nameY = interpolate(expandedIdentityY, showsRankedIndicator ? compactIdentityY + identityHeight / 2 : compactIdentityY, nameProgress)
+        let nameY = interpolate(expandedIdentityY, stacksIdentity ? compactIdentityY + identityHeight / 2 : compactIdentityY, nameProgress)
         let actionY = interpolate(expandedAddY, compactHeight / 2, actionProgress)
         let controlY = interpolate(expandedTopControlY, compactHeight / 2, layoutProgress)
 
@@ -163,7 +173,7 @@ extension ProfileView {
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .frame(width: compact.titleWidth)
+                .frame(width: compactNameWidth, alignment: compactNameAlignment)
                 .position(
                     x: compactNameX,
                     y: compactIdentityY
@@ -199,10 +209,10 @@ extension ProfileView {
                             stat.id == stats.first?.id
                                 ? EverLayout.phoneInset + shieldWidth / 2
                                 : width - EverLayout.phoneInset - shieldWidth / 2,
-                            showsRankedIndicator && stat == .trailing ? compactNameX : compactShieldX,
+                            stacksIdentity && stat == .trailing ? compactNameX : compactShieldX,
                             isCollapsingStat ? shieldDock : 0
                         ),
-                        y: interpolate(expandedStatY, showsRankedIndicator ? compactHeight / 2 - EverSpacing.x2 : compactHeight / 2, isCollapsingStat ? shieldDock : 0) + (isCollapsingStat ? shieldParallaxY : 0)
+                        y: interpolate(expandedStatY, stacksIdentity ? compactHeight / 2 - EverSpacing.x2 : compactHeight / 2, isCollapsingStat ? shieldDock : 0) + (isCollapsingStat ? shieldParallaxY : 0)
                     )
                     .opacity(chromeEntranceOpacity * (isCollapsingStat ? 1 : 1 - secondaryShieldExit))
                     .offset(y: chromeEntranceOffset(10))

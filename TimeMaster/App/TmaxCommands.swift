@@ -32,7 +32,26 @@ struct TmaxCommands: Commands {
             .keyboardShortcut("o", modifiers: [.command, .option])
         }
         CommandGroup(replacing: .appSettings) {}
+        CommandGroup(after: .toolbar) { ZoomMenuItems() }
         SwiftUI.TextEditingCommands()
+    }
+}
+
+private struct ZoomMenuItems: View {
+    @ObservedObject private var zoom = MacInterfaceZoom.shared
+
+    var body: some View {
+        Group {
+            Button("Actual Size") { zoom.reset() }
+                .keyboardShortcut("0", modifiers: .command)
+                .disabled(zoom.isActualSize)
+            Button("Zoom In") { zoom.zoomIn() }
+                .keyboardShortcut("+", modifiers: .command)
+                .disabled(!zoom.canZoomIn)
+            Button("Zoom Out") { zoom.zoomOut() }
+                .keyboardShortcut("-", modifiers: .command)
+                .disabled(!zoom.canZoomOut)
+        }
     }
 }
 #endif

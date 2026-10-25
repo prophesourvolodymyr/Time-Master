@@ -2394,12 +2394,30 @@ The user accepted the newer native Mac build and requested the visible name Tmax
 
 ### macOS Presentation, Profile, and Header Repairs — 2026-10-23
 
-- [ ] Paint popup and sheet margins with the app background and remove redundant native titles without removing dismissal controls
-- [ ] Match the traffic-light strip to the app background and place the active page title beside the native window controls
-- [ ] Adapt the imported Profile header to desktop proportions so its actual identity, controls, and tabs are reachable
-- [ ] Expand page actions by dragging their header controls and keep expanded Mac groups compact and sized to their action count
+- [x] Paint popup and sheet margins with the app background and remove redundant native titles without removing dismissal controls (done in round 2 below: the empty title band and the bottom bar are gone, actions sit in one compact top row)
+- [x] Match the traffic-light strip to the app background and place the active page title beside the native window controls
+- [x] Adapt the imported Profile header to desktop proportions so its actual identity, controls, and tabs are reachable (expanded header exercised; compact scrolled header is a separate item below)
+- [ ] Expand page actions by dragging their header controls and keep expanded Mac groups compact and sized to their action count (bigger Mac buttons are in round 2 below; drag and size not yet exercised)
 - [ ] Exercise the four repaired paths in the native Mac app and preserve the iOS layout and existing profile data
 - [ ] Human review of the repaired popup surfaces, titlebar, Profile, and expanding actions
+
+### macOS Polish Round 2 — 2026-10-24 / 2026-10-25
+
+User-reported misses on the installed Tmax build, fixed from the user's direction. For most of the session the Mac display was asleep, so window-server screenshots were unavailable; the checks below use an in-process harness that renders views offscreen and posts synthetic clicks, drags and key events. Human review remains pending.
+
+- [x] Popups and sheets: the empty top strip (the empty navigation title reserved a band) and the bottom action bar are removed; Cancel, Close, Done and Save sit in one compact row at the top of the popup, so content such as the Streak challenge button is no longer cut off. All `AppToolbar` items go through `MacSheetToolbar.swift`; pushed pages in the main window keep their native titlebar toolbar
+- [x] Streak challenge popup compacted on Mac so its main button is visible at the default window size
+- [x] Launch screen no longer shows a scroll indicator on Mac (the sign-in sheet already hid its indicators)
+- [x] Navigation rail on Mac is dark Liquid Glass with a material fallback, and its icons tilt along the arc and fade toward the edges
+- [x] Interface zoom on Mac: ⌘+, ⌘=, ⌘−, ⌘0 and the View menu, persisted, 50–200 percent; exercised with key events at 110, 150, 100 and 80 percent and layout reflow
+- [x] Home on Mac: wide windows get two or three columns, edit mode shows remove, option and resize controls, the picker is sized, the page is no longer clipped above the rail (layout and edit-mode rendering exercised)
+- [ ] Home on Mac: exercise reorder drag, resize grip, edge auto-scroll, Escape during a drag, the right-click menu and that buttons inside tiles still click (compiled only)
+- [x] Startup stall: evicted iCloud files and folders are downloaded in parallel at launch with a status line, the page-types migration now finishes and writes its marker, a "Waiting for iCloud or a macOS permission prompt" notice appears after 12 seconds, and stale window-restoration state can no longer leave the app without a window
+- [ ] Larger expanded header actions on Mac (cap three times the compact size, at least 120 points tall): code complete, not exercised
+- [ ] Profile compact header on Mac (name left-aligned, shields beside the gear): code complete, not exercised
+- [ ] Human review of popups, launch screen, rail, zoom, Home, startup and the two items above
+
+Known limits: popups built with raw `ToolbarItem` (Physique) or `AppToolbar.group` still use the system bottom bar. The Home Map widget does nothing on Mac (`startOutdoor` is empty there). The data folder `~/Documents/TimeMaster` sits in iCloud Drive, and with the disk nearly full macOS evicts it again within minutes; keep the folder downloaded (Finder, Keep Downloaded) or free disk space.
 
 ## Cycle 42 — Native Workout Bundles and Media Workspace — 2026-10-24
 

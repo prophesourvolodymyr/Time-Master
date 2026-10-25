@@ -305,34 +305,36 @@ public final class MigrationManager {
         let manager = MigrationManager(db: .shared)
         let markerURL = manager.fs.configDirectory.appendingPathComponent(pageTypesMarkerName)
         guard !manager.fs.fileExists(at: markerURL), isV2PageMigrationComplete else { return }
+        guard let pages = try? manager.db.walkPageTree(in: manager.fs.exercisesDatabaseDirectory) else { return }
 
-        do {
-            let pages = try manager.db.walkPageTree(in: manager.fs.exercisesDatabaseDirectory)
-            for (manifest, _) in pages {
-                var normalized = manifest
-                if normalized.pageKind == .leaf, normalized.pageType == nil {
-                    normalized.pageType = .exercise
-                }
-                if normalized.pageType == .skill || normalized.pageType == .tutorial {
-                    normalized.pageKind = .container
-                    normalized.duration = nil
-                    normalized.restAfter = nil
-                    normalized.prepareTime = nil
-                    normalized.sets = nil
-                    normalized.restBetweenSets = nil
-                    normalized.dropSetTemplates = []
-                    normalized.skillStatus = normalized.skillStatus ?? .notStarted
-                    normalized.skillBoardOrder = max(0, normalized.skillBoardOrder ?? 0)
-                }
-                try manager.db.updatePage(
-                    id: normalized.id,
-                    manifest: normalized,
-                    newParentID: normalized.parentID
-                )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        for (manifest, _) in pages {
+            var normalized = manifest
+            if normalized.pageKind == .leaf, normalized.pageType == nil {
+                normalized.pageType = .exercise
             }
-            try manager.fs.writeAtomically(to: markerURL, data: Data("1".utf8))
-        } catch {
+            if normalized.pageType == .skill || normalized.pageType == .tutorial {
+                normalized.pageKind = .container
+                normalized.duration = nil
+                normalized.restAfter = nil
+                normalized.prepareTime = nil
+                normalized.sets = nil
+                normalized.restBetweenSets = nil
+                normalized.dropSetTemplates = []
+                normalized.skillStatus = normalized.skillStatus ?? .notStarted
+                normalized.skillBoardOrder = max(0, normalized.skillBoardOrder ?? 0)
+            }
+            guard let before = try? encoder.encode(manifest),
+                  let after = try? encoder.encode(normalized),
+                  before != after else { continue }
+            try? manager.db.updatePage(
+                id: normalized.id,
+                manifest: normalized,
+                newParentID: normalized.parentID
+            )
         }
+        try? manager.fs.writeAtomically(to: markerURL, data: Data("1".utf8))
     }
     public static func cleanLegacyPageCacheIfNeeded() {
         let manager = MigrationManager(db: .shared)

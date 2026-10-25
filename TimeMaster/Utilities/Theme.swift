@@ -128,6 +128,21 @@ struct TimeMasterDisclosureIndicator: View {
 }
  
 enum AppToolbar {
+#if os(macOS)
+    static func item<Content: View>(
+        placement: AppToolbarPlacement,
+        fileID: String = #fileID,
+        line: Int = #line,
+        column: Int = #column,
+        @ViewBuilder content: () -> Content
+    ) -> AppToolbarEntry {
+        AppToolbarEntry(
+            id: "\(fileID):\(line):\(column)",
+            placement: placement,
+            content: AnyView(content().buttonStyle(TimeMasterToolbarWideButtonStyle()))
+        )
+    }
+#else
     @ToolbarContentBuilder
     static func item<Content: View>(
         placement: ToolbarItemPlacement,
@@ -146,6 +161,7 @@ enum AppToolbar {
             }
         }
     }
+#endif
 
     @ToolbarContentBuilder
     static func group<Content: View>(
@@ -166,6 +182,21 @@ enum AppToolbar {
         }
     }
 
+#if os(macOS)
+    static func iconItem<Content: View>(
+        placement: AppToolbarPlacement,
+        fileID: String = #fileID,
+        line: Int = #line,
+        column: Int = #column,
+        @ViewBuilder content: () -> Content
+    ) -> AppToolbarEntry {
+        AppToolbarEntry(
+            id: "\(fileID):\(line):\(column)",
+            placement: placement,
+            content: AnyView(content().buttonStyle(TimeMasterToolbarIconButtonStyle()))
+        )
+    }
+#else
     @ToolbarContentBuilder
     static func iconItem<Content: View>(
         placement: ToolbarItemPlacement,
@@ -184,6 +215,7 @@ enum AppToolbar {
             }
         }
     }
+#endif
 
     @ToolbarContentBuilder
     static func iconGroup<Content: View>(

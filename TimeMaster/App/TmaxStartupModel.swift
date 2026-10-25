@@ -20,6 +20,21 @@ final class TmaxStartupModel: ObservableObject {
         isPreparing = true
         let minimumDisplayDeadline = ContinuousClock.now.advanced(by: .seconds(5))
 
+#if os(macOS)
+        let libraryRoot = DatabaseManager.shared.dataRoot
+        let slowNotice = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 12_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.status = "Waiting for iCloud or a macOS permission prompt…"
+        }
+        let evictedFiles = await Task.detached(priority: .userInitiated) { LibraryHydration.pendingFiles(in: libraryRoot) }.value
+        if !evictedFiles.isEmpty {
+            status = "Downloading your library from iCloud (\(evictedFiles.count) files)…"
+            await Task.detached(priority: .userInitiated) { LibraryHydration.download(evictedFiles) }.value
+        }
+        slowNotice.cancel()
+#endif
+
         status = "Preparing your saved workouts…"
         await Task.detached(priority: .userInitiated) { MigrationManager.migrateIfNeeded() }.value
         completedSteps = 1

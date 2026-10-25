@@ -1072,15 +1072,50 @@ private struct SlotArcSurface: View {
     let placement: SlotNavigationPlacement
     let curveOffset: CGFloat
     let expansion: CGFloat
+    #if os(macOS)
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    #endif
 
     var body: some View {
         let shape = SlotArcShape(edgeExtension: edgeSafeArea, placement: placement, curveOffset: curveOffset, expansion: expansion)
+        #if os(macOS)
+        glassSurface(shape)
+        #else
         shape
             .fill(theme.surface)
             .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: -8 * placement.outwardSign)
-            .overlay {
-                SlotArcLineShape(curveOffset: curveOffset, placement: placement, expansion: expansion)
-                    .stroke(theme.rim, lineWidth: 1)
-            }
+            .overlay { rim }
+        #endif
     }
+
+    private var rim: some View {
+        SlotArcLineShape(curveOffset: curveOffset, placement: placement, expansion: expansion)
+            .stroke(theme.rim, lineWidth: 1)
+    }
+
+    #if os(macOS)
+    @ViewBuilder
+    private func glassSurface(_ shape: SlotArcShape) -> some View {
+        let shadow = Color.black.opacity(0.5)
+        let lift = -8 * placement.outwardSign
+        if reduceTransparency {
+            shape
+                .fill(theme.surface)
+                .shadow(color: shadow, radius: 12, x: 0, y: lift)
+                .overlay { rim }
+        } else if #available(macOS 26.0, *) {
+            shape
+                .fill(theme.surface.opacity(0.5))
+                .glassEffect(.regular.tint(Color.black.opacity(0.45)), in: shape)
+                .shadow(color: shadow, radius: 12, x: 0, y: lift)
+                .overlay { rim }
+        } else {
+            shape
+                .fill(.regularMaterial)
+                .overlay { shape.fill(theme.surface.opacity(0.55)) }
+                .shadow(color: shadow, radius: 12, x: 0, y: lift)
+                .overlay { rim }
+        }
+    }
+    #endif
 }

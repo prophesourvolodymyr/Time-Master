@@ -149,7 +149,6 @@ private struct TimeMasterNavigationTitle: ViewModifier {
         #if os(macOS)
         content
             .everPageOpening()
-            .navigationTitle("")
             .preference(key: MacWindowTitlePreferenceKey.self, value: TimeMasterFont.initialCapitalizedTitle(title))
             .toolbarBackground(Theme.background, for: .windowToolbar)
             .toolbarBackground(.visible, for: .windowToolbar)

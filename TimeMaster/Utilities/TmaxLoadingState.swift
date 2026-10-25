@@ -78,6 +78,10 @@ struct TmaxLoadingState: View {
                 .padding(contentPadding)
                 .frame(maxWidth: .infinity)
             }
+            #if os(macOS)
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+            #endif
         }
         .overlayPreferenceValue(TmaxStartupLogoFrameKey.self) { anchor in
             GeometryReader { proxy in

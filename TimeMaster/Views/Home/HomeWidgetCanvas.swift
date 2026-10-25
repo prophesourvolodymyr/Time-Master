@@ -29,11 +29,18 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
 
     var body: some View {
         GeometryReader { viewport in
-            let width = max(1, min(viewport.size.width, 760) - HomeWidgetSizing.canvasPadding * 2)
+            let width = HomeWidgetSizing.contentWidth(forViewportWidth: viewport.size.width)
             let widgets = arrangedWidgets
-            let grid = HomeWidgetGrid(widgets: widgets, width: width, greetingHeight: greetingHeight)
+            let grid = HomeWidgetGrid(
+                widgets: widgets, width: width,
+                cells: HomeWidgetSizing.cellCount(forContentWidth: width),
+                greetingHeight: greetingHeight
+            )
             let frame = viewport.frame(in: .global)
             let dragViewport = frame.intersection(navigationBounds ?? frame)
+            #if os(macOS)
+            let layoutKey = HomeWidgetLayoutKey(widgets: widgets)
+            #endif
 
             ScrollViewReader { scroll in
                 ScrollingChrome(metrics: {
@@ -60,7 +67,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                                 let slot = grid.frames[widget.id] ?? .zero
                                 let active = interaction?.id == widget.id
                                 let frame = active ? interaction!.frame : slot
-                                let leadingGrip = active ? interaction!.originalFrame.minX > 0 : slot.minX > 0
+                                let leadingGrip = active ? interaction!.anchorsTrailing : grid.trailingSlotIDs.contains(widget.id)
                                 HomeWidgetTile(
                                     widget: widget,
                                     isEditing: isEditing,
@@ -80,7 +87,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                                 .overlay {
                                     if isEditing {
                                         HomeWidgetGestureSurface(resizing: false, viewport: dragViewport) { phase, translation in
-                                            updateInteraction(phase, translation: translation, widget: widget, slot: slot, width: width, resizing: false)
+                                            updateInteraction(phase, translation: translation, widget: widget, grid: grid, resizing: false)
                                         }
                                         .accessibilityHidden(true)
                                     }
@@ -94,7 +101,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                                 .overlay(alignment: leadingGrip ? .bottomLeading : .bottomTrailing) {
                                     if isEditing && widget.kind.supportedFootprints.count > 1 {
                                         resizeHandle(widget, leading: leadingGrip, viewport: dragViewport) { phase, translation in
-                                            updateInteraction(phase, translation: translation, widget: widget, slot: slot, width: width, resizing: true)
+                                            updateInteraction(phase, translation: translation, widget: widget, grid: grid, resizing: true)
                                         }
                                     }
                                 }
@@ -108,10 +115,17 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                                         .offset(x: -8, y: -22)
                                     }
                                 }
+                                #if os(macOS)
+                                .contextMenu { tileContextMenu(widget) }
+                                #endif
                                 .scaleEffect(active && interaction?.resizing == false && !reduceMotion ? 1.035 : 1)
                                 .shadow(color: .black.opacity(active ? 0.32 : 0), radius: active ? 20 : 0, y: active ? 12 : 0)
                                 .position(x: frame.midX, y: frame.midY)
+                                #if os(macOS)
+                                .animation(active ? nil : layoutAnimation, value: layoutKey)
+                                #else
                                 .animation(active ? nil : layoutAnimation, value: frame)
+                                #endif
                                 .animation(layoutAnimation, value: active)
                                 .zIndex(active ? 2 : 0)
                                 .transition(reduceMotion ? .opacity : .asymmetric(
@@ -130,7 +144,11 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                         .padding(.vertical, 24)
                     }
                     .frame(maxWidth: .infinity)
+                    #if os(macOS)
+                    .padding(.bottom, max(0, frame.maxY - dragViewport.maxY, viewport.safeAreaInsets.bottom))
+                    #else
                     .padding(.bottom, max(0, frame.maxY - dragViewport.maxY))
+                    #endif
                 } header: { progress, metrics in
                     chromeHeader(progress, metrics)
                 }
@@ -150,7 +168,9 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                 }
             }
         }
+        #if !os(macOS)
         .clipped()
+        #endif
         .onChange(of: isEditing) { _ in cancelInteraction() }
         .onChange(of: scenePhase) { phase in
             if phase != .active { cancelInteraction() }
@@ -176,39 +196,44 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
 
     private func updateInteraction(
         _ phase: HomeWidgetGesturePhase, translation: CGSize,
-        widget: HomeWidgetInstance, slot: CGRect, width: CGFloat, resizing: Bool
+        widget: HomeWidgetInstance, grid: HomeWidgetGrid, resizing: Bool
     ) {
         guard isEditing else { return }
         switch phase {
         case .began:
             guard interaction == nil else { return }
+            let slot = grid.frames[widget.id] ?? .zero
             previewOrder = widgetStore.widgets.map(\.id)
-            interaction = HomeWidgetInteraction(id: widget.id, originalFrame: slot, frame: slot, resizing: resizing)
+            interaction = HomeWidgetInteraction(
+                id: widget.id, originalFrame: slot, frame: slot, resizing: resizing,
+                anchorsTrailing: grid.trailingSlotIDs.contains(widget.id)
+            )
         case .changed:
             guard var current = interaction, current.id == widget.id else { return }
             if resizing {
-                let leading = current.originalFrame.minX > 0
-                let sizes = widget.kind.supportedFootprints.map { HomeWidgetGrid.size($0, width: width) }
-                let minWidth = sizes.map(\.width).min() ?? slot.width
-                let maxHeight = sizes.map(\.height).max() ?? slot.height
-                let minHeight = sizes.map(\.height).min() ?? slot.height
+                let leading = current.anchorsTrailing
+                let sizes = widget.kind.supportedFootprints.map(grid.size)
+                let minWidth = sizes.map(\.width).min() ?? current.originalFrame.width
+                let maxWidth = sizes.map(\.width).max() ?? current.originalFrame.width
+                let maxHeight = sizes.map(\.height).max() ?? current.originalFrame.height
+                let minHeight = sizes.map(\.height).min() ?? current.originalFrame.height
                 let proposedWidth = current.originalFrame.width + translation.width * (leading ? -1 : 1)
                 let proposedHeight = current.originalFrame.height + translation.height
                 let size = CGSize(
-                    width: rubberBand(proposedWidth, minimum: minWidth, maximum: width),
+                    width: rubberBand(proposedWidth, minimum: minWidth, maximum: maxWidth),
                     height: rubberBand(proposedHeight, minimum: minHeight, maximum: maxHeight)
                 )
                 current.frame = CGRect(
                     x: leading ? current.originalFrame.maxX - size.width : current.originalFrame.minX,
                     y: current.originalFrame.minY, width: size.width, height: size.height
                 )
-                let nearest = HomeWidgetGrid.nearestFootprint(to: size, supported: widget.kind.supportedFootprints, width: width)
+                let nearest = grid.nearestFootprint(to: size, supported: widget.kind.supportedFootprints)
                 if nearest != previewFootprint { previewFootprint = nearest }
             } else {
                 current.frame = current.originalFrame.offsetBy(dx: translation.width, dy: translation.height)
             }
             interaction = current
-            if !resizing { updateOrder(for: current, width: width) }
+            if !resizing { updateOrder(for: current, grid: grid) }
         case .ended:
             guard let current = interaction else { return }
             withAnimation(layoutAnimation) {
@@ -224,7 +249,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
         }
     }
 
-    private func updateOrder(for current: HomeWidgetInteraction, width: CGFloat) {
+    private func updateOrder(for current: HomeWidgetInteraction, grid: HomeWidgetGrid) {
         let widgets = arrangedWidgets
         guard let moving = widgets.first(where: { $0.id == current.id }),
               let oldIndex = widgets.firstIndex(where: { $0.id == current.id }) else { return }
@@ -235,8 +260,10 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
         for index in 0...remaining.count {
             var candidate = remaining
             candidate.insert(moving, at: index)
-            let grid = HomeWidgetGrid(widgets: candidate, width: width, greetingHeight: greetingHeight)
-            guard let target = grid.frames[current.id] else { continue }
+            let candidateGrid = HomeWidgetGrid(
+                widgets: candidate, width: grid.width, cells: grid.cells, greetingHeight: greetingHeight
+            )
+            guard let target = candidateGrid.frames[current.id] else { continue }
             let distance = hypot(target.midX - current.frame.midX, target.midY - current.frame.midY)
             if index == oldIndex { currentDistance = distance }
             if distance < bestDistance {
@@ -267,10 +294,14 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
         withAnimation(layoutAnimation) { widgetStore.move(id: widget.id, toIndex: index + delta) }
     }
 
+    private func remove(_ widget: HomeWidgetInstance) {
+        cancelInteraction()
+        withAnimation(layoutAnimation) { widgetStore.remove(id: widget.id) }
+    }
+
     private func removeButton(_ widget: HomeWidgetInstance) -> some View {
         Button(role: .destructive) {
-            cancelInteraction()
-            withAnimation(layoutAnimation) { widgetStore.remove(id: widget.id) }
+            remove(widget)
         } label: {
             Image(systemName: "minus")
                 .font(.system(size: 15, weight: .bold))
@@ -295,6 +326,9 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
             .frame(width: 44, height: 44)
             .background { HomeWidgetGestureSurface(resizing: true, viewport: viewport, onChange: onChange) }
             .contentShape(Rectangle())
+            #if os(macOS)
+            .modifier(HomeWidgetResizeGripAffordance(leading: leading))
+            #endif
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Resize \(widget.kind.title)")
             .accessibilityValue(widget.footprint.accessibilityName)
@@ -307,6 +341,22 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                 withAnimation(layoutAnimation) { widgetStore.updateFootprint(sizes[next], for: widget.id) }
             }
     }
+
+    #if os(macOS)
+    @ViewBuilder
+    private func tileContextMenu(_ widget: HomeWidgetInstance) -> some View {
+        let options = HomeWidgetOptions(widget: widget, widgetStore: widgetStore, workoutStore: workoutStore)
+        options.menuItems
+        if options.hasItems { Divider() }
+        if isEditing {
+            Button("Remove Widget", systemImage: "minus.circle", role: .destructive) { remove(widget) }
+        } else {
+            Button("Edit Layout", systemImage: "pencil") {
+                withAnimation(layoutAnimation) { isEditing = true }
+            }
+        }
+    }
+    #endif
 }
 
 private struct HomeWidgetTile: View {
@@ -359,11 +409,14 @@ private struct HomeWidgetOptions: View {
     @ObservedObject var widgetStore: HomeWidgetStore
     @ObservedObject var workoutStore: WorkoutStore
 
+    var hasItems: Bool {
+        widget.kind.supportsOptions || widget.kind.supportedFootprints.count > 1
+    }
+
     var body: some View {
-        if widget.kind.supportsOptions || widget.kind.supportedFootprints.count > 1 {
+        if hasItems {
             Menu {
-                if widget.kind.supportsOptions { optionsMenu }
-                if widget.kind.supportedFootprints.count > 1 { footprintMenu }
+                menuItems
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16, weight: .bold))
@@ -374,8 +427,17 @@ private struct HomeWidgetOptions: View {
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
+            #if os(macOS)
+            .menuIndicator(.hidden)
+            #endif
             .accessibilityLabel("Edit \(widget.kind.title) options")
         }
+    }
+
+    @ViewBuilder
+    var menuItems: some View {
+        if widget.kind.supportsOptions { optionsMenu }
+        if widget.kind.supportedFootprints.count > 1 { footprintMenu }
     }
 
     @ViewBuilder
@@ -553,9 +615,22 @@ private struct HomeWidgetInteraction {
     let originalFrame: CGRect
     var frame: CGRect
     let resizing: Bool
+    let anchorsTrailing: Bool
 }
 
-private struct HomeWidgetResizeGrip: Shape {
+#if os(macOS)
+private struct HomeWidgetLayoutKey: Equatable {
+    let ids: [UUID]
+    let footprints: [HomeWidgetFootprint]
+
+    init(widgets: [HomeWidgetInstance]) {
+        ids = widgets.map(\.id)
+        footprints = widgets.map(\.footprint)
+    }
+}
+#endif
+
+struct HomeWidgetResizeGrip: Shape {
     let leading: Bool
 
     func path(in rect: CGRect) -> Path {
@@ -574,7 +649,7 @@ private struct HomeWidgetResizeGrip: Shape {
     }
 }
 
-private enum HomeWidgetGesturePhase { case began, changed, ended, cancelled }
+enum HomeWidgetGesturePhase { case began, changed, ended, cancelled }
 
 #if os(iOS)
 private struct HomeWidgetGestureSurface: UIViewRepresentable {
@@ -697,40 +772,6 @@ private struct HomeWidgetGestureSurface: UIViewRepresentable {
             scrollView = nil
             parent.onChange(cancelled ? .cancelled : .ended, .zero)
         }
-    }
-}
-#else
-private struct HomeWidgetGestureSurface: View {
-    let resizing: Bool
-    let viewport: CGRect
-    let onChange: (HomeWidgetGesturePhase, CGSize) -> Void
-    @GestureState private var touching = false
-    @State private var active = false
-
-    var body: some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: resizing ? 0 : 6)
-                    .updating($touching) { _, state, _ in state = true }
-                    .onChanged { value in
-                        if !active {
-                            active = true
-                            onChange(.began, .zero)
-                        }
-                        onChange(.changed, value.translation)
-                    }
-                    .onEnded { _ in
-                        active = false
-                        onChange(.ended, .zero)
-                    }
-            )
-            .onChange(of: touching) { touching in
-                if !touching && active {
-                    active = false
-                    onChange(.cancelled, .zero)
-                }
-            }
     }
 }
 #endif

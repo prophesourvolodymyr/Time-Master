@@ -81,6 +81,27 @@ enum HomeWidgetSizing {
     static let canvasPadding: CGFloat = 16
     static let cornerRadius: CGFloat = 26
     static let spacing: CGFloat = 14
+
+    #if os(macOS)
+    private static let maximumCanvasWidth: CGFloat = 1100
+    private static let minimumCellWidth: CGFloat = 340
+    #else
+    private static let maximumCanvasWidth: CGFloat = 760
+    #endif
+
+    static func contentWidth(forViewportWidth viewportWidth: CGFloat) -> CGFloat {
+        max(1, min(viewportWidth, maximumCanvasWidth) - canvasPadding * 2)
+    }
+
+    /// Number of wide-footprint columns ("cells") that fit the content width. A cell is one
+    /// phone-sized canvas: Small widgets pair up inside it, Medium and Large fill it.
+    static func cellCount(forContentWidth width: CGFloat) -> Int {
+        #if os(macOS)
+        max(1, Int(((width + spacing) / (minimumCellWidth + spacing)).rounded(.down)))
+        #else
+        1
+        #endif
+    }
 }
 
 enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
@@ -308,56 +329,92 @@ enum HomeWidgetCatalog {
 
 struct HomeWidgetGrid {
     let frames: [UUID: CGRect]
+    let trailingSlotIDs: Set<UUID>
     let height: CGFloat
+    let width: CGFloat
+    let cells: Int
+    let cellWidth: CGFloat
 
-    init(widgets: [HomeWidgetInstance], width: CGFloat, greetingHeight: CGFloat) {
+    init(widgets: [HomeWidgetInstance], width: CGFloat, cells: Int, greetingHeight: CGFloat) {
         let gap = HomeWidgetSizing.spacing
+        let cells = max(1, cells)
+        let cellWidth = (width - gap * CGFloat(cells - 1)) / CGFloat(cells)
         var frames: [UUID: CGRect] = [:]
+        var trailing: Set<UUID> = []
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
-        var secondColumn = false
+        var cell = 0
+        var leftTaken = false
+
+        func startRow() {
+            y += rowHeight + gap
+            rowHeight = 0
+            cell = 0
+            leftTaken = false
+        }
+
         for widget in widgets {
-            let compact = widget.footprint == .compact && widget.kind != .greeting
-            if !compact && secondColumn {
-                y += rowHeight + gap
-                secondColumn = false
-                rowHeight = 0
+            let size: CGSize
+            let x: CGFloat
+            if widget.kind == .greeting {
+                if cell > 0 || leftTaken { startRow() }
+                size = CGSize(width: width, height: greetingHeight)
+                x = 0
+                cell = cells
+            } else if widget.footprint.columnSpan == 1 {
+                size = Self.size(widget.footprint, cellWidth: cellWidth)
+                if leftTaken {
+                    x = CGFloat(cell) * (cellWidth + gap) + (cellWidth + gap) / 2
+                    trailing.insert(widget.id)
+                    leftTaken = false
+                    cell += 1
+                } else {
+                    if cell == cells { startRow() }
+                    x = CGFloat(cell) * (cellWidth + gap)
+                    leftTaken = true
+                }
+            } else {
+                if leftTaken {
+                    leftTaken = false
+                    cell += 1
+                }
+                if cell == cells { startRow() }
+                size = Self.size(widget.footprint, cellWidth: cellWidth)
+                x = CGFloat(cell) * (cellWidth + gap)
+                cell += 1
             }
-            let size = widget.kind == .greeting
-                ? CGSize(width: width, height: greetingHeight)
-                : Self.size(widget.footprint, width: width)
-            let x = compact && secondColumn ? (width + gap) / 2 : 0
             frames[widget.id] = CGRect(origin: CGPoint(x: x, y: y), size: size)
             rowHeight = max(rowHeight, size.height)
-            if compact && !secondColumn {
-                secondColumn = true
-            } else {
-                y += rowHeight + gap
-                rowHeight = 0
-                secondColumn = false
-            }
+            if cell == cells && !leftTaken { startRow() }
         }
+
         self.frames = frames
-        height = max(0, secondColumn ? y + rowHeight : y - gap)
+        self.trailingSlotIDs = trailing
+        self.width = width
+        self.cells = cells
+        self.cellWidth = cellWidth
+        height = max(0, cell > 0 || leftTaken ? y + rowHeight : y - gap)
     }
 
-    static func size(_ footprint: HomeWidgetFootprint, width: CGFloat) -> CGSize {
-        let small = (width - HomeWidgetSizing.spacing) / 2
-        switch footprint {
-        case .compact: return CGSize(width: small, height: small)
-        case .wide: return CGSize(width: width, height: small)
-        case .square: return CGSize(width: width, height: width)
-        }
+    func size(_ footprint: HomeWidgetFootprint) -> CGSize {
+        Self.size(footprint, cellWidth: cellWidth)
     }
 
-    static func nearestFootprint(
-        to size: CGSize, supported: [HomeWidgetFootprint], width: CGFloat
-    ) -> HomeWidgetFootprint {
+    func nearestFootprint(to size: CGSize, supported: [HomeWidgetFootprint]) -> HomeWidgetFootprint {
         supported.min { left, right in
-            let lhs = Self.size(left, width: width)
-            let rhs = Self.size(right, width: width)
+            let lhs = self.size(left)
+            let rhs = self.size(right)
             return hypot(lhs.width - size.width, lhs.height - size.height)
                 < hypot(rhs.width - size.width, rhs.height - size.height)
         } ?? .wide
+    }
+
+    private static func size(_ footprint: HomeWidgetFootprint, cellWidth: CGFloat) -> CGSize {
+        let small = (cellWidth - HomeWidgetSizing.spacing) / 2
+        switch footprint {
+        case .compact: return CGSize(width: small, height: small)
+        case .wide: return CGSize(width: cellWidth, height: small)
+        case .square: return CGSize(width: cellWidth, height: cellWidth)
+        }
     }
 }

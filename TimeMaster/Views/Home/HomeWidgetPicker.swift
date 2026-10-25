@@ -8,12 +8,20 @@ struct HomeWidgetPicker: View {
     @ObservedObject var widgetStore: HomeWidgetStore
     let onAdd: (HomeWidgetKind, HomeWidgetFootprint) -> Void
 
+    #if os(macOS)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 16, alignment: .top), count: 2)
+    #else
     private let columns = [GridItem(.flexible())]
+    #endif
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 30) {
+                    #if os(macOS)
+                    TimeMasterPageTitle("Add Widget", size: 30, relativeTo: .title)
+                        .foregroundStyle(Theme.textPrimary)
+                    #endif
                     ForEach(HomeWidgetCategory.allCases) { category in
                         let widgets = widgetStore.availableKinds.filter { $0.category == category }
                         if !widgets.isEmpty {
@@ -34,6 +42,9 @@ struct HomeWidgetPicker: View {
             }
         }
         .preferredColorScheme(.dark)
+        #if os(macOS)
+        .frame(minWidth: 700, idealWidth: 760, minHeight: 520, idealHeight: 720)
+        #endif
     }
 
     @ViewBuilder
@@ -47,11 +58,19 @@ struct HomeWidgetPicker: View {
                 .foregroundStyle(Theme.textPrimary)
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                ForEach(widgets) { kind in
+                ForEach(arranged(widgets)) { kind in
                     widgetCard(kind)
                 }
             }
         }
+    }
+
+    private func arranged(_ widgets: [HomeWidgetKind]) -> [HomeWidgetKind] {
+        #if os(macOS)
+        widgets.filter { pickerFootprint(for: $0) != .square } + widgets.filter { pickerFootprint(for: $0) == .square }
+        #else
+        widgets
+        #endif
     }
 
     private func pickerFootprint(for kind: HomeWidgetKind) -> HomeWidgetFootprint {

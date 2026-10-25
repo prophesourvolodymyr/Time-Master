@@ -10,11 +10,18 @@ import AppKit
 struct TmaxApp: App {
     @StateObject private var startup = TmaxStartupModel()
 
+#if os(macOS)
+    init() {
+        UserDefaults.standard.register(defaults: ["ApplePersistenceIgnoreState": true])
+    }
+#endif
+
     var body: some Scene {
         WindowGroup("Tmax") {
             TmaxRootView(startup: startup)
                 .preferredColorScheme(.dark)
 #if os(macOS)
+                .macInterfaceZoom()
                 .modifier(MacWindowChrome())
                 .toolbarBackground(Theme.background, for: .windowToolbar)
                 .toolbarBackground(.visible, for: .windowToolbar)
@@ -23,6 +30,7 @@ struct TmaxApp: App {
         }
 #if os(macOS)
         .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1000, height: 780)
         .commands { TmaxCommands(); PhysiqueNativeCommands() }
 #endif
     }

@@ -68,6 +68,7 @@
 		0FF07F520EC775C2D99D730C /* ProfileCollectiblesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF541F05C4FCBDBB9E3A9C5C /* ProfileCollectiblesView.swift */; };
 		1029743E08FFCABCCB3361EE /* Inter-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = DA06334D9FD03546F26175ED /* Inter-Black.ttf */; };
 		11EBDDA32870EBD38CC6EBE4 /* DatabaseSectionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */; };
+		12746E356B5C75E0F7BFFB20 /* LibraryHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D7A5F84628F06F5A196BFC1 /* LibraryHydration.swift */; };
 		12826296138B406E520D5ED5 /* PhysiqueCamera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BAF57FAA2C99851D7C32472 /* PhysiqueCamera.swift */; };
 		12F7AAFA24A3982C9CBEEC87 /* OutdoorLiveContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7B32138339076BA55E2078 /* OutdoorLiveContent.swift */; };
 		1304AA5A6EDDB7CADB124B0A /* EverSpacetimeCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7EF354272EE0915038117F9 /* EverSpacetimeCanvas.swift */; };
@@ -191,6 +192,7 @@
 		3A0F9D922F125196542FFBF1 /* OutdoorActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01618C53E4137D7AC1CB4DCF /* OutdoorActivityStore.swift */; };
 		3A597591485A90E63BE698C1 /* SettingsRootContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E390E931AB1D067DD94F2FC /* SettingsRootContent.swift */; };
 		3ABBEA2774D0FEBFBEB239DC /* PhysiqueStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6BC308CE8231B65476117A5 /* PhysiqueStatusView.swift */; };
+		3AC4AF99B9C3F56B704BC6F2 /* MacSheetToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB7AD0C4EF46C5F9896A989 /* MacSheetToolbar.swift */; };
 		3ADF98953F934302D315ED4D /* ExercisePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1521D9DCA4A8F38702E195D6 /* ExercisePage.swift */; };
 		3B4226EB7ADBAD2EB945B88E /* OutdoorMetricsCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B332BC1DDB6BB0093965A456 /* OutdoorMetricsCalculator.swift */; };
 		3B8355F375A4F951F573FFCD /* SlotNavigationOverlayState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B3F0B1E8043288A06C69497 /* SlotNavigationOverlayState.swift */; };
@@ -328,6 +330,7 @@
 		6AF2F0DA33DF607E3BA97D9E /* WorkoutResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6957E395CCFFEE6C589650 /* WorkoutResumeManager.swift */; };
 		6B201BE5D8D6C8685E62EC17 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D582991CAE01E1427BA7D5B /* KeychainHelper.swift */; };
 		6BD3FD050F3BDAD0AEB79E4F /* PhysiqueResultCelebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E103C2AD4238FA4C3D150E2 /* PhysiqueResultCelebration.swift */; };
+		6BF6B0BE6737D83606AA590C /* LibraryHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D7A5F84628F06F5A196BFC1 /* LibraryHydration.swift */; };
 		6C4A94D8E37BEE0F25824ABA /* HomeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 330EF96B497C63642640EBD3 /* HomeWidget.swift */; };
 		6D65CA0266393B73CF46D035 /* PhysiqueIdentityRail.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4F573BAF3EA86E8057FD38A /* PhysiqueIdentityRail.swift */; };
 		6EA2C0008F346704CFE2CE0D /* PhysiquePolicyTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8446042FCF4842D6CFA14733 /* PhysiquePolicyTransport.swift */; };
@@ -351,6 +354,8 @@
 		77C75331D5DFAC32DCD06E1C /* OutdoorSelectionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */; };
 		7826F23AF768FC4CF29607F3 /* MacVideoWorkspaceItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E6113836D769E1EBA6AD5A /* MacVideoWorkspaceItem.swift */; };
 		782B9D5AB04A08739419EA34 /* HomeWidgetCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */; };
+		78555F86E7811DF3A1A369C4 /* MacSheetToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB7AD0C4EF46C5F9896A989 /* MacSheetToolbar.swift */; };
+		789D08E9D9A5460FCC0D97A9 /* HomeWidgetMacInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A68E177F2D032AEF2DC4D6 /* HomeWidgetMacInteraction.swift */; };
 		799EFBBC8EC17CA89623F013 /* VideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84C07B8E3BBB5EBD2D7DCAA3 /* VideoEditorView.swift */; };
 		7A12C8084C292EA0A6832DFC /* OutdoorTripPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9230F02AB8D6DD1D8D9C8133 /* OutdoorTripPlannerView.swift */; };
 		7A59CBFB31BA59255087FD13 /* StoreArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8875009322F4382C939D9A2 /* StoreArtwork.swift */; };
@@ -562,6 +567,7 @@
 		BE3726B086212A962BD8182F /* RankedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219488DCCB92B70817DE9422 /* RankedModels.swift */; };
 		BE403A955DCCF47DA3FEF705 /* ProfileAchievementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8646F29B8AD50C07A1A9CFF7 /* ProfileAchievementsView.swift */; };
 		BECECBD1EA1C607F87B7D0C3 /* TmaxCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96E480F0A938E2F0E46CE3F1 /* TmaxCommands.swift */; };
+		BEF2256BFDECBFF3EEF496FD /* HomeWidgetMacInteraction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A68E177F2D032AEF2DC4D6 /* HomeWidgetMacInteraction.swift */; };
 		BF5118731467CB9CA2F708BE /* RankedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E55E14C7F15B6B9D92D27D /* RankedComponents.swift */; };
 		BF6131BD41B98620B57C11F2 /* PhysiquePolicyTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8446042FCF4842D6CFA14733 /* PhysiquePolicyTransport.swift */; };
 		BFB45F8219EE3236FE12CF44 /* AppInteractionHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D97CB326DD46A9DF709EDB00 /* AppInteractionHaptics.swift */; };
@@ -823,6 +829,7 @@
 		14438DB74059EF8A6B06B19D /* OutdoorTripPreviewSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripPreviewSummary.swift; sourceTree = "<group>"; };
 		147E3BD8DE078C3FE350F602 /* PageCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageCardView.swift; sourceTree = "<group>"; };
 		1521D9DCA4A8F38702E195D6 /* ExercisePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExercisePage.swift; sourceTree = "<group>"; };
+		15A68E177F2D032AEF2DC4D6 /* HomeWidgetMacInteraction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetMacInteraction.swift; sourceTree = "<group>"; };
 		15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseStore.swift; sourceTree = "<group>"; };
 		15F6422AB583F830FD010433 /* PhysiqueAthleteIllustration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueAthleteIllustration.swift; sourceTree = "<group>"; };
 		16116A4AB32B264D7B62F9EC /* PhysiqueReviewComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueReviewComposerView.swift; sourceTree = "<group>"; };
@@ -840,6 +847,7 @@
 		1C43508BAD6948505C29F8E4 /* OutdoorRouteRecordingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRouteRecordingUITests.swift; sourceTree = "<group>"; };
 		1CD355F4E800C9A368C6CE1F /* LocalPostComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalPostComposerView.swift; sourceTree = "<group>"; };
 		1D38FCFE26168FC6DE39D8C6 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
+		1D7A5F84628F06F5A196BFC1 /* LibraryHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryHydration.swift; sourceTree = "<group>"; };
 		1FF9944203E54CAB933582B8 /* TimeMasterGlassControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterGlassControls.swift; sourceTree = "<group>"; };
 		211FBA1E3777CB29A3DC4D9A /* SchedulePlansSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulePlansSheet.swift; sourceTree = "<group>"; };
 		21658C2964F1C26C78786FC3 /* DatabaseSectionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSectionPickerView.swift; sourceTree = "<group>"; };
@@ -1101,6 +1109,7 @@
 		CED9DF2FD706E1FCDC8B9E7C /* ScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleView.swift; sourceTree = "<group>"; };
 		CEF1316E66A8713FE9790891 /* TimeMasterTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TimeMasterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CF541F05C4FCBDBB9E3A9C5C /* ProfileCollectiblesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileCollectiblesView.swift; sourceTree = "<group>"; };
+		CFB7AD0C4EF46C5F9896A989 /* MacSheetToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacSheetToolbar.swift; sourceTree = "<group>"; };
 		D0E979AE3B62E51D54E10AB4 /* OutdoorPrivacyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorPrivacyService.swift; sourceTree = "<group>"; };
 		D142A4D421FFD74BB77ADBCE /* OutdoorQuickSettingsPine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorQuickSettingsPine.swift; sourceTree = "<group>"; };
 		D143361F400DC63A83FDDDE2 /* PhysiqueBattleBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueBattleBackground.swift; sourceTree = "<group>"; };
@@ -1452,6 +1461,7 @@
 			isa = PBXGroup;
 			children = (
 				A8AE234B87DE0EB9F718C9BD /* MacInterfaceZoom.swift */,
+				CFB7AD0C4EF46C5F9896A989 /* MacSheetToolbar.swift */,
 				E9A4096D46ECC417B25BA0C5 /* MacWindowChrome.swift */,
 				3EAA3E14F5A8169A3C5D2E49 /* TmaxApp.swift */,
 				96E480F0A938E2F0E46CE3F1 /* TmaxCommands.swift */,
@@ -1853,6 +1863,7 @@
 			children = (
 				A1982E564F4214D2342CB79D /* HomeDashboardView.swift */,
 				A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */,
+				15A68E177F2D032AEF2DC4D6 /* HomeWidgetMacInteraction.swift */,
 				CEA516C7C1A9687022D33978 /* HomeWidgetPicker.swift */,
 				99980AE3FE3003D51B9296C3 /* HomeWidgetViews.swift */,
 			);
@@ -1862,6 +1873,7 @@
 		E77C50DF73EE34BD211B8CF4 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				1D7A5F84628F06F5A196BFC1 /* LibraryHydration.swift */,
 				A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */,
 				50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */,
 				18C92EF761CE54686C4177F7 /* MusicProviderAdapters.swift */,
@@ -2195,6 +2207,7 @@
 				58F48894A2463CFC841E7755 /* HomeToday.swift in Sources */,
 				6C4A94D8E37BEE0F25824ABA /* HomeWidget.swift in Sources */,
 				782B9D5AB04A08739419EA34 /* HomeWidgetCanvas.swift in Sources */,
+				BEF2256BFDECBFF3EEF496FD /* HomeWidgetMacInteraction.swift in Sources */,
 				00475B10D54B98E90FB9CC20 /* HomeWidgetPicker.swift in Sources */,
 				D128CD068E8406DB958597D6 /* HomeWidgetStore.swift in Sources */,
 				1E558892B824F7939B8184D4 /* HomeWidgetViews.swift in Sources */,
@@ -2203,6 +2216,7 @@
 				E8A703AE981846A52382B5A4 /* ImportedProfileChrome.swift in Sources */,
 				5D4027B7C57E60E7488DA5F4 /* ImportedProfileControls.swift in Sources */,
 				F935766F4C0248DC6754248D /* KeychainHelper.swift in Sources */,
+				6BF6B0BE6737D83606AA590C /* LibraryHydration.swift in Sources */,
 				8F7DDF3198AAB913DB806D4C /* LocalPostComposerView.swift in Sources */,
 				DDA3E5FA0A74807754FD1109 /* LocalPostThreadView.swift in Sources */,
 				36D62C99320DEE256AE1E715 /* LocalPostsView.swift in Sources */,
@@ -2212,6 +2226,7 @@
 				AEC86BB435945E5580F518C3 /* LocalProfileStore.swift in Sources */,
 				A8E33311034B7C801C07CDAB /* MacFilePicker.swift in Sources */,
 				0D456AACAC77349DDBDD0295 /* MacInterfaceZoom.swift in Sources */,
+				78555F86E7811DF3A1A369C4 /* MacSheetToolbar.swift in Sources */,
 				F90F8FE3E8BAFB1D4B47BF79 /* MacVideoAddSourcesSheet.swift in Sources */,
 				4692522E636D242DDBB76692 /* MacVideoDatabaseImporter.swift in Sources */,
 				90F67F23C5E12ED3F7D9E680 /* MacVideoDownloadService.swift in Sources */,
@@ -2559,6 +2574,7 @@
 				C4AF43C7C1323D3F6C8B8DEC /* HomeToday.swift in Sources */,
 				D8A1E60796D329D723DD081E /* HomeWidget.swift in Sources */,
 				C206040FFD075C7DD6E7F8A6 /* HomeWidgetCanvas.swift in Sources */,
+				789D08E9D9A5460FCC0D97A9 /* HomeWidgetMacInteraction.swift in Sources */,
 				5F8E08DAED70C78A662F2D22 /* HomeWidgetPicker.swift in Sources */,
 				A802AB1D0131F16F5807566D /* HomeWidgetStore.swift in Sources */,
 				89888AC21A3F4127A4406DA9 /* HomeWidgetViews.swift in Sources */,
@@ -2567,6 +2583,7 @@
 				3D0E06C5D5B6A4B2D8CBC8F9 /* ImportedProfileChrome.swift in Sources */,
 				3FDDB2DD7C66DD9644B456C5 /* ImportedProfileControls.swift in Sources */,
 				6B201BE5D8D6C8685E62EC17 /* KeychainHelper.swift in Sources */,
+				12746E356B5C75E0F7BFFB20 /* LibraryHydration.swift in Sources */,
 				B3DDB5796B4E2A8F36D6CB95 /* LocalPostComposerView.swift in Sources */,
 				B2354993068D8FC169F1D38C /* LocalPostThreadView.swift in Sources */,
 				13E70877EFAC2C2859978825 /* LocalPostsView.swift in Sources */,
@@ -2576,6 +2593,7 @@
 				35C2C7D1F61577C967549F6A /* LocalProfileStore.swift in Sources */,
 				BC268E0D78881E52B0CD40BD /* MacFilePicker.swift in Sources */,
 				B92A47EE93A4ECC4C9C0D9E1 /* MacInterfaceZoom.swift in Sources */,
+				3AC4AF99B9C3F56B704BC6F2 /* MacSheetToolbar.swift in Sources */,
 				BDA81455DFD76FA974F90F34 /* MacVideoAddSourcesSheet.swift in Sources */,
 				26A31AF3709B259294075DCC /* MacVideoDatabaseImporter.swift in Sources */,
 				F982C089FE894F470B34954C /* MacVideoDownloadService.swift in Sources */,
