@@ -2421,7 +2421,7 @@ User-requested five-agent implementation. New components reuse the native dark/o
 - [x] Commit and push owned work to origin/main
 - [ ] Human review of bundles, media workflows, navigation motion, native popups, database controls, and Settings
 
-Known limits: the workout bundle-picker strip still uses single selection; four of the five agents hit a usage limit mid-work and were completed by hand, so every item above needs the human review listed.
+Known limits: four of the five agents hit a usage limit mid-work and were completed by hand, so every item above needs the human review listed. Both Database filter strips (root and workout picker) already have the divider after All and multi-select chips.
 
 ---
 
