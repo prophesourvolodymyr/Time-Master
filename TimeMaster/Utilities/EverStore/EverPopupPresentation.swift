@@ -225,8 +225,9 @@ private struct EverMacPopupPresentation<Popup: View>: ViewModifier {
     func body(content: Content) -> some View {
         content.sheet(isPresented: $isPresented, onDismiss: onDismiss) {
             EverMacPopupSheet(isPresented: $isPresented, popup: popup)
-                .frame(minWidth: EverLayout.popupMaximumWidth + EverSpacing.x3 * 2,
-                       minHeight: EverLayout.standardRowMinimum * 10)
+                .frame(minWidth: EverLayout.popupMaximumWidth,
+                       idealWidth: EverLayout.popupMaximumWidth,
+                       maxWidth: EverLayout.maximumReadableWidth)
                 .interactiveDismissDisabled()
         }
     }
@@ -239,6 +240,8 @@ private struct EverMacPopupSheet<Popup: View>: View {
 
     var body: some View {
         EverMacPopupHost(isPresented: $isPresented, stepMotion: stepMotion, popup: popup)
+            .background(Theme.background.ignoresSafeArea())
+            .presentationBackground(Theme.background)
     }
 }
 
@@ -253,6 +256,7 @@ private struct EverMacPopupHost<Popup: View>: NSViewControllerRepresentable {
         let hosting = NSHostingController(rootView: root(environment: context.environment))
         hosting.view.wantsLayer = true
         hosting.view.layer?.backgroundColor = NSColor.clear.cgColor
+        hosting.sizingOptions = [.preferredContentSize]
         stepMotion.host = hosting.view
         return hosting
     }

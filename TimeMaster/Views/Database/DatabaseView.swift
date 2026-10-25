@@ -415,7 +415,7 @@ struct DatabaseView: View {
     @State private var pageToMove: ExercisePage?
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
-    @State private var filterOption: PageFilterOption = .all
+    @State private var selectedWorkoutTypeIDs: Set<String> = []
     @State private var creationPageType: PageType?
     @State private var showingDatabaseSearch = false
     @State private var expandedPageIDs: Set<String> = []
@@ -519,13 +519,11 @@ struct DatabaseView: View {
             .onChange(of: showingAddChildPage) { newValue in
                 if !newValue { childParentPage = nil }
             }
+            #if os(iOS)
             .sheet(isPresented: $showingImport) {
-#if os(macOS)
-                MacVideoImportSheet()
-#else
                 ImportSheetView()
-#endif
             }
+            #endif
             .sheet(isPresented: $showingAddRootNote) {
                 NoteEditorView(folderID: nil).environmentObject(store)
             }
@@ -595,7 +593,7 @@ struct DatabaseView: View {
         [
             ReachabilityAction("video", title: "From Video") {
                 databaseMajorButton(systemImage: "video.badge.plus", title: "From Video", progress: 1, width: 48) {
-                    showingImport = true
+                    presentVideoImport()
                 }
             },
             ReachabilityAction("add", title: "Add", dismissesOnActivation: false) {
@@ -624,7 +622,7 @@ struct DatabaseView: View {
                 progress: progress,
                 width: buttonWidth
             ) {
-                showingImport = true
+                presentVideoImport()
             }
             databaseAddMenu(progress: progress, width: buttonWidth)
             databaseMajorButton(
@@ -636,6 +634,17 @@ struct DatabaseView: View {
                 showingDatabaseSearch = true
             }
         }
+    }
+
+    private func presentVideoImport() {
+        #if os(macOS)
+        MacVideoWorkspaceWindowPresenter.shared.presentImport(
+            databaseStore: store,
+            workoutStore: workoutStore
+        )
+        #else
+        showingImport = true
+        #endif
     }
 
     private func databaseMajorButton(
@@ -884,7 +893,7 @@ struct DatabaseView: View {
         EditButton().foregroundColor(.white)
         #endif
                  }
-        AppToolbar.iconItem(placement: .primaryAction) { Button { showingImport = true } label: {
+        AppToolbar.iconItem(placement: .primaryAction) { Button { presentVideoImport() } label: {
             Image(systemName: "video.badge.plus")
         }
                  }
@@ -929,9 +938,16 @@ struct DatabaseView: View {
         HStack(spacing: 8) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    filterChip(.all, label: "All")
+                    filterChip(nil, label: "All")
+                    if !uniqueWorkoutTypes.isEmpty {
+                        Capsule()
+                            .fill(EverColor.borderStrong)
+                            .frame(width: 1, height: 24)
+                            .padding(.horizontal, 3)
+                            .accessibilityHidden(true)
+                    }
                     ForEach(uniqueWorkoutTypes) { type in
-                        filterChip(.type(type.id), label: type.name)
+                        filterChip(type.id, label: type.name)
                     }
                 }
                 .padding(.leading, 20)
@@ -948,7 +964,7 @@ struct DatabaseView: View {
     private var databaseFilterControls: some View {
         HStack(spacing: 5) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                     isGridMode.toggle()
                 }
             } label: {
@@ -974,17 +990,25 @@ struct DatabaseView: View {
         }
     }
 
-    private func filterChip(_ option: PageFilterOption, label: String) -> some View {
-        let isActive = filterOption == option
+    private func filterChip(_ typeID: String?, label: String) -> some View {
+        let isActive = typeID.map { selectedWorkoutTypeIDs.contains($0) } ?? selectedWorkoutTypeIDs.isEmpty
         return Button {
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
-                filterOption = option
+                if let typeID {
+                    if !selectedWorkoutTypeIDs.insert(typeID).inserted {
+                        selectedWorkoutTypeIDs.remove(typeID)
+                    }
+                } else {
+                    selectedWorkoutTypeIDs.removeAll()
+                }
             }
         } label: {
             Text(label).lineLimit(1).fixedSize()
         }
         .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isActive))
         .accessibilityAddTraits(isActive ? .isSelected : [])
+        .accessibilityHint(typeID == nil ? "Resets workout-type filters" : "Select more than one workout type")
+        .accessibilityIdentifier(typeID.map { "database-filter-\($0)" } ?? "database-filter-all")
     }
 
     private var noResultsView: some View {
@@ -1015,11 +1039,17 @@ struct DatabaseView: View {
         LazyVGrid(columns: gridColumns, spacing: 10) {
             ForEach(visiblePageEntries) { entry in
                 let page = entry.page
-                ZStack(alignment: .topTrailing) {
+                ZStack(alignment: .topLeading) {
                     NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                         pageCard(page, isGridMode: true)
+                            .overlay(alignment: .topTrailing) {
+                                TimeMasterDisclosureIndicator(systemImage: "arrow.up.forward.square")
+                                    .padding(7)
+                            }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Open \(page.title)")
+                    .accessibilityIdentifier("database-open-\(page.manifest.id)")
 
                     if !page.children.isEmpty {
                         disclosureButton(page)
@@ -1048,11 +1078,11 @@ struct DatabaseView: View {
     private var filteredRootPages: [ExercisePage] {
         var pages = store.rootPages.filter { !$0.isSkill }
 
-        switch filterOption {
-        case .all, .container, .exercise, .skill, .tutorial:
-            break
-        case .type(let typeID):
-            pages = pages.filter { $0.effectiveWorkoutType?.id == typeID }
+        if !selectedWorkoutTypeIDs.isEmpty {
+            pages = pages.filter {
+                guard let typeID = $0.effectiveWorkoutType?.id else { return false }
+                return selectedWorkoutTypeIDs.contains(typeID)
+            }
         }
 
         switch sortOption {
@@ -1089,12 +1119,14 @@ struct DatabaseView: View {
             NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                 HStack(spacing: 12) {
                     pageCard(page, isGridMode: false)
-                    TimeMasterDisclosureIndicator()
+                    TimeMasterDisclosureIndicator(systemImage: "arrow.up.forward.square")
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(TimeMasterCardButtonStyle())
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityLabel("Open \(page.title)")
+            .accessibilityIdentifier("database-open-\(page.manifest.id)")
             .accessibilityHint("Opens this page")
         }
         .padding(.horizontal, 14)
@@ -1138,6 +1170,7 @@ struct DatabaseView: View {
         .buttonStyle(TimeMasterInsetControlStyle())
         .accessibilityLabel(expandedPageIDs.contains(page.manifest.id) ? "Collapse \(page.title)" : "Expand \(page.title)")
         .accessibilityValue(expandedPageIDs.contains(page.manifest.id) ? "Expanded" : "Collapsed")
+        .accessibilityIdentifier("database-disclosure-\(page.manifest.id)")
     }
 
     private var v2EmptyState: some View {

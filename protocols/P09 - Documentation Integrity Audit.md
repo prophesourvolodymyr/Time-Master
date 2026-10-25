@@ -11,6 +11,8 @@
 
 **Do not change files in Phase 1.** Read first, map the project, then show the user what is wrong and how it will be fixed.
 
+Direct user decisions are the primary source of truth. Existing documentation and observed code are evidence for the audit, not reasons to reject, delay, or replace a clear user decision.
+
 ### 1.1 Read Everything
 
 Read all relevant material:
@@ -45,7 +47,7 @@ For each feature doc, determine whether it is adequate for its type:
 - Architecture/data flow
 - Every relevant state, failure, edge case, and transition
 - Relevant type-specific detail: UI, storage, API, AI, migration, or infrastructure
-- Files, dependencies, references, decisions, and human-review handoff context
+- Files, dependencies, references, and decisions
 - Plain-language content only; no source code, pseudo-code, command blocks, or implementation recipes
 - Locked decisions and open questions where needed
 
@@ -145,7 +147,7 @@ Commit the documentation repair with a clear message.
 
 1. **AUDIT FIRST.** Phase 1 is read-only. No silent documentation rewrite.
 2. **USER APPROVES THE MAP.** User controls what gets split, merged, archived, or left alone.
-3. **CODE BEATS STALE DOCS.** If docs conflict with observed code behavior, document the conflict and propose the correction. Do not silently assume either one is right.
+3. **USER DIRECTION BEATS DOCS.** If the user changes a feature without updating the docs, follow the user's decision. After the user accepts the resulting behavior, update the smallest relevant DOCKS.md. Observed code is evidence for the audit, not authority over a clear user decision.
 4. **HUMAN REVIEW IS FINAL.** The AI may run engineering checks, but the human verifies every implemented feature. The AI must list each item for review and must not claim human approval.
 5. **GO DEEP.** A large project may require sub-agents to audit independent feature trees, but the final map must be coherent as one system.
 

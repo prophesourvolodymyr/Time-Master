@@ -36,16 +36,16 @@ struct CloudAccountSettingsView: View {
         EverSettingsPage(title: "Tmax Account") {
             EverSettingsSection(title: "One account", detail: "Exercise-database sync and Ranked share this secure account. Your local Profile, workouts, history and music are not synchronized.") {
                 if let session = account.session {
-                    EverActionRow(title: session.email ?? "Signed in", detail: "Tmax account", symbol: "person.crop.circle.badge.checkmark")
+                    SettingsActionRow(title: session.email ?? "Signed in", detail: "Tmax account", symbol: "person.crop.circle.badge.checkmark")
                     NavigationLink {
                         DatabaseSyncSettingsView()
                     } label: {
-                        EverActionRow(title: "Database Sync", symbol: "arrow.triangle.2.circlepath.icloud") {
+                        SettingsActionRow(title: "Database Sync", symbol: "arrow.triangle.2.circlepath.icloud") {
                             Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                         }
                     }.buttonStyle(.plain)
                 } else {
-                    EverActionRow(title: "Local mode is available", detail: "No account is required for the exercise library or ZIP export.", symbol: "internaldrive")
+                    SettingsActionRow(title: "Local mode is available", detail: "No account is required for the exercise library or ZIP export.", symbol: "internaldrive")
                 }
             }
 
@@ -66,7 +66,7 @@ struct CloudAccountSettingsView: View {
             }
             EverSettingsSection(title: "Local backup", detail: "ZIP export is always available, signed in or out and with sync turned off.") {
                 NavigationLink { BackupView() } label: {
-                    EverActionRow(title: "Backup & Transfer", symbol: "archivebox") {
+                    SettingsActionRow(title: "Backup & Transfer", symbol: "archivebox") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }
                 }.buttonStyle(.plain)

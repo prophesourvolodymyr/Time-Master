@@ -190,7 +190,12 @@ public final class FileSystemHelper {
     }
 
     public func moveToTrash(source: URL) throws {
-        guard fileManager.fileExists(atPath: source.path) else { return }
+        _ = try moveToTrashReturningURL(source: source)
+    }
+
+    @discardableResult
+    func moveToTrashReturningURL(source: URL) throws -> URL {
+        guard fileManager.fileExists(atPath: source.path) else { return source }
         try ensureDirectory(trashDirectory)
         let timestamp = Int(Date().timeIntervalSince1970)
         let name = source.lastPathComponent
@@ -200,11 +205,13 @@ public final class FileSystemHelper {
         if isDir.boolValue {
             let dest = uniqueTrashURL(timestamp: timestamp, name: name, isDirectory: true)
             try fileManager.moveItem(at: source, to: dest)
+            return dest
         } else {
             let folder = uniqueTrashURL(timestamp: timestamp, name: name, isDirectory: true)
             try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
             let dest = folder.appendingPathComponent(name)
             try fileManager.moveItem(at: source, to: dest)
+            return dest
         }
     }
 

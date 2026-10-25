@@ -87,10 +87,9 @@ struct HistoryView: View {
             .timeMasterNavigationTitle("History")
             .navigationBarBackButtonHidden(true)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    TimeMasterBackButton()
-                        .oneHandedActionSource()
-                }
+                AppToolbar.item(placement: .cancellationAction) { TimeMasterBackButton()
+                    .oneHandedActionSource()
+                                 }
                 if !store.historyEntries.isEmpty {
                     AppToolbar.iconItem(placement: .primaryAction) {
                         clearHistoryButton.oneHandedActionSource()

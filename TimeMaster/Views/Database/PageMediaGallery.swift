@@ -9,6 +9,10 @@ struct PageMediaGallery: View {
     let onSaveComment: ((URL, String) throws -> Void)?
     @State private var editingComment = false
     @State private var commentHeight: CGFloat = 0
+    #if os(macOS)
+    @EnvironmentObject private var databaseStore: DatabaseStore
+    @EnvironmentObject private var workoutStore: WorkoutStore
+    #endif
 
     private var selectedURL: URL? {
         urls.indices.contains(selectedIndex) ? urls[selectedIndex] : nil
@@ -96,6 +100,9 @@ struct PageMediaGallery: View {
             }
         }
         .preferredColorScheme(.dark)
+        #if os(macOS)
+        .task(id: selectedURL) { openMacPreviewIfVideo() }
+        #endif
         .sheet(isPresented: $editingComment) {
             if let url = selectedURL, let onSaveComment {
                 MediaCommentEditor(mediaURL: url, comment: comments[url] ?? "") { comment in
@@ -123,6 +130,27 @@ struct PageMediaGallery: View {
         MacOSImageView(url: url)
         #endif
     }
+
+    #if os(macOS)
+    private func openMacPreviewIfVideo() {
+        guard let url = selectedURL, ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased()) else { return }
+        let databaseStore = databaseStore
+        let workoutStore = workoutStore
+        MacVideoPreviewWindow.present(
+            url: url,
+            comment: comments[url],
+            onSaveComment: onSaveComment.map { save in { text in try save(url, text) } },
+            onCut: { cutURL in
+                MacVideoWorkspaceWindowPresenter.shared.present(
+                    sources: [MacVideoSource(url: cutURL)],
+                    databaseStore: databaseStore,
+                    workoutStore: workoutStore
+                )
+            }
+        )
+        isPresented = false
+    }
+    #endif
 }
 
 private struct PageGalleryVideoPlayer: View {
@@ -191,8 +219,8 @@ private struct macOSMediaViewer: View {
     private func mediaView(for url: URL) -> some View {
         let ext = url.pathExtension.lowercased()
         if ["mov", "mp4", "m4v", "avi", "mkv"].contains(ext) {
-            VideoPlayer(player: AVPlayer(url: url))
-                .aspectRatio(contentMode: .fit)
+            TmaxLoadingIndicator()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             MacOSImageView(url: url)
         }

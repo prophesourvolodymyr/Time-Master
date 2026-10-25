@@ -595,7 +595,69 @@ Query the Tmax exercise database.
         guard fs.directoryExists(at: folder) else {
             throw FileSystemHelper.Error.notFound(folder.path)
         }
-        try fs.moveToTrash(source: folder)
+
+        let page = try getPage(id: id)
+        let parentContext: (
+            original: ExercisePageManifest,
+            updated: ExercisePageManifest,
+            folder: URL
+        )?
+        if let parentID = page.parentID {
+            let originalParent = try getPage(id: parentID)
+            let parentFolder = try resolvePageFolder(id: parentID)
+            var updatedParent = originalParent
+            updatedParent.childIDs.removeAll { $0 == id }
+            updatedParent.updatedAt = Date()
+            parentContext = (
+                original: originalParent,
+                updated: updatedParent,
+                folder: parentFolder
+            )
+        } else {
+            parentContext = nil
+        }
+
+        guard let parentContext else {
+            try fs.moveToTrash(source: folder)
+            return
+        }
+
+        let trashedFolder = try fs.moveToTrashReturningURL(source: folder)
+        do {
+            try fs.writeAtomically(
+                to: parentContext.folder.appendingPathComponent("manifest.json"),
+                value: parentContext.updated,
+                encoder: encoder
+            )
+        } catch {
+            var rollbackErrors: [String] = []
+
+            do {
+                try fs.writeAtomically(
+                    to: parentContext.folder.appendingPathComponent("manifest.json"),
+                    value: parentContext.original,
+                    encoder: encoder
+                )
+            } catch {
+                rollbackErrors.append(error.localizedDescription)
+            }
+
+            do {
+                guard !fs.directoryExists(at: folder) else {
+                    throw FileSystemHelper.Error.writeFailed(folder.path)
+                }
+                try FileManager.default.moveItem(at: trashedFolder, to: folder)
+            } catch {
+                rollbackErrors.append(error.localizedDescription)
+            }
+
+            guard rollbackErrors.isEmpty else {
+                throw FileSystemHelper.Error.writeFailed(
+                    "Page deletion failed: \(error.localizedDescription) Rollback failed: \(rollbackErrors.joined(separator: " "))"
+                )
+            }
+            throw error
+        }
     }
 
     public func getPage(id: String) throws -> ExercisePageManifest {
@@ -767,8 +829,7 @@ Query the Tmax exercise database.
         guard manifest.mediaFilenames.contains(filename) || manifest.coverImageFilename == filename else {
             throw FileSystemHelper.Error.notFound(filename)
         }
-        let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        manifest.mediaComments[filename] = text.isEmpty ? nil : text
+        manifest.mediaComments[filename] = comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : comment
         manifest.updatedAt = Date()
         let folder = try resolvePageFolder(id: pageID)
         try fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: manifest, encoder: encoder)

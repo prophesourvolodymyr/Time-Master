@@ -5,6 +5,11 @@ public enum WorkoutSectionMode: String, Codable, Equatable {
     case bundle
 }
 
+public enum WorkoutBundleOrder: String, Codable, CaseIterable {
+    case ordered
+    case random
+}
+
 public enum WorkoutRestRowKind: String, Codable, Equatable {
     case normal
     case big
@@ -113,7 +118,7 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
         self.nestedWorkoutID = nestedWorkoutID
         self.name = name
         self.alias = alias
-        self.duration = max(5, duration)
+        self.duration = max(1, duration)
         self.repCount = repCount.map { max(1, $0) }
         self.restAfter = max(0, restAfter)
         self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
@@ -135,7 +140,7 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
         nestedWorkoutID = try c.decodeIfPresent(String.self, forKey: .nestedWorkoutID)
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? "Exercise"
         alias = try c.decodeIfPresent(String.self, forKey: .alias)
-        duration = max(5, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
+        duration = max(1, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
         repCount = try c.decodeIfPresent(Int.self, forKey: .repCount).map { max(1, $0) }
         restAfter = max(0, try c.decodeIfPresent(Int.self, forKey: .restAfter) ?? 10)
         prepareTime = try c.decodeIfPresent(Int.self, forKey: .prepareTime).map { min(30, max(0, $0)) }
@@ -182,11 +187,13 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
     public var mode: WorkoutSectionMode
     public var slots: [WorkoutSetSlotManifest]
     public var bigRestRow: WorkoutRestRowManifest?
+    public var bundleOrder: WorkoutBundleOrder
+    public var bundleVoiceEnabled: Bool
 
     enum CodingKeys: String, CodingKey {
         case id, exerciseID, name, alias, duration, sets, repCount, restBetweenSets
         case prepareTime, customRestAfter, isTimerEnabled, mediaFilenames, mode, slots
-        case bigRestRow
+        case bigRestRow, bundleOrder, bundleVoiceEnabled
     }
 
     public init(
@@ -204,7 +211,9 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         mediaFilenames: [String] = [],
         mode: WorkoutSectionMode = .timed,
         slots: [WorkoutSetSlotManifest] = [],
-        bigRestRow: WorkoutRestRowManifest? = nil
+        bigRestRow: WorkoutRestRowManifest? = nil,
+        bundleOrder: WorkoutBundleOrder = .ordered,
+        bundleVoiceEnabled: Bool = true
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -221,6 +230,8 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         self.mode = mode
         self.slots = slots
         self.bigRestRow = bigRestRow
+        self.bundleOrder = bundleOrder
+        self.bundleVoiceEnabled = bundleVoiceEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -240,6 +251,8 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         mode = try c.decodeIfPresent(WorkoutSectionMode.self, forKey: .mode) ?? .timed
         slots = try c.decodeIfPresent([WorkoutSetSlotManifest].self, forKey: .slots) ?? []
         bigRestRow = try c.decodeIfPresent(WorkoutRestRowManifest.self, forKey: .bigRestRow)
+        bundleOrder = try c.decodeIfPresent(WorkoutBundleOrder.self, forKey: .bundleOrder) ?? .ordered
+        bundleVoiceEnabled = try c.decodeIfPresent(Bool.self, forKey: .bundleVoiceEnabled) ?? true
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -259,6 +272,8 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         try c.encode(mode, forKey: .mode)
         try c.encode(slots, forKey: .slots)
         try c.encodeIfPresent(bigRestRow, forKey: .bigRestRow)
+        try c.encode(bundleOrder, forKey: .bundleOrder)
+        try c.encode(bundleVoiceEnabled, forKey: .bundleVoiceEnabled)
     }
 }
 
@@ -352,28 +367,7 @@ public struct WorkoutManifest: Codable {
 
     public var totalDuration: Int {
         sections.reduce(0) { total, section in
-            let slots = section.slots
-            let sectionDuration: Int
-            if slots.isEmpty {
-                let preparation = section.prepareTime * section.sets
-                let rests = section.restBetweenSets * max(0, section.sets - 1)
-                let work = section.mode == .timed ? section.duration * section.sets : 0
-                sectionDuration = preparation + work + rests
-            } else {
-                sectionDuration = slots.enumerated().reduce(0) { subtotal, entry in
-                    let (index, slot) = entry
-                    let preparation = slot.prepareTime ?? section.prepareTime
-                    let dropDuration: Int
-                    if section.mode == .timed {
-                        dropDuration = slot.drops.reduce(0) { $0 + $1.duration + $1.restAfter }
-                    } else {
-                        dropDuration = slot.drops.reduce(0) { $0 + $1.restAfter }
-                    }
-                    let work = section.mode == .timed ? slot.duration : 0
-                    let rest = index < slots.count - 1 ? (slot.restRow?.duration ?? slot.restAfter) : 0
-                    return subtotal + preparation + work + dropDuration + rest
-                }
-            }
+            let sectionDuration = section.calculatedDuration
 
             let sectionRest: Int
             if let bigRestRow = section.bigRestRow {

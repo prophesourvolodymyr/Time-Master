@@ -400,6 +400,14 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let rootY = (catalog ? catalogOriginY : mainOriginY) + itemY
         let selected = role == .page && selection == index
         let manipulable = isEditing && configuration == nil && !item.isPending && !add
+        #if os(macOS)
+        let edgeProgress = min(1, distance / max(1, size.width / 2))
+        let viewportFade = catalog || isEditing ? 1 : 1 - edgeProgress * edgeProgress * (3 - 2 * edgeProgress)
+        let slope = catalog
+            ? SlotArcGeometry.slope(at: itemX, in: arcRect, expansion: 1)
+            : transformedArcSlope(at: itemX, in: arcRect)
+        let tilt = Angle.radians(Double(atan(slope) * (placement == .bottom ? 1 : -1) * (1 - styleEdit)))
+        #endif
 
         return VStack(spacing: labelSpacing) {
             iconImage(add ? .system("plus.circle") : item.icon, size: 31)
@@ -444,10 +452,16 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 .opacity(labelOpacity)
                 .accessibilityHidden(true)
         }
+        #if os(macOS)
+        .rotationEffect(tilt)
+        #endif
         .frame(width: slotWidth, height: itemHeight)
         .contentShape(Rectangle())
         .scaleEffect(itemScale, anchor: scaleAnchor)
         .opacity(liftedItem?.item.id == item.id ? 0 : (item.isPending ? (catalog ? 0.55 : 0.4) : itemOpacity))
+        #if os(macOS)
+        .opacity(viewportFade)
+        #endif
         .onTapGesture {
             guard liftedItem == nil, !item.isPending else { return }
             if !isEditing {
@@ -767,6 +781,15 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let unscaledY = SlotArcGeometry.curveY(at: arcSampleX, in: rect, curveOffset: curveOffset, expansion: expandedAmount)
         return rect.maxY - (rect.maxY - unscaledY) * scaleY - 24 * editProgress
     }
+
+    #if os(macOS)
+    private func transformedArcSlope(at x: CGFloat, in rect: CGRect) -> CGFloat {
+        let scaleX = 1 + effectiveDragIntensity * 0.15 + editProgress * 0.12
+        let scaleY = 1 + effectiveDragIntensity * 0.35 + editProgress * 0.25
+        let arcSampleX = rect.midX + (x - rect.midX) / scaleX
+        return SlotArcGeometry.slope(at: arcSampleX, in: rect, expansion: expandedAmount) * scaleY / scaleX
+    }
+    #endif
 
     private var selectionAnimation: Animation {
         reduceMotion ? .easeOut(duration: 0.16) : .interpolatingSpring(stiffness: 260, damping: 28)

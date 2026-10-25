@@ -72,10 +72,10 @@ struct ReachabilityActionsModifier: ViewModifier {
                                 .opacity(progress)
                         }
                         .allowsHitTesting(isOpen)
-                        .accessibilityHidden(!isOpen)
                         .accessibilityElement(children: .contain)
-                        .accessibilityAddTraits(.isModal)
+                        .accessibilityAddTraits(isOpen ? .isModal : [])
                         .accessibilityAction(.escape) { dismiss() }
+                        .accessibilityHidden(!isOpen)
                     }
                 }
             }

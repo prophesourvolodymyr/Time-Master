@@ -29,6 +29,8 @@ struct WorkoutPlayerView: View {
     // Navigation
     @State private var currentSectionIndex  = 0
     @State private var currentSetIndex      = 0   // current set within the section
+    @State private var playbackBySection: [UUID: [SetSlot]] = [:]
+    @State private var bundleOrders: [String: [UUID]] = [:]
     @State private var timeRemaining        = 0
     @State private var isPaused             = false
 
@@ -40,6 +42,7 @@ struct WorkoutPlayerView: View {
     @State private var showingWarmUpPicker  = true
     @State private var workoutCompleted     = false
 
+    @State private var timerGeneration = UUID()
     // Timer
     @State private var timer: Timer?
     @State private var startTime: Date = Date()
@@ -101,9 +104,6 @@ struct WorkoutPlayerView: View {
     @State private var showPageOverlay = false
     @State private var overlayPageID: UUID?
     @State private var overlayPageName = ""
-    @State private var showBundleInlinePreview = false
-    @State private var bundleMediaIndex = 0
-    @State private var showBundleMediaViewer = false
     @State private var showBundleReorder = false
 
     init(workout: Workout) {
@@ -119,7 +119,7 @@ struct WorkoutPlayerView: View {
 
     private var currentSlot: SetSlot? {
         guard let section = currentSection else { return nil }
-        return section.effectiveSlots[safe: currentSetIndex]
+        return playbackSlots(for: section)[safe: currentSetIndex]
     }
 
     private var isBundleActive: Bool {
@@ -129,7 +129,7 @@ struct WorkoutPlayerView: View {
     private var nextExerciseName: String? {
         if let section = currentSection,
            section.mode == .bundle,
-           let next = section.effectiveSlots[safe: currentSetIndex + 1] {
+           let next = playbackSlots(for: section)[safe: currentSetIndex + 1] {
             return next.name
         }
         return workout.sections[safe: currentSectionIndex + 1]?.name
@@ -137,14 +137,14 @@ struct WorkoutPlayerView: View {
 
     private var restSlot: SetSlot? {
         guard isSetRest, let section = currentSection else { return nil }
-        return section.effectiveSlots[safe: max(0, currentSetIndex - 1)]
+        return playbackSlots(for: section)[safe: max(0, currentSetIndex - 1)]
     }
 
     private func openPageOverlay(id: UUID?, name: String) {
         guard let id else { return }
         overlayPageID = id
         overlayPageName = name
-        withAnimation(.easeOut(duration: 0.3)) {
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) {
             showPageOverlay = true
         }
     }
@@ -157,9 +157,9 @@ struct WorkoutPlayerView: View {
         switch livePhase {
         case .warmUp: warmUpDuration
         case .prepare: currentSlot.map { currentSection?.preparationTime(for: $0) ?? 0 } ?? 0
-        case .active: currentSection?.mode == .bundle ? 0 : (currentSlot?.duration ?? 0)
-        case .setRest: restSlot?.restAfter ?? currentSection?.restBetweenSets ?? 0
-        case .sectionRest: currentSection?.customRestAfter ?? workout.restBetweenSections
+        case .active: currentSlot?.duration ?? 0
+        case .setRest: restSlot?.effectiveRestRow?.duration ?? currentSection?.restBetweenSets ?? 0
+        case .sectionRest: currentSection.map(sectionRestDuration) ?? 0
         }
     }
 
@@ -187,6 +187,7 @@ struct WorkoutPlayerView: View {
         let oldPageID = currentSlot?.exercisePageID
         let musicChanged = updated.musicTimeline != workout.musicTimeline
         workout = updated
+        refreshPlaybackSequences()
         if musicChanged && musicStarted {
             musicSession.updateTimeline(updated.musicTimeline ?? .init())
         }
@@ -194,7 +195,7 @@ struct WorkoutPlayerView: View {
         guard !updated.sections.isEmpty else { stopWorkout(); return }
         if let sectionIndex = updated.sections.firstIndex(where: { $0.id == sectionID }) {
             currentSectionIndex = sectionIndex
-            let slots = updated.sections[sectionIndex].effectiveSlots
+            let slots = playbackSlots(for: updated.sections[sectionIndex])
             var retainedPhase = true
             if isSetRest, let restIndex = slots.firstIndex(where: { $0.id == restingSlotID }), restIndex + 1 < slots.count {
                 currentSetIndex = restIndex + 1
@@ -238,6 +239,7 @@ struct WorkoutPlayerView: View {
                 UIApplication.shared.isIdleTimerDisabled = true
                 #endif
                 AudioManager.shared.activateSession()
+                refreshPlaybackSequences()
                 loadCurrentMedia()
                 tryResumeState()
             }
@@ -249,13 +251,14 @@ struct WorkoutPlayerView: View {
                  setupVideoIfNeeded()
              }
             .onChange(of: currentSetIndex) { _ in
-                showBundleInlinePreview = false
+                loadCurrentMedia()
             }
             .onDisappear {
                 #if os(iOS)
                 UIApplication.shared.isIdleTimerDisabled = false
                 #endif
                 timer?.invalidate()
+                AudioManager.shared.stopSpeaking()
                 stopVideo()
                 endBackgroundTask()
                 musicSession.stop()
@@ -307,22 +310,10 @@ struct WorkoutPlayerView: View {
             .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: showWorkoutManagement)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: showPageOverlay)
             .sheet(isPresented: $showBundleReorder) {
-                BundleReorderSheet(
-                    slots: currentSection?.effectiveSlots ?? [],
-                    onMove: moveBundleSlots
-                )
-            }
-            .sheet(isPresented: $showBundleMediaViewer) {
-                if let page = currentSlot.flatMap({ slot in
-                    slot.exercisePageID.flatMap { databaseStore.page(id: $0) }
-                }) {
-                    PageMediaGallery(
-                        urls: page.mediaURLs,
-                        selectedIndex: $bundleMediaIndex,
-                        isPresented: $showBundleMediaViewer,
-                        comments: page.mediaCommentsByURL,
-                        onSaveComment: nil
-                    )
+                if let section = currentSection {
+                    BundleEditorSheet(section: section) { updated in
+                        store.updateSection(in: workout, section: updated)
+                    }
                 }
             }
             .sheet(isPresented: $showMusicChooser) {
@@ -387,71 +378,46 @@ struct WorkoutPlayerView: View {
     // MARK: - Warm-Up Picker
 
     private var warmUpPickerView: some View {
-        VStack(spacing: 0) {
-            HStack {
-                closeButton(confirmed: false)
-                Spacer()
-                musicButton
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                HStack {
+                    closeButton(confirmed: false)
+                    Spacer()
+                    musicButton
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        TimeMasterPageTitle("Warm Up", size: 42, relativeTo: .title)
+                            .foregroundStyle(.white)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                            warmUpButton(value: 0, label: "Skip")
+                            warmUpButton(value: 30, label: "0:30")
+                            warmUpButton(value: 60, label: "1:00")
+                            warmUpButton(value: 90, label: "1:30")
+                            warmUpButton(value: 120, label: "2:00")
+                            warmUpButton(value: 180, label: "3:00")
+                        }
+                        Button {
+                            showingWarmUpPicker = false
+                            if warmUpDuration > 0 { startWarmUp() } else { startWorkout() }
+                        } label: {
+                            Label("Start", systemImage: "play.fill")
+                                .font(TimeMasterFont.black(17, relativeTo: .headline))
+                                .foregroundStyle(.black)
+                                .frame(maxWidth: .infinity, minHeight: 56)
+                                .background(.white, in: RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .frame(maxWidth: 480)
+                    .padding(24)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: max(0, geometry.size.height - 72))
+                }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-
-            Spacer()
-
-            VStack(spacing: 28) {
-                VStack(spacing: 8) {
-                    TimeMasterPageTitle("Warm Up", size: 42, relativeTo: .title)
-                        .foregroundColor(.white)
-                    Text("Choose your warm-up duration")
-                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                        .foregroundColor(.white.opacity(0.5))
-                }
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-
-                VStack(spacing: 10) {
-                    HStack(spacing: 10) {
-                        warmUpButton(value: 30,  label: "30 sec")
-                        warmUpButton(value: 60,  label: "1 min")
-                        warmUpButton(value: 90,  label: "1:30")
-                    }
-                    HStack(spacing: 10) {
-                        warmUpButton(value: 120, label: "2 min")
-                        warmUpButton(value: 180, label: "3 min")
-                        Color.clear.frame(maxWidth: .infinity).frame(height: 52)
-                    }
-                }
-                .padding(.horizontal, 24)
-
-                VStack(spacing: 12) {
-                    Button {
-                        showingWarmUpPicker = false
-                        startWarmUp()
-                    } label: {
-                        Text("Start Warm Up")
-                            .font(TimeMasterFont.black(17, relativeTo: .headline))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.white)
-                            .cornerRadius(16)
-                    }
-                    Button {
-                        showingWarmUpPicker = false
-                        startWorkout()
-                    } label: {
-                        Text("Skip Warm Up")
-                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                            .foregroundColor(.white.opacity(0.5))
-                            .frame(height: 44)
-                    }
-                }
-                .padding(.horizontal, 24)
-            }
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func warmUpButton(value: Int, label: String) -> some View {
@@ -467,6 +433,9 @@ struct WorkoutPlayerView: View {
                 .background(warmUpDuration == value ? Color.white : Color.white.opacity(0.15))
                 .cornerRadius(12)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(value == 0 ? "No warm-up" : "\(value) seconds warm-up")
+        .accessibilityAddTraits(warmUpDuration == value ? .isSelected : [])
     }
 
     // MARK: - Warm-Up Countdown
@@ -657,162 +626,49 @@ struct WorkoutPlayerView: View {
                 closeButton(confirmed: true)
                 Spacer()
                 musicButton
+                Button { showBundleReorder = true } label: {
+                    Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Bundle order and settings")
                 sectionBadge
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-
-            Spacer()
-
-            VStack(spacing: 18) {
-                Text("BUNDLE · SELF-PACED")
-                    .font(TimeMasterFont.black(12, relativeTo: .caption))
-                    .tracking(2)
-                    .foregroundColor(.white.opacity(0.55))
-
-                if let slot = currentSlot {
-                    VStack(spacing: 12) {
-                        Button {
-                            showBundleInlinePreview.toggle()
-                        } label: {
-                            VStack(spacing: 12) {
-                                bundleCover(for: slot)
-                                Text(slot.name)
-                                    .font(TimeMasterFont.black(28, relativeTo: .title))
-                                    .foregroundColor(.white)
-                                    .multilineTextAlignment(.center)
-                                if let pageID = slot.exercisePageID,
-                                   let page = databaseStore.page(id: pageID),
-                                   !page.manifest.markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    Text(String(page.manifest.markdownBody
-                                        .replacingOccurrences(of: "#", with: "")
-                                        .prefix(140)))
-                                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                                        .foregroundColor(.white.opacity(0.65))
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(3)
-                                }
-                                Label(
-                                    showBundleInlinePreview ? "Hide Preview" : "Preview Media",
-                                    systemImage: showBundleInlinePreview ? "chevron.up" : "photo"
-                                )
-                                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                                .foregroundColor(.white.opacity(0.7))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(28)
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(24)
-                        }
-                        .buttonStyle(.plain)
-
-                        if showBundleInlinePreview,
-                           let pageID = slot.exercisePageID,
-                           let page = databaseStore.page(id: pageID) {
-                            if page.hasMedia {
-                                PageMediaGalleryGrid(urls: page.mediaURLs, comments: page.mediaCommentsByURL) { index in
-                                    bundleMediaIndex = index
-                                    showBundleMediaViewer = true
-                                }
-                                .padding(.horizontal, 8)
-                            } else {
-                                Text("This exercise has no media yet.")
-                                    .font(TimeMasterFont.caption())
-                                    .foregroundColor(.white.opacity(0.5))
-                            }
-                        }
-
-                        if slot.exercisePageID != nil {
-                            Button {
-                                openPageOverlay(id: slot.exercisePageID, name: slot.name)
-                            } label: {
-                                Label("Open Page", systemImage: "book.pages")
-                                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                                    .foregroundColor(.white.opacity(0.7))
-                            }
-                            .buttonStyle(.plain)
+            ScrollView {
+                VStack(spacing: 20) {
+                    if let section = currentSection {
+                        BundlePlaybackCards(
+                            slots: playbackSlots(for: section), currentIndex: currentSetIndex,
+                            isRandom: section.bundleOrder == .random
+                        ) { slot in
+                            openPageOverlay(id: slot.exercisePageID, name: slot.displayName)
                         }
                     }
+                    Text(formatTime(timeRemaining))
+                        .font(TimeMasterFont.black(64, relativeTo: .largeTitle).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .accessibilityLabel("\(timeRemaining) seconds remaining")
+                    HStack(spacing: 28) {
+                        Button { restartCurrentExercise() } label: {
+                            Image(systemName: "arrow.counterclockwise").frame(width: 48, height: 48)
+                        }
+                        .accessibilityLabel("Restart exercise")
+                        pausePlayButton
+                        Button { skipCurrentPhase() } label: {
+                            Image(systemName: "forward.end.fill").frame(width: 48, height: 48)
+                        }
+                        .accessibilityLabel("Next exercise")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
                 }
-
-                Text("\(currentSetIndex + 1) / \(currentSection?.slotCount ?? 1)")
-                    .font(TimeMasterFont.black(17, relativeTo: .headline).monospacedDigit())
-                    .foregroundColor(.white.opacity(0.65))
-
-                Button {
-                    endWorkPeriod()
-                } label: {
-                    Label(
-                        currentSetIndex + 1 < (currentSection?.slotCount ?? 1) ? "Next Technique" : "Complete Bundle",
-                        systemImage: "arrow.right.circle.fill"
-                    )
-                    .font(TimeMasterFont.black(17, relativeTo: .headline))
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.white)
-                    .cornerRadius(14)
-                }
-
-                Button {
-                    showBundleReorder = true
-                } label: {
-                    Label("Reorder Techniques", systemImage: "line.3.horizontal")
-                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                        .foregroundColor(.white.opacity(0.7))
-                }
+                .frame(maxWidth: 560)
+                .padding(24)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 24)
-
-            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .gesture(
-            DragGesture(minimumDistance: 40)
-                .onEnded { value in
-                    guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                    if value.translation.width > 0, currentSetIndex > 0 {
-                        currentSetIndex -= 1
-                    } else if value.translation.width < 0 {
-                        endWorkPeriod()
-                    }
-                }
-        )
-    }
-
-    @ViewBuilder
-    private func bundleCover(for slot: SetSlot) -> some View {
-        if let pageID = slot.exercisePageID,
-           let page = databaseStore.page(id: pageID),
-           let url = page.coverImageURL {
-            AsyncCoverImage(
-                url: url,
-                fallbackIcon: page.effectiveWorkoutType?.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"),
-                fallbackColor: Color(hex: page.effectiveWorkoutType?.colorHex ?? "FFFFFF"),
-                height: 150,
-                overlayGradient: false
-            )
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-        } else if let pageID = slot.exercisePageID, let page = databaseStore.page(id: pageID) {
-            bundleFallbackCover(page: page)
-        } else {
-            Image(systemName: "rectangle.stack.fill")
-                .font(.system(size: 42))
-                .foregroundColor(.white.opacity(0.8))
-        }
-    }
-
-    private func bundleFallbackCover(page: ExercisePage) -> some View {
-        RoundedRectangle(cornerRadius: 16)
-            .fill(Color(hex: page.effectiveWorkoutType?.colorHex ?? "FFFFFF").opacity(0.22))
-            .frame(maxWidth: .infinity)
-            .frame(height: 150)
-            .overlay {
-                Image(systemName: page.effectiveWorkoutType?.iconName ?? (page.isContainer ? "folder.fill" : "figure.run"))
-                    .font(.system(size: 48))
-                    .foregroundColor(.white.opacity(0.7))
-            }
     }
 
     private var sectionBadge: some View {
@@ -1225,7 +1081,52 @@ struct WorkoutPlayerView: View {
 
     // MARK: - Timer Logic
 
+    private func playbackSlots(for section: Section) -> [SetSlot] {
+        playbackBySection[section.id] ?? section.playbackSlots()
+    }
+
+    private func refreshPlaybackSequences() {
+        let expanded = store.flattenedWorkout(workout)
+        var sequences: [UUID: [SetSlot]] = [:]
+        for section in expanded.sections {
+            if section.mode == .bundle {
+                if section.bundleOrder == .random {
+                    let exercises = section.bundleSets.flatMap(\.leafExercises)
+                    let valid = Set(exercises.map(\.id))
+                    let retained = (bundleOrders[section.id.uuidString] ?? []).filter { valid.contains($0) }
+                    let known = Set(retained)
+                    let newIDs = exercises.filter { !known.contains($0.id) }.map(\.id).shuffled()
+                    bundleOrders[section.id.uuidString] = retained + newIDs
+                } else {
+                    bundleOrders.removeValue(forKey: section.id.uuidString)
+                }
+                sequences[section.id] = section.playbackSlots(order: bundleOrders[section.id.uuidString])
+            } else {
+                sequences[section.id] = section.effectiveSlots
+            }
+        }
+        playbackBySection = sequences
+    }
+
+    private func sectionRestDuration(_ section: Section) -> Int {
+        section.bigRestRow?.duration ?? section.customRestAfter ?? workout.restBetweenSections
+    }
+
+    private func speakPhase(_ text: String) {
+        AudioManager.shared.stopSpeaking()
+        guard !isPaused, isWarmUp || currentSection?.mode != .bundle || currentSection?.bundleVoiceEnabled == true else { return }
+        AudioManager.shared.speak(text)
+    }
+
+    private func restartCurrentExercise() {
+        timer?.invalidate()
+        AudioManager.shared.stopSpeaking()
+        beginCurrentSet()
+    }
+
     private func startWorkout() {
+        AudioManager.shared.stopSpeaking()
+        refreshPlaybackSequences()
         startTime = Date()
         currentSectionIndex = 0
         currentSetIndex = 0
@@ -1244,7 +1145,7 @@ struct WorkoutPlayerView: View {
         isWarmUp = true
         isPreparation = false
         timeRemaining = warmUpDuration
-        AudioManager.shared.speak("Warm up")
+        speakPhase("Warm up")
         startTimer()
     }
 
@@ -1255,6 +1156,7 @@ struct WorkoutPlayerView: View {
     }
 
     private func beginCurrentSet() {
+        AudioManager.shared.stopSpeaking()
         guard let section = currentSection, let slot = currentSlot else {
             completeWorkout()
             return
@@ -1280,7 +1182,7 @@ struct WorkoutPlayerView: View {
         isSectionRest = false
         isPreparation = true
         timeRemaining = section.preparationTime(for: slot)
-        AudioManager.shared.speak("Preparation")
+        speakPhase("Preparation")
         startTimer()
     }
 
@@ -1291,10 +1193,8 @@ struct WorkoutPlayerView: View {
         }
 
         isPreparation = false
-        timeRemaining = section.mode == .bundle
-            ? 0
-            : (currentSlot?.duration ?? section.duration)
-        AudioManager.shared.speak(currentSlot?.name ?? section.name)
+        timeRemaining = currentSlot?.duration ?? section.duration
+        speakPhase(currentSlot?.displayName ?? section.name)
         startTimer()
     }
 
@@ -1305,22 +1205,16 @@ struct WorkoutPlayerView: View {
 
     private func startTimer() {
         timer?.invalidate()
+        timerGeneration = UUID()
+        let generation = timerGeneration
+        saveResumeState()
+        guard timeRemaining > 0 else { finishCurrentTimerPhase(); return }
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if !isPaused { tick() }
+            if generation == timerGeneration && !isPaused { tick() }
         }
     }
 
     private func tick() {
-        if isBundleActive {
-            elapsedSeconds += 1
-            autoSaveCounter += 1
-            if autoSaveCounter >= 5 {
-                autoSaveCounter = 0
-                saveResumeState()
-            }
-            return
-        }
-
         guard timeRemaining > 0 else {
             finishCurrentTimerPhase()
             return
@@ -1331,7 +1225,7 @@ struct WorkoutPlayerView: View {
         if timeRemaining <= 3 && timeRemaining >= 1 {
             AudioManager.shared.playCountdownBeep()
         }
-        if !isSetRest && !isSectionRest && !isWarmUp && !isPreparation {
+        if !isSetRest && !isSectionRest && !isWarmUp && !isPreparation && !isBundleActive {
             tickMotivation()
             checkTimeAnnouncement()
         }
@@ -1347,6 +1241,7 @@ struct WorkoutPlayerView: View {
 
     private func finishCurrentTimerPhase() {
         timer?.invalidate()
+        AudioManager.shared.stopSpeaking()
         if isWarmUp {
             isWarmUp = false
             startWorkout()
@@ -1376,7 +1271,8 @@ struct WorkoutPlayerView: View {
             elapsedSeconds: elapsedSeconds,
             phase: phase,
             isPaused: isPaused,
-            musicCheckpoint: musicSession.checkpoint
+            musicCheckpoint: musicSession.checkpoint,
+            bundleOrders: bundleOrders
         )
     }
 
@@ -1400,7 +1296,18 @@ struct WorkoutPlayerView: View {
         restore(from: state)
     }
 
-    private func restore(from checkpoint: ResumeState) {
+    private func restore(from savedCheckpoint: ResumeState) {
+        timer?.invalidate()
+        AudioManager.shared.stopSpeaking()
+        bundleOrders = savedCheckpoint.bundleOrders ?? [:]
+        refreshPlaybackSequences()
+        var checkpoint = savedCheckpoint
+        if checkpoint.bundleOrders == nil, checkpoint.phase == .active,
+           let section = workout.sections[safe: checkpoint.currentSectionIndex], section.mode == .bundle,
+           checkpoint.timeRemaining == 0 {
+            checkpoint.timeRemaining = playbackSlots(for: section)[safe: checkpoint.currentSetIndex]?.duration ?? section.duration
+            checkpoint.savedAt = Date()
+        }
         let state = reconciledState(from: checkpoint)
         showingWarmUpPicker = false
         currentSectionIndex = state.currentSectionIndex
@@ -1451,17 +1358,10 @@ struct WorkoutPlayerView: View {
     private func reconciledState(from checkpoint: ResumeState) -> ResumeState {
         var state = checkpoint
         guard !checkpoint.isPaused else { return state }
-        if isSelfPacedBundle(state) {
-            state.savedAt = Date()
-            return state
-        }
         var elapsedToConsume = max(0, Int(Date().timeIntervalSince(checkpoint.savedAt)))
         guard elapsedToConsume > 0 else { return state }
 
         while elapsedToConsume > 0 {
-            if isSelfPacedBundle(state) {
-                break
-            }
             if state.timeRemaining > elapsedToConsume {
                 state.timeRemaining -= elapsedToConsume
                 state.elapsedSeconds += elapsedToConsume
@@ -1481,16 +1381,11 @@ struct WorkoutPlayerView: View {
         return state
     }
 
-    private func isSelfPacedBundle(_ state: ResumeState) -> Bool {
-        workout.sections.indices.contains(state.currentSectionIndex)
-            && workout.sections[state.currentSectionIndex].mode == .bundle
-            && state.phase == .active
-    }
 
     private func configureReconciledCurrentSet(_ state: inout ResumeState) -> Bool {
         guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
         let section = workout.sections[state.currentSectionIndex]
-        guard let slot = section.effectiveSlots[safe: state.currentSetIndex] else { return false }
+        guard let slot = playbackSlots(for: section)[safe: state.currentSetIndex] else { return false }
 
         let preparationTime = section.preparationTime(for: slot)
         if preparationTime > 0 {
@@ -1498,7 +1393,7 @@ struct WorkoutPlayerView: View {
             state.timeRemaining = preparationTime
         } else {
             state.phase = .active
-            state.timeRemaining = section.mode == .bundle ? 0 : slot.duration
+            state.timeRemaining = slot.duration
         }
         return true
     }
@@ -1514,25 +1409,25 @@ struct WorkoutPlayerView: View {
         case .prepare:
             guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
             let section = workout.sections[state.currentSectionIndex]
-            guard let slot = section.effectiveSlots[safe: state.currentSetIndex] else { return false }
+            guard let slot = playbackSlots(for: section)[safe: state.currentSetIndex] else { return false }
             state.phase = .active
-            state.timeRemaining = section.mode == .bundle ? 0 : slot.duration
+            state.timeRemaining = slot.duration
             return true
         case .setRest:
             return configureReconciledCurrentSet(&state)
         case .active:
             guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
             let section = workout.sections[state.currentSectionIndex]
-            if section.mode == .bundle { return false }
-            if state.currentSetIndex + 1 < section.slotCount {
+            let slots = playbackSlots(for: section)
+            if state.currentSetIndex + 1 < slots.count {
                 state.currentSetIndex += 1
                 state.phase = .setRest
-                state.timeRemaining = section.effectiveSlots[safe: state.currentSetIndex - 1]?.restAfter ?? section.restBetweenSets
+                state.timeRemaining = slots[safe: state.currentSetIndex - 1]?.effectiveRestRow?.duration ?? section.restBetweenSets
                 return true
             }
             state.currentSetIndex = 0
             if state.currentSectionIndex + 1 >= workout.sections.count { return false }
-            let rest = section.customRestAfter ?? workout.restBetweenSections
+            let rest = sectionRestDuration(section)
             if rest > 0 {
                 state.phase = .sectionRest
                 state.timeRemaining = rest
@@ -1547,47 +1442,34 @@ struct WorkoutPlayerView: View {
         }
     }
 
-    private func moveBundleSlots(from source: IndexSet, to destination: Int) {
-        guard workout.sections.indices.contains(currentSectionIndex),
-              workout.sections[currentSectionIndex].mode == .bundle else { return }
-
-        var updated = workout
-        var slots = updated.sections[currentSectionIndex].effectiveSlots
-        slots.move(fromOffsets: source, toOffset: destination)
-        updated.sections[currentSectionIndex].slots = slots
-        updated.sections[currentSectionIndex].sets = slots.count
-        store.updateWorkout(updated)
-    }
 
     /// Called when the work timer for a set reaches zero.
     private func endWorkPeriod() {
         guard let section = currentSection else { return }
-        if section.mode == .bundle {
-            if currentSetIndex + 1 < section.slotCount {
-                currentSetIndex += 1
-                beginCurrentSet()
-            } else {
-                currentSetIndex = 0
-                advanceToNextSection()
-            }
-        } else if currentSetIndex + 1 < section.slotCount {
-            // More sets remaining — rest between sets
+        AudioManager.shared.stopSpeaking()
+        let slots = playbackSlots(for: section)
+        if currentSetIndex + 1 < slots.count {
+            let restDuration = currentSlot?.effectiveRestRow?.duration ?? section.restBetweenSets
             currentSetIndex += 1
             isPreparation = false
-            isSetRest = true
-            timeRemaining = section.effectiveSlots[safe: currentSetIndex - 1]?.restAfter ?? section.restBetweenSets
-            AudioManager.shared.speak("Rest")
-            startTimer()
+            if restDuration > 0 {
+                isSetRest = true
+                timeRemaining = restDuration
+                speakPhase("Rest")
+                startTimer()
+            } else {
+                beginCurrentSet()
+            }
         } else {
             // All sets done — inter-section rest (or skip if last section)
             currentSetIndex = 0
-            let restDuration = section.customRestAfter ?? workout.restBetweenSections
+            let restDuration = sectionRestDuration(section)
             let hasNextSection = currentSectionIndex + 1 < workout.sections.count
             if restDuration > 0 && hasNextSection {
                 isSectionRest = true
                 timeRemaining = restDuration
                 preloadNextSectionMedia()
-                AudioManager.shared.speak("Rest")
+                speakPhase("Rest")
                 startTimer()
             } else {
                 advanceToNextSection()
@@ -1611,6 +1493,7 @@ struct WorkoutPlayerView: View {
 
     private func skipCurrentPhase() {
         timer?.invalidate()
+        AudioManager.shared.stopSpeaking()
         if isWarmUp {
             skipWarmUp()
         } else if isPreparation {
@@ -1637,6 +1520,7 @@ struct WorkoutPlayerView: View {
 
     private func completeWorkout() {
         timer?.invalidate()
+        AudioManager.shared.stopSpeaking()
         stopVideo()
         musicSession.stop()
         workoutCompleted = true
@@ -1656,6 +1540,8 @@ struct WorkoutPlayerView: View {
 
     private func pauseTimer()  {
         isPaused = true
+        AudioManager.shared.stopSpeaking()
+        saveResumeState()
         videoPlayer?.pause()
         musicSession.setPaused(true)
     }
@@ -1667,6 +1553,7 @@ struct WorkoutPlayerView: View {
 
     private func resumeTimer() {
         isPaused = false
+        startTimer()
         musicSession.setPaused(false)
         if let item = loadedMedia[safe: currentMediaIndex], item.type == .video {
             videoPlayer?.play()
@@ -1997,48 +1884,6 @@ private struct ConfettiView: View {
     }
 }
 
-private struct BundleReorderSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let slots: [SetSlot]
-    let onMove: (IndexSet, Int) -> Void
-
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(slots) { slot in
-                    HStack(spacing: 12) {
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundColor(.secondary)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(slot.name)
-                                .font(TimeMasterFont.black(17, relativeTo: .headline))
-                            Text("Technique \(slots.firstIndex(where: { $0.id == slot.id }).map { $0 + 1 } ?? 0)")
-                                .font(TimeMasterFont.caption())
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                .onMove(perform: onMove)
-            }
-            .timeMasterNavigationTitle("Reorder Techniques")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                AppToolbar.item(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-                #if os(iOS)
-                AppToolbar.item(placement: .primaryAction) {
-                    EditButton()
-                }
-                #endif
-            }
-        }
-        .font(TimeMasterFont.body())
-    }
-}
 
 // MARK: - F03-B: Overlay Video Player
 

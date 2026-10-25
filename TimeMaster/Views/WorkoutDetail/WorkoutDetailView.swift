@@ -26,6 +26,8 @@ struct WorkoutDetailView: View {
     @State private var showingAddOptions = false
     @State private var showingSavedWorkoutPicker = false
     @State private var browserStartsInBundleMode = false
+    @State private var bundleToEdit: Section?
+    @State private var showingNewBundle = false
     @State private var summaryIsCompact = false
     @State private var editorControlsExpanded = false
     @State private var summaryCompletedSessionCount = 0
@@ -228,6 +230,18 @@ struct WorkoutDetailView: View {
         .sheet(isPresented: $showingWorkoutSettings) {
             WorkoutSettingsView(workoutID: workoutID, store: store)
         }
+        .sheet(item: $bundleToEdit) { section in
+            BundleEditorSheet(section: section) { updated in
+                store.updateSection(in: workout, section: updated)
+            }
+        }
+        .sheet(isPresented: $showingNewBundle) {
+            BundleEditorSheet { section in
+                store.addSection(to: workout, section: section)
+                sectionIDs = workout.sections.map(\.id)
+                expandedSectionIDs.insert(section.id)
+            }
+        }
         .sheet(isPresented: $showBrowserSheet) {
             DatabasePageBrowserSheet(
                 workout: workout,
@@ -256,7 +270,7 @@ struct WorkoutDetailView: View {
                         },
                         bundleSources: sources,
                         duration: dur,
-                        sets: sources.count,
+                        sets: sets,
                         repCount: reps > 0 ? reps : nil,
                         restAfter: restAfter,
                         restBetweenSets: restBetween,
@@ -436,6 +450,12 @@ struct WorkoutDetailView: View {
         ) {
             editorHeaderControls(progress: morph, diameter: diameter)
         }
+        .environment(\.scrollingChromeSetExpanded) { expanded in
+            guard editorControlsExpanded != expanded else { return }
+            withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
+                editorControlsExpanded = expanded
+            }
+        }
         .overlay(alignment: .topLeading) {
             editorBackButton(diameter: metrics.compactControlSize)
                 .padding(.leading, metrics.horizontalPadding)
@@ -446,6 +466,33 @@ struct WorkoutDetailView: View {
         .foregroundStyle(Theme.textPrimary)
     }
 
+    private var oneHandedActions: [ReachabilityAction] {
+        [
+            ReachabilityAction("back", title: "Back to workouts") {
+                editorBackButton(diameter: 48)
+            },
+            ReachabilityAction("music", title: "Music") {
+                editorMusicButton(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("more", title: "Workout actions", dismissesOnActivation: false) {
+                editorActionsMenu(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("add", title: "Add to workout") {
+                editorAddButton(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("browse", title: "Browse exercises") {
+                editorBrowseButton(progress: 1, diameter: 48)
+            },
+            ReachabilityAction("settings", title: "Workout Settings") {
+                Button { showingWorkoutSettings = true } label: {
+                    editorHeaderIcon("slider.horizontal.3", diameter: 48, title: "Settings")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.textPrimary)
+                .accessibilityLabel("Workout Settings")
+            }
+        ]
+    }
 
     private func editorHeaderControls(progress: CGFloat, diameter: CGFloat) -> some View {
         HStack(spacing: 4) {
@@ -499,34 +546,6 @@ struct WorkoutDetailView: View {
         .buttonStyle(TimeMasterCardButtonStyle())
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Browse exercises")
-    }
-
-    private var oneHandedActions: [ReachabilityAction] {
-        [
-            ReachabilityAction("back", title: "Back to workouts") {
-                editorBackButton(diameter: 48)
-            },
-            ReachabilityAction("music", title: "Music") {
-                editorMusicButton(progress: 1, diameter: 48)
-            },
-            ReachabilityAction("more", title: "Workout actions", dismissesOnActivation: false) {
-                editorActionsMenu(progress: 1, diameter: 48)
-            },
-            ReachabilityAction("add", title: "Add to workout") {
-                editorAddButton(progress: 1, diameter: 48)
-            },
-            ReachabilityAction("browse", title: "Browse exercises") {
-                editorBrowseButton(progress: 1, diameter: 48)
-            },
-            ReachabilityAction("settings", title: "Workout Settings") {
-                Button { showingWorkoutSettings = true } label: {
-                    editorHeaderIcon("slider.horizontal.3", diameter: 48, title: "Settings")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Theme.textPrimary)
-                .accessibilityLabel("Workout Settings")
-            }
-        ]
     }
 
     private func editorHeaderIcon(_ name: String, diameter: CGFloat, title: String = "", progress: CGFloat = 1) -> some View {
@@ -727,14 +746,14 @@ struct WorkoutDetailView: View {
         if index > currentIndex || live.phase == .warmUp { return 0 }
         if live.phase == .sectionRest { return phase == .sectionRest ? live.fraction : 1 }
         if phase == .sectionRest { return 0 }
-        let slots = section.effectiveSlots
+        let slots = section.playbackSlots()
         guard let currentSlot = slots.firstIndex(where: { $0.id == live.slotID }) else { return 0 }
         guard let slot else {
             var completed = 0.0
             var total = 0.0
             for (index, value) in slots.enumerated() {
                 let preparation = Double(section.preparationTime(for: value))
-                let work = section.mode == .bundle ? 1 : Double(value.duration)
+                let work = Double(value.duration)
                 let rest = index + 1 < slots.count ? Double(value.restAfter) : 0
                 let duration = preparation + work + rest
                 total += duration
@@ -768,6 +787,16 @@ struct WorkoutDetailView: View {
 
     @ViewBuilder
     private func expandedSectionRows(_ section: Section) -> some View {
+        if section.mode == .bundle {
+            builderListRow(
+                BundleSectionEditor(section: Binding(
+                    get: { workout.sections.first(where: { $0.id == section.id }) ?? section },
+                    set: { store.updateSection(in: workout, section: $0) }
+                )) { inspectedPageID = $0 },
+                insets: EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12),
+                depth: 1
+            )
+        } else {
         ForEach(Array(section.effectiveSlots.enumerated()), id: \.element.id) { slotIndex, slot in
             if section.preparationTime(for: slot) > 0 {
                 builderListRow(
@@ -890,9 +919,20 @@ struct WorkoutDetailView: View {
                 restDetailRows(row: rest, target: target, depth: 3)
             }
         }
+        }
     }
 
+    @ViewBuilder
     private func sectionHeader(_ section: Section, isExpanded: Bool) -> some View {
+        if section.mode == .bundle {
+            BundleSectionHeader(
+                section: section, isExpanded: isExpanded,
+                onToggle: { toggleSection(section.id) },
+                onAddSet: { addSlot(in: section.id) },
+                onEdit: { bundleToEdit = section },
+                onOpenPage: { inspectedPageID = $0 }
+            )
+        } else {
         HStack(spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "line.3.horizontal")
@@ -959,17 +999,7 @@ struct WorkoutDetailView: View {
                         var copy = section
                         copy.id = UUID()
                         copy.name = "\(section.name) Copy"
-                        copy.slots = section.effectiveSlots.map { slot in
-                            var copied = slot
-                            copied.id = UUID()
-                            copied.restRow?.id = UUID()
-                            copied.drops = slot.drops.map { drop in
-                                var copiedDrop = drop
-                                copiedDrop.id = UUID()
-                                return copiedDrop
-                            }
-                            return copied
-                        }
+                        copy.slots = section.effectiveSlots.map { $0.duplicated() }
                         if var bigRest = copy.bigRestRow {
                             bigRest.id = copy.id
                             copy.bigRestRow = bigRest
@@ -1013,6 +1043,7 @@ struct WorkoutDetailView: View {
         }
         .padding(14)
         .modifier(TimeMasterCardSurface(cornerRadius: 12, flat: true))
+        }
     }
 
     private func sectionSummary(_ section: Section) -> String {
@@ -1657,10 +1688,7 @@ struct WorkoutDetailView: View {
 
         switch type {
         case .bundle:
-            Task { @MainActor in
-                await Task.yield()
-                openBrowser(.newSection, bundleMode: true)
-            }
+            showingNewBundle = true
         case .workout:
             Task { @MainActor in
                 await Task.yield()
@@ -1983,6 +2011,16 @@ struct WorkoutDetailView: View {
         var insertedSlotID: UUID?
         animateEditor {
             mutateSection(id: sectionID) { section in
+                if section.mode == .bundle {
+                    var values = section.bundleSets
+                    guard let source = values.last else { return }
+                    var added = source.duplicated()
+                    added.name = "Set \(values.count + 1)"
+                    values.append(added)
+                    section.slots = values
+                    section.sets = values.count
+                    return
+                }
                 var slots = section.effectiveSlots
                 guard let source = slots.last else { return }
 

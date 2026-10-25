@@ -14,6 +14,11 @@ struct MacVideoPlayerView: NSViewRepresentable {
 
     func updateNSView(_ nsView: PlayerLayerHostView, context: Context) {
         nsView.player = player
+        nsView.needsLayout = true
+    }
+
+    static func dismantleNSView(_ nsView: PlayerLayerHostView, coordinator: ()) {
+        nsView.player = nil
     }
 
     final class PlayerLayerHostView: NSView {
@@ -21,6 +26,7 @@ struct MacVideoPlayerView: NSViewRepresentable {
 
         var player: AVPlayer? {
             didSet {
+                guard oldValue !== player else { return }
                 playerLayer.player = player
             }
         }
@@ -34,15 +40,24 @@ struct MacVideoPlayerView: NSViewRepresentable {
             playerLayer.videoGravity = .resizeAspect
             playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
             layer?.addSublayer(playerLayer)
+            needsLayout = true
         }
 
         required init?(coder: NSCoder) {
             nil
         }
 
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            needsLayout = true
+        }
+
         override func layout() {
             super.layout()
             playerLayer.frame = bounds
+            playerLayer.contentsScale = window?.backingScaleFactor
+                ?? NSScreen.main?.backingScaleFactor
+                ?? 2
         }
     }
 }

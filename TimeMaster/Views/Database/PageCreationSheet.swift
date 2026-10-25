@@ -11,6 +11,12 @@ private struct PendingPageMedia {
     var filename: String { temporaryURL.lastPathComponent }
 }
 
+private struct PageCreationComment: Identifiable {
+    let filename: String
+    let url: URL
+    var id: String { filename }
+}
+
 private struct PageCreationLinkRow: Identifiable, Equatable {
     let id: UUID
     var url: String
@@ -33,6 +39,7 @@ struct PageCreationSheet: View {
     let existingPage: ExercisePage?
     let onSave: (ExercisePageManifest, String?) throws -> Void
     let onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)?
+    @State private var libraryToken: ExerciseLibraryAccess.Token
 
     @State private var pageKind: ExercisePageManifest.PageKind
     @State private var pageType: PageType?
@@ -50,6 +57,8 @@ struct PageCreationSheet: View {
     @State private var dropSetTemplates: [PageDropSetTemplate]
     @State private var linkRows: [PageCreationLinkRow]
     @State private var mediaFilenames: [String]
+    @State private var mediaComments: [String: String]
+    @State private var editingMediaComment: PageCreationComment?
     @State private var pendingMediaFiles: [PendingPageMedia] = []
     @State private var mediaPreviewThumbnails: [(filename: String, image: Image?)] = []
     @State private var draggedMediaFilename: String?
@@ -80,6 +89,7 @@ struct PageCreationSheet: View {
         self.existingPage = page
         self.onSave = onSave
         self.onSaveWithMedia = onSaveWithMedia
+        _libraryToken = State(initialValue: ExerciseLibraryAccess.shared.capture())
 
         let resolvedParentID = parentID ?? page?.manifest.parentID
         let defaultPageType: PageType? = initialPageType
@@ -123,6 +133,7 @@ struct PageCreationSheet: View {
         _dropSetTemplates = State(initialValue: page?.manifest.dropSetTemplates ?? [])
         _linkRows = State(initialValue: initialLinks)
         _mediaFilenames = State(initialValue: initialMedia)
+        _mediaComments = State(initialValue: page?.manifest.mediaComments ?? [:])
         _draftID = State(initialValue: UUID())
     }
 
@@ -205,6 +216,20 @@ struct PageCreationSheet: View {
                     apply(draft: draft)
                     showDraftList = false
                 }
+            }
+            .sheet(item: $editingMediaComment) { attachment in
+                MediaCommentEditor(mediaURL: attachment.url, comment: mediaComments[attachment.filename] ?? "") { comment in
+                    guard mediaFilenames.contains(attachment.filename) else {
+                        throw FileSystemHelper.Error.notFound(attachment.filename)
+                    }
+                    try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                        if let existingPage {
+                            try databaseStore.updateMediaComment(pageID: existingPage.manifest.id, filename: attachment.filename, comment: comment)
+                        }
+                        mediaComments[attachment.filename] = comment.isEmpty ? nil : comment
+                    }
+                }
+                .id(attachment.filename)
             }
             .sheet(isPresented: $showDropSetPicker) {
                 DatabasePageBrowserSheet(
@@ -433,6 +458,21 @@ struct PageCreationSheet: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Remove media")
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Button {
+                if let url = mediaURL(filename: filename) {
+                    editingMediaComment = PageCreationComment(filename: filename, url: url)
+                }
+            } label: {
+                Image(systemName: mediaComments[filename] == nil ? "bubble.left" : "bubble.left.fill")
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.black.opacity(0.7), in: Circle())
+                    .padding(6)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(mediaComments[filename] == nil ? "Add media comment" : "Edit media comment")
         }
         .contentShape(Rectangle())
     }
@@ -845,7 +885,8 @@ struct PageCreationSheet: View {
             "\(restBetweenSets)",
             dropSetTemplates.map { "\($0.id):\($0.exerciseID):\($0.name):\($0.setIndex):\($0.duration):\($0.restAfter)" }.joined(separator: "|"),
             linkRows.map { "\($0.id):\($0.url)" }.joined(separator: "|"),
-            mediaFilenames.joined(separator: "|")
+            mediaFilenames.joined(separator: "|"),
+            mediaComments.keys.sorted().map { "\($0):\(mediaComments[$0] ?? "")" }.joined(separator: "\u{1E}")
         ].joined(separator: "\u{1F}")
     }
 
@@ -963,9 +1004,17 @@ struct PageCreationSheet: View {
 
     private func removeMedia(filename: String) {
         if let page = existingPage {
-            try? DatabaseManager.shared.removeMediaFromPage(pageID: page.manifest.id, filename: filename)
-            databaseStore.reload()
+            do {
+                try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                    try DatabaseManager.shared.removeMediaFromPage(pageID: page.manifest.id, filename: filename)
+                }
+                databaseStore.reload()
+            } catch {
+                saveErrorMessage = error.localizedDescription
+                return
+            }
         }
+        mediaComments.removeValue(forKey: filename)
         mediaFilenames.removeAll { $0 == filename }
         mediaPreviewThumbnails.removeAll { $0.filename == filename }
         pendingMediaFiles.removeAll { pending in
@@ -986,7 +1035,9 @@ struct PageCreationSheet: View {
         let draft = makeDraft()
         let sources = Dictionary(uniqueKeysWithValues: pendingMediaFiles.map { ($0.filename, $0.temporaryURL) })
         do {
-            try PageCreationDraftStore.shared.save(draft, mediaSources: sources)
+            try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                try PageCreationDraftStore.shared.save(draft, mediaSources: sources)
+            }
             if showConfirmation {
                 withAnimation(.easeOut(duration: 0.2)) {
                     draftSavedMessage = "Draft saved"
@@ -1032,6 +1083,7 @@ struct PageCreationSheet: View {
             linkURLs: links.map(\.0),
             linkMetadata: links.map { $0.1 ?? LinkMetadata(url: $0.0) },
             mediaFilenames: mediaFilenames,
+            mediaComments: mediaComments,
             createdAt: createdAt,
             updatedAt: now
         )
@@ -1039,32 +1091,29 @@ struct PageCreationSheet: View {
 
     private func savePage() {
         guard canSave else { return }
-        let mediaData = mediaFilenames.compactMap { filename -> (filename: String, data: Data)? in
-            guard let pending = pendingMediaFiles.first(where: { $0.filename == filename }),
-                  let data = try? Data(contentsOf: pending.temporaryURL) else {
-                return nil
-            }
-            return (filename: filename, data: data)
-        }
-        var manifest = makeManifest()
-        if existingPage == nil {
-            manifest.mediaFilenames = []
-        }
-
         do {
-            if existingPage == nil, let onSaveWithMedia {
-                try onSaveWithMedia(manifest, draftParentID, nil, mediaData)
-            } else {
-                try onSave(manifest, draftParentID)
-                if existingPage == nil && !mediaData.isEmpty {
-                    uploadMediaAfterFallbackSave(pageID: manifest.id, mediaData: mediaData)
+            let mediaData = try mediaFilenames.compactMap { filename -> (filename: String, data: Data)? in
+                guard let pending = pendingMediaFiles.first(where: { $0.filename == filename }) else {
+                    if existingPage == nil { throw FileSystemHelper.Error.notFound(filename) }
+                    return nil
                 }
+                return (filename: filename, data: try Data(contentsOf: pending.temporaryURL))
+            }
+            var manifest = makeManifest()
+            if existingPage == nil { manifest.mediaFilenames = [] }
+            try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                if existingPage == nil, let onSaveWithMedia {
+                    try onSaveWithMedia(manifest, draftParentID, nil, mediaData)
+                } else {
+                    try onSave(manifest, draftParentID)
+                    if existingPage == nil && !mediaData.isEmpty {
+                        try uploadMediaAfterFallbackSave(pageID: manifest.id, mediaData: mediaData)
+                    }
+                }
+                if existingPage == nil { PageCreationDraftStore.shared.delete(id: draftID) }
             }
             didSavePage = true
             autosaveTask?.cancel()
-            if existingPage == nil {
-                PageCreationDraftStore.shared.delete(id: draftID)
-            }
             cleanupTemporaryMedia()
             dismiss()
         } catch {
@@ -1099,6 +1148,7 @@ struct PageCreationSheet: View {
             manifest.workoutType = coreWorkoutType
             manifest.markdownBody = markdownBody
             manifest.mediaFilenames = mediaFilenames
+            manifest.mediaComments = mediaComments.filter { mediaFilenames.contains($0.key) }
             manifest.linkURLs = links.map(\.0)
             manifest.linkMetadata = links.map { $0.1 ?? LinkMetadata(url: $0.0) }
             manifest.duration = isExercise ? duration : nil
@@ -1128,6 +1178,7 @@ struct PageCreationSheet: View {
             iconName: nil,
             markdownBody: markdownBody,
             mediaFilenames: mediaFilenames,
+            mediaComments: mediaComments.filter { mediaFilenames.contains($0.key) },
             linkURLs: links.map(\.0),
             linkMetadata: links.map { $0.1 ?? LinkMetadata(url: $0.0) },
             workoutType: coreWorkoutType,
@@ -1160,22 +1211,29 @@ struct PageCreationSheet: View {
     private func uploadMediaAfterFallbackSave(
         pageID: String,
         mediaData: [(filename: String, data: Data)]
-    ) {
-        let libraryToken = ExerciseLibraryAccess.shared.capture()
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? ExerciseLibraryAccess.shared.perform(token: libraryToken) {
-                for (_, data) in mediaData {
-                    let temporaryURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString + ".jpg")
-                    do {
-                        try data.write(to: temporaryURL)
-                        _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
-                    } catch {}
-                    try? FileManager.default.removeItem(at: temporaryURL)
+    ) throws {
+        do {
+            for (filename, data) in mediaData {
+                let temporaryURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + "-" + URL(fileURLWithPath: filename).lastPathComponent)
+                defer { try? FileManager.default.removeItem(at: temporaryURL) }
+                try data.write(to: temporaryURL, options: .atomic)
+                let savedFilename = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: temporaryURL)
+                if let comment = mediaComments[filename] {
+                    try DatabaseManager.shared.updateMediaComment(pageID: pageID, filename: savedFilename, comment: comment)
                 }
             }
-            databaseStore.reload()
+        } catch {
+            let saveError = error
+            do {
+                try DatabaseManager.shared.deletePage(id: pageID)
+            } catch {
+                throw FileSystemHelper.Error.writeFailed("\(saveError.localizedDescription) Cleanup failed: \(error.localizedDescription)")
+            }
+            databaseStore.reloadImmediately()
+            throw saveError
         }
+        databaseStore.reloadImmediately()
     }
 
     private func cleanupTemporaryMedia() {
@@ -1219,6 +1277,7 @@ struct PageCreationSheet: View {
             return FileManager.default.fileExists(atPath: url.path)
         }
         mediaFilenames = availableMedia
+        mediaComments = (draft.mediaComments ?? [:]).filter { availableMedia.contains($0.key) }
         pendingMediaFiles = availableMedia.map { filename in
             PendingPageMedia(temporaryURL: PageCreationDraftStore.shared.mediaURL(for: draft, filename: filename))
         }
@@ -1260,7 +1319,6 @@ struct PageCreationSheet: View {
 
     #if os(iOS)
     private func handleMediaPicks(_ items: [PhotosPickerItem]) {
-        let libraryToken = ExerciseLibraryAccess.shared.capture()
         Task { @MainActor in
             for item in items where mediaFilenames.count < 20 {
                 let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .audiovisualContent) }
@@ -1292,14 +1350,26 @@ struct PageCreationSheet: View {
         }
     }
 
+    private func mediaURL(filename: String) -> URL? {
+        if let pending = pendingMediaFiles.first(where: { $0.filename == filename }) {
+            return pending.temporaryURL
+        }
+        return existingPage?.mediaURLs.first { $0.lastPathComponent == filename }
+            ?? existingPage.flatMap { try? DatabaseManager.shared.pageMediaURL(pageID: $0.manifest.id, filename: filename) }
+    }
+
     private func stageMedia(_ sourceURL: URL) {
         guard mediaFilenames.count < 20 else { return }
         let temporaryURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString + "-" + (sourceURL.lastPathComponent.isEmpty ? "media.jpg" : sourceURL.lastPathComponent))
+        let accessed = sourceURL.startAccessingSecurityScopedResource()
+        defer { if accessed { sourceURL.stopAccessingSecurityScopedResource() } }
         do {
             try FileManager.default.copyItem(at: sourceURL, to: temporaryURL)
             if let page = existingPage {
-                let uploaded = try DatabaseManager.shared.uploadMediaToPage(pageID: page.manifest.id, sourceURL: temporaryURL)
+                let uploaded = try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+                    try DatabaseManager.shared.uploadMediaToPage(pageID: page.manifest.id, sourceURL: temporaryURL)
+                }
                 if !mediaFilenames.contains(uploaded) {
                     mediaFilenames.append(uploaded)
                     databaseStore.updatePageMedia(pageID: page.manifest.id, mediaFilenames: [uploaded])

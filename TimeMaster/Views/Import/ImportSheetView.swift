@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import AVFoundation
 
 struct ImportSheetView: View {
     @Environment(\.dismiss) private var dismiss
@@ -11,9 +12,11 @@ struct ImportSheetView: View {
     @State private var downloadError: String?
     #if os(iOS)
     @State private var pickerItem: PhotosPickerItem?
-    #else
-    @State private var showingFilePicker = false
+    @State private var showingPhotoPicker = false
+    @State private var showingSourceChoice = false
     #endif
+    @State private var showingFilePicker = false
+    @State private var isLoadingVideo = false
     @State private var showingSettings = false
     @State private var showingEditor   = false
     @State private var videoURL: URL?
@@ -50,26 +53,41 @@ struct ImportSheetView: View {
             .sheet(isPresented: $showingSettings) {
                 ServerSettingsView(settings: settings)
             }
-            .sheet(isPresented: $showingEditor) {
+            #if os(iOS)
+            .fullScreenCover(isPresented: $showingEditor, onDismiss: discardVideo) {
                 editorCover
             }
+            #else
+            .sheet(isPresented: $showingEditor, onDismiss: discardVideo) {
+                editorCover
+            }
+            #endif
         }
         #if os(iOS)
+        .confirmationDialog("Choose video from", isPresented: $showingSourceChoice, titleVisibility: .visible) {
+            Button("Photos") { showingPhotoPicker = true }
+            Button("Files") { showingFilePicker = true }
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showingPhotoPicker, selection: $pickerItem, matching: .videos)
         .onChange(of: pickerItem) { item in
             guard let item else { return }
             loadLocalVideo(item)
         }
-        #else
-        .macFilePicker(
-            isPresented: $showingFilePicker,
-            allowedTypes: [.movie],
-            allowsMultiple: false
-        ) { urls in
-            guard let url = urls.first else { return }
-            videoURL = url
-            showingEditor = true
-        }
         #endif
+        .fileImporter(
+            isPresented: $showingFilePicker,
+            allowedContentTypes: [.movie],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                loadFileVideo(url)
+            case .failure(let error):
+                downloadError = error.localizedDescription
+            }
+        }
     }
 
     // MARK: - Editor Cover
@@ -90,10 +108,10 @@ struct ImportSheetView: View {
     private var localPickerCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             #if os(iOS)
-            Text("From Camera Roll")
+            Text("From Your Device")
                 .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
-            PhotosPicker(selection: $pickerItem, matching: .videos) {
-                pickerRow(title: "Choose Video", systemImage: "photo.on.rectangle")
+            Button { showingSourceChoice = true } label: {
+                pickerRow(title: isLoadingVideo ? "Opening Video…" : "Choose Video", systemImage: "video.badge.plus")
             }
             #else
             Text("From This Mac")
@@ -102,7 +120,11 @@ struct ImportSheetView: View {
                 pickerRow(title: "Choose Video", systemImage: "folder")
             }
             #endif
+            if isLoadingVideo {
+                TmaxLoadingIndicator("Preparing video…")
+            }
         }
+        .disabled(isLoadingVideo || isDownloading)
     }
 
     private func pickerRow(title: String, systemImage: String) -> some View {
@@ -153,7 +175,7 @@ struct ImportSheetView: View {
                 .background(Theme.surface2)
                 .cornerRadius(10)
             }
-            .disabled(urlText.trimmingCharacters(in: .whitespaces).isEmpty || isDownloading)
+            .disabled(urlText.trimmingCharacters(in: .whitespaces).isEmpty || isDownloading || isLoadingVideo)
         }
     }
 
@@ -168,15 +190,81 @@ struct ImportSheetView: View {
 
     #if os(iOS)
     private func loadLocalVideo(_ item: PhotosPickerItem) {
+        isLoadingVideo = true
+        downloadError = nil
         Task { @MainActor in
-            if let file = try? await item.loadTransferable(type: MovieFile.self) {
-                videoURL = file.url
-                showingEditor = true
+            defer {
+                isLoadingVideo = false
+                pickerItem = nil
             }
-            pickerItem = nil
+            do {
+                guard let file = try await item.loadTransferable(type: MovieFile.self) else {
+                    throw CocoaError(.fileReadCorruptFile)
+                }
+                await openVideo(file.url)
+            } catch {
+                downloadError = error.localizedDescription
+            }
         }
     }
     #endif
+
+    private func loadFileVideo(_ url: URL) {
+        isLoadingVideo = true
+        downloadError = nil
+        Task { @MainActor in
+            defer { isLoadingVideo = false }
+            do {
+                let stagedURL = try await Task.detached(priority: .userInitiated) {
+                    let hasAccess = url.startAccessingSecurityScopedResource()
+                    defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+                    let destination = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathExtension(url.pathExtension)
+                    var coordinationError: NSError?
+                    var copyError: Error?
+                    NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { readableURL in
+                        do {
+                            try FileManager.default.copyItem(at: readableURL, to: destination)
+                        } catch {
+                            copyError = error
+                        }
+                    }
+                    if let error = coordinationError ?? copyError as NSError? {
+                        try? FileManager.default.removeItem(at: destination)
+                        throw error
+                    }
+                    return destination
+                }.value
+                await openVideo(stagedURL)
+            } catch {
+                downloadError = error.localizedDescription
+            }
+        }
+    }
+
+    private func openVideo(_ url: URL) async {
+        do {
+            let asset = AVURLAsset(url: url)
+            let duration = try await asset.load(.duration).seconds
+            let tracks = try await asset.loadTracks(withMediaType: .video)
+            guard duration.isFinite, duration > 0, !tracks.isEmpty else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            videoURL = url
+            showingEditor = true
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            downloadError = "Could not open this video. \(error.localizedDescription)"
+        }
+    }
+
+    private func discardVideo() {
+        if let videoURL {
+            try? FileManager.default.removeItem(at: videoURL)
+        }
+        videoURL = nil
+    }
 
     private func startDownload() {
         downloadError = nil
@@ -188,8 +276,7 @@ struct ImportSheetView: View {
                     socialURL: trimmed,
                     settings: settings
                 )
-                videoURL = url
-                showingEditor = true
+                await openVideo(url)
             } catch {
                 downloadError = error.localizedDescription
             }

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Time-Master Companion Server
-Downloads videos using yt-dlp and streams them to the iOS app.
+Validates video links with yt-dlp and streams downloads to the iOS app.
 
-Requirements:
-    pip3 install yt-dlp
+Requirements on macOS:
+    brew install yt-dlp ffmpeg
 
 Usage:
     python3 server.py
@@ -13,6 +13,9 @@ Usage:
 import http.server
 import json
 import os
+import select
+import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -23,124 +26,164 @@ import urllib.parse
 
 HOST = "0.0.0.0"
 PORT = 8888
-DISCOVERY_PORT = 8889  # UDP broadcast port for auto-discovery
-CHUNK_SIZE = 65536  # 64 KB
+DISCOVERY_PORT = 8889
+CHUNK_SIZE = 65536
 
-# Homebrew paths for yt-dlp and ffmpeg (used on macOS with Apple Silicon / Intel)
-YTDLP_PATH = "/opt/homebrew/bin/yt-dlp"
-if not os.path.exists(YTDLP_PATH):
-    YTDLP_PATH = "/usr/local/bin/yt-dlp"   # Intel Homebrew fallback
-if not os.path.exists(YTDLP_PATH):
-    YTDLP_PATH = "yt-dlp"                   # last resort: rely on PATH
+SUBPROCESS_ENV = os.environ.copy()
+_tool_directories = ["/opt/homebrew/bin", "/usr/local/bin",
+                     os.path.expanduser("~/.local/bin"), os.path.expanduser("~/.deno/bin")]
+_tool_directories += SUBPROCESS_ENV.get("PATH", "").split(os.pathsep)
+_tool_directories += ["/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+SUBPROCESS_ENV["PATH"] = os.pathsep.join(dict.fromkeys(path for path in _tool_directories if path))
+SUBPROCESS_ENV["PYTHONUNBUFFERED"] = "1"
+YTDLP_PATH = shutil.which("yt-dlp", path=SUBPROCESS_ENV["PATH"])
+FFMPEG_PATH = shutil.which("ffmpeg", path=SUBPROCESS_ENV["PATH"])
+DENO_PATH = shutil.which("deno", path=SUBPROCESS_ENV["PATH"])
+NODE_PATH = shutil.which("node", path=SUBPROCESS_ENV["PATH"])
 
-# Ensure ffmpeg is visible to yt-dlp even when PATH is restricted in subprocess
-_env = os.environ.copy()
-for extra in ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]:
-    if extra not in _env.get("PATH", ""):
-        _env["PATH"] = extra + os.pathsep + _env.get("PATH", "")
-SUBPROCESS_ENV = _env
+
+def extractor_arguments():
+    arguments = ["--no-playlist", "--no-progress", "--socket-timeout", "30"]
+    if FFMPEG_PATH:
+        arguments += ["--ffmpeg-location", os.path.dirname(FFMPEG_PATH)]
+    if DENO_PATH:
+        arguments += ["--js-runtimes", f"deno:{DENO_PATH}"]
+    elif NODE_PATH:
+        arguments += ["--js-runtimes", f"node:{NODE_PATH}"]
+    return arguments
+
+
+class DownloadCancelled(Exception):
+    pass
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
-
-    # ------------------------------------------------------------------ GET --
-
     def do_GET(self):
-        parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/health":
-            self._json(200, {"status": "ok"})
+        if urllib.parse.urlparse(self.path).path == "/health":
+            self._json(200, {"status": "ok" if YTDLP_PATH else "unavailable",
+                             "downloader": YTDLP_PATH is not None,
+                             "ffmpeg": FFMPEG_PATH is not None})
         else:
             self._json(404, {"error": "not found"})
-
-    # ----------------------------------------------------------------- POST --
 
     def do_POST(self):
-        parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/download":
-            self._handle_download()
-        else:
+        path = urllib.parse.urlparse(self.path).path
+        if path not in ("/validate", "/download"):
             self._json(404, {"error": "not found"})
-
-    # ------------------------------------------------------------ /download --
-
-    def _handle_download(self):
-        length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(length)
-
+            return
         try:
-            data = json.loads(body)
-        except Exception:
-            self._json(400, {"error": "invalid JSON body"})
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= 1048576:
+                raise ValueError("invalid request size")
+            data = json.loads(self.rfile.read(length))
+            url = data.get("url", "") if isinstance(data, dict) else ""
+            if not isinstance(url, str):
+                raise ValueError("missing 'url' field")
+            url = url.strip()
+            parsed = urllib.parse.urlsplit(url)
+            if parsed.scheme.lower() not in ("http", "https") or not parsed.hostname:
+                raise ValueError("Enter a valid http or https video link.")
+        except (ValueError, TypeError) as error:
+            self._json(400, {"error": str(error)})
             return
-
-        url = data.get("url", "").strip()
-        if not url:
-            self._json(400, {"error": "missing 'url' field"})
+        if not YTDLP_PATH:
+            self._json(503, {"error": "yt-dlp was not found. Run brew install yt-dlp ffmpeg on the companion Mac, then restart the server."})
             return
+        try:
+            if path == "/validate":
+                self._handle_validate(url)
+            else:
+                self._handle_download(url)
+        except DownloadCancelled:
+            print("  ! client cancelled import")
+        except (BrokenPipeError, ConnectionResetError):
+            print("  ! client disconnected")
+        except subprocess.TimeoutExpired:
+            self._json(504, {"error": "yt-dlp timed out. Retry or open the original link."})
+        except OSError as error:
+            self._json(503, {"error": str(error)})
 
+    def _handle_validate(self, url):
+        with tempfile.TemporaryDirectory() as directory:
+            result, output, errors = self._run(
+                extractor_arguments() + ["--skip-download", "--dump-single-json", "--", url], directory)
+            if result != 0:
+                self._json(422, {"error": self._failure(output, errors)})
+                return
+            try:
+                info = json.loads(output)
+                if not isinstance(info, dict):
+                    raise ValueError()
+            except ValueError:
+                self._json(502, {"error": "yt-dlp returned unreadable video information."})
+                return
+            if info.get("is_live"):
+                self._json(422, {"error": "This video is live. Import it after the broadcast ends."})
+                return
+            self._json(200, {"title": info.get("title"), "duration": info.get("duration"),
+                             "extractor": info.get("extractor")})
+
+    def _handle_download(self, url):
         print(f"  → downloading: {url}")
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            out_template = os.path.join(tmpdir, "video.%(ext)s")
-            cmd = [
-                YTDLP_PATH,
-                # Format priority (ensures iOS-compatible H.264+AAC output):
-                # 1. Facebook native pre-muxed hd (H.264+AAC, no ffmpeg needed)
-                # 2. Facebook native pre-muxed sd (H.264+AAC, no ffmpeg needed)
-                # 3. Best mp4 that already has audio (other platforms, pre-muxed)
-                # 4. Best mp4 video + m4a audio merged by ffmpeg
-                # 5. Absolute fallback
-                "-f", "hd/sd/best[ext=mp4][acodec!=none]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
-                "--merge-output-format", "mp4",
-                "-o", out_template,
-                "--no-playlist",
-                "--quiet",
-                "--user-agent",
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
-                "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-                url,
+        with tempfile.TemporaryDirectory() as directory:
+            arguments = extractor_arguments() + [
+                "--format", "bv*[vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4]/bv*+ba/b",
+                "--merge-output-format", "mp4", "--recode-video", "mp4",
+                "--paths", directory, "--output", "video.%(ext)s",
+                "--print", "after_move:filepath", "--", url,
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True,
-                                    env=SUBPROCESS_ENV)
-            if result.returncode != 0:
-                msg = result.stderr.strip() or "yt-dlp failed"
-                print(f"  ✗ yt-dlp error: {msg}")
-                self._json(500, {"error": msg})
+            result, output, errors = self._run(arguments, directory)
+            if result != 0:
+                self._json(422, {"error": self._failure(output, errors)})
                 return
-
-            # Locate the output file
-            mp4_path = None
-            for fname in os.listdir(tmpdir):
-                if fname.endswith(".mp4"):
-                    mp4_path = os.path.join(tmpdir, fname)
-                    break
-
-            if not mp4_path or not os.path.exists(mp4_path):
-                self._json(500, {"error": "output file not found after yt-dlp"})
+            root = os.path.realpath(directory) + os.sep
+            video_path = next((os.path.realpath(line.strip()) for line in reversed(output.splitlines())
+                               if os.path.realpath(line.strip()).startswith(root)
+                               and line.strip().lower().endswith(".mp4")
+                               and os.path.isfile(line.strip())), None)
+            if not video_path or os.path.getsize(video_path) == 0:
+                self._json(502, {"error": "yt-dlp finished without a video file. Open the original link to check availability."})
                 return
-
-            file_size = os.path.getsize(mp4_path)
-            print(f"  ✓ {os.path.basename(mp4_path)}  ({file_size // 1024} KB)")
-
             self.send_response(200)
             self.send_header("Content-Type", "video/mp4")
-            self.send_header("Content-Length", str(file_size))
+            self.send_header("Content-Length", str(os.path.getsize(video_path)))
             self.end_headers()
+            with open(video_path, "rb") as video:
+                while chunk := video.read(CHUNK_SIZE):
+                    self.wfile.write(chunk)
 
-            with open(mp4_path, "rb") as f:
-                while True:
-                    chunk = f.read(CHUNK_SIZE)
-                    if not chunk:
-                        break
+    def _run(self, arguments, directory):
+        with tempfile.TemporaryFile(mode="w+b") as output, tempfile.TemporaryFile(mode="w+b") as errors:
+            process = subprocess.Popen([YTDLP_PATH] + arguments, stdout=output, stderr=errors,
+                                       cwd=directory, env=SUBPROCESS_ENV, start_new_session=True)
+            deadline = time.monotonic() + 1800
+            try:
+                while process.poll() is None:
+                    if time.monotonic() >= deadline:
+                        raise subprocess.TimeoutExpired(process.args, 1800)
+                    readable, _, _ = select.select([self.connection], [], [], 0.2)
+                    if readable and not self.connection.recv(1, socket.MSG_PEEK):
+                        raise DownloadCancelled()
+                output.seek(0)
+                errors.seek(0)
+                return process.returncode, output.read().decode("utf-8", errors="replace"), errors.read().decode("utf-8", errors="replace")
+            finally:
+                if process.poll() is None:
                     try:
-                        self.wfile.write(chunk)
-                    except (BrokenPipeError, ConnectionResetError):
-                        print("  ! client disconnected mid-stream")
-                        break
+                        os.killpg(process.pid, signal.SIGINT)
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(process.pid, signal.SIGKILL)
+                        process.wait()
+                    except ProcessLookupError:
+                        process.wait()
 
-    # ---------------------------------------------------------------- utils --
+    @staticmethod
+    def _failure(output, errors):
+        lines = [line.strip() for line in (errors or output).splitlines() if line.strip()]
+        return "\n".join(lines[-12:]) or "yt-dlp could not download this video. Open the original link or retry."
 
-    def _json(self, status: int, payload: dict):
+    def _json(self, status, payload):
         body = json.dumps(payload).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -152,69 +195,45 @@ class Handler(http.server.BaseHTTPRequestHandler):
         print(f"[{self.client_address[0]}] {fmt % args}")
 
 
-# ====================================================================== main --
-
-def get_lan_ip() -> str:
-    """Return the machine's LAN IP (best-effort via UDP trick)."""
+def get_lan_ip():
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connection:
+            connection.connect(("8.8.8.8", 80))
+            return connection.getsockname()[0]
+    except OSError:
         return "127.0.0.1"
 
 
-def broadcast_presence(lan_ip: str, stop_event: threading.Event):
-    """Broadcast UDP beacon every 2 s so the iOS app can auto-detect this server."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    sock.settimeout(1)
-    message = f"TIMEMASTER:{lan_ip}:{PORT}".encode()
-    while not stop_event.is_set():
-        try:
-            sock.sendto(message, ("255.255.255.255", DISCOVERY_PORT))
-        except Exception:
-            pass
-        time.sleep(2)
-    sock.close()
+def broadcast_presence(lan_ip, stop_event):
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as connection:
+        connection.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        connection.settimeout(1)
+        message = f"TIMEMASTER:{lan_ip}:{PORT}".encode()
+        while not stop_event.is_set():
+            try:
+                connection.sendto(message, ("255.255.255.255", DISCOVERY_PORT))
+            except OSError:
+                pass
+            stop_event.wait(2)
 
 
 def main():
     lan_ip = get_lan_ip()
-    print("=" * 52)
-    print("  Time-Master Companion Server")
-    print("=" * 52)
-    print()
-    print("  Setup (one-time):")
-    print("    pip3 install yt-dlp")
-    print()
-    print(f"  LAN IP:       {lan_ip}")
-    print(f"  Listening on  http://{HOST}:{PORT}")
-    print(f"  Broadcasting  UDP beacon on port {DISCOVERY_PORT} every 2 s")
-    print("  (iOS app will auto-detect this server)")
-    print()
-    print("  Endpoints:")
-    print("    GET  /health              → {\"status\": \"ok\"}")
-    print("    POST /download            → streams .mp4")
-    print("         body: {\"url\": \"<social-url>\"}")
-    print()
-    print("  Press Ctrl+C to stop.")
-    print()
-
+    print("Time-Master Companion Server")
+    print(f"yt-dlp: {YTDLP_PATH or 'not installed — brew install yt-dlp ffmpeg'}")
+    print(f"Listening on http://{HOST}:{PORT}; LAN http://{lan_ip}:{PORT}")
+    print("GET /health · POST /validate · POST /download  —  body: {\"url\": \"https://…\"}")
     stop_event = threading.Event()
     beacon = threading.Thread(target=broadcast_presence, args=(lan_ip, stop_event), daemon=True)
     beacon.start()
-
     server = http.server.ThreadingHTTPServer((HOST, PORT), Handler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\nStopped.")
+    finally:
         stop_event.set()
         server.server_close()
-        sys.exit(0)
 
 
 if __name__ == "__main__":

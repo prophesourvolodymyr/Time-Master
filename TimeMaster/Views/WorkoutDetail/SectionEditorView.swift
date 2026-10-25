@@ -25,6 +25,7 @@ struct SectionEditorView: View {
     @State private var pageID: UUID?
     @State private var mode: SectionMode
     @State private var draftSlots: [SetSlot]
+    @State private var bundleDraft: Section?
     @State private var mediaItems: [MediaItem]
     #if os(iOS)
     @State private var pendingItems: [PhotosPickerItem] = []
@@ -50,6 +51,7 @@ struct SectionEditorView: View {
         _pageID           = State(initialValue: section?.pageID)
         _mode             = State(initialValue: section?.mode ?? .timed)
         _draftSlots       = State(initialValue: section?.effectiveSlots ?? [])
+        _bundleDraft      = State(initialValue: section?.mode == .bundle ? section : nil)
         _prepareTime      = State(initialValue: section?.prepareTime ?? 4)
         _mediaItems       = State(initialValue: section?.mediaItems ?? [])
     }
@@ -63,11 +65,18 @@ struct SectionEditorView: View {
                     mediaSection
                     nameSection
                     fromDatabaseSection
-                    durationSection
-                    prepareTimeSection
-                    setsSection
-                    if sets > 1 { restBetweenSetsSection }
-                    restAfterSection
+                    if let bundleDraft, mode == .bundle {
+                        BundleSectionEditor(section: Binding(
+                            get: { self.bundleDraft ?? bundleDraft },
+                            set: { self.bundleDraft = $0 }
+                        ))
+                    } else {
+                        durationSection
+                        prepareTimeSection
+                        setsSection
+                        if sets > 1 { restBetweenSetsSection }
+                        restAfterSection
+                    }
                     }
                     .padding(16)
                 }
@@ -520,10 +529,20 @@ struct SectionEditorView: View {
         mediaItems = imported.mediaItems
         mode = imported.mode
         draftSlots = imported.slots
+        bundleDraft = imported.mode == .bundle ? imported : nil
         showingDatabasePicker = false
     }
 
     private func saveSection() {
+        if mode == .bundle, var saved = bundleDraft {
+            guard saved.slots.allSatisfy({ !$0.children.isEmpty }) else { return }
+            saved.name = name
+            saved.mediaItems = mediaItems
+            saved.sets = saved.slots.count
+            onSave(saved)
+            dismiss()
+            return
+        }
         let configuration = WorkoutSectionImportConfiguration(
             duration: duration,
             sets: sets,

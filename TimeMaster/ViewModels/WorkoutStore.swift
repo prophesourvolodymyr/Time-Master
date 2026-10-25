@@ -165,6 +165,8 @@ class WorkoutStore: ObservableObject {
         for section in workout.sections {
             var newSection = section
             newSection.id = UUID()
+            newSection.slots = section.effectiveSlots.map { $0.duplicated() }
+            newSection.bigRestRow?.id = UUID()
             newSections.append(newSection)
         }
         clonedWorkout.sections = newSections
@@ -206,10 +208,15 @@ class WorkoutStore: ObservableObject {
         var flattened = source
         flattened.sections = source.sections.map { section in
             var result = section
-            result.slots = flattenSlots(
-                section.effectiveSlots,
-                visited: [source.id]
-            )
+            if section.mode == .bundle {
+                result.slots = section.bundleSets.map { set in
+                    var expanded = set
+                    expanded.children = flattenSlots(set.children, visited: [source.id])
+                    return expanded
+                }
+            } else {
+                result.slots = flattenSlots(section.effectiveSlots, visited: [source.id])
+            }
             result.sets = max(1, result.slots.count)
             return result
         }
@@ -290,10 +297,15 @@ class WorkoutStore: ObservableObject {
             return expanded
         }
 
-        var parent = slot
-        let children = flattenSlots(slot.children, visited: visited)
-        parent.children = []
-        return [parent] + children
+        guard !slot.children.isEmpty else { return [slot] }
+        var children = flattenSlots(slot.children, visited: visited)
+        if !children.isEmpty {
+            children[0].prepareTime = slot.prepareTime ?? children[0].prepareTime
+            if slot.restAfter > 0 {
+                appendRest(duration: slot.restAfter, row: slot.restRow, to: &children[children.count - 1])
+            }
+        }
+        return children
     }
 
     private func appendRest(
@@ -939,7 +951,9 @@ extension WorkoutSectionManifest {
             pageID: UUID(uuidString: exerciseID),
             mode: mode == .bundle ? .bundle : .timed,
             slots: slots.map { $0.toAppSlot() },
-            bigRestRow: bigRestRow.map { $0.toAppRestRow() }
+            bigRestRow: bigRestRow.map { $0.toAppRestRow() },
+            bundleOrder: bundleOrder,
+            bundleVoiceEnabled: bundleVoiceEnabled
         )
     }
 }
@@ -1034,7 +1048,9 @@ extension Section {
             mediaFilenames: mediaItems.map(\.filename),
             mode: mode == .bundle ? .bundle : .timed,
             slots: slots.map(\.coreManifest),
-            bigRestRow: bigRestRow?.coreManifest
+            bigRestRow: bigRestRow?.coreManifest,
+            bundleOrder: bundleOrder,
+            bundleVoiceEnabled: bundleVoiceEnabled
         )
     }
 }

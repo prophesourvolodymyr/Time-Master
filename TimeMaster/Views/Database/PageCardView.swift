@@ -92,7 +92,9 @@ struct PageCardView: View {
 
     private var coverHeroGrid: some View {
         ZStack(alignment: .bottomLeading) {
-            if let coverURL = page.coverImageURL {
+            if page.isContainer {
+                DatabaseGroupCover(page: page)
+            } else if let coverURL = page.coverImageURL {
                 coverImageGrid(url: coverURL)
             } else if let type = page.effectiveWorkoutType {
                 gradientCoverGrid(color: Color(hex: type.colorHex))
@@ -187,7 +189,11 @@ struct PageCardView: View {
 
     @ViewBuilder
     private var coverArea: some View {
-        if let coverURL = page.coverImageURL {
+        if page.isContainer {
+            DatabaseGroupCover(page: page)
+                .frame(width: listThumbnailSize, height: listThumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        } else if let coverURL = page.coverImageURL {
             AsyncCoverImage(url: coverURL, height: listThumbnailSize, overlayGradient: false)
                 .frame(width: listThumbnailSize, height: listThumbnailSize)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -206,7 +212,7 @@ struct PageCardView: View {
                 )
             )
             .overlay {
-                Image(systemName: page.isContainer ? "folder" : "doc.text")
+                Image(systemName: "doc.text")
                     .font(.title3)
                     .foregroundStyle(Theme.textSecondary)
             }

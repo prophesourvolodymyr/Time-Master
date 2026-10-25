@@ -6,123 +6,131 @@ struct TrayCardView: View {
     let isSelected: Bool
     let onSelect: () -> Void
     let onRemove: () -> Void
-    /// Called with the UUID of the card being dragged onto this one.
     let onMerge: (UUID) -> Void
-    /// Optional: called with the first TrayMedia when the user chooses "Preview" from context menu.
     let onPreview: ((TrayMedia) -> Void)?
+    var selectedIDs: Set<UUID> = []
+    var onToggleSelection: (() -> Void)?
+    var onGroupSelection: (() -> Void)?
+    var onUngroup: (() -> Void)?
 
     @State private var isDropTargeted = false
+    @State private var isHovered = false
 
     var body: some View {
-        cardContent
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(
-                        isDropTargeted
-                            ? Color.white.opacity(0.8)
-                            : (isSelected ? Color.white.opacity(0.55) : Color.clear),
-                        lineWidth: isDropTargeted ? 2 : 1.5
-                    )
-            )
-            .onTapGesture { onSelect() }
-            .onDrag {
-                NSItemProvider(object: item.id.uuidString as NSString)
-            }
-            .onDrop(of: [UTType.plainText], isTargeted: $isDropTargeted) { providers in
-                providers.first?.loadObject(ofClass: NSString.self) { obj, _ in
-                    guard let str = obj as? String,
-                          let srcID = UUID(uuidString: str) else { return }
-                    DispatchQueue.main.async { onMerge(srcID) }
+        VStack(alignment: .leading, spacing: 5) {
+            ZStack {
+                ForEach(Array(item.mediaList.dropFirst().prefix(2).enumerated()), id: \.offset) { index, media in
+                    thumbnail(media)
+                        .frame(width: CGFloat(88 - index * 6), height: 94)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                        .offset(y: -CGFloat(index + 1) * 4)
                 }
-                return true
+                if let first = item.mediaList.first {
+                    thumbnail(first)
+                        .frame(width: 94, height: 94)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                }
+                if isDropTargeted {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(Theme.toolbarOrange.opacity(0.82))
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white)
+                }
             }
-            .contextMenu {
-                contextMenuItems
+            .frame(width: 94, height: 94)
+            .padding(.top, item.mediaList.count > 1 ? 8 : 0)
+            .overlay(alignment: .bottomLeading) {
+                Label("\(item.mediaList.count)", systemImage: item.mediaList.count > 1 ? "square.stack.3d.up.fill" : item.mediaList.first?.isClip == true ? "film.fill" : "photo.fill")
+                    .font(TimeMasterFont.micro())
+                    .foregroundStyle(.white)
+                    .padding(5)
+                    .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 5))
+                    .padding(5)
             }
-            .accessibilityLabel(
-                item.mediaList.count == 1
-                    ? "Media item"
-                    : "\(item.mediaList.count) grouped media items"
-            )
-            .accessibilityHint(
-                item.mediaList.count == 1
-                    ? "Drag onto another media item to group it."
-                    : "Drag onto another media item to move this group."
-            )
+            .overlay(alignment: .topTrailing) {
+                if let onToggleSelection {
+                    Button(action: onToggleSelection) {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .font(.title3)
+                            .foregroundStyle(isSelected ? Theme.toolbarOrange : Color.white)
+                            .frame(width: 36, height: 36)
+                            .background(.black.opacity(0.5), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(isSelected ? "Deselect media" : "Select media")
+                    .padding(3)
+                }
+            }
+            Text(cardLabel)
+                .font(TimeMasterFont.micro().monospacedDigit())
+                .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1)
+                .frame(width: 94, alignment: .leading)
+        }
+        .padding(6)
+        .background(isHovered ? Theme.surface2 : Theme.background, in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(isDropTargeted || isSelected ? Theme.toolbarOrange : Theme.separator, lineWidth: isDropTargeted ? 2 : 1)
+                .allowsHitTesting(false)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 12))
+        .onTapGesture(perform: onSelect)
+        .onHover { isHovered = $0 }
+        .onDrag {
+            let ids = selectedIDs.contains(item.id) ? selectedIDs : [item.id]
+            return NSItemProvider(object: ids.map(\.uuidString).sorted().joined(separator: ",") as NSString)
+        }
+        .onDrop(of: [UTType.plainText], isTargeted: $isDropTargeted) { providers in
+            guard let provider = providers.first else { return false }
+            provider.loadObject(ofClass: NSString.self) { object, _ in
+                guard let string = object as? String else { return }
+                let ids = string.split(separator: ",").compactMap { UUID(uuidString: String($0)) }
+                Task { @MainActor in
+                    for id in ids where id != item.id { onMerge(id) }
+                }
+            }
+            return true
+        }
+        .contextMenu {
+            if let first = item.mediaList.first, let onPreview {
+                Button(first.isClip ? "Preview clip" : "Preview still", systemImage: "eye") { onPreview(first) }
+            }
+            if let onToggleSelection {
+                Button(isSelected ? "Deselect" : "Select", systemImage: "checkmark.circle", action: onToggleSelection)
+            }
+            if let onGroupSelection {
+                Button("Stack selected here", systemImage: "square.stack.3d.up", action: onGroupSelection)
+            }
+            if item.mediaList.count > 1, let onUngroup {
+                Button("Separate stack", systemImage: "square.stack.3d.up.slash", action: onUngroup)
+            }
+            Button("Remove", systemImage: "trash", role: .destructive, action: onRemove)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(item.mediaList.count) media, \(cardLabel)")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityAction(named: Text("Select"), onToggleSelection ?? onSelect)
+        .accessibilityAction(named: Text("Remove"), onRemove)
+    }
+
+    private var cardLabel: String {
+        if !item.name.isEmpty { return item.name }
+        if item.mediaList.count > 1 { return "\(item.mediaList.count) media" }
+        guard let first = item.mediaList.first, let start = first.startTime, let end = first.endTime else { return "Still" }
+        let seconds = max(0, end - start)
+        return String(format: "%d:%02d", Int(seconds) / 60, Int(seconds) % 60)
     }
 
     @ViewBuilder
-    private var contextMenuItems: some View {
-        if let firstMedia = item.mediaList.first, let previewCallback = onPreview {
-            Button {
-                previewCallback(firstMedia)
-            } label: {
-                Label(
-                    firstMedia.isClip ? "Preview Clip" : "Preview Screenshot",
-                    systemImage: firstMedia.isClip ? "play.circle" : "eye"
-                )
-            }
-        }
-        Button(role: .destructive) { onRemove() } label: {
-            Label("Remove Card", systemImage: "trash")
-        }
-    }
-
-    // MARK: - Card Visual
-
-    private var cardContent: some View {
-        ZStack(alignment: .bottomLeading) {
-            // Thumbnail
-            if let thumb = item.primaryThumbnail {
-                #if os(iOS)
-                Image(uiImage: thumb)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 72, height: 90)
-                    .clipped()
-                #elseif os(macOS)
-                Image(nsImage: thumb)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 72, height: 90)
-                    .clipped()
-                #endif
-            } else {
-                Rectangle()
-                    .fill(Theme.surface2)
-                    .frame(width: 72, height: 90)
-                    .overlay(
-                        Image(systemName: "photo")
-                            .font(.title3)
-                            .foregroundColor(Theme.textSecondary.opacity(0.4))
-                    )
-            }
-
-            // Media count badge (bottom-left)
-            if item.mediaList.count > 1 {
-                Text("\(item.mediaList.count)")
-                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                    .foregroundColor(Theme.textPrimary)
-                    .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(Color.black.opacity(0.75))
-                    .cornerRadius(4)
-                    .padding(4)
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            // Clip indicator (top-right) when any media is a clip
-            if item.mediaList.contains(where: { $0.isClip }) {
-                Image(systemName: "film")
-                    .font(.system(size: 9))
-                    .foregroundColor(.white)
-                    .padding(4)
-                    .background(Color.black.opacity(0.65))
-                    .clipShape(Circle())
-                    .padding(5)
-            }
-        }
-        .frame(width: 72, height: 90)
-        .cornerRadius(10)
-        .clipped()
+    private func thumbnail(_ media: TrayMedia) -> some View {
+        #if os(iOS)
+        Image(uiImage: media.thumbnail).resizable().scaledToFill()
+        #else
+        Image(nsImage: media.thumbnail).resizable().scaledToFill()
+        #endif
     }
 }

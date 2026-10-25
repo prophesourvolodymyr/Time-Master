@@ -54,6 +54,12 @@ enum SlotArcGeometry {
             + t * t * t * edgeY
     }
 
+    static func slope(at x: CGFloat, in rect: CGRect, expansion: CGFloat) -> CGFloat {
+        guard rect.width > 0 else { return 0 }
+        let t = min(1, max(0, (x - rect.minX) / rect.width))
+        return 3 * rect.height * (controlHeightRatio - edgeHeightRatio) * (1 - 2 * t) * expansion / rect.width
+    }
+
     static func linePath(in rect: CGRect, curveOffset: CGFloat, expansion: CGFloat, placement: SlotNavigationPlacement = .bottom) -> Path {
         let startY = placedY(curveY(at: rect.minX, in: rect, curveOffset: curveOffset, expansion: expansion), in: rect, placement: placement)
         let endY = placedY(curveY(at: rect.maxX, in: rect, curveOffset: curveOffset, expansion: expansion), in: rect, placement: placement)

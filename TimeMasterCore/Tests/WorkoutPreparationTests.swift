@@ -37,7 +37,7 @@ final class WorkoutPreparationTests: XCTestCase {
         XCTAssertEqual(slot.prepareTime ?? section.prepareTime, 4)
     }
 
-    func testTotalDurationCountsPreparationDropsAndRestWithoutBundleWork() {
+    func testTotalDurationCountsPreparationDropsRestAndBundleExerciseTimes() {
         let timedSlot = WorkoutSetSlotManifest(
             id: "timed",
             exerciseID: "timed-exercise",
@@ -112,7 +112,7 @@ final class WorkoutPreparationTests: XCTestCase {
             restBetweenSections: 0
         )
 
-        XCTAssertEqual(manifest.totalDuration, 63)
+        XCTAssertEqual(manifest.totalDuration, 110)
     }
 
     func testPageDropTemplatesRemainBoundToTheirSetIndex() throws {

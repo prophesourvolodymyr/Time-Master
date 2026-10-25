@@ -86,15 +86,32 @@ struct ProfileView: View {
         min(expandedAvatarSize, max(EverLayout.minimumTouchTarget, (width - EverLayout.phoneInset * 2) / 3))
     }
 
+    func profileCoverHeight(width: CGFloat) -> CGFloat {
+        #if os(macOS)
+        min(width / 3, expandedAvatarSize + EverSpacing.x4)
+        #else
+        width / 2
+        #endif
+    }
+
     func profileIdentityTop(width: CGFloat) -> CGFloat {
         let avatar = expandedProfileAvatar(width: width)
+        #if os(macOS)
+        let clearance = max(avatar / 2, showsEarnedElo ? earnedEloBadgeHeight / 2 : 0)
+        #else
         let clearance = showsEarnedElo ? avatar * 0.55 + earnedEloBadgeHeight / 2 : avatar / 2
-        return width / 2 + clearance + EverSpacing.x3
+        #endif
+        return profileCoverHeight(width: width) + clearance + EverSpacing.x3
     }
 
     func expandedProfileCore(width: CGFloat) -> CGFloat {
-        max(
-            EverProfileGeometry.expandedCore(coverHeight: width / 2, avatarSize: expandedProfileAvatar(width: width)),
+        #if os(macOS)
+        let artworkHeight = profileCoverHeight(width: width) + expandedProfileAvatar(width: width) / 2
+        #else
+        let artworkHeight = EverProfileGeometry.expandedCore(coverHeight: profileCoverHeight(width: width), avatarSize: expandedProfileAvatar(width: width))
+        #endif
+        return max(
+            artworkHeight,
             profileIdentityTop(width: width) + identityHeight + EverSpacing.x2
                 + EverLayout.minimumTouchTarget + EverSpacing.x2
         )
@@ -120,7 +137,7 @@ struct ProfileView: View {
             ) { width, progress in
                 let expandedCore = expandedProfileCore(width: width)
                 collapsingChrome(
-                    width: width, coverHeight: width / 2,
+                    width: width, coverHeight: profileCoverHeight(width: width),
                     expandedCore: expandedCore, expandedHeight: expandedCore + detailsHeight,
                     progress: progress
                 )
@@ -143,6 +160,10 @@ struct ProfileView: View {
                 .frame(maxWidth: .infinity, alignment: .top)
                 .allowsHitTesting(!previewOnly)
             }
+            #if os(macOS)
+            .frame(maxWidth: EverLayout.maximumReadableWidth)
+            .frame(maxWidth: .infinity)
+            #endif
             .background(palette.background)
             .background(EverColor.background.ignoresSafeArea())
             .foregroundStyle(palette.foreground)

@@ -13,6 +13,7 @@ struct MacVideoSavePopover: View {
     let asset: AVURLAsset
     let onDraftRenamed: (String) -> Void
     let onSaved: (String) -> Void
+    var onClose: () -> Void = {}
 
     private enum Step {
         case target
@@ -42,17 +43,22 @@ struct MacVideoSavePopover: View {
     @State private var isSaving = false
     @State private var saveChoice: String? = nil // "existing" or "new"
     @State private var saveErrorMessage: String?
+    @State private var clipComment = ""
+    @State private var destinationQuery = ""
+    @State private var destinationIndex = MediaSaveDestinationIndex()
 
     init(
         draft: MacVideoDraft,
         asset: AVURLAsset,
         onDraftRenamed: @escaping (String) -> Void,
-        onSaved: @escaping (String) -> Void
+        onSaved: @escaping (String) -> Void,
+        onClose: @escaping () -> Void = {}
     ) {
         self.draft = draft
         self.asset = asset
         self.onDraftRenamed = onDraftRenamed
         self.onSaved = onSaved
+        self.onClose = onClose
         _title = State(initialValue: draft.title)
     }
 
@@ -74,7 +80,7 @@ struct MacVideoSavePopover: View {
                             saveChoice = nil
                             selectedTargetID = nil
                         } else {
-                            dismiss()
+                            onClose(); dismiss()
                         }
                     } else {
                         step = .target
@@ -127,10 +133,11 @@ struct MacVideoSavePopover: View {
             }
             .onDisappear(perform: cleanupPendingMedia)
         }
-        .frame(
-            width: step == .target ? 440 : 560,
-            height: step == .target ? (saveChoice == nil ? 300 : 440) : 640
-        )
+        .frame(minWidth: 460, idealWidth: 560, minHeight: 440, idealHeight: 640)
+        .onAppear { destinationIndex = MediaSaveDestinationIndex(pages: databaseStore.allPagesFlat) }
+        .onChange(of: databaseStore.allPagesFlat.count) { _, _ in
+            destinationIndex = MediaSaveDestinationIndex(pages: databaseStore.allPagesFlat)
+        }
     }
 
     private var targetPicker: some View {
@@ -154,14 +161,34 @@ struct MacVideoSavePopover: View {
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 52))
             } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(Theme.textSecondary)
+                    TextField("Search pages", text: $destinationQuery)
+                        .textFieldStyle(.plain)
+                        .font(TimeMasterFont.body(17))
+                    if !destinationQuery.isEmpty {
+                        Button("Clear search", systemImage: "xmark.circle.fill") { destinationQuery = "" }
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+                .padding(12)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
                 ScrollView {
                     LazyVStack(spacing: 6) {
-                        ForEach(filteredTargets, id: \.manifest.id) { page in
-                            targetRow(page)
+                        ForEach(searchResults) { entry in
+                            targetRow(entry)
+                        }
+                        if searchResults.isEmpty {
+                            Text(destinationQuery.isEmpty ? "No pages yet" : "No matching pages")
+                                .font(TimeMasterFont.caption())
+                                .foregroundStyle(Theme.textSecondary)
+                                .frame(maxWidth: .infinity, minHeight: 80)
                         }
                     }
                 }
-                .frame(maxHeight: 280)
+                .frame(maxHeight: .infinity)
                 .background(Theme.surface.opacity(0.4))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
@@ -194,43 +221,41 @@ struct MacVideoSavePopover: View {
         .padding(16)
     }
 
-    private func targetRow(_ page: ExercisePage) -> some View {
-        let isSelected = selectedTargetID == page.manifest.id
-        let pathLabel = page.path
-            .split(separator: "/")
-            .map(String.init)
-            .joined(separator: " › ")
+    private var searchResults: [MediaSaveDestinationIndex.Entry] {
+        guard let choice = saveChoice else { return [] }
+        return destinationIndex.results(query: destinationQuery, containers: choice == "new")
+    }
 
+    private func targetRow(_ entry: MediaSaveDestinationIndex.Entry) -> some View {
+        let isSelected = selectedTargetID == entry.id
         return Button {
-            selectedTargetID = page.manifest.id
+            selectedTargetID = entry.id
             saveErrorMessage = nil
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: page.isContainer ? "folder.fill" : "figure.run")
+                Image(systemName: entry.isContainer ? "folder.fill" : "figure.run")
                     .font(.title3)
                     .foregroundStyle(isSelected ? .white : Theme.textSecondary)
                     .frame(width: 28)
-
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(page.title)
+                    Text(entry.title)
                         .font(TimeMasterFont.black(17))
                         .foregroundStyle(isSelected ? .white : Theme.textPrimary)
                         .lineLimit(1)
-                    Text(pathLabel.isEmpty ? page.title : pathLabel)
+                    Text(entry.path)
                         .font(TimeMasterFont.caption())
                         .foregroundStyle(isSelected ? .white.opacity(0.75) : Theme.textSecondary)
                         .lineLimit(1)
+                        .truncationMode(.head)
                 }
-
                 Spacer(minLength: 8)
-
-                Text(page.isContainer ? "New child" : "Attach")
+                Text(entry.isContainer ? "New child" : "Attach")
                     .font(TimeMasterFont.black(12, relativeTo: .caption))
                     .foregroundStyle(isSelected ? .white.opacity(0.85) : Theme.textSecondary)
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(isSelected ? Color.accentColor : Theme.surface)
+            .background(isSelected ? Theme.toolbarOrange : Theme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
@@ -248,6 +273,7 @@ struct MacVideoSavePopover: View {
                 }
                 targetSummaryCard
                 selectedMediaCard
+                commentCard
                 additionalMediaCard
                 timingCard
                 dropSetTemplatesCard
@@ -256,6 +282,15 @@ struct MacVideoSavePopover: View {
                 saveButton
             }
             .padding(18)
+        }
+    }
+
+    private var commentCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Video Comment")
+                .font(TimeMasterFont.sectionTitle())
+                .foregroundStyle(Theme.textPrimary)
+            MediaCommentComposer(text: $clipComment, minimumEditorHeight: 140)
         }
     }
 
@@ -709,6 +744,7 @@ struct MacVideoSavePopover: View {
                     target: target,
                     libraryToken: libraryToken,
                     additionalMediaURLs: extraURLs,
+                    clipComment: clipComment,
                     reloadDatabase: {
                         databaseStore.reloadImmediately()
                     }
@@ -717,7 +753,7 @@ struct MacVideoSavePopover: View {
                 cleanupPendingMedia()
                 isSaving = false
                 onSaved(targetLabel)
-                dismiss()
+                onClose(); dismiss()
             } catch {
                 cleanupPendingMedia()
                 isSaving = false

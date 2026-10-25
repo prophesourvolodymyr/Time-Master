@@ -44,6 +44,7 @@ enum MacVideoDatabaseImporter {
         target: Target,
         libraryToken: ExerciseLibraryAccess.Token,
         additionalMediaURLs: [URL],
+        clipComment: String = "",
         database: DatabaseManager = .shared,
         reloadDatabase: @escaping @MainActor () -> Void
     ) async throws {
@@ -71,6 +72,7 @@ enum MacVideoDatabaseImporter {
                         additionalMediaURLs: extraURLs,
                         manifest: manifest,
                         target: target,
+                        clipComment: clipComment,
                         database: database
                     )
                 }
@@ -149,6 +151,7 @@ enum MacVideoDatabaseImporter {
         additionalMediaURLs: [URL],
         manifest: ExercisePageManifest,
         target: Target,
+        clipComment: String = "",
         database: DatabaseManager
     ) throws {
         switch target {
@@ -176,6 +179,7 @@ enum MacVideoDatabaseImporter {
                     renderedURLs: renderedURLs,
                     additionalMediaURLs: additionalMediaURLs,
                     to: newManifest.id,
+                    clipComment: clipComment,
                     database: database
                 )
             } catch {
@@ -188,8 +192,6 @@ enum MacVideoDatabaseImporter {
                 }
                 throw error
             }
-
-
         case .attachToLeaf(let pageID, let originalManifest):
             guard originalManifest.id == pageID,
                   originalManifest.pageKind == .leaf else {
@@ -235,6 +237,7 @@ enum MacVideoDatabaseImporter {
                         sourceURL: renderedURL
                     )
                     uploadedFilenames.append(filename)
+                    try applyComment(clipComment, filename: filename, source: renderedURL, pageID: pageID, database: database)
                 }
 
                 for url in additionalMediaURLs {
@@ -265,14 +268,28 @@ enum MacVideoDatabaseImporter {
         renderedURLs: [URL],
         additionalMediaURLs: [URL],
         to pageID: String,
+        clipComment: String = "",
         database: DatabaseManager
     ) throws {
         for renderedURL in renderedURLs {
-            try database.uploadMediaToPage(pageID: pageID, sourceURL: renderedURL)
+            let filename = try database.uploadMediaToPage(pageID: pageID, sourceURL: renderedURL)
+            try applyComment(clipComment, filename: filename, source: renderedURL, pageID: pageID, database: database)
         }
         for url in additionalMediaURLs {
             try database.uploadMediaToPage(pageID: pageID, sourceURL: url)
         }
+    }
+
+    private static func applyComment(
+        _ comment: String,
+        filename: String,
+        source: URL,
+        pageID: String,
+        database: DatabaseManager
+    ) throws {
+        guard source.pathExtension.lowercased() == "mp4",
+              !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        try database.updateMediaComment(pageID: pageID, filename: filename, comment: comment)
     }
 
     private static func rollback(

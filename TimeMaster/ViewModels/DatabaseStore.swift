@@ -189,8 +189,11 @@ class DatabaseStore: ObservableObject {
     }
 
     func updateMediaComment(pageID: String, filename: String, comment: String) throws {
-        try DatabaseManager.shared.updateMediaComment(pageID: pageID, filename: filename, comment: comment)
-        reload()
+        let libraryToken = ExerciseLibraryAccess.shared.capture()
+        try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+            try DatabaseManager.shared.updateMediaComment(pageID: pageID, filename: filename, comment: comment)
+        }
+        reloadImmediately()
     }
 
     func deletePage(id: String) throws {
@@ -206,7 +209,6 @@ class DatabaseStore: ObservableObject {
     ) throws {
         var persistedManifest = manifest
         persistedManifest.parentID = parentID ?? manifest.parentID
-
         var uploads = mediaData
         if let coverData {
             let filename = persistedManifest.coverImageFilename ?? "cover.jpg"
@@ -215,34 +217,36 @@ class DatabaseStore: ObservableObject {
         persistedManifest.coverImageFilename = nil
         if !uploads.isEmpty {
             persistedManifest.mediaFilenames = []
+            persistedManifest.mediaComments = [:]
         }
-
-        invalidatePendingReloads()
-        try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
-        publishCreatedPage(persistedManifest)
-
-        guard !uploads.isEmpty else { return }
-        let pageID = persistedManifest.id
         let libraryToken = ExerciseLibraryAccess.shared.capture()
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self else { return }
-
-            try? ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+        try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
+            let database = DatabaseManager.shared
+            let temporaryDirectory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("Tmax Page Media-\(UUID().uuidString)", isDirectory: true)
+            defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+            try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
+            try database.createPage(manifest: persistedManifest, parentID: parentID)
+            do {
                 for (filename, data) in uploads {
-                    let temporaryURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString + "-" + filename)
-                    do {
-                        try data.write(to: temporaryURL)
-                        let uploadedFilename = try DatabaseManager.shared.uploadMediaToPage(
-                            pageID: pageID,
-                            sourceURL: temporaryURL
-                        )
-                        self.publishUploadedMedia(pageID: pageID, mediaFilenames: [uploadedFilename], libraryToken: libraryToken)
-                    } catch {}
-                    try? FileManager.default.removeItem(at: temporaryURL)
+                    let temporaryURL = temporaryDirectory.appendingPathComponent(UUID().uuidString + "-" + URL(fileURLWithPath: filename).lastPathComponent)
+                    try data.write(to: temporaryURL, options: .atomic)
+                    let savedFilename = try database.uploadMediaToPage(pageID: persistedManifest.id, sourceURL: temporaryURL)
+                    if let comment = manifest.mediaComments[filename] {
+                        try database.updateMediaComment(pageID: persistedManifest.id, filename: savedFilename, comment: comment)
+                    }
                 }
+            } catch {
+                let saveError = error
+                do {
+                    try database.deletePage(id: persistedManifest.id)
+                } catch {
+                    throw FileSystemHelper.Error.writeFailed("\(saveError.localizedDescription) Cleanup failed: \(error.localizedDescription)")
+                }
+                throw saveError
             }
         }
+        reloadImmediately()
     }
 
 
@@ -896,6 +900,7 @@ struct PageCreationDraft: Codable, Identifiable, Equatable {
     var linkURLs: [String]
     var linkMetadata: [LinkMetadata]
     var mediaFilenames: [String]
+    var mediaComments: [String: String]? = nil
     let createdAt: Date
     var updatedAt: Date
 }

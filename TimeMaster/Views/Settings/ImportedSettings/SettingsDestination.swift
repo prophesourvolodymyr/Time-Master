@@ -51,7 +51,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .databaseSync: "arrow.triangle.2.circlepath.icloud"
         case .workoutTypes: "list.bullet.rectangle"
         case .motivation: "quote.bubble"
-        case .backup: "arrow.triangle.2.circlepath.icloud"
+        case .backup: "archivebox"
         case .notifications: "bell.badge"
         case .privacy: "hand.raised"
         case .exerciseAI: "sparkles"

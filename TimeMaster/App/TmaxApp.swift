@@ -15,11 +15,14 @@ struct TmaxApp: App {
             TmaxRootView(startup: startup)
                 .preferredColorScheme(.dark)
 #if os(macOS)
+                .modifier(MacWindowChrome())
+                .toolbarBackground(Theme.background, for: .windowToolbar)
+                .toolbarBackground(.visible, for: .windowToolbar)
                 .frame(minWidth: 800, minHeight: 600)
 #endif
         }
 #if os(macOS)
-        .windowStyle(.titleBar)
+        .windowStyle(.hiddenTitleBar)
         .commands { TmaxCommands(); PhysiqueNativeCommands() }
 #endif
     }

@@ -62,6 +62,8 @@ enum SectionMode: String, Codable, Equatable {
     case bundle
 }
 
+typealias BundleOrder = WorkoutBundleOrder
+
 enum RestRowKind: String, Codable, Equatable {
     case normal
     case big
@@ -174,7 +176,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
         self.nestedWorkoutID = nestedWorkoutID
         self.name = name
         self.alias = alias
-        self.duration = max(5, duration)
+        self.duration = max(1, duration)
         self.repCount = repCount.map { max(1, $0) }
         self.restAfter = max(0, restAfter)
         self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
@@ -196,7 +198,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
         nestedWorkoutID = try c.decodeIfPresent(UUID.self, forKey: .nestedWorkoutID)
         name = try c.decode(String.self, forKey: .name)
         alias = try c.decodeIfPresent(String.self, forKey: .alias)
-        duration = max(5, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
+        duration = max(1, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
         repCount = try c.decodeIfPresent(Int.self, forKey: .repCount).map { max(1, $0) }
         restAfter = max(0, try c.decodeIfPresent(Int.self, forKey: .restAfter) ?? 10)
         prepareTime = try c.decodeIfPresent(Int.self, forKey: .prepareTime).map { min(30, max(0, $0)) }
@@ -235,6 +237,28 @@ struct SetSlot: Identifiable, Codable, Equatable {
     var effectiveRestRow: RestRow? {
         restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
     }
+
+    func duplicated() -> SetSlot {
+        var copy = self
+        copy.id = UUID()
+        copy.children = children.map { $0.duplicated() }
+        copy.restRow?.id = UUID()
+        copy.restRow?.contents = restRow?.contents.map { content in
+            var item = content
+            item.id = UUID()
+            return item
+        } ?? []
+        copy.drops = drops.map { drop in
+            var item = drop
+            item.id = UUID()
+            return item
+        }
+        return copy
+    }
+
+    var leafExercises: [SetSlot] {
+        children.isEmpty ? [self] : children.flatMap(\.leafExercises)
+    }
 }
 
 struct Section: Identifiable, Codable, Equatable {
@@ -253,6 +277,8 @@ struct Section: Identifiable, Codable, Equatable {
     var mode: SectionMode
     var slots: [SetSlot]
     var bigRestRow: RestRow?
+    var bundleOrder: BundleOrder
+    var bundleVoiceEnabled: Bool
 
     init(
         id: UUID = UUID(),
@@ -272,7 +298,9 @@ struct Section: Identifiable, Codable, Equatable {
         pageID: UUID? = nil,
         mode: SectionMode = .timed,
         slots: [SetSlot] = [],
-        bigRestRow: RestRow? = nil
+        bigRestRow: RestRow? = nil,
+        bundleOrder: BundleOrder = .ordered,
+        bundleVoiceEnabled: Bool = true
     ) {
         self.id = id
         self.name = name
@@ -286,6 +314,8 @@ struct Section: Identifiable, Codable, Equatable {
         self.prepareTime = max(0, prepareTime)
         self.pageID = pageID
         self.mode = mode
+        self.bundleOrder = bundleOrder
+        self.bundleVoiceEnabled = bundleVoiceEnabled
         self.bigRestRow = bigRestRow ?? (customRestAfter == 0
             ? nil
             : RestRow(kind: .big, duration: customRestAfter ?? restAfter))
@@ -318,7 +348,7 @@ struct Section: Identifiable, Codable, Equatable {
         case id, name, alias, duration, isTimerEnabled
         case sets, repCount, restBetweenSets, customRestAfter, prepareTime
         case mediaItems, photoFilenames, photoFilename, restAfter
-        case pageID, mode, slots, bigRestRow
+        case pageID, mode, slots, bigRestRow, bundleOrder, bundleVoiceEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -334,6 +364,8 @@ struct Section: Identifiable, Codable, Equatable {
         prepareTime = max(0, try c.decodeIfPresent(Int.self, forKey: .prepareTime) ?? 4)
         pageID = try c.decodeIfPresent(UUID.self, forKey: .pageID)
         mode = try c.decodeIfPresent(SectionMode.self, forKey: .mode) ?? .timed
+        bundleOrder = try c.decodeIfPresent(BundleOrder.self, forKey: .bundleOrder) ?? .ordered
+        bundleVoiceEnabled = try c.decodeIfPresent(Bool.self, forKey: .bundleVoiceEnabled) ?? true
         let decodedSlots = try c.decodeIfPresent([SetSlot].self, forKey: .slots) ?? []
         if let value = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
             customRestAfter = value
@@ -378,6 +410,8 @@ struct Section: Identifiable, Codable, Equatable {
         try c.encode(mode, forKey: .mode)
         try c.encode(slots, forKey: .slots)
         try c.encodeIfPresent(bigRestRow, forKey: .bigRestRow)
+        try c.encode(bundleOrder, forKey: .bundleOrder)
+        try c.encode(bundleVoiceEnabled, forKey: .bundleVoiceEnabled)
     }
 
     var effectiveSlots: [SetSlot] {
@@ -405,15 +439,26 @@ struct Section: Identifiable, Codable, Equatable {
         max(0, slot.prepareTime ?? prepareTime)
     }
 
-    var calculatedDuration: Int {
-        let slots = effectiveSlots
-        return slots.enumerated().reduce(0) { total, entry in
-            let (index, slot) = entry
-            let preparation = preparationTime(for: slot)
-            let drops = slot.drops.reduce(0) { $0 + $1.duration + $1.restAfter }
-            let rest = index < slots.count - 1 ? (slot.effectiveRestRow?.duration ?? 0) : 0
-            return total + preparation + slot.duration + drops + rest
+    var calculatedDuration: Int { coreManifest.calculatedDuration }
+
+    func playbackSlots(order: [UUID]? = nil) -> [SetSlot] {
+        guard mode == .bundle else { return effectiveSlots }
+        return coreManifest.bundlePlaybackSlots(order: order?.map(\.uuidString)).map { $0.toAppSlot() }
+    }
+
+    var bundleSets: [SetSlot] {
+        let values = effectiveSlots
+        guard mode == .bundle, values.allSatisfy({ $0.children.isEmpty }) else { return values }
+        var container = SetSlot(
+            id: id, name: "Set 1", duration: duration, restAfter: 0, prepareTime: prepareTime,
+            children: values
+        )
+        container.children = values.enumerated().map { index, value in
+            var child = value
+            child.prepareTime = index == 0 ? value.prepareTime : 0
+            return child
         }
+        return [container]
     }
 }
 

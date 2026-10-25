@@ -1,13 +1,7 @@
-import MetalKit
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
 
 enum EverPageMotion {
-    static let duration = 0.36
+    static let duration = 0.24
 
     static func sample(_ fraction: Double, duration: Double = EverPageMotion.duration,
                        emergence: Bool = false) -> (travel: Float, depth: Float, blur: Float) {
@@ -34,8 +28,8 @@ extension EnvironmentValues {
 }
 
 extension View {
-    func everPageOpening(from edge: Edge = .trailing) -> some View {
-        modifier(EverPageOpeningModifier(edge: edge))
+    func everPageOpening(from edge: Edge = .bottom, when trigger: String? = nil) -> some View {
+        modifier(EverPageOpeningModifier(edge: edge, trigger: trigger))
     }
 
     func everSheet<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
@@ -79,282 +73,50 @@ extension View {
 
 private struct EverPageOpeningModifier: ViewModifier {
     let edge: Edge
+    let trigger: String?
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.everPageIsOpening) private var parentIsOpening
+    @Environment(\.everPageTravelActive) private var pageTravelIsActive
+    @State private var progress: CGFloat = 0
     @State private var isOpening = true
 
     func body(content: Content) -> some View {
+        let bypass = parentIsOpening || pageTravelIsActive
         content
-            .environment(\.everPageIsOpening, isOpening)
-            .allowsHitTesting(!isOpening)
-            .overlay {
-                EverPageOpeningOverlay(reduceMotion: reduceMotion, vertical: edge == .top || edge == .bottom,
-                                       direction: direction, isOpening: $isOpening)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+            .environment(\.everPageIsOpening, isOpening && !bypass)
+            .offset(x: bypass || reduceMotion ? 0 : displacement.width * (1 - progress),
+                    y: bypass || reduceMotion ? 0 : displacement.height * (1 - progress))
+            .opacity(bypass ? 1 : 0.65 + 0.35 * progress)
+            .task(id: trigger) {
+                guard !bypass else {
+                    progress = 1
+                    isOpening = false
+                    return
+                }
+                var transaction = Transaction(animation: nil)
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    progress = 0
+                    isOpening = true
+                }
+                await Task.yield()
+                guard !Task.isCancelled else { return }
+                withAnimation(reduceMotion ? .easeOut(duration: 0.12)
+                              : .timingCurve(0.16, 0.8, 0.24, 1, duration: EverPageMotion.duration)) {
+                    progress = 1
+                }
+                try? await Task.sleep(nanoseconds: UInt64(EverPageMotion.duration * 1_000_000_000))
+                isOpening = false
             }
     }
 
-    private var direction: Float {
+    private var displacement: CGSize {
         switch edge {
-        case .top: -1
-        case .bottom: 1
-        case .leading: layoutDirection == .leftToRight ? -1 : 1
-        case .trailing: layoutDirection == .leftToRight ? 1 : -1
+        case .top: CGSize(width: 0, height: -28)
+        case .bottom: CGSize(width: 0, height: 28)
+        case .leading: CGSize(width: layoutDirection == .leftToRight ? -28 : 28, height: 0)
+        case .trailing: CGSize(width: layoutDirection == .leftToRight ? 28 : -28, height: 0)
         }
     }
 }
-
-#if canImport(UIKit)
-private struct EverPageOpeningOverlay: UIViewRepresentable {
-    let reduceMotion: Bool
-    let vertical: Bool
-    let direction: Float
-    @Binding var isOpening: Bool
-
-    func makeUIView(context: Context) -> EverPageOpeningSurface { EverPageOpeningSurface() }
-
-    func updateUIView(_ view: EverPageOpeningSurface, context: Context) {
-        view.reduceMotion = reduceMotion
-        view.vertical = vertical
-        view.direction = direction
-        view.onCompletion = { isOpening = false }
-        view.beginIfVisible()
-    }
-
-    static func dismantleUIView(_ view: EverPageOpeningSurface, coordinator: ()) { view.finish() }
-}
-
-@MainActor
-private final class EverPageOpeningSurface: UIView {
-    var reduceMotion = false
-    var vertical = false
-    var direction: Float = 1
-    var onCompletion: (() -> Void)?
-    private var captureTask: Task<Void, Never>?
-    private var canvas: EverSpacetimeCanvas?
-    private var hasRun = false
-    private var finished = false
-
-    init() {
-        super.init(frame: .zero)
-        backgroundColor = .black
-        isUserInteractionEnabled = false
-        accessibilityElementsHidden = true
-        NotificationCenter.default.addObserver(self, selector: #selector(finish), name: UIApplication.willResignActiveNotification, object: nil)
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
-    deinit { NotificationCenter.default.removeObserver(self) }
-
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        if window == nil, hasRun { finish() }
-        else { beginIfVisible() }
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        if let canvas, canvas.bounds.size != bounds.size { finish() }
-        beginIfVisible()
-    }
-
-    func beginIfVisible() {
-        guard window != nil, !bounds.isEmpty, !hasRun else { return }
-        hasRun = true
-        captureTask = Task { @MainActor [weak self] in
-            await Task.yield()
-            guard !Task.isCancelled, let self, !self.finished, let window = self.window else { return }
-            if self.reduceMotion {
-                self.fadeIn()
-                return
-            }
-            var responder: UIResponder? = self
-            var controller: UIViewController?
-            while let current = responder {
-                if let host = current as? UIViewController {
-                    controller = host
-                    break
-                }
-                responder = current.next
-            }
-            let source = controller?.view ?? window
-            let transition = controller?.transitionCoordinator
-            let transitionDuration = transition?.transitionDuration ?? 0
-            let nativeSlide = transition?.isAnimated == true && transitionDuration > 0
-            let duration = nativeSlide ? transitionDuration : EverPageMotion.duration
-            self.isHidden = true
-            let image = EverViewSnapshot.image(of: source, rect: self.convert(self.bounds, to: source), afterUpdates: true)
-            self.isHidden = false
-            guard let image, let canvas = EverSpacetimeCanvas(size: self.bounds.size),
-                  let texture = canvas.gpu.texture(image) else {
-                self.fadeIn()
-                return
-            }
-            self.canvas = canvas
-            self.addSubview(canvas)
-            let start = CACurrentMediaTime()
-            canvas.onFrame = { [weak self, weak canvas] time in
-                guard let self, let canvas, !self.finished else { return }
-                let progress = min(1, max(0, (time - start) / duration))
-                let motion = EverPageMotion.sample(progress, duration: duration)
-                canvas.layers.removeAll(keepingCapacity: true)
-                canvas.layers.append(EverWarpLayer(texture: texture, rect: self.bounds,
-                                                   travel: nativeSlide ? 0 : self.direction * motion.travel,
-                                                   depth: motion.depth, vertical: self.vertical,
-                                                   blur: motion.blur, direction: self.direction))
-                if progress >= 1 { self.finish() }
-            }
-            canvas.isPaused = false
-        }
-    }
-
-    private func fadeIn() {
-        UIView.animate(withDuration: 0.15, animations: { self.alpha = 0 }) { [weak self] _ in self?.finish() }
-    }
-
-    @objc func finish() {
-        guard !finished else { return }
-        finished = true
-        hasRun = true
-        captureTask?.cancel()
-        captureTask = nil
-        canvas?.stop()
-        canvas = nil
-        layer.removeAllAnimations()
-        backgroundColor = .clear
-        alpha = 1
-        Task { @MainActor [weak self] in self?.onCompletion?() }
-    }
-}
-#elseif os(macOS)
-private struct EverPageOpeningOverlay: NSViewRepresentable {
-    let reduceMotion: Bool
-    let vertical: Bool
-    let direction: Float
-    @Binding var isOpening: Bool
-
-    func makeNSView(context: Context) -> EverPageOpeningSurface { EverPageOpeningSurface() }
-
-    func updateNSView(_ view: EverPageOpeningSurface, context: Context) {
-        view.reduceMotion = reduceMotion
-        view.vertical = vertical
-        view.direction = direction
-        view.onCompletion = { isOpening = false }
-        view.beginIfVisible()
-    }
-
-    static func dismantleNSView(_ view: EverPageOpeningSurface, coordinator: ()) { view.finish() }
-}
-
-@MainActor
-private final class EverPageOpeningSurface: NSView {
-    var reduceMotion = false
-    var vertical = false
-    var direction: Float = 1
-    var onCompletion: (() -> Void)?
-    private var captureTask: Task<Void, Never>?
-    private var canvas: EverSpacetimeCanvas?
-    private var hasRun = false
-    private var finished = false
-
-    override var isFlipped: Bool { true }
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-
-    init() {
-        super.init(frame: .zero)
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.black.cgColor
-        setAccessibilityElement(false)
-        NotificationCenter.default.addObserver(self, selector: #selector(finish), name: NSApplication.didResignActiveNotification, object: nil)
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
-    deinit { NotificationCenter.default.removeObserver(self) }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        if window == nil, hasRun { finish() }
-        else { beginIfVisible() }
-    }
-
-    override func layout() {
-        super.layout()
-        if let canvas, canvas.bounds.size != bounds.size { finish() }
-        beginIfVisible()
-    }
-
-    func beginIfVisible() {
-        guard window != nil, !bounds.isEmpty, !hasRun else { return }
-        hasRun = true
-        captureTask = Task { @MainActor [weak self] in
-            await Task.yield()
-            guard !Task.isCancelled, let self, !self.finished, let window = self.window else { return }
-            if self.reduceMotion {
-                self.fadeIn()
-                return
-            }
-            var responder: NSResponder? = self
-            var controller: NSViewController?
-            while let current = responder {
-                if let host = current as? NSViewController {
-                    controller = host
-                    break
-                }
-                responder = current.nextResponder
-            }
-            guard let source = controller?.view ?? window.contentView else {
-                self.fadeIn()
-                return
-            }
-            let duration = EverPageMotion.duration
-            self.isHidden = true
-            let image = EverViewSnapshot.image(of: source, rect: self.convert(self.bounds, to: source), afterUpdates: true)
-            self.isHidden = false
-            guard let image, let canvas = EverSpacetimeCanvas(size: self.bounds.size),
-                  let texture = canvas.gpu.texture(image) else {
-                self.fadeIn()
-                return
-            }
-            self.canvas = canvas
-            self.addSubview(canvas)
-            let start = CACurrentMediaTime()
-            canvas.onFrame = { [weak self, weak canvas] time in
-                guard let self, let canvas, !self.finished else { return }
-                let progress = min(1, max(0, (time - start) / duration))
-                let motion = EverPageMotion.sample(progress, duration: duration)
-                canvas.layers.removeAll(keepingCapacity: true)
-                canvas.layers.append(EverWarpLayer(texture: texture, rect: self.bounds,
-                                                   travel: self.direction * motion.travel,
-                                                   depth: motion.depth, vertical: self.vertical,
-                                                   blur: motion.blur, direction: self.direction))
-                if progress >= 1 { self.finish() }
-            }
-            canvas.isPaused = false
-        }
-    }
-
-    private func fadeIn() {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.15
-            self.animator().alphaValue = 0
-        } completionHandler: { [weak self] in
-            Task { @MainActor [weak self] in self?.finish() }
-        }
-    }
-
-    @objc func finish() {
-        guard !finished else { return }
-        finished = true
-        hasRun = true
-        captureTask?.cancel()
-        captureTask = nil
-        canvas?.stop()
-        canvas = nil
-        layer?.removeAllAnimations()
-        layer?.backgroundColor = NSColor.clear.cgColor
-        alphaValue = 1
-        Task { @MainActor [weak self] in self?.onCompletion?() }
-    }
-}
-#endif

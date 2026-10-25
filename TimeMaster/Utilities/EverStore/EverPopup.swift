@@ -46,6 +46,30 @@ struct EverPopup<Content: View, Actions: View>: View {
     }
 
     var body: some View {
+        Group {
+#if os(macOS)
+        VStack(alignment: .leading, spacing: EverSpacing.x4) {
+            header
+            ViewThatFits(in: .vertical) {
+                popupContent.fixedSize(horizontal: false, vertical: true)
+                ScrollView { popupContent }
+            }
+            Divider().overlay(EverColor.borderSubtle)
+            HStack(spacing: EverSpacing.x2) {
+                Spacer(minLength: 0)
+                actions()
+            }
+            .buttonStyle(TimeMasterActionButtonStyle(minimumSize: EverLayout.minimumTouchTarget,
+                                                    horizontalPadding: EverSpacing.x4))
+        }
+        .padding(EverSpacing.x5)
+        .frame(minWidth: EverLayout.popupMaximumWidth,
+               idealWidth: EverLayout.popupMaximumWidth,
+               maxWidth: EverLayout.maximumReadableWidth,
+               maxHeight: (NSScreen.main?.visibleFrame.height ?? 800) * 0.8)
+        .background(EverColor.background)
+        .background(EverPopupStepAnchor(id: "\(step ?? "")|\(title)"))
+#else
         GeometryReader { geometry in
             ZStack {
                 EverColor.background.opacity(0.64)
@@ -53,24 +77,24 @@ struct EverPopup<Content: View, Actions: View>: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: EverSpacing.x4) {
                     header
-                    if let message, !message.isEmpty {
-                        EverPopupMessage(text: message)
-                    }
-                    content()
-                    if let output {
-                        EverOperationOutput(text: output)
+                    ViewThatFits(in: .vertical) {
+                        popupContent.fixedSize(horizontal: false, vertical: true)
+                        ScrollView { popupContent }
                     }
                     VStack(spacing: EverSpacing.x2) { actions() }
                         .buttonStyle(EverSecondaryButtonStyle())
                 }
                 .padding(EverSpacing.x4)
-                .frame(maxWidth: min(EverLayout.popupMaximumWidth, max(0, geometry.size.width - EverSpacing.x3 * 2)))
+                .frame(maxWidth: min(EverLayout.popupMaximumWidth, max(0, geometry.size.width - EverSpacing.x3 * 2)),
+                       maxHeight: max(0, geometry.size.height - EverSpacing.x6 * 2))
                 .background { EverSurfaceMaterial(radius: EverRadius.popup) }
                 .shadow(color: .black.opacity(0.4), radius: EverSpacing.x7, y: EverSpacing.x3)
                 .background(EverPopupStepAnchor(id: "\(step ?? "")|\(title)"))
                 .environment(\.everPopupCompact, geometry.size.height < EverLayout.standardRowMinimum * 10)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+#endif
         }
         .foregroundStyle(EverColor.textPrimary)
         .preferredColorScheme(.dark)
@@ -82,6 +106,15 @@ struct EverPopup<Content: View, Actions: View>: View {
 #endif
         .onAppear { titleIsFocused = true }
         .onChange(of: title) { _ in titleIsFocused = true }
+    }
+
+    private var popupContent: some View {
+        VStack(alignment: .leading, spacing: EverSpacing.x3) {
+            if let message, !message.isEmpty { EverPopupMessage(text: message) }
+            content()
+            if let output { EverOperationOutput(text: output) }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var header: some View {

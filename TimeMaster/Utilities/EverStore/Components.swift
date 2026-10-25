@@ -192,14 +192,16 @@ struct EverStaticPlaceholder: View {
 
 struct EverSettingsPage<Content: View>: View {
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
+    @Environment(\.isPresented) private var isPresented
     let title: String
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         GeometryReader { viewport in
             let frame = viewport.frame(in: .global)
-            let topClearance = max(0, (navigationBounds?.minY ?? frame.minY) - frame.minY - viewport.safeAreaInsets.top)
-            let bottomClearance = max(0, frame.maxY - (navigationBounds?.maxY ?? frame.maxY) - viewport.safeAreaInsets.bottom)
+            let bounds = isPresented ? nil : navigationBounds
+            let topClearance = max(0, (bounds?.minY ?? frame.minY) - frame.minY - viewport.safeAreaInsets.top)
+            let bottomClearance = max(0, frame.maxY - (bounds?.maxY ?? frame.maxY) - viewport.safeAreaInsets.bottom)
             ScrollView {
                 VStack(alignment: .leading, spacing: EverSpacing.x5) {
                     content()
@@ -212,6 +214,13 @@ struct EverSettingsPage<Content: View>: View {
             .frame(maxWidth: .infinity)
             .scrollIndicators(.hidden)
         }
+        #if os(macOS)
+        .frame(
+            minWidth: isPresented ? EverLayout.popupMaximumWidth : nil,
+            minHeight: isPresented ? EverLayout.standardRowMinimum * 8 : nil,
+            idealHeight: isPresented ? EverLayout.standardRowMinimum * 10 : nil
+        )
+        #endif
         .everScreenBackground()
         .font(TimeMasterFont.body())
         .timeMasterNavigationTitle(title)

@@ -21,7 +21,12 @@ struct ScrollingChromeMetrics {
     var contentWidth: CGFloat { max(0, width - horizontalPadding * 2) }
 
     var expandedControlWidth: CGFloat {
-        min(expandedControlWidthCap, max(compactControlSize, (contentWidth - controlSpacing * CGFloat(controlCount - 1)) / CGFloat(controlCount)))
+        #if os(macOS)
+        let cap = min(expandedControlWidthCap, compactControlSize * 2)
+        #else
+        let cap = expandedControlWidthCap
+        #endif
+        return min(cap, max(compactControlSize, (contentWidth - controlSpacing * CGFloat(controlCount - 1)) / CGFloat(controlCount)))
     }
 
     var expandedControlHeight: CGFloat { min(expandedControlHeightCap, expandedControlWidth) }
@@ -50,6 +55,17 @@ struct ScrollingChromeMetrics {
     }
 }
 
+private struct ScrollingChromeExpansionKey: EnvironmentKey {
+    static let defaultValue: ((Bool) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var scrollingChromeSetExpanded: ((Bool) -> Void)? {
+        get { self[ScrollingChromeExpansionKey.self] }
+        set { self[ScrollingChromeExpansionKey.self] = newValue }
+    }
+}
+
 struct ScrollingChromeHeader<Controls: View>: View {
     let title: String
     let progress: CGFloat
@@ -58,6 +74,7 @@ struct ScrollingChromeHeader<Controls: View>: View {
     @ViewBuilder let controls: () -> Controls
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scrollingChromeSetExpanded) private var setExpanded
     @ScaledMetric(relativeTo: .title) private var expandedTitleSize: CGFloat = 30
     @ScaledMetric(relativeTo: .title2) private var compactTitleSize: CGFloat = 22
 
@@ -82,6 +99,19 @@ struct ScrollingChromeHeader<Controls: View>: View {
                 .oneHandedActionSource()
         }
         .padding(.horizontal, metrics.horizontalPadding)
+        #if os(macOS)
+        .preference(key: MacWindowTitlePreferenceKey.self, value: title)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 10, coordinateSpace: .global)
+                .onChanged { value in
+                    guard abs(value.translation.height) > metrics.compactControlSize / 2,
+                          abs(value.translation.height) > abs(value.translation.width) else { return }
+                    setExpanded?(value.translation.height > 0)
+                }
+        )
+        .accessibilityAction(named: "Expand page actions") { setExpanded?(true) }
+        .accessibilityAction(named: "Collapse page actions") { setExpanded?(false) }
+        #endif
     }
 }
 
@@ -217,6 +247,7 @@ struct ScrollingChrome<Content: View, Header: View>: View {
 
             VStack(spacing: 0) {
                 header(controlsExpanded ? 0 : 1, resolved)
+                    .environment(\.scrollingChromeSetExpanded, setControlsExpanded)
                     .fixedSize(horizontal: false, vertical: true)
                     .zIndex(1)
                 GeometryReader { scrollProxy in
@@ -272,6 +303,10 @@ struct ScrollingChrome<Content: View, Header: View>: View {
     private func updateControls(offset: CGFloat) {
         onScrollOffset?(offset)
         let expanded = ScrollingChromeReveal.expanded(current: controlsExpanded, offset: offset)
+        setControlsExpanded(expanded)
+    }
+
+    private func setControlsExpanded(_ expanded: Bool) {
         guard expanded != controlsExpanded else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
             controlsExpanded = expanded

@@ -146,7 +146,16 @@ private struct TimeMasterNavigationTitle: ViewModifier {
     let title: String
 
     func body(content: Content) -> some View {
+        #if os(macOS)
         content
+            .everPageOpening()
+            .navigationTitle("")
+            .preference(key: MacWindowTitlePreferenceKey.self, value: TimeMasterFont.initialCapitalizedTitle(title))
+            .toolbarBackground(Theme.background, for: .windowToolbar)
+            .toolbarBackground(.visible, for: .windowToolbar)
+        #else
+        content
+            .everPageOpening()
             .navigationTitle(TimeMasterFont.initialCapitalizedTitle(title))
             .toolbar {
                 if !title.isEmpty {
@@ -158,9 +167,8 @@ private struct TimeMasterNavigationTitle: ViewModifier {
                     }
                 }
             }
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
+        #endif
     }
 }
 

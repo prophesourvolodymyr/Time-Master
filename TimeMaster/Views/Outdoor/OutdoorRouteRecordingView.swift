@@ -1764,4 +1764,3 @@ struct OutdoorMusicContentSizeKey: PreferenceKey {
 }
 
 #endif
-

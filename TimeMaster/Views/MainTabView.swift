@@ -116,6 +116,9 @@ struct MainTabView: View {
         .environmentObject(profileStore)
         .environmentObject(databaseNavigationState)
 #if os(macOS)
+        .transformPreference(MacWindowTitlePreferenceKey.self) { title in
+            if title == nil { title = selectedPage.title }
+        }
         .buttonStyle(.plain)
         .focusable()
         .focusEffectDisabled()

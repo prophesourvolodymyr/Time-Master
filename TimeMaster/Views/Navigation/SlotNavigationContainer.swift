@@ -140,6 +140,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                             height: barHeight
                         ) : .zero)
                     .animation(nil, value: selection)
+                    .everPageTravel(scope: selection ?? "", order: items.firstIndex(where: { $0.id == selection }) ?? 0)
                     .blur(radius: isEditing && !reduceTransparency ? 11 : 0)
                     .opacity(isEditing ? 0.48 : 1)
                     .allowsHitTesting(!isEditing)

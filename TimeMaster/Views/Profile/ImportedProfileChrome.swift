@@ -31,7 +31,11 @@ extension ProfileView {
             EverLayout.minimumTouchTarget * 3 + EverSpacing.x4,
             max(0, (width - EverLayout.phoneInset * 2 - expandedAvatar - EverSpacing.x3 * 2) / 2)
         )
+        #if os(macOS)
+        let expandedStatY = expandedCenter
+        #else
         let expandedStatY = expandedCenter + expandedAvatar * 0.55
+        #endif
         let compactAvatar = min(compactAvatarSize, EverLayout.standardRowMinimum)
         let addWidth = control
         let activeProfile = !asVisitor && !previewOnly

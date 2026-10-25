@@ -15,65 +15,71 @@ struct SettingsRootContent: View {
                 SettingsDestinationContent(destination: initialDestination)
             } else {
                 EverSettingsPage(title: "Settings") {
-                    EverSettingsSection(
-                        title: "Profile",
-                        detail: "Your profile is stored on this device. Account sign-in does not synchronize your local profile."
-                    ) {
+                    SettingsMenuSection(title: "Profile") {
                         SettingsDestinationLink(destination: .profile)
                         SettingsDestinationLink(destination: .privacy)
                     }
 
-                    EverSettingsSection(title: "Account & Sync") {
+                    SettingsMenuSection(title: "Account & Sync") {
                         SettingsDestinationLink(destination: .account)
                         SettingsDestinationLink(destination: .databaseSync)
                     }
 
-                    EverSettingsSection(title: "Workout") {
+                    SettingsMenuSection(title: "Workout") {
                         SettingsDestinationLink(destination: .workoutTypes)
                         SettingsDestinationLink(destination: .motivation)
                         musicSettingsButton {
-                            EverActionRow(title: "Background Music", symbol: "music.note") {
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(EverColor.textTertiary)
+                            SettingsMenuCard {
+                                SettingsActionRow(title: "Background Music", symbol: "music.note") {
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(EverColor.textTertiary)
+                                        .accessibilityHidden(true)
+                                }
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(TimeMasterCardButtonStyle())
                         SettingsDestinationLink(destination: .notifications)
-                        Stepper(value: $extraRestSeconds, in: 5...120, step: 5) {
-                            EverActionRow(
-                                title: "Extra Rest Time",
-                                detail: "\(extraRestSeconds) seconds added per tap during rest",
-                                symbol: "plus.circle"
-                            )
+                        SettingsMenuCard {
+                            VStack(alignment: .leading, spacing: EverSpacing.x3) {
+                                SettingsActionRow(title: "Extra Rest Time", symbol: "plus.circle")
+                                Stepper(value: $extraRestSeconds, in: 5...120, step: 5) {
+                                    Text("\(extraRestSeconds) sec per tap")
+                                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                                        .foregroundStyle(EverColor.textSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(minHeight: EverLayout.minimumTouchTarget)
+                                .accessibilityLabel("Extra rest time")
+                                .accessibilityValue("\(extraRestSeconds) seconds")
+                            }
                         }
-                        .font(TimeMasterFont.rowTitle())
-                        .frame(minHeight: EverLayout.standardRowMinimum)
-                        .accessibilityLabel("Extra rest time")
-                        .accessibilityValue("\(extraRestSeconds) seconds")
                     }
 
-                    EverSettingsSection(title: "Data") {
+                    SettingsMenuSection(title: "Data") {
                         SettingsDestinationLink(destination: .backup)
                     }
 
-                    EverSettingsSection(title: "AI & Import") {
+                    SettingsMenuSection(title: "AI & Import") {
                         SettingsDestinationLink(destination: .exerciseAI)
                         serverSettingsButton {
-                            EverActionRow(
-                                title: "Companion Server",
-                                detail: serverSettings.host,
-                                symbol: "server.rack"
-                            ) {
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(EverColor.textTertiary)
+                            SettingsMenuCard {
+                                SettingsActionRow(
+                                    title: "Companion Server",
+                                    detail: serverSettings.host,
+                                    symbol: "server.rack"
+                                ) {
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(EverColor.textTertiary)
+                                        .accessibilityHidden(true)
+                                }
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(TimeMasterCardButtonStyle())
                     }
 
-                    EverSettingsSection(title: "About") {
+                    SettingsMenuSection(title: "About") {
                         SettingsDestinationLink(destination: .about)
                     }
                 }
@@ -103,6 +109,15 @@ struct SettingsRootContent: View {
         ])
         .sheet(isPresented: $showServerSettings) {
             ServerSettingsView(settings: serverSettings)
+                #if os(macOS)
+                .frame(
+                    minWidth: EverLayout.popupMaximumWidth,
+                    idealWidth: EverLayout.popupMaximumWidth,
+                    minHeight: EverLayout.standardRowMinimum * 10,
+                    idealHeight: EverLayout.standardRowMinimum * 12
+                )
+                #endif
+                .everSheetBackground()
         }
         #if os(iOS)
         .fullScreenCover(isPresented: $showMusicSettings) {
@@ -113,6 +128,13 @@ struct SettingsRootContent: View {
         .sheet(isPresented: $showMusicSettings) {
             MusicSettingsView(library: musicLibraryStore)
                 .environmentObject(workoutStore)
+                .frame(
+                    minWidth: EverLayout.popupMaximumWidth,
+                    idealWidth: EverLayout.maximumReadableWidth,
+                    minHeight: EverLayout.standardRowMinimum * 10,
+                    idealHeight: EverLayout.standardRowMinimum * 12
+                )
+                .everSheetBackground()
         }
         #endif
     }
@@ -131,13 +153,17 @@ private struct SettingsDestinationLink: View {
 
     var body: some View {
         NavigationLink(value: destination) {
-            EverActionRow(title: destination.title, symbol: destination.symbol) {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(EverColor.textTertiary)
+            SettingsMenuCard {
+                SettingsActionRow(title: destination.title, symbol: destination.symbol) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(EverColor.textTertiary)
+                        .accessibilityHidden(true)
+                }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterCardButtonStyle())
+        .accessibilityIdentifier("settings-destination-\(destination.rawValue)")
     }
 }
 

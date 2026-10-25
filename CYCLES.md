@@ -2392,6 +2392,37 @@ The user accepted the newer native Mac build and requested the visible name Tmax
 - [x] Remove the two stale installed Mac apps and redundant temporary native Mac build after checking the installed copy
 - [ ] Human review of the renamed Dock entry and installed Tmax app
 
+### macOS Presentation, Profile, and Header Repairs — 2026-10-23
+
+- [ ] Paint popup and sheet margins with the app background and remove redundant native titles without removing dismissal controls
+- [ ] Match the traffic-light strip to the app background and place the active page title beside the native window controls
+- [ ] Adapt the imported Profile header to desktop proportions so its actual identity, controls, and tabs are reachable
+- [ ] Expand page actions by dragging their header controls and keep expanded Mac groups compact and sized to their action count
+- [ ] Exercise the four repaired paths in the native Mac app and preserve the iOS layout and existing profile data
+- [ ] Human review of the repaired popup surfaces, titlebar, Profile, and expanding actions
+
+## Cycle 42 — Native Workout Bundles and Media Workspace — 2026-10-24
+
+User-requested five-agent implementation. New components reuse the native dark/orange visual system, readable app typography, thumbnails, and concise visual controls. White bundle cards remain distinct from orange timed exercises. Existing uncommitted work and deleted legacy documentation are preserved. Implementation and human acceptance are separate.
+
+- [x] App-owned resizable Mac video preview with a connected Quick Cut action (gallery video → `MacVideoPreviewWindow` → Cut opens the workspace editor)
+- [x] Timed multi-exercise bundles: repeated sets, per-exercise durations, drag reordering, ordered/random, optional spoken phrases, small/big rests, white bundle base, stacked-card shuffle playback with every exercise page reachable
+- [x] Fast upward page entrances on iPhone and Mac, directional Mac page travel with transient motion blur, Reduce Motion fade
+- [x] Native Mac popup sizing, scrollable content, bottom action row, and warm-up picker layout repair
+- [x] Per-video live full-Markdown comment composer, persisted by the importer, page creation, and attachment editing; shown beside previewed video
+- [x] Multi-link detection, per-link validation/download status, multi-file import, independent per-source editor models, right source sidebar, left/right swipe removal with confirmation, multiple movable Mac windows
+- [x] Searchable save destinations, video-comment step, independently movable save windows
+- [x] Compact top-left editor navigation, transport outside the video, frame-strip seeking, ⌘+/⌘−/pinch timeline zoom, visual media-tray grouping
+- [x] Reinstall Homebrew yt-dlp (2026.08.19), prefer it over the older Python copy, validate and download a real YouTube link with the app's arguments
+- [x] Database left hierarchy disclosure, distinct open control, descendant four-cover group mosaics
+- [x] Divider after exclusive All and independently multi-selectable type filters
+- [x] Larger Settings icons and shared native styling
+- [ ] Runtime scenarios: macOS and iOS targets build and the Mac app launches with an isolated home; core tests pass (CLI tests excluded: they need the default build path). Window, drag, swipe, pinch, popup, bundle-playback and motion behavior were NOT exercised because UI automation and screen capture are not authorized on this Mac. iOS was not rebuilt after the final bundle-card edit (disk full)
+- [x] Commit and push owned work to origin/main
+- [ ] Human review of bundles, media workflows, navigation motion, native popups, database controls, and Settings
+
+Known limits: the workout bundle-picker strip still uses single selection; four of the five agents hit a usage limit mid-work and were completed by hand, so every item above needs the human review listed.
+
 ---
 
 ## Notes

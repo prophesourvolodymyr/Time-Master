@@ -103,8 +103,7 @@ enum WorkoutSectionBuilder {
     ) -> Section? {
         guard !sources.isEmpty else { return nil }
 
-        let slots = sources.enumerated().compactMap { index, source -> SetSlot? in
-            let restAfter = index < sources.count - 1 ? configuration.restBetweenSets : 0
+        let exercises = sources.compactMap { source -> SetSlot? in
             switch source {
             case .page(let page):
                 guard page.isWorkoutAddable else { return nil }
@@ -112,7 +111,7 @@ enum WorkoutSectionBuilder {
                     page: page,
                     duration: page.manifest.duration ?? configuration.duration,
                     repCount: page.manifest.sets == nil ? nil : configuration.repCount,
-                    slotRestAfter: restAfter,
+                    slotRestAfter: configuration.restBetweenSets,
                     setIndex: 0
                 )
             case .workout(let workout):
@@ -120,17 +119,30 @@ enum WorkoutSectionBuilder {
                     nestedWorkoutID: workout.id,
                     name: workout.name,
                     duration: max(5, workout.totalDuration),
-                    restAfter: restAfter
+                    restAfter: configuration.restBetweenSets,
+                    prepareTime: 0
                 )
             }
         }
-        guard !slots.isEmpty else { return nil }
+        guard !exercises.isEmpty else { return nil }
+        let slots = (0..<configuration.sets).map { index in
+            SetSlot(
+                name: "Set \(index + 1)", duration: configuration.duration,
+                restAfter: index + 1 < configuration.sets ? configuration.restBetweenSets : 0,
+                prepareTime: configuration.prepareTime,
+                children: exercises.map { exercise in
+                    var child = exercise.duplicated()
+                    child.prepareTime = 0
+                    return child
+                }
+            )
+        }
 
         let names = sources.map(\.title).joined(separator: ", ")
         return Section(
             name: "Bundle: \(names)",
             duration: configuration.duration,
-            sets: slots.count,
+            sets: configuration.sets,
             repCount: configuration.repCount,
             restBetweenSets: configuration.restBetweenSets,
             customRestAfter: configuration.restAfter,

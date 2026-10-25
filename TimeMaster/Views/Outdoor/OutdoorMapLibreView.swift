@@ -150,21 +150,21 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var offlineBounds: OfflineTripManifest.Bounds?
         private var pendingOfflineFrame = false
         private var plannedTrip: OutdoorTrip?
+        private var latestRouteFitPoints: [OutdoorTrackPoint]?
         private var restoresOnlineStyle = false
 
         func updateOfflineStyle(_ url: URL?, bounds: OfflineTripManifest.Bounds?) {
             offlineBounds = bounds
             guard offlineStyleURL != url else { return }
+            pendingOfflineFrame = url != nil
             restoresOnlineStyle = url == nil
             offlineStyleURL = url
-            pendingOfflineFrame = url != nil
             didRenderInputs = false
         }
 
         func updateTripEditing(_ input: TripMapEditing?, plannedTrip: OutdoorTrip?) {
             let entering = tripEditing == nil && input != nil
-            if (self.plannedTrip == nil) != (plannedTrip == nil)
-                || self.plannedTrip?.routedAt != plannedTrip?.routedAt {
+            if (self.plannedTrip == nil) != (plannedTrip == nil) || self.plannedTrip?.routedAt != plannedTrip?.routedAt {
                 didRenderInputs = false
             }
             tripEditing = input
@@ -183,7 +183,6 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private var latestOverlayModes: Set<OutdoorMapMode> = []
         private var latestUserCoordinate: CLLocationCoordinate2D?
         private var latestWeatherInfoEnabled = false
-        private var latestRouteFitPoints: [OutdoorTrackPoint]?
         private var isApplyingCamera = false
         private var lastUsableMode: OutdoorMapMode = .explore
         private var latestHeading: CLLocationDirection = 0
@@ -682,8 +681,16 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
 
 
+        private func applyFollowState(to map: MLNMapView) {
+            let desiredMode: MLNUserTrackingMode = session.followsUser ? .follow : .none
+            if map.userTrackingMode != desiredMode {
+                map.userTrackingMode = desiredMode
+            }
+        }
+
         private func fitOfflineAreaIfNeeded(map: MLNMapView) {
-            guard pendingOfflineFrame, let offlineBounds, map.bounds.width > 1, map.bounds.height > 1 else { return }
+            guard pendingOfflineFrame, let offlineBounds,
+                  map.bounds.width > 1, map.bounds.height > 1 else { return }
             pendingOfflineFrame = false
             let center = TripCoordinate(latitude: map.centerCoordinate.latitude, longitude: map.centerCoordinate.longitude)
             guard !offlineBounds.contains(center), tripEditing?.trip.isRouted != true else { return }
@@ -693,21 +700,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                     sw: CLLocationCoordinate2D(latitude: offlineBounds.south, longitude: offlineBounds.west),
                     ne: CLLocationCoordinate2D(latitude: offlineBounds.north, longitude: offlineBounds.east)
                 ),
-                edgePadding: UIEdgeInsets(top: map.safeAreaInsets.top + (tripEditing?.topInset ?? 0) + 24, left: 24, bottom: map.safeAreaInsets.bottom + (tripEditing?.bottomInset ?? 0) + 24, right: 24),
+                edgePadding: UIEdgeInsets(top: map.safeAreaInsets.top + (tripEditing?.topInset ?? 0) + 24, left: 24,
+                    bottom: map.safeAreaInsets.bottom + (tripEditing?.bottomInset ?? 0) + 24, right: 24),
                 animated: false
             )
             hasCenteredOnUser = true
             isApplyingCamera = false
             session.captureCamera(from: map)
         }
-
-        private func applyFollowState(to map: MLNMapView) {
-            let desiredMode: MLNUserTrackingMode = session.followsUser ? .follow : .none
-            if map.userTrackingMode != desiredMode {
-                map.userTrackingMode = desiredMode
-            }
-        }
-
 
         private func applyInitialFramingIfNeeded(map: MLNMapView) {
             guard session.shouldFrameRoute(hasRoute: !latestPoints.isEmpty || !latestPlannedPoints.isEmpty) else {
@@ -750,7 +750,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             } else {
                 map.setVisibleCoordinateBounds(
                     bounds(for: fitPoints),
-                    edgePadding: UIEdgeInsets(top: map.safeAreaInsets.top + (tripEditing?.topInset ?? 0) + 24, left: 48, bottom: map.safeAreaInsets.bottom + (tripEditing?.bottomInset ?? 120) + 24, right: 48),
+                    edgePadding: UIEdgeInsets(top: map.safeAreaInsets.top + (tripEditing?.topInset ?? 0) + 24, left: 48,
+                        bottom: map.safeAreaInsets.bottom + (tripEditing?.bottomInset ?? 120) + 24, right: 48),
                     animated: !UIAccessibility.isReduceMotionEnabled
                 )
             }

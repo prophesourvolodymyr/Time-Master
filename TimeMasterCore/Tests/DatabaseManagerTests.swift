@@ -459,6 +459,37 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertNil(persisted.parentID)
     }
 
+    func testDeletePageRemovesParentChildReference() throws {
+        try db.bootstrapIfNeeded()
+
+        let parent = ExercisePageManifest(id: "delete-parent", title: "Parent")
+        let child = ExercisePageManifest(
+            id: "delete-child",
+            title: "Child",
+            pageKind: .leaf,
+            duration: 30,
+            parentID: parent.id
+        )
+        try db.createPage(manifest: parent)
+        try db.createPage(manifest: child, parentID: parent.id)
+        XCTAssertEqual(try db.getPage(id: parent.id).childIDs, [child.id])
+
+        try db.deletePage(id: child.id)
+
+        XCTAssertThrowsError(try db.getPage(id: child.id))
+        XCTAssertEqual(try db.getPage(id: parent.id).childIDs, [])
+
+        let sibling = ExercisePageManifest(
+            id: "delete-sibling",
+            title: "Sibling",
+            pageKind: .leaf,
+            duration: 30,
+            parentID: parent.id
+        )
+        try db.createPage(manifest: sibling, parentID: parent.id)
+        XCTAssertEqual(try db.getPage(id: parent.id).childIDs, [sibling.id])
+    }
+
     func testUpdatingLegacyCoverPromotesItToOrderedMedia() throws {
         try db.bootstrapIfNeeded()
 

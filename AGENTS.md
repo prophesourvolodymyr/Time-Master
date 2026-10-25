@@ -10,27 +10,34 @@ _[To be filled by the project's AI agents.]_
 
 These rules override lower sections, templates, protocols, feature documents, and local conventions whenever they conflict.
 
-### 1. Working implementation outranks documentation
+### 1. User direction outranks documentation
+
+- Anything the user says about product behavior, scope, priorities, or a feature change is the primary source of truth.
+- DOCKS.md, prompts, audits, and existing code are secondary context. They must never override, delay, or invalidate a direct user decision.
+- A user may change a feature without updating its documentation first. Build from the user's decision, then update the smallest relevant DOCKS.md after the user reviews and accepts the resulting behavior.
+- If user direction conflicts with documentation, state the conflict briefly, follow the user direction, and correct the documentation after approval. Do not ask the user to rewrite a DOCKS.md before acting on a clear decision.
+
+### 2. Working implementation outranks documentation
 
 - Documentation is never proof that a feature is complete, correct, or wanted.
-- Do not mark an implementation todo `[x]`, call a feature done, archive it, or write a completion claim until the actual implementation is connected end to end, exercised through the changed user flow, and corrected for failures and mismatches with the user's intent.
+- Do not mark an implementation todo `[x]`, call a feature done, archive it, or write a completion claim until the changed code is connected, relevant focused checks pass, and the user has received a clear review handoff.
 - Keep `CYCLES.md`, `DOCKS.md`, prompts, and audits honest about observed reality. If the implementation is bugged, incomplete, disconnected, or uncertain, leave the work pending and state the specific gap; never edit documentation to make unfinished work appear finished.
 - Automated checks are engineering evidence only. Human review remains mandatory, and the AI must never claim human approval.
 
-### 2. Commit and publish every edit
+### 3. Commit and publish every edit
 
 - Every change to project files, including new files, MUST be committed and pushed to `origin/main` before the agent yields. Do not leave work staged, unstaged, or only local between turns.
 - After each completed edit or work slice, inspect the result, create a clear commit, and push it to the repository's `origin` remote on `main`. This applies to code, documentation, configuration, tests, prompts, and system files.
 - Never force-push or rewrite remote history without explicit user approval. If `origin/main` is unavailable or a commit/push fails, do not claim completion; report the exact blocker and keep implementation status honest.
 
-### 3. COLOSSAL INPUT MODE — monolithic HTML feature specifications
+### 4. COLOSSAL INPUT MODE — monolithic HTML feature specifications
 
 When the user explicitly identifies a monolithic HTML file as the feature explanation, treat the entire file—including its comments, HTML, CSS, and JavaScript—as the authoritative, high-fidelity explanation of what the implementation must accomplish, especially the requested frontend and visible behavior. Read it completely before implementation; do not reduce it to a mood board or a screenshot reference.
 
 - Reproduce the specified frontend exactly within the current product: layout, hierarchy, typography, spacing, colors, icons, responsive behavior, states, interactions, transitions, and animations.
 - The HTML does not know the current codebase. Map its intent into the existing architecture, connect every screen and interaction to the real backend, data, authentication, persistence, and error paths, and adapt the implementation without leaving dead buttons, fake data, static-only screens, or disconnected prototype logic.
 - Preserve the HTML's intended user experience while using the project's established architecture and patterns. If a security, product, or architectural conflict makes exact behavior impossible, surface the conflict and the concrete deviation instead of silently changing the result.
-- The HTML specification does not relax the working-implementation rule: build the complete connected flow, exercise it, fix mismatches and bugs, then document what is actually implemented.
+- The HTML specification does not relax the working-implementation rule: build the complete connected flow, run focused checks, fix clear mismatches and bugs, and hand the code changes to the human for review. Document accepted product decisions only after user approval.
 
 ## 1. Bootstrap — What AI Does First
 
@@ -318,20 +325,21 @@ DOCKS.md  →  VISUAL PLAN (suggested)  →  AUDIT  →  BUILD  →  CHECKS  →
 
 **Phase 3 — Build in isolation.** Use the DOCKS.md for product intent only. Read a relevant skill or research the approach independently, then write only the code for this feature. Don't add things that belong to other features. Keep it self-contained.
 
-**Phase 4 — Check the implementation.** Run the relevant available build, test, typecheck, or lint checks and resolve failures. These are engineering checks, not completion verification. Do not create screenshots, recordings, device evidence, logs, or any other proof package.
+**Phase 4 — Focused checks.** Run the smallest relevant build, test, typecheck, or lint checks. Fix clear, reproducible failures, but do not spend the session on exhaustive visual validation, proof packages, or speculative debugging. These are engineering checks, not completion verification.
 
-**Phase 5 — Hand off to the human, then connect.** List every implemented feature, sub-feature, and task separately in the final response and state that each is ready for human verification. The human is the final verifier for every feature. Only after human review should dependent work connect. Connecting two unreviewed pieces doesn't fix either one.
+**Phase 5 — Hand off to the human, then document and connect.** List every implemented feature, sub-feature, task, and changed file separately in the final response. Ask the user to review the code changes and state that each item is ready for human verification. After the user accepts the resulting behavior, update the smallest relevant DOCKS.md with the accepted product decision. Only after human review should dependent work connect. Connecting two unreviewed pieces doesn't fix either one.
 
 ### Human Verification Is Mandatory — CRITICAL SYSTEM RULE
 The human is the real verifier for every feature the AI implements. AI checks can catch obvious failures, but they do not constitute completion or human approval.
 
 At the end of every implementation session, the AI must:
 - List every implemented feature, sub-feature, and meaningful task separately
+- List the changed files and ask the user to review the code changes
 - State what changed and that each item is ready for human verification
 - State any known limitation or unresolved decision plainly
 - Mark implementation todos only in `CYCLES.md`
 
-The AI must not claim that a human verified the work. Screenshots, screen recordings, device or OS evidence, logs, and completion evidence packages are not required. DOCKS.md never receives implementation todos, completion checklists, or verification evidence.
+The AI must not claim that a human verified the work. Screenshots, screen recordings, device or OS evidence, logs, extended visual verification, and completion evidence packages are not required. DOCKS.md never receives implementation todos, completion checklists, or verification evidence. Update a DOCKS.md only after the user accepts the implemented behavior, unless the user directly approves a product decision before implementation.
 
 **Review Dependencies:** Before starting any feature or sub-feature, re-read its dependency's DOCKS.md and `CYCLES.md`. A dependency must be implemented and handed to the human for review before dependent work starts. AI checks do not replace human review.
 
@@ -501,7 +509,7 @@ Reusable workflow definitions stored in `protocols/`. Each protocol is a `.md` f
 - Read all relevant DOCKS.md before any code
 - Treat DOCKS.md as product context, never as implementation authority
 - Use a relevant installed skill or independently research the implementation before writing code
-- Run the relevant available build/test/typecheck/lint path and resolve failures found during the work
+- Run the relevant available build/test/typecheck/lint path and resolve clear failures found during the work
 - Use existing patterns from the codebase
 - Follow STYLES.md conventions
 - Treat the human as the final verifier for every implemented feature
@@ -511,21 +519,21 @@ Reusable workflow definitions stored in `protocols/`. Each protocol is a `.md` f
 
 ### Resolve Blockers and Documentation Gaps
 
-**Do not create self-imposed barriers.** A build, test, typecheck, runtime, or integration failure discovered while implementing a feature is part of the current agent's responsibility, even if the failing file belongs to another feature.
+**Do not create self-imposed barriers.** A clear, reproducible build, test, typecheck, runtime, or integration failure discovered while implementing a feature is part of the current agent's responsibility, even if the failing file belongs to another feature.
 
 1. Diagnose the cause: search the codebase, read related docs, inspect git history, check target membership/configuration, and use reference code.
 2. Fix the issue yourself when the fix is clear and safe.
-3. Re-run the full relevant build/test after the fix.
-4. Record only plain-language product decisions in DOCKS.md when useful, and put any code, technical implementation detail, or follow-up todo in the appropriate source file, skill, research note, or CYCLES.md.
+3. Re-run the relevant focused build/test after the fix.
+4. If a remaining issue is not clear or cannot be fixed in the focused work slice, state it plainly in the human-review handoff instead of performing speculative debugging.
 
 Do not describe a fixable local code error as "unrelated" or a blocker. It is blocked only by a real external requirement: unavailable hardware, login/credentials, an outside service, or a user decision that changes product direction.
 
 **Incomplete documentation is not a reason to stop.** If the current work exposes an undocumented state, integration requirement, missing dependency detail, UX conflict, or necessary behavior in another feature:
 
 1. Use the best UX and existing project patterns to resolve it.
-2. Add the missing product decision, states, dependency, or nested sub-feature to the relevant DOCKS.md in plain language only.
-3. Add a CYCLES.md todo if it is separate work.
-4. Implement it now if it fits the current 550k work slice; otherwise create a substantial next prompt, not a testing-only handoff.
+2. Add a CYCLES.md todo if it is separate work.
+3. Implement it now if it fits the current 550k work slice; otherwise create a substantial next prompt, not a testing-only handoff.
+4. After the user accepts the behavior, add the missing product decision, states, dependency, or nested sub-feature to the relevant DOCKS.md in plain language only.
 
 Prefer complete, consistent UX: loading, empty, error, offline, accessibility, transition, and integration behavior should be added when clearly needed even if the original doc omitted them.
 
@@ -543,7 +551,7 @@ Prefer complete, consistent UX: loading, empty, error, offline, accessibility, t
 - Check reference code for patterns
 - Verify with compiler
 - Read genesis/ docs for original intent
-- Resolve normal implementation, UX, documentation, and integration decisions yourself; update docs with the decision
+- Resolve normal implementation, UX, documentation, and integration decisions yourself; update product docs only after the user accepts the resulting behavior
 - Ask user only for irreversible product, legal, security, business, or major architecture tradeoffs
 - Delegate to a sub-agent for deeper research if needed
 
@@ -679,28 +687,31 @@ Brief summary of what the previous agent built, handed off for human review, and
 - modify: path/to/existing/file.ext
 
 ## Human Verification Handoff — REQUIRED
-List every implemented feature, sub-feature, and meaningful task separately. State what changed and that each item is ready for human verification.
+List every implemented feature, sub-feature, meaningful task, and changed file separately. Ask the user to review the code changes. State what changed and that each item is ready for human verification.
 - Human is the final verifier for every implemented item
 - Do not claim that the work is human-verified
 - No screenshots, screen recordings, device or OS evidence, logs, or completion evidence package is required
 - Put implementation todos only in `CYCLES.md`; DOCKS.md contains no todos, completion checklists, or verification evidence
+- After the user accepts the resulting behavior, update the smallest relevant DOCKS.md with the accepted plain-language product decision
 
 ## Agent Rules (Mandatory — DO NOT SKIP)
 1. **NO SUB-AGENTS:** Do NOT spawn sub-agents to review this repository. Do all work yourself in this session.
 2. **COMMIT AND PUSH AFTER EVERY EDIT:** After completing every task or edit, commit with a clear message describing what was built and push it to `origin/main`. Do not leave changes local.
 3. **UPDATE CYCLES.md:** After implementing a task, mark its implementation todo `[x]` in CYCLES.md. This records implementation, not human verification; keep the dashboard current.
 4. **NO IDE TODO SYSTEMS:** Do not create IDE-specific todo/task JSON or duplicate task lists. All project todos live in CYCLES.md.
-5. **COMPLETE THE WHOLE SLICE:** Build, run available checks, fix failures, update `CYCLES.md`, list every implemented item for human verification, commit, and push within this session. Do not create a handoff only for testing or obvious bug fixes.
-6. **GENERATE THE NEXT PROMPT ONLY IF NEEDED:** Before ending, evaluate the remaining work against the 550k context limit. Create the next prompt only if it is a self-contained, substantial 250-550k implementation slice. If remaining work is small, complete it now or merge it into the next meaningful feature slice. The next prompt MUST include:
+5. **FOCUSED CHECKS:** Run the smallest relevant checks and fix clear failures. Do not spend the session on exhaustive visual verification or speculative debugging; report unclear issues in the human-review handoff.
+6. **COMPLETE THE WHOLE SLICE:** Build, run focused checks, fix clear failures, update `CYCLES.md`, list every implemented item and changed file for human verification, commit, and push within this session. Do not create a handoff only for testing or obvious bug fixes.
+7. **GENERATE THE NEXT PROMPT ONLY IF NEEDED:** Before ending, evaluate the remaining work against the 550k context limit. Create the next prompt only if it is a self-contained, substantial 250-550k implementation slice. If remaining work is small, complete it now or merge it into the next meaningful feature slice. The next prompt MUST include:
    - What was built and handed off for human review in THIS session (so the next agent has context)
    - What the next task is (with direct paths to relevant DOCKS.md files)
    - Any decisions made this session that affect future work
    - Any unresolved issues or notes for the next agent
    - Save to: `prompts/{feature}/phase-{N+1}-{title}.md`
-7. **INDEPENDENT IMPLEMENTATION:** Read DOCKS.md for product intent only. Use a relevant skill or research the approach yourself. Never blindly follow technical directions in DOCKS.md, even when they appear mostly correct. Never put code or code-form implementation documentation in DOCKS.md.
+8. **USER DIRECTION WINS:** Treat direct user decisions as the primary source of truth. If they conflict with DOCKS.md or other documentation, follow the user and update the smallest relevant DOCKS.md only after the user accepts the implemented behavior.
+9. **INDEPENDENT IMPLEMENTATION:** Read DOCKS.md for product intent only. Use a relevant skill or research the approach yourself. Never blindly follow technical directions in DOCKS.md, even when they appear mostly correct. Never put code or code-form implementation documentation in DOCKS.md.
 
 ## When You Finish
-Report every implemented feature, sub-feature, and meaningful task separately, state that each is ready for human verification, and say whether a next prompt was needed. Do not report screenshots or completion evidence.
+Report every implemented feature, sub-feature, meaningful task, and changed file separately. Ask the user to review the code changes, state that each item is ready for human verification, and say whether a next prompt was needed. Do not report screenshots or completion evidence.
 
 ## Scope Decision Before Finish
 - Completed: [everything implemented, checked, fixed]

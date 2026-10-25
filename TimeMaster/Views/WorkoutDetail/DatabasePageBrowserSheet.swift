@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct DatabasePageBrowserSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
 
@@ -13,7 +14,7 @@ struct DatabasePageBrowserSheet: View {
 
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
-    @State private var filterOption: PageFilterOption = .all
+    @State private var selectedFilters: Set<PageFilterOption> = []
     @State private var searchText = ""
     @State private var isBundleMode = false
     @State private var selectedBundleIDs: Set<String> = []
@@ -49,13 +50,19 @@ struct DatabasePageBrowserSheet: View {
 
     private var filteredPages: [ExercisePage] {
         var result = pages
-        switch filterOption {
-        case .all: break
-        case .container: result = result.filter { $0.isContainer && $0.pageType == nil }
-        case .exercise: result = result.filter(\.isExercise)
-        case .skill: result = result.filter(\.isSkill)
-        case .tutorial: result = result.filter(\.isTutorial)
-        case .type(let typeId): result = result.filter { $0.effectiveWorkoutType?.id == typeId }
+        if !selectedFilters.isEmpty {
+            result = result.filter { page in
+                selectedFilters.contains { option in
+                    switch option {
+                    case .all: true
+                    case .container: page.isContainer && page.pageType == nil
+                    case .exercise: page.isExercise
+                    case .skill: page.isSkill
+                    case .tutorial: page.isTutorial
+                    case .type(let id): page.effectiveWorkoutType?.id == id
+                    }
+                }
+            }
         }
         if !searchText.isEmpty {
             result = result.filter { page in
@@ -122,15 +129,10 @@ struct DatabasePageBrowserSheet: View {
                     }
                 }
 
-                VStack {
-                    Spacer()
-                    if previewPage != nil, !isBundleMode {
-                        previewBar
-                    }
-                    if isBundleMode, !bundleOrder.isEmpty {
-                        bundleBar
-                    }
-                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if previewPage != nil, !isBundleMode { previewBar }
+                if isBundleMode, !bundleOrder.isEmpty { bundleBar }
             }
             .timeMasterNavigationTitle(isBundleMode ? "Bundle Mode" : "Browse Pages")
             #if os(iOS)
@@ -244,6 +246,11 @@ struct DatabasePageBrowserSheet: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 filterChip(.all, label: "All")
+                Rectangle()
+                    .fill(Theme.separator)
+                    .frame(width: 1, height: 22)
+                    .padding(.horizontal, 5)
+                    .accessibilityHidden(true)
                 filterChip(.exercise, label: "Exercises")
                 filterChip(.skill, label: "Skills")
                 filterChip(.tutorial, label: "Tutorials")
@@ -258,9 +265,12 @@ struct DatabasePageBrowserSheet: View {
     }
 
     private func filterChip(_ option: PageFilterOption, label: String) -> some View {
-        let isActive = filterOption == option
+        let isActive = option == .all ? selectedFilters.isEmpty : selectedFilters.contains(option)
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) { filterOption = option }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
+                if option == .all { selectedFilters.removeAll() }
+                else if !selectedFilters.insert(option).inserted { selectedFilters.remove(option) }
+            }
         } label: {
             Text(label)
                 .font(isActive ? TimeMasterFont.black(11, relativeTo: .caption2) : TimeMasterFont.micro())
@@ -523,7 +533,7 @@ struct DatabasePageBrowserSheet: View {
                     .foregroundColor(Theme.textPrimary)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
-                    compactStepper(label: "Dur", value: $duration, range: 5...600, step: 5, unit: "s")
+                    compactStepper(label: "Dur", value: $duration, range: 1...600, step: 1, unit: "s")
                     compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
                     compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
                     compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
@@ -536,6 +546,9 @@ struct DatabasePageBrowserSheet: View {
                         HStack(spacing: 8) {
                             ForEach(selectedSources) { source in
                                 HStack(spacing: 5) {
+                                    if let pageID = source.pageID, let page = store.page(id: pageID) {
+                                        coverThumb(page)
+                                    }
                                     Image(systemName: "line.3.horizontal")
                                         .font(.caption2)
                                     Text(source.title)
@@ -551,7 +564,7 @@ struct DatabasePageBrowserSheet: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 7)
-                                .background(Color.yellow.opacity(0.18))
+                                .background(Color.white.opacity(0.12))
                                 .clipShape(Capsule())
                                 .onDrag {
                                     draggedBundleID = source.id
@@ -586,7 +599,7 @@ struct DatabasePageBrowserSheet: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(Color.yellow)
+                    .background(Color.white)
                     .cornerRadius(10)
                 }
                 .disabled(selectedBundleIDs.isEmpty)

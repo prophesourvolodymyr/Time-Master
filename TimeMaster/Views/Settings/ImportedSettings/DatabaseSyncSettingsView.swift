@@ -30,9 +30,9 @@ struct DatabaseSyncSettingsView: View {
             }
 
             EverSettingsSection(title: "Status") {
-                EverActionRow(title: sync.status.rawValue, symbol: statusSymbol)
+                SettingsActionRow(title: sync.status.rawValue, symbol: statusSymbol)
                 if let date = sync.lastSuccessfulSync {
-                    EverActionRow(title: "Last successful sync", detail: date.formatted(date: .abbreviated, time: .shortened), symbol: "clock")
+                    SettingsActionRow(title: "Last successful sync", detail: date.formatted(date: .abbreviated, time: .shortened), symbol: "clock")
                     if sync.hasTransferReport {
                         Text("Last completed transfer: \(sync.uploadedFiles) uploaded · \(sync.downloadedFiles) downloaded")
                             .font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
@@ -64,7 +64,7 @@ struct DatabaseSyncSettingsView: View {
 
             EverSettingsSection(title: "Account", detail: "Each account has an isolated exercise library. Switching waits for sync to stop, then restores that account's files before syncing.") {
                 NavigationLink { CloudAccountSettingsView() } label: {
-                    EverActionRow(title: account.session == nil ? "Optional: sign in to sync" : "Tmax account", detail: account.email, symbol: "person.crop.circle") {
+                    SettingsActionRow(title: account.session == nil ? "Optional: sign in to sync" : "Tmax account", detail: account.email, symbol: "person.crop.circle") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }
                 }.buttonStyle(.plain)
@@ -72,7 +72,7 @@ struct DatabaseSyncSettingsView: View {
 
             EverSettingsSection(title: "Always available locally", detail: "You can edit the exercise library and import or export ZIP files without an account. Turning sync off does not delete local or cloud files.") {
                 NavigationLink { BackupView() } label: {
-                    EverActionRow(title: "Backup & Transfer", symbol: "archivebox") {
+                    SettingsActionRow(title: "Backup & Transfer", symbol: "archivebox") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }
                 }.buttonStyle(.plain)

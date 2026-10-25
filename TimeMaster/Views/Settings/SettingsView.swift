@@ -23,6 +23,8 @@ struct SettingsView: View {
                     }
                 }
         }
+        .everScreenBackground()
+        .everSheetBackground()
         .environment(\.slotNavigationContentBounds, isPresentedModally ? nil : navigationBounds)
     }
 }

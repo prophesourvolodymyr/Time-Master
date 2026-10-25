@@ -19,6 +19,7 @@ struct ResumeState: Codable {
     var isPaused: Bool
     var savedAt: Date
     var musicCheckpoint: WorkoutMusicCheckpoint?
+    var bundleOrders: [String: [UUID]]? = nil
 
     var sectionName: String {
         "Section \(currentSectionIndex + 1)"
@@ -44,7 +45,8 @@ final class WorkoutResumeManager: ObservableObject {
         elapsedSeconds: Int,
         phase: WorkoutPhase,
         isPaused: Bool,
-        musicCheckpoint: WorkoutMusicCheckpoint? = nil
+        musicCheckpoint: WorkoutMusicCheckpoint? = nil,
+        bundleOrders: [String: [UUID]]? = nil
     ) {
         let state = ResumeState(
             workoutId: workoutId,
@@ -56,7 +58,8 @@ final class WorkoutResumeManager: ObservableObject {
             phase: phase,
             isPaused: isPaused,
             savedAt: Date(),
-            musicCheckpoint: musicCheckpoint
+            musicCheckpoint: musicCheckpoint,
+            bundleOrders: bundleOrders
         )
         resumeState = state
         if let data = try? JSONEncoder().encode(state) {

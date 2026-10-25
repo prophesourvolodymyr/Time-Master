@@ -35,7 +35,7 @@ struct ProfileSettingsView: View {
                 Button {
                     showsProfileEditor = true
                 } label: {
-                    EverActionRow(
+                    SettingsActionRow(
                         title: "Edit Profile",
                         detail: profileStore.isReadOnly
                             ? "Profile unavailable · read-only"
@@ -52,7 +52,7 @@ struct ProfileSettingsView: View {
                 Button {
                     showsRankedRanks = true
                 } label: {
-                    EverActionRow(
+                    SettingsActionRow(
                         title: "Ranked Ranks",
                         detail: "Earned movement ratings and placement",
                         symbol: "bolt.shield"
@@ -73,7 +73,7 @@ struct ProfileSettingsView: View {
                 NavigationLink {
                     ProfilePrivacySettingsView()
                 } label: {
-                    EverActionRow(title: "Profile Privacy", symbol: "hand.raised") {
+                    SettingsActionRow(title: "Profile Privacy", symbol: "hand.raised") {
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(EverColor.textTertiary)
@@ -90,7 +90,7 @@ struct ProfileSettingsView: View {
                 Button {
                     showsCollectibles = true
                 } label: {
-                    EverActionRow(title: "Collectibles", symbol: "square.stack.3d.up") {
+                    SettingsActionRow(title: "Collectibles", symbol: "square.stack.3d.up") {
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(EverColor.textTertiary)
@@ -106,7 +106,7 @@ struct ProfileSettingsView: View {
                 Button {
                     showsVerification = true
                 } label: {
-                    EverActionRow(
+                    SettingsActionRow(
                         title: profileStore.snapshot.badgePreview == nil
                             ? "Verification"
                             : "Manage checkmark preview",
