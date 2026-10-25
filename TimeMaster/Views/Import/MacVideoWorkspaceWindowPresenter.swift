@@ -52,18 +52,20 @@ private final class MacVideoWorkspaceWindowController: NSWindowController, NSWin
             defer: false
         )
         window.title = "Import Videos"
-        window.minSize = NSSize(width: 1180, height: 660)
+        window.minSize = NSSize(width: 900, height: 640)
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        window.backgroundColor = NSColor(Theme.background)
+        MacVideoWindowChrome.apply(to: window)
         super.init(window: window)
         window.delegate = self
-        window.contentViewController = NSHostingController(rootView: MacVideoWorkspaceRoot(
+        let hosting = NSHostingController(rootView: MacVideoWorkspaceRoot(
             model: model,
             databaseStore: databaseStore,
-            workoutStore: workoutStore,
-            onClose: { [weak self] in self?.close() }
+            workoutStore: workoutStore
         ))
+        hosting.sizingOptions = []
+        window.contentViewController = hosting
+        window.setContentSize(NSSize(width: 1320, height: 800))
     }
 
     required init?(coder: NSCoder) { nil }
@@ -91,10 +93,9 @@ private struct MacVideoWorkspaceRoot: View {
     @ObservedObject var model: MacVideoWorkspaceModel
     let databaseStore: DatabaseStore
     let workoutStore: WorkoutStore
-    let onClose: () -> Void
 
     var body: some View {
-        MacVideoWorkspaceView(model: model, onClose: onClose)
+        MacVideoWorkspaceView(model: model)
             .environmentObject(databaseStore)
             .environmentObject(workoutStore)
             .preferredColorScheme(.dark)

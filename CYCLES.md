@@ -2423,6 +2423,22 @@ User-requested five-agent implementation. New components reuse the native dark/o
 
 Known limits: four of the five agents hit a usage limit mid-work and were completed by hand, so every item above needs the human review listed. Both Database filter strips (root and workout picker) already have the divider after All and multi-select chips.
 
+### Cycle 42 follow-up — Mac media workspace fixes from screenshot review — 2026-10-24
+
+User-reported misses after the first handoff, fixed and exercised in an isolated build with an in-process UI harness (coordinate clicks, synthetic drags, key and scroll events, window captures). Human review remains pending.
+
+- [x] Import, Save and Preview windows use one dark unified title bar (no grey bar), keep their designed size, and the Save window grows to the available screen height
+- [x] Import workspace sidebar is drag-resizable from 88 to 520 points with a hover-only orange handle, double-click reset, compact thumbnail mode and persisted width
+- [x] Database list and grid rows put the expander chevron on the right beside the open control
+- [x] Timeline is one lane: frames live inside each clip, trim handles resize the clip, ruler labels never overlap or garble at the end
+- [x] Timeline zoom via ⌘ + scroll, pinch, ⌘+, ⌘− and ⌘0 inside the video windows (the app-wide interface zoom leaves those shortcuts to the timeline there)
+- [x] "+" in the sidebar and the empty workspace open the Add Videos popup over the editor: paste links with live detection, choose or drop files, Cancel/Add buttons
+- [x] Popups without divider lines or hairline borders, and without inner scrolling: shared Mac popup sizes to its content, Add Videos lists up to three detected links plus a count and grows its paste field with the text, Save window lists up to six destinations plus a hint
+- [x] Save window details form keeps the Save button pinned under the form and shows the readable destination path instead of page identifiers
+- [ ] Human review of the import workspace, timeline, Add Videos popup, Save and Preview windows, and Database rows
+
+Not changed here: Home widget layout for wide Mac windows and the larger expanded header actions are being implemented in the concurrent Mac polish session (`HomeWidget`, `HomeWidgetCanvas`, `ScrollingChrome` working-tree changes); this round did not touch those files.
+
 ---
 
 ## Notes

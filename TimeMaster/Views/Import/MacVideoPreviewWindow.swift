@@ -73,16 +73,20 @@ private final class MacVideoPreviewWindowController: NSWindowController, NSWindo
         window.minSize = NSSize(width: 480, height: 360)
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        window.center()
+        MacVideoWindowChrome.apply(to: window)
         super.init(window: window)
         window.delegate = self
-        window.contentViewController = NSHostingController(rootView: MacVideoPreviewContent(
+        let hosting = NSHostingController(rootView: MacVideoPreviewContent(
             model: model,
             url: url,
             comment: comment,
             onSaveComment: onSaveComment,
             onCut: { [weak self] in self?.cut() }
         ))
+        hosting.sizingOptions = []
+        window.contentViewController = hosting
+        window.setContentSize(NSSize(width: 860, height: 600))
+        window.center()
     }
 
     required init?(coder: NSCoder) { nil }
@@ -146,6 +150,7 @@ private struct MacVideoPreviewContent: View {
                 Button("Cut", systemImage: "scissors", action: onCut)
                     .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
                     .keyboardShortcut("e", modifiers: .command)
+                    .help("Cut (C or ⌘E)")
             }
             .padding(12)
             .background(Theme.surface)
@@ -153,11 +158,13 @@ private struct MacVideoPreviewContent: View {
             MacVideoPlayerView(player: model.player)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(.black)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay {
                     if model.duration == 0, model.message == nil {
                         ProgressView().tint(.white)
                     }
                 }
+                .padding(12)
 
             VStack(spacing: 10) {
                 HStack(spacing: 12) {
@@ -216,6 +223,7 @@ private struct MacVideoPreviewContent: View {
             .background(Theme.surface)
         }
         .background(Theme.background)
+        .background { MacVideoPreviewShortcuts(model: model, onCut: onCut) }
         .sheet(isPresented: $isEditingComment) {
             MediaCommentEditor(mediaURL: url, comment: comment) { updated in
                 try onSaveComment?(updated)
@@ -229,6 +237,30 @@ private struct MacVideoPreviewContent: View {
     private func timeString(_ value: Double) -> String {
         let seconds = value.isFinite ? max(0, Int(value)) : 0
         return String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+}
+
+private struct MacVideoPreviewShortcuts: View {
+    @ObservedObject var model: MacVideoEditorModel
+    let onCut: () -> Void
+
+    var body: some View {
+        Group {
+            Button("Cut", action: onCut)
+                .keyboardShortcut("c", modifiers: [])
+            Button("Play or pause") { model.togglePlayback() }
+                .keyboardShortcut("k", modifiers: [])
+                .disabled(model.duration <= 0)
+            Button("Back 5 seconds") { model.seek(to: model.currentTime - 5) }
+                .keyboardShortcut("j", modifiers: [])
+                .disabled(model.duration <= 0)
+            Button("Forward 5 seconds") { model.seek(to: model.currentTime + 5) }
+                .keyboardShortcut("l", modifiers: [])
+                .disabled(model.duration <= 0)
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
     }
 }
 #endif

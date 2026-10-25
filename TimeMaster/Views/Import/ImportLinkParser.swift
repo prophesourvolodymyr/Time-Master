@@ -39,6 +39,16 @@ enum ImportLinkParser {
         if components.path.isEmpty { components.path = "/" }
         return components.string ?? url.absoluteString
     }
+
+    static func symbolName(for url: URL) -> String {
+        if url.isFileURL { return "film" }
+        let host = (url.host ?? "").lowercased()
+        if host.contains("youtube") || host.contains("youtu.be") { return "play.rectangle.fill" }
+        if host.contains("instagram") { return "camera.fill" }
+        if host.contains("tiktok") { return "music.note" }
+        if host.contains("vimeo") { return "play.circle.fill" }
+        return "link"
+    }
 }
 
 enum ImportLinkStatus: Equatable {

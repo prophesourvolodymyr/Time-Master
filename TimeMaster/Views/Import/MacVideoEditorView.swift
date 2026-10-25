@@ -10,7 +10,8 @@ struct MacVideoEditorView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var model: MacVideoEditorModel
     let source: MacVideoSource
-    let onBack: () -> Void
+    let title: String?
+    let onBack: (() -> Void)?
 
     @State private var selectedSegmentID: UUID?
     @State private var selectedDraftID: UUID?
@@ -18,10 +19,6 @@ struct MacVideoEditorView: View {
     @State private var hoveredDraftID: UUID?
     @State private var renamingDraftID: UUID?
     @State private var draftName = ""
-    @State private var timelineZoom: CGFloat = 1
-    @State private var timelineViewport = CGRect.zero
-    @State private var timelineViewportWidth: CGFloat = 1
-    @State private var boundaryDragStart: Double?
     @State private var isTrayDropTargeted = false
     @State private var draftDropTargetID: UUID?
     @FocusState private var editorFocused: Bool
@@ -29,9 +26,11 @@ struct MacVideoEditorView: View {
     init(
         source: MacVideoSource,
         model: MacVideoEditorModel? = nil,
-        onBack: @escaping () -> Void
+        title: String? = nil,
+        onBack: (() -> Void)? = nil
     ) {
         self.source = source
+        self.title = title
         self.onBack = onBack
         _model = StateObject(wrappedValue: model ?? MacVideoEditorModel(source: source))
     }
@@ -39,18 +38,20 @@ struct MacVideoEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Button {
-                    model.stopPlayback()
-                    onBack()
-                } label: {
-                    Label("Back", systemImage: "chevron.left")
-                        .font(TimeMasterFont.rowTitle())
+                if let onBack {
+                    Button {
+                        model.stopPlayback()
+                        onBack()
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                            .font(TimeMasterFont.rowTitle())
+                    }
+                    .buttonStyle(TimeMasterActionButtonStyle())
+                    .keyboardShortcut(.escape, modifiers: [])
                 }
-                .buttonStyle(TimeMasterActionButtonStyle())
-                .keyboardShortcut(.escape, modifiers: [])
                 TimeMasterPageTitle("Edit Video", size: 24, relativeTo: .title2)
                 Spacer(minLength: 12)
-                Text(source.url.deletingPathExtension().lastPathComponent)
+                Text(title ?? source.url.deletingPathExtension().lastPathComponent)
                     .font(TimeMasterFont.caption())
                     .foregroundStyle(Theme.textSecondary)
                     .lineLimit(1)
@@ -58,14 +59,17 @@ struct MacVideoEditorView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(Theme.surface)
-            Divider().overlay(Theme.separator)
             topWorkspace
                 .frame(maxHeight: .infinity)
-            Divider().overlay(Theme.separator)
-            timeline
-                .frame(height: 216)
+            MacVideoTimelineView(
+                model: model,
+                selectedSegmentID: $selectedSegmentID,
+                onSplit: splitAtPlayhead,
+                onInteraction: { editorFocused = true }
+            )
+            .frame(height: 224)
         }
-        .frame(minWidth: 860, minHeight: 600)
+        .frame(minWidth: 640, minHeight: 560)
         .background(Theme.background)
         .onDisappear {
             model.stopPlayback()
@@ -97,7 +101,6 @@ struct MacVideoEditorView: View {
             HStack(spacing: 0) {
                 previewPane
                     .frame(width: geometry.size.width * 0.59)
-                Divider().overlay(Theme.separator)
                 mediaTray
                     .frame(maxWidth: .infinity)
             }
@@ -130,16 +133,19 @@ struct MacVideoEditorView: View {
             }
             .labelStyle(.iconOnly)
             .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            .help("Back 5 seconds (J)")
             Button(model.isPlaying ? "Pause" : "Play", systemImage: model.isPlaying ? "pause.fill" : "play.fill") {
                 model.togglePlayback()
             }
             .labelStyle(.iconOnly)
             .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            .help(model.isPlaying ? "Pause (Space or K)" : "Play (Space or K)")
             Button("Forward 5 Seconds", systemImage: "goforward.5") {
                 model.seek(to: model.currentTime + 5)
             }
             .labelStyle(.iconOnly)
             .buttonStyle(TimeMasterToolbarIconButtonStyle())
+            .help("Forward 5 seconds (L)")
             Text(timeString(model.currentTime))
                 .font(TimeMasterFont.technical())
                 .monospacedDigit()
@@ -353,9 +359,11 @@ struct MacVideoEditorView: View {
             set: { draftDropTargetID = $0 ? draft.id : nil }
         )) { receiveDraftDrop($0, targetID: draft.id) }
         .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(isTargeted || isSelected ? Theme.toolbarOrange : Theme.separator, lineWidth: isTargeted ? 2 : 1)
-                .allowsHitTesting(false)
+            if isTargeted || isSelected {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Theme.toolbarOrange, lineWidth: isTargeted ? 2 : 1)
+                    .allowsHitTesting(false)
+            }
         }
         .contextMenu {
             Button("Save", systemImage: "square.and.arrow.down") { saveDraft(draft) }
@@ -427,281 +435,6 @@ struct MacVideoEditorView: View {
             onClose: { [model] in model.savingWindowCount = max(0, model.savingWindowCount - 1) }
         )
     }
-    private var timeline: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                Label("Timeline", systemImage: "scissors")
-                    .font(TimeMasterFont.rowTitle())
-                Text("\(model.segments.count)")
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 8)
-                Button("Zoom out", systemImage: "minus.magnifyingglass") { zoomTimeline(by: 1 / 1.5) }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
-                    .disabled(timelineZoom <= 1)
-                    .help("Zoom out (⌘−)")
-                Button("\(Int(timelineZoom.rounded()))×") { timelineZoom = 1 }
-                    .font(TimeMasterFont.caption().monospacedDigit())
-                    .buttonStyle(.plain)
-                    .frame(minWidth: 38)
-                    .accessibilityLabel("Fit timeline")
-                Button("Zoom in", systemImage: "plus.magnifyingglass") { zoomTimeline(by: 1.5) }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
-                    .disabled(model.duration <= 0 || timelineZoom >= maximumTimelineZoom)
-                    .help("Zoom in (⌘+)")
-                Divider().frame(height: 22)
-                Button("Split", systemImage: "scissors", action: splitAtPlayhead)
-                    .buttonStyle(TimeMasterActionButtonStyle())
-                    .disabled(!canSplit || model.isProcessing)
-                    .help("Split at playhead (X)")
-                Button("Still", systemImage: "camera") { Task { await model.addStill() } }
-                    .buttonStyle(TimeMasterActionButtonStyle())
-                    .disabled(model.duration <= 0 || model.isProcessing)
-                Button("Add All", systemImage: "tray.and.arrow.down") { Task { await model.addAllSegmentsToTray() } }
-                    .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
-                    .disabled(model.segments.isEmpty || model.isProcessing)
-            }
-            GeometryReader { geometry in
-                let width = max(1, geometry.size.width) * timelineZoom
-                MacVideoTimelineScrollView(
-                    contentWidth: width,
-                    contentHeight: 126,
-                    playheadFraction: model.duration > 0 ? model.currentTime / model.duration : 0,
-                    onViewportChange: { rect in
-                        timelineViewport = rect
-                        timelineViewportWidth = max(1, rect.width)
-                    },
-                    onMagnify: zoomTimeline
-                ) {
-                    timelineTrack(width: width)
-                }
-            }
-            .frame(height: 140)
-            HStack {
-                if let message = model.message {
-                    Text(message)
-                        .lineLimit(1)
-                        .textSelection(.enabled)
-                }
-                Spacer(minLength: 0)
-                Text("\(timeString(model.currentTime)) / \(timeString(model.duration))")
-                    .monospacedDigit()
-            }
-            .font(TimeMasterFont.micro())
-            .foregroundStyle(Theme.textSecondary)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Theme.surface)
-    }
-
-    private var maximumTimelineZoom: CGFloat {
-        max(1, CGFloat(model.duration * model.frameRate * 72) / max(1, timelineViewportWidth))
-    }
-
-    private func zoomTimeline(by factor: CGFloat) {
-        guard factor.isFinite, factor > 0 else { return }
-        timelineZoom = min(maximumTimelineZoom, max(1, timelineZoom * factor))
-    }
-
-    private func sampleCount(width: CGFloat) -> Int {
-        let frameCount = max(1, Int(ceil(model.duration * model.frameRate)))
-        return max(1, min(frameCount, Int(ceil(width / 72))))
-    }
-
-    private func visibleSamples(width: CGFloat) -> [Int] {
-        guard model.duration > 0 else { return [] }
-        let count = sampleCount(width: width)
-        let cellWidth = width / CGFloat(count)
-        let left = max(0, Int(floor(timelineViewport.minX / cellWidth)) - 1)
-        let right = min(count - 1, Int(ceil(max(timelineViewport.maxX, timelineViewportWidth) / cellWidth)) + 1)
-        return left <= right ? Array(left...right) : []
-    }
-
-    private func sampleFrame(_ index: Int, count: Int) -> Int {
-        min(max(0, Int(ceil(model.duration * model.frameRate)) - 1),
-            Int((Double(index) * model.duration / Double(count) * model.frameRate).rounded(.down)))
-    }
-
-    private func timelineTrack(width: CGFloat) -> some View {
-        let count = sampleCount(width: width)
-        let cellWidth = width / CGFloat(count)
-        let samples = visibleSamples(width: width)
-        let frames = samples.map { sampleFrame($0, count: count) }
-        let playheadX = xPosition(for: model.currentTime, width: width)
-
-        return ZStack(alignment: .topLeading) {
-            timelineRuler(width: width)
-                .gesture(scrubGesture(width: width))
-            ZStack(alignment: .topLeading) {
-                Rectangle().fill(Theme.surface2)
-                ForEach(samples, id: \.self) { index in
-                    Group {
-                        if let thumbnail = model.timelineThumbnails[sampleFrame(index, count: count)] {
-                            Image(nsImage: thumbnail)
-                                .resizable()
-                                .scaledToFill()
-                        } else {
-                            Rectangle()
-                                .fill(Theme.surface2)
-                                .overlay { Image(systemName: "film").foregroundStyle(Theme.textSecondary.opacity(0.35)) }
-                        }
-                    }
-                    .frame(width: cellWidth, height: 64)
-                    .clipped()
-                    .offset(x: CGFloat(index) * cellWidth)
-                }
-            }
-            .frame(width: width, height: 64)
-            .clipShape(RoundedRectangle(cornerRadius: 7))
-            .contentShape(Rectangle())
-            .gesture(scrubGesture(width: width))
-            .offset(y: 26)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Video timeline")
-            .accessibilityValue("\(timeString(model.currentTime)) of \(timeString(model.duration))")
-            .accessibilityAdjustableAction { direction in
-                model.seek(to: model.currentTime + (direction == .increment ? 1 : -1) / model.frameRate)
-            }
-            ForEach(model.segments) { segment in
-                timelineSegment(segment, trackWidth: width)
-                    .offset(x: xPosition(for: segment.startTime, width: width), y: 96)
-            }
-            Rectangle()
-                .fill(Theme.toolbarOrange)
-                .frame(width: 2, height: 124)
-                .offset(x: max(0, min(width - 2, playheadX)))
-                .allowsHitTesting(false)
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Theme.toolbarOrange)
-                .frame(width: 10, height: 7)
-                .offset(x: max(0, min(width - 10, playheadX - 4)))
-                .allowsHitTesting(false)
-        }
-        .frame(width: width, height: 126, alignment: .topLeading)
-        .task(id: frames) { model.requestTimelineThumbnails(frames: frames) }
-    }
-
-    private func timelineRuler(width: CGFloat) -> some View {
-        let targetStep = max(1 / model.frameRate, model.duration * 96 / Double(max(1, width)))
-        let magnitude = pow(10, floor(log10(targetStep)))
-        let normalized = targetStep / magnitude
-        let step = max(1 / model.frameRate, magnitude * (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10))
-        let first = max(0, Int(floor(positionToTime(x: timelineViewport.minX, width: width) / step)))
-        let last = max(first, Int(ceil(positionToTime(x: max(timelineViewport.maxX, timelineViewportWidth), width: width) / step)))
-
-        return ZStack(alignment: .topLeading) {
-            Color.clear
-            ForEach(first...last, id: \.self) { index in
-                let time = min(model.duration, Double(index) * step)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(timeString(time))
-                        .font(TimeMasterFont.micro().monospacedDigit())
-                    Rectangle().frame(width: 1, height: 5)
-                }
-                .foregroundStyle(Theme.textSecondary)
-                .offset(x: min(max(0, width - 58), xPosition(for: time, width: width)))
-            }
-        }
-        .frame(width: width, height: 24)
-        .contentShape(Rectangle())
-    }
-
-    private func scrubGesture(width: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                guard model.duration > 0 else { return }
-                model.beginScrubbing()
-                let time = positionToTime(x: value.location.x, width: width)
-                selectedSegmentID = model.segments.first { $0.contains(time) }?.id
-                model.updateScrubPosition(time)
-            }
-            .onEnded { value in
-                model.updateScrubPosition(positionToTime(x: value.location.x, width: width))
-                model.endScrubbing()
-                editorFocused = true
-            }
-    }
-
-    private func timelineSegment(_ segment: MacVideoTimelineSegment, trackWidth: CGFloat) -> some View {
-        let isSelected = selectedSegmentID == segment.id
-        let width = max(1, trackWidth * CGFloat(segment.duration / max(model.duration, 0.01)))
-        return RoundedRectangle(cornerRadius: 5)
-            .fill(isSelected ? Theme.toolbarOrange.opacity(0.25) : Theme.surface2)
-            .overlay {
-                RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(isSelected ? Theme.toolbarOrange : Theme.separator, lineWidth: 1)
-                Text(segmentNumber(segment.id))
-                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                    .lineLimit(1)
-                    .padding(.horizontal, 14)
-            }
-            .frame(width: width, height: 28)
-            .contentShape(Rectangle())
-            .simultaneousGesture(SpatialTapGesture().onEnded { value in
-                selectedSegmentID = segment.id
-                model.seek(to: segment.startTime + Double(value.location.x / width) * segment.duration)
-                editorFocused = true
-            })
-            .onDrag { NSItemProvider(object: "segment:\(segment.id.uuidString)" as NSString) }
-            .overlay(alignment: .leading) { boundaryHandle(segment, boundary: .start, trackWidth: trackWidth) }
-            .overlay(alignment: .trailing) { boundaryHandle(segment, boundary: .end, trackWidth: trackWidth) }
-            .contextMenu {
-                Button("Add clip to tray", systemImage: "tray.and.arrow.down") {
-                    Task { await model.addSegmentToTray(id: segment.id) }
-                }
-                Button("Set start at playhead", systemImage: "arrow.right.to.line") {
-                    model.setBoundary(.start, of: segment.id, to: model.currentTime)
-                }
-                Button("Set end at playhead", systemImage: "arrow.left.to.line") {
-                    model.setBoundary(.end, of: segment.id, to: model.currentTime)
-                }
-                Button("Delete segment", systemImage: "trash", role: .destructive) {
-                    model.removeSegment(id: segment.id)
-                    if selectedSegmentID == segment.id { selectedSegmentID = nil }
-                }
-            }
-            .accessibilityLabel("Segment \(segmentNumber(segment.id)), \(timeString(segment.startTime)) to \(timeString(segment.endTime))")
-            .accessibilityAction(named: Text("Select segment")) {
-                selectedSegmentID = segment.id
-                model.seek(to: segment.startTime)
-            }
-    }
-
-    private func boundaryHandle(
-        _ segment: MacVideoTimelineSegment,
-        boundary: MacVideoTimelineSegment.Boundary,
-        trackWidth: CGFloat
-    ) -> some View {
-        let boundaryTime = boundary == .start ? segment.startTime : segment.endTime
-        return Image(systemName: boundary == .start ? "chevron.compact.left" : "chevron.compact.right")
-            .font(.caption.weight(.bold))
-            .frame(width: 12, height: 28)
-            .background(Theme.toolbarOrange.opacity(0.4), in: RoundedRectangle(cornerRadius: 4))
-            .contentShape(Rectangle())
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 1)
-                    .onChanged { value in
-                        if boundaryDragStart == nil { boundaryDragStart = boundaryTime }
-                        let time = (boundaryDragStart ?? boundaryTime)
-                            + Double(value.translation.width / max(1, trackWidth)) * model.duration
-                        selectedSegmentID = segment.id
-                        model.setBoundary(boundary, of: segment.id, to: time)
-                    }
-                    .onEnded { _ in boundaryDragStart = nil }
-            )
-            .accessibilityLabel(boundary == .start ? "Segment start" : "Segment end")
-            .accessibilityValue(timeString(boundaryTime))
-            .accessibilityAdjustableAction { direction in
-                model.setBoundary(boundary, of: segment.id, to: boundaryTime + (direction == .increment ? 1 : -1) / model.frameRate)
-            }
-    }
-    private func positionToTime(x: CGFloat, width: CGFloat) -> Double {
-        guard model.duration > 0 else { return 0 }
-        return model.duration * Double(max(0, min(width, x)) / max(width, 1))
-    }
 
     private func splitAtPlayhead() {
         guard let newSegmentID = model.splitSegment(at: model.currentTime) else { return }
@@ -712,12 +445,6 @@ struct MacVideoEditorView: View {
         let characters = keyPress.characters.lowercased()
         if keyPress.modifiers.contains(.command) {
             switch characters {
-            case "+", "=":
-                zoomTimeline(by: 1.5)
-            case "-", "_":
-                zoomTimeline(by: 1 / 1.5)
-            case "0":
-                timelineZoom = 1
             case "a":
                 selectedDraftIDs = Set(model.drafts.map(\.id))
                 selectedDraftID = model.drafts.first?.id
@@ -733,6 +460,7 @@ struct MacVideoEditorView: View {
             return .handled
         }
         guard keyPress.modifiers.isEmpty else { return .ignored }
+        guard !(NSApp.keyWindow?.firstResponder is NSText) else { return .ignored }
         if keyPress.key == .leftArrow || keyPress.key == .rightArrow {
             model.seek(to: model.currentTime + (keyPress.key == .rightArrow ? 1 : -1) / model.frameRate)
             return .handled
@@ -740,6 +468,26 @@ struct MacVideoEditorView: View {
         switch characters {
         case "x":
             splitAtPlayhead()
+        case "c":
+            guard keyPress.phase == .down, !model.isProcessing else { return .handled }
+            splitAtPlayhead()
+        case "k":
+            guard keyPress.phase == .down else { return .handled }
+            model.togglePlayback()
+        case "j", "l":
+            model.seek(to: model.currentTime + (characters == "l" ? 5 : -5))
+        case "s":
+            guard keyPress.phase == .down, model.duration > 0, !model.isProcessing else { return .handled }
+            Task { await model.addStill() }
+        case "a":
+            guard keyPress.phase == .down, !model.segments.isEmpty, !model.isProcessing else { return .handled }
+            Task { await model.addAllSegmentsToTray() }
+        case "t":
+            guard keyPress.phase == .down, !model.isProcessing,
+                  let segmentID = selectedSegmentID ?? model.segments.first(where: {
+                      model.currentTime >= $0.startTime && model.currentTime <= $0.endTime
+                  })?.id else { return .handled }
+            Task { await model.addSegmentToTray(id: segmentID) }
         case " ":
             model.togglePlayback()
         case "i", "o":
@@ -749,13 +497,6 @@ struct MacVideoEditorView: View {
             return .ignored
         }
         return .handled
-    }
-    private var canSplit: Bool {
-        guard model.duration >= 0.5 else { return false }
-        return model.segments.contains {
-            model.currentTime > $0.startTime + 0.25 &&
-                model.currentTime < $0.endTime - 0.25
-        }
     }
 
     private func receiveTimelineDrop(_ providers: [NSItemProvider]) -> Bool {
@@ -798,18 +539,8 @@ struct MacVideoEditorView: View {
         return true
     }
 
-    private func xPosition(for time: Double, width: CGFloat) -> CGFloat {
-        guard model.duration > 0 else { return 0 }
-        return width * CGFloat(max(0, min(model.duration, time)) / model.duration)
-    }
 
 
-    private func segmentNumber(_ id: UUID) -> String {
-        guard let index = model.segments.firstIndex(where: { $0.id == id }) else {
-            return "?"
-        }
-        return "\(index + 1)"
-    }
 
     private func timeString(_ seconds: Double) -> String {
         let bounded = seconds.isFinite ? max(0, seconds) : 0
@@ -820,96 +551,4 @@ struct MacVideoEditorView: View {
     }
 }
 
-private struct MacVideoTimelineScrollView<Content: View>: NSViewRepresentable {
-    let contentWidth: CGFloat
-    let contentHeight: CGFloat
-    let playheadFraction: Double
-    let onViewportChange: (CGRect) -> Void
-    let onMagnify: (CGFloat) -> Void
-    @ViewBuilder let content: Content
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeNSView(context: Context) -> MacVideoTimelineNativeScrollView {
-        let scrollView = MacVideoTimelineNativeScrollView()
-        scrollView.drawsBackground = false
-        scrollView.hasHorizontalScroller = true
-        scrollView.hasVerticalScroller = false
-        scrollView.autohidesScrollers = false
-        scrollView.horizontalScrollElasticity = .none
-        scrollView.verticalScrollElasticity = .none
-        scrollView.contentView.postsBoundsChangedNotifications = true
-        let document = NSHostingView(rootView: content)
-        document.sizingOptions = []
-        document.frame = NSRect(x: 0, y: 0, width: contentWidth, height: contentHeight)
-        scrollView.documentView = document
-        context.coordinator.document = document
-        context.coordinator.width = contentWidth
-        context.coordinator.onViewportChange = onViewportChange
-        let coordinator = context.coordinator
-        coordinator.observer = NotificationCenter.default.addObserver(
-            forName: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView,
-            queue: .main
-        ) { [weak coordinator, weak scrollView] _ in
-            MainActor.assumeIsolated {
-                guard let scrollView else { return }
-                coordinator?.reportViewport(scrollView.documentVisibleRect)
-            }
-        }
-        scrollView.onMagnify = onMagnify
-        return scrollView
-    }
-
-    func updateNSView(_ scrollView: MacVideoTimelineNativeScrollView, context: Context) {
-        let coordinator = context.coordinator
-        coordinator.onViewportChange = onViewportChange
-        scrollView.onMagnify = onMagnify
-        let previousWidth = max(1, coordinator.width)
-        let viewport = scrollView.documentVisibleRect
-        let previousPlayheadX = previousWidth * CGFloat(playheadFraction)
-        let playheadIsVisible = viewport.minX <= previousPlayheadX && previousPlayheadX <= viewport.maxX
-        let anchorFraction = playheadIsVisible ? CGFloat(playheadFraction) : viewport.midX / previousWidth
-        let anchorX = playheadIsVisible ? previousPlayheadX - viewport.minX : viewport.width / 2
-        coordinator.document?.rootView = content
-        coordinator.document?.frame = NSRect(x: 0, y: 0, width: contentWidth, height: contentHeight)
-        if previousWidth != contentWidth {
-            let origin = min(max(0, contentWidth * anchorFraction - anchorX), max(0, contentWidth - viewport.width))
-            scrollView.contentView.scroll(to: NSPoint(x: origin, y: 0))
-            scrollView.reflectScrolledClipView(scrollView.contentView)
-        }
-        coordinator.width = contentWidth
-        coordinator.reportViewport(scrollView.documentVisibleRect)
-    }
-
-    static func dismantleNSView(_ nsView: MacVideoTimelineNativeScrollView, coordinator: Coordinator) {
-        if let observer = coordinator.observer { NotificationCenter.default.removeObserver(observer) }
-        coordinator.observer = nil
-        coordinator.document = nil
-        nsView.documentView = nil
-        nsView.onMagnify = nil
-    }
-
-    final class Coordinator {
-        var document: NSHostingView<Content>?
-        var observer: NSObjectProtocol?
-        var width: CGFloat = 1
-        var onViewportChange: ((CGRect) -> Void)?
-        private var lastViewport = CGRect.null
-
-        func reportViewport(_ viewport: CGRect) {
-            guard viewport.width > 0, viewport != lastViewport else { return }
-            lastViewport = viewport
-            DispatchQueue.main.async { [weak self] in self?.onViewportChange?(viewport) }
-        }
-    }
-}
-
-private final class MacVideoTimelineNativeScrollView: NSScrollView {
-    var onMagnify: ((CGFloat) -> Void)?
-
-    override func magnify(with event: NSEvent) {
-        onMagnify?(max(0.05, 1 + event.magnification))
-    }
-}
 #endif

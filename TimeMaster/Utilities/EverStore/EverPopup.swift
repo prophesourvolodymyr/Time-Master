@@ -50,11 +50,7 @@ struct EverPopup<Content: View, Actions: View>: View {
 #if os(macOS)
         VStack(alignment: .leading, spacing: EverSpacing.x4) {
             header
-            ViewThatFits(in: .vertical) {
-                popupContent.fixedSize(horizontal: false, vertical: true)
-                ScrollView { popupContent }
-            }
-            Divider().overlay(EverColor.borderSubtle)
+            popupContent
             HStack(spacing: EverSpacing.x2) {
                 Spacer(minLength: 0)
                 actions()
@@ -65,8 +61,8 @@ struct EverPopup<Content: View, Actions: View>: View {
         .padding(EverSpacing.x5)
         .frame(minWidth: EverLayout.popupMaximumWidth,
                idealWidth: EverLayout.popupMaximumWidth,
-               maxWidth: EverLayout.maximumReadableWidth,
-               maxHeight: (NSScreen.main?.visibleFrame.height ?? 800) * 0.8)
+               maxWidth: EverLayout.maximumReadableWidth)
+        .fixedSize(horizontal: false, vertical: true)
         .background(EverColor.background)
         .background(EverPopupStepAnchor(id: "\(step ?? "")|\(title)"))
 #else
@@ -77,16 +73,12 @@ struct EverPopup<Content: View, Actions: View>: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: EverSpacing.x4) {
                     header
-                    ViewThatFits(in: .vertical) {
-                        popupContent.fixedSize(horizontal: false, vertical: true)
-                        ScrollView { popupContent }
-                    }
+                    popupContent
                     VStack(spacing: EverSpacing.x2) { actions() }
                         .buttonStyle(EverSecondaryButtonStyle())
                 }
                 .padding(EverSpacing.x4)
-                .frame(maxWidth: min(EverLayout.popupMaximumWidth, max(0, geometry.size.width - EverSpacing.x3 * 2)),
-                       maxHeight: max(0, geometry.size.height - EverSpacing.x6 * 2))
+                .frame(maxWidth: min(EverLayout.popupMaximumWidth, max(0, geometry.size.width - EverSpacing.x3 * 2)))
                 .background { EverSurfaceMaterial(radius: EverRadius.popup) }
                 .shadow(color: .black.opacity(0.4), radius: EverSpacing.x7, y: EverSpacing.x3)
                 .background(EverPopupStepAnchor(id: "\(step ?? "")|\(title)"))

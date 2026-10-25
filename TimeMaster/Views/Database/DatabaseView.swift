@@ -624,6 +624,9 @@ struct DatabaseView: View {
             ) {
                 presentVideoImport()
             }
+            #if os(macOS)
+            .keyboardShortcut("i", modifiers: .command)
+            #endif
             databaseAddMenu(progress: progress, width: buttonWidth)
             databaseMajorButton(
                 systemImage: "magnifyingglass",
@@ -1039,7 +1042,7 @@ struct DatabaseView: View {
         LazyVGrid(columns: gridColumns, spacing: 10) {
             ForEach(visiblePageEntries) { entry in
                 let page = entry.page
-                ZStack(alignment: .topLeading) {
+                ZStack(alignment: .topTrailing) {
                     NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                         pageCard(page, isGridMode: true)
                             .overlay(alignment: .topTrailing) {
@@ -1053,7 +1056,8 @@ struct DatabaseView: View {
 
                     if !page.children.isEmpty {
                         disclosureButton(page)
-                            .padding(7)
+                            .padding(.top, 7)
+                            .padding(.trailing, 7 + 44 + 6)
                     }
                 }
                 .padding(.leading, CGFloat(entry.depth * 12))
@@ -1112,22 +1116,25 @@ struct DatabaseView: View {
 
     private func pageRow(_ entry: DatabasePageEntry) -> some View {
         let page = entry.page
-        return HStack(spacing: 4) {
-            if !page.children.isEmpty {
-                disclosureButton(page)
-            }
+        return HStack(spacing: 8) {
             NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
-                HStack(spacing: 12) {
-                    pageCard(page, isGridMode: false)
-                    TimeMasterDisclosureIndicator(systemImage: "arrow.up.forward.square")
-                }
-                .contentShape(Rectangle())
+                pageCard(page, isGridMode: false)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(TimeMasterCardButtonStyle())
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityLabel("Open \(page.title)")
             .accessibilityIdentifier("database-open-\(page.manifest.id)")
             .accessibilityHint("Opens this page")
+            if !page.children.isEmpty {
+                disclosureButton(page)
+            }
+            NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
+                TimeMasterDisclosureIndicator(systemImage: "arrow.up.forward.square")
+            }
+            .buttonStyle(TimeMasterCardButtonStyle())
+            .accessibilityLabel("Open \(page.title) page")
+            .accessibilityIdentifier("database-open-icon-\(page.manifest.id)")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -1156,20 +1163,21 @@ struct DatabaseView: View {
     }
 
     private func disclosureButton(_ page: ExercisePage) -> some View {
-        Button {
+        let isExpanded = expandedPageIDs.contains(page.manifest.id)
+        return Button {
             withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
-                if expandedPageIDs.contains(page.manifest.id) {
+                if isExpanded {
                     expandedPageIDs.remove(page.manifest.id)
                 } else {
                     expandedPageIDs.insert(page.manifest.id)
                 }
             }
         } label: {
-            Image(systemName: expandedPageIDs.contains(page.manifest.id) ? "chevron.down" : "chevron.right")
+            TimeMasterDisclosureIndicator(systemImage: isExpanded ? "chevron.down" : "chevron.right")
         }
-        .buttonStyle(TimeMasterInsetControlStyle())
-        .accessibilityLabel(expandedPageIDs.contains(page.manifest.id) ? "Collapse \(page.title)" : "Expand \(page.title)")
-        .accessibilityValue(expandedPageIDs.contains(page.manifest.id) ? "Expanded" : "Collapsed")
+        .buttonStyle(TimeMasterCardButtonStyle())
+        .accessibilityLabel(isExpanded ? "Collapse \(page.title)" : "Expand \(page.title)")
+        .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
         .accessibilityIdentifier("database-disclosure-\(page.manifest.id)")
     }
 

@@ -66,10 +66,10 @@ private final class MacVideoSaveWindowController: NSWindowController, NSWindowDe
         window.minSize = NSSize(width: 500, height: 480)
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        window.backgroundColor = NSColor(Theme.background)
+        MacVideoWindowChrome.apply(to: window)
         super.init(window: window)
         window.delegate = self
-        window.contentViewController = NSHostingController(rootView: MacVideoSavePopover(
+        let hosting = NSHostingController(rootView: MacVideoSavePopover(
             draft: draft,
             asset: asset,
             onDraftRenamed: onDraftRenamed,
@@ -80,6 +80,10 @@ private final class MacVideoSaveWindowController: NSWindowController, NSWindowDe
         .environmentObject(workoutStore)
         .preferredColorScheme(.dark)
         .font(TimeMasterFont.body()))
+        hosting.sizingOptions = []
+        window.contentViewController = hosting
+        let availableHeight = (NSScreen.main?.visibleFrame.height ?? 800) - 80
+        window.setContentSize(NSSize(width: 620, height: min(max(720, availableHeight), 1000)))
     }
 
     required init?(coder: NSCoder) { nil }

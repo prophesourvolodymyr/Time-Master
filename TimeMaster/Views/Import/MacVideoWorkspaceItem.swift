@@ -19,8 +19,7 @@ final class MacVideoWorkspaceItem: ObservableObject, Identifiable {
         if originURL.isFileURL {
             title = originURL.deletingPathExtension().lastPathComponent
         } else {
-            let host = originURL.host?.replacingOccurrences(of: "www.", with: "") ?? originURL.absoluteString
-            title = host
+            title = originURL.host?.replacingOccurrences(of: "www.", with: "") ?? originURL.absoluteString
         }
     }
 
@@ -28,13 +27,6 @@ final class MacVideoWorkspaceItem: ObservableObject, Identifiable {
         originURL.isFileURL ? "This Mac" : (originURL.host?.replacingOccurrences(of: "www.", with: "") ?? "")
     }
 
-    var symbolName: String {
-        if originURL.isFileURL { return "film" }
-        let host = (originURL.host ?? "").lowercased()
-        if host.contains("youtube") || host.contains("youtu.be") { return "play.rectangle.fill" }
-        if host.contains("instagram") { return "camera.fill" }
-        if host.contains("tiktok") { return "music.note" }
-        return "link"
-    }
+    var symbolName: String { ImportLinkParser.symbolName(for: originURL) }
 }
 #endif

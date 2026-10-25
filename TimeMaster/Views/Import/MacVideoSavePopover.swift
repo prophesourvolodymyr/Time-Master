@@ -175,22 +175,7 @@ struct MacVideoSavePopover: View {
                 }
                 .padding(12)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-                ScrollView {
-                    LazyVStack(spacing: 6) {
-                        ForEach(searchResults) { entry in
-                            targetRow(entry)
-                        }
-                        if searchResults.isEmpty {
-                            Text(destinationQuery.isEmpty ? "No pages yet" : "No matching pages")
-                                .font(TimeMasterFont.caption())
-                                .foregroundStyle(Theme.textSecondary)
-                                .frame(maxWidth: .infinity, minHeight: 80)
-                        }
-                    }
-                }
-                .frame(maxHeight: .infinity)
-                .background(Theme.surface.opacity(0.4))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                destinationResults
 
                 if saveChoice == "new", rootContainers.isEmpty {
                     Button("Create Video Library", systemImage: "folder.badge.plus") {
@@ -219,11 +204,39 @@ struct MacVideoSavePopover: View {
             }
         }
         .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: saveChoice == nil ? .center : .top)
     }
+
+    private static let visibleDestinationRows = 6
 
     private var searchResults: [MediaSaveDestinationIndex.Entry] {
         guard let choice = saveChoice else { return [] }
         return destinationIndex.results(query: destinationQuery, containers: choice == "new")
+    }
+
+    private var destinationResults: some View {
+        let results = searchResults
+        let visible = results.prefix(Self.visibleDestinationRows)
+        let hidden = results.count - visible.count
+        return VStack(spacing: 6) {
+            ForEach(Array(visible)) { entry in
+                targetRow(entry)
+            }
+            if results.isEmpty {
+                Text(destinationQuery.isEmpty ? "No pages yet" : "No matching pages")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, minHeight: 80)
+            } else if hidden > 0 {
+                Text("\(hidden) more · keep typing to narrow the list")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 2)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private func targetRow(_ entry: MediaSaveDestinationIndex.Entry) -> some View {
@@ -262,26 +275,34 @@ struct MacVideoSavePopover: View {
     }
 
     private var form: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                titleCard
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    titleCard
+                    targetSummaryCard
+                    selectedMediaCard
+                    commentCard
+                    additionalMediaCard
+                    timingCard
+                    dropSetTemplatesCard
+                    markdownCard
+                    linksCard
+                }
+                .padding(18)
+            }
+            .scrollIndicators(.hidden)
+            VStack(spacing: 10) {
                 if let saveErrorMessage {
                     Text(saveErrorMessage)
                         .font(TimeMasterFont.body(13, relativeTo: .footnote))
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                targetSummaryCard
-                selectedMediaCard
-                commentCard
-                additionalMediaCard
-                timingCard
-                dropSetTemplatesCard
-                markdownCard
-                linksCard
                 saveButton
             }
-            .padding(18)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(Theme.background)
         }
     }
 
@@ -637,11 +658,7 @@ struct MacVideoSavePopover: View {
 
     private var targetLabel: String {
         guard let page = targetPage else { return "No destination selected" }
-        let path = page.path
-            .split(separator: "/")
-            .map(String.init)
-            .joined(separator: " › ")
-        return path.isEmpty ? page.title : path
+        return destinationIndex.path(for: page.manifest.id) ?? page.title
     }
 
     private var canSave: Bool {
