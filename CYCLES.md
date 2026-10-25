@@ -2413,9 +2413,10 @@ User-reported misses on the installed Tmax build, fixed from the user's directio
 - [x] Home on Mac: wide windows get two or three columns, edit mode shows remove, option and resize controls, the picker is sized, the page is no longer clipped above the rail (layout and edit-mode rendering exercised)
 - [ ] Home on Mac: exercise reorder drag, resize grip, edge auto-scroll, Escape during a drag, the right-click menu and that buttons inside tiles still click (compiled only)
 - [x] Startup stall: evicted iCloud files and folders are downloaded in parallel at launch with a status line, the page-types migration now finishes and writes its marker, a "Waiting for iCloud or a macOS permission prompt" notice appears after 12 seconds, and stale window-restoration state can no longer leave the app without a window
-- [ ] Larger expanded header actions on Mac (cap three times the compact size, at least 120 points tall): code complete, not exercised
-- [ ] Profile compact header on Mac (name left-aligned, shields beside the gear): code complete, not exercised
-- [ ] Human review of popups, launch screen, rail, zoom, Home, startup and the two items above
+- [x] Larger expanded header actions on Mac: groups are centered, sized by action count, up to three times the compact size and at least 120 points tall (exercised with the actions forced expanded on Workouts and Home)
+- [ ] Expand page actions with a real mouse drag on a header and with trackpad overscroll (the drag gesture could not be driven by synthetic events)
+- [x] Profile compact header on Mac: avatar left, name beside it, shield and action buttons docked right on one row (exercised at the smallest window with interface zoom)
+- [ ] Human review of popups, launch screen, rail, zoom, Home, startup, header actions and Profile
 
 Known limits: popups built with raw `ToolbarItem` (Physique) or `AppToolbar.group` still use the system bottom bar. The Home Map widget does nothing on Mac (`startOutdoor` is empty there). The data folder `~/Documents/TimeMaster` sits in iCloud Drive, and with the disk nearly full macOS evicts it again within minutes; keep the folder downloaded (Finder, Keep Downloaded) or free disk space.
 
