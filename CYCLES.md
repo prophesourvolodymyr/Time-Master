@@ -2524,6 +2524,16 @@ User-reported failure: startup waited for 273 iCloud files and made the app unus
 
 The Mac's system-wide iCloud settings are unchanged. Items available only in iCloud still require an explicit Finder download and cached-file import; they are not claimed to have been recovered. The original library remains available for recovery.
 
+## Cycle 46 — Closer Mac Navigation Shortcuts — 2026-10-26
+
+User direction: bring Database and Analytics closer in the Mac app's navigation menu. The pair moves directly after Home instead of sitting near the far end of the carousel. This is an ordering adjustment, not a spacing or styling redesign.
+
+- [x] Apply the adjustment once to existing and fresh Mac layouts; leave the iPhone layout unchanged
+- [x] Preserve the relative order of other pages, retain deliberately hidden pages, and respect subsequent manual reordering
+- [x] Exercise saved-layout migration, persistence, missing Database, missing Home, reversed shortcut order, later edits, fresh layouts and Mac availability filtering with the real layout store
+- [x] Build macOS and render the real navigation component before and after the adjustment; remove the temporary native harness
+- [ ] Human review of Database and Analytics directly after Home in the updated Mac navigation menu
+
 ---
 
 ## Notes

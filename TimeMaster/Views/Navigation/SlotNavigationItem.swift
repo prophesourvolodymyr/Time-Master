@@ -681,6 +681,19 @@ final class SlotNavigationLayoutStore: ObservableObject {
             save()
             defaults.set(true, forKey: "tm.navigation.rankedAdded")
         }
+        #if os(macOS)
+        if !defaults.bool(forKey: "tm.navigation.macLibraryNearHome.v1") {
+            if order.contains(.home) {
+                let shortcuts = order.filter { $0 == .database || $0 == .analytics }
+                order.removeAll { $0 == .database || $0 == .analytics }
+                if let home = order.firstIndex(of: .home) {
+                    order.insert(contentsOf: shortcuts, at: home + 1)
+                    save()
+                }
+            }
+            defaults.set(true, forKey: "tm.navigation.macLibraryNearHome.v1")
+        }
+        #endif
     }
 
     var items: [SlotNavigationItem] {
