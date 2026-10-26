@@ -32,7 +32,11 @@ struct TmaxCommands: Commands {
             .keyboardShortcut("o", modifiers: [.command, .option])
         }
         CommandGroup(replacing: .appSettings) {}
-        CommandGroup(after: .toolbar) { ZoomMenuItems() }
+        CommandGroup(after: .toolbar) {
+            ZoomMenuItems()
+            Divider()
+            MenuBarToggleItem()
+        }
         SwiftUI.TextEditingCommands()
     }
 }
@@ -52,6 +56,14 @@ private struct ZoomMenuItems: View {
                 .keyboardShortcut("-", modifiers: .command)
                 .disabled(!zoom.canZoomOut)
         }
+    }
+}
+
+private struct MenuBarToggleItem: View {
+    @ObservedObject private var preferences = MenuBarPreferences.shared
+
+    var body: some View {
+        Toggle("Show Tmax in Menu Bar", isOn: $preferences.isEnabled)
     }
 }
 #endif

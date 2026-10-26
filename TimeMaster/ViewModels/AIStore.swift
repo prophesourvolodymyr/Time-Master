@@ -130,6 +130,7 @@ final class AIStore: ObservableObject {
     var sessionContextInjected = false
 
     @Published var pendingApproval: ApprovalRequest?
+    @Published var pendingDraft: String?
     private var approvalContinuation: CheckedContinuation<Bool, Never>?
 
     private let writeOperations: Set<String> = [

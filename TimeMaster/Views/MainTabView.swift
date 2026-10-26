@@ -134,6 +134,9 @@ struct MainTabView: View {
             }
             selectedDestination = SlotNavigationDestination.settings.rawValue
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openAppPage)) { notification in
+            routeToAppPage(notification)
+        }
         .onChange(of: selectedDestination) { destination in
             guard let destination, destination != SlotNavigationDestination.map.rawValue else { return }
             lastPageDestination = destination
@@ -271,6 +274,15 @@ struct MainTabView: View {
         guard let workoutID = notification.userInfo?["workoutID"] as? UUID else { return }
         selectedDestination = SlotNavigationDestination.workouts.rawValue
         requestedWorkoutID = workoutID
+    }
+
+    private func routeToAppPage(_ notification: Notification) {
+        guard let raw = notification.userInfo?["destination"] as? String,
+              let destination = SlotNavigationDestination(rawValue: raw) else { return }
+        if destination == .coach, let prompt = notification.userInfo?["coachPrompt"] as? String {
+            AIStore.shared.pendingDraft = prompt
+        }
+        openPage(destination)
     }
 
     /// A page can be removed while it is the visible one. Land on the first remaining page

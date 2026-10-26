@@ -85,6 +85,12 @@ struct AICoachView: View {
             .onChange(of: store.pendingApproval != nil) { pending in
                 if pending { inputFocused = false }
             }
+            .onReceive(store.$pendingDraft) { draft in
+                guard let draft, !draft.isEmpty else { return }
+                inputText = draft
+                store.pendingDraft = nil
+                inputFocused = true
+            }
             .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.82),
                        value: store.pendingApproval != nil)
         }

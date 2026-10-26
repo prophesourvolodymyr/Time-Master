@@ -42,8 +42,8 @@ public final class FileSystemHelper {
 
     public convenience init() {
         #if os(macOS)
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let root = home.appendingPathComponent("Documents/TimeMaster", isDirectory: true)
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let root = support.appendingPathComponent("TimeMaster", isDirectory: true)
         #else
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let root = docs.appendingPathComponent("TimeMaster", isDirectory: true)

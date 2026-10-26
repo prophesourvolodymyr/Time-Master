@@ -8,6 +8,9 @@ import AppKit
 
 @main
 struct TmaxApp: App {
+#if os(macOS)
+    @NSApplicationDelegateAdaptor(TmaxAppDelegate.self) private var appDelegate
+#endif
     @StateObject private var startup = TmaxStartupModel()
 
     init() {
@@ -18,12 +21,13 @@ struct TmaxApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("Tmax") {
+        WindowGroup("Tmax", id: "main") {
             TmaxRootView(startup: startup)
                 .preferredColorScheme(.dark)
 #if os(macOS)
                 .macInterfaceZoom()
                 .modifier(MacWindowChrome())
+                .modifier(MacMainWindowGuard())
                 .toolbarBackground(Theme.background, for: .windowToolbar)
                 .toolbarBackground(.visible, for: .windowToolbar)
                 .frame(minWidth: 800, minHeight: 600)
@@ -41,6 +45,9 @@ private struct TmaxRootView: View {
     @ObservedObject var startup: TmaxStartupModel
     @StateObject private var resumeManager = WorkoutResumeManager.shared
     @ObservedObject private var cloudAccount = CloudAccountStore.shared
+#if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+#endif
     @ObservedObject private var databaseSync = DatabaseSyncStore.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -48,7 +55,6 @@ private struct TmaxRootView: View {
     @State private var resumePlayerWorkout: Workout?
     @State private var pendingURL: URL?
     @State private var didCheckResume = false
-    @State private var didPrepareAccount = false
     @State private var launchPhase = LaunchPhase.loading
     @State private var loadingOpacity = 1.0
     @State private var departureProgress: CGFloat = 0
@@ -59,7 +65,7 @@ private struct TmaxRootView: View {
     }
 
     private var contentIsReady: Bool {
-        startup.isReady && didPrepareAccount && !databaseSync.changingAccount
+        startup.isReady && !databaseSync.changingAccount
             && startup.workoutStore != nil && startup.databaseStore != nil
     }
 
@@ -67,10 +73,14 @@ private struct TmaxRootView: View {
         contentIsReady && scenePhase == .active
     }
 
+    private var commandsReady: Bool {
+        contentIsReady && launchPhase == .finished
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            if startup.isReady, didPrepareAccount, !databaseSync.changingAccount,
+            if startup.isReady, !databaseSync.changingAccount,
                let store = startup.workoutStore, let database = startup.databaseStore {
                 MainTabView()
                     .environmentObject(store)
@@ -97,7 +107,7 @@ private struct TmaxRootView: View {
             }
             if !contentIsReady || launchPhase != .finished {
                 TmaxLoadingState(
-                    title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Preparing account...") : startup.status,
+                    title: startup.isReady ? (databaseSync.changingAccount ? "Switching exercise library..." : "Opening Tmax…") : startup.status,
                     showsQuote: true,
                     isFinishing: launchPhase == .zooming || launchPhase == .revealing,
                     departureProgress: departureProgress,
@@ -121,7 +131,6 @@ private struct TmaxRootView: View {
 #else
             databaseSync.handleScenePhase(active: NSApplication.shared.isActive)
 #endif
-            didPrepareAccount = true
         }
         .onOpenURL { url in
             if contentIsReady && launchPhase == .finished { handleDeepLink(url) }
@@ -130,6 +139,19 @@ private struct TmaxRootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .launchWorkout)) { notification in
             startRequestedWorkout(notification)
         }
+#if os(macOS)
+        .onAppear {
+            MacMainWindow.openAction = { openWindow(id: "main") }
+            MenuBarController.shared.install(startup: startup)
+            AppCommandBus.setReady(commandsReady)
+        }
+        .onChange(of: commandsReady) { ready in
+            AppCommandBus.setReady(ready)
+        }
+        .onDisappear {
+            AppCommandBus.setReady(false)
+        }
+#endif
         .onChange(of: scenePhase) { phase in
             DatabaseSyncStore.shared.handleScenePhase(active: phase == .active)
             if phase == .active, let store = startup.workoutStore {
@@ -264,6 +286,7 @@ private struct TmaxRootView: View {
 
     private func startRequestedWorkout(_ notification: Notification) {
         guard contentIsReady, launchPhase == .finished, resumePlayerWorkout == nil,
+              !WorkoutLiveSession.shared.isActive,
               let store = startup.workoutStore else { return }
         if resumeManager.hasResumableWorkout {
             showResumePrompt = true

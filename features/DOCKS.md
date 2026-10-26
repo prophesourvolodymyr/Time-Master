@@ -46,6 +46,18 @@ The user explicitly placed F29 directly in features and has now directed the ani
 
 The native Mac app is named Tmax and has one installed application at `/Applications/Tmax.app`. It retains the shared iPhone-style navigation rather than the older Mac sidebar. Its existing application identity and saved library remain unchanged by the visible rename; internal TimeMaster project, module, and data-folder names are compatibility details, not separate installed apps.
 
+## Local-First Storage
+
+Tmax must remain usable without a cloud account or a network connection. Exercise database sync is an explicit, per-device choice, not a consequence of signing in. An unset sync preference means local-only. Turning sync off keeps local work and does not delete cloud files.
+
+The Mac's default library belongs in local Application Support, outside iCloud-managed Documents. Startup must not require a bulk iCloud download or wait for account restoration. The previous Documents library is preserved; resident files may be adopted without overwriting newer local work. Cloud-only items require deliberate recovery, with a visible explanation rather than a silent claim that the complete library is present.
+
+## macOS Menu Bar Direction
+
+The menu bar companion is a compact version of Tmax with multiple pages, including workout controls and activity. It shares the main app's running workout rather than creating an independent timer. Returning between the popup and main window must preserve the session.
+
+Automatic workout updates must not steal focus. The menu bar icon changes with workout state, including the final countdown before exercise; extra pop-ups and sound are optional. The popup keeps the app's visual language with restrained orange surfaces, concise copy, and heavier text for important status indicators rather than uniform emphasis everywhere.
+
 ## App Typography
 
 The user selected Manrope Regular for readable body text and supporting small labels throughout the native iPhone and macOS app. Inter Black supplies content headings, emphasized controls and prominent numbers. Emphasized prose and quotations use the genuine Inter Black Italic design, not a slanted upright face.

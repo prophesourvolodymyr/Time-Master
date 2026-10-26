@@ -1,8 +1,17 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 struct DatabaseSyncSettingsView: View {
     @ObservedObject private var sync = DatabaseSyncStore.shared
     @ObservedObject private var account = CloudAccountStore.shared
+#if os(macOS)
+    @EnvironmentObject private var workouts: WorkoutStore
+    @AppStorage(LocalLibraryMigration.messageKey) private var migrationMessage = ""
+    @State private var importingCachedLibrary = false
+    @State private var importError: String?
+#endif
 
     private var syncBinding: Binding<Bool> {
         Binding(get: { sync.syncEnabled }, set: { enabled in
@@ -28,6 +37,9 @@ struct DatabaseSyncSettingsView: View {
                      : "Local only on this device. No database uploads, downloads or polling run while this is off.")
                     .font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
             }
+#if os(macOS)
+            localStorageSection
+#endif
 
             EverSettingsSection(title: "Status") {
                 SettingsActionRow(title: sync.status.rawValue, symbol: statusSymbol)
@@ -62,7 +74,7 @@ struct DatabaseSyncSettingsView: View {
                     .font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
             }
 
-            EverSettingsSection(title: "Account", detail: "Each account has an isolated exercise library. Switching waits for sync to stop, then restores that account's files before syncing.") {
+            EverSettingsSection(title: "Account", detail: "Sign-in does not enable sync. With sync enabled, each account has an isolated exercise library.") {
                 NavigationLink { CloudAccountSettingsView() } label: {
                     SettingsActionRow(title: account.session == nil ? "Optional: sign in to sync" : "Tmax account", detail: account.email, symbol: "person.crop.circle") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
@@ -92,4 +104,50 @@ struct DatabaseSyncSettingsView: View {
         case .failed: return "exclamationmark.icloud"
         }
     }
+#if os(macOS)
+    private var localStorageSection: some View {
+        EverSettingsSection(title: "Local storage", detail: "Saved in Library/Application Support/TimeMaster, outside iCloud Documents.") {
+            if !migrationMessage.isEmpty {
+                Text(migrationMessage)
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(EverColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Button("Open previous library in Finder") {
+                NSWorkspace.shared.open(LocalLibraryMigration.previousRoot)
+            }
+            .buttonStyle(EverSecondaryButtonStyle())
+            Button(importingCachedLibrary ? "Importing…" : "Import cached files") {
+                importCachedLibrary()
+            }
+            .buttonStyle(EverSecondaryButtonStyle())
+            .disabled(importingCachedLibrary || sync.changingAccount || sync.changingMode || account.busy)
+            if let importError {
+                Text(importError)
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func importCachedLibrary() {
+        importingCachedLibrary = true
+        importError = nil
+        let token = ExerciseLibraryAccess.shared.capture()
+        Task {
+            defer { importingCachedLibrary = false }
+            do {
+                _ = try await sync.performLocalOperation(token: token) {
+                    try LocalLibraryMigration.importCachedFiles()
+                }
+                workouts.reload()
+                DatabaseStore.shared.reloadImmediately()
+            } catch {
+                importError = error.localizedDescription
+            }
+        }
+    }
+#endif
 }
+

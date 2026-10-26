@@ -54,7 +54,7 @@ final class DatabaseSyncStore: ObservableObject {
         case .success(let client): successScope = client.configuration.keychainService
         case .failure: successScope = "unconfigured"
         }
-        syncEnabled = !UserDefaults.standard.bool(forKey: Self.localOnlyKey)
+        syncEnabled = (defaults.object(forKey: Self.localOnlyKey) as? Bool) == false
     }
 
     var configured: Bool { CloudServices.syncServiceURL != nil }
@@ -64,6 +64,12 @@ final class DatabaseSyncStore: ObservableObject {
     func start() async {
         guard !started else { return }
         started = true
+#if os(macOS)
+        if defaults.bool(forKey: LocalLibraryMigration.pendingKey) {
+            syncEnabled = false
+            defaults.set(true, forKey: Self.localOnlyKey)
+        }
+#endif
         if let url = CloudServices.syncServiceURL {
             engine = DatabaseSyncEngine(dataRoot: DatabaseManager.shared.dataRoot, serviceURL: url)
         }
@@ -90,7 +96,7 @@ final class DatabaseSyncStore: ObservableObject {
     func activateAccount(_ accountID: String?) async throws {
         guard !changingAccount else { throw DatabaseSyncError.busy }
         handingOff = true
-        let libraryChanges = accountID != nil && accountID != libraryOwnerAccountID
+        let libraryChanges = syncEnabled && accountID != nil && accountID != libraryOwnerAccountID
         if libraryChanges {
             changingAccount = true
             libraryGeneration &+= 1
@@ -109,6 +115,12 @@ final class DatabaseSyncStore: ObservableObject {
         downloadedFiles = 0
         hasTransferReport = false
         error = nil
+        guard syncEnabled else {
+            activeAccountID = accountID
+            handingOff = false
+            updateIdleStatus()
+            return
+        }
         if let accountID {
             guard let engine else {
                 let failure = CloudAuthError.configuration("TMSyncServiceURL is required to activate an account library safely. Your existing local library has not been changed.")
@@ -146,6 +158,12 @@ final class DatabaseSyncStore: ObservableObject {
 
     func setSyncEnabled(_ enabled: Bool) async {
         guard !changingMode, enabled != syncEnabled else { return }
+#if os(macOS)
+        if enabled && defaults.bool(forKey: LocalLibraryMigration.pendingKey) {
+            error = "Recover the previous library's missing files in Local storage before enabling sync. This prevents missing files from being treated as cloud deletions."
+            return
+        }
+#endif
         changingMode = true
         if !enabled {
             status = .stopping
@@ -155,7 +173,14 @@ final class DatabaseSyncStore: ObservableObject {
             error = nil
         } else {
             syncEnabled = true
-            defaults.set(false, forKey: Self.localOnlyKey)
+            do {
+                try await activateAccount(activeAccountID)
+                defaults.set(false, forKey: Self.localOnlyKey)
+            } catch {
+                syncEnabled = false
+                defaults.set(true, forKey: Self.localOnlyKey)
+                self.error = error.localizedDescription
+            }
         }
         changingMode = false
         updateIdleStatus()

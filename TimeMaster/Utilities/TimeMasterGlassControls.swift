@@ -87,6 +87,7 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
     let expansion: CGFloat
     let fillsWidth: Bool
     let horizontalPadding: CGFloat
+    let tint: Color
 
     @Environment(\.isFocused) private var isFocused
 
@@ -96,7 +97,8 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
         minimumSize: CGFloat = 44,
         expansion: CGFloat = 1,
         fillsWidth: Bool = false,
-        horizontalPadding: CGFloat = 14
+        horizontalPadding: CGFloat = 14,
+        tint: Color = Theme.toolbarOrange
     ) {
         self.prominent = prominent
         self.circular = circular
@@ -104,6 +106,7 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
         self.expansion = min(1, max(0, expansion))
         self.fillsWidth = fillsWidth
         self.horizontalPadding = horizontalPadding
+        self.tint = tint
     }
 
     func makeBody(configuration: Configuration) -> some View {
@@ -123,7 +126,7 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
             .modifier(TimeMasterGlassSurface(
                 cornerRadius: radius,
                 isInteractive: true,
-                tint: configuration.role == .destructive ? .red : Theme.toolbarOrange,
+                tint: configuration.role == .destructive ? .red : tint,
                 tintOpacity: prominent ? 0.58 : 0.46
             ))
             .overlay {

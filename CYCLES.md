@@ -2485,6 +2485,45 @@ Evidence from the temporary iPhone 16 / iOS 18.6 simulator, against the real not
 
 Known limits: the compact, minimal and Lock Screen presentations of the Live Activity, the Home Screen and Lock Screen widgets, and StandBy were not rendered in a simulator, so they are build-verified only. macOS has no ActivityKit: `Activity`, `ActivityAttributes`, `ActivityConfiguration`, `DynamicIsland` and `ActivityFamily` are unavailable in the macOS 26.5 SDK, and a Mac only mirrors an iPhone's Live Activity in its menu bar. No macOS widget or menu bar controller was built: a Mac widget extension needs real signing with an App Group (team 43TM9CFS43 exists on this Mac; registering the group changes the Apple Developer account, so it needs approval), and the menu bar controller needs a design decision first. Reminders still read the legacy per-type schedules in Workout Types, not the Weekly Schedule that drives Home and Today, so planned workouts there get no reminder. Widget data refreshes only when the app runs, so a widget can show yesterday's schedule until Tmax is opened. The widget extension deploys at iOS 17, so iOS 16 devices do not get the Live Activity or widgets.
 
+## Cycle 44 — Native Mac Menu Bar Companion — 2026-10-26
+
+User direction: a minified Tmax popup with multiple pages, one shared workout across the popup and main window, state-changing menu bar indicators, and non-interrupting workout updates. The requested visual follow-up is small polish, not a layout redesign. Human review remains pending.
+
+- [x] Add Home, Activity, Workouts, Schedule, Coach and Settings pages using the existing palette, typography, cards and controls
+- [x] Show real workouts, schedules, history, streaks, weekly goals and recent activity; search and open workout details, create workouts, and hand coach drafts to the existing chat
+- [x] Publish the real player's workout state and route Pause, Resume, Skip and End back to the same player
+- [x] Keep the workout window alive when closed during a session, keep its timer running while hidden, and restore it from the popup or Dock
+- [x] Change the menu bar mark, progress and optional time label for upcoming, warm-up, preparation, countdown, exercise, rest, pause and completion states
+- [x] Default to Quiet: only the indicator changes, without automatic windows, sound or focus changes
+- [x] Offer explicit Glance and Alert modes, selectable moments, per-workout muting and calmer behavior while the workout window is in front; Glance uses a non-key panel
+- [x] Add local quotes and contextual workout suggestions without requiring an AI request
+- [x] Make popup cards and secondary actions neutral, retain orange for primary actions and progress, shorten settings copy and remove repeated section text
+- [x] Verify bold menu bar text for countdown, active exercise, pause and completion, while rest and warm-up remain lighter
+- [x] Pass 59 permanent focused app checks plus two temporary hosted popup/player scenarios on the existing iPhone 16; remove temporary native/iPhone harnesses before publishing
+- [ ] Human review of popup pages, workout starting/resuming, switching to the main window, controls, icon states and selected bold labels
+- [ ] Human review of Quiet, Glance, Alert, keyboard focus, login launch and the small visual/copy adjustments
+
+Observed native smoke: a real hosted workout continued ticking after window close; popup commands paused, resumed, skipped and ended that player; the popup fit its intended size; Quiet showed no tip; Glance retained app/key-window focus; tip replacement, icon hiding and restoration worked. Native popup pages and iPhone-hosted popup states were rendered. Native glass button pixels are not faithfully represented by view-cache snapshots, so glass appearance remains for human review.
+
+The initial full app-test run exposed conflicting existing Outdoor pane expectations: ninety-five-percent floating height/full visibility versus reserved-area capping/earlier fading. No Outdoor source or test changes are retained in this cycle; those failures are not represented as passing.
+
+## Cycle 45 — Local-First Startup and Explicit Sync — 2026-10-26
+
+User-reported failure: startup waited for 273 iCloud files and made the app unusable. The user explicitly rejected cloud sync as a default.
+
+- [x] Trace the earlier automatic iCloud hydration to `2e37cb5` and managed account/database sync to `31bfae3`
+- [x] Remove startup's bulk iCloud download barrier and use local Application Support storage on macOS instead of iCloud-managed Documents
+- [x] Adopt resident files from the previous Documents library without deleting its contents, following symlinks or overwriting newer local files; use APFS clones where available
+- [x] Keep cloud-only items out of automatic startup reads and expose the preserved library plus explicit cached-file recovery in Database Sync settings
+- [x] Make an absent sync preference local-only on both platforms; retain an explicitly stored choice and do not treat sign-in as consent to sync
+- [x] Avoid account-library handoff while local-only and remove account restoration from the app's launch-readiness condition
+- [x] Prevent opt-in while old-library recovery is incomplete, so missing local files cannot be uploaded as cloud deletions
+- [x] Exercise local-root selection, binary-file preservation, newer-local-file preservation, source preservation, symlink rejection, default-off sync, local-only sign-in, explicit opt-in and opt-out in an isolated native launch
+- [x] Run the core persistence/synchronization suite: 133 checks passed
+- [ ] Human review of normal launch, the recovered local library, account sign-in without sync, explicit opt-in and cached-file recovery
+
+The Mac's system-wide iCloud settings are unchanged. Items available only in iCloud still require an explicit Finder download and cached-file import; they are not claimed to have been recovered. The original library remains available for recovery.
+
 ---
 
 ## Notes
