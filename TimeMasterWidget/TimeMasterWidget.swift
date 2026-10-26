@@ -155,7 +155,7 @@ struct TimeMasterEntry: TimelineEntry {
     let weeklyGoal: Int
 }
 
-private enum WidgetSnapshotStore {
+enum WidgetSnapshotStore {
     private static let defaults = UserDefaults(suiteName: "group.com.timemaster.shared")
 
     static var workouts: [WidgetWorkout] {
@@ -180,6 +180,17 @@ private enum WidgetSnapshotStore {
 
     static var weeklyGoal: Int {
         max(1, defaults?.integer(forKey: "widget_weekly_goal") ?? 4)
+    }
+
+    static var weekSessions: Int {
+        if let sessions = defaults?.object(forKey: "widget_week_sessions") as? Int {
+            return sessions
+        }
+        return workouts.reduce(0) { $0 + $1.sessionsThisWeek }
+    }
+
+    static var pinnedWorkoutID: String? {
+        defaults?.string(forKey: "pinned_workout_id")
     }
 }
 
@@ -225,14 +236,17 @@ struct TimeMasterProvider: AppIntentTimelineProvider {
     }
 
     private func entry(from configuration: SelectWorkoutIntent) -> TimeMasterEntry {
+        let workouts = WidgetSnapshotStore.workouts
         let selected = configuration.workout.flatMap { selectedID in
-            WidgetSnapshotStore.workouts.first { $0.id == selectedID.id }
+            workouts.first { $0.id == selectedID.id }
         }
-        let workout = selected ?? WidgetSnapshotStore.workouts.first
+        let pinned = WidgetSnapshotStore.pinnedWorkoutID.flatMap { pinnedID in
+            workouts.first { $0.id == pinnedID }
+        }
         return TimeMasterEntry(
             date: .now,
             mode: configuration.mode,
-            workout: workout,
+            workout: selected ?? pinned ?? workouts.first,
             today: WidgetSnapshotStore.today,
             streak: WidgetSnapshotStore.streak,
             weeklyGoal: WidgetSnapshotStore.weeklyGoal
@@ -265,7 +279,11 @@ struct TimeMasterWidgetView: View {
             if let workout = entry.workout {
                 if family == .systemSmall {
                     VStack(alignment: .leading, spacing: 8) {
-                        workoutIcon(workout)
+                        HStack(alignment: .top) {
+                            workoutIcon(workout)
+                            Spacer(minLength: 0)
+                            playGlyph
+                        }
                         Spacer(minLength: 0)
                         Text(workout.name)
                             .font(.headline.weight(.bold))
@@ -286,7 +304,10 @@ struct TimeMasterWidgetView: View {
                             workoutDetails(workout)
                         }
                         Spacer(minLength: 0)
-                        actionPill(title: "START", icon: "play.fill")
+                        Link(destination: startURL(for: workout)) {
+                            actionPill(title: "START", icon: "play.fill")
+                        }
+                        .accessibilityLabel("Start \(workout.name)")
                     }
                     .padding(16)
                 }
@@ -417,6 +438,15 @@ struct TimeMasterWidgetView: View {
             .background(.white, in: Capsule())
     }
 
+    private var playGlyph: some View {
+        Image(systemName: "play.fill")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.black)
+            .frame(width: 28, height: 28)
+            .background(.white, in: Circle())
+            .accessibilityHidden(true)
+    }
+
     private func emptyView(icon: String, title: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
@@ -438,6 +468,10 @@ struct TimeMasterWidgetView: View {
             return URL(string: "timemaster://open")
         }
         return URL(string: "timemaster://detail?workoutID=\(workout.id)")
+    }
+
+    private func startURL(for workout: WidgetWorkout) -> URL {
+        URL(string: "timemaster://start?workoutID=\(workout.id)") ?? URL(string: "timemaster://open")!
     }
 
     private func typeIcon(_ type: String) -> String {

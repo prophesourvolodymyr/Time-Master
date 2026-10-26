@@ -10,11 +10,12 @@ import AppKit
 struct TmaxApp: App {
     @StateObject private var startup = TmaxStartupModel()
 
-#if os(macOS)
     init() {
+#if os(macOS)
         UserDefaults.standard.register(defaults: ["ApplePersistenceIgnoreState": true])
-    }
 #endif
+        NotificationPresenter.shared.install()
+    }
 
     var body: some Scene {
         WindowGroup("Tmax") {
@@ -82,6 +83,11 @@ private struct TmaxRootView: View {
                         if !didCheckResume {
                             didCheckResume = true
                             showResumePrompt = resumeManager.hasResumableWorkout
+#if os(iOS)
+                            if !resumeManager.hasResumableWorkout {
+                                WorkoutLiveActivityController.shared.end(completed: false, elapsedSeconds: 0)
+                            }
+#endif
                         }
                         if let url = pendingURL {
                             pendingURL = nil
@@ -121,8 +127,14 @@ private struct TmaxRootView: View {
             if contentIsReady && launchPhase == .finished { handleDeepLink(url) }
             else { pendingURL = url }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .launchWorkout)) { notification in
+            startRequestedWorkout(notification)
+        }
         .onChange(of: scenePhase) { phase in
             DatabaseSyncStore.shared.handleScenePhase(active: phase == .active)
+            if phase == .active, let store = startup.workoutStore {
+                NotificationManager.shared.refreshMissedDayNudges(schedules: store.typeSchedules, history: store.historyEntries)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .exerciseLibraryDidSync)) { notification in
             if notification.userInfo?["accountChanged"] as? Bool == true {
@@ -220,6 +232,9 @@ private struct TmaxRootView: View {
                             elapsedSeconds: state.elapsedSeconds
                         ))
                     }
+#if os(iOS)
+                    WorkoutLiveActivityController.shared.end(completed: false, elapsedSeconds: 0)
+#endif
                     resumeManager.clearResumeState()
                     showResumePrompt = false
                 },
@@ -241,11 +256,24 @@ private struct TmaxRootView: View {
             guard let workoutID else { return }
             NotificationCenter.default.post(name: .openWorkoutDetail, object: nil, userInfo: ["workoutID": workoutID])
         case "start":
-            guard let workoutID else { return }
-            NotificationCenter.default.post(name: .launchWorkout, object: nil, userInfo: ["workoutID": workoutID])
+            NotificationCenter.default.post(name: .launchWorkout, object: nil, userInfo: workoutID.map { ["workoutID": $0] })
         default:
             break
         }
+    }
+
+    private func startRequestedWorkout(_ notification: Notification) {
+        guard contentIsReady, launchPhase == .finished, resumePlayerWorkout == nil,
+              let store = startup.workoutStore else { return }
+        if resumeManager.hasResumableWorkout {
+            showResumePrompt = true
+            return
+        }
+        let requested = (notification.userInfo?["workoutID"] as? UUID).flatMap { store.workout(id: $0) }
+        let scheduled = store.scheduledWorkouts(for: Date()).first { $0.status == .pending }?.workout
+        let fallback = store.workouts.first { !$0.sections.isEmpty }
+        guard let workout = requested ?? scheduled ?? fallback, !workout.sections.isEmpty else { return }
+        resumePlayerWorkout = workout
     }
 }
 

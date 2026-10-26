@@ -263,6 +263,11 @@ struct WorkoutPlayerView: View {
                 endBackgroundTask()
                 musicSession.stop()
                 musicStarted = false
+                #if os(iOS)
+                if !workoutCompleted {
+                    WorkoutLiveActivityController.shared.end(completed: false, elapsedSeconds: elapsedSeconds)
+                }
+                #endif
             }
             #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -272,6 +277,10 @@ struct WorkoutPlayerView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 endBackgroundTask()
                 reconcileAfterInterruption()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .workoutLiveActivityCommand)) { notification in
+                guard notification.userInfo?["command"] as? String == "togglePause" else { return }
+                handleLiveActivityCommand()
             }
             #endif
             .alert("Stop Workout?", isPresented: $showingCloseConfirmation) {
@@ -945,6 +954,7 @@ struct WorkoutPlayerView: View {
         guard restExtensionTotal + seconds <= 120 else { return }
         restExtensionTotal += seconds
         timeRemaining += seconds
+        saveResumeState()
         restExtensionText = "+\(seconds) seconds"
         withAnimation(.easeInOut(duration: 0.3)) {
             restExtensionFlash = true
@@ -1274,7 +1284,76 @@ struct WorkoutPlayerView: View {
             musicCheckpoint: musicSession.checkpoint,
             bundleOrders: bundleOrders
         )
+        #if os(iOS)
+        syncLiveActivity()
+        #endif
     }
+
+    #if os(iOS)
+    private func syncLiveActivity() {
+        guard !showingWarmUpPicker, !workoutCompleted else { return }
+        let phase = livePhase
+        let exerciseName = currentSlot?.displayName ?? currentSection?.name ?? ""
+        let title: String
+        let nextTitle: String?
+        switch phase {
+        case .warmUp:
+            title = "Warm up"
+            nextTitle = exerciseName
+        case .prepare:
+            title = "Get ready"
+            nextTitle = exerciseName
+        case .active:
+            title = exerciseName
+            nextTitle = nextExerciseName
+        case .setRest:
+            title = "Rest"
+            nextTitle = exerciseName
+        case .sectionRest:
+            title = "Rest"
+            nextTitle = workout.sections[safe: currentSectionIndex + 1]?.name
+        }
+        WorkoutLiveActivityController.shared.sync(
+            WorkoutLiveActivitySnapshot(
+                workoutID: workout.id,
+                workoutName: workout.name,
+                colorHex: workout.colorHex,
+                phase: phase,
+                title: title,
+                subtitle: liveActivitySubtitle(for: phase),
+                isPaused: isPaused,
+                remainingSeconds: timeRemaining,
+                phaseDuration: phaseDuration,
+                elapsedSeconds: elapsedSeconds,
+                nextTitle: nextTitle,
+                startedAt: startTime
+            )
+        )
+    }
+
+    private func liveActivitySubtitle(for phase: WorkoutPhase) -> String {
+        guard phase != .warmUp else { return "" }
+        var parts: [String] = []
+        if phase != .sectionRest, let section = currentSection, section.slotCount > 1 {
+            let unit = section.mode == .bundle ? "Exercise" : "Set"
+            parts.append("\(unit) \(currentSetIndex + 1) of \(section.slotCount)")
+        }
+        if workout.sections.count > 1 {
+            let sectionNumber = currentSectionIndex + (phase == .sectionRest ? 2 : 1)
+            parts.append("Section \(sectionNumber) of \(workout.sections.count)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func handleLiveActivityCommand() {
+        guard !workoutCompleted, !showingWarmUpPicker else { return }
+        if !isPaused, UIApplication.shared.applicationState != .active {
+            reconcileAfterInterruption()
+            guard !workoutCompleted else { return }
+        }
+        if isPaused { resumeTimer() } else { pauseTimer() }
+    }
+    #endif
 
     private func tryResumeState() {
         guard !didInitFromResume,
@@ -1528,6 +1607,9 @@ struct WorkoutPlayerView: View {
         showPageOverlay = false
         showMusicChooser = false
         WorkoutResumeManager.shared.clearResumeState()
+        #if os(iOS)
+        WorkoutLiveActivityController.shared.end(completed: true, elapsedSeconds: elapsedSeconds)
+        #endif
         AudioManager.shared.speak("Congratulations! Incredible work!")
         let entry = WorkoutHistoryEntry(
             workoutId:         workout.id,
@@ -1577,6 +1659,9 @@ struct WorkoutPlayerView: View {
             store.addHistoryEntry(entry)
         }
         WorkoutResumeManager.shared.clearResumeState()
+        #if os(iOS)
+        WorkoutLiveActivityController.shared.end(completed: false, elapsedSeconds: elapsedSeconds)
+        #endif
         dismiss()
     }
 

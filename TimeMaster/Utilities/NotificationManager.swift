@@ -1,14 +1,10 @@
 import Foundation
 import UserNotifications
-
-// MARK: - WorkoutSchedule
-
-struct WorkoutSchedule: Codable {
-    var isEnabled: Bool = false
-    var days: Set<Int> = []   // Calendar weekday: 1=Sun, 2=Mon, … 7=Sat
-    var hour: Int = 9
-    var minute: Int = 0
-}
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 
 struct NotificationPreferences: Codable {
     var isEnabled: Bool = false
@@ -20,29 +16,41 @@ struct NotificationPreferences: Codable {
     var restDayAffirmationsEnabled: Bool = true
 }
 
-// MARK: - NotificationManager
+enum NotificationTestOutcome: Equatable {
+    case scheduled
+    case denied
+    case failed(String)
+}
+
+final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationPresenter()
+
+    func install() {
+        UNUserNotificationCenter.current().delegate = self
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
+    }
+}
 
 final class NotificationManager {
     static let shared = NotificationManager()
     private init() {}
 
-    private let scheduleKey = "workout_notification_schedule"
     private let preferencesKey = "workout_notification_preferences"
+    private let lock = NSLock()
+    private var tail: Task<Void, Never> = Task {}
 
-    // MARK: - Persisted schedule
-
-    var schedule: WorkoutSchedule {
-        get {
-            guard let data = UserDefaults.standard.data(forKey: scheduleKey),
-                  let s = try? JSONDecoder().decode(WorkoutSchedule.self, from: data)
-            else { return WorkoutSchedule() }
-            return s
-        }
-        set {
-            if let data = try? JSONEncoder().encode(newValue) {
-                UserDefaults.standard.set(data, forKey: scheduleKey)
-            }
-        }
+    private enum Prefix {
+        static let reminder = "tm_reminder_"
+        static let missed = "tm_missed_"
+        static let rest = "tm_rest_"
+        static let legacy = ["workout_pre_", "workout_post_"]
+        static let all = [reminder, missed, rest] + legacy
     }
 
     var preferences: NotificationPreferences {
@@ -59,8 +67,6 @@ final class NotificationManager {
         }
     }
 
-    // MARK: - Permission
-
     func requestPermission(completion: @escaping (Bool) -> Void) {
         UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
@@ -68,105 +74,104 @@ final class NotificationManager {
             }
     }
 
-    // MARK: - Schedule / cancel
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
 
-    func scheduleWorkoutNotifications(_ s: WorkoutSchedule) {
-        cancelAllWorkoutNotifications()
-        guard s.isEnabled, !s.days.isEmpty else { return }
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            for day in s.days {
-                self.schedulePreWorkout(weekday: day, hour: s.hour, minute: s.minute)
-                self.schedulePostWorkout(weekday: day, hour: s.hour, minute: s.minute)
-            }
+    func openSystemSettings() {
+        #if os(iOS)
+        if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
+        #else
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
+        #endif
+    }
+
+    func sendTestNotification() async -> NotificationTestOutcome {
+        let center = UNUserNotificationCenter.current()
+        var status = await center.notificationSettings().authorizationStatus
+        if status == .notDetermined {
+            let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            status = granted ? .authorized : .denied
+        }
+        guard status == .authorized || status == .provisional else { return .denied }
+        let content = UNMutableNotificationContent()
+        content.title = "Tmax notifications are on"
+        content.body = "Reminders and workout celebrations will appear like this."
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: "tm_test_\(UUID().uuidString)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+        )
+        do {
+            try await center.add(request)
+            return .scheduled
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    func applyPreferences(
+        _ newPreferences: NotificationPreferences,
+        schedules: [TypeSchedule],
+        restDays: Set<String>,
+        history: [WorkoutHistoryEntry]? = nil
+    ) {
+        preferences = newPreferences
+        guard newPreferences.isEnabled else {
+            replace(prefixes: Prefix.all, with: [])
+            return
+        }
+        let requests = reminderRequests(for: schedules, preferences: newPreferences)
+            + restDayRequests(restDays: restDays, enabled: newPreferences.restDayAffirmationsEnabled)
+        replace(prefixes: [Prefix.reminder, Prefix.rest] + Prefix.legacy, with: requests)
+        if let history {
+            refreshMissedDayNudges(schedules: schedules, history: history)
+        } else if !newPreferences.missedDayNudgesEnabled {
+            replace(prefixes: [Prefix.missed], with: [])
         }
     }
 
     func rescheduleNotifications(for schedules: [TypeSchedule]) {
-        cancelAllWorkoutNotifications()
         let preferences = preferences
-        guard preferences.isEnabled else { return }
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            let activeSchedules = schedules.filter(\.isActive)
-            for schedule in activeSchedules {
-                for day in schedule.daysOfWeek {
-                    self.scheduleTypeReminder(
-                        type: schedule.type,
-                        weekday: Self.calendarWeekday(fromMondayBased: day),
-                        hour: preferences.reminderHour,
-                        minute: preferences.reminderMinute,
-                        leadMinutes: preferences.reminderLeadMinutes
-                    )
-                }
-            }
+        guard preferences.isEnabled else {
+            replace(prefixes: Prefix.all, with: [])
+            return
         }
-    }
-
-    func applyPreferences(_ newPreferences: NotificationPreferences, schedules: [TypeSchedule], restDays: Set<String>) {
-        preferences = newPreferences
-        cancelAllWorkoutNotifications()
-        guard newPreferences.isEnabled else { return }
-        rescheduleNotifications(for: schedules)
-        scheduleRestDayAffirmations(restDays: restDays, enabled: newPreferences.restDayAffirmationsEnabled)
+        replace(
+            prefixes: [Prefix.reminder] + Prefix.legacy,
+            with: reminderRequests(for: schedules, preferences: preferences)
+        )
     }
 
     func refreshMissedDayNudges(schedules: [TypeSchedule], history: [WorkoutHistoryEntry]) {
         let preferences = preferences
-        let center = UNUserNotificationCenter.current()
-        center.getPendingNotificationRequests { requests in
-            center.removePendingNotificationRequests(withIdentifiers: requests.map(\.identifier).filter { $0.hasPrefix("tm_missed_") })
-            guard preferences.isEnabled, preferences.missedDayNudgesEnabled else { return }
-            let calendar = Calendar.current
-            let now = Date()
-            for schedule in schedules where schedule.isActive {
-                for day in schedule.daysOfWeek {
-                    guard let workoutDate = self.mostRecentOccurrence(
-                        weekday: Self.calendarWeekday(fromMondayBased: day),
-                        hour: preferences.reminderHour,
-                        minute: preferences.reminderMinute,
-                        from: now
-                    ), workoutDate <= now else { continue }
-                    let start = calendar.startOfDay(for: workoutDate)
-                    let didComplete = history.contains {
-                        $0.workoutType.id == schedule.type.id && calendar.isDate($0.completedAt, inSameDayAs: start)
-                    }
-                    guard !didComplete, now >= workoutDate.addingTimeInterval(60 * 60) else { continue }
-                    self.scheduleMissedDayNudge(type: schedule.type, after: workoutDate)
-                }
-            }
-        }
+        let nudges = preferences.isEnabled && preferences.missedDayNudgesEnabled
+            ? NotificationPlanner.missedNudges(
+                schedules: schedules,
+                history: history,
+                hour: preferences.reminderHour,
+                minute: preferences.reminderMinute,
+                now: Date()
+            )
+            : []
+        replace(prefixes: [Prefix.missed], with: nudges.map(missedNudgeRequest))
     }
-
-    func cancelAllWorkoutNotifications() {
-        var ids: [String] = []
-        for d in 1...7 {
-            ids.append("workout_pre_\(d)")
-            ids.append("workout_post_\(d)")
-        }
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["tm_rest_day"])
-        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
-            let managedIDs = requests.map(\.identifier).filter {
-                $0.hasPrefix("tm_reminder_") || $0.hasPrefix("tm_missed_") || $0.hasPrefix("tm_rest_")
-            }
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: managedIDs)
-        }
-    }
-
-    // MARK: - Post-workout celebration (immediate)
 
     func sendPostWorkoutCelebration() {
         let content = UNMutableNotificationContent()
         content.title = "Workout Complete"
         content.body = postWorkoutMessages.randomElement() ?? "You crushed it!"
         content.sound = .default
-        let req = UNNotificationRequest(
+        UNUserNotificationCenter.current().add(UNNotificationRequest(
             identifier: "post_workout_\(UUID().uuidString)",
             content: content,
             trigger: nil
-        )
-        UNUserNotificationCenter.current().add(req)
+        ))
     }
 
     func notifyWorkoutCompleted(totalWorkouts: Int, streak: Int) {
@@ -190,134 +195,100 @@ final class NotificationManager {
         ))
     }
 
-    // MARK: - Private helpers
-
-    private func schedulePreWorkout(weekday: Int, hour: Int, minute: Int) {
-        var c = DateComponents()
-        c.weekday = weekday
-        c.hour = hour
-        c.minute = minute
-
-        let content = UNMutableNotificationContent()
-        content.title = "Time to Train"
-        content.body = preWorkoutMessages.randomElement() ?? "Your workout is waiting!"
-        content.sound = .default
-
-        let req = UNNotificationRequest(
-            identifier: "workout_pre_\(weekday)",
-            content: content,
-            trigger: UNCalendarNotificationTrigger(dateMatching: c, repeats: true)
-        )
-        UNUserNotificationCenter.current().add(req)
+    private func replace(prefixes: [String], with requests: [UNNotificationRequest]) {
+        enqueue {
+            let center = UNUserNotificationCenter.current()
+            let stale = await center.pendingNotificationRequests().map(\.identifier).filter { identifier in
+                prefixes.contains { identifier.hasPrefix($0) }
+            }
+            center.removePendingNotificationRequests(withIdentifiers: stale)
+            guard !requests.isEmpty else { return }
+            let status = await center.notificationSettings().authorizationStatus
+            guard status == .authorized || status == .provisional else { return }
+            for request in requests {
+                try? await center.add(request)
+            }
+        }
     }
 
-    private func scheduleTypeReminder(type: WorkoutType, weekday: Int, hour: Int, minute: Int, leadMinutes: Int) {
-        var components = DateComponents()
-        components.weekday = weekday
-        let totalMinutes = max(0, hour * 60 + minute - leadMinutes)
-        components.hour = totalMinutes / 60
-        components.minute = totalMinutes % 60
-
-        let content = UNMutableNotificationContent()
-        content.title = type.name
-        content.body = reminderMessages.randomElement() ?? "A little \(type.name.lowercased()) time is waiting for you."
-        content.sound = .default
-        let id = "tm_reminder_\(notificationIdentifierComponent(type.id))_\(weekday)"
-        UNUserNotificationCenter.current().add(UNNotificationRequest(
-            identifier: id,
-            content: content,
-            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        ))
+    private func enqueue(_ work: @escaping @Sendable () async -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        let previous = tail
+        tail = Task {
+            await previous.value
+            await work()
+        }
     }
 
-    private func scheduleMissedDayNudge(type: WorkoutType, after workoutDate: Date) {
+    private func reminderRequests(for schedules: [TypeSchedule], preferences: NotificationPreferences) -> [UNNotificationRequest] {
+        let totalMinutes = max(0, preferences.reminderHour * 60 + preferences.reminderMinute - preferences.reminderLeadMinutes)
+        var requests: [UNNotificationRequest] = []
+        for schedule in schedules where schedule.isActive {
+            for day in schedule.daysOfWeek {
+                let weekday = Self.calendarWeekday(fromMondayBased: day)
+                var components = DateComponents()
+                components.weekday = weekday
+                components.hour = totalMinutes / 60
+                components.minute = totalMinutes % 60
+                let content = UNMutableNotificationContent()
+                content.title = schedule.type.name
+                content.body = reminderMessages.randomElement() ?? "A little \(schedule.type.name.lowercased()) time is waiting for you."
+                content.sound = .default
+                requests.append(UNNotificationRequest(
+                    identifier: "\(Prefix.reminder)\(identifierComponent(schedule.type.id))_\(weekday)",
+                    content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+                ))
+            }
+        }
+        return requests
+    }
+
+    private func missedNudgeRequest(_ nudge: NotificationPlanner.MissedNudge) -> UNNotificationRequest {
         let content = UNMutableNotificationContent()
-        content.title = type.name
+        content.title = nudge.type.name
         content.body = missedDayMessages.randomElement() ?? "No sweat. Tomorrow is a fresh start."
         content.sound = .default
-        let triggerDate = workoutDate.addingTimeInterval(60 * 60)
-        let id = "tm_missed_\(notificationIdentifierComponent(type.id))_\(Int(workoutDate.timeIntervalSince1970))"
-        UNUserNotificationCenter.current().add(UNNotificationRequest(
-            identifier: id,
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nudge.fireDate)
+        return UNNotificationRequest(
+            identifier: "\(Prefix.missed)\(identifierComponent(nudge.type.id))_\(Int(nudge.workoutDate.timeIntervalSince1970))",
             content: content,
-            trigger: UNCalendarNotificationTrigger(dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: triggerDate), repeats: false)
-        ))
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        )
     }
 
-    private func scheduleRestDayAffirmations(restDays: Set<String>, enabled: Bool) {
-        guard enabled else { return }
+    private func restDayRequests(restDays: Set<String>, enabled: Bool) -> [UNNotificationRequest] {
+        guard enabled else { return [] }
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var requests: [UNNotificationRequest] = []
         for key in restDays {
-            guard let date = formatter.date(from: key), date >= calendar.startOfDay(for: Date()) else { continue }
+            guard let date = formatter.date(from: key), date >= today else { continue }
             var components = calendar.dateComponents([.year, .month, .day], from: date)
             components.hour = 9
             let content = UNMutableNotificationContent()
             content.title = "Rest day"
             content.body = restDayMessages.randomElement() ?? "Rest is training too. Enjoy it."
             content.sound = .default
-            UNUserNotificationCenter.current().add(UNNotificationRequest(
-                identifier: "tm_rest_\(key)",
+            requests.append(UNNotificationRequest(
+                identifier: "\(Prefix.rest)\(key)",
                 content: content,
                 trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
             ))
         }
+        return requests
     }
 
-    private func mostRecentOccurrence(weekday: Int, hour: Int, minute: Int, from date: Date) -> Date? {
-        var components = DateComponents()
-        components.weekday = weekday
-        components.hour = hour
-        components.minute = minute
-        return Calendar.current.nextDate(
-            after: date.addingTimeInterval(1),
-            matching: components,
-            matchingPolicy: .nextTimePreservingSmallerComponents,
-            direction: .backward
-        )
-    }
-
-    private func notificationIdentifierComponent(_ value: String) -> String {
+    private func identifierComponent(_ value: String) -> String {
         value.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) ? String($0) : "_" }.joined()
     }
 
     private static func calendarWeekday(fromMondayBased day: Int) -> Int {
         day == 7 ? 1 : day + 1
     }
-
-    private func schedulePostWorkout(weekday: Int, hour: Int, minute: Int) {
-        var postHour = hour + 2
-        var postDay  = weekday
-        if postHour >= 24 { postHour -= 24; postDay = (postDay % 7) + 1 }
-
-        var c = DateComponents()
-        c.weekday = postDay
-        c.hour    = postHour
-        c.minute  = minute
-
-        let content = UNMutableNotificationContent()
-        content.title = "Tmax"
-        content.body  = postWorkoutMessages.randomElement() ?? "Imagine the feeling now."
-        content.sound = .default
-
-        let req = UNNotificationRequest(
-            identifier: "workout_post_\(weekday)",
-            content: content,
-            trigger: UNCalendarNotificationTrigger(dateMatching: c, repeats: true)
-        )
-        UNUserNotificationCenter.current().add(req)
-    }
-
-    // MARK: - Message pools
-
-    private let preWorkoutMessages = [
-        "Your workout is waiting. Let's go.",
-        "Time to crush it.",
-        "Show up. That's all.",
-        "You said today. Today is now.",
-        "One session at a time.",
-    ]
 
     private let postWorkoutMessages = [
         "Imagine the feeling now.",

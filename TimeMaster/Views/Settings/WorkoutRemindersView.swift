@@ -9,6 +9,12 @@ struct WorkoutRemindersView: View {
     @State private var preferences: NotificationPreferences = NotificationManager.shared.preferences
     @State private var permissionDenied = false
     @State private var showSettingsAlert  = false
+    @State private var testStatus: TestStatus = .idle
+
+    private enum TestStatus: Equatable {
+        case idle, sending, scheduled, denied
+        case failed(String)
+    }
 
     // Binding-style DatePicker helper
     @State private var pickerTime: Date = {
@@ -133,6 +139,49 @@ struct WorkoutRemindersView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparatorTint(.clear)
                 }
+
+                SwiftUI.Section {
+                    Button(action: sendTest) {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.white.opacity(0.1))
+                                    .frame(width: 34, height: 34)
+                                Image(systemName: "bell.and.waves.left.and.right")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Send Test Notification")
+                                    .font(TimeMasterFont.body())
+                                    .foregroundColor(.white)
+                                Text(testMessage)
+                                    .font(TimeMasterFont.caption())
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                            Spacer()
+                            if testStatus == .sending {
+                                ProgressView()
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                    }
+                    .disabled(testStatus == .sending)
+                    .accessibilityIdentifier("reminders.test")
+                    if testStatus == .denied {
+                        Button("Open Notification Settings") {
+                            NotificationManager.shared.openSystemSettings()
+                        }
+                        .foregroundColor(.white)
+                    }
+                } header: {
+                    Text("Check")
+                        .foregroundColor(Theme.textSecondary)
+                        .font(TimeMasterFont.caption())
+                }
+                .listRowBackground(Theme.surface)
+                .listRowSeparatorTint(Theme.separator)
             }
             #if os(iOS)
 #if os(iOS)
@@ -154,11 +203,7 @@ struct WorkoutRemindersView: View {
 #endif
         .alert("Notifications Disabled", isPresented: $showSettingsAlert) {
             Button("Open Settings") {
-                #if os(iOS)
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-                #endif
+                NotificationManager.shared.openSystemSettings()
             }
             Button("Cancel", role: .cancel) {
                 preferences.isEnabled = false
@@ -192,7 +237,8 @@ struct WorkoutRemindersView: View {
         NotificationManager.shared.applyPreferences(
             preferences,
             schedules: store.typeSchedules,
-            restDays: store.restDays
+            restDays: store.restDays,
+            history: store.historyEntries
         )
     }
 
@@ -202,6 +248,30 @@ struct WorkoutRemindersView: View {
                 if settings.authorizationStatus == .denied, preferences.isEnabled {
                     preferences.isEnabled = false
                     commit()
+                }
+            }
+        }
+    }
+
+    private var testMessage: String {
+        switch testStatus {
+        case .idle: "Shows a banner within a few seconds"
+        case .sending: "Sending…"
+        case .scheduled: "Sent. It should appear in a few seconds."
+        case .denied: "Notifications are off for Tmax."
+        case .failed(let message): message
+        }
+    }
+
+    private func sendTest() {
+        testStatus = .sending
+        Task {
+            let outcome = await NotificationManager.shared.sendTestNotification()
+            await MainActor.run {
+                switch outcome {
+                case .scheduled: testStatus = .scheduled
+                case .denied: testStatus = .denied
+                case .failed(let message): testStatus = .failed(message)
                 }
             }
         }

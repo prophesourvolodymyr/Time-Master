@@ -435,6 +435,7 @@ class WorkoutStore: ObservableObject {
         }
         sharedDefaults?.set(streakInfo().current, forKey: "widget_streak")
         sharedDefaults?.set(weeklyGoal, forKey: "widget_weekly_goal")
+        sharedDefaults?.set(todayHistory.count, forKey: "widget_week_sessions")
         sharedDefaults?.synchronize()
         WidgetCenter.shared.reloadAllTimelines()
     }
