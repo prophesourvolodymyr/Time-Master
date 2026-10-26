@@ -2534,6 +2534,34 @@ User direction: bring Database and Analytics closer in the Mac app's navigation 
 - [x] Build macOS and render the real navigation component before and after the adjustment; remove the temporary native harness
 - [ ] Human review of Database and Analytics directly after Home in the updated Mac navigation menu
 
+## Cycle 47 — Named Instagram Exercise Import — 2026-10-26
+
+User direction: download the supplied exercise reel, identify and name each distinct movement, cut individual videos, and make the results visible in the currently installed Tmax app. Human review of the names and clips remains pending.
+
+- [x] Download `https://www.instagram.com/p/DedvkOXt_EM/` and inspect the movement sequence and source-frame cut boundaries
+- [x] Import thirteen named exercise pages with independent H.264/AAC video attachments into the active local Mac library
+  - [x] Bar Pullover
+  - [x] Reverse Tabletop to Seated Pike
+  - [x] Push-Up to Rotating Sit-Through Flow
+  - [x] Dive-Bomber Push-Up
+  - [x] Sit-Through
+  - [x] Standing Windmill Toe Touches
+  - [x] Crab Hip Rotations with Knee Drops
+  - [x] Seated Windshield Wipers
+  - [x] Cat-Cow
+  - [x] Heel-Sitting Thoracic Rotation Flow
+  - [x] Deep Squat Thoracic Rotations
+  - [x] Sumo Squat Stretch with Shoulder Dips
+  - [x] Standing Cat-Cow
+- [x] Preserve the original download and import provenance, including source ranges, references, page IDs, video paths, and the original file checksum
+- [x] Mark five nonstandard variation names as descriptive, identify the incomplete 0.6-second sit-through, and exclude the text interlude and repeated promotional ending
+- [x] Validate the real library and decode all 2,080 retained video frames through AVFoundation; advance AVPlayer for every saved clip and render native previews
+- [x] Refresh `/Applications/Tmax.app` through its existing library notification, open Database, expand the collection, and observe all thirteen exercise navigation targets across the scrolled list
+- [x] Open Seated Windshield Wipers in the installed app and inspect its attachment, guide, source range, references, and workout configuration
+- [ ] Human review of each exercise name, especially the five descriptive variations, and each saved clip in Database
+
+The collection is `kir_martysiuk — Mobility & Calisthenics` in the Mac library at `~/Library/Application Support/TimeMaster/Exercises Database/`. The source archive is `Workspace/Video Imports/DedvkOXt_EM/` under the same data root. Its 30-second exercise configuration is the required editable app default, not the video length or a prescribed training dose. These are local user-library files, not repository media or an iPhone/cloud import. No application source, existing workouts, cloud settings, or unrelated project files were changed. The existing validator reports valid records with optional-field reflection warnings; it does not report a warning-free library. Product specifications remain unchanged pending acceptance.
+
 ---
 
 ## Notes
