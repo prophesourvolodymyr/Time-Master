@@ -6,7 +6,7 @@ The story of building a workout in seconds. It follows the shared chapter templa
 
 - **The intro moment:** the headline "Build it in seconds." stays in place while the page is held. As the visitor scrolls, the cards of a real-looking workout fly in from every border, tilted and scattered, and snap into an ordered workout: a warm-up, push-ups, a core bundle, a rest, and pistol squats. Timed exercises use the app's orange base. The bundle uses the app's white base, matching how the app tells bundles and timed exercises apart.
 - **Beats.** Each beat has a real recording and two short lines:
-  1. **Drag. Drop. Done.** Exercises are dragged from the library into a workout, with sets, reps, rest, and timing edited right on the card.
+  1. **Tap. Add. Done.** Any exercise in the library is added to a workout in one tap, with sets, reps, rest, and timing set right there.
   2. **Bundles that shuffle.** Moves are grouped into one timed bundle and run in order or shuffled every set.
   3. **A soundtrack with a timeline.** Songs and playlists are placed on the workout's own music timeline. The main track takes over, and the background music resumes where it left off.
   4. **Edit while you sweat.** Sets can be changed mid-workout without stopping the clock. The timer follows to the Lock Screen and the Dynamic Island.

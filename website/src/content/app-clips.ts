@@ -30,4 +30,22 @@ export const appClips: Partial<Record<AppClipId, AppClip>> = {
     height: 1566,
     duration: 10.5,
   },
+  "builder": {
+    id: "builder",
+    feature: "Workout builder",
+    src: "/media/app/builder.mp4",
+    poster: "/media/app/builder.jpg",
+    width: 720,
+    height: 1566,
+    duration: 11.97,
+  },
+  "database": {
+    id: "database",
+    feature: "Exercise database",
+    src: "/media/app/database.mp4",
+    poster: "/media/app/database.jpg",
+    width: 720,
+    height: 1566,
+    duration: 12.5,
+  },
 };

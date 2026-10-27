@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { appClips, type AppClipId } from "@/content/app-clips";
-import { filmFeatures } from "@/content/features";
+import { featureWords, filmFeatures } from "@/content/features";
 import film from "@/content/film.json";
 import { useImmersive } from "@/components/providers/immersive";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll";
@@ -274,8 +274,8 @@ export function FilmSection() {
       </div>
       <h2 className="sr-only">Everything inside Tmax</h2>
       <ul className={reducedMotion ? "mx-auto grid max-w-[1400px] grid-cols-2 gap-x-6 gap-y-3 px-5 py-20 font-display text-[28px] font-black md:grid-cols-4 md:px-8" : "sr-only"}>
-        {filmFeatures.map((item) => (
-          <li key={item.word}>{item.word}</li>
+        {featureWords.map((word) => (
+          <li key={word}>{word}</li>
         ))}
       </ul>
     </section>

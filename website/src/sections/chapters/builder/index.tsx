@@ -10,8 +10,8 @@ export function BuilderChapter() {
       <BuildStack />
       <FeatureBeat
         clip="builder"
-        title="Drag. Drop. Done."
-        lines={["Drag exercises from your library straight into a workout.", "Sets, reps, rest and timing live right on the card."]}
+        title="Tap. Add. Done."
+        lines={["Add any exercise from your library to a workout in one tap.", "Sets, reps, rest and timing are set right there."]}
       />
       <FeatureBeat
         clip="builder-long"

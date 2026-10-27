@@ -1,11 +1,11 @@
-import type { AppClipId } from "./app-clips";
+import { appClips, type AppClipId } from "./app-clips";
 
 export type FilmFeature = {
   word: string;
   clip: AppClipId;
 };
 
-export const filmFeatures: readonly FilmFeature[] = [
+const allFeatures: readonly FilmFeature[] = [
   { word: "Workout", clip: "workout-player" },
   { word: "Timer", clip: "timer" },
   { word: "Builder", clip: "builder" },
@@ -24,4 +24,8 @@ export const filmFeatures: readonly FilmFeature[] = [
   { word: "Collectibles", clip: "collectibles" },
 ];
 
-export const editWords: readonly string[] = [...filmFeatures.map((feature) => feature.word), "Everything"];
+export const filmFeatures = allFeatures.filter((feature) => appClips[feature.clip]);
+
+export const featureWords: readonly string[] = allFeatures.map((feature) => feature.word);
+
+export const editWords: readonly string[] = [...featureWords, "Everything"];

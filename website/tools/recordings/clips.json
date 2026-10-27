@@ -1,0 +1,52 @@
+{
+  "home": {
+    "duration": 9.43,
+    "bytes": 759045,
+    "recordedAt": "2026-10-27T02:31:38.515Z",
+    "trim": {
+      "raw": "raw/home.mov",
+      "start": 1.238,
+      "length": 9.898
+    }
+  },
+  "workout-player": {
+    "duration": 10.7,
+    "bytes": 272760,
+    "recordedAt": "2026-10-27T02:31:40.285Z",
+    "trim": {
+      "raw": "raw/workout-player.mov",
+      "start": 2.278,
+      "length": 11.059
+    }
+  },
+  "timer": {
+    "duration": 10.5,
+    "bytes": 231210,
+    "recordedAt": "2026-10-27T02:31:42.067Z",
+    "trim": {
+      "raw": "raw/timer.mov",
+      "start": 0.816,
+      "length": 10.934
+    }
+  },
+  "builder": {
+    "duration": 11.97,
+    "bytes": 802175,
+    "recordedAt": "2026-10-27T03:08:12.171Z",
+    "trim": {
+      "raw": "raw/builder.mov",
+      "start": 0.804,
+      "length": 11.96
+    }
+  },
+  "database": {
+    "duration": 12.5,
+    "bytes": 1017131,
+    "recordedAt": "2026-10-27T03:08:14.621Z",
+    "trim": {
+      "raw": "raw/database.mov",
+      "start": 0.813,
+      "length": 12.5
+    }
+  }
+}

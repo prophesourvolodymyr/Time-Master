@@ -41,7 +41,7 @@ export const downloads: readonly Download[] = [
 export const chapters: readonly Chapter[] = [
   { id: "ai", title: "AI", pitch: "Meet Talos, the coach that builds, plans and remembers." },
   { id: "social", title: "Social Media", pitch: "The feed where every post is a rep." },
-  { id: "builder", title: "Workout Builder", pitch: "Drag, drop, done. Your workout in seconds." },
+  { id: "builder", title: "Workout Builder", pitch: "Tap, add, done. Your workout in seconds." },
   { id: "map", title: "Map", pitch: "Every run and ride, drawn live on the map." },
 ];
 
