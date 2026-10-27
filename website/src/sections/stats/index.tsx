@@ -152,8 +152,13 @@ export function StatsSection() {
                   <LabelIcon weight="bold" aria-hidden="true" />
                   {stat.label}
                 </span>
-                <span className={clsx(styles.figure, stat.accent && styles.accentFigure)}>
-                  <RollingNumber text={format(stat.figures[mode])} />
+                <span className={styles.reading}>
+                  <span className={clsx(styles.figure, stat.accent && styles.accentFigure)}>
+                    <RollingNumber text={format(stat.figures[mode])} />
+                  </span>
+                  <span key={stat.figures[mode].note} className={styles.note}>
+                    {stat.figures[mode].note}
+                  </span>
                 </span>
                 <span className={styles.outcome}>
                   <OutcomeIcon weight="fill" aria-hidden="true" />
@@ -164,7 +169,7 @@ export function StatsSection() {
           );
         })}
       </ul>
-      <p className={styles.note} data-stats-head>
+      <p className={styles.footnote} data-stats-head>
         Playful math. Real gains vary.
       </p>
     </section>
