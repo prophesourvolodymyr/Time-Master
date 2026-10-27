@@ -2562,6 +2562,35 @@ User direction: download the supplied exercise reel, identify and name each dist
 
 The collection is `kir_martysiuk — Mobility & Calisthenics` in the Mac library at `~/Library/Application Support/TimeMaster/Exercises Database/`. The source archive is `Workspace/Video Imports/DedvkOXt_EM/` under the same data root. Its 30-second exercise configuration is the required editable app default, not the video length or a prescribed training dose. These are local user-library files, not repository media or an iPhone/cloud import. No application source, existing workouts, cloud settings, or unrelated project files were changed. The existing validator reports valid records with optional-field reflection warnings; it does not report a warning-free library. Product specifications remain unchanged pending acceptance.
 
+## Cycle 48 — Existing Exercise Library Consolidation — 2026-10-26
+
+User direction: pause the six-type exercise request, find the exercises saved by earlier app versions, and merge them into the currently installed Tmax database. All investigation and recovery work was performed directly, without subagents. Human review remains pending.
+
+- [x] Locate the previous Mac Documents library, the original `com.vovas.TimeMaster` iPhone library, current Mac data, and alternate preview/test storage
+- [x] Recover 280 cloud-only exercise files into durable local storage with coordinated read-and-copy; preserve the original library and leave app cloud sync disabled
+- [x] Preserve a pre-merge snapshot of the current library, raw snapshots of both older libraries, the preview exercise records, file checksums, ID mappings, and the merge plan
+- [x] Restore 75 earlier Mac exercises and their existing hierarchy
+  - [x] Boxing — 21 exercises
+  - [x] Cardio — 4 exercises
+  - [x] Core — 6 exercises
+  - [x] Core & Wrestling — 18 exercises
+  - [x] Flexibility — 5 exercises
+  - [x] Gymnastics — 3 exercises
+  - [x] Kickboxing — 5 exercises
+  - [x] Lower Body — 6 exercises, retaining Glutes and Quads
+  - [x] Upper Body — 7 exercises, retaining Push and Pull
+- [x] Deduplicate the original iPhone's 23 unchanged starter exercises and eight matching containers; confirm the preview library's 23 starter records also match the restored canonical entries
+- [x] Preserve the original iPhone's unique Boxing notes and both Hello pages, including their photos and video, under `Recovered original iPhone`; retain the video-only page as a container rather than inventing workout timing
+- [x] Normalize legacy dates and physical parent relationships, use UUID-based page directories, and migrate legacy covers into ordered attachments
+- [x] Preserve original guide files and cached manifest descriptions independently, without rewriting or concatenating their contents
+- [x] Preserve all 41 pre-existing library files byte-for-byte, including the thirteen newly imported Instagram exercises
+- [x] Validate all 106 merged pages and the untouched existing workout; verify checksums for all 109 restored attachments, generate native previews for 53 recovered videos, and confirm native image-container readability for 56 images
+- [x] Refresh `/Applications/Tmax.app`, observe all eleven root categories, and exercise Lower Body → Glutes → Glute Bridges, Donkey Kicks, and Lunges through the real installed interface
+- [ ] Human review of the restored folders, old generic drill names, recovered original-iPhone pages, notes, photos, and videos
+- [ ] Resume the user's six-type exercise request after consolidation review
+
+The consolidated local library contains 89 exercise pages and 17 container pages, with 66 video attachments and 56 images. The original Mac library remains in Documents; this is a local recovery, not opt-in to ongoing cloud sync or an installation into a simulator. The recovery snapshot and receipt are under `~/Library/Application Support/TimeMaster/Backups/Library Merge-20261026-FFA0EE2B-A10E-477B-B1D1-0A7FA1B3418D/`. Trashed items and isolated QA data were not resurrected. Existing workouts, history, app source, and sync preferences were not changed. No six new exercise types were created, and no dependent implementation or next prompt was needed.
+
 ---
 
 ## Notes
