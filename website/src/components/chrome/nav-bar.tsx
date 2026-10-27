@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { DownloadSimpleIcon, ListIcon } from "@phosphor-icons/react";
 import { ActionButton, GlassSurface, IconButton } from "@/components/ui";
 import { useChapter } from "@/components/providers/chapter";
@@ -25,17 +25,28 @@ export function NavBar() {
   useGSAP(
     () => {
       ScrollTrigger.create({ start: 32, end: "max", onToggle: (self) => setScrolled(self.isActive) });
-      for (const id of ["chapter", "stats"] as const) {
-        ScrollTrigger.create({
-          trigger: `#${id}`,
-          start: "top center",
-          end: "bottom center",
-          onToggle: (self) => setSection((current) => (self.isActive ? id : current === id ? null : current)),
-        });
-      }
     },
     { scope: headerRef },
   );
+
+  useEffect(() => {
+    const visible = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target.id);
+          else visible.delete(entry.target.id);
+        }
+        setSection(visible.has("stats") ? "stats" : visible.has("chapter") ? "chapter" : null);
+      },
+      { rootMargin: "-50% 0px -50% 0px" },
+    );
+    for (const id of ["chapter", "stats"]) {
+      const target = document.getElementById(id);
+      if (target) observer.observe(target);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   const goHome = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
