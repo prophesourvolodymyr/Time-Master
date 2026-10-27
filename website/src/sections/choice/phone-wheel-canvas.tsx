@@ -41,10 +41,9 @@ const bezel = 0.045;
 const screenWidth = bodyWidth - bezel * 2;
 const screenHeight = bodyHeight - bezel * 2;
 const front = bodyDepth / 2;
-const arcStep = 0.6;
-const arcRadius = 3.5;
+const spacing = 1.5;
 const playRange = 1.25;
-const visibleRange = 3.4;
+const visibleRange = 4;
 
 const buttons = [
   { side: -1, y: 0.62, length: 0.1 },
@@ -229,11 +228,10 @@ function Phone({ index, screen, parts, wheel, active, onPick }: PhoneProps) {
     const offset = index - wheel.current;
     const distance = Math.abs(offset);
     const weight = focusWeight(offset);
-    const angle = offset * arcStep;
     const time = clock.elapsedTime;
     group.visible = distance < visibleRange;
-    group.position.set(Math.sin(angle) * arcRadius, Math.sin(time * 1.2 + index) * 0.025 * weight, (Math.cos(angle) - 1) * arcRadius + weight * 0.9);
-    group.rotation.set(Math.sin(time * 0.8 + index) * 0.03 * weight, angle * 0.9, 0);
+    group.position.set(offset * spacing, Math.sin(time * 1.2 + index) * 0.025 * weight, weight * 0.6);
+    group.rotation.set(Math.sin(time * 0.8 + index) * 0.03 * weight, -Math.tanh(offset * 1.4) * 0.24 + Math.sin(time * 0.6 + index) * 0.05 * weight, 0);
     group.scale.setScalar(0.66 + 0.34 * weight);
     display.color.setScalar(display.map ? 1 - (0.62 * Math.min(distance, 2.5)) / 2.5 : 0);
 

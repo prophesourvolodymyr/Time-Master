@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowDownIcon } from "@phosphor-icons/react";
 import { AppClip, DeviceFrame } from "@/components/media";
 import { useChapter } from "@/components/providers/chapter";
@@ -28,9 +28,38 @@ const screens: readonly PhoneScreen[] = obsessions.map((item) => {
   return { src: clip.src, poster: clip.poster };
 });
 
+type StripLayout = {
+  lefts: number[];
+  widths: number[];
+  overflow: number;
+  inner: number;
+};
+
+function measureStrip(base: HTMLElement, track: HTMLElement, options: HTMLElement[]): StripLayout {
+  const padding = parseFloat(getComputedStyle(base).paddingLeft) * 2;
+  const inner = base.clientWidth - padding;
+  const overflow = Math.max(0, track.offsetWidth - inner);
+  base.toggleAttribute("data-overflow", overflow > 0);
+  return { lefts: options.map((option) => option.offsetLeft), widths: options.map((option) => option.offsetWidth), overflow, inner };
+}
+
+function placeStrip(layout: StripLayout, position: number, track: HTMLElement, thumb: HTMLElement, follow: boolean) {
+  const lower = Math.floor(position);
+  const upper = Math.min(lastIndex, lower + 1);
+  const fraction = position - lower;
+  const x = layout.lefts[lower] + (layout.lefts[upper] - layout.lefts[lower]) * fraction;
+  const width = layout.widths[lower] + (layout.widths[upper] - layout.widths[lower]) * fraction;
+  thumb.style.transform = `translate3d(${x.toFixed(1)}px, 0, 0)`;
+  thumb.style.width = `${width.toFixed(1)}px`;
+  const shift = follow && layout.overflow > 0 ? gsap.utils.clamp(-layout.overflow, 0, layout.inner / 2 - (x + width / 2)) : 0;
+  track.style.transform = `translate3d(${shift.toFixed(1)}px, 0, 0)`;
+}
+
 export function ObsessionWheel() {
   const stageRef = useRef<HTMLDivElement>(null);
+  const baseRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLSpanElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const triggerRef = useRef<ScrollTrigger | null>(null);
   const focusRef = useRef(0);
@@ -60,13 +89,25 @@ export function ObsessionWheel() {
     };
   }, []);
 
+  useLayoutEffect(() => {
+    if (!reducedMotion) return;
+    const base = baseRef.current;
+    const track = trackRef.current;
+    const thumb = thumbRef.current;
+    const options = optionRefs.current.filter((option): option is HTMLButtonElement => option !== null);
+    if (!base || !track || !thumb) return;
+    placeStrip(measureStrip(base, track, options), focus, track, thumb, false);
+  }, [reducedMotion, focus]);
+
   useGSAP(
     () => {
       if (reducedMotion) return;
       const stage = stageRef.current;
+      const base = baseRef.current;
       const track = trackRef.current;
-      if (!stage || !track) return;
-      const items = optionRefs.current.filter((item): item is HTMLButtonElement => item !== null);
+      const thumb = thumbRef.current;
+      if (!stage || !base || !track || !thumb) return;
+      const options = optionRefs.current.filter((option): option is HTMLButtonElement => option !== null);
 
       triggerRef.current = ScrollTrigger.create({
         trigger: stage,
@@ -88,14 +129,13 @@ export function ObsessionWheel() {
         scrollTrigger: { trigger: stage, start: "top 75%", toggleActions: "play none none reverse" },
       });
 
-      let centers: number[] = [];
+      let layout = measureStrip(base, track, options);
       let drawn = Number.NaN;
-      const measure = () => {
-        centers = items.map((item) => item.offsetLeft + item.offsetWidth / 2);
+      const resizeObserver = new ResizeObserver(() => {
+        layout = measureStrip(base, track, options);
         drawn = Number.NaN;
-      };
-      measure();
-      const resizeObserver = new ResizeObserver(measure);
+      });
+      resizeObserver.observe(base);
       resizeObserver.observe(track);
 
       const tick = (_time: number, deltaTime: number) => {
@@ -104,16 +144,7 @@ export function ObsessionWheel() {
         if (Math.abs(wheel.target - wheel.current) < 0.0005) wheel.current = wheel.target;
         if (wheel.current === drawn) return;
         drawn = wheel.current;
-        const lower = Math.floor(drawn);
-        const upper = Math.min(lastIndex, lower + 1);
-        const center = centers[lower] + (centers[upper] - centers[lower]) * (drawn - lower);
-        track.style.transform = `translate3d(${(-center).toFixed(1)}px, 0, 0)`;
-        items.forEach((item, index) => {
-          const offset = index - drawn;
-          const distance = Math.min(Math.abs(offset), 3);
-          item.style.opacity = (1 - distance * 0.27).toFixed(3);
-          item.style.transform = `rotateY(${(offset * 16).toFixed(2)}deg) scale(${(1 - distance * 0.1).toFixed(3)})`;
-        });
+        placeStrip(layout, drawn, track, thumb, true);
         const rounded = Math.round(drawn);
         if (rounded !== focusRef.current) {
           focusRef.current = rounded;
@@ -163,25 +194,27 @@ export function ObsessionWheel() {
         Pick your obsession.
       </h2>
       <div className={styles.strip} data-wheel-enter>
-        <div ref={trackRef} className={styles.track}>
-          {obsessions.map((item, index) => (
-            <button
-              key={item.label}
-              ref={(element) => {
-                optionRefs.current[index] = element;
-              }}
-              type="button"
-              className={styles.option}
-              data-focused={index === focus || undefined}
-              aria-current={index === focus || undefined}
-              onClick={() => choose(index)}
-              onKeyDown={(event) => moveFocus(event, index)}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div ref={baseRef} className={styles.stripBase}>
+          <div ref={trackRef} className={styles.stripTrack}>
+            <span ref={thumbRef} className={styles.stripThumb} aria-hidden="true" />
+            {obsessions.map((item, index) => (
+              <button
+                key={item.label}
+                ref={(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                type="button"
+                className={styles.option}
+                data-focused={index === focus || undefined}
+                aria-current={index === focus || undefined}
+                onClick={() => choose(index)}
+                onKeyDown={(event) => moveFocus(event, index)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <span className={styles.marker} aria-hidden="true" />
       </div>
       <div className={styles.phones} data-wheel-enter>
         {reducedMotion ? (
@@ -196,7 +229,7 @@ export function ObsessionWheel() {
         <ActionButton prominent size={54} paddingX={22} icon={<ArrowDownIcon weight="bold" />} iconPosition="trailing" onClick={() => dive(focus)}>
           Explore {focused.label}
         </ActionButton>
-        <p className={styles.hint}>{reducedMotion ? "Pick one, then explore it." : "Scroll to spin. Tap the phone to dive in."}</p>
+        <p className={styles.hint}>{reducedMotion ? "Pick one, then explore it." : "Scroll to switch. Tap the phone to dive in."}</p>
       </div>
     </div>
   );
