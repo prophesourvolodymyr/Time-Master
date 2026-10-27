@@ -30,6 +30,7 @@
 | **F26** | **Private Liquid Glass Controls** | **ready for human verification** | **F24, F25, existing SwiftUI toolbar and settings controls** |
 | **F27** | **Home Dashboard Redesign** | **in_progress** | **F01, F03, F04, F07, F12, F22** |
 | **F28** | **Better Maps and Route Recording** | **in_progress (Cycle 23)** | **F09, F24, F25, F26, F27, existing Cycle 11 outdoor data** |
+| **F30** | **Tmax Marketing Website** | **in_progress (Cycle 49)** — [specification](F30-tmax-website/DOCKS.md) | **Existing app features (recorded), brand assets, Higgsfield, fgen** |
 
 ## F29 — Physique Duels
 

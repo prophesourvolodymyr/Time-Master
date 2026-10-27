@@ -1,0 +1,41 @@
+[
+  {
+    "created_at": "2026-10-27T01:32:29.38166Z",
+    "display_name": "Kling 4.0",
+    "id": "ff5c448f-c0c1-404d-8bbf-e36caee44401",
+    "job_type": "kling4_0",
+    "min_result_url": null,
+    "params": {
+      "aspect_ratio": "16:9",
+      "batch_size": 1,
+      "duration": 10,
+      "height": 1080,
+      "kling_element_ids": [],
+      "medias": [
+        {
+          "data": {
+            "id": "b2917e57-6e64-495d-93b4-7f8352a72806",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BoKjjaKBqKeCey6RdrKGMBRYFY/b2917e57-6e64-495d-93b4-7f8352a72806.png"
+          },
+          "role": "start_image"
+        },
+        {
+          "data": {
+            "id": "8e6a2247-522b-499d-a5cd-637be0b8d4b3",
+            "type": "media_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BoKjjaKBqKeCey6RdrKGMBRYFY/8e6a2247-522b-499d-a5cd-637be0b8d4b3.png"
+          },
+          "role": "end_image"
+        }
+      ],
+      "mode": "image-to-video",
+      "prompt": "One continuous cinematic 10-second shot with no cuts. Begin exactly on the first reference frame and end exactly on the last reference frame. A classical white Carrara marble statue in the style of Michelangelo's David stands in pure black darkness and holds a modern smartphone whose entire screen is flat, uniform chroma key green.\nSeconds 0 to 2: almost completely still. The statue holds the phone and gazes down at the screen; only a faint glint of light drifts slowly across the polished marble.\nSeconds 2 to 9: the camera slowly and smoothly dollies in toward the phone while the statue, moving like living marble with heavy, calm, deliberate motion, raises the phone and turns its screen to face the camera. The statue's head turns slightly toward the camera and drifts softly out of focus to the left as the phone becomes centered and fills the frame.\nSeconds 9 to 10: the camera settles and everything holds completely still on the final frame.\nRules for every frame: the background stays pure solid black with no haze, particles, floor, reflections or light leaks. The phone screen stays perfectly flat, uniform chroma key green #00FF00 with no interface, no reflections, no glare, no glow and no green light falling on the marble. The fingers never slide over the screen. The marble never cracks, melts, morphs or changes texture; the hand always has exactly five fingers; the phone keeps its shape, black titanium frame and black Dynamic Island. The lighting stays consistent: soft warm key light from the upper left and a thin cool rim light from the right. No camera shake, no zoom pumping, no text, no watermark, no logos.",
+      "resolution": "1080p",
+      "width": 1920
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BoKjjaKBqKeCey6RdrKGMBRYFY/hf_20261027_013229_ff5c448f-c0c1-404d-8bbf-e36caee44401.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BoKjjaKBqKeCey6RdrKGMBRYFY/hf_20261027_013229_ff5c448f-c0c1-404d-8bbf-e36caee44401_thumbnail.webp"
+  }
+]

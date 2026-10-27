@@ -2593,6 +2593,27 @@ The consolidated local library contains 89 exercise pages and 17 container pages
 
 ---
 
+## Cycle 49 — F30 Tmax Marketing Website — 2026-10-26
+
+User direction: build the professional Next.js and TypeScript website from the user's seven annotated sketch frames; recreate the app's button styles in TypeScript; design a menu bar and footer in the app style; use a pure black page and film background; generate the hero film in one take without wasting Higgsfield credits; generate still cinematics with `fgen`; record every app clip ourselves. Product context lives in `features/F30-tmax-website/`. Nothing here is human-verified.
+
+- [x] F30 product specification: parent and child DOCKS.md files transcribed from the sketches and the user's answers (classical marble statue; mascot named Talos)
+- [x] Next.js 16.4 and TypeScript workspace in `website/` with Tailwind 4, GSAP 3.15, Lenis, React Three Fiber, Phosphor and Simple Icons
+- [x] F30-A — Native button and surface system recreated in TypeScript (action, icon, selection, segmented, card and glass surfaces; SwiftUI press spring converted to CSS `linear()`), app tokens, and the app's own fonts as subset WOFF2
+- [x] F30-A — Menu bar (transparent to glass, hides during immersive holds, mobile full-screen sheet) and footer (ribbon wordmark, configured-or-Coming-soon downloads)
+- [x] F30-E — Hero film: `fgen` start and end frames approved, then one Kling 4.0 take at 10 credits (Seedance 2.5 and 2.0 were rejected before charging as Pro-only; the user approved Kling 4.0)
+- [x] F30-E — Film pipeline: chroma key with finger occlusion, despill, true-black clamp, per-frame screen corners, desktop and mobile WebP sequences
+- [x] F30-B — Hero and scroll film: canvas sequence, perspective phone-screen layer, simulated live counter with NFT prize tag, Install Now glide, accelerating feature words, TikTok-style rail, three-second page-change edit
+- [ ] F30-E — Real app recordings from the simulator (in progress)
+- [ ] F30-C — Choice hub, download call to action and chapter slot
+- [ ] F30-C-a — AI chapter with the Talos 3D model
+- [ ] F30-C-b — Social chapter with the generated parallax scene
+- [ ] F30-C-c — Workout Builder chapter
+- [ ] F30-C-d — Map chapter
+- [ ] F30-D — Impact stats
+- [ ] Configure the real App Store, Google Play and signed IPA links (external prerequisite)
+- [ ] Human review of the website
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
