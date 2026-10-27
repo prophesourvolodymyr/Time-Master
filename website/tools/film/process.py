@@ -6,6 +6,8 @@ overlap the screen stay opaque), green spill removed from the marble, near-black
 black, and the four screen corners measured so the site can place app recordings in perspective.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import subprocess
@@ -138,11 +140,41 @@ def mobile_window(width: int, height: int, progress: float) -> int:
     return int(np.clip(round(center - crop / 2), 0, width - crop))
 
 
-def run(source: Path, out_dir: Path, manifest_path: Path, quality: int) -> None:
+def read_depth(path: Path, width: int, height: int, fps: float, total: int):
+    proc = subprocess.Popen(
+        ["ffmpeg", "-v", "error", "-i", str(path), "-vf", f"fps={fps},scale={width}:{height}", "-frames:v", str(total), "-f", "rawvideo", "-pix_fmt", "gray", "-"],
+        stdout=subprocess.PIPE,
+    )
+    size = width * height
+    while True:
+        chunk = proc.stdout.read(size)
+        if len(chunk) < size:
+            break
+        yield np.frombuffer(chunk, np.uint8).reshape(height, width)
+    proc.wait()
+
+
+def export_depth(depth_video: Path, out_dir: Path, source: tuple[int, int, float], desktop_height: int, mobile_offsets: list[int], quality: int) -> None:
+    width, height, fps = source
+    mobile_width = int(round(height * MOBILE_ASPECT))
+    count = 0
+    for index, gray in enumerate(read_depth(depth_video, width, height, fps, len(mobile_offsets))):
+        smooth_depth = cv2.GaussianBlur(gray, (0, 0), 2.0)
+        desktop = cv2.resize(smooth_depth, (DESKTOP_WIDTH // 2, desktop_height // 2), interpolation=cv2.INTER_AREA)
+        Image.fromarray(desktop).save(out_dir / "desktop-depth" / f"{index:04d}.webp", "WEBP", quality=quality, method=6)
+        offset = mobile_offsets[index]
+        mobile = cv2.resize(smooth_depth[:, offset:offset + mobile_width], (mobile_width // 2, height // 2), interpolation=cv2.INTER_AREA)
+        Image.fromarray(mobile).save(out_dir / "mobile-depth" / f"{index:04d}.webp", "WEBP", quality=quality, method=6)
+        count += 1
+    if count != len(mobile_offsets):
+        raise RuntimeError(f"depth video produced {count} frames, expected {len(mobile_offsets)}")
+
+
+def run(source: Path, out_dir: Path, manifest_path: Path, quality: int, depth: Path | None) -> None:
     width, height, fps = probe(source)
     desktop_height = int(round(height * DESKTOP_WIDTH / width / 2) * 2)
     mobile_width = int(round(height * MOBILE_ASPECT))
-    for variant in ("desktop", "mobile"):
+    for variant in ("desktop", "mobile", "desktop-depth", "mobile-depth"):
         (out_dir / variant).mkdir(parents=True, exist_ok=True)
         for old in (out_dir / variant).glob("*.webp"):
             old.unlink()
@@ -168,6 +200,7 @@ def run(source: Path, out_dir: Path, manifest_path: Path, quality: int) -> None:
     manifest = {
         "fps": round(fps, 3),
         "frameCount": total,
+        "depth": depth is not None,
         "desktop": {
             "width": DESKTOP_WIDTH,
             "height": desktop_height,
@@ -180,7 +213,9 @@ def run(source: Path, out_dir: Path, manifest_path: Path, quality: int) -> None:
         },
     }
     manifest_path.write_text(json.dumps(manifest, separators=(",", ":")))
-    print(f"{total} frames, desktop {DESKTOP_WIDTH}x{desktop_height}, mobile {mobile_width}x{height}")
+    if depth:
+        export_depth(depth, out_dir, (width, height, fps), desktop_height, mobile_offsets, quality)
+    print(f"{total} frames, desktop {DESKTOP_WIDTH}x{desktop_height}, mobile {mobile_width}x{height}, depth {'yes' if depth else 'no'}")
 
 
 def main() -> None:
@@ -189,8 +224,9 @@ def main() -> None:
     parser.add_argument("out_dir", type=Path)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("--quality", type=int, default=78)
+    parser.add_argument("--depth", type=Path, help="depth video aligned with the source film")
     args = parser.parse_args()
-    run(args.source, args.out_dir, args.manifest, args.quality)
+    run(args.source, args.out_dir, args.manifest, args.quality, args.depth)
 
 
 if __name__ == "__main__":

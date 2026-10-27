@@ -28,6 +28,8 @@ Every image, film, recording, and 3D model on the website, where it comes from, 
   - Track the four corners of the screen in every frame, so recordings can be placed in exact perspective.
   - Export web-ready frame sequences for desktop and phones, a poster that already shows a real app screen, and the per-frame screen corners.
 - **Stillness:** if the first seconds of the film are calm enough, they become the hero's seamless idle loop.
+- **Darker regeneration:** at the user's request, the approved frames were relit with `fgen` into a darker low-key mood with the same composition. The film was then generated once more with Kling 4.0 for 10 credits. This dark take is the film on the site.
+- **Depth film:** a matching per-frame depth film was generated once with Depth Anything Video (VDA-Large, 15.07 credits). It drives the cursor relighting and is exported beside the frame sequences at half resolution.
 
 ## Talos 3D Model
 
@@ -48,9 +50,11 @@ Every image, film, recording, and 3D model on the website, where it comes from, 
 | Item | Credits | Status |
 |---|---|---|
 | Starting balance | 270 | — |
-| Hero film, Kling 4.0, 10 s at 1080p | 10 | Generated once |
-| Talos image-to-3D | at most 34 | One generation after approval of the reference views |
-| Reserve | the remainder | Not spent without the user's approval |
+| Hero film, Kling 4.0, 10 s at 1080p | 10 | First take, superseded by the darker take |
+| Talos image-to-3D, Tripo H3.1 | 18 | Generated once |
+| Darker hero film, Kling 4.0 | 10 | Generated once, on the site |
+| Depth film, Depth Anything Video VDA-Large | 15.07 | Generated once, on the site |
+| Remaining | 216.93 | Not spent without the user's approval |
 
 ## Storage
 

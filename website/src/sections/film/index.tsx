@@ -13,6 +13,7 @@ import { FrameSequence } from "./frame-sequence";
 import { HeroCopy } from "./hero-copy";
 import { rectToQuadTransform, type Point } from "./homography";
 import { PageChangeEdit } from "./page-change-edit";
+import { RelightRenderer } from "./relight-renderer";
 import { ScreenClip } from "./screen-clip";
 import styles from "./film.module.css";
 
@@ -20,11 +21,13 @@ type Variant = "desktop" | "mobile";
 
 const plane = { width: 402, height: 874 };
 const lastFrame = film.frameCount - 1;
-const idleLastFrame = 54;
+const idleLastFrame = 14;
+const idleCycleSeconds = 4;
 const pushEnd = 0.3;
 const wordsEnd = 0.9;
 const editStart = 0.985;
 const screenBleed = 1.012;
+const restLights: Record<Variant, { x: number; y: number }> = { desktop: { x: 0.26, y: 0.14 }, mobile: { x: 0.62, y: 0.52 } };
 const pushEase = gsap.parseEase("power1.inOut");
 
 const featureStarts = (() => {
@@ -54,8 +57,8 @@ function screenQuad(values: readonly number[], scale: number, dx: number, dy: nu
   return points.map(([x, y]) => [cx + (x - cx) * screenBleed, cy + (y - cy) * screenBleed]);
 }
 
-function framePath(variant: Variant, index: number) {
-  return `/media/film/${variant}/${String(index).padStart(4, "0")}.webp`;
+function framePath(folder: string, index: number) {
+  return `/media/film/${folder}/${String(index).padStart(4, "0")}.webp`;
 }
 
 export function FilmSection() {
@@ -80,27 +83,49 @@ export function FilmSection() {
   useGSAP(
     () => {
       const canvas = canvasRef.current;
-      const context = canvas?.getContext("2d");
-      if (!canvas || !context) return;
+      const stage = stageRef.current;
+      if (!canvas || !stage) return;
+      const relight = RelightRenderer.create(canvas);
+      const context = relight ? null : canvas.getContext("2d");
       const meta = film[variant];
-      const sequence = new FrameSequence(Array.from({ length: film.frameCount }, (_, index) => framePath(variant, index)));
+      const paths = (folder: string) => Array.from({ length: film.frameCount }, (_, index) => framePath(folder, index));
+      const frames = new FrameSequence(paths(variant));
+      const depths = relight && film.depth ? new FrameSequence(paths(`${variant}-depth`)) : null;
       const loading = new AbortController();
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
       const view = { width: 0, height: 0, ratio: 1, frame: 0, drawn: -1 };
+      const light = { x: -1, y: -1, targetX: 0, targetY: 0, pointer: false };
+      const restLight = restLights[variant];
 
-      const draw = (force = false) => {
-        const index = sequence.nearest(Math.round(view.frame));
-        if (index < 0 || (index === view.drawn && !force)) return;
-        const image = sequence.frame(index);
+      const draw = ({ layout = false, lighting = false } = {}) => {
+        const index = frames.nearest(Math.round(view.frame));
+        const image = index < 0 ? undefined : frames.frame(index);
         if (!image) return;
+        const frameChanged = index !== view.drawn;
+        if (!frameChanged && !layout && !lighting) return;
         const scale = Math.max(view.width / meta.width, view.height / meta.height);
-        const dx = (view.width - meta.width * scale) / 2;
-        const dy = (view.height - meta.height * scale) / 2;
-        context.setTransform(view.ratio, 0, 0, view.ratio, 0, 0);
-        context.clearRect(0, 0, view.width, view.height);
-        context.drawImage(image, dx, dy, meta.width * scale, meta.height * scale);
-        const transform = rectToQuadTransform(plane.width, plane.height, screenQuad(meta.quads[index], scale, dx, dy));
-        if (screenRef.current) screenRef.current.style.transform = transform;
-        if (planeRef.current) planeRef.current.style.transform = transform;
+        const frameWidth = meta.width * scale;
+        const frameHeight = meta.height * scale;
+        const frameX = (view.width - frameWidth) / 2;
+        const frameY = (view.height - frameHeight) / 2;
+        if (relight) {
+          const depthIndex = depths ? depths.nearest(index) : -1;
+          relight.setFrame(image, depthIndex < 0 ? undefined : depths?.frame(depthIndex));
+          const radius = Math.max(view.width, view.height) * 0.46;
+          relight.render(
+            { width: view.width, height: view.height, ratio: view.ratio, frameX, frameY, frameWidth, frameHeight },
+            { x: light.x, y: light.y, height: radius * 0.45, radius, ambient: 0.3, intensity: 1.95, relief: 12 },
+          );
+        } else if (context) {
+          context.setTransform(view.ratio, 0, 0, view.ratio, 0, 0);
+          context.clearRect(0, 0, view.width, view.height);
+          context.drawImage(image, frameX, frameY, frameWidth, frameHeight);
+        }
+        if (frameChanged || layout) {
+          const transform = rectToQuadTransform(plane.width, plane.height, screenQuad(meta.quads[index], scale, frameX, frameY));
+          if (screenRef.current) screenRef.current.style.transform = transform;
+          if (planeRef.current) planeRef.current.style.transform = transform;
+        }
         posterRef.current?.setAttribute("hidden", "");
         view.drawn = index;
       };
@@ -111,27 +136,61 @@ export function FilmSection() {
         view.height = canvas.clientHeight;
         canvas.width = Math.round(view.width * view.ratio);
         canvas.height = Math.round(view.height * view.ratio);
-        draw(true);
+        if (light.x < 0) {
+          light.x = view.width * restLight.x;
+          light.y = view.height * restLight.y;
+        }
+        draw({ layout: true });
       };
       const observer = new ResizeObserver(resize);
       observer.observe(canvas);
-      sequence.load(loading.signal, () => draw(true));
+      frames.load(loading.signal, () => draw({ layout: true }));
+      depths?.load(loading.signal, () => draw({ lighting: true }), 3);
 
-      if (reducedMotion) {
-        return () => {
-          observer.disconnect();
-          loading.abort();
-        };
-      }
-
-      const idle = (seconds: number) => {
-        if (progressRef.current > 0) return;
-        const cycle = ((idleLastFrame / film.fps) * 2) / 0.6;
-        const phase = (seconds % cycle) / cycle;
-        view.frame = (phase < 0.5 ? phase * 2 : 2 - phase * 2) * idleLastFrame;
-        draw();
+      const followPointer = (event: PointerEvent) => {
+        if (event.pointerType === "touch") return;
+        const rect = canvas.getBoundingClientRect();
+        light.targetX = ((event.clientX - rect.left) / rect.width) * view.width;
+        light.targetY = ((event.clientY - rect.top) / rect.height) * view.height;
+        light.pointer = true;
       };
-      gsap.ticker.add(idle);
+      const releasePointer = () => {
+        light.pointer = false;
+      };
+      stage.addEventListener("pointermove", followPointer);
+      stage.addEventListener("pointerleave", releasePointer);
+
+      const tick = (seconds: number) => {
+        if (!reducedMotion && progressRef.current <= 0) {
+          const phase = (seconds % idleCycleSeconds) / idleCycleSeconds;
+          view.frame = (phase < 0.5 ? phase * 2 : 2 - phase * 2) * idleLastFrame;
+        }
+        if (!light.pointer) {
+          const drift = coarsePointer && !reducedMotion ? 1 : 0;
+          light.targetX = view.width * (restLight.x + Math.sin(seconds * 0.45) * 0.14 * drift);
+          light.targetY = view.height * (restLight.y + Math.cos(seconds * 0.33) * 0.1 * drift);
+        }
+        const follow = reducedMotion ? 1 : 0.085;
+        const moveX = (light.targetX - light.x) * follow;
+        const moveY = (light.targetY - light.y) * follow;
+        const lighting = Math.abs(moveX) + Math.abs(moveY) > 0.04;
+        if (lighting) {
+          light.x += moveX;
+          light.y += moveY;
+        }
+        draw({ lighting: lighting && relight !== null });
+      };
+      gsap.ticker.add(tick);
+
+      const cleanup = () => {
+        gsap.ticker.remove(tick);
+        stage.removeEventListener("pointermove", followPointer);
+        stage.removeEventListener("pointerleave", releasePointer);
+        observer.disconnect();
+        loading.abort();
+        relight?.dispose();
+      };
+      if (reducedMotion) return cleanup;
 
       const hero = heroRef.current?.querySelectorAll("[data-hero-part]") ?? [];
       const word = planeRef.current?.querySelector("[data-word]") ?? null;
@@ -167,11 +226,7 @@ export function FilmSection() {
       timeline.fromTo(rail, { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.04 }, pushEnd + 0.02);
       timeline.set({}, {}, 1);
 
-      return () => {
-        gsap.ticker.remove(idle);
-        observer.disconnect();
-        loading.abort();
-      };
+      return cleanup;
     },
     { scope: stageRef, dependencies: [variant, reducedMotion, mobile], revertOnUpdate: true },
   );

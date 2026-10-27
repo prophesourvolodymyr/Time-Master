@@ -17,6 +17,18 @@ The opening of the site is one continuous film that the visitor drives by scroll
 - The phone screen in the source film is flat chroma green. On the site it shows our recordings, with the black Dynamic Island staying on top as on a real phone.
 - The film's background is pure black and matches the page exactly. Its edges dissolve into the page so no frame boundary is ever visible.
 
+## Light That Follows the Cursor
+
+User direction from 2026-10-26: the sculpture is darker, and the light on it moves with the visitor, in the spirit of the React Bits "Depth Image" effect.
+
+- **The film:** regenerated in a low-key, black-and-white fine-art mood. One dim key light comes from the upper left, and most of the marble rests in soft shadow.
+- **The light:** a soft light follows the cursor across the whole film and relights the marble as if the visitor were holding a lamp. Surfaces turning toward the light brighten, surfaces turning away stay dark, and a faint polished gloss catches the light. This is driven by a per-frame depth map of the film, so the head, chest, hand, and phone respond as real volumes rather than as a flat glow.
+- **When the cursor leaves the film:** the light eases back to its resting place at the upper left.
+- **Pure black stays pure black.** The phone screen is never relit, because it shows the app recording.
+- **Touch devices:** the light drifts slowly on its own.
+- **Reduced motion:** the light holds still at its resting place.
+- **Without WebGL:** the film shows unlit.
+
 ## Section 1 — Hero
 
 - **Composition (desktop):** the statue film fills the viewport. The headline "A Fitness Everything App You Dreamed Of" sits in the empty right side, in large Inter Black across up to four lines. Below the headline sits the member counter, and to its right the Install Now action. This follows the sketch.

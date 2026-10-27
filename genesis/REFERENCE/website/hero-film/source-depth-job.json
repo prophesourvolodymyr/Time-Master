@@ -1,0 +1,30 @@
+[
+  {
+    "created_at": "2026-10-27T03:01:17.832593Z",
+    "display_name": "Depth Anything Video",
+    "id": "5d2b3a0d-9125-4412-abe2-3d19c84b7457",
+    "job_type": "depth_anything_video",
+    "min_result_url": null,
+    "params": {
+      "colormap": "grayscale",
+      "duration": 10.041666666666666,
+      "max_frames": null,
+      "medias": [
+        {
+          "data": {
+            "id": "3e9ba255-b52d-41aa-acbb-3edb59a2e827",
+            "type": "video_input",
+            "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3BoKjjaKBqKeCey6RdrKGMBRYFY/3e9ba255-b52d-41aa-acbb-3edb59a2e827.mp4"
+          },
+          "role": "video"
+        }
+      ],
+      "model": "VDA-Large",
+      "resolution": "auto",
+      "side_by_side": false
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3BoKjjaKBqKeCey6RdrKGMBRYFY/hf_20261027_030117_5d2b3a0d-9125-4412-abe2-3d19c84b7457.mp4",
+    "status": "completed",
+    "thumbnail_url": "https://cdn.higgsfield.ai/user_3BoKjjaKBqKeCey6RdrKGMBRYFY/hf_20261027_030117_5d2b3a0d-9125-4412-abe2-3d19c84b7457_thumbnail.webp"
+  }
+]
