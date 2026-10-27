@@ -10,6 +10,11 @@ struct AsyncCoverImage: View {
 
     @State private var loadedImage: PlatformImage?
 
+    private var pixelBudget: CGFloat {
+        if height < 160 { return PhotoManager.thumbnailPixelSize }
+        return height < 420 ? 1280 : PhotoManager.fullPhotoPixelSize
+    }
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             if loadedImage != nil, let img = loadedImage {
@@ -32,7 +37,7 @@ struct AsyncCoverImage: View {
         }
         .task {
             guard let url = url else { return }
-            loadedImage = await PhotoManager.shared.asyncLoadImage(from: url)
+            loadedImage = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: pixelBudget)
         }
     }
 

@@ -2614,6 +2614,19 @@ User direction: build the professional Next.js and TypeScript website from the u
 - [ ] Configure the real App Store, Google Play and signed IPA links (external prerequisite)
 - [ ] Human review of the website
 
+## Cycle 50 — Database Image Memory — 2026-10-26
+
+User report: the installed Mac app grew from a stable 50 MB to about 500 MB. The running app measured 508 MB (peak 766 MB). Its regions held two 46.5 MB bitmaps (4032 x 3024), one 64.5 MB bitmap (5504 x 3072), a 26.9 MB file buffer and matching Core Animation copies, which are the full-resolution photos recovered from the original iPhone library, decoded at full size to draw 56-point and 120-point Database covers. Nothing here is human-verified.
+
+- [x] Decode photos at display size through ImageIO for Database list and card covers, container cover mosaics, page media viewers, legacy media thumbnails, profile and post photos, and Mac save-popover tiles
+- [x] Bound the shared image cache by memory cost (64 MB) as well as by count, key it by requested size, and stop re-encoding video frames through PNG
+- [x] Load page photo viewers once off the render path; they previously re-read and decoded the whole file on every view update
+- [x] Limit concurrent cover and video-frame decodes to three
+- [x] Compare the previous and the new build against the same cloned library on the Database page: 484 MB (peak 633 MB) before, about 100 to 150 MB after; every cover and mosaic still renders
+- [ ] Human review of Database covers and page photo viewers with the consolidated library, and of the installed app's memory after relaunch
+
+A short startup spike of about 130 MB remains from the launch animation and first frames; it is released within a second and was not changed.
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

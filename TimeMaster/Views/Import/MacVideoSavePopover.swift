@@ -431,7 +431,7 @@ struct MacVideoSavePopover: View {
     private func pendingMediaCard(_ media: PendingMedia) -> some View {
         ZStack(alignment: .topTrailing) {
             Group {
-                if let image = NSImage(contentsOf: media.url) {
+                if let image = PhotoManager.downsampledImage(at: media.url, maxPixelSize: PhotoManager.thumbnailPixelSize) {
                     Image(nsImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fill)

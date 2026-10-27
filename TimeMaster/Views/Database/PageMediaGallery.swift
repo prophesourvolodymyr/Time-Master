@@ -229,15 +229,29 @@ private struct macOSMediaViewer: View {
 
 private struct MacOSImageView: View {
     let url: URL
+    @State private var image: NSImage?
+    @State private var failed = false
 
     var body: some View {
-        if let data = try? Data(contentsOf: url), let image = NSImage(data: data) {
-            Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-        } else {
-            Color.gray.opacity(0.3)
-                .overlay(Text("Could not load image").foregroundStyle(.white.opacity(0.6)))
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else if failed {
+                Color.gray.opacity(0.3)
+                    .overlay(Text("Could not load image").foregroundStyle(.white.opacity(0.6)))
+            } else {
+                Color.clear
+            }
+        }
+        .task(id: url) {
+            image = nil
+            failed = false
+            let loaded = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: PhotoManager.viewerPixelSize)
+            guard !Task.isCancelled else { return }
+            image = loaded
+            failed = loaded == nil
         }
     }
 }
@@ -247,57 +261,75 @@ private struct MacOSImageView: View {
 private struct ZoomableImageView: View {
     let url: URL
 
+    @State private var image: UIImage?
+    @State private var failed = false
     @State private var currentScale: CGFloat = 1
     @State private var lastScale: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
 
     var body: some View {
-        if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
-            GeometryReader { _ in
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .scaleEffect(currentScale)
-                    .offset(offset)
-                    .gesture(
-                        MagnificationGesture()
-                            .onChanged { value in
-                                currentScale = max(1, lastScale * value)
-                            }
-                            .onEnded { _ in
-                                lastScale = currentScale
-                                if currentScale <= 1 {
-                                    withAnimation { offset = .zero; lastOffset = .zero }
-                                }
-                            }
-                    )
-                    .simultaneousGesture(
-                        DragGesture()
-                            .onChanged { value in
-                                guard currentScale > 1 else { return }
-                                offset = CGSize(
-                                    width: lastOffset.width + value.translation.width,
-                                    height: lastOffset.height + value.translation.height
-                                )
-                            }
-                            .onEnded { _ in
-                                lastOffset = offset
-                            }
-                    )
-                    .onTapGesture {
-                        withAnimation {
-                            currentScale = 1
-                            lastScale = 1
-                            offset = .zero
-                            lastOffset = .zero
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+        Group {
+            if let image {
+                zoomable(image)
+            } else if failed {
+                Color.gray.opacity(0.3)
+                    .overlay(Text("Could not load image").foregroundStyle(.white.opacity(0.6)))
+            } else {
+                Color.clear
             }
-        } else {
-            Color.gray.opacity(0.3)
-                .overlay(Text("Could not load image").foregroundStyle(.white.opacity(0.6)))
+        }
+        .task(id: url) {
+            image = nil
+            failed = false
+            let loaded = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: PhotoManager.viewerPixelSize)
+            guard !Task.isCancelled else { return }
+            image = loaded
+            failed = loaded == nil
+        }
+    }
+
+    private func zoomable(_ image: UIImage) -> some View {
+        GeometryReader { _ in
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .scaleEffect(currentScale)
+                .offset(offset)
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            currentScale = max(1, lastScale * value)
+                        }
+                        .onEnded { _ in
+                            lastScale = currentScale
+                            if currentScale <= 1 {
+                                withAnimation { offset = .zero; lastOffset = .zero }
+                            }
+                        }
+                )
+                .simultaneousGesture(
+                    DragGesture()
+                        .onChanged { value in
+                            guard currentScale > 1 else { return }
+                            offset = CGSize(
+                                width: lastOffset.width + value.translation.width,
+                                height: lastOffset.height + value.translation.height
+                            )
+                        }
+                        .onEnded { _ in
+                            lastOffset = offset
+                        }
+                )
+                .onTapGesture {
+                    withAnimation {
+                        currentScale = 1
+                        lastScale = 1
+                        offset = .zero
+                        lastOffset = .zero
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

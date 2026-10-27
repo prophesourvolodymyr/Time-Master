@@ -113,7 +113,7 @@ private struct DatabaseCoverThumbnail: View {
         }
         .task(id: url) {
             image = nil
-            let thumbnail = await PhotoManager.shared.asyncLoadImage(from: url)
+            let thumbnail = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: PhotoManager.thumbnailPixelSize)
             guard !Task.isCancelled else { return }
             image = thumbnail
         }
