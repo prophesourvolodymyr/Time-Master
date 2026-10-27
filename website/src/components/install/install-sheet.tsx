@@ -1,11 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import Image from "next/image";
 import { XIcon } from "@phosphor-icons/react";
-import { DownloadButtons } from "@/components/downloads/download-buttons";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll";
 import { IconButton } from "@/components/ui";
+import { InstallBanner } from "./install-banner";
 import styles from "./install-sheet.module.css";
 
 type InstallState = {
@@ -52,16 +51,7 @@ export function InstallProvider({ children }: { children: ReactNode }) {
       >
         <div className={styles.panel}>
           <span className={styles.grabber} aria-hidden="true" />
-          <div className={styles.art} aria-hidden="true">
-            <Image src="/media/choice/download-hand.webp" alt="" fill sizes="(max-width: 1080px) 100vw, 1080px" />
-          </div>
-          <div className={styles.body}>
-            <h2 id="install-title" className="text-display text-[clamp(32px,4vw,56px)]">
-              Skip the tour. <span className="text-accent">Start training.</span>
-            </h2>
-            <p className="max-w-[38ch] text-[15px] text-ink-2">Tmax on your phone, your Mac and every screen you train with.</p>
-            <DownloadButtons />
-          </div>
+          <InstallBanner heading="h2" titleId="install-title" className={styles.content} />
           <IconButton className={styles.close} label="Close" icon={<XIcon weight="bold" />} onClick={() => setOpen(false)} />
         </div>
       </dialog>

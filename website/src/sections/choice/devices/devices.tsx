@@ -35,7 +35,6 @@ type ScreenProps = {
   source: ScreenSource;
   logo: Texture | null;
   crop?: ScreenCrop;
-  kit: DeviceKit;
   frame: RefObject<ScreenFrame>;
 };
 
@@ -52,7 +51,7 @@ function setMap(material: MeshBasicMaterial, map: Texture | null) {
   if (swapsDefine) material.needsUpdate = true;
 }
 
-function Screen({ width, height, radius, source, logo, crop, kit, frame }: ScreenProps) {
+function Screen({ width, height, radius, source, logo, crop, frame }: ScreenProps) {
   const baseRef = useRef<MeshBasicMaterial>(null);
   const insetRef = useRef<MeshBasicMaterial>(null);
   const stateRef = useRef<ScreenState>(createScreenState());
@@ -114,7 +113,6 @@ function Screen({ width, height, radius, source, logo, crop, kit, frame }: Scree
           <meshBasicMaterial ref={insetRef} color="#000000" toneMapped={false} />
         </mesh>
       ) : null}
-      <mesh geometry={geometry.surface} material={kit.materials.glare} position-z={0.0012} />
     </>
   );
 }
@@ -175,7 +173,7 @@ export function Handset({ kit, source, logo = null, place, onClick, spec, kind }
       <mesh geometry={geometry.body} material={frameMaterial} />
       <mesh geometry={geometry.glass} material={kit.materials.glass} position-z={front + 0.0012} />
       <group position-z={front + 0.0024}>
-        <Screen width={screenWidth} height={screenHeight} radius={spec.radius - spec.bezel} source={source} logo={logo} kit={kit} frame={frame} />
+        <Screen width={screenWidth} height={screenHeight} radius={spec.radius - spec.bezel} source={source} logo={logo} frame={frame} />
       </group>
       <mesh geometry={geometry.cutout} material={kit.materials.black} position={[0, screenHeight / 2 - (kind === "iphone" ? 0.08 : 0.07), front + 0.004]} />
       {(kind === "iphone" ? iPhoneButtons : androidButtons).map((button) => (
@@ -223,7 +221,7 @@ export function Laptop({ kit, source, logo = null, place }: DeviceProps) {
           <RoundedBox args={[2.6, 1.72, 0.045]} radius={0.02} smoothness={4} material={kit.materials.aluminum} />
           <mesh geometry={geometry.bezel} material={kit.materials.black} position-z={0.0235} />
           <group position={[0, -0.02, 0.0245]}>
-            <Screen width={2.42} height={1.52} radius={0.04} source={source} logo={logo} kit={kit} frame={frame} />
+            <Screen width={2.42} height={1.52} radius={0.04} source={source} logo={logo} frame={frame} />
           </group>
           <mesh geometry={geometry.notch} material={kit.materials.black} position={[0, 0.77, 0.027]} />
         </group>
@@ -246,7 +244,7 @@ export function Monitor({ kit, source, logo = null, place }: DeviceProps) {
       <RoundedBox args={[3.3, 1.95, 0.08]} radius={0.035} smoothness={4} material={kit.materials.aluminum} />
       <mesh geometry={bezel} material={kit.materials.black} position-z={0.041} />
       <group position-z={0.042}>
-        <Screen width={3.14} height={1.77} radius={0.02} source={source} logo={logo} kit={kit} frame={frame} />
+        <Screen width={3.14} height={1.77} radius={0.02} source={source} logo={logo} frame={frame} />
       </group>
       <RoundedBox args={[0.24, 0.72, 0.07]} radius={0.03} smoothness={4} material={kit.materials.aluminum} position={[0, -1.3, -0.12]} />
       <RoundedBox args={[1.25, 0.05, 0.62]} radius={0.024} smoothness={4} material={kit.materials.aluminum} position={[0, -1.66, -0.02]} />
@@ -276,7 +274,7 @@ export function Watch({ kit, source, logo = null, place, crop }: DeviceProps & {
       <mesh geometry={geometry.body} material={kit.materials.aluminum} />
       <mesh geometry={geometry.glass} material={kit.materials.glass} position-z={0.0562} />
       <group position-z={0.0574}>
-        <Screen width={0.39} height={0.48} radius={0.11} source={source} logo={logo} crop={crop} kit={kit} frame={frame} />
+        <Screen width={0.39} height={0.48} radius={0.11} source={source} logo={logo} crop={crop} frame={frame} />
       </group>
       <mesh geometry={kit.geometry.crown} material={kit.materials.aluminum} position={[0.245, 0.08, 0]} rotation-z={Math.PI / 2} />
       <RoundedBox args={[0.02, 0.12, 0.05]} radius={0.008} smoothness={3} material={kit.materials.aluminum} position={[0.236, -0.1, 0]} />

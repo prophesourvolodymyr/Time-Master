@@ -1,5 +1,4 @@
 import {
-  AdditiveBlending,
   BoxGeometry,
   CanvasTexture,
   CylinderGeometry,
@@ -80,7 +79,6 @@ export type DeviceKit = {
     black: MeshBasicMaterial;
     rubber: MeshStandardMaterial;
     keys: MeshStandardMaterial;
-    glare: MeshStandardMaterial;
   };
   geometry: {
     button: BoxGeometry;
@@ -98,7 +96,6 @@ export function createDeviceKit(): DeviceKit {
     black: new MeshBasicMaterial({ color: "#000000" }),
     rubber: new MeshStandardMaterial({ color: "#16171a", roughness: 0.85, metalness: 0 }),
     keys: new MeshStandardMaterial({ color: "#0b0b0d", roughness: 0.7, metalness: 0.1 }),
-    glare: new MeshStandardMaterial({ color: "#000000", roughness: 0.2, metalness: 0, envMapIntensity: 0, transparent: true, opacity: 0.22, blending: AdditiveBlending, depthWrite: false }),
   };
   const geometry = {
     button: new BoxGeometry(0.014, 1, 0.05),

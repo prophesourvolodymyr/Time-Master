@@ -3,8 +3,9 @@
 import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowDownIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
-import { AppClip, DeviceFrame } from "@/components/media";
+import { InstallBanner } from "@/components/install/install-banner";
 import { useInstall } from "@/components/install/install-sheet";
+import { AppClip, DeviceFrame } from "@/components/media";
 import { useChapter } from "@/components/providers/chapter";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll";
 import { ActionButton } from "@/components/ui";
@@ -13,7 +14,7 @@ import { resolveClip } from "@/content/clip-stand-ins";
 import { desktopRecording } from "@/content/desktop-recording";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { usePrefersReducedMotion } from "@/lib/motion";
-import type { ScreenSource } from "./devices/device-parts";
+import { ease, type ScreenSource } from "./devices/device-parts";
 import { familyIndex, obsessions } from "./obsessions";
 import type { FamilySources } from "./phone-wheel-canvas";
 import { detent, type WheelState } from "./wheel";
@@ -22,8 +23,13 @@ import styles from "./choice.module.css";
 const PhoneWheelCanvas = dynamic(() => import("./phone-wheel-canvas"), { ssr: false });
 
 const lastIndex = obsessions.length - 1;
-const stepScreens = 0.42;
-const holdShare = 0.07;
+const leadScreens = 0.25;
+const travelScreens = 0.42 * lastIndex;
+const dwellScreens = 0.35;
+const finaleScreens = 0.6;
+const tailScreens = 0.3;
+const finaleStart = leadScreens + travelScreens + dwellScreens;
+const totalScreens = finaleStart + finaleScreens + tailScreens;
 const arrowSteps: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
 
 function sourceFor(id: AppClipId): ScreenSource {
@@ -72,16 +78,31 @@ function placeStrip(layout: StripLayout, position: number, track: HTMLElement, t
   track.style.transform = `translate3d(${shift.toFixed(1)}px, 0, 0)`;
 }
 
+function placeFinale(amount: number, phones: HTMLElement, cta: HTMLElement, banner: HTMLElement) {
+  const away = Math.min(1, amount * 2);
+  const arrive = ease((amount - 0.3) / 0.7);
+  phones.style.opacity = (1 - away).toFixed(3);
+  phones.style.transform = `translate3d(0, ${(away * 10).toFixed(2)}%, 0) scale(${(1 - away * 0.08).toFixed(4)})`;
+  cta.style.opacity = Math.max(0, 1 - amount * 2.5).toFixed(3);
+  banner.style.opacity = arrive.toFixed(3);
+  banner.style.transform = `translate3d(0, ${((1 - arrive) * 16).toFixed(2)}%, 0)`;
+}
+
 export function ObsessionWheel() {
   const stageRef = useRef<HTMLDivElement>(null);
   const baseRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
+  const phonesRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const triggerRef = useRef<ScrollTrigger | null>(null);
   const focusRef = useRef(0);
+  const finaleRef = useRef({ target: 0, current: 0, open: false });
   const wheel = useMemo<WheelState>(() => ({ target: 0, current: 0 }), []);
   const [focus, setFocus] = useState(0);
+  const [finaleOpen, setFinaleOpen] = useState(false);
   const [near, setNear] = useState(false);
   const [visible, setVisible] = useState(false);
   const { selectChapter } = useChapter();
@@ -124,17 +145,22 @@ export function ObsessionWheel() {
       const base = baseRef.current;
       const track = trackRef.current;
       const thumb = thumbRef.current;
-      if (!stage || !base || !track || !thumb) return;
+      const phones = phonesRef.current;
+      const cta = ctaRef.current;
+      const banner = bannerRef.current;
+      if (!stage || !base || !track || !thumb || !phones || !cta || !banner) return;
       const options = optionRefs.current.filter((option): option is HTMLButtonElement => option !== null);
+      const finale = finaleRef.current;
 
       triggerRef.current = ScrollTrigger.create({
         trigger: stage,
         start: "top top",
-        end: () => `+=${window.innerHeight * (stepScreens * lastIndex + 0.5)}`,
+        end: () => `+=${window.innerHeight * totalScreens}`,
         pin: true,
         onUpdate: (self) => {
-          const travel = gsap.utils.clamp(0, 1, (self.progress - holdShare) / (1 - holdShare * 2));
-          wheel.target = detent(travel * lastIndex);
+          const screensIn = self.progress * totalScreens;
+          wheel.target = detent(gsap.utils.clamp(0, 1, (screensIn - leadScreens) / travelScreens) * lastIndex);
+          finale.target = ease((screensIn - finaleStart) / finaleScreens);
         },
       });
 
@@ -148,10 +174,11 @@ export function ObsessionWheel() {
       });
 
       let layout = measureStrip(base, track, options);
-      let drawn = Number.NaN;
+      let drawnWheel = Number.NaN;
+      let drawnFinale = Number.NaN;
       const resizeObserver = new ResizeObserver(() => {
         layout = measureStrip(base, track, options);
-        drawn = Number.NaN;
+        drawnWheel = Number.NaN;
       });
       resizeObserver.observe(base);
       resizeObserver.observe(track);
@@ -160,13 +187,26 @@ export function ObsessionWheel() {
         const step = Math.min(deltaTime / 1000, 0.05);
         wheel.current += (wheel.target - wheel.current) * (1 - Math.exp(-step * 9));
         if (Math.abs(wheel.target - wheel.current) < 0.0005) wheel.current = wheel.target;
-        if (wheel.current === drawn) return;
-        drawn = wheel.current;
-        placeStrip(layout, drawn, track, thumb, true);
-        const rounded = Math.round(drawn);
-        if (rounded !== focusRef.current) {
-          focusRef.current = rounded;
-          setFocus(rounded);
+        finale.current += (finale.target - finale.current) * (1 - Math.exp(-step * 8));
+        if (Math.abs(finale.target - finale.current) < 0.0005) finale.current = finale.target;
+
+        if (wheel.current !== drawnWheel) {
+          drawnWheel = wheel.current;
+          placeStrip(layout, drawnWheel, track, thumb, true);
+          const rounded = Math.round(drawnWheel);
+          if (rounded !== focusRef.current) {
+            focusRef.current = rounded;
+            setFocus(rounded);
+          }
+        }
+        if (finale.current !== drawnFinale) {
+          drawnFinale = finale.current;
+          placeFinale(drawnFinale, phones, cta, banner);
+          const open = drawnFinale > 0.5;
+          if (open !== finale.open) {
+            finale.open = open;
+            setFinaleOpen(open);
+          }
         }
       };
       gsap.ticker.add(tick);
@@ -187,8 +227,8 @@ export function ObsessionWheel() {
       setFocus(index);
       return;
     }
-    const share = holdShare + (1 - holdShare * 2) * (index / lastIndex);
-    scrollTo(trigger.start + (trigger.end - trigger.start) * share, { duration: 0.9 });
+    const screensIn = leadScreens + travelScreens * (index / lastIndex);
+    scrollTo(trigger.start + (trigger.end - trigger.start) * (screensIn / totalScreens), { duration: 0.9 });
   };
 
   const dive = (index: number) => {
@@ -209,6 +249,7 @@ export function ObsessionWheel() {
   };
 
   const focused = obsessions[focus];
+  const bannerShown = reducedMotion || finaleOpen;
 
   return (
     <div ref={stageRef} className={styles.stage} data-static={reducedMotion || undefined}>
@@ -239,26 +280,39 @@ export function ObsessionWheel() {
           </div>
         </div>
       </div>
-      <div className={styles.phones} data-wheel-enter>
-        {reducedMotion ? (
-          <DeviceFrame className={styles.staticPhone}>
-            <AppClip id={focused.clip} label={focused.label} />
-          </DeviceFrame>
-        ) : near ? (
-          <PhoneWheelCanvas className={styles.canvas} screens={screens} family={family} familyIndex={familyIndex} wheel={wheel} active={visible} onPick={choose} />
-        ) : null}
-      </div>
-      <div className={styles.cta} data-wheel-enter>
-        <ActionButton
-          prominent
-          size={54}
-          paddingX={22}
-          icon={focused.chapter ? <ArrowDownIcon weight="bold" /> : <DownloadSimpleIcon weight="bold" />}
-          iconPosition="trailing"
-          onClick={() => dive(focus)}
-        >
-          {focused.chapter ? `Explore ${focused.label}` : "Get Tmax everywhere"}
-        </ActionButton>
+      <div className={styles.scene}>
+        <div ref={phonesRef} className={styles.phones} data-wheel-enter>
+          {reducedMotion ? (
+            <DeviceFrame className={styles.staticPhone}>
+              <AppClip id={focused.clip} label={focused.label} />
+            </DeviceFrame>
+          ) : near ? (
+            <PhoneWheelCanvas
+              className={styles.canvas}
+              screens={screens}
+              family={family}
+              familyIndex={familyIndex}
+              wheel={wheel}
+              active={visible && !finaleOpen}
+              onPick={choose}
+            />
+          ) : null}
+        </div>
+        <div ref={ctaRef} className={styles.cta} data-wheel-enter inert={!reducedMotion && finaleOpen}>
+          <ActionButton
+            prominent
+            size={54}
+            paddingX={22}
+            icon={focused.chapter ? <ArrowDownIcon weight="bold" /> : <DownloadSimpleIcon weight="bold" />}
+            iconPosition="trailing"
+            onClick={() => dive(focus)}
+          >
+            {focused.chapter ? `Explore ${focused.label}` : "Get Tmax everywhere"}
+          </ActionButton>
+        </div>
+        <div ref={bannerRef} className={styles.finale} inert={!bannerShown}>
+          <InstallBanner heading="h3" className={styles.finaleBanner} />
+        </div>
       </div>
     </div>
   );

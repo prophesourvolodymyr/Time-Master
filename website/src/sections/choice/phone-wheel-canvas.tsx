@@ -84,12 +84,12 @@ function PointerLight() {
     const time = clock.elapsedTime;
     const x = target.pointer ? target.x : Math.sin(time * 0.35) * 0.6;
     const y = target.pointer ? target.y : 0.3 + Math.cos(time * 0.27) * 0.35;
-    const follow = 1 - Math.exp(-delta * 6);
+    const follow = 1 - Math.exp(-delta * 2.4);
     light.position.x += ((x * viewport.width) / 2 - light.position.x) * follow;
     light.position.y += ((y * viewport.height) / 2 - light.position.y) * follow;
   });
 
-  return <pointLight ref={lightRef} position={[1, 1, 2.6]} intensity={24} decay={2} distance={0} color="#ffe6cc" />;
+  return <pointLight ref={lightRef} position={[1, 1, 4]} intensity={16} decay={2} distance={0} color="#ffe6cc" />;
 }
 
 function rowPose(group: Group, offset: number, time: number, index: number) {
