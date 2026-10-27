@@ -18,6 +18,7 @@ import { ease, type ScreenSource } from "./devices/device-parts";
 import { familyIndex, obsessions } from "./obsessions";
 import type { FamilySources } from "./phone-wheel-canvas";
 import { detent, type WheelState } from "./wheel";
+import strip from "@/components/ui/glass-strip.module.css";
 import styles from "./choice.module.css";
 
 const PhoneWheelCanvas = dynamic(() => import("./phone-wheel-canvas"), { ssr: false });
@@ -257,9 +258,9 @@ export function ObsessionWheel() {
         Pick your obsession.
       </h2>
       <div className={styles.strip} data-wheel-enter>
-        <div ref={baseRef} className={styles.stripBase}>
-          <div ref={trackRef} className={styles.stripTrack}>
-            <span ref={thumbRef} className={styles.stripThumb} aria-hidden="true" />
+        <div ref={baseRef} className={strip.base} data-scrollable={reducedMotion || undefined}>
+          <div ref={trackRef} className={strip.track}>
+            <span ref={thumbRef} className={strip.thumb} aria-hidden="true" />
             {obsessions.map((item, index) => (
               <button
                 key={item.label}
@@ -267,7 +268,7 @@ export function ObsessionWheel() {
                   optionRefs.current[index] = element;
                 }}
                 type="button"
-                className={styles.option}
+                className={strip.option}
                 data-focused={index === focus || undefined}
                 aria-current={index === focus || undefined}
                 onClick={() => choose(index)}

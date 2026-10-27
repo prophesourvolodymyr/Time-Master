@@ -49,42 +49,9 @@
     opacity: 0.86;
   }
 
-  .segmented {
-    position: relative;
-    display: inline-flex;
-    gap: 12px;
-  }
-
-  .segmented .selection {
-    z-index: 1;
-  }
-
-  .segmented .selection[data-selected] {
-    background: transparent;
-  }
-
-  .indicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: var(--indicator-width, 0px);
-    border-radius: var(--radius-control);
-    background: var(--color-accent);
-    transform: translateX(var(--indicator-x, 0px));
-    transition:
-      transform 480ms var(--ease-out-expo),
-      width 480ms var(--ease-out-expo);
-    pointer-events: none;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .selection:active {
       transform: none;
-    }
-
-    .indicator {
-      transition: none;
     }
   }
 }

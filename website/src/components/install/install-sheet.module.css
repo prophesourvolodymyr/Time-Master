@@ -96,6 +96,46 @@
     }
   }
 
+  .sheet[data-variant="notice"] {
+    z-index: 80;
+    inset: auto 24px 24px auto;
+    width: min(440px, calc(100vw - 48px));
+    max-height: calc(100dvh - 48px);
+    margin: 0;
+    transform: translateX(calc(100% + 48px));
+  }
+
+  .sheet[data-variant="notice"][open] {
+    transform: translateX(0);
+  }
+
+  @starting-style {
+    .sheet[data-variant="notice"][open] {
+      transform: translateX(calc(100% + 48px));
+    }
+  }
+
+  .sheet[data-variant="notice"] .panel {
+    min-height: 0;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    border-radius: 28px;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      inset 0 0 0 1px rgb(255 255 255 / 0.1),
+      0 30px 80px -20px rgb(0 0 0 / 0.95),
+      0 0 90px -30px rgb(255 106 0 / 0.5);
+  }
+
+  .sheet[data-variant="notice"] .content {
+    padding-bottom: 26px;
+  }
+
+  .sheet[data-variant="notice"] .close {
+    top: 14px;
+    right: 14px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .sheet,
     .sheet::backdrop {

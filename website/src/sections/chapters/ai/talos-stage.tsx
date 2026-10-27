@@ -69,20 +69,22 @@ export function TalosStage({ pose, stageRef, near, active, onModelReady }: Talos
   );
 
   return (
-    <div ref={rootRef} className={styles.stageLayer} aria-hidden="true">
-      <div ref={stageRef} className={styles.stage}>
-        <TalosPoster posterRef={posterRef} className={clsx(ready && styles.posterHidden)} />
-        {near && webgl ? (
-          <TalosCanvas
-            pose={pose}
-            active={active}
-            onReady={() => {
-              setReady(true);
-              onModelReady();
-            }}
-            className={clsx(styles.canvas, ready && styles.canvasReady)}
-          />
-        ) : null}
+    <div className={styles.stageTrack} aria-hidden="true">
+      <div ref={rootRef} className={styles.stageLayer}>
+        <div ref={stageRef} className={styles.stage}>
+          <TalosPoster posterRef={posterRef} className={clsx(ready && styles.posterHidden)} />
+          {near && webgl ? (
+            <TalosCanvas
+              pose={pose}
+              active={active}
+              onReady={() => {
+                setReady(true);
+                onModelReady();
+              }}
+              className={clsx(styles.canvas, ready && styles.canvasReady)}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );

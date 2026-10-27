@@ -22,91 +22,6 @@
     padding-inline: 16px;
   }
 
-  .stripBase {
-    position: relative;
-    max-width: 100%;
-    overflow: hidden;
-    padding: 5px;
-    border-radius: calc(var(--radius-control) + 5px);
-    background: rgb(20 20 20 / 0.6);
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
-    box-shadow:
-      inset 0 0 0 1px rgb(255 255 255 / var(--rim-alpha)),
-      inset 0 1px 0 rgb(255 255 255 / 0.1),
-      0 24px 60px -30px rgb(0 0 0 / 0.9);
-  }
-
-  .stripBase[data-overflow] {
-    mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
-  }
-
-  .stripTrack {
-    position: relative;
-    display: flex;
-    width: max-content;
-    gap: 2px;
-    will-change: transform;
-  }
-
-  .stripThumb {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    border-radius: var(--radius-control);
-    background: var(--color-accent);
-    box-shadow:
-      inset 0 0 0 1px rgb(255 255 255 / 0.18),
-      0 8px 24px -8px rgb(255 106 0 / 0.75);
-    will-change: transform, width;
-    pointer-events: none;
-  }
-
-  .option {
-    position: relative;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    padding-inline: clamp(12px, 1.2vw, 18px);
-    border: 0;
-    border-radius: var(--radius-control);
-    background: none;
-    color: var(--color-ink-2);
-    font-family: var(--font-display);
-    font-size: clamp(14px, 1.15vw, 17px);
-    font-weight: 900;
-    line-height: 1;
-    white-space: nowrap;
-    cursor: pointer;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    transition: color 260ms ease;
-  }
-
-  .option[data-focused] {
-    color: var(--color-ink);
-  }
-
-  .option svg {
-    width: 1.15em;
-    height: 1.15em;
-    flex: none;
-  }
-
-  @media (hover: hover) {
-    .option:not([data-focused]):hover {
-      color: var(--color-ink);
-    }
-  }
-
-  .option:focus-visible {
-    outline: none;
-    box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.75);
-  }
-
   .scene {
     position: relative;
     display: flex;
@@ -164,10 +79,6 @@
   .stage[data-static] {
     height: auto;
     min-height: 100dvh;
-  }
-
-  .stage[data-static] .stripBase {
-    overflow-x: auto;
   }
 
   .stage[data-static] .phones {

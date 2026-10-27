@@ -43,4 +43,28 @@
       max-width: 56%;
     }
   }
+
+  .banner[data-layout="stacked"] {
+    justify-content: flex-start;
+    padding: 0 0 26px;
+  }
+
+  .banner[data-layout="stacked"] .art {
+    position: relative;
+    inset: auto;
+    height: 220px;
+    flex: none;
+  }
+
+  .banner[data-layout="stacked"] .art img {
+    object-position: 72% 34%;
+    mask-image: linear-gradient(to bottom, #000 52%, transparent);
+  }
+
+  .banner[data-layout="stacked"] .body {
+    max-width: none;
+    gap: 14px;
+    margin-top: -18px;
+    padding-inline: 26px;
+  }
 }
