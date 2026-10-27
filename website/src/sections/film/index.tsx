@@ -161,6 +161,7 @@ export function FilmSection() {
         },
       });
       timeline.to(hero, { xPercent: 22, autoAlpha: 0, stagger: 0.025, ease: "power2.in", duration: 0.1 }, 0.015);
+      timeline.to(heroRef.current, { autoAlpha: 0, ease: "power1.in", duration: 0.12 }, 0.02);
       timeline.fromTo(sceneRef.current, { scale: 1, y: 0 }, { scale: 0.92, y: "6vh", ease: "power2.inOut", duration: 0.1 }, pushEnd - 0.1);
       timeline.fromTo(word, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02 }, pushEnd);
       timeline.fromTo(rail, { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.04 }, pushEnd + 0.02);

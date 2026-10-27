@@ -155,6 +155,7 @@
     flex-direction: column;
     justify-content: space-between;
     padding: calc(var(--nav-height) + 12px) 20px max(28px, env(safe-area-inset-bottom));
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0.72), transparent 36%, transparent 58%, rgb(0 0 0 / 0.8));
     pointer-events: none;
   }
 
@@ -169,6 +170,7 @@
       justify-content: center;
       gap: 32px;
       padding: 0 max(4vw, 28px) 0 0;
+      background: none;
     }
   }
 
