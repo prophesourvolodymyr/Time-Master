@@ -17,7 +17,7 @@ export type BorderSlideProps = {
   innerClassName?: string;
 };
 
-export const borderOffsets: Record<BorderEdge, gsap.TweenVars> = {
+const borderOffsets: Record<BorderEdge, gsap.TweenVars> = {
   top: { yPercent: -105 },
   bottom: { yPercent: 105 },
   left: { xPercent: -105 },

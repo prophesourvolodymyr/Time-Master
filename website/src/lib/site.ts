@@ -45,18 +45,8 @@ export const chapters: readonly Chapter[] = [
   { id: "map", title: "Map", pitch: "Every run and ride, drawn live on the map." },
 ];
 
-export const chapterIds = chapters.map((chapter) => chapter.id);
+const chapterIds = chapters.map((chapter) => chapter.id);
 
 export function isChapterId(value: string): value is ChapterId {
   return (chapterIds as readonly string[]).includes(value);
 }
-
-export const sectionIds = {
-  top: "top",
-  features: "features",
-  choose: "choose",
-  download: "download",
-  chapter: "chapter",
-  stats: "stats",
-  footer: "footer",
-} as const;

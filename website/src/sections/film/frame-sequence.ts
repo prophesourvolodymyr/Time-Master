@@ -19,10 +19,6 @@ export class FrameSequence {
     this.frames = new Array(urls.length);
   }
 
-  get count() {
-    return this.urls.length;
-  }
-
   load(signal: AbortSignal, onFrame: (index: number) => void, workers = 6) {
     const order = loadOrder(this.urls.length);
     let cursor = 0;

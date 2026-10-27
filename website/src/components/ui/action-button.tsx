@@ -31,7 +31,7 @@ export type IconButtonProps = Omit<ActionButtonProps, "icon" | "iconPosition" | 
   icon: ReactNode;
 };
 
-export function actionCornerRadius(size: number, expansion: number, circular: boolean) {
+function actionCornerRadius(size: number, expansion: number, circular: boolean) {
   if (circular) return size / 2;
   return size / 2 + (controlCornerRadius - size / 2) * expansion;
 }

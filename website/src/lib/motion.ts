@@ -28,14 +28,3 @@ export function useMediaQuery(query: string, serverValue = false) {
 export function usePrefersReducedMotion() {
   return useMediaQuery(reducedMotionQuery);
 }
-
-export function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia(reducedMotionQuery).matches;
-}
-
-export const ease = {
-  out: "power3.out",
-  inOut: "power3.inOut",
-  expo: "expo.out",
-  slide: "expo.inOut",
-} as const;
