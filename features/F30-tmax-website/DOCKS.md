@@ -101,3 +101,5 @@ Install Now in the hero fast-scrolls through the whole film straight to the choi
 - Real App Store, Google Play, and signed IPA destinations do not exist yet. The site is built to take them from configuration.
 - The official sweepstakes rules for the NFT promotion and the privacy and terms pages are not written yet. The footer leaves room for them.
 - The sketch's four circles beside the phone in Section 2 are interpreted as a TikTok-style action rail. This interpretation awaits review.
+- The AI chapter's agent-creation moment gives the agent its own username, as the user described. The current app does not yet have usernames for bots, so the moment presents an upcoming capability.
+- Posts, reactions, and replies in the app currently stay on the user's own profile. The Social chapter copy avoids implying that other people react to them until public sharing exists.
