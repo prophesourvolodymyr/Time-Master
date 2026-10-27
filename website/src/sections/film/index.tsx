@@ -172,7 +172,7 @@ export function FilmSection() {
         loading.abort();
       };
     },
-    { scope: stageRef, dependencies: [variant, reducedMotion, mobile] },
+    { scope: stageRef, dependencies: [variant, reducedMotion, mobile], revertOnUpdate: true },
   );
 
   const finishEdit = () => {

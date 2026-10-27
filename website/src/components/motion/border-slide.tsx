@@ -43,7 +43,7 @@ export function BorderSlide({
       const vars = reducedMotion ? { autoAlpha: 0, duration: 0.4 } : { ...borderOffsets[from], duration, ease: "expo.out" };
       gsap.from(innerRef.current, { ...vars, delay, scrollTrigger });
     },
-    { scope: outerRef, dependencies: [reducedMotion, from, trigger, delay, duration] },
+    { scope: outerRef, dependencies: [reducedMotion, from, trigger, delay, duration], revertOnUpdate: true },
   );
 
   return (

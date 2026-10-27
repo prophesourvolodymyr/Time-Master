@@ -51,7 +51,7 @@ export function ChoiceSection() {
         scrollTrigger: { trigger: stageRef.current, start: "top 75%", toggleActions: "play none none reverse" },
       });
     },
-    { scope: stageRef, dependencies: [reducedMotion] },
+    { scope: stageRef, dependencies: [reducedMotion], revertOnUpdate: true },
   );
 
   const focusedId = scrollFocus >= 0 ? chapters[scrollFocus].id : chapter;

@@ -48,7 +48,7 @@ export function RouteScene() {
       timeline.to("[data-runner]", { motionPath: { path: "[data-route]", align: "[data-route]", alignOrigin: [0.5, 0.5] }, duration: 1 }, 0);
       timeline.fromTo("[data-map]", { scale: 1.18, rotate: -4 }, { scale: 1, rotate: 0, duration: 1 }, 0);
     },
-    { scope: rootRef, dependencies: [reducedMotion] },
+    { scope: rootRef, dependencies: [reducedMotion], revertOnUpdate: true },
   );
 
   return (

@@ -44,7 +44,7 @@ export function BuildStack() {
       });
       timeline.fromTo("[data-build-title]", { autoAlpha: 0.15, scale: 0.92 }, { autoAlpha: 1, scale: 1, duration: 1 }, 0);
     },
-    { scope: rootRef, dependencies: [reducedMotion] },
+    { scope: rootRef, dependencies: [reducedMotion], revertOnUpdate: true },
   );
 
   return (

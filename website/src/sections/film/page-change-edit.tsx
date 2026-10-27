@@ -62,7 +62,7 @@ export function PageChangeEdit({ run, scene, onDone }: PageChangeEditProps) {
       timeline.call(() => light(pool), [], editSeconds - 0.4);
       for (const time of flashTimes) timeline.fromTo(flash, { opacity: 0.85 }, { opacity: 0, duration: 0.14, ease: "none" }, time);
     },
-    { scope: rootRef, dependencies: [run] },
+    { scope: rootRef, dependencies: [run], revertOnUpdate: true },
   );
 
   return (

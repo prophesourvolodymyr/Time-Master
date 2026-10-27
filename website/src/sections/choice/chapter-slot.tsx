@@ -33,7 +33,7 @@ export function ChapterSlot() {
       });
       return () => cancelAnimationFrame(frame);
     },
-    { scope: slotRef, dependencies: [chapter, request?.sequence] },
+    { scope: slotRef, dependencies: [chapter, request?.sequence], revertOnUpdate: true },
   );
 
   return (

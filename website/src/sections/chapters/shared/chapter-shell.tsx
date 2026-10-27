@@ -33,7 +33,7 @@ export function ChapterShell({ id, children }: ChapterShellProps) {
         },
       });
     },
-    { scope: rootRef, dependencies: [reducedMotion] },
+    { scope: rootRef, dependencies: [reducedMotion], revertOnUpdate: true },
   );
 
   return (
