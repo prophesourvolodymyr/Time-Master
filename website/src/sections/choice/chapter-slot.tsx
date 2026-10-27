@@ -31,7 +31,13 @@ export function ChapterSlot() {
         ScrollTrigger.refresh();
         if (!request?.scroll) return;
         scrollTo(request.fromY, { immediate: true });
-        scrollTo("#chapter", { duration: 1.1 });
+        scrollTo("#chapter", {
+          duration: 1.1,
+          onComplete: () => {
+            const top = slotRef.current ? slotRef.current.getBoundingClientRect().top + window.scrollY : window.scrollY;
+            if (Math.abs(window.scrollY - top) > 4) scrollTo("#chapter", { immediate: true });
+          },
+        });
       });
       return () => cancelAnimationFrame(frame);
     },

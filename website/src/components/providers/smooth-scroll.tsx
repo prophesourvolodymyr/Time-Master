@@ -44,6 +44,31 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let timer = 0;
+    let height = 0;
+    const refresh = () => {
+      if (glideRef.current) {
+        timer = window.setTimeout(refresh, 200);
+        return;
+      }
+      ScrollTrigger.sort();
+      ScrollTrigger.refresh();
+      lenisRef.current?.resize();
+      height = document.body.scrollHeight;
+    };
+    const observer = new ResizeObserver(() => {
+      if (document.body.scrollHeight === height) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(refresh, 150);
+    });
+    observer.observe(document.body);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
     const lenis = new Lenis({
       lerp: reducedMotion ? 1 : 0.1,
       smoothWheel: !reducedMotion,

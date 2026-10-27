@@ -2604,10 +2604,11 @@ User direction: build the professional Next.js and TypeScript website from the u
 - [x] F30-E — Hero film: `fgen` start and end frames approved, then one Kling 4.0 take at 10 credits (Seedance 2.5 and 2.0 were rejected before charging as Pro-only; the user approved Kling 4.0)
 - [x] F30-E — Film pipeline: chroma key with finger occlusion, despill, true-black clamp, per-frame screen corners, desktop and mobile WebP sequences
 - [x] F30-B — Hero and scroll film: canvas sequence, perspective phone-screen layer, simulated live counter with NFT prize tag, Install Now glide, accelerating feature words, TikTok-style rail, three-second page-change edit
-- [ ] F30-E — Real app recordings from the simulator (in progress)
+- [x] F30-B — User addition: darker low-key film (relit `fgen` frames, one Kling 4.0 take, 10 credits) with a cursor-following WebGL light driven by a Depth Anything Video depth film (15.07 credits)
+- [ ] F30-E — Real app recordings from the simulator (Home, workout player and rest timer delivered; the rest in progress)
 - [x] F30-C — Choice hub, download call to action and chapter slot
-- [ ] F30-C-a — AI chapter with the Talos 3D model
-- [ ] F30-C-b — Social chapter with the generated parallax scene
+- [x] F30-C-a — AI chapter with the Talos 3D model (Tripo H3.1, 18 credits)
+- [x] F30-C-b — Social chapter with the generated parallax scene
 - [x] F30-C-c — Workout Builder chapter
 - [x] F30-C-d — Map chapter
 - [x] F30-D — Impact stats
