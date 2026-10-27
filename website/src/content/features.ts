@@ -1,4 +1,5 @@
-import { appClips, type AppClipId } from "./app-clips";
+import type { AppClipId } from "./app-clips";
+import { resolveClip } from "./clip-stand-ins";
 
 export type FilmFeature = {
   word: string;
@@ -24,6 +25,6 @@ const allFeatures: readonly FilmFeature[] = [
   { word: "Collectibles", clip: "collectibles" },
 ];
 
-export const filmFeatures = allFeatures.filter((feature) => appClips[feature.clip]);
+export const filmFeatures = allFeatures.filter((feature) => resolveClip(feature.clip));
 
 export const featureWords: readonly string[] = allFeatures.map((feature) => feature.word);

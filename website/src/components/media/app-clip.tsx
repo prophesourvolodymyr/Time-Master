@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { appClips, type AppClipId } from "@/content/app-clips";
+import type { AppClipId } from "@/content/app-clips";
+import { resolveClip } from "@/content/clip-stand-ins";
 import { usePrefersReducedMotion } from "@/lib/motion";
 
 export type AppClipProps = {
@@ -15,7 +16,7 @@ export type AppClipProps = {
 export function AppClip({ id, className, priority = false, label, active = true }: AppClipProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  const clip = appClips[id];
+  const clip = resolveClip(id);
 
   useEffect(() => {
     const video = videoRef.current;

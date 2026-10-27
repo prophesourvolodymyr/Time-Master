@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import clsx from "clsx";
-import { appClips, type AppClipId } from "@/content/app-clips";
+import type { AppClipId } from "@/content/app-clips";
+import { resolveClip } from "@/content/clip-stand-ins";
 import { AppClip, DeviceFrame } from "@/components/media";
 import { BorderSlide } from "@/components/motion/border-slide";
 
@@ -13,7 +14,7 @@ export type FeatureBeatProps = {
 };
 
 export function FeatureBeat({ clip, title, lines, side = "left", aside }: FeatureBeatProps) {
-  const recorded = appClips[clip] !== undefined;
+  const recorded = resolveClip(clip) !== null;
   const textFrom = recorded ? (side === "left" ? "right" : "left") : "bottom";
   return (
     <section

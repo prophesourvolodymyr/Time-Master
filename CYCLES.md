@@ -2605,7 +2605,7 @@ User direction: build the professional Next.js and TypeScript website from the u
 - [x] F30-E — Film pipeline: chroma key with finger occlusion, despill, true-black clamp, per-frame screen corners, desktop and mobile WebP sequences
 - [x] F30-B — Hero and scroll film: canvas sequence, perspective phone-screen layer, simulated live counter with NFT prize tag, Install Now glide, accelerating feature words, TikTok-style rail, three-second page-change edit
 - [x] F30-B — User addition: darker low-key film (relit `fgen` frames, one Kling 4.0 take, 10 credits) with a cursor-following WebGL light driven by a Depth Anything Video depth film (15.07 credits)
-- [ ] F30-E — Real app recordings from the simulator (Home, workout player and rest timer delivered; the rest in progress)
+- [x] F30-E — Real app recordings from the simulator: seven clips (home, workout player, rest timer, builder, exercise library, map recording, routes). Per the user, recording stopped while the app is still in development; missing clips use the closest existing recording as a stand-in
 - [x] F30-C — Choice hub, download call to action and chapter slot
 - [x] F30-C-a — AI chapter with the Talos 3D model (Tripo H3.1, 18 credits)
 - [x] F30-C-b — Social chapter with the generated parallax scene
@@ -2614,7 +2614,9 @@ User direction: build the professional Next.js and TypeScript website from the u
 - [x] F30-D — Impact stats
 - [x] F30-B — Hero film quality: desktop frames at the source's native 1916x1080 with higher-quality opening frames; relighting rebuilt on precomputed surface slopes so the chest no longer shows horizontal stripes
 - [x] F30-B — Page-change edit rebuilt as the TikTok "ego edit" the user described: 14 photographed book pages with the word "real" highlighted and locked to the screen center, full-screen desktop and phone page sets, swipes, punch-in cuts, shake, glow, grain and flashes over 3 seconds
-- [ ] F30-B DOCKS.md: describe the "real" page edit and the relit film once the user accepts them
+- [x] F30-B — Hero headline rotates between "Everything App", "Social Media" and "AI Coach" with a letter-roll swap every 3.6 seconds; promo sentence removed from the hero; "$10–150" tag moved onto Install Now with a shake and ping every 5 seconds
+- [x] F30-C — "Pick your obsession" rebuilt as a scroll-driven wheel: one strip of eight text options without icons (Map, Routes, Interval Timer, Workout Builder, Exercise Library, Duels, Social Media, AI Coach) above procedural 3D iPhones looping app videos; the chosen phone comes forward and grows; Duels uses a stand-in video
+- [ ] F30-B and F30-C DOCKS.md: describe the "real" page edit, the relit film, the rotating headline, the Install tag and the obsession wheel once the user accepts them
 - [ ] Configure the real App Store, Google Play and signed IPA links (external prerequisite)
 - [ ] Human review of the website
 - [ ] Native app (found while recording): the workout editor's "Browse exercises" button does nothing on an empty workout and otherwise opens a page preview instead of the exercise browser

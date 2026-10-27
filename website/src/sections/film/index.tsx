@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { appClips, type AppClipId } from "@/content/app-clips";
+import type { AppClipId } from "@/content/app-clips";
+import { resolveClip } from "@/content/clip-stand-ins";
 import { featureWords, filmFeatures } from "@/content/features";
 import film from "@/content/film.json";
 import { useImmersive } from "@/components/providers/immersive";
@@ -41,7 +42,9 @@ const featureStarts = (() => {
   });
 })();
 
-const screenClipIds = [...new Set<AppClipId>(["home", ...filmFeatures.map((feature) => feature.clip)])].filter((id) => appClips[id]);
+const screenClipFor = (id: AppClipId): AppClipId => resolveClip(id)?.id ?? "home";
+
+const screenClipIds = [...new Set<AppClipId>(["home", ...filmFeatures.map((feature) => screenClipFor(feature.clip))])];
 
 function featureAt(progress: number) {
   if (progress < pushEnd) return -1;
@@ -238,7 +241,7 @@ export function FilmSection() {
     scrollTo("#choose", { immediate: true });
   };
 
-  const activeClip: AppClipId = feature < 0 ? "home" : filmFeatures[feature].clip;
+  const activeClip = feature < 0 ? "home" : screenClipFor(filmFeatures[feature].clip);
   const current = filmFeatures[Math.max(0, feature)];
 
   return (
@@ -271,7 +274,7 @@ export function FilmSection() {
             <ActionRail step={Math.max(0, feature)} />
           </div>
         </div>
-        <HeroCopy ref={heroRef} onInstall={() => scrollTo("#choose", { duration: 1.8, lock: true })} />
+        <HeroCopy ref={heroRef} onInstall={() => scrollTo("#download", { duration: 1.8, lock: true })} />
         {reducedMotion ? null : <PageChangeEdit run={editRun} prepared={editPrepared} onDone={finishEdit} />}
       </div>
       <h2 className="sr-only">Everything inside Tmax</h2>

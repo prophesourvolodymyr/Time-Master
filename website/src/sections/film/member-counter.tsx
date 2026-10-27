@@ -25,9 +25,6 @@ export function MemberCounter() {
 
   return (
     <div className={styles.counter}>
-      <span className={styles.tag} aria-hidden="true">
-        {site.promo.range}
-      </span>
       <span className={styles.live} aria-hidden="true" />
       <span className={styles.odometer} aria-hidden="true">
         {[...text].map((character, index) => {

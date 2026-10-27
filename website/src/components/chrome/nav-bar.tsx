@@ -79,7 +79,7 @@ export function NavBar() {
                 </li>
               ))}
             </ul>
-            <ActionButton prominent font="text" icon={<DownloadSimpleIcon weight="bold" />} onClick={() => scrollTo("#choose", { duration: 1.6 })}>
+            <ActionButton prominent font="text" icon={<DownloadSimpleIcon weight="bold" />} onClick={() => scrollTo("#download", { duration: 1.6 })}>
               Install
             </ActionButton>
           </div>

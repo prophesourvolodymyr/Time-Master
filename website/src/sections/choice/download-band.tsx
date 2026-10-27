@@ -4,7 +4,7 @@ import styles from "./choice.module.css";
 
 export function DownloadBand() {
   return (
-    <div id="download" className={styles.band} data-hub-enter>
+    <div id="download" className={styles.band}>
       <div className={styles.bandArt}>
         <Image src="/media/choice/download-hand.webp" alt="" fill sizes="(max-width: 1180px) 100vw, 1180px" />
       </div>
