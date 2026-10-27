@@ -8,7 +8,10 @@ import { SmoothScrollProvider } from "./smooth-scroll";
 
 export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
-    const frame = requestAnimationFrame(() => ScrollTrigger.refresh());
+    const frame = requestAnimationFrame(() => {
+      ScrollTrigger.sort();
+      ScrollTrigger.refresh();
+    });
     return () => cancelAnimationFrame(frame);
   }, []);
 

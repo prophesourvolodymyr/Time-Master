@@ -213,7 +213,7 @@ export function FilmSection() {
             <ActionRail step={Math.max(0, feature)} />
           </div>
         </div>
-        <HeroCopy ref={heroRef} onInstall={() => scrollTo("#download", { duration: 1.8, lock: true })} />
+        <HeroCopy ref={heroRef} onInstall={() => scrollTo("#choose", { duration: 1.8, lock: true })} />
         {reducedMotion ? null : <PageChangeEdit run={editRun} scene={sceneRef} onDone={finishEdit} />}
       </div>
       <h2 className="sr-only">Everything inside Tmax</h2>

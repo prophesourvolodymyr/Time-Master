@@ -2605,12 +2605,12 @@ User direction: build the professional Next.js and TypeScript website from the u
 - [x] F30-E — Film pipeline: chroma key with finger occlusion, despill, true-black clamp, per-frame screen corners, desktop and mobile WebP sequences
 - [x] F30-B — Hero and scroll film: canvas sequence, perspective phone-screen layer, simulated live counter with NFT prize tag, Install Now glide, accelerating feature words, TikTok-style rail, three-second page-change edit
 - [ ] F30-E — Real app recordings from the simulator (in progress)
-- [ ] F30-C — Choice hub, download call to action and chapter slot
+- [x] F30-C — Choice hub, download call to action and chapter slot
 - [ ] F30-C-a — AI chapter with the Talos 3D model
 - [ ] F30-C-b — Social chapter with the generated parallax scene
-- [ ] F30-C-c — Workout Builder chapter
-- [ ] F30-C-d — Map chapter
-- [ ] F30-D — Impact stats
+- [x] F30-C-c — Workout Builder chapter
+- [x] F30-C-d — Map chapter
+- [x] F30-D — Impact stats
 - [ ] Configure the real App Store, Google Play and signed IPA links (external prerequisite)
 - [ ] Human review of the website
 

@@ -1,0 +1,146 @@
+@layer components {
+  .stage {
+    position: relative;
+    display: flex;
+    min-height: 100dvh;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(20px, 3.4vh, 40px);
+    padding: calc(var(--nav-height) + 8px) 20px 28px;
+    background:
+      radial-gradient(60% 45% at 50% 46%, rgb(255 106 0 / 0.07), transparent 70%),
+      var(--color-bg);
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: min(100%, 1180px);
+    margin-inline: auto;
+  }
+
+  @media (min-width: 900px) {
+    .tiles {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+  }
+
+  .tile {
+    position: relative;
+    display: flex;
+    min-height: clamp(150px, 27vh, 300px);
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    overflow: hidden;
+    padding: 18px 14px 20px;
+    text-align: center;
+    cursor: pointer;
+    transform: scale(0.96);
+    opacity: 0.62;
+    transition:
+      transform 600ms var(--ease-out-expo),
+      opacity 400ms ease;
+  }
+
+  .tile[data-focused] {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  .tile:focus-visible {
+    outline: 2px solid rgb(255 255 255 / 0.75);
+    outline-offset: 3px;
+  }
+
+  .preview {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 500ms ease;
+    mask-image: linear-gradient(to bottom, #000 10%, transparent 78%);
+  }
+
+  .preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  .tile[data-focused] .preview {
+    opacity: 0.32;
+  }
+
+  .pedestal {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: clamp(64px, 8vw, 96px);
+    aspect-ratio: 1;
+    margin-bottom: auto;
+    margin-top: clamp(4px, 2vh, 24px);
+    border-radius: 50%;
+    font-size: clamp(30px, 3.4vw, 46px);
+    background: radial-gradient(circle at 50% 35%, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.02) 70%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+    transition:
+      color 400ms ease,
+      box-shadow 400ms ease,
+      background 400ms ease;
+  }
+
+  .tile[data-focused] .pedestal {
+    color: #000;
+    background: radial-gradient(circle at 50% 35%, #ffb070, var(--color-accent) 70%);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.3),
+      0 18px 50px -10px rgb(255 106 0 / 0.65);
+  }
+
+  .upNext {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 5px 9px;
+    border-radius: 9px;
+    background: rgb(255 255 255 / 0.1);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .band {
+    position: relative;
+    isolation: isolate;
+    width: min(100%, 1180px);
+    margin-inline: auto;
+    overflow: hidden;
+    border-radius: var(--radius-card);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  }
+
+  .bandArt {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+
+  .bandArt img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 82% 30%;
+    mask-image: linear-gradient(to right, transparent 30%, #000 70%);
+  }
+
+  .slot {
+    position: relative;
+    background: var(--color-bg);
+  }
+}
