@@ -2614,6 +2614,8 @@ User direction: build the professional Next.js and TypeScript website from the u
 - [x] F30-D — Impact stats
 - [ ] Configure the real App Store, Google Play and signed IPA links (external prerequisite)
 - [ ] Human review of the website
+- [ ] Native app (found while recording): the workout editor's "Browse exercises" button does nothing on an empty workout and otherwise opens a page preview instead of the exercise browser
+- [ ] Native app (found while recording): sheet "Cancel"/"Close" labels render squeezed into a small circle
 
 ## Cycle 50 — Database Image Memory — 2026-10-26
 
