@@ -48,5 +48,25 @@
       "start": 0.813,
       "length": 12.5
     }
+  },
+  "map-recording": {
+    "duration": 10,
+    "bytes": 1067216,
+    "recordedAt": "2026-10-27T03:27:44.263Z",
+    "trim": {
+      "raw": "raw/map-recording.mov",
+      "start": 0.839,
+      "length": 10.01
+    }
+  },
+  "routes": {
+    "duration": 10.5,
+    "bytes": 884677,
+    "recordedAt": "2026-10-27T03:28:26.418Z",
+    "trim": {
+      "raw": "raw/routes.mov",
+      "start": 0.828,
+      "length": 10.492
+    }
   }
 }

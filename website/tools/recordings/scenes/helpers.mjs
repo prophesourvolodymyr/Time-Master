@@ -1,4 +1,5 @@
-import { NAVIGATION_ORDER } from "../seed/demo.mjs";
+import { LIVE_RUN, NAVIGATION_ORDER } from "../seed/demo.mjs";
+import { sleep } from "../lib/process.mjs";
 
 export const VANCOUVER = [49.2888, -123.1111];
 
@@ -34,3 +35,23 @@ export function navigate(destination) {
   }
   return path.map((id) => tap({ id: `navigation-item-${id}` }, 0.9));
 }
+
+/**
+ * The outdoor map in its Dark style with the camera following the current location. The map never
+ * settles, so quiescence stays off for the rest of the scene.
+ */
+export const openDarkMap = [
+  quiescence(false),
+  ...navigate("map"),
+  tap({ label: "Open map quick pane", type: "button" }, 1.0),
+  tap({ label: "Map mode, Dark", type: "button" }, 0.8),
+  tap({ label: "Close Map quick pane", type: "button" }, 1.2),
+  tap({ label: "Focus current location", type: "button" }, 2.5),
+];
+
+/** Runs the simulated runner along the live route at a 3:42 /km pace for `seconds` before recording. */
+export const runFor = (seconds) => async () => {
+  const { startLocationRoute } = await import("../lib/sim.mjs");
+  await startLocationRoute(LIVE_RUN, 4.5);
+  await sleep(seconds * 1000);
+};

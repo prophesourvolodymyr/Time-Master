@@ -48,4 +48,22 @@ export const appClips: Partial<Record<AppClipId, AppClip>> = {
     height: 1566,
     duration: 12.5,
   },
+  "map-recording": {
+    id: "map-recording",
+    feature: "Map recording",
+    src: "/media/app/map-recording.mp4",
+    poster: "/media/app/map-recording.jpg",
+    width: 720,
+    height: 1566,
+    duration: 10,
+  },
+  "routes": {
+    id: "routes",
+    feature: "Routes",
+    src: "/media/app/routes.mp4",
+    poster: "/media/app/routes.jpg",
+    width: 720,
+    height: 1566,
+    duration: 10.5,
+  },
 };

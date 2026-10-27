@@ -13,6 +13,9 @@ const CHALLENGE_DAYS = [1, 3, 5];
 
 export const NAVIGATION_ORDER = ["coach", "profile", "home", "map", "ranked", "physique", "workouts", "schedule", "database", "analytics", "settings"];
 
+/** The path the simulated runner follows while a scene records a live outdoor workout. */
+export const LIVE_RUN = ROUTES.liveRun.coordinates;
+
 function buildPages(now) {
   const created = addDays(startOfDay(now), -150);
   const pages = [];

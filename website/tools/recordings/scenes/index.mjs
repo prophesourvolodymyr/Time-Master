@@ -2,7 +2,7 @@
 // Points are iPhone 17 Pro screen points (402 x 874). Clips start at the first visible motion minus `lead`;
 // `from: "steps"` starts at the first step instead (its opening pause holds the first frame), and
 // `trim: "steps"` also ends at the last step, for screens that never sit still.
-import { drag, navigate, pause, quiescence, tap, wait } from "./helpers.mjs";
+import { drag, navigate, openDarkMap, pause, quiescence, runFor, tap, wait } from "./helpers.mjs";
 
 export { VANCOUVER } from "./helpers.mjs";
 
@@ -95,5 +95,27 @@ export const SCENES = [
       drag([201, 640], [201, 330], { velocity: 450, hold: 0.15, after: 1.2 }),
     ],
     from: "steps",
+  },
+  {
+    id: "map-recording",
+    prepare: [...openDarkMap, tap({ label: "Start Run recording", type: "button" }, 1.5)],
+    beforeRecording: runFor(80),
+    steps: [pause(9.6)],
+    trim: "steps",
+    tail: 0.4,
+  },
+  {
+    id: "routes",
+    prepare: openDarkMap,
+    steps: [
+      pause(0.9),
+      tap({ label: "Library", type: "button" }, 1.4),
+      tap({ labelContains: "Stanley Park Seawall Loop", type: "button" }, 2.4),
+      tap({ label: "Share or export workout", type: "button" }, 1.2),
+      tap({ label: "FIT", type: "button" }, 0.7),
+      tap({ label: "Prepare export", type: "button" }, 1.4),
+    ],
+    trim: "steps",
+    tail: 0.3,
   },
 ];
