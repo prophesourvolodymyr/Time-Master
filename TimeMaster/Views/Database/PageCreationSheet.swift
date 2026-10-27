@@ -1487,54 +1487,7 @@ private struct PageCreationLinkPreview: View {
     let metadata: LinkMetadata
 
     var body: some View {
-        HStack(spacing: 10) {
-            if let thumbnailURL = metadata.thumbnailURL, let url = URL(string: thumbnailURL) {
-                AsyncImage(url: url) { phase in
-                    if case .success(let image) = phase {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } else {
-                        placeholder
-                    }
-                }
-                .frame(width: 74, height: 54)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                placeholder
-                    .frame(width: 74, height: 54)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(metadata.title ?? URL(string: metadata.url)?.host ?? metadata.url)
-                    .font(TimeMasterFont.rowTitle())
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(2)
-                if let description = metadata.description, !description.isEmpty {
-                    Text(description)
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(2)
-                }
-                Text(metadata.url)
-                    .font(TimeMasterFont.micro())
-                    .foregroundStyle(Theme.toolbarOrange)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.toolbarOrange.opacity(0.22), lineWidth: 1))
-    }
-
-    private var placeholder: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(Theme.toolbarOrange.opacity(0.14))
-            .overlay {
-                Image(systemName: "link")
-                    .foregroundStyle(Theme.toolbarOrange)
-            }
+        PageLinkRow(info: PageLinkInfo(urlString: metadata.url, metadata: metadata))
     }
 }
 

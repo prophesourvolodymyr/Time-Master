@@ -1043,22 +1043,14 @@ struct DatabaseView: View {
             ForEach(visiblePageEntries) { entry in
                 let page = entry.page
                 ZStack(alignment: .topTrailing) {
-                    NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
-                        pageCard(page, isGridMode: true)
-                            .overlay(alignment: .topTrailing) {
-                                TimeMasterDisclosureIndicator(systemImage: "arrow.up.forward.square")
-                                    .padding(7)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Open \(page.title)")
-                    .accessibilityIdentifier("database-open-\(page.manifest.id)")
-
+                    pageBase(page, isGridMode: true)
                     if !page.children.isEmpty {
                         disclosureButton(page)
                             .padding(.top, 7)
                             .padding(.trailing, 7 + 44 + 6)
                     }
+                    openButton(page)
+                        .padding(7)
                 }
                 .padding(.leading, CGFloat(entry.depth * 12))
             }
@@ -1117,24 +1109,12 @@ struct DatabaseView: View {
     private func pageRow(_ entry: DatabasePageEntry) -> some View {
         let page = entry.page
         return HStack(spacing: 8) {
-            NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
-                pageCard(page, isGridMode: false)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(TimeMasterCardButtonStyle())
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityLabel("Open \(page.title)")
-            .accessibilityIdentifier("database-open-\(page.manifest.id)")
-            .accessibilityHint("Opens this page")
+            pageBase(page, isGridMode: false)
+                .frame(maxWidth: .infinity, alignment: .leading)
             if !page.children.isEmpty {
                 disclosureButton(page)
             }
-            NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
-                TimeMasterDisclosureIndicator(systemImage: "arrow.up.forward.square")
-            }
-            .buttonStyle(TimeMasterCardButtonStyle())
-            .accessibilityLabel("Open \(page.title) page")
-            .accessibilityIdentifier("database-open-icon-\(page.manifest.id)")
+            openButton(page)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -1162,16 +1142,63 @@ struct DatabaseView: View {
         )
     }
 
+    private func toggleExpansion(_ page: ExercisePage) {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
+            if expandedPageIDs.contains(page.manifest.id) {
+                expandedPageIDs.remove(page.manifest.id)
+            } else {
+                expandedPageIDs.insert(page.manifest.id)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func pageBase(_ page: ExercisePage, isGridMode: Bool) -> some View {
+        let isExpanded = expandedPageIDs.contains(page.manifest.id)
+        let label = pageCard(page, isGridMode: isGridMode).contentShape(Rectangle())
+        if page.children.isEmpty {
+            Group {
+                if isGridMode {
+                    NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) { label }
+                        .buttonStyle(.plain)
+                } else {
+                    NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) { label }
+                        .buttonStyle(TimeMasterCardButtonStyle())
+                }
+            }
+            .accessibilityHint("Opens this page")
+            .accessibilityIdentifier("database-row-\(page.manifest.id)")
+        } else {
+            Group {
+                if isGridMode {
+                    Button { toggleExpansion(page) } label: { label }
+                        .buttonStyle(.plain)
+                } else {
+                    Button { toggleExpansion(page) } label: { label }
+                        .buttonStyle(TimeMasterCardButtonStyle())
+                }
+            }
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityHint(isExpanded ? "Collapses this group" : "Expands this group")
+            .accessibilityIdentifier("database-row-\(page.manifest.id)")
+        }
+    }
+
+    private func openButton(_ page: ExercisePage) -> some View {
+        NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
+        }
+        .buttonStyle(TimeMasterActionButtonStyle())
+        .accessibilityLabel("Open \(page.title)")
+        .accessibilityHint("Opens this page")
+        .accessibilityIdentifier("database-open-\(page.manifest.id)")
+    }
+
     private func disclosureButton(_ page: ExercisePage) -> some View {
         let isExpanded = expandedPageIDs.contains(page.manifest.id)
         return Button {
-            withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
-                if isExpanded {
-                    expandedPageIDs.remove(page.manifest.id)
-                } else {
-                    expandedPageIDs.insert(page.manifest.id)
-                }
-            }
+            toggleExpansion(page)
         } label: {
             TimeMasterDisclosureIndicator(systemImage: isExpanded ? "chevron.down" : "chevron.right")
         }

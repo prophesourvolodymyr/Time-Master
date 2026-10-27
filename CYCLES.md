@@ -2627,6 +2627,22 @@ User report: the installed Mac app grew from a stable 50 MB to about 500 MB. The
 
 A short startup spike of about 130 MB remains from the launch animation and first frames; it is released within a second and was not changed.
 
+## Cycle 51 — Database Rows, Links and Live Library Updates — 2026-10-26
+
+User direction: tapping a container row must expand it and never open the page, only the open button opens it, and the open button gets an icon in the app's style; links (Instagram for example) must display properly; items an AI agent adds to the library must appear live. Checked by compiling the macOS and iOS targets only, at the user's request; nothing was launched or exercised. Nothing here is human-verified.
+
+- [x] Container rows (list and gallery): a tap anywhere on the row toggles expansion with the chevron's animation; the row no longer navigates; only the open button does. Leaf rows still open on tap
+- [x] Open button restyled as the app's orange glass control with a bold arrow, replacing the thin outlined system icon
+- [x] Link rows: one compact row per link with a platform tile (Instagram gradient, YouTube, TikTok, Facebook, web), a derived title (Instagram post, reel or @handle, YouTube video or Short, TikTok video), the short URL without scheme, `www` or tracking query, and an orange open control; the whole row opens the link
+- [x] Link metadata: Instagram, TikTok and Facebook are no longer scraped (login walls returned generic "Instagram" cards); YouTube uses oEmbed for title and thumbnail; web pages read only the page head; titles are entity-decoded and generic or login-wall titles are ignored; results are cached per session and fetched in parallel
+- [x] The page-creation link preview uses the same row; the unused tall embed card and `PageLinkList` are removed
+- [x] Live library updates: a file-system watcher on the exercise database (macOS, 0.4 second coalescing) reloads the Database screen when files change on disk; iOS reloads when the app becomes active; in-app AI tool calls already reload after each tool
+- [x] A reload that cannot read the library keeps the previous list instead of blanking it; duplicate page ids from copied folders no longer crash a reload
+- [x] An open page re-reads its guide when the library reloads (unless it is being edited)
+- [x] macOS and iOS targets compile
+- [ ] Human review of the row tap behavior, the open button, link rows for Instagram, YouTube, TikTok and web, and live updates while an agent writes pages
+- [ ] Page switching (live whole-page slide with motion blur) is not part of this cycle; the unfinished work is parked in a git stash
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

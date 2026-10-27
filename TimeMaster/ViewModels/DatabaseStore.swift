@@ -1,5 +1,10 @@
 import Foundation
 import TimeMasterCore
+#if os(macOS)
+import CoreServices
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 class DatabaseStore: ObservableObject {
     static let shared = DatabaseStore()
@@ -21,6 +26,10 @@ class DatabaseStore: ObservableObject {
     @Published var rootFolders: [ExerciseFolder] = []
     @Published var rootNotes: [DatabaseNote] = []
     @Published var rootExercises: [Exercise] = []
+    @Published private(set) var libraryRevision = 0
+    #if os(macOS)
+    private var libraryWatcher: LibraryWatcher?
+    #endif
 
     private var isV1Migrated: Bool { MigrationManager.isMigrationComplete }
     private var isV2PageMigrated: Bool { MigrationManager.isV2PageMigrationComplete }
@@ -34,6 +43,7 @@ class DatabaseStore: ObservableObject {
         } else {
             load()
         }
+        startWatchingLibrary()
     }
 
     func reload() {
@@ -46,11 +56,12 @@ class DatabaseStore: ObservableObject {
 
             let snapshot: (() -> Void)? = {
                 if self.isV2PageMigrated {
-                    let snapshot = self.pageSnapshotFromFileSystem()
+                    guard let snapshot = self.pageSnapshotIfReadable() else { return nil }
                     return {
                         guard self.reloadGeneration == generation else { return }
                         self.allPagesFlat = snapshot.flat
                         self.rootPages = snapshot.roots
+                        self.libraryRevision &+= 1
                     }
                 }
 
@@ -86,6 +97,7 @@ class DatabaseStore: ObservableObject {
             let snapshot = pageSnapshotFromFileSystem()
             allPagesFlat = snapshot.flat
             rootPages = snapshot.roots
+            libraryRevision &+= 1
         } else if isV1Migrated {
             let snapshot = legacySnapshotFromFileSystem()
             rootFolders = snapshot.folders
@@ -101,6 +113,34 @@ class DatabaseStore: ObservableObject {
         reloadGeneration &+= 1
     }
 
+    private func startWatchingLibrary() {
+        #if os(macOS)
+        watchLibraryDirectory()
+        NotificationCenter.default.addObserver(forName: .exerciseLibraryDidSync, object: nil, queue: .main) { [weak self] notification in
+            guard notification.userInfo?["accountChanged"] as? Bool == true else { return }
+            self?.watchLibraryDirectory()
+        }
+        #elseif canImport(UIKit)
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.reload()
+        }
+        #endif
+    }
+
+    #if os(macOS)
+    private func watchLibraryDirectory() {
+        let path = DatabaseManager.shared.exercisesDatabaseURL.path
+        guard libraryWatcher?.path != path else { return }
+        libraryWatcher?.stop()
+        libraryWatcher = LibraryWatcher(path: path) { [weak self] in
+            DispatchQueue.main.async {
+                self?.watchLibraryDirectory()
+                self?.reload()
+            }
+        }
+    }
+    #endif
+
 
     // MARK: - V2 Page Loading
 
@@ -111,22 +151,20 @@ class DatabaseStore: ObservableObject {
     }
 
     private func pageSnapshotFromFileSystem() -> (flat: [ExercisePage], roots: [ExercisePage]) {
+        pageSnapshotIfReadable() ?? ([], [])
+    }
+
+    private func pageSnapshotIfReadable() -> (flat: [ExercisePage], roots: [ExercisePage])? {
         let db = DatabaseManager.shared
         let base = db.exercisesDatabaseURL
         let legacyMediaDirectory = db.dataRoot.appendingPathComponent("Media", isDirectory: true)
-        let flatManifests: [(ExercisePageManifest, String)]
-
-        do {
-            flatManifests = try db.walkPageTree(in: base)
-        } catch {
-            return ([], [])
-        }
+        guard let flatManifests = try? db.walkPageTree(in: base) else { return nil }
 
         let rawPages = flatManifests.map { (manifest, path) in
             let pageURL = base.appendingPathComponent(path, isDirectory: true)
             return ExercisePage(from: manifest, baseURL: pageURL, legacyMediaDirectory: legacyMediaDirectory, path: path)
         }
-        let lookup = Dictionary(uniqueKeysWithValues: rawPages.map { ($0.id, $0) })
+        let lookup = Dictionary(rawPages.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let flat = rawPages.map { page in
             ExercisePage(
                 manifest: page.manifest,
@@ -880,6 +918,65 @@ class DatabaseStore: ObservableObject {
         ]
     }
 }
+
+#if os(macOS)
+private final class LibraryWatcher {
+    let path: String
+    private let onChange: () -> Void
+    private var stream: FSEventStreamRef?
+
+    init?(path: String, onChange: @escaping () -> Void) {
+        self.path = path
+        self.onChange = onChange
+        var context = FSEventStreamContext(
+            version: 0,
+            info: Unmanaged.passUnretained(self).toOpaque(),
+            retain: nil,
+            release: nil,
+            copyDescription: nil
+        )
+        let callback: FSEventStreamCallback = { _, info, _, eventPaths, _, _ in
+            guard let info else { return }
+            let watcher = Unmanaged<LibraryWatcher>.fromOpaque(info).takeUnretainedValue()
+            let changed = unsafeBitCast(eventPaths, to: NSArray.self) as? [String] ?? []
+            if changed.contains(where: { !$0.contains("/.trash/") && !$0.hasSuffix(".DS_Store") }) {
+                watcher.onChange()
+            }
+        }
+        let flags = FSEventStreamCreateFlags(
+            kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer
+        )
+        guard let stream = FSEventStreamCreate(
+            kCFAllocatorDefault,
+            callback,
+            &context,
+            [path] as CFArray,
+            FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
+            0.4,
+            flags
+        ) else { return nil }
+        FSEventStreamSetDispatchQueue(stream, DispatchQueue.main)
+        guard FSEventStreamStart(stream) else {
+            FSEventStreamInvalidate(stream)
+            FSEventStreamRelease(stream)
+            return nil
+        }
+        self.stream = stream
+    }
+
+    func stop() {
+        guard let stream else { return }
+        FSEventStreamStop(stream)
+        FSEventStreamInvalidate(stream)
+        FSEventStreamRelease(stream)
+        self.stream = nil
+    }
+
+    deinit {
+        stop()
+    }
+}
+#endif
 
 struct PageCreationDraft: Codable, Identifiable, Equatable {
     let id: UUID

@@ -169,6 +169,9 @@ struct ExercisePageDetailView: View {
         .onChange(of: isEditing) { newValue in
             if !newValue { loadGuideContent() }
         }
+        .onChange(of: store.libraryRevision) { _ in
+            if !isEditing { loadGuideContent() }
+        }
         #if os(iOS)
         .photosPicker(
             isPresented: $showMediaPicker,
