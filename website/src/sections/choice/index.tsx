@@ -66,7 +66,7 @@ export function ChoiceSection() {
   return (
     <section id="choose" aria-labelledby="choose-title">
       <div ref={stageRef} className={styles.stage}>
-        <h2 id="choose-title" className="text-display text-center text-[clamp(40px,6vw,96px)]" data-hub-enter>
+        <h2 id="choose-title" className="text-display text-center text-[clamp(34px,6vw,96px)]" data-hub-enter>
           Pick your obsession.
         </h2>
         <div className={styles.tiles} data-hub-enter>
