@@ -259,7 +259,6 @@ export function ObsessionWheel() {
         >
           {focused.chapter ? `Explore ${focused.label}` : "Get Tmax everywhere"}
         </ActionButton>
-        <p className={styles.hint}>{reducedMotion ? "Pick one, then explore it." : "Scroll to switch. Tap the phone to dive in."}</p>
       </div>
     </div>
   );

@@ -10,7 +10,6 @@ import { useImmersive } from "@/components/providers/immersive";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useMediaQuery, usePrefersReducedMotion } from "@/lib/motion";
-import { ActionRail } from "./action-rail";
 import { FrameSequence } from "./frame-sequence";
 import { HeroCopy } from "./hero-copy";
 import { rectToQuadTransform, type Point } from "./homography";
@@ -200,7 +199,6 @@ export function FilmSection() {
 
       const hero = heroRef.current?.querySelectorAll("[data-hero-part]") ?? [];
       const word = planeRef.current?.querySelector("[data-word]") ?? null;
-      const rail = planeRef.current?.querySelector("[data-rail]") ?? null;
       const timeline = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
@@ -230,7 +228,6 @@ export function FilmSection() {
       timeline.to(heroRef.current, { autoAlpha: 0, ease: "power1.in", duration: 0.12 }, 0.02);
       timeline.fromTo(sceneRef.current, { scale: 1, y: 0 }, { scale: 0.92, y: "6vh", ease: "power2.inOut", duration: 0.1 }, pushEnd - 0.1);
       timeline.fromTo(word, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.02 }, pushEnd);
-      timeline.fromTo(rail, { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.04 }, pushEnd + 0.02);
       timeline.set({}, {}, 1);
 
       return cleanup;
@@ -273,7 +270,6 @@ export function FilmSection() {
                 ) : null}
               </span>
             </p>
-            <ActionRail step={Math.max(0, feature)} />
           </div>
         </div>
         <HeroCopy ref={heroRef} onInstall={openInstall} />
