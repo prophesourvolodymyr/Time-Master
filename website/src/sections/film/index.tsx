@@ -189,8 +189,8 @@ export function FilmSection() {
       <div ref={stageRef} className={styles.stage}>
         <div ref={sceneRef} className={styles.scene}>
           <picture ref={posterRef} className={styles.poster}>
-            <source media="(max-aspect-ratio: 1/1)" srcSet={framePath("mobile", 0)} />
-            <img src={framePath("desktop", 0)} alt="" fetchPriority="high" decoding="async" />
+            <source media="(max-aspect-ratio: 1/1)" srcSet="/media/film/poster-mobile.webp" />
+            <img src="/media/film/poster-desktop.webp" alt="" fetchPriority="high" decoding="async" />
           </picture>
           <div ref={screenRef} className={styles.screen}>
             {screenClipIds.map((id) => (
