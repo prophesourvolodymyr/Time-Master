@@ -1,10 +1,10 @@
+import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import type { CSSProperties, ReactNode } from "react";
 import { Providers } from "@/components/providers/providers";
 import { fontVariables } from "@/lib/fonts";
 import { site } from "@/lib/site";
 import { pressSpring } from "@/lib/spring";
-import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
