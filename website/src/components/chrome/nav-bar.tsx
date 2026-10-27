@@ -5,6 +5,7 @@ import { DownloadSimpleIcon, ListIcon } from "@phosphor-icons/react";
 import { ActionButton, GlassSurface, IconButton } from "@/components/ui";
 import { useChapter } from "@/components/providers/chapter";
 import { useIsImmersive } from "@/components/providers/immersive";
+import { useInstall } from "@/components/install/install-sheet";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll";
 import { ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { MobileMenu } from "./mobile-menu";
@@ -21,6 +22,7 @@ export function NavBar() {
   const { chapter } = useChapter();
   const follow = useFollowLink();
   const { scrollTo } = useSmoothScroll();
+  const { openInstall } = useInstall();
 
   useGSAP(
     () => {
@@ -79,7 +81,7 @@ export function NavBar() {
                 </li>
               ))}
             </ul>
-            <ActionButton prominent font="text" icon={<DownloadSimpleIcon weight="bold" />} onClick={() => scrollTo("#download", { duration: 1.6 })}>
+            <ActionButton prominent font="text" icon={<DownloadSimpleIcon weight="bold" />} onClick={openInstall}>
               Install
             </ActionButton>
           </div>

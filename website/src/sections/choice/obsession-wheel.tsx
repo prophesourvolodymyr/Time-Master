@@ -2,16 +2,20 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowDownIcon } from "@phosphor-icons/react";
+import { ArrowDownIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import { AppClip, DeviceFrame } from "@/components/media";
+import { useInstall } from "@/components/install/install-sheet";
 import { useChapter } from "@/components/providers/chapter";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll";
 import { ActionButton } from "@/components/ui";
+import type { AppClipId } from "@/content/app-clips";
 import { resolveClip } from "@/content/clip-stand-ins";
+import { desktopRecording } from "@/content/desktop-recording";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { usePrefersReducedMotion } from "@/lib/motion";
-import { obsessions } from "./obsessions";
-import type { PhoneScreen } from "./phone-wheel-canvas";
+import type { ScreenSource } from "./devices/device-parts";
+import { familyIndex, obsessions } from "./obsessions";
+import type { FamilySources } from "./phone-wheel-canvas";
 import { detent, type WheelState } from "./wheel";
 import styles from "./choice.module.css";
 
@@ -22,11 +26,24 @@ const stepScreens = 0.42;
 const holdShare = 0.07;
 const arrowSteps: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
 
-const screens: readonly PhoneScreen[] = obsessions.map((item) => {
-  const clip = resolveClip(item.clip);
-  if (!clip) throw new Error(`No recording or stand-in for ${item.clip}`);
-  return { src: clip.src, poster: clip.poster };
-});
+function sourceFor(id: AppClipId): ScreenSource {
+  const clip = resolveClip(id);
+  if (!clip) throw new Error(`No recording or stand-in for ${id}`);
+  return { src: clip.src, poster: clip.poster, aspect: clip.width / clip.height };
+}
+
+const screens: readonly ScreenSource[] = obsessions.map((item) => sourceFor(item.clip));
+
+const desktop: ScreenSource | null = desktopRecording
+  ? { src: desktopRecording.src, poster: desktopRecording.poster, aspect: desktopRecording.width / desktopRecording.height }
+  : null;
+
+const family: FamilySources = {
+  laptop: desktop ?? sourceFor("home"),
+  monitor: desktop ?? sourceFor("builder"),
+  android: sourceFor("routes"),
+  watch: sourceFor("timer"),
+};
 
 type StripLayout = {
   lefts: number[];
@@ -68,6 +85,7 @@ export function ObsessionWheel() {
   const [near, setNear] = useState(false);
   const [visible, setVisible] = useState(false);
   const { selectChapter } = useChapter();
+  const { openInstall } = useInstall();
   const { scrollTo } = useSmoothScroll();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -173,7 +191,11 @@ export function ObsessionWheel() {
     scrollTo(trigger.start + (trigger.end - trigger.start) * share, { duration: 0.9 });
   };
 
-  const dive = (index: number) => selectChapter(obsessions[index].chapter, { scroll: true });
+  const dive = (index: number) => {
+    const chapter = obsessions[index].chapter;
+    if (chapter) selectChapter(chapter, { scroll: true });
+    else openInstall();
+  };
 
   const choose = (index: number) => (index === focusRef.current ? dive(index) : spinTo(index));
 
@@ -210,6 +232,7 @@ export function ObsessionWheel() {
                 onClick={() => choose(index)}
                 onKeyDown={(event) => moveFocus(event, index)}
               >
+                <item.icon weight="bold" aria-hidden="true" />
                 {item.label}
               </button>
             ))}
@@ -222,12 +245,19 @@ export function ObsessionWheel() {
             <AppClip id={focused.clip} label={focused.label} />
           </DeviceFrame>
         ) : near ? (
-          <PhoneWheelCanvas className={styles.canvas} screens={screens} wheel={wheel} active={visible} onPick={choose} />
+          <PhoneWheelCanvas className={styles.canvas} screens={screens} family={family} familyIndex={familyIndex} wheel={wheel} active={visible} onPick={choose} />
         ) : null}
       </div>
       <div className={styles.cta} data-wheel-enter>
-        <ActionButton prominent size={54} paddingX={22} icon={<ArrowDownIcon weight="bold" />} iconPosition="trailing" onClick={() => dive(focus)}>
-          Explore {focused.label}
+        <ActionButton
+          prominent
+          size={54}
+          paddingX={22}
+          icon={focused.chapter ? <ArrowDownIcon weight="bold" /> : <DownloadSimpleIcon weight="bold" />}
+          iconPosition="trailing"
+          onClick={() => dive(focus)}
+        >
+          {focused.chapter ? `Explore ${focused.label}` : "Get Tmax everywhere"}
         </ActionButton>
         <p className={styles.hint}>{reducedMotion ? "Pick one, then explore it." : "Scroll to switch. Tap the phone to dive in."}</p>
       </div>

@@ -5,6 +5,7 @@ import type { AppClipId } from "@/content/app-clips";
 import { resolveClip } from "@/content/clip-stand-ins";
 import { featureWords, filmFeatures } from "@/content/features";
 import film from "@/content/film.json";
+import { useInstall } from "@/components/install/install-sheet";
 import { useImmersive } from "@/components/providers/immersive";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll";
 import { gsap, useGSAP } from "@/lib/gsap";
@@ -82,6 +83,7 @@ export function FilmSection() {
   const [editRun, setEditRun] = useState(0);
   const [editPrepared, setEditPrepared] = useState(false);
   const { scrollTo, stop, start, isGliding } = useSmoothScroll();
+  const { openInstall } = useInstall();
   useImmersive(immersive);
 
   useGSAP(
@@ -274,7 +276,7 @@ export function FilmSection() {
             <ActionRail step={Math.max(0, feature)} />
           </div>
         </div>
-        <HeroCopy ref={heroRef} onInstall={() => scrollTo("#download", { duration: 1.8, lock: true })} />
+        <HeroCopy ref={heroRef} onInstall={openInstall} />
         {reducedMotion ? null : <PageChangeEdit run={editRun} prepared={editPrepared} onDone={finishEdit} />}
       </div>
       <h2 className="sr-only">Everything inside Tmax</h2>
