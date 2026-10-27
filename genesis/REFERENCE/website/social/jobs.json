@@ -1,0 +1,146 @@
+{
+  "generator": "fgen (ChatGPT subscription)",
+  "higgsfieldCredits": 0,
+  "script": "website/tools/social/generate.sh",
+  "composite": "website/tools/social/composite.py",
+  "jobs": [
+    {
+      "file": "candidates/dust.png",
+      "prompt": "prompts/dust.txt",
+      "references": [],
+      "size": [
+        1672,
+        941
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793066989
+    },
+    {
+      "file": "candidates/spectator-right-b.png",
+      "prompt": "prompts/spectator-right-b.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1024,
+        1536
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067002
+    },
+    {
+      "file": "candidates/spectator-right-a.png",
+      "prompt": "prompts/spectator-right-a.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1024,
+        1536
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067004
+    },
+    {
+      "file": "candidates/arena.png",
+      "prompt": "prompts/arena.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1672,
+        941
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067004
+    },
+    {
+      "file": "candidates/monument.png",
+      "prompt": "prompts/monument.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1024,
+        1536
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067004
+    },
+    {
+      "file": "candidates/spectator-left-b.png",
+      "prompt": "prompts/spectator-left-b.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1024,
+        1536
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067010
+    },
+    {
+      "file": "candidates/spectator-left-a.png",
+      "prompt": "prompts/spectator-left-a.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1024,
+        1536
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067016
+    },
+    {
+      "file": "candidates/spectator-right-c.png",
+      "prompt": "prompts/spectator-right-c.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1024,
+        1536
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067255
+    },
+    {
+      "file": "candidates/tablet-front.png",
+      "prompt": "prompts/tablet-front.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/social/candidates/spectator-left-a.png"
+      ],
+      "size": [
+        1254,
+        1254
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067256
+    },
+    {
+      "file": "candidates/spectator-left-c.png",
+      "prompt": "prompts/spectator-left-c.txt",
+      "references": [
+        "/Users/volodymurvasualkiw/GSpace/Personal /Time-Master/genesis/REFERENCE/website/hero-film/start-frame.png"
+      ],
+      "size": [
+        1024,
+        1536
+      ],
+      "tool": "fgen gen -q high",
+      "higgsfieldCredits": 0,
+      "createdAt": 1793067263
+    }
+  ]
+}

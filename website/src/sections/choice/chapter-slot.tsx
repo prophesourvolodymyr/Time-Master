@@ -29,7 +29,9 @@ export function ChapterSlot() {
       const frame = requestAnimationFrame(() => {
         ScrollTrigger.sort();
         ScrollTrigger.refresh();
-        if (request?.scroll) scrollTo("#chapter", { duration: 1.1 });
+        if (!request?.scroll) return;
+        scrollTo(request.fromY, { immediate: true });
+        scrollTo("#chapter", { duration: 1.1 });
       });
       return () => cancelAnimationFrame(frame);
     },

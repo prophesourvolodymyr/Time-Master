@@ -7,6 +7,7 @@ export type ChapterRequest = {
   id: ChapterId;
   scroll: boolean;
   sequence: number;
+  fromY: number;
 };
 
 type ChapterState = {
@@ -23,7 +24,8 @@ export function ChapterProvider({ children }: { children: ReactNode }) {
 
   const selectChapter = useCallback((id: ChapterId, options: { scroll?: boolean } = {}) => {
     setChapter(id);
-    setRequest((previous) => ({ id, scroll: options.scroll ?? false, sequence: (previous?.sequence ?? 0) + 1 }));
+    const fromY = window.scrollY;
+    setRequest((previous) => ({ id, scroll: options.scroll ?? false, sequence: (previous?.sequence ?? 0) + 1, fromY }));
     window.history.replaceState(window.history.state, "", `#${id}`);
   }, []);
 
