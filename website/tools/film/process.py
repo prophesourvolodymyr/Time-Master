@@ -17,7 +17,11 @@ import cv2
 import numpy as np
 from PIL import Image
 
-DESKTOP_WIDTH = 1600
+MAX_DESKTOP_WIDTH = 1920
+OPENING_FRAMES = 24
+SLOPE_GAIN = 20.0
+DEPTH_SMOOTHING = 5.0
+SURFACE_QUALITY = 82
 MOBILE_ASPECT = 9 / 16
 MOBILE_CENTER = (0.46, 0.5)
 SMOOTHING_RADIUS = 2
@@ -154,27 +158,37 @@ def read_depth(path: Path, width: int, height: int, fps: float, total: int):
     proc.wait()
 
 
-def export_depth(depth_video: Path, out_dir: Path, source: tuple[int, int, float], desktop_height: int, mobile_offsets: list[int], quality: int) -> None:
+def surface(gray: np.ndarray) -> np.ndarray:
+    depth = cv2.GaussianBlur(gray.astype(np.float32) / 255.0, (0, 0), DEPTH_SMOOTHING)
+    slope_x = cv2.Sobel(depth, cv2.CV_32F, 1, 0, ksize=3) / 2.0
+    slope_y = cv2.Sobel(depth, cv2.CV_32F, 0, 1, ksize=3) / 2.0
+    encode = lambda slope: np.clip(np.round(128.0 + slope * SLOPE_GAIN * 255.0), 0, 255)
+    return np.dstack([encode(slope_x), encode(slope_y), np.round(depth * 255.0)]).astype(np.uint8)
+
+
+def export_surface(depth_video: Path, out_dir: Path, source: tuple[int, int, float], desktop: tuple[int, int], mobile_offsets: list[int]) -> None:
     width, height, fps = source
     mobile_width = int(round(height * MOBILE_ASPECT))
+    desktop_size = (desktop[0] // 4, desktop[1] // 4)
     count = 0
     for index, gray in enumerate(read_depth(depth_video, width, height, fps, len(mobile_offsets))):
-        smooth_depth = cv2.GaussianBlur(gray, (0, 0), 2.0)
-        desktop = cv2.resize(smooth_depth, (DESKTOP_WIDTH // 2, desktop_height // 2), interpolation=cv2.INTER_AREA)
-        Image.fromarray(desktop).save(out_dir / "desktop-depth" / f"{index:04d}.webp", "WEBP", quality=quality, method=6)
+        encoded = surface(gray)
+        small = cv2.resize(encoded, desktop_size, interpolation=cv2.INTER_AREA)
+        Image.fromarray(small).save(out_dir / "desktop-surface" / f"{index:04d}.webp", "WEBP", quality=SURFACE_QUALITY, method=6)
         offset = mobile_offsets[index]
-        mobile = cv2.resize(smooth_depth[:, offset:offset + mobile_width], (mobile_width // 2, height // 2), interpolation=cv2.INTER_AREA)
-        Image.fromarray(mobile).save(out_dir / "mobile-depth" / f"{index:04d}.webp", "WEBP", quality=quality, method=6)
+        crop = cv2.resize(encoded[:, offset:offset + mobile_width], (mobile_width // 3, height // 3), interpolation=cv2.INTER_AREA)
+        Image.fromarray(crop).save(out_dir / "mobile-surface" / f"{index:04d}.webp", "WEBP", quality=SURFACE_QUALITY, method=6)
         count += 1
     if count != len(mobile_offsets):
         raise RuntimeError(f"depth video produced {count} frames, expected {len(mobile_offsets)}")
 
 
-def run(source: Path, out_dir: Path, manifest_path: Path, quality: int, depth: Path | None) -> None:
+def run(source: Path, out_dir: Path, manifest_path: Path, quality: int, opening_quality: int, depth: Path | None) -> None:
     width, height, fps = probe(source)
-    desktop_height = int(round(height * DESKTOP_WIDTH / width / 2) * 2)
+    desktop_width = min(width, MAX_DESKTOP_WIDTH) // 2 * 2
+    desktop_height = int(round(height * desktop_width / width / 2) * 2)
     mobile_width = int(round(height * MOBILE_ASPECT))
-    for variant in ("desktop", "mobile", "desktop-depth", "mobile-depth"):
+    for variant in ("desktop", "mobile", "desktop-surface", "mobile-surface"):
         (out_dir / variant).mkdir(parents=True, exist_ok=True)
         for old in (out_dir / variant).glob("*.webp"):
             old.unlink()
@@ -183,16 +197,17 @@ def run(source: Path, out_dir: Path, manifest_path: Path, quality: int, depth: P
     quads = smooth(np.array(raw_quads), SMOOTHING_RADIUS)
     total = len(quads)
 
-    scale = DESKTOP_WIDTH / width
+    scale = desktop_width / width
     mobile_offsets = []
     for index, rgb in enumerate(read_frames(source, width, height)):
         screen, key = key_screen(rgb)
         rgba = finish_pixels(rgb, key, screen)
-        desktop = cv2.resize(rgba, (DESKTOP_WIDTH, desktop_height), interpolation=cv2.INTER_AREA)
-        save_webp(desktop, out_dir / "desktop" / f"{index:04d}.webp", quality)
+        frame_quality = opening_quality if index < OPENING_FRAMES else quality
+        desktop = rgba if (desktop_width, desktop_height) == (width, height) else cv2.resize(rgba, (desktop_width, desktop_height), interpolation=cv2.INTER_AREA)
+        save_webp(desktop, out_dir / "desktop" / f"{index:04d}.webp", frame_quality)
         offset = mobile_window(width, height, index / max(1, total - 1))
         mobile_offsets.append(offset)
-        save_webp(rgba[:, offset:offset + mobile_width], out_dir / "mobile" / f"{index:04d}.webp", quality)
+        save_webp(rgba[:, offset:offset + mobile_width], out_dir / "mobile" / f"{index:04d}.webp", frame_quality)
 
     def flat(points: np.ndarray, factor: float, dx: float = 0.0) -> list[float]:
         return [round(float(value), 1) for corner in points for value in ((corner[0] - dx) * factor, corner[1] * factor)]
@@ -200,9 +215,9 @@ def run(source: Path, out_dir: Path, manifest_path: Path, quality: int, depth: P
     manifest = {
         "fps": round(fps, 3),
         "frameCount": total,
-        "depth": depth is not None,
+        "surface": {"slopeGain": SLOPE_GAIN} if depth else None,
         "desktop": {
-            "width": DESKTOP_WIDTH,
+            "width": desktop_width,
             "height": desktop_height,
             "quads": [flat(q, scale) for q in quads],
         },
@@ -214,8 +229,8 @@ def run(source: Path, out_dir: Path, manifest_path: Path, quality: int, depth: P
     }
     manifest_path.write_text(json.dumps(manifest, separators=(",", ":")))
     if depth:
-        export_depth(depth, out_dir, (width, height, fps), desktop_height, mobile_offsets, quality)
-    print(f"{total} frames, desktop {DESKTOP_WIDTH}x{desktop_height}, mobile {mobile_width}x{height}, depth {'yes' if depth else 'no'}")
+        export_surface(depth, out_dir, (width, height, fps), (desktop_width, desktop_height), mobile_offsets)
+    print(f"{total} frames, desktop {desktop_width}x{desktop_height}, mobile {mobile_width}x{height}, surface {'yes' if depth else 'no'}")
 
 
 def main() -> None:
@@ -223,10 +238,11 @@ def main() -> None:
     parser.add_argument("source", type=Path)
     parser.add_argument("out_dir", type=Path)
     parser.add_argument("manifest", type=Path)
-    parser.add_argument("--quality", type=int, default=78)
+    parser.add_argument("--quality", type=int, default=80)
+    parser.add_argument("--opening-quality", type=int, default=92, help=f"quality of the first {OPENING_FRAMES} frames, the ones seen at rest")
     parser.add_argument("--depth", type=Path, help="depth video aligned with the source film")
     args = parser.parse_args()
-    run(args.source, args.out_dir, args.manifest, args.quality, args.depth)
+    run(args.source, args.out_dir, args.manifest, args.quality, args.opening_quality, args.depth)
 
 
 if __name__ == "__main__":

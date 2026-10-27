@@ -27,5 +27,3 @@ const allFeatures: readonly FilmFeature[] = [
 export const filmFeatures = allFeatures.filter((feature) => appClips[feature.clip]);
 
 export const featureWords: readonly string[] = allFeatures.map((feature) => feature.word);
-
-export const editWords: readonly string[] = [...featureWords, "Everything"];

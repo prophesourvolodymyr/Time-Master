@@ -10,20 +10,16 @@ void main() {
 const fragmentSource = `
 precision highp float;
 uniform sampler2D uColor;
-uniform sampler2D uDepth;
+uniform sampler2D uSurface;
 uniform vec2 uFrameOrigin;
 uniform vec2 uFrameSize;
-uniform vec2 uDepthTexel;
+uniform float uSlopeGain;
 uniform vec3 uLight;
 uniform float uRadius;
 uniform float uAmbient;
 uniform float uIntensity;
 uniform float uRelief;
 varying vec2 vPixel;
-
-float depthAt(vec2 uv) {
-  return texture2D(uDepth, uv).r;
-}
 
 void main() {
   vec2 uv = (vPixel - uFrameOrigin) / uFrameSize;
@@ -32,10 +28,10 @@ void main() {
     return;
   }
   vec4 color = texture2D(uColor, uv);
-  float dx = depthAt(uv + vec2(uDepthTexel.x, 0.0)) - depthAt(uv - vec2(uDepthTexel.x, 0.0));
-  float dy = depthAt(uv + vec2(0.0, uDepthTexel.y)) - depthAt(uv - vec2(0.0, uDepthTexel.y));
-  vec3 normal = normalize(vec3(-dx * uRelief, -dy * uRelief, 1.0));
-  vec3 toLight = uLight - vec3(vPixel, depthAt(uv) * uRadius * 0.35);
+  vec3 surface = texture2D(uSurface, uv).rgb;
+  vec2 slope = (surface.rg * 255.0 - 128.0) / (255.0 * uSlopeGain);
+  vec3 normal = normalize(vec3(-slope * uRelief, 1.0));
+  vec3 toLight = uLight - vec3(vPixel, surface.b * uRadius * 0.35);
   vec3 direction = normalize(toLight);
   float distance = length(toLight.xy) / uRadius;
   float falloff = 1.0 / (1.0 + distance * distance * 2.2);
@@ -91,23 +87,22 @@ export class RelightRenderer {
   private readonly program: WebGLProgram;
   private readonly buffer: WebGLBuffer | null;
   private readonly colorTexture: WebGLTexture | null;
-  private readonly depthTexture: WebGLTexture | null;
+  private readonly surfaceTexture: WebGLTexture | null;
   private readonly uniforms: Record<string, WebGLUniformLocation | null>;
   private colorSource: TexImageSource | null = null;
-  private depthSource: TexImageSource | null = null;
-  private depthSize = { width: 1, height: 1 };
+  private surfaceSource: TexImageSource | null = null;
 
-  static create(canvas: HTMLCanvasElement) {
+  static create(canvas: HTMLCanvasElement, slopeGain: number) {
     const gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false });
     if (!gl) return null;
     try {
-      return new RelightRenderer(gl);
+      return new RelightRenderer(gl, slopeGain);
     } catch {
       return null;
     }
   }
 
-  private constructor(gl: WebGLRenderingContext) {
+  private constructor(gl: WebGLRenderingContext, slopeGain: number) {
     this.gl = gl;
     const program = gl.createProgram();
     if (!program) throw new Error("program allocation failed");
@@ -129,28 +124,30 @@ export class RelightRenderer {
     gl.activeTexture(gl.TEXTURE0);
     this.colorTexture = texture(gl);
     gl.activeTexture(gl.TEXTURE1);
-    this.depthTexture = texture(gl);
+    this.surfaceTexture = texture(gl);
 
-    const names = ["uCanvas", "uColor", "uDepth", "uFrameOrigin", "uFrameSize", "uDepthTexel", "uLight", "uRadius", "uAmbient", "uIntensity", "uRelief"];
+    const names = ["uCanvas", "uColor", "uSurface", "uFrameOrigin", "uFrameSize", "uSlopeGain", "uLight", "uRadius", "uAmbient", "uIntensity", "uRelief"];
     this.uniforms = Object.fromEntries(names.map((name) => [name, gl.getUniformLocation(program, name)]));
     gl.uniform1i(this.uniforms.uColor, 0);
-    gl.uniform1i(this.uniforms.uDepth, 1);
+    gl.uniform1i(this.uniforms.uSurface, 1);
+    gl.uniform1f(this.uniforms.uSlopeGain, slopeGain);
   }
 
-  setFrame(color: HTMLImageElement, depth: HTMLImageElement | undefined) {
+  setFrame(color: HTMLImageElement, surface: HTMLImageElement | undefined) {
     const { gl } = this;
     if (color !== this.colorSource) {
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, this.colorTexture);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.BROWSER_DEFAULT_WEBGL);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, color);
       this.colorSource = color;
     }
-    if (depth && depth !== this.depthSource) {
+    if (surface && surface !== this.surfaceSource) {
       gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, this.depthTexture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, depth);
-      this.depthSource = depth;
-      this.depthSize = { width: depth.naturalWidth, height: depth.naturalHeight };
+      gl.bindTexture(gl.TEXTURE_2D, this.surfaceTexture);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, surface);
+      this.surfaceSource = surface;
     }
   }
 
@@ -162,7 +159,6 @@ export class RelightRenderer {
     gl.uniform2f(uniforms.uCanvas, view.width, view.height);
     gl.uniform2f(uniforms.uFrameOrigin, view.frameX, view.frameY);
     gl.uniform2f(uniforms.uFrameSize, view.frameWidth, view.frameHeight);
-    gl.uniform2f(uniforms.uDepthTexel, 1 / this.depthSize.width, 1 / this.depthSize.height);
     gl.uniform3f(uniforms.uLight, light.x, light.y, light.height);
     gl.uniform1f(uniforms.uRadius, light.radius);
     gl.uniform1f(uniforms.uAmbient, light.ambient);
@@ -174,7 +170,7 @@ export class RelightRenderer {
   dispose() {
     const { gl } = this;
     gl.deleteTexture(this.colorTexture);
-    gl.deleteTexture(this.depthTexture);
+    gl.deleteTexture(this.surfaceTexture);
     gl.deleteBuffer(this.buffer);
     gl.deleteProgram(this.program);
   }

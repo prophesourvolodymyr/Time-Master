@@ -77,6 +77,7 @@ export function FilmSection() {
   const [feature, setFeature] = useState(-1);
   const [immersive, setImmersive] = useState(false);
   const [editRun, setEditRun] = useState(0);
+  const [editPrepared, setEditPrepared] = useState(false);
   const { scrollTo, stop, start, isGliding } = useSmoothScroll();
   useImmersive(immersive);
 
@@ -85,12 +86,12 @@ export function FilmSection() {
       const canvas = canvasRef.current;
       const stage = stageRef.current;
       if (!canvas || !stage) return;
-      const relight = RelightRenderer.create(canvas);
+      const relight = film.surface ? RelightRenderer.create(canvas, film.surface.slopeGain) : null;
       const context = relight ? null : canvas.getContext("2d");
       const meta = film[variant];
       const paths = (folder: string) => Array.from({ length: film.frameCount }, (_, index) => framePath(folder, index));
       const frames = new FrameSequence(paths(variant));
-      const depths = relight && film.depth ? new FrameSequence(paths(`${variant}-depth`)) : null;
+      const surfaces = relight ? new FrameSequence(paths(`${variant}-surface`)) : null;
       const loading = new AbortController();
       const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
       const view = { width: 0, height: 0, ratio: 1, frame: 0, drawn: -1 };
@@ -109,12 +110,12 @@ export function FilmSection() {
         const frameX = (view.width - frameWidth) / 2;
         const frameY = (view.height - frameHeight) / 2;
         if (relight) {
-          const depthIndex = depths ? depths.nearest(index) : -1;
-          relight.setFrame(image, depthIndex < 0 ? undefined : depths?.frame(depthIndex));
+          const surfaceIndex = surfaces ? surfaces.nearest(index) : -1;
+          relight.setFrame(image, surfaceIndex < 0 ? undefined : surfaces?.frame(surfaceIndex));
           const radius = Math.max(view.width, view.height) * 0.46;
           relight.render(
             { width: view.width, height: view.height, ratio: view.ratio, frameX, frameY, frameWidth, frameHeight },
-            { x: light.x, y: light.y, height: radius * 0.45, radius, ambient: 0.3, intensity: 1.95, relief: 12 },
+            { x: light.x, y: light.y, height: radius * 0.6, radius, ambient: 0.3, intensity: 1.95, relief: 12 },
           );
         } else if (context) {
           context.setTransform(view.ratio, 0, 0, view.ratio, 0, 0);
@@ -145,7 +146,7 @@ export function FilmSection() {
       const observer = new ResizeObserver(resize);
       observer.observe(canvas);
       frames.load(loading.signal, () => draw({ layout: true }));
-      depths?.load(loading.signal, () => draw({ lighting: true }), 3);
+      surfaces?.load(loading.signal, () => draw({ lighting: true }), 3);
 
       const followPointer = (event: PointerEvent) => {
         if (event.pointerType === "touch") return;
@@ -209,6 +210,7 @@ export function FilmSection() {
             if (progress > 0) view.frame = progress < pushEnd ? idleLastFrame + (lastFrame - idleLastFrame) * pushEase(progress / pushEnd) : lastFrame;
             draw();
             setFeature(featureAt(progress));
+            if (progress > pushEnd) setEditPrepared(true);
             setImmersive(progress > 0.02 && progress < 1);
             if (progress < 0.9) editPlayedRef.current = false;
             if (progress >= editStart && self.direction > 0 && !editPlayedRef.current && !isGliding()) {
@@ -270,7 +272,7 @@ export function FilmSection() {
           </div>
         </div>
         <HeroCopy ref={heroRef} onInstall={() => scrollTo("#choose", { duration: 1.8, lock: true })} />
-        {reducedMotion ? null : <PageChangeEdit run={editRun} scene={sceneRef} onDone={finishEdit} />}
+        {reducedMotion ? null : <PageChangeEdit run={editRun} prepared={editPrepared} onDone={finishEdit} />}
       </div>
       <h2 className="sr-only">Everything inside Tmax</h2>
       <ul className={reducedMotion ? "mx-auto grid max-w-[1400px] grid-cols-2 gap-x-6 gap-y-3 px-5 py-20 font-display text-[28px] font-black md:grid-cols-4 md:px-8" : "sr-only"}>

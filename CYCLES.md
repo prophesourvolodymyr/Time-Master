@@ -2612,6 +2612,9 @@ User direction: build the professional Next.js and TypeScript website from the u
 - [x] F30-C-c — Workout Builder chapter
 - [x] F30-C-d — Map chapter
 - [x] F30-D — Impact stats
+- [x] F30-B — Hero film quality: desktop frames at the source's native 1916x1080 with higher-quality opening frames; relighting rebuilt on precomputed surface slopes so the chest no longer shows horizontal stripes
+- [x] F30-B — Page-change edit rebuilt as the TikTok "ego edit" the user described: 14 photographed book pages with the word "real" highlighted and locked to the screen center, full-screen desktop and phone page sets, swipes, punch-in cuts, shake, glow, grain and flashes over 3 seconds
+- [ ] F30-B DOCKS.md: describe the "real" page edit and the relit film once the user accepts them
 - [ ] Configure the real App Store, Google Play and signed IPA links (external prerequisite)
 - [ ] Human review of the website
 - [ ] Native app (found while recording): the workout editor's "Browse exercises" button does nothing on an empty workout and otherwise opens a page preview instead of the exercise browser
