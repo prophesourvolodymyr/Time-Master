@@ -212,6 +212,20 @@ extension PhotoManager {
         return platformImage(cgImage)
     }
 
+    static func downsampledImage(data: Data, maxPixelSize: CGFloat) -> PhotoPlatformImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
+            return nil
+        }
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(1, Int(maxPixelSize.rounded(.up)))
+        ] as CFDictionary
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+        return platformImage(cgImage)
+    }
+
     private static func platformImage(_ cgImage: CGImage) -> PhotoPlatformImage {
         #if os(iOS)
         return UIImage(cgImage: cgImage)

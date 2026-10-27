@@ -199,6 +199,10 @@ class DatabaseStore: ObservableObject {
         allPagesFlat.first { $0.id == id }
     }
 
+    func folderURL(for page: ExercisePage) -> URL {
+        DatabaseManager.shared.exercisesDatabaseURL.appendingPathComponent(page.path, isDirectory: true)
+    }
+
     func children(of parentID: UUID) -> [ExercisePage] {
         guard let parent = page(id: parentID) else { return [] }
         return parent.manifest.childIDs.compactMap { childID in

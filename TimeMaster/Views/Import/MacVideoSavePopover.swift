@@ -311,7 +311,7 @@ struct MacVideoSavePopover: View {
             Text("Video Comment")
                 .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
-            MediaCommentComposer(text: $clipComment, minimumEditorHeight: 140)
+            MarkdownEditorField(title: "Video comment", placeholder: "Write notes about this clip…", text: $clipComment, minHeight: 120)
         }
     }
 
@@ -589,14 +589,7 @@ struct MacVideoSavePopover: View {
                     .font(TimeMasterFont.micro())
                     .foregroundStyle(Theme.textSecondary)
             }
-            TextEditor(text: $markdownBody)
-                .font(TimeMasterFont.body(17))
-                .frame(minHeight: 160)
-                .padding(10)
-                .scrollContentBackground(.hidden)
-                .foregroundStyle(Theme.textPrimary)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            MarkdownEditorField(title: "Guide", placeholder: "Write a guide here…", text: $markdownBody, minHeight: 160)
         }
     }
 

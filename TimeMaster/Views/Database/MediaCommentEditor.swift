@@ -3,6 +3,7 @@ import SwiftUI
 struct MediaCommentEditor: View {
     let mediaURL: URL
     let originalComment: String
+    let assets: MarkdownAssets?
     let onSave: (String) throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var draft: String
@@ -11,9 +12,10 @@ struct MediaCommentEditor: View {
     @State private var saveError = ""
     @ScaledMetric(relativeTo: .body) private var thumbnailHeight: CGFloat = 150
 
-    init(mediaURL: URL, comment: String, onSave: @escaping (String) throws -> Void) {
+    init(mediaURL: URL, comment: String, assets: MarkdownAssets? = nil, onSave: @escaping (String) throws -> Void) {
         self.mediaURL = mediaURL
         originalComment = comment
+        self.assets = assets
         self.onSave = onSave
         _draft = State(initialValue: comment)
     }
@@ -22,23 +24,21 @@ struct MediaCommentEditor: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    AsyncCoverImage(
-                        url: mediaURL,
-                        fallbackIcon: "photo.on.rectangle",
-                        height: thumbnailHeight,
-                        contentMode: .fit,
-                        overlayGradient: false
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    MediaCommentComposer(text: $draft)
-                }
-                .padding(16)
+            VStack(spacing: 0) {
+                AsyncCoverImage(
+                    url: mediaURL,
+                    fallbackIcon: "photo.on.rectangle",
+                    height: thumbnailHeight,
+                    contentMode: .fit,
+                    overlayGradient: false
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                MarkdownEditorView(text: $draft, assets: assets, autofocus: draft.isEmpty)
             }
-            .scrollDismissesKeyboard(.interactively)
             .background(Theme.background.ignoresSafeArea())
-            .timeMasterNavigationTitle("Media comment")
+            .timeMasterNavigationTitle("Media notes")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -53,11 +53,11 @@ struct MediaCommentEditor: View {
                 }
             }
             .interactiveDismissDisabled(hasChanges)
-            .confirmationDialog("Discard unsaved comment changes?", isPresented: $showDiscardConfirmation, titleVisibility: .visible) {
+            .confirmationDialog("Discard unsaved note changes?", isPresented: $showDiscardConfirmation, titleVisibility: .visible) {
                 Button("Discard Changes", role: .destructive) { dismiss() }
                 Button("Keep Editing", role: .cancel) {}
             }
-            .alert("Could not save comment", isPresented: $showSaveError) {
+            .alert("Could not save notes", isPresented: $showSaveError) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(saveError)

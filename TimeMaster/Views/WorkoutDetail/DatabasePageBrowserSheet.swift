@@ -758,10 +758,10 @@ private struct ExercisePageQuickPreview: View {
                     }
 
                     if page.hasMedia {
-                        PageMediaGalleryGrid(urls: page.mediaURLs, comments: page.mediaCommentsByURL) { index in
+                        MediaStrip(urls: page.mediaURLs, comments: page.mediaCommentsByURL, onOpen: { index in
                             selectedMediaIndex = index
                             showingMedia = true
-                        }
+                        })
                     }
 
                     if canAdd {
@@ -794,7 +794,7 @@ private struct ExercisePageQuickPreview: View {
             }
         }
         .font(TimeMasterFont.body())
-        .sheet(isPresented: $showingMedia) {
+        .mediaViewerCover(isPresented: $showingMedia) {
             PageMediaGallery(
                 urls: page.mediaURLs,
                 selectedIndex: $selectedMediaIndex,

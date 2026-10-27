@@ -10,6 +10,7 @@ import AppKit
 struct ExercisePageDetailView: View {
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
+    @Environment(\.workoutMedia) private var workoutMedia
     let pageID: UUID
     var showsHero = true
     @ScaledMetric(relativeTo: .largeTitle) private var coverMinimumHeight: CGFloat = 220
@@ -17,6 +18,7 @@ struct ExercisePageDetailView: View {
     @State private var isEditing = false
     @State private var mediaGalleryPresented = false
     @State private var selectedMediaIndex = 0
+    @State private var mediaGalleryOpensEditor = false
     @State private var linkMetadata: [LinkMetadata] = []
     @State private var guideContent = ""
     @State private var showMediaPicker = false
@@ -145,7 +147,7 @@ struct ExercisePageDetailView: View {
         .onChange(of: showingAddChildPage) { isPresented in
             if !isPresented { childPageParent = nil }
         }
-        .sheet(isPresented: $mediaGalleryPresented) {
+        .mediaViewerCover(isPresented: $mediaGalleryPresented) {
             if let page {
                 PageMediaGallery(
                     urls: page.mediaURLs,
@@ -154,7 +156,11 @@ struct ExercisePageDetailView: View {
                     comments: page.mediaCommentsByURL,
                     onSaveComment: { url, comment in
                         try store.updateMediaComment(pageID: page.manifest.id, filename: url.lastPathComponent, comment: comment)
-                    }
+                    },
+                    opensEditor: mediaGalleryOpensEditor,
+                    notesAssets: { _ in FolderMarkdownAssets(folder: store.folderURL(for: page)) },
+                    workout: workoutMedia?.workout,
+                    liveContext: workoutMedia?.liveContext
                 )
             }
         }
@@ -345,10 +351,22 @@ struct ExercisePageDetailView: View {
     private func detailContent(page: ExercisePage) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             if page.hasMedia {
-                PageMediaGalleryGrid(title: showsHero ? "Attachments" : "", urls: page.mediaURLs, marksCover: showsHero, comments: page.mediaCommentsByURL) { index in
-                    selectedMediaIndex = index
-                    mediaGalleryPresented = true
-                }
+                MediaStrip(
+                    title: showsHero ? "Attachments" : "",
+                    urls: page.mediaURLs,
+                    marksCover: showsHero,
+                    comments: page.mediaCommentsByURL,
+                    onOpen: { index in
+                        selectedMediaIndex = index
+                        mediaGalleryOpensEditor = false
+                        mediaGalleryPresented = true
+                    },
+                    onOpenNotes: { index in
+                        selectedMediaIndex = index
+                        mediaGalleryOpensEditor = true
+                        mediaGalleryPresented = true
+                    }
+                )
             }
 
             if page.isSkill || page.isTutorial {
@@ -405,7 +423,10 @@ struct ExercisePageDetailView: View {
             Text(title)
                 .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
-            MarkdownTextView(text: guideContent.isEmpty ? page.manifest.markdownBody : guideContent)
+            MarkdownTextView(
+                text: guideContent.isEmpty ? page.manifest.markdownBody : guideContent,
+                assets: FolderMarkdownAssets(folder: store.folderURL(for: page))
+            )
         }
     }
 

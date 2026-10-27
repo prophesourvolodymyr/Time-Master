@@ -71,8 +71,6 @@ struct PageCreationSheet: View {
     @State private var didSavePage = false
     @State private var draftSavedMessage: String?
     @State private var saveErrorMessage: String?
-    @State private var markdownEditorHeight: CGFloat = 180
-    @State private var markdownResizeStartHeight: CGFloat?
     @State private var autosaveTask: Task<Void, Never>?
     #if os(iOS)
     @State private var pendingMediaItems: [PhotosPickerItem] = []
@@ -218,7 +216,7 @@ struct PageCreationSheet: View {
                 }
             }
             .sheet(item: $editingMediaComment) { attachment in
-                MediaCommentEditor(mediaURL: attachment.url, comment: mediaComments[attachment.filename] ?? "") { comment in
+                MediaCommentEditor(mediaURL: attachment.url, comment: mediaComments[attachment.filename] ?? "", assets: pageAssets) { comment in
                     guard mediaFilenames.contains(attachment.filename) else {
                         throw FileSystemHelper.Error.notFound(attachment.filename)
                     }
@@ -688,61 +686,20 @@ struct PageCreationSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private var pageAssets: MarkdownAssets? {
+        existingPage.map { FolderMarkdownAssets(folder: databaseStore.folderURL(for: $0)) }
+    }
+
     private var markdownCard: some View {
         formCard {
             sectionHeading("Guide", optional: true)
-
-            VStack(spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    if markdownBody.isEmpty {
-                        Text("Write a guide here…")
-                            .font(TimeMasterFont.body(17))
-                            .foregroundStyle(Theme.textSecondary.opacity(0.65))
-                            .padding(.top, 14)
-                            .padding(.horizontal, 14)
-                            .allowsHitTesting(false)
-                    }
-                    TextEditor(text: $markdownBody)
-                        .font(TimeMasterFont.body(17))
-                        .frame(height: markdownEditorHeight)
-                        .padding(10)
-                        .scrollContentBackground(.hidden)
-                        .foregroundStyle(Theme.textPrimary)
-                }
-
-                HStack {
-                    Spacer()
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.toolbarOrange)
-                        .frame(width: 32, height: 28)
-                        .contentShape(Rectangle())
-                        .accessibilityLabel("Resize markdown editor")
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    if markdownResizeStartHeight == nil {
-                                        markdownResizeStartHeight = markdownEditorHeight
-                                    }
-                                    let start = markdownResizeStartHeight ?? markdownEditorHeight
-                                    markdownEditorHeight = min(600, max(150, start + value.translation.height))
-                                }
-                                .onEnded { _ in
-                                    markdownResizeStartHeight = nil
-                                }
-                        )
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-
-                if !markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    MarkdownTextView(text: markdownBody)
-                        .padding(14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.background.opacity(0.55))
-                }
-            }
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+            MarkdownEditorField(
+                title: "Guide",
+                placeholder: "Write a guide here…",
+                text: $markdownBody,
+                assets: pageAssets,
+                minHeight: 140
+            )
         }
     }
 

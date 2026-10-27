@@ -54,6 +54,7 @@ struct WorkoutAttachmentBrowser: View {
             ))
         }
         .environmentObject(navigationState)
+        .environment(\.workoutMedia, WorkoutMediaEnvironment(workout: currentWorkout, liveContext: liveContext))
         .background(Theme.background)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showMusic) {
@@ -66,71 +67,57 @@ struct WorkoutAttachmentBrowser: View {
 
 struct WorkoutAttachmentStrip: View {
     let workout: Workout
+    var liveContext: WorkoutLiveContext? = nil
     @State private var selectedMediaIndex = 0
     @State private var showingMedia = false
+    @State private var opensEditor = false
     @EnvironmentObject private var databaseStore: DatabaseStore
+    @ObservedObject private var notes = MediaNotesStore.shared
 
-    private var pageIDs: [UUID] {
-        var result: [UUID] = []
-        var seen: Set<UUID> = []
-        func append(_ id: UUID?) {
-            if let id, seen.insert(id).inserted { result.append(id) }
-        }
-        func appendSlot(_ slot: SetSlot) {
-            append(slot.exercisePageID)
-            append(slot.restExercisePageID)
-            for drop in slot.drops { append(drop.exercisePageID) }
-            for content in slot.restRow?.contents ?? [] { append(content.pageID) }
-            for child in slot.children { appendSlot(child) }
-        }
-        for section in workout.sections {
-            append(section.pageID)
-            for slot in section.effectiveSlots { appendSlot(slot) }
-            for content in section.bigRestRow?.contents ?? [] { append(content.pageID) }
-        }
-        return result
-    }
-
-    private var mediaURLs: [URL] {
-        var result: [URL] = []
-        var seen: Set<URL> = []
-        for id in pageIDs {
-            for url in databaseStore.page(id: id)?.mediaURLs ?? [] where seen.insert(url).inserted {
-                result.append(url)
-            }
-        }
-        for section in workout.sections {
-            for item in section.mediaItems {
-                let url = item.type == .video
-                    ? PhotoManager.shared.videoURL(for: item.filename)
-                    : PhotoManager.shared.photoURL(for: item.filename)
-                if seen.insert(url).inserted { result.append(url) }
-            }
-        }
-        return result
-    }
-
-    private var mediaComments: [URL: String] {
-        pageIDs.reduce(into: [:]) { result, id in
-            for (url, comment) in databaseStore.page(id: id)?.mediaCommentsByURL ?? [:] {
-                result[url] = comment
-            }
-        }
+    private var catalog: WorkoutMediaCatalog {
+        WorkoutMediaCatalog(
+            pageIDs: WorkoutMediaCatalog.pageIDs(in: workout),
+            sections: workout.sections,
+            databaseStore: databaseStore,
+            notes: notes
+        )
     }
 
     var body: some View {
-        let urls = mediaURLs
-        if !urls.isEmpty {
-            PageMediaGalleryGrid(title: "", urls: urls, marksCover: false, comments: mediaComments) { index in
-                selectedMediaIndex = index
-                showingMedia = true
-            }
+        let catalog = catalog
+        if !catalog.entries.isEmpty {
+            MediaStrip(
+                title: "",
+                urls: catalog.urls,
+                marksCover: false,
+                comments: catalog.comments,
+                onOpen: { index in
+                    selectedMediaIndex = index
+                    opensEditor = false
+                    showingMedia = true
+                },
+                onOpenNotes: { index in
+                    selectedMediaIndex = index
+                    opensEditor = true
+                    showingMedia = true
+                }
+            )
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .sheet(isPresented: $showingMedia) {
+            .mediaViewerCover(isPresented: $showingMedia) {
                 PageMediaGallery(
-                    urls: urls, selectedIndex: $selectedMediaIndex, isPresented: $showingMedia,
-                    comments: mediaComments, onSaveComment: nil
+                    urls: catalog.urls,
+                    selectedIndex: $selectedMediaIndex,
+                    isPresented: $showingMedia,
+                    comments: catalog.comments,
+                    onSaveComment: { url, text in
+                        try catalog.save(text, for: url, databaseStore: databaseStore, notes: notes)
+                    },
+                    opensEditor: opensEditor,
+                    notesAssets: { catalog.assets(for: $0, databaseStore: databaseStore, notes: notes) },
+                    workout: workout,
+                    liveContext: liveContext,
+                    databasePageID: { catalog.pageID(for: $0) ?? catalog.firstPageID }
                 )
             }
         }

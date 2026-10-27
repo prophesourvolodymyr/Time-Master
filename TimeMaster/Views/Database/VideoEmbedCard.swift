@@ -74,7 +74,7 @@ struct PageLinkRow: View {
     }
 }
 
-private struct PageLinkTile: View {
+struct PageLinkTile: View {
     let platform: LinkPlatform
     let thumbnailURL: URL?
 

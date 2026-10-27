@@ -105,7 +105,7 @@ struct WorkoutDetailView: View {
 
                 VStack(spacing: 0) {
                     if liveContext != nil {
-                        WorkoutAttachmentStrip(workout: workout)
+                        WorkoutAttachmentStrip(workout: workout, liveContext: liveContext)
                     }
                     sectionList(width: proxy.size.width)
                     if !workout.sections.isEmpty && liveContext == nil {
@@ -192,7 +192,9 @@ struct WorkoutDetailView: View {
             Text("Are you sure you want to delete this section?")
         }
         .sheet(item: $mediaPreviewSection) { section in
-            MediaPreviewSheet(items: section.mediaItems)
+            MediaPreviewSheet(items: section.mediaItems, workout: workout, liveContext: liveContext)
+                .environmentObject(databaseStore)
+                .environmentObject(store)
         }
         .sheet(
             isPresented: Binding(

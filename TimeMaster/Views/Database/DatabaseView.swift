@@ -136,47 +136,10 @@ struct MediaThumbnailView: View {
 
 struct MarkdownTextView: View {
     let text: String
+    var assets: MarkdownAssets? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            ForEach(Array(text.components(separatedBy: "\n").enumerated()), id: \.offset) { _, line in
-                markdownLine(line)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func markdownLine(_ line: String) -> some View {
-        if line.hasPrefix("# ") {
-            Text(String(line.dropFirst(2)))
-                .font(TimeMasterFont.black(22, relativeTo: .title2)).foregroundColor(Theme.textPrimary)
-        } else if line.hasPrefix("## ") {
-            Text(String(line.dropFirst(3)))
-                .font(TimeMasterFont.heading()).foregroundColor(Theme.textPrimary)
-        } else if line.hasPrefix("### ") {
-            Text(String(line.dropFirst(4)))
-                .font(TimeMasterFont.sectionTitle()).foregroundColor(Theme.textPrimary)
-        } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
-            HStack(alignment: .top, spacing: 8) {
-                Text("•").foregroundColor(Theme.textSecondary).frame(width: 12)
-                inlineMarkdownView(String(line.dropFirst(2)))
-            }
-        } else if line.isEmpty {
-            Text(" ").font(TimeMasterFont.micro())
-        } else {
-            inlineMarkdownView(line)
-        }
-    }
-
-    @ViewBuilder
-    private func inlineMarkdownView(_ s: String) -> some View {
-        if let attr = try? AttributedString(markdown: s,
-                                            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
-            Text(TimeMasterFont.styledText(attr, size: 17)).foregroundColor(Theme.textPrimary)
-        } else {
-            Text(s).foregroundColor(Theme.textPrimary).font(TimeMasterFont.body(17))
-        }
+        MarkdownDocumentView(markdown: text, assets: assets)
     }
 }
 
@@ -243,12 +206,7 @@ struct NoteDetailView: View {
                     Divider().background(Theme.separator)
 
                     // Body editor — fills remaining space
-                    TextEditor(text: $noteBody)
-                        .font(TimeMasterFont.body(17))
-                        .foregroundColor(Theme.textPrimary)
-                        .scrollContentBackground(.hidden)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                    MarkdownEditorView(text: $noteBody)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
@@ -350,20 +308,7 @@ struct NoteEditorView: View {
                 Text("Markdown supported")
                     .font(TimeMasterFont.micro()).foregroundColor(Theme.textSecondary)
             }
-            ZStack(alignment: .topLeading) {
-                if noteBody.isEmpty {
-                    Text(TimeMasterFont.styledText(AttributedString(localized: "Write your note here…\n\nSupports **bold**, *italic*, `code`, # Headings, - lists"), size: 17))
-                        .foregroundColor(Theme.textSecondary.opacity(0.6))
-                        .padding(.top, 14).padding(.leading, 14)
-                        .allowsHitTesting(false)
-                        .font(TimeMasterFont.body(17))
-                }
-                TextEditor(text: $noteBody)
-                    .font(TimeMasterFont.body(17))
-                    .frame(minHeight: 200).padding(10)
-                    .scrollContentBackground(.hidden).foregroundColor(Theme.textPrimary)
-            }
-            .background(Theme.surface).cornerRadius(10)
+            MarkdownEditorField(title: "Note", placeholder: "Write your note here…", text: $noteBody, minHeight: 200)
         }
     }
 

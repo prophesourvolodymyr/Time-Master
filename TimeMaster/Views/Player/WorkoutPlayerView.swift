@@ -78,8 +78,10 @@ struct WorkoutPlayerView: View {
     @State private var mediaImages: [NSImage?]  = []
     #endif
     @State private var currentMediaIndex        = 0
-    @State private var videoPlayer: AVQueuePlayer?
-    @State private var videoLooper: AVPlayerLooper?
+    @State private var mediaViewerCatalog: WorkoutMediaCatalog?
+    @State private var mediaViewerIndex = 0
+    @State private var mediaViewerOpensEditor = false
+    @State private var showMediaViewer = false
 
     // F03-B: Media overlay & rest adjustment
     @State private var showMediaOverlay = false
@@ -247,9 +249,6 @@ struct WorkoutPlayerView: View {
                 currentMediaIndex = 0
                 loadCurrentMedia()
             }
-             .onChange(of: currentMediaIndex) { _ in
-                 setupVideoIfNeeded()
-             }
             .onChange(of: currentSetIndex) { _ in
                 loadCurrentMedia()
             }
@@ -259,7 +258,6 @@ struct WorkoutPlayerView: View {
                 #endif
                 timer?.invalidate()
                 AudioManager.shared.stopSpeaking()
-                stopVideo()
                 endBackgroundTask()
                 musicSession.stop()
                 musicStarted = false
@@ -327,6 +325,26 @@ struct WorkoutPlayerView: View {
                     BundleEditorSheet(section: section) { updated in
                         store.updateSection(in: workout, section: updated)
                     }
+                }
+            }
+            .mediaViewerCover(isPresented: $showMediaViewer) {
+                if let catalog = mediaViewerCatalog {
+                    PageMediaGallery(
+                        urls: catalog.urls,
+                        selectedIndex: $mediaViewerIndex,
+                        isPresented: $showMediaViewer,
+                        comments: catalog.comments,
+                        onSaveComment: { url, text in
+                            try catalog.save(text, for: url, databaseStore: databaseStore, notes: MediaNotesStore.shared)
+                        },
+                        opensEditor: mediaViewerOpensEditor,
+                        notesAssets: { catalog.assets(for: $0, databaseStore: databaseStore, notes: MediaNotesStore.shared) },
+                        workout: workout,
+                        liveContext: liveContext,
+                        databasePageID: { catalog.pageID(for: $0) ?? catalog.firstPageID }
+                    )
+                    .environmentObject(databaseStore)
+                    .environmentObject(store)
                 }
             }
             .sheet(isPresented: $showMusicChooser) {
@@ -698,104 +716,34 @@ struct WorkoutPlayerView: View {
 
     @ViewBuilder
     private var mediaCarousel: some View {
-        if !loadedMedia.isEmpty {
-            VStack(spacing: 8) {
-                ZStack {
-                    mediaCarouselContent
-                    if loadedMedia.count > 1 { mediaArrows }
-                }
-                .frame(width: 260, height: 260)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(color: .black.opacity(0.5), radius: 24, x: 0, y: 12)
-
-                if loadedMedia.count > 1 { mediaDots }
-            }
+        let catalog = currentMediaCatalog
+        if !catalog.entries.isEmpty {
+            WorkoutMediaPager(
+                entries: catalog.entries,
+                comments: catalog.comments,
+                index: $currentMediaIndex,
+                onOpen: { openMediaViewer(catalog, index: $0, opensEditor: false) },
+                onSwipeUp: { openMediaViewer(catalog, index: $0, opensEditor: true) },
+                isPaused: isPaused
+            )
         }
     }
 
-    @ViewBuilder
-    private var mediaCarouselContent: some View {
-        if let item = loadedMedia[safe: currentMediaIndex] {
-            if item.type == .video, let player = videoPlayer {
-                    VideoPlayer(player: player)
-                        .frame(width: 260, height: 260)
-                        .onTapGesture {
-                        if let pageID = currentSlot?.exercisePageID ?? currentSection?.pageID {
-                            openPageOverlay(id: pageID, name: currentSlot?.name ?? currentSection?.name ?? item.filename)
-                        } else {
-                            overlayMediaItem = item
-                            showMediaOverlay = true
-                        }
-                    }
-            } else if let outer = mediaImages[safe: currentMediaIndex], let img = outer {
-                Image.platformImg(img)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 260, height: 260)
-                    .onTapGesture {
-                        if let pageID = currentSlot?.exercisePageID ?? currentSection?.pageID {
-                            openPageOverlay(id: pageID, name: currentSlot?.name ?? currentSection?.name ?? item.filename)
-                        } else {
-                            overlayMediaItem = item
-                            overlayImage = img
-                            showMediaOverlay = true
-                        }
-                    }
-            }
-        }
+    private var currentMediaCatalog: WorkoutMediaCatalog {
+        WorkoutMediaCatalog(
+            pageIDs: [currentSlot?.exercisePageID ?? currentSection?.pageID].compactMap { $0 },
+            sections: currentSection.map { [$0] } ?? [],
+            databaseStore: databaseStore,
+            notes: MediaNotesStore.shared,
+            sectionMediaFirst: true
+        )
     }
 
-    private var mediaArrows: some View {
-        HStack {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    currentMediaIndex = max(0, currentMediaIndex - 1)
-                }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Color.black.opacity(0.45))
-                    .clipShape(Circle())
-            }
-            .opacity(currentMediaIndex > 0 ? 1 : 0.3)
-            .disabled(currentMediaIndex == 0)
-
-            Spacer()
-
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    currentMediaIndex = min(loadedMedia.count - 1, currentMediaIndex + 1)
-                }
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Color.black.opacity(0.45))
-                    .clipShape(Circle())
-            }
-            .opacity(currentMediaIndex < loadedMedia.count - 1 ? 1 : 0.3)
-            .disabled(currentMediaIndex == loadedMedia.count - 1)
-        }
-        .padding(.horizontal, 8)
-    }
-
-    private var mediaDots: some View {
-        HStack(spacing: 5) {
-            ForEach(0..<loadedMedia.count, id: \.self) { i in
-                let isActive  = i == currentMediaIndex
-                let isVideo   = loadedMedia[i].type == .video
-                Capsule()
-                    .fill(isActive ? Color.white : Color.white.opacity(0.35))
-                    .frame(
-                        width:  isVideo ? (isActive ? 18 : 12) : (isActive ? 7 : 5),
-                        height: isActive ? 7 : 5
-                    )
-                    .animation(.easeInOut(duration: 0.15), value: currentMediaIndex)
-            }
-        }
+    private func openMediaViewer(_ catalog: WorkoutMediaCatalog, index: Int, opensEditor: Bool) {
+        mediaViewerCatalog = catalog
+        mediaViewerIndex = min(max(0, index), max(0, catalog.entries.count - 1))
+        mediaViewerOpensEditor = opensEditor
+        showMediaViewer = true
     }
 
     // MARK: - Rest View (shared for set-rest and section-rest)
@@ -1637,7 +1585,6 @@ struct WorkoutPlayerView: View {
     private func completeWorkout() {
         timer?.invalidate()
         AudioManager.shared.stopSpeaking()
-        stopVideo()
         musicSession.stop()
         workoutCompleted = true
         showWorkoutManagement = false
@@ -1662,7 +1609,6 @@ struct WorkoutPlayerView: View {
         isPaused = true
         AudioManager.shared.stopSpeaking()
         saveResumeState()
-        videoPlayer?.pause()
         musicSession.setPaused(true)
     }
 
@@ -1675,14 +1621,10 @@ struct WorkoutPlayerView: View {
         isPaused = false
         startTimer()
         musicSession.setPaused(false)
-        if let item = loadedMedia[safe: currentMediaIndex], item.type == .video {
-            videoPlayer?.play()
-        }
     }
 
     private func stopWorkout() {
         timer?.invalidate()
-        stopVideo()
         musicSession.stop()
         AudioManager.shared.stopSpeaking()
         if elapsedSeconds >= 180 {
@@ -1751,7 +1693,6 @@ struct WorkoutPlayerView: View {
             loadedMedia = []
             mediaImages = []
             currentMediaIndex = 0
-            stopVideo()
             return
         }
         loadedMedia = section.mediaItems
@@ -1774,34 +1715,8 @@ struct WorkoutPlayerView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     self.mediaImages = images
                 }
-                self.setupVideoIfNeeded()
             }
         }
-    }
-
-    private func setupVideoIfNeeded() {
-        stopVideo()
-        guard let item = loadedMedia[safe: currentMediaIndex], item.type == .video else { return }
-        let url = PhotoManager.shared.videoURL(for: item.filename)
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        // Configure audio session so video audio mixes with TTS
-        #if os(iOS)
-        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
-        try? AVAudioSession.sharedInstance().setActive(true)
-        #endif
-        let playerItem = AVPlayerItem(url: url)
-        let player     = AVQueuePlayer(items: [playerItem])
-        let looper     = AVPlayerLooper(player: player, templateItem: playerItem)
-        videoPlayer = player
-        videoLooper = looper
-        if !isPaused { player.play() }
-    }
-
-    private func stopVideo() {
-        videoPlayer?.pause()
-        videoPlayer?.removeAllItems()
-        videoLooper = nil
-        videoPlayer = nil
     }
 
     // MARK: - Helpers
