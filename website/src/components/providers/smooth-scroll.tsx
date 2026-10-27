@@ -30,7 +30,18 @@ const glideEasing = (t: number) => (t < 0.5 ? 16 * t ** 5 : 1 - (-2 * t + 2) ** 
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   const reducedMotion = usePrefersReducedMotion();
   const lenisRef = useRef<Lenis | null>(null);
-  const glidingRef = useRef(false);
+  const glideRef = useRef<{ locked: boolean } | null>(null);
+
+  useEffect(() => {
+    const release = () => {
+      if (glideRef.current && !glideRef.current.locked) glideRef.current = null;
+    };
+    const inputs = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+    for (const input of inputs) window.addEventListener(input, release, { passive: true });
+    return () => {
+      for (const input of inputs) window.removeEventListener(input, release);
+    };
+  }, []);
 
   useEffect(() => {
     const lenis = new Lenis({
@@ -65,7 +76,8 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
           options.onComplete?.();
           return;
         }
-        glidingRef.current = !immediate;
+        const glide = immediate ? null : { locked: options.lock ?? false };
+        glideRef.current = glide;
         lenis.scrollTo(destination, {
           offset: options.offset ?? 0,
           duration: options.duration ?? 1.2,
@@ -74,14 +86,14 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
           lock: options.lock ?? false,
           force: true,
           onComplete: () => {
-            glidingRef.current = false;
+            if (glideRef.current === glide) glideRef.current = null;
             options.onComplete?.();
           },
         });
       },
       stop: () => lenisRef.current?.stop(),
       start: () => lenisRef.current?.start(),
-      isGliding: () => glidingRef.current,
+      isGliding: () => glideRef.current !== null,
     }),
     [reducedMotion],
   );
