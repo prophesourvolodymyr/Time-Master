@@ -62,6 +62,9 @@ struct SettingsRootContent: View {
 
                     SettingsMenuSection(title: "AI & Import") {
                         SettingsDestinationLink(destination: .exerciseAI)
+#if os(macOS)
+                        SettingsDestinationLink(destination: .agentAccess)
+#endif
                         serverSettingsButton {
                             SettingsMenuCard {
                                 SettingsActionRow(
@@ -199,6 +202,8 @@ struct SettingsDestinationContent: View {
             ProfilePrivacySettingsView()
         case .exerciseAI:
             ExerciseAISettingsView()
+        case .agentAccess:
+            AgentAccessSettingsView()
         case .about:
             AboutSettingsView()
         }

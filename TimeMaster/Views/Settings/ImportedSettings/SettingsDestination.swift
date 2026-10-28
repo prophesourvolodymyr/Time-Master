@@ -10,6 +10,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
     case notifications
     case privacy
     case exerciseAI
+    case agentAccess
     case about
 
     var id: String { rawValue }
@@ -25,6 +26,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .notifications: "Workout Reminders"
         case .privacy: "Privacy"
         case .exerciseAI: "Exercise AI"
+        case .agentAccess: "Agent Access"
         case .about: "About Tmax"
         }
     }
@@ -40,6 +42,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .notifications: "Daily notifications on training days"
         case .privacy: "Choose what appears in your visitor preview"
         case .exerciseAI: "Name exercises from photos with OpenAI"
+        case .agentAccess: "Let AI agents and the tmax command use your library"
         case .about: "Version and build"
         }
     }
@@ -55,6 +58,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .notifications: "bell.badge"
         case .privacy: "hand.raised"
         case .exerciseAI: "sparkles"
+        case .agentAccess: "terminal"
         case .about: "info.circle"
         }
     }

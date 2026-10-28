@@ -77,19 +77,9 @@ struct ChatSession: Codable, Identifiable {
     var visibleCount: Int { messages.filter { !$0.isLoading }.count }
 }
 
-// MARK: - ToolCall
-
-struct ToolCall: Equatable {
-    let id: String
-    let name: String
-    let arguments: [String: Any]
-
-    static func == (lhs: ToolCall, rhs: ToolCall) -> Bool { lhs.id == rhs.id }
-}
-
 struct ResponseWithTools {
     let text: String
-    let toolCalls: [ToolCall]
+    let calls: [AgentToolCall]
 }
 
 struct ApprovalRequest: Identifiable {
@@ -125,17 +115,12 @@ final class AIStore: ObservableObject {
     @Published var knowledgeFilenames: [String] = []
 
     // Tool calling
-    let toolRouter = ToolRouter()
     private let maxToolCallIterations = 5
     var sessionContextInjected = false
 
     @Published var pendingApproval: ApprovalRequest?
     @Published var pendingDraft: String?
     private var approvalContinuation: CheckedContinuation<Bool, Never>?
-
-    private let writeOperations: Set<String> = [
-        "create_exercise", "create_folder", "build_workout", "add_media_note", "update_settings",
-    ]
 
     // MARK: - Provider helpers
 
@@ -358,59 +343,6 @@ final class AIStore: ObservableObject {
         approvalContinuation = nil
     }
 
-    private func buildApprovalSummary(toolName: String, args: [String: Any]) -> String {
-        switch toolName {
-        case "create_exercise":
-            let name = args["name"] as? String ?? "New Exercise"
-            let type = args["type"] as? String ?? "Other"
-            return "Create exercise \"\(name)\" (Type: \(type))"
-        case "create_folder":
-            let name = args["name"] as? String ?? "New Folder"
-            return "Create folder \"\(name)\""
-        case "build_workout":
-            let name = args["name"] as? String ?? "New Workout"
-            let sections = args["sections"] as? [[String: Any]] ?? []
-            return "Build workout \"\(name)\" (\(sections.count) sections)"
-        case "add_media_note":
-            let exerciseID = args["exerciseID"] as? String ?? ""
-            return "Add note to exercise \(exerciseID.prefix(8))..."
-        case "update_settings":
-            return "Update app settings"
-        default:
-            return "\(toolName): \(args.keys.joined(separator: ", "))"
-        }
-    }
-
-    private func buildApprovalDetails(toolName: String, args: [String: Any]) -> [String: String] {
-        switch toolName {
-        case "create_exercise":
-            var d: [String: String] = [:]
-            if let n = args["name"] as? String { d["Name"] = n }
-            if let t = args["type"] as? String { d["Type"] = t }
-            if let dur = args["duration"] as? Int { d["Duration"] = "\(dur)s" }
-            if let ra = args["restAfter"] as? Int { d["Rest"] = "\(ra)s" }
-            if let det = args["details"] as? String, !det.isEmpty { d["Description"] = det }
-            return d
-        case "create_folder":
-            var d: [String: String] = [:]
-            if let n = args["name"] as? String { d["Name"] = n }
-            if let p = args["parentID"] as? String { d["Parent"] = p }
-            return d
-        case "build_workout":
-            var d: [String: String] = [:]
-            if let n = args["name"] as? String { d["Name"] = n }
-            if let t = args["type"] as? String { d["Type"] = t }
-            if let s = args["sections"] as? [[String: Any]] { d["Sections"] = "\(s.count)" }
-            return d
-        case "add_media_note":
-            return ["Note": args["note"] as? String ?? ""]
-        case "update_settings":
-            return args.compactMapValues { "\($0)" }
-        default:
-            return args.compactMapValues { "\($0)" }
-        }
-    }
-
     // MARK: - Send message
 
     func sendMessage(
@@ -504,44 +436,55 @@ final class AIStore: ObservableObject {
                 )
             }
 
-            if response.toolCalls.isEmpty {
+            if response.calls.isEmpty {
                 await MainActor.run { isExecutingTools = false }
                 return response.text.isEmpty ? "Done." : response.text
             }
 
             await MainActor.run { isExecutingTools = true }
 
-            apiMessages.append(["role": "assistant", "content": response.text.isEmpty ? "Calling tools..." : response.text])
+            apiMessages.append(AgentWire.openAIAssistantMessage(text: response.text, calls: response.calls))
 
-            for tc in response.toolCalls {
-                if writeOperations.contains(tc.name) {
-                    let summary = buildApprovalSummary(toolName: tc.name, args: tc.arguments)
-                    let details = buildApprovalDetails(toolName: tc.name, args: tc.arguments)
-                    let req = ApprovalRequest(id: UUID(), toolName: tc.name, summary: summary, details: details)
-                    await MainActor.run { pendingApproval = req }
-                    let approved = await withCheckedContinuation { [weak self] cont in
-                        self?.approvalContinuation = cont
-                    }
-                    await MainActor.run { pendingApproval = nil }
-                    guard approved else {
-                        apiMessages.append(["role": "tool", "content": "TOOL REJECTED: User declined \(tc.name).", "tool_call_id": tc.id])
-                        continue
-                    }
-                }
-                let result = await toolRouter.execute(toolName: tc.name, args: tc.arguments)
-                let toolContent: String
-                if result.success {
-                    toolContent = result.data
-                } else {
-                    toolContent = "TOOL ERROR: \(result.data)"
-                }
-                apiMessages.append(["role": "tool", "content": toolContent, "tool_call_id": tc.id])
+            for call in response.calls {
+                let content = await runToolCall(call)
+                apiMessages.append(AgentWire.toolMessage(callID: call.id, content: content))
             }
         }
 
         await MainActor.run { isExecutingTools = false }
         let finalResponse = try await sendFinalAPIRequest(messages: apiMessages)
         return finalResponse
+    }
+
+    private func runToolCall(_ call: AgentToolCall) async -> String {
+        if let problem = call.argumentError { return "TOOL ERROR: \(problem)" }
+        guard let tool = AgentToolRegistry.tool(named: call.name), tool.coach else {
+            let available = AgentToolRegistry.tools.filter(\.coach).map(\.name).joined(separator: ", ")
+            return "TOOL ERROR: Unknown tool '\(call.name)'. Available tools: \(available)."
+        }
+        if tool.risk == .delete {
+            let request = ApprovalRequest(
+                id: UUID(),
+                toolName: call.name,
+                summary: AgentApproval.summary(tool: call.name, arguments: call.arguments),
+                details: AgentApproval.details(tool: call.name, arguments: call.arguments)
+            )
+            await MainActor.run { pendingApproval = request }
+            let approved = await withCheckedContinuation { [weak self] continuation in
+                self?.approvalContinuation = continuation
+            }
+            await MainActor.run { pendingApproval = nil }
+            guard approved else {
+                return "TOOL REJECTED: The user declined \(call.name). Do not retry it; ask what they would like instead."
+            }
+        }
+        do {
+            let result = try await AgentToolRouter.shared.execute(call.name, arguments: call.arguments, origin: .coach)
+            return AgentJSON.string(result.value)
+        } catch {
+            let failure = AgentToolError.translating(error)
+            return "TOOL ERROR: \(failure.errorDescription ?? failure.message)"
+        }
     }
 
     private func sendFinalAPIRequest(messages: [[String: Any]]) async throws -> String {
@@ -554,10 +497,10 @@ final class AIStore: ObservableObject {
 
         switch provider.authStyle {
         case .bearer:
-            let response = try await callOpenAICompat(base: base, key: key, messages: messages)
+            let response = try await callOpenAICompat(base: base, key: key, messages: messages, toolsAllowed: false)
             return response.text.isEmpty ? "I've completed those actions." : response.text
         case .xApiKey:
-            let response = try await callAnthropicMessages(base: base, key: key, apiMessages: messages)
+            let response = try await callAnthropicMessages(base: base, key: key, apiMessages: messages, toolsAllowed: false)
             return response.text.isEmpty ? "I've completed those actions." : response.text
         }
     }
@@ -621,6 +564,7 @@ final class AIStore: ObservableObject {
 
         let knowledge = loadKnowledgeContext()
         if !knowledge.isEmpty { systemContent += "\n\n# Knowledge\n\(knowledge)" }
+        systemContent += "\n\n" + AgentToolRegistry.coachGuidance
         apiMessages.append(["role": "system", "content": systemContent])
 
         let history = currentMessages.filter { !$0.isLoading && $0.role != .system }.suffix(20)
@@ -748,16 +692,18 @@ final class AIStore: ObservableObject {
 
     private func callOpenAICompat(
         base: String, key: String,
-        messages: [[String: Any]]
+        messages: [[String: Any]],
+        toolsAllowed: Bool = true
     ) async throws -> ResponseWithTools {
         guard let url = URL(string: "\(base)/chat/completions") else { throw AIError.invalidURL }
 
         var body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": 1024,
+            "max_tokens": 4096,
             "tools": AIProvider.toolDefinitions,
         ]
+        if !toolsAllowed { body["tool_choice"] = "none" }
         let bodyData = try JSONSerialization.data(withJSONObject: body)
 
         var request = URLRequest(url: url)
@@ -776,75 +722,28 @@ final class AIStore: ObservableObject {
               let choices = json["choices"] as? [[String: Any]],
               let message = choices.first?["message"] as? [String: Any] else { throw AIError.parseError }
 
-        let text = message["content"] as? String ?? ""
-        let rawToolCalls = message["tool_calls"] as? [[String: Any]] ?? []
-
-        var toolCalls: [ToolCall] = []
-        for rawTC in rawToolCalls {
-            guard let id = rawTC["id"] as? String,
-                  let funcObj = rawTC["function"] as? [String: Any],
-                  let name = funcObj["name"] as? String else { continue }
-
-            let args: [String: Any]
-            if let argsStr = funcObj["arguments"] as? String,
-               let argsData = argsStr.data(using: .utf8),
-               let parsed = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
-                args = parsed
-            } else {
-                args = [:]
-            }
-            toolCalls.append(ToolCall(id: id, name: name, arguments: args))
-        }
-
-        return ResponseWithTools(text: text, toolCalls: toolCalls)
+        let parsed = AgentWire.parseOpenAI(message: message)
+        return ResponseWithTools(text: parsed.text, calls: parsed.calls)
     }
 
     // MARK: - Anthropic Messages API with tools
 
     private func callAnthropicMessages(
         base: String, key: String,
-        apiMessages: [[String: Any]]
+        apiMessages: [[String: Any]],
+        toolsAllowed: Bool = true
     ) async throws -> ResponseWithTools {
         guard let url = URL(string: "\(base)/messages") else { throw AIError.invalidURL }
 
-        var systemPrompt = ""
-        var anthropicMessages: [[String: Any]] = []
-        for msg in apiMessages {
-            let role = msg["role"] as? String ?? ""
-            if role == "system" {
-                systemPrompt = msg["content"] as? String ?? ""
-                continue
-            }
-            if role == "tool" {
-                let toolCallId = msg["tool_call_id"] as? String ?? ""
-                let content = msg["content"] as? String ?? ""
-                anthropicMessages.append([
-                    "role": "user",
-                    "content": [[
-                        "type": "tool_result",
-                        "tool_use_id": toolCallId,
-                        "content": content,
-                    ]]
-                ])
-                continue
-            }
-            if role == "user" || role == "assistant" {
-                if let content = msg["content"] as? String {
-                    anthropicMessages.append(["role": role, "content": content])
-                }
-            }
-        }
-        if anthropicMessages.first?["role"] as? String == "assistant" {
-            anthropicMessages.insert(["role": "user", "content": "(continuing)"], at: 0)
-        }
-
+        let converted = AgentWire.anthropicRequest(from: apiMessages)
         var body: [String: Any] = [
             "model": model,
-            "max_tokens": 1024,
-            "system": systemPrompt,
-            "messages": anthropicMessages,
+            "max_tokens": 4096,
+            "system": converted.system,
+            "messages": converted.messages,
             "tools": AIProvider.anthropicToolDefinitions,
         ]
+        if !toolsAllowed { body["tool_choice"] = ["type": "none"] }
         let bodyData = try JSONSerialization.data(withJSONObject: body)
 
         var request = URLRequest(url: url)
@@ -862,22 +761,8 @@ final class AIStore: ObservableObject {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let content = json["content"] as? [[String: Any]] else { throw AIError.parseError }
 
-        var text = ""
-        var toolCalls: [ToolCall] = []
-
-        for block in content {
-            let type = block["type"] as? String ?? ""
-            if type == "text", let t = block["text"] as? String {
-                text += t
-            } else if type == "tool_use",
-                      let id = block["id"] as? String,
-                      let name = block["name"] as? String {
-                let args = (block["input"] as? [String: Any]) ?? [:]
-                toolCalls.append(ToolCall(id: id, name: name, arguments: args))
-            }
-        }
-
-        return ResponseWithTools(text: text, toolCalls: toolCalls)
+        let parsed = AgentWire.parseAnthropic(content: content)
+        return ResponseWithTools(text: parsed.text, calls: parsed.calls)
     }
 
     // MARK: - Shared helpers

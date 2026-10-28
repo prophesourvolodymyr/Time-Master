@@ -139,10 +139,11 @@ public final class AISystemPromptBuilder {
 
     public func buildSessionContext(db: DatabaseManager) throws -> SessionContext {
         let knowledge = buildSystemPrompt()
-        let exercises = (try? db.searchAllExercises()) ?? []
-        let byType = Dictionary(grouping: exercises, by: { $0.workoutType?.name ?? "Other" })
+        let pageIndex = try? AgentPageIndex(database: db)
+        let exercises = pageIndex?.pages.filter { $0.pageType == .exercise } ?? []
+        let byType = Dictionary(grouping: exercises, by: { pageIndex?.effectiveType($0.id)?.name ?? "Other" })
             .mapValues { $0.count }
-        let folders = (try? db.listFolders().map { $0.name }) ?? []
+        let folders = pageIndex?.children(of: nil).map { $0.title } ?? []
         let history = (try? db.readHistory()) ?? []
         let recentStats = (try? db.getStats(days: 7)) ?? (0, 0, 0, 0)
         let lastEntry = history.last

@@ -782,10 +782,13 @@ private struct ApprovalCardView: View {
 
     private var iconName: String {
         switch approval.toolName {
-        case "create_exercise": return "figure.strengthtraining.traditional"
-        case "create_folder": return "folder.badge.plus"
+        case "create_exercise_page": return "figure.strengthtraining.traditional"
+        case "create_container_page": return "folder.badge.plus"
         case "build_workout": return "list.bullet.clipboard"
-        case "add_media_note": return "note.text.badge.plus"
+        case "add_page_note": return "note.text.badge.plus"
+        case "update_page", "update_settings": return "slider.horizontal.3"
+        case "move_page": return "arrow.up.right.square"
+        case "delete_page", "delete_workout": return "trash"
         default: return "hammer"
         }
     }

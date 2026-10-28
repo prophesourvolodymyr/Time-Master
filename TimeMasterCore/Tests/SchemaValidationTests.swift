@@ -20,7 +20,7 @@ final class SchemaValidationTests: XCTestCase {
 
     func testGenerateSchemaProducesValidJSON() throws {
         let schema = try schemaManager.generateSchema()
-        XCTAssertEqual(schema.version, "1.1.0")
+        XCTAssertEqual(schema.version, "1.2.0")
 
         let data = try JSONEncoder().encode(schema)
         let json = String(data: data, encoding: .utf8)!
@@ -36,17 +36,12 @@ final class SchemaValidationTests: XCTestCase {
         XCTAssertNotNil(obj["filesystem"])
     }
 
-    func testSchemaToolsIncludeAllCommands() throws {
+    func testSchemaToolsMatchTheRegistry() throws {
         let schema = try schemaManager.generateSchema()
-        let toolNames = Set(schema.tools.map { $0.name })
-        XCTAssertTrue(toolNames.contains("listExercises"))
-        XCTAssertTrue(toolNames.contains("getExercise"))
-        XCTAssertTrue(toolNames.contains("searchExercises"))
-        XCTAssertTrue(toolNames.contains("createExercise"))
-        XCTAssertTrue(toolNames.contains("deleteExercise"))
-        XCTAssertTrue(toolNames.contains("listWorkouts"))
-        XCTAssertTrue(toolNames.contains("createWorkout"))
-        XCTAssertTrue(toolNames.contains("getStats"))
+        XCTAssertEqual(Set(schema.tools.map(\.name)), Set(AgentToolRegistry.tools.map(\.name)))
+        let writes = Set(schema.tools.filter(\.write).map(\.name))
+        XCTAssertTrue(writes.isSuperset(of: ["create_exercise_page", "build_workout", "delete_page"]))
+        XCTAssertFalse(writes.contains("search_pages"))
     }
 
     func testWriteSchemaCreatesFile() throws {
@@ -132,9 +127,9 @@ final class SchemaValidationTests: XCTestCase {
         let data = try fs.readRawData(from: fs.schemaURL)
         let schema = try JSONDecoder().decode(SchemaDefinition.self, from: data)
 
-        XCTAssertEqual(schema.version, "1.1.0")
+        XCTAssertEqual(schema.version, "1.2.0")
         XCTAssertEqual(schema.objects.count, 7)
-        XCTAssertEqual(schema.tools.count, 20)
+        XCTAssertEqual(schema.tools.count, AgentToolRegistry.tools.count)
         XCTAssertTrue(schema.tools.contains { $0.name == "create_container_page" })
         XCTAssertTrue(schema.tools.contains { $0.name == "create_exercise_page" })
         XCTAssertEqual(schema.filesystem.directories.count, 12)

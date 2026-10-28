@@ -191,6 +191,23 @@ targets:
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: YES
         ENABLE_HARDENED_RUNTIME: NO
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postCompileScripts:
+      - name: Build tmax command
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+          if ! command -v cargo >/dev/null 2>&1; then
+            echo "warning: cargo not found, so the tmax command is not bundled in this build"
+            exit 0
+          fi
+          CRATE="${SRCROOT}/tmax-cli"
+          HELPERS="${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Helpers"
+          env -i HOME="$HOME" PATH="$PATH" cargo build --release --quiet --manifest-path "${CRATE}/Cargo.toml"
+          mkdir -p "${HELPERS}"
+          cp "${CRATE}/target/release/tmax" "${HELPERS}/tmax"
+          codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}" "${HELPERS}/tmax" >/dev/null 2>&1 || true
 
 schemes:
   TimeMaster:

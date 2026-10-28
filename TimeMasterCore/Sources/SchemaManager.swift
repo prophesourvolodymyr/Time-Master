@@ -175,80 +175,17 @@ public final class SchemaManager {
             ),
         ]
 
-        let tools: [ToolSchema] = [
-            ToolSchema(name: "listPages", description: "List all pages in the Exercises Database", write: false),
-            ToolSchema(name: "getPage", description: "Read a single page manifest", write: false, parameters: [
-                "id": PropertySchema(type: "string", description: "Page UUID"),
-            ]),
-            ToolSchema(name: "searchPages", description: "Search pages by title, content, or type", write: false, parameters: [
-                "query": PropertySchema(type: "string", description: "Search term for title/content matching"),
-                "type": PropertySchema(type: "string", description: "Optional workout type filter", optional: true),
-            ]),
-            ToolSchema(name: "createPage", description: "Create a new page folder with manifest and guide.md", write: true, parameters: [
-                "title": PropertySchema(type: "string", description: "Page title"),
-                "parentID": PropertySchema(type: "string", description: "Optional parent page UUID", optional: true),
-            ]),
-            ToolSchema(name: "create_container_page", description: "Create an organization container. Containers can have child pages, media, and an optional workout type; children inherit it unless they override it.", write: true, parameters: [
-                "title": PropertySchema(type: "string", description: "Container title"),
-                "parentID": PropertySchema(type: "string", description: "Optional parent container UUID", optional: true),
-                "mediaFilenames": PropertySchema(type: "array<string>", description: "Ordered media files; first item is the cover", optional: true),
-                "workoutType": PropertySchema(type: "object", description: "Optional workout type; children inherit it unless overridden", optional: true),
-            ]),
-            ToolSchema(name: "create_exercise_page", description: "Create a workout-ready leaf exercise at the database root or inside a container. Its first media item is its cover; workoutType optionally overrides its container default.", write: true, parameters: [
-                "title": PropertySchema(type: "string", description: "Exercise title"),
-                "parentID": PropertySchema(type: "string", description: "Optional parent container UUID", optional: true),
-                "duration": PropertySchema(type: "integer", description: "Exercise duration in seconds", format: "seconds"),
-                "restAfter": PropertySchema(type: "integer", description: "Rest after the exercise in seconds", format: "seconds", optional: true),
-                "sets": PropertySchema(type: "integer", description: "Default number of sets", optional: true),
-                "restBetweenSets": PropertySchema(type: "integer", description: "Rest between sets in seconds", format: "seconds", optional: true),
-                "mediaFilenames": PropertySchema(type: "array<string>", description: "Media files; first item becomes the cover", optional: true),
-                "workoutType": PropertySchema(type: "object", description: "Optional workout type override", optional: true),
-            ]),
-            ToolSchema(name: "updatePage", description: "Update an existing page manifest", write: true, parameters: [
-                "id": PropertySchema(type: "string", description: "Page UUID to update"),
-            ]),
-            ToolSchema(name: "deletePage", description: "Move a page (and children) to .trash/", write: true, parameters: [
-                "id": PropertySchema(type: "string", description: "Page UUID to delete"),
-            ]),
-            ToolSchema(name: "movePage", description: "Move a page to a different parent", write: true, parameters: [
-                "id": PropertySchema(type: "string", description: "Page UUID to move"),
-                "newParentID": PropertySchema(type: "string", description: "New parent page UUID", optional: true),
-            ]),
-            ToolSchema(name: "getPagePath", description: "Get breadcrumb path string for a page", write: false, parameters: [
-                "id": PropertySchema(type: "string", description: "Page UUID"),
-            ]),
-            ToolSchema(name: "listExercises", description: "List all exercises in the database", write: false),
-            ToolSchema(name: "getExercise", description: "Read a single exercise manifest", write: false, parameters: [
-                "id": PropertySchema(type: "string", description: "Exercise UUID"),
-            ]),
-            ToolSchema(name: "searchExercises", description: "Search exercises by name or type", write: false, parameters: [
-                "query": PropertySchema(type: "string", description: "Search term for name matching"),
-                "type": PropertySchema(type: "string", description: "Optional workout type filter", optional: true),
-            ]),
-            ToolSchema(name: "createExercise", description: "Create a new exercise folder with manifest", write: true, parameters: [
-                "id": PropertySchema(type: "string", description: "UUID for the new exercise"),
-                "name": PropertySchema(type: "string", description: "Exercise name"),
-                "duration": PropertySchema(type: "integer", description: "Duration in seconds", optional: true),
-            ]),
-            ToolSchema(name: "updateExercise", description: "Update an existing exercise manifest", write: true, parameters: [
-                "id": PropertySchema(type: "string", description: "Exercise UUID to update"),
-            ]),
-            ToolSchema(name: "deleteExercise", description: "Move an exercise to .trash/", write: true, parameters: [
-                "id": PropertySchema(type: "string", description: "Exercise UUID to delete"),
-            ]),
-            ToolSchema(name: "listWorkouts", description: "List all workout manifests", write: false),
-            ToolSchema(name: "getWorkout", description: "Read a single workout manifest", write: false, parameters: [
-                "id": PropertySchema(type: "string", description: "Workout UUID"),
-            ]),
-            ToolSchema(name: "createWorkout", description: "Create a new workout plan", write: true, parameters: [
-                "id": PropertySchema(type: "string", description: "UUID for the new workout"),
-                "name": PropertySchema(type: "string", description: "Workout name"),
-            ]),
-            ToolSchema(name: "getStats", description: "Get workout statistics", write: false, parameters: [
-                "type": PropertySchema(type: "string", description: "Optional workout type filter", optional: true),
-                "days": PropertySchema(type: "integer", description: "Number of days to look back", optional: true),
-            ]),
-        ]
+        let tools: [ToolSchema] = AgentToolRegistry.tools.map { tool in
+            var parameters: [String: PropertySchema] = [:]
+            for (name, property) in tool.properties {
+                parameters[name] = PropertySchema(
+                    type: property["type"] as? String ?? "string",
+                    description: property["description"] as? String ?? "",
+                    optional: !tool.required.contains(name)
+                )
+            }
+            return ToolSchema(name: tool.name, description: tool.summary, write: tool.risk.isWrite, parameters: parameters)
+        }
 
         let directories: [String: String] = [
             "Exercises Database": "All exercises, nested in folders",
@@ -266,7 +203,7 @@ public final class SchemaManager {
         ]
 
         return SchemaDefinition(
-            version: "1.1.0",
+            version: "1.2.0",
             objects: objects,
             tools: tools,
             filesystem: FilesystemSchema(root: "TimeMaster", directories: directories)

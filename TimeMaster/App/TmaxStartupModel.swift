@@ -17,6 +17,9 @@ final class TmaxStartupModel: ObservableObject {
 
     func prepare() async {
         guard !isPreparing, !isReady else { return }
+#if os(macOS)
+        AgentBridge.shared.activate()
+#endif
         isPreparing = true
         let minimumDisplayDeadline = ContinuousClock.now.advanced(by: .seconds(5))
 
@@ -42,11 +45,15 @@ final class TmaxStartupModel: ObservableObject {
         completedSteps = 5
         status = "Loading workouts and history…"
         workoutStore = await Task.detached(priority: .userInitiated) { WorkoutStore() }.value
+        AgentRuntime.shared.workoutStore = workoutStore
         completedSteps = 6
         status = "Loading your exercise library…"
         databaseStore = await Task.detached(priority: .userInitiated) { DatabaseStore.shared }.value
         completedSteps = 7
         status = "Ready"
+#if os(macOS)
+        AgentBridge.shared.setReady(true)
+#endif
 
         do {
             try await Task.sleep(until: minimumDisplayDeadline, clock: .continuous)

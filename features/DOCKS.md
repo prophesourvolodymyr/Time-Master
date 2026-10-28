@@ -31,6 +31,7 @@
 | **F27** | **Home Dashboard Redesign** | **in_progress** | **F01, F03, F04, F07, F12, F22** |
 | **F28** | **Better Maps and Route Recording** | **in_progress (Cycle 23)** | **F09, F24, F25, F26, F27, existing Cycle 11 outdoor data** |
 | **F30** | **Tmax Marketing Website** | **in_progress (Cycle 49)** — [specification](F30-tmax-website/DOCKS.md) | **Existing app features (recorded), brand assets, Higgsfield, fgen** |
+| **F31** | **Agent Bridge and the tmax Command** | **ready for human verification (Cycle 53)** — [specification](F31-agent-bridge/DOCKS.md) | **F09-A, F09-B, F14, F06** |
 
 ## F29 — Physique Duels
 
@@ -87,8 +88,8 @@ Typography follows native text-size preferences. SF Symbols, provider-rendered m
 | F09 | - | File-Based Data Architecture | pending |
 | F09 | F09-A | TimeMasterCore (shared library) | pending |
 | F09 | F09-B | Knowledge Layer + AGENTS.md | pending |
-| F09 | F09-C | CLI Tool (`timemaster-tool`) | pending |
-| F09 | F09-D | AI Tool Calling (in-app + external) | pending |
+| F09 | F09-C | CLI Tool (`timemaster-tool`) | superseded by F31 (tmax, Rust) |
+| F09 | F09-D | AI Tool Calling (in-app + external) | superseded by F31 for tools and the Coach loop |
 | F09 | F09-E | Mac App (native macOS build) | pending |
 | F01 | F01-A | Migrate models to file manifests | pending (after F09-A) |
 | F05 | F05-A-v2 | Import → Exercises Database/ | done (after F09-A, F01-A) |
