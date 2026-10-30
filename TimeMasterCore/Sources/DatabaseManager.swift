@@ -22,7 +22,7 @@ public struct WriteApproval {
 public final class DatabaseManager {
     public static let shared = DatabaseManager()
 
-    private let fs: FileSystemHelper
+    let fs: FileSystemHelper
     private let schemaManager: SchemaManager
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
@@ -316,10 +316,9 @@ Find pages in the Tmax library.
 
     // MARK: - Page CRUD
 
-    private func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?) -> ExercisePageManifest {
+    func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?) -> ExercisePageManifest {
         var normalized = manifest
         normalized.parentID = parentID
-        normalized.iconName = nil
 
         let contentType = normalized.pageType
             ?? (normalized.pageKind == .leaf ? .exercise : nil)
@@ -335,6 +334,21 @@ Find pages in the Tmax library.
             normalized.dropSetTemplates = []
             normalized.skillStatus = normalized.skillStatus ?? .notStarted
             normalized.skillBoardOrder = max(0, normalized.skillBoardOrder ?? 0)
+            normalized.skillBoardSections = Self.renumberedSections(normalized.skillBoardSections)
+            let parent = parentID.flatMap { try? getPage(id: $0) }
+            let parentIsSkill = parent?.pageType == .skill || parent?.pageType == .tutorial
+            normalized.typePresets = parentIsSkill ? [] : Self.renumberedTypePresets(normalized.typePresets)
+            let media = Set(normalized.mediaFilenames)
+            let links = Set(normalized.linkURLs)
+            let icon = normalized.iconName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            normalized.iconName = icon.isEmpty ? nil : icon
+            if normalized.iconName == nil { normalized.iconType = nil }
+            if let picture = normalized.iconImage, !media.contains(picture), !Self.isWebImageReference(picture) {
+                normalized.iconImage = nil
+            }
+            normalized.dependencyPageIDs = normalized.dependencyPageIDs.uniqued().filter { $0 != normalized.id }
+            normalized.dependencyMediaFilenames = normalized.dependencyMediaFilenames.uniqued().filter(media.contains)
+            normalized.dependencyLinkURLs = normalized.dependencyLinkURLs.uniqued().filter(links.contains)
         } else if contentType == .exercise {
             normalized.pageKind = .leaf
             normalized.pageType = .exercise
@@ -345,6 +359,14 @@ Find pages in the Tmax library.
             normalized.skillBoardOrder = nil
             normalized.skillBoardSections = []
             normalized.linkedPageIDs = []
+            normalized.iconName = nil
+            normalized.iconType = nil
+            normalized.iconImage = nil
+            normalized.dependencyPageIDs = []
+            normalized.dependencyMediaFilenames = []
+            normalized.dependencyLinkURLs = []
+            normalized.typePresets = []
+            normalized.typeID = nil
         } else {
             normalized.pageKind = .container
             normalized.pageType = nil
@@ -358,17 +380,15 @@ Find pages in the Tmax library.
             normalized.skillBoardSectionID = nil
             normalized.skillBoardOrder = nil
             normalized.linkedPageIDs = []
-            normalized.skillBoardSections = normalized.skillBoardSections
-                .enumerated()
-                .map { index, section in
-                    SkillBoardSection(
-                        id: section.id,
-                        title: section.title,
-                        order: index,
-                        icon: section.icon,
-                        iconType: section.iconType
-                    )
-                }
+            normalized.iconName = nil
+            normalized.iconType = nil
+            normalized.iconImage = nil
+            normalized.dependencyPageIDs = []
+            normalized.dependencyMediaFilenames = []
+            normalized.dependencyLinkURLs = []
+            normalized.typeID = nil
+            normalized.skillBoardSections = Self.renumberedSections(normalized.skillBoardSections)
+            normalized.typePresets = Self.renumberedTypePresets(normalized.typePresets)
             if parentID == nil {
                 normalized.workoutType = normalized.workoutType ?? .other
             }
@@ -378,16 +398,83 @@ Find pages in the Tmax library.
             if let cover = normalized.coverImageFilename { filenames.insert(cover) }
             normalized.mediaComments = normalized.mediaComments.filter { filenames.contains($0.key) }
         }
+        if let cover = normalized.coverMediaFilename, !normalized.mediaFilenames.contains(cover) {
+            normalized.coverMediaFilename = nil
+        }
+        if !normalized.linkComments.isEmpty {
+            let links = Set(normalized.linkURLs)
+            normalized.linkComments = normalized.linkComments.filter {
+                links.contains($0.key) && !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+        }
         return normalized
     }
 
-    private func writePageFiles(_ manifest: ExercisePageManifest, in folder: URL) throws {
+    /// Groups renumbered 0…n in their order (ties keep their stored order), each with its material tidied.
+    static func renumberedSections(_ sections: [SkillBoardSection]) -> [SkillBoardSection] {
+        sections.enumerated()
+            .sorted { ($0.element.order, $0.offset) < ($1.element.order, $1.offset) }
+            .enumerated()
+            .map { position, item in
+                var section = item.element.normalizedMaterial()
+                section.order = position
+                return section
+            }
+    }
+
+    /// True for an http(s) image address a picture icon may point at instead of one of the page's media.
+    static func isWebImageReference(_ value: String) -> Bool {
+        guard let url = URL(string: value), let scheme = url.scheme?.lowercased() else { return false }
+        return (scheme == "https" || scheme == "http") && url.host != nil
+    }
+
+    /// Writes a page's `manifest.json` and its `guide.md` mirror. A group's content folder (see `SkillGroupID`) has
+    /// neither: its material is written back into the group on its board page.
+    func writePageFiles(_ manifest: ExercisePageManifest, in folder: URL) throws {
+        if SkillGroupID.owner(ofContentFolder: folder) != nil {
+            try writePageManifest(manifest, at: folder)
+            return
+        }
         let manifestURL = folder.appendingPathComponent("manifest.json")
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
 
         let guideURL = folder.appendingPathComponent("guide.md")
         let guideContent = "# \(manifest.title)\n\n\(manifest.markdownBody.isEmpty ? "Add content here." : manifest.markdownBody)"
         try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
+    }
+
+    /// Reads the manifest of the page at `folder`; a group's content folder reads as the group's page.
+    func readPageManifest(at folder: URL) throws -> ExercisePageManifest {
+        if let owner = SkillGroupID.owner(ofContentFolder: folder) {
+            let container: ExercisePageManifest = try fs.readManifest(
+                from: owner.containerFolder.appendingPathComponent("manifest.json"),
+                decoder: decoder
+            )
+            guard let section = container.skillBoardSection(owner.sectionID) else {
+                throw FileSystemHelper.Error.notFound(SkillGroupID.make(containerID: container.id, sectionID: owner.sectionID))
+            }
+            return section.asPage(container: container, childIDs: [])
+        }
+        return try fs.readManifest(from: folder.appendingPathComponent("manifest.json"), decoder: decoder)
+    }
+
+    /// Writes only `manifest.json` of the page at `folder`; a group's page goes back into its group on the board page.
+    func writePageManifest(_ manifest: ExercisePageManifest, at folder: URL) throws {
+        if let owner = SkillGroupID.owner(ofContentFolder: folder) {
+            var container: ExercisePageManifest = try fs.readManifest(
+                from: owner.containerFolder.appendingPathComponent("manifest.json"),
+                decoder: decoder
+            )
+            guard let index = container.skillBoardSections.firstIndex(where: { $0.id == owner.sectionID }) else {
+                throw FileSystemHelper.Error.notFound(SkillGroupID.make(containerID: container.id, sectionID: owner.sectionID))
+            }
+            container.skillBoardSections[index].adopt(manifest)
+            container.skillBoardSections[index] = container.skillBoardSections[index].normalizedMaterial()
+            container.updatedAt = Date()
+            try writePageFiles(container, in: owner.containerFolder)
+            return
+        }
+        try fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: manifest, encoder: encoder)
     }
 
     private func validatePageManifest(_ manifest: ExercisePageManifest, parentID: String?) throws {
@@ -512,7 +599,13 @@ Find pages in the Tmax library.
         }
     }
 
+    /// Creates a page. `parentID` may be a group id (see `SkillGroupID`): the page is created on the group's board
+    /// page, inside that group, at the end of it.
     public func createPage(manifest: ExercisePageManifest, parentID: String? = nil) throws {
+        if let owner = (parentID ?? manifest.parentID).flatMap(SkillGroupID.split) {
+            try createPage(manifest, inGroup: owner.sectionID, of: owner.containerID)
+            return
+        }
         let resolvedParentID = parentID ?? manifest.parentID
         var candidate = manifest
         candidate.parentID = resolvedParentID
@@ -539,7 +632,16 @@ Find pages in the Tmax library.
         }
     }
 
+    /// Updates a page. `id` may be a group id: the group keeps the title, icon, notes, media, links, comments,
+    /// prerequisites and cover (its strip picture) of `manifest`; its colour and place change with `updateSkillGroup`.
     public func updatePage(id: String, manifest: ExercisePageManifest, newParentID: String? = nil) throws {
+        if SkillGroupID.split(id) != nil {
+            var page = manifest
+            page.id = id
+            page.dependencyPageIDs.removeAll { $0 == id }
+            try writePageManifest(page, at: try resolvePageFolder(id: id))
+            return
+        }
         let existing = try getPage(id: id)
         let resolvedParentID = newParentID ?? manifest.parentID
         var candidate = manifest
@@ -585,6 +687,9 @@ Find pages in the Tmax library.
 
 
     public func deletePage(id: String) throws {
+        guard SkillGroupID.split(id) == nil else {
+            throw FileSystemHelper.Error.invalidPageKind("a group is removed from its board with deleteSkillGroup")
+        }
         let folder = try resolvePageFolder(id: id)
         guard fs.directoryExists(at: folder) else {
             throw FileSystemHelper.Error.notFound(folder.path)
@@ -654,10 +759,10 @@ Find pages in the Tmax library.
         }
     }
 
+    /// The manifest of a page. A group id reads as the group's page (pageType skill, parent = the board page; its
+    /// `childIDs` are empty here: the pages inside a group are the board page's skill children placed in it).
     public func getPage(id: String) throws -> ExercisePageManifest {
-        let folder = try resolvePageFolder(id: id)
-        let manifestURL = folder.appendingPathComponent("manifest.json")
-        return try fs.readManifest(from: manifestURL, decoder: decoder)
+        try readPageManifest(at: try resolvePageFolder(id: id))
     }
 
     public func searchPages(query: String, type: WorkoutType? = nil) throws -> [(ExercisePageManifest, path: String)] {
@@ -685,7 +790,10 @@ Find pages in the Tmax library.
         for entry in entries {
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
-            guard isDir.boolValue else { continue }
+            guard isDir.boolValue,
+                  entry.lastPathComponent != "media",
+                  entry.lastPathComponent != "Attachments",
+                  entry.lastPathComponent != SkillGroupID.folderName else { continue }
 
             let manifestURL = entry.appendingPathComponent("manifest.json")
             let pageRelPath = relativePath.isEmpty ? entry.lastPathComponent : "\(relativePath)/\(entry.lastPathComponent)"
@@ -707,7 +815,10 @@ Find pages in the Tmax library.
         return entries.compactMap { entry in
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
-            guard isDir.boolValue else { return nil }
+            guard isDir.boolValue,
+                  entry.lastPathComponent != "media",
+                  entry.lastPathComponent != "Attachments",
+                  entry.lastPathComponent != SkillGroupID.folderName else { return nil }
             let manifestURL = entry.appendingPathComponent("manifest.json")
             guard fs.fileExists(at: manifestURL) else { return nil }
             return entry.lastPathComponent
@@ -715,36 +826,40 @@ Find pages in the Tmax library.
     }
 
     public func reorderChildren(parentID: String, childIDs: [String]) throws {
+        guard SkillGroupID.split(parentID) == nil else {
+            throw FileSystemHelper.Error.invalidPageKind("the pages of a group are ordered on its board")
+        }
         let parentFolder = try resolvePageFolder(id: parentID)
         var manifest = try getPage(id: parentID)
         manifest.childIDs = childIDs
         manifest.updatedAt = Date()
-        let manifestURL = parentFolder.appendingPathComponent("manifest.json")
-        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        try writePageManifest(manifest, at: parentFolder)
     }
 
+    /// Saves a board page's groups and where its skill pages sit. Groups keep all their material; a page whose place
+    /// did not change is not rewritten; the media folders of groups that are gone move to the trash.
     public func updateSkillBoard(
         containerID: String,
         sections: [SkillBoardSection],
         placements: [SkillBoardPlacement]
     ) throws {
+        guard SkillGroupID.split(containerID) == nil else {
+            throw FileSystemHelper.Error.invalidPageKind("a group cannot hold groups")
+        }
         var container = try getPage(id: containerID)
         guard container.pageKind == .container else {
             throw FileSystemHelper.Error.invalidPageKind("skill boards belong to pages that allow children")
         }
 
-        let normalizedSections = sections
-            .filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .enumerated()
-            .map { index, section in
-                SkillBoardSection(
-                    id: section.id,
-                    title: section.title,
-                    order: index,
-                    icon: section.icon,
-                    iconType: section.iconType
-                )
-            }
+        let kept = sections.filter { !$0.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        guard kept.allSatisfy({ SkillGroupID.isUsableSectionID($0.id) }), Set(kept.map(\.id)).count == kept.count else {
+            throw FileSystemHelper.Error.writeFailed("skill board groups need distinct, usable ids")
+        }
+        let normalizedSections = kept.enumerated().map { index, section in
+            var section = section.normalizedMaterial()
+            section.order = index
+            return section
+        }
         let sectionIDs = Set(normalizedSections.map(\.id))
         let childIDs = Set(container.childIDs)
 
@@ -759,19 +874,33 @@ Find pages in the Tmax library.
             guard page.pageType == .skill || page.pageType == .tutorial else {
                 throw FileSystemHelper.Error.invalidPageKind("only skills and tutorials can be placed on a skill board")
             }
+            let order = max(0, placement.order)
+            guard page.skillStatus != placement.status
+                    || page.skillBoardSectionID != placement.sectionID
+                    || page.skillBoardOrder != order else { continue }
             page.skillStatus = placement.status
             page.skillBoardSectionID = placement.sectionID
-            page.skillBoardOrder = max(0, placement.order)
+            page.skillBoardOrder = order
             page.updatedAt = Date()
             try writePageFiles(page, in: try resolvePageFolder(id: placement.pageID))
         }
 
+        let containerFolder = try resolvePageFolder(id: containerID)
+        let removedSectionIDs = Set(container.skillBoardSections.map(\.id)).subtracting(sectionIDs)
         container.skillBoardSections = normalizedSections
         container.updatedAt = Date()
-        try writePageFiles(container, in: try resolvePageFolder(id: containerID))
+        try writePageFiles(container, in: containerFolder)
+        for sectionID in removedSectionIDs where SkillGroupID.isUsableSectionID(sectionID) {
+            let content = SkillGroupID.contentFolder(containerFolder: containerFolder, sectionID: sectionID)
+            if fs.directoryExists(at: content) { try fs.moveToTrash(source: content) }
+        }
     }
 
+    /// The page's notes as Markdown: its `guide.md` mirror; a group has no mirror and answers with its notes.
     public func readGuideContent(pageID: String) throws -> String {
+        if SkillGroupID.split(pageID) != nil {
+            return try getPage(id: pageID).markdownBody
+        }
         let folder = try resolvePageFolder(id: pageID)
         let guideURL = folder.appendingPathComponent("guide.md")
         guard fs.fileExists(at: guideURL) else { return "" }
@@ -792,8 +921,7 @@ Find pages in the Tmax library.
         var manifest = try getPage(id: pageID)
         manifest.coverImageFilename = filename
         manifest.updatedAt = Date()
-        let manifestURL = folder.appendingPathComponent("manifest.json")
-        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        try writePageManifest(manifest, at: folder)
         return filename
     }
 
@@ -813,8 +941,7 @@ Find pages in the Tmax library.
         var updatedManifest = manifest
         updatedManifest.mediaFilenames.append(filename)
         updatedManifest.updatedAt = Date()
-        let manifestURL = folder.appendingPathComponent("manifest.json")
-        try fs.writeAtomically(to: manifestURL, value: updatedManifest, encoder: encoder)
+        try writePageManifest(updatedManifest, at: folder)
         return filename
     }
 
@@ -825,8 +952,7 @@ Find pages in the Tmax library.
         }
         manifest.mediaComments[filename] = comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : comment
         manifest.updatedAt = Date()
-        let folder = try resolvePageFolder(id: pageID)
-        try fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: manifest, encoder: encoder)
+        try writePageManifest(manifest, at: try resolvePageFolder(id: pageID))
     }
 
     public func reorderPageMedia(pageID: String, filenames: [String]) throws {
@@ -839,8 +965,7 @@ Find pages in the Tmax library.
         }
         manifest.mediaFilenames = reordered
         manifest.updatedAt = Date()
-        let manifestURL = folder.appendingPathComponent("manifest.json")
-        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        try writePageManifest(manifest, at: folder)
     }
     public func pageMediaURL(pageID: String, filename: String) throws -> URL {
         let folder = try resolvePageFolder(id: pageID)
@@ -865,12 +990,17 @@ Find pages in the Tmax library.
         var manifest = try getPage(id: pageID)
         manifest.mediaFilenames.removeAll { $0 == filename }
         manifest.mediaComments.removeValue(forKey: filename)
+        manifest.dependencyMediaFilenames.removeAll { $0 == filename }
+        if manifest.coverMediaFilename == filename { manifest.coverMediaFilename = nil }
+        if manifest.iconImage == filename { manifest.iconImage = nil }
         manifest.updatedAt = Date()
-        let manifestURL = folder.appendingPathComponent("manifest.json")
-        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        try writePageManifest(manifest, at: folder)
     }
 
     public func movePage(id: String, newParentID: String?, newOrder: Int) throws {
+        guard SkillGroupID.split(id) == nil, newParentID.flatMap(SkillGroupID.split) == nil else {
+            throw FileSystemHelper.Error.invalidPageKind("groups stay on their board; place pages in a group with updateSkillBoard")
+        }
         let currentFolder = try resolvePageFolder(id: id)
         let existing = try getPage(id: id)
         let resolvedParent = newParentID
@@ -953,7 +1083,7 @@ Find pages in the Tmax library.
         }
     }
 
-    private func pageFolder(for id: String, parentID: String?) throws -> URL {
+    func pageFolder(for id: String, parentID: String?) throws -> URL {
         let base = fs.exercisesDatabaseDirectory
         if let parentID = parentID {
             let parentFolder = try resolvePageFolder(id: parentID)
@@ -963,7 +1093,20 @@ Find pages in the Tmax library.
         }
     }
 
-    private func resolvePageFolder(id: String) throws -> URL {
+    /// Folder of a page. A group id resolves to the group's content folder under its board page
+    /// (`<board page>/Sections/<section id>`, created when the group gets its first media file).
+    func resolvePageFolder(id: String) throws -> URL {
+        if let owner = SkillGroupID.split(id) {
+            guard SkillGroupID.isUsableSectionID(owner.sectionID) else {
+                throw FileSystemHelper.Error.notFound(id)
+            }
+            let containerFolder = try resolvePageFolder(id: owner.containerID)
+            let container = try readPageManifest(at: containerFolder)
+            guard container.skillBoardSection(owner.sectionID) != nil else {
+                throw FileSystemHelper.Error.notFound(id)
+            }
+            return SkillGroupID.contentFolder(containerFolder: containerFolder, sectionID: owner.sectionID)
+        }
         let base = fs.exercisesDatabaseDirectory
         let directURL = base.appendingPathComponent(id, isDirectory: true)
         if fs.directoryExists(at: directURL) {

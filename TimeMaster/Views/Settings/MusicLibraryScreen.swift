@@ -58,9 +58,9 @@ struct MusicLibraryScreen: View {
                 .padding(.horizontal, 10)
                 .padding(.bottom, 12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                if let item = selectingItem { selectMode(for: item) }
-                if let transfer = pendingTransfer { transferConfirmation(transfer) }
-                if searchPresented { searchOverlay }
+                if let item = selectingItem { selectMode(for: item).keyNavHost() }
+                if let transfer = pendingTransfer { transferConfirmation(transfer).keyNavHost() }
+                if searchPresented { searchOverlay.keyNavHost() }
         }
         .font(TimeMasterFont.body())
         .animation(reduceMotion ? .none : .spring(response: 0.58, dampingFraction: 0.86), value: isWorkoutFocused)
@@ -114,7 +114,7 @@ struct MusicLibraryScreen: View {
                     .frame(width: 36, height: 36)
                     .background(Theme.surface2, in: Circle())
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .circle)
             .accessibilityLabel("Close Music")
             TimeMasterPageTitle("Music", size: 36, relativeTo: .title)
                 .foregroundStyle(.white)
@@ -204,7 +204,7 @@ struct MusicLibraryScreen: View {
                 } label: {
                     paneHeader("General", detail: library.formattedDuration(for: .general))
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .capsule)
                 ScrollView {
                     LazyVStack(spacing: 7) {
                         if library.generalItems.isEmpty {
@@ -313,7 +313,7 @@ struct MusicLibraryScreen: View {
             .background(selected ? orange.opacity(0.14) : Theme.surface2, in: RoundedRectangle(cornerRadius: 17))
             .overlay(RoundedRectangle(cornerRadius: 17).stroke(selected ? orange.opacity(0.65) : Theme.separator, lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 17))
         .shadow(color: selected ? orange.opacity(0.14) : Color.black.opacity(0.18), radius: selected ? 12 : 6, y: 4)
         .onDrop(of: [UTType.text.identifier], isTargeted: dropTargetBinding(for: destination)) { _ in
             library.select(destination: destination)
@@ -335,16 +335,16 @@ struct MusicLibraryScreen: View {
                 }.buttonStyle(.plain)
                 Text(library.formattedDuration(item.totalDuration)).font(TimeMasterFont.black(10, relativeTo: .caption2)).foregroundStyle(Theme.textSecondary)
                 Button { selectingItem = item } label: { Image(systemName: "plus").frame(width: 24, height: 24) }
-                    .buttonStyle(.plain).foregroundStyle(.white).accessibilityLabel("Add \(item.title) to a workout")
+                    .keyNavPlainButtonStyle(shape: .circle).foregroundStyle(.white).accessibilityLabel("Add \(item.title) to a workout")
                 if item.isCollection {
                     Button { toggleExpanded(item.id) } label: { Image(systemName: expandedItems.contains(item.id) ? "chevron.up" : "chevron.down") }
-                        .buttonStyle(.plain).foregroundStyle(Theme.textSecondary).accessibilityLabel("Expand \(item.title)")
+                        .buttonStyle(.plain).padding(6).keyNavTarget(shape: .circle).padding(-6).foregroundStyle(Theme.textSecondary).accessibilityLabel("Expand \(item.title)")
                 } else {
                     Button { itemTapped(item, destination: destination) } label: { Image(systemName: playingItem?.id == item.id ? "pause.fill" : "play.fill") }
-                        .buttonStyle(.plain).foregroundStyle(orange).accessibilityLabel("Play \(item.title)")
+                        .buttonStyle(.plain).padding(6).keyNavTarget(shape: .circle).padding(-6).foregroundStyle(orange).accessibilityLabel("Play \(item.title)")
                 }
                 Button(role: .destructive) { pendingDeletion = item } label: { Image(systemName: "trash") }
-                    .buttonStyle(.plain).foregroundStyle(Theme.textSecondary).accessibilityLabel("Remove \(item.title)")
+                    .buttonStyle(.plain).padding(6).keyNavTarget(shape: .circle).padding(-6).foregroundStyle(Theme.textSecondary).accessibilityLabel("Remove \(item.title)")
             }
             .padding(8)
             if expandedItems.contains(item.id) {
@@ -361,6 +361,7 @@ struct MusicLibraryScreen: View {
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 17))
         .overlay(RoundedRectangle(cornerRadius: 17).stroke(dropTarget == destination ? orange.opacity(0.72) : Theme.separator, lineWidth: 1))
         .contentShape(RoundedRectangle(cornerRadius: 17))
+        .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: 17), action: { itemTapped(item, destination: destination) })
         .onDrag {
             dragged = DraggedMusic(item: item, source: destination)
             return NSItemProvider(object: item.id.uuidString as NSString)
@@ -403,7 +404,7 @@ struct MusicLibraryScreen: View {
                                 HStack { Image(systemName: folderIcon(destination)); Text(library.destinationName(destination)); Spacer(); Image(systemName: library.items(for: destination).contains(item) ? "checkmark" : "plus") }
                                     .padding(11).foregroundStyle(library.items(for: destination).contains(item) ? orange : .white)
                                     .background(library.items(for: destination).contains(item) ? orange.opacity(0.12) : Theme.surface2, in: RoundedRectangle(cornerRadius: 13))
-                            }.buttonStyle(.plain)
+                            }.keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 13))
                         }
                     }
                 }.frame(maxHeight: 210).scrollEdgeFade(.vertical)
@@ -424,8 +425,8 @@ struct MusicLibraryScreen: View {
             Theme.background.ignoresSafeArea()
             VStack(spacing: 12) {
                 HStack {
-                    Button { searchPresented = false } label: { Image(systemName: "chevron.left") }.buttonStyle(.plain).accessibilityLabel("Back to Music")
-                    TextField("Search music", text: $searchText).textFieldStyle(.plain).padding(10).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
+                    Button { searchPresented = false } label: { Image(systemName: "chevron.left") }.buttonStyle(.plain).padding(8).keyNavTarget(shape: .circle).padding(-8).accessibilityLabel("Back to Music")
+                    TextField("Search music", text: $searchText).textFieldStyle(.plain).padding(10).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12)).keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
                     ForEach([MusicProvider.spotify, .youtubeMusic, .soundCloud], id: \.self) { provider in
                         Button { toggle(provider) } label: {
                             providerLogo(provider).padding(6).frame(width: 34, height: 34)
@@ -465,7 +466,7 @@ struct MusicLibraryScreen: View {
         } label: {
             HStack { cover(for: result.item); VStack(alignment: .leading) { Text(result.item.title); Text(library.destinationName(result.destination)).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary) }; Spacer(); Image(systemName: "arrow.right") }
                 .padding(9).foregroundStyle(.white).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 16))
-        }.buttonStyle(.plain)
+        }.keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 16))
     }
 
     private func transferConfirmation(_ transfer: MusicTransfer) -> some View {
@@ -516,7 +517,7 @@ struct MusicLibraryScreen: View {
             .clipShape(RoundedRectangle(cornerRadius: 25))
     }
     private func paneHeader(_ title: String, detail: String?) -> some View { HStack { Text(title).font(TimeMasterFont.black(13, relativeTo: .footnote)); Spacer(); if let detail { Text(detail).font(TimeMasterFont.black(10, relativeTo: .caption2)).foregroundStyle(orange).padding(.horizontal, 7).padding(.vertical, 4).background(orange.opacity(0.12), in: Capsule()) } }.padding(.horizontal, 13).padding(.top, 8).padding(.bottom, 5).foregroundStyle(.white) }
-    private func sourceCard(title: String, systemImage: String? = nil, asset: String? = nil, action: @escaping () -> Void) -> some View { Button(action: action) { VStack(spacing: 6) { if let asset { Image(asset).resizable().scaledToFit().frame(width: 46, height: 46) } else { Image(systemName: systemImage ?? "music.note").font(.system(size: 30, weight: .medium)) }; Text(title).font(TimeMasterFont.black(10, relativeTo: .caption2)).lineLimit(1) }.foregroundStyle(.white).frame(width: 104, height: 95).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 19)).overlay(RoundedRectangle(cornerRadius: 19).stroke(Theme.separator, lineWidth: 1)) }.buttonStyle(.plain).accessibilityLabel(title) }
+    private func sourceCard(title: String, systemImage: String? = nil, asset: String? = nil, action: @escaping () -> Void) -> some View { Button(action: action) { VStack(spacing: 6) { if let asset { Image(asset).resizable().scaledToFit().frame(width: 46, height: 46) } else { Image(systemName: systemImage ?? "music.note").font(.system(size: 30, weight: .medium)) }; Text(title).font(TimeMasterFont.black(10, relativeTo: .caption2)).lineLimit(1) }.foregroundStyle(.white).frame(width: 104, height: 95).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 19)).overlay(RoundedRectangle(cornerRadius: 19).stroke(Theme.separator, lineWidth: 1)) }.keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 19)).accessibilityLabel(title) }
     private func providerLogo(_ provider: MusicProvider) -> some View { Group { switch provider { case .spotify: Image("SpotifyLogo").resizable().scaledToFit(); case .youtubeMusic: Image("YouTubeMusicLogo").resizable().scaledToFit(); case .soundCloud: Image("SoundCloudLogo").resizable().scaledToFit(); default: Image(systemName: "music.note") } } }
     private func empty(_ text: String) -> some View { Text(text).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary).frame(maxWidth: .infinity, minHeight: 68).padding(.horizontal, 16).multilineTextAlignment(.center) }
     private func folderIcon(_ destination: MusicDestination) -> String { switch destination { case .general: return "music.note.list"; case .workoutType(let id): return library.workoutType(for: id)?.iconName ?? "figure.run"; case .workout: return "figure.strengthtraining.traditional" } }

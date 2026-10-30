@@ -27,6 +27,7 @@ struct SchedulePlanEditor: View {
                             Image(systemName: icon).tag(icon)
                         }
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                 } header: {
                     Text("Plan").font(TimeMasterFont.rowTitle())
                 }
@@ -49,12 +50,15 @@ struct SchedulePlanEditor: View {
                                 Button(role: .destructive) { plan.entries.removeAll { $0.id == entry.id } } label: {
                                     Image(systemName: "minus.circle").padding(10)
                                 }
+                                .keyNavTarget(shape: .circle)
                                 .accessibilityLabel("Remove \(entry.title) from Plan")
                             }
+                            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 10)) { editingEntry = EntryDraft(day: day, entry: entry) }
                         }
                         Button {
                             editingEntry = EntryDraft(day: day, entry: nil)
                         } label: { Label("Add workout", systemImage: "plus") }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
                     } header: {
                         Text(Calendar.current.weekdaySymbols[day % 7]).font(TimeMasterFont.rowTitle())
                     }
@@ -90,6 +94,7 @@ struct SchedulePlanEditor: View {
                     plan.entries.append(entry)
                     return true
                 }
+                .keyNavHost()
             }
         }
         .preferredColorScheme(.dark)

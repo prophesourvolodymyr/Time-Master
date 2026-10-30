@@ -55,6 +55,7 @@ struct MotivationSettingsView: View {
                 }
             }
             .tint(.white)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { isEnabled.toggle() })
             .onChange(of: isEnabled) { val in
                 MotivationManager.shared.isEnabled = val
             }
@@ -88,6 +89,7 @@ struct MotivationSettingsView: View {
                 step: 5
             )
             .tint(.white)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { interval = interval >= 120 ? 30 : interval + 5 })
             .onChange(of: interval) { val in
                 MotivationManager.shared.interval = val
             }
@@ -108,10 +110,12 @@ struct MotivationSettingsView: View {
                     TextField("New quote…", text: $newQuoteText)
                         .foregroundColor(.white)
                         .focused($addFieldFocused)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     Button("Add") {
                         commitNewQuote()
                     }
                     .foregroundColor(.white)
+                    .keyNavTarget(shape: .capsule)
                     .disabled(newQuoteText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
@@ -144,6 +148,9 @@ struct MotivationSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.white)
                 }
+                .padding(8)
+                .keyNavTarget(shape: .circle)
+                .padding(-8)
                 Button {
                     resetToDefaults()
                 } label: {
@@ -151,6 +158,11 @@ struct MotivationSettingsView: View {
                         .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .keyNavTarget(shape: .capsule)
+                .padding(.horizontal, -6)
+                .padding(.vertical, -4)
                 .padding(.leading, 8)
             }
         }

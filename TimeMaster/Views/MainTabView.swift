@@ -124,6 +124,7 @@ struct MainTabView: View {
         .focusEffectDisabled()
         .focused($keyboardFocused)
         .onKeyPress(phases: [.down, .repeat], action: handleKeyPress)
+        .keyNavHost(onPageStep: { moveSelection(by: $0) })
 #endif
         .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
             routeToWorkoutDetail(notification)
@@ -300,19 +301,8 @@ struct MainTabView: View {
 
 #if os(macOS)
     private func handleKeyPress(_ keyPress: KeyPress) -> KeyPress.Result {
-        guard selectedPage != .physique else { return .ignored }
-        switch keyPress.key {
-        case .leftArrow:
-            moveSelection(by: -1)
-            return .handled
-        case .rightArrow:
-            moveSelection(by: 1)
-            return .handled
-        default:
-            break
-        }
-
-        guard let character = keyPress.characters.first,
+        guard selectedPage != .physique,
+              let character = keyPress.characters.first,
               let number = Int(String(character)),
               number > 0,
               navigationLayout.order.indices.contains(number - 1) else {
@@ -323,11 +313,11 @@ struct MainTabView: View {
     }
 
     private func moveSelection(by delta: Int) {
-        guard let current = selectedDestination,
-              let index = navigationLayout.order.firstIndex(where: { $0.rawValue == current }) else { return }
-        let next = min(max(index + delta, 0), navigationLayout.order.count - 1)
-        guard next != index else { return }
-        selectedDestination = navigationLayout.order[next].rawValue
+        let order = navigationLayout.order
+        guard order.count > 1, let current = selectedDestination,
+              let index = order.firstIndex(where: { $0.rawValue == current }) else { return }
+        let count = order.count
+        selectedDestination = order[((index + delta) % count + count) % count].rawValue
     }
 #endif
 }

@@ -69,6 +69,7 @@ struct PhysiqueStandingsView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
+                        .physiqueToolbarTarget()
                 }
                 ToolbarItemGroup(placement: .automatic) {
                     Button {
@@ -76,12 +77,14 @@ struct PhysiqueStandingsView: View {
                     } label: {
                         Label(isRefreshing ? "Refreshing…" : "Refresh", systemImage: "arrow.clockwise")
                     }
+                    .physiqueToolbarTarget()
                     .disabled(activeAccountID == nil || isRefreshing || isLoadingMore || scenePhase != .active)
                     Button {
                         showsAbout = true
                     } label: {
                         Label("About standings", systemImage: "info.circle")
                     }
+                    .physiqueToolbarTarget()
                     .accessibilityFocused($accessibilityFocus, equals: .about)
                 }
             }
@@ -195,14 +198,17 @@ struct PhysiqueStandingsView: View {
                     Label("Public listing and privacy", systemImage: "hand.raised")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 Button { onOpen(.safety) } label: {
                     Label("Safety and blocked players", systemImage: "shield")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 Button { onOpen(.rules) } label: {
                     Label("Physique rules", systemImage: "list.bullet.rectangle")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             }
             .listRowBackground(Theme.surface)
         } else {
@@ -222,6 +228,7 @@ struct PhysiqueStandingsView: View {
                 if let reason = account.restrictedReason {
                     Text(reason).font(TimeMasterFont.secondary())
                     Button("Open safety and review options") { onOpen(.safety) }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
                 if account.record.games == 0 {
@@ -262,6 +269,7 @@ struct PhysiqueStandingsView: View {
                     Label("Public listing", systemImage: "hand.raised")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .accessibilityFocused($accessibilityFocus, equals: .listing)
             }
             .padding(.vertical, 8)
@@ -297,6 +305,7 @@ struct PhysiqueStandingsView: View {
                     Text("Refresh for a new board and confirmed own position. Existing positions have not been recalculated locally.")
                         .font(TimeMasterFont.secondary())
                     Button("Refresh standings") { Task { await reload() } }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                         .disabled(isRefreshing || isLoadingMore)
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
@@ -312,6 +321,7 @@ struct PhysiqueStandingsView: View {
                 }, onReport: {
                     openReport(standing.identity.id)
                 })
+                .keyNavTarget(id: "physique-standing-\(standing.identity.id)", role: .primary, shape: .roundedRectangle(cornerRadius: 0), action: { openPlayer(standing.identity.id) })
                 .tag(standing.identity.id)
                 .accessibilityFocused($accessibilityFocus, equals: .player(standing.identity.id))
                 .listRowBackground(Theme.surface)
@@ -334,6 +344,7 @@ struct PhysiqueStandingsView: View {
             PhysiqueStatusView(title: "Refresh to continue", detail: pagingFailure ?? "The continuation could not be confirmed. A fresh board is needed before loading another section.")
                 .listRowBackground(Theme.background)
             Button("Refresh standings") { Task { await reload() } }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .frame(minHeight: ProfileStyle.touchTarget)
                 .disabled(isRefreshing)
                 .listRowBackground(Theme.surface)
@@ -350,6 +361,7 @@ struct PhysiqueStandingsView: View {
                 Button(pagingFailure == nil ? "Load more" : "Retry loading more") {
                     Task { await loadMore() }
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .frame(minHeight: ProfileStyle.touchTarget)
                 .disabled(isLoadingMore || isRefreshing)
                 .accessibilityFocused($accessibilityFocus, equals: .paging)
@@ -739,6 +751,7 @@ private struct PhysiqueStandingsRow: View {
                 .frame(minHeight: ProfileStyle.touchTarget)
         }
         .buttonStyle(.borderless)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .accessibilityLabel("Player details for \(standing.identity.displayName)")
         if !isOwn {
             Menu {
@@ -751,6 +764,7 @@ private struct PhysiqueStandingsRow: View {
             #if os(macOS)
             .menuStyle(.borderlessButton)
             #endif
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             .accessibilityLabel("Player actions for \(standing.identity.displayName)")
         }
     }

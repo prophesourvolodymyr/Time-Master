@@ -54,6 +54,7 @@ struct MarkdownEditorField: View {
                 } else {
                     MarkdownDocumentView(markdown: text, assets: assets)
                         .allowsHitTesting(false)
+                        .keyNavRole(.excluded)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
@@ -69,12 +70,13 @@ struct MarkdownEditorField: View {
             }
             .contentShape(RoundedRectangle(cornerRadius: 10))
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
         .accessibilityLabel(title)
         .accessibilityValue(isEmpty ? "Empty" : text)
         .accessibilityHint("Opens the full-screen editor")
         .sheet(isPresented: $presenting) {
             MarkdownEditorSheet(title: title, text: $text, assets: assets)
+                .keyNavHost()
         }
     }
 }

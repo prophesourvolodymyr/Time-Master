@@ -250,7 +250,7 @@ struct BatchConfirmView: View {
 
     private func restAfterRow(_ item: TrayItem) -> some View {
         HStack {
-            Text("Rest After")
+            Text("Rest")
                 .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
             Spacer()
@@ -640,7 +640,7 @@ struct BatchConfirmView: View {
 
     private func restAfterRow(_ item: TrayItem) -> some View {
         HStack {
-            Text("Rest After")
+            Text("Rest")
                 .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textPrimary)
             Spacer()

@@ -116,7 +116,7 @@ struct ScheduleEntryEditor: View {
                         } label: {
                             WorkoutCard(workout: workout)
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
                     }
                     if !search.isEmpty && !store.workouts.contains(where: { $0.name.localizedCaseInsensitiveContains(search) }) {
                         Text("No workouts match your search.").foregroundStyle(.secondary).padding()
@@ -175,6 +175,7 @@ struct ScheduleEntryEditor: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .modifier(ScheduleEntryFieldSurface())
+                        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: Theme.controlCornerRadius)) { hasTime.toggle() }
                         .accessibilityIdentifier("schedule.entry.hasTime")
                     }
                     if hasTime {
@@ -188,6 +189,7 @@ struct ScheduleEntryEditor: View {
                                 #endif
                                 .labelsHidden()
                                 .monospacedDigit()
+                                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                                 .accessibilityLabel("Start time")
                                 .accessibilityIdentifier("schedule.entry.startTime")
                         }
@@ -199,6 +201,7 @@ struct ScheduleEntryEditor: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .modifier(ScheduleEntryFieldSurface())
+                        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: Theme.controlCornerRadius)) { hasDuration.toggle() }
                         .accessibilityIdentifier("schedule.entry.hasDuration")
                     }
                     if hasDuration {
@@ -213,6 +216,7 @@ struct ScheduleEntryEditor: View {
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .frame(minHeight: 44)
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8)) { stepHours() }
                             .accessibilityIdentifier("schedule.entry.hours")
                             DurationPickerView(seconds: Binding(
                                 get: { duration % 3600 },
@@ -270,6 +274,7 @@ struct ScheduleEntryEditor: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .modifier(ScheduleEntryFieldSurface())
+                        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: Theme.controlCornerRadius)) { repeats.toggle() }
                         .accessibilityIdentifier("schedule.entry.repeats")
                         Text(repeats ? "Updates the Plan from this week onward. Previous weeks stay unchanged." : "Changes only this date. The repeating Plan stays unchanged.")
                             .font(TimeMasterFont.body(13, relativeTo: .footnote))
@@ -298,6 +303,11 @@ struct ScheduleEntryEditor: View {
             .foregroundStyle(Theme.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
+    }
+
+    private func stepHours() {
+        let hours = duration / 3600
+        duration = min(86400, (hours >= 24 ? 0 : hours + 1) * 3600 + duration % 3600)
     }
 
     private func save() {

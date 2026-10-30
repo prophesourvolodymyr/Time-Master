@@ -93,12 +93,21 @@ struct PhysiquePoseGalleryView: View {
             #else
             ToolbarItem(placement: .navigation) {
                 Button(action: close) { Label("Back to result", systemImage: "chevron.left") }
+                    .physiqueToolbarTarget()
             }
-            ToolbarItem(placement: .principal) { poseSelector.frame(maxWidth: 360) }
+            ToolbarItem(placement: .principal) {
+                poseSelector.frame(maxWidth: 360)
+                    .physiqueToolbarTarget(shape: .roundedRectangle(cornerRadius: 6), action: {
+                        let poses = PhysiquePose.allCases
+                        if let index = poses.firstIndex(of: selectedPose) { selectedPose = poses[(index + 1) % poses.count] }
+                    })
+            }
             #endif
             ToolbarItemGroup(placement: .automatic) {
                 Button { navigate(.safety) } label: { Label("Safety", systemImage: "shield") }
+                    .physiqueToolbarTarget()
                 Button(action: showPrivacyInformation) { Label("Pose privacy", systemImage: "info.circle") }
+                    .physiqueToolbarTarget()
             }
         }
         .alert(information?.title ?? "Poses", isPresented: $showingInformation, presenting: information) { item in

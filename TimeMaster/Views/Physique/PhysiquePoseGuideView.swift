@@ -106,6 +106,7 @@ struct PhysiquePoseGuideView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done", action: closeGuide)
+                    .physiqueToolbarTarget()
                     .keyboardShortcut(.cancelAction)
             }
         }
@@ -200,6 +201,7 @@ private struct PhysiqueGuideSelector: View {
                 .accessibilityHint("Shows reference instructions only. Does not change the capture pose.")
                 .accessibilityAddTraits(selection == pose ? [.isButton, .isSelected] : .isButton)
                 .buttonStyle(.bordered)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .tint(selection == pose ? Theme.toolbarOrange : Theme.textPrimary)
                 .focused($focusedPose, equals: pose)
                 .frame(minWidth: vertical ? nil : minimumChoiceWidth, maxWidth: .infinity)
@@ -207,6 +209,7 @@ private struct PhysiqueGuideSelector: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Reference pose")
+        .keyNavYield(focusedPose != nil)
         #if os(macOS)
         .onMoveCommand(perform: moveSelection)
         #endif
@@ -336,6 +339,7 @@ private struct PhysiqueGuideInstructions: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, ProfileStyle.spacing)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { howToExpanded.toggle() })
                 .font(TimeMasterFont.sectionTitle())
                 .animation(allowsMotion ? .easeInOut(duration: 0.2) : nil, value: howToExpanded)
             }
@@ -368,6 +372,7 @@ private struct PhysiqueGuideInstructions: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, ProfileStyle.spacing)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { framingExpanded.toggle() })
                 .font(TimeMasterFont.sectionTitle())
                 .animation(allowsMotion ? .easeInOut(duration: 0.2) : nil, value: framingExpanded)
             }

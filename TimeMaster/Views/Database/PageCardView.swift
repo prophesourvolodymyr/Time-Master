@@ -2,6 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct PageCardView: View {
+    @EnvironmentObject private var navigationState: DatabaseNavigationState
     let page: ExercisePage
     var isGridMode: Bool = false
     var onAddToWorkout: (() -> Void)? = nil
@@ -163,10 +164,7 @@ struct PageCardView: View {
 
     private var infoGrid: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(page.title)
-                .font(TimeMasterFont.rowTitle())
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(2)
+            titleLabel(font: TimeMasterFont.rowTitle())
 
             HStack(spacing: 5) {
                 if page.isContainer {
@@ -221,10 +219,7 @@ struct PageCardView: View {
 
     private var infoArea: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(page.title)
-                .font(TimeMasterFont.black(17))
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(2)
+            titleLabel(font: TimeMasterFont.black(17))
 
             if !listMetadata.isEmpty {
                 Text(listMetadata)
@@ -234,6 +229,20 @@ struct PageCardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func titleLabel(font: Font) -> some View {
+        if page.isSkillLike {
+            SkillEditableTitle(pageID: page.manifest.id, title: page.title, font: font, lineLimit: 2) {
+                navigationState.path.append(DatabasePageRoute(pageID: page.manifest.id))
+            }
+        } else {
+            Text(page.title)
+                .font(font)
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(2)
+        }
     }
 
     private var listMetadata: String {

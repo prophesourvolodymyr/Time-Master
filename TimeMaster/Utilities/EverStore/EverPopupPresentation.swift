@@ -274,6 +274,7 @@ private struct EverMacPopupHost<Popup: View>: NSViewControllerRepresentable {
     private func root(environment: EnvironmentValues) -> AnyView {
         AnyView(popup()
             .everPageOpening(from: .bottom)
+            .keyNavHost()
             .environment(\.everPopupStepMotion, stepMotion)
             .environment(\.everPopupDismiss, EverPopupDismissAction(action: {
                 stepMotion.stop()

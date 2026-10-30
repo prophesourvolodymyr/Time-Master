@@ -355,7 +355,7 @@ public final class MigrationManager {
                     cleaned.sets = nil
                     cleaned.restBetweenSets = nil
                 }
-                try manager.fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: cleaned)
+                try manager.fs.writeAtomically(to: folder.appendingPathComponent("manifest.json"), value: cleaned, encoder: manager.encoder)
             }
             try manager.fs.writeAtomically(to: markerURL, data: Data("1".utf8))
         } catch {
@@ -406,7 +406,10 @@ public final class MigrationManager {
         for entry in entries {
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
-            guard isDir.boolValue else { continue }
+            guard isDir.boolValue,
+                  entry.lastPathComponent != "media",
+                  entry.lastPathComponent != "Attachments",
+                  entry.lastPathComponent != SkillGroupID.folderName else { continue }
 
             let manifestURL = entry.appendingPathComponent("manifest.json")
 
@@ -421,7 +424,7 @@ public final class MigrationManager {
                     if pageManifest.childIDs != childIDs {
                         pageManifest.childIDs = childIDs
                         pageManifest.updatedAt = Date()
-                        try fs.writeAtomically(to: manifestURL, value: pageManifest)
+                        try fs.writeAtomically(to: manifestURL, value: pageManifest, encoder: encoder)
                     }
                     pagesConverted += 1
                     ensureGuideMDExists(at: entry, title: pageManifest.title, body: pageManifest.markdownBody)
@@ -432,7 +435,7 @@ public final class MigrationManager {
                     let childIDs = try childPageIDs(in: entry)
                     var updated = pageManifest
                     updated.childIDs = childIDs
-                    try fs.writeAtomically(to: manifestURL, value: updated)
+                    try fs.writeAtomically(to: manifestURL, value: updated, encoder: encoder)
                     ensureGuideMDExists(at: entry, title: updated.title, body: updated.markdownBody)
                     pagesConverted += 1
 
@@ -443,7 +446,7 @@ public final class MigrationManager {
                 let childIDs = try childPageIDs(in: entry)
                 var updated = pageManifest
                 updated.childIDs = childIDs
-                try fs.writeAtomically(to: manifestURL, value: updated)
+                try fs.writeAtomically(to: manifestURL, value: updated, encoder: encoder)
                 ensureGuideMDExists(at: entry, title: updated.title, body: updated.markdownBody)
                 pagesCreated += 1
 
@@ -457,7 +460,10 @@ public final class MigrationManager {
         return entries.compactMap { entry in
             var isDir: ObjCBool = false
             FileManager.default.fileExists(atPath: entry.path, isDirectory: &isDir)
-            guard isDir.boolValue else { return nil }
+            guard isDir.boolValue,
+                  entry.lastPathComponent != "media",
+                  entry.lastPathComponent != "Attachments",
+                  entry.lastPathComponent != SkillGroupID.folderName else { return nil }
             let manifestURL = entry.appendingPathComponent("manifest.json")
             guard fs.fileExists(at: manifestURL) else { return nil }
             return entry.lastPathComponent

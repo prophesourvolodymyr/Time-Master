@@ -43,7 +43,7 @@ struct CloudAccountSettingsView: View {
                         SettingsActionRow(title: "Database Sync", symbol: "arrow.triangle.2.circlepath.icloud") {
                             Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                         }
-                    }.buttonStyle(.plain)
+                    }.keyNavPlainButtonStyle()
                 } else {
                     SettingsActionRow(title: "Local mode is available", detail: "No account is required for the exercise library or ZIP export.", symbol: "internaldrive")
                 }
@@ -69,7 +69,7 @@ struct CloudAccountSettingsView: View {
                     SettingsActionRow(title: "Backup & Transfer", symbol: "archivebox") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }
-                }.buttonStyle(.plain)
+                }.keyNavPlainButtonStyle()
             }
         }
         .tint(Theme.toolbarOrange)
@@ -100,7 +100,7 @@ struct CloudAccountSettingsView: View {
                 Picker("Account action", selection: $creating) {
                     Text("Sign in").tag(false)
                     Text("Create account").tag(true)
-                }.pickerStyle(.segmented).disabled(account.busy)
+                }.pickerStyle(.segmented).keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { creating.toggle() }).disabled(account.busy)
             }
             VStack(alignment: .leading, spacing: EverSpacing.x3) {
                 Text("Email").font(TimeMasterFont.rowTitle())
@@ -110,6 +110,7 @@ struct CloudAccountSettingsView: View {
                     .submitLabel(.next)
                     .onSubmit { focusedField = .password }
                     .accessibilityIdentifier("ranked-account-login")
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
 #if os(iOS)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
@@ -121,6 +122,7 @@ struct CloudAccountSettingsView: View {
                     .submitLabel(creating ? .next : .go)
                     .onSubmit { if creating { focusedField = .name } else if canAuthenticate { authenticate() } }
                     .accessibilityIdentifier("ranked-account-password")
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
 #if os(iOS)
                     .textContentType(creating ? .newPassword : .password)
 #endif
@@ -131,6 +133,7 @@ struct CloudAccountSettingsView: View {
                         .focused($focusedField, equals: .name)
                         .submitLabel(.go)
                         .onSubmit { if canAuthenticate { authenticate() } }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 }
             }
             .textFieldStyle(.roundedBorder)
@@ -201,10 +204,12 @@ struct CloudAccountSettingsView: View {
             SecureField("At least 12 characters", text: $newPassword)
                 .focused($focusedField, equals: .newPassword)
                 .submitLabel(.next).onSubmit { focusedField = .passwordConfirmation }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             Text("Confirm new password").font(TimeMasterFont.rowTitle())
             SecureField("Repeat new password", text: $passwordConfirmation)
                 .focused($focusedField, equals: .passwordConfirmation)
                 .submitLabel(.done)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             if !passwordConfirmation.isEmpty && newPassword != passwordConfirmation {
                 Text("Passwords do not match.").font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
             }
@@ -241,8 +246,8 @@ struct CloudAccountSettingsView: View {
         if ranked.identity != nil {
             EverSettingsSection(title: "Ranked identity", detail: "Only the competitive alias and earned exercise ratings are public when you opt in. Local profile and camera media are not uploaded.") {
                 Text("Competitive alias").font(TimeMasterFont.rowTitle())
-                TextField("Public display name", text: $alias).textFieldStyle(.roundedBorder).font(TimeMasterFont.body())
-                Toggle("Appear in public leaderboards", isOn: $listed).font(TimeMasterFont.secondary())
+                TextField("Public display name", text: $alias).textFieldStyle(.roundedBorder).font(TimeMasterFont.body()).keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
+                Toggle("Appear in public leaderboards", isOn: $listed).font(TimeMasterFont.secondary()).keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { listed.toggle() })
                 Button("Save public identity") {
                     savingPrivacy = true
                     Task {
@@ -263,7 +268,7 @@ struct CloudAccountSettingsView: View {
 
     private var legacyLink: some View {
         EverSettingsSection(title: "Existing Ranked account", detail: "Link before playing with a new TimeMaster account. Your old private login and password prove ownership; email or display-name matches are never used to merge accounts.") {
-            DisclosureGroup("Link existing Ranked account", isExpanded: $showLegacyLink) {
+            DisclosureGroup(isExpanded: $showLegacyLink) {
                 VStack(alignment: .leading, spacing: EverSpacing.x3) {
                     Text("Old Ranked private login").font(TimeMasterFont.rowTitle())
                     TextField("Private login", text: $legacyLogin)
@@ -271,8 +276,9 @@ struct CloudAccountSettingsView: View {
 #if os(iOS)
                         .textInputAutocapitalization(.never)
 #endif
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     Text("Old Ranked password").font(TimeMasterFont.rowTitle())
-                    SecureField("Password", text: $legacyPassword).focused($focusedField, equals: .legacyPassword)
+                    SecureField("Password", text: $legacyPassword).focused($focusedField, equals: .legacyPassword).keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     Button("Verify credentials and link") {
                         focusedField = nil
                         Task {
@@ -284,6 +290,9 @@ struct CloudAccountSettingsView: View {
                     Text("Successful linking preserves existing aliases, earned ratings and match history. Already-linked accounts cannot be linked again.")
                         .font(TimeMasterFont.caption()).foregroundStyle(EverColor.textSecondary)
                 }.textFieldStyle(.roundedBorder).font(TimeMasterFont.body()).padding(.top, EverSpacing.x2)
+            } label: {
+                Text("Link existing Ranked account")
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8), action: { showLegacyLink.toggle() })
             }.font(TimeMasterFont.rowTitle())
         }
     }

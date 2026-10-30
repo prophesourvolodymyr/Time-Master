@@ -91,11 +91,13 @@ struct PhysiqueResultView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button { close() } label: { Label("Close", systemImage: "xmark") }
+                    .physiqueToolbarTarget()
                     .keyboardShortcut(.cancelAction)
                     .disabled(!isVisible)
             }
             ToolbarItem(placement: .primaryAction) {
                 Button { reportMatch() } label: { Label("Report", systemImage: "flag") }
+                    .physiqueToolbarTarget()
                     .disabled(cloudAccount.accountID == nil)
             }
         }
@@ -261,6 +263,7 @@ struct PhysiqueResultView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 } label: {
                     Text("Original match receipt · Superseded").font(TimeMasterFont.sectionTitle())
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0))
                 }
             }
         } else {
@@ -305,6 +308,7 @@ struct PhysiqueResultView: View {
         .padding(.horizontal, ProfileStyle.inset)
         .padding(.vertical, 4)
         .background(Theme.surface)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { showsContext.toggle() })
         detailActions(match: match, result: result)
 
         VStack(alignment: .leading, spacing: ProfileStyle.inset * 1.5) {
@@ -419,7 +423,7 @@ struct PhysiqueResultView: View {
                 .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget, alignment: .leading)
                 .foregroundStyle(Theme.toolbarOrange)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 0))
             Divider().overlay(Theme.separator)
             if isJudged(match, result: result) {
                 if store.locallyBlockedIDs.contains(match.opponent.identity.id) {
@@ -433,7 +437,7 @@ struct PhysiqueResultView: View {
                         Label(pendingAction == .gallery ? "Checking pose access" : "View poses", systemImage: "photo.on.rectangle")
                             .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget, alignment: .leading)
                     }
-                    .buttonStyle(.plain)
+                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 0))
                     .disabled(pendingAction != nil || isLoading || loadError != nil)
                     Text("Opens only after a fresh authorization check. No poses are loaded on this result.")
                         .font(TimeMasterFont.secondary())
@@ -447,7 +451,7 @@ struct PhysiqueResultView: View {
                 Label("Request scoring review", systemImage: "text.bubble")
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget, alignment: .leading)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 0))
             if lastAction == .gallery, let actionError {
                 Text(actionError)
                     .foregroundStyle(ProfileStyle.secondary)

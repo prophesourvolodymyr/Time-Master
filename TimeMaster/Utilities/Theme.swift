@@ -77,6 +77,7 @@ struct TimeMasterCardButtonStyle: ButtonStyle {
         configuration.label
             .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .keyNavButtonSurface(.roundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -103,6 +104,7 @@ struct TimeMasterSelectionButtonStyle: ButtonStyle {
             .contentShape(shape)
             .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .keyNavButtonSurface(.roundedRectangle(cornerRadius: Theme.controlCornerRadius))
     }
 }
 
@@ -305,6 +307,7 @@ struct IconColorPicker: View {
                         )
                 }
                 .onTapGesture { selectedHex = colorDef.hex }
+                .keyNavTarget(shape: .circle) { selectedHex = colorDef.hex }
             }
         }
     }

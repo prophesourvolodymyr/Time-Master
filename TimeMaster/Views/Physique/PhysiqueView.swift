@@ -21,6 +21,7 @@ struct PhysiqueView: View {
                             if match.you.submitted { open(.lobby) }
                             else { confirmsExit = true }
                         }
+                        .physiqueToolbarTarget()
                     }
                 }
             }

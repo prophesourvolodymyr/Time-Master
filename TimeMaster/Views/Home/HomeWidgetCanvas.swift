@@ -312,7 +312,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .circle)
         .accessibilityLabel("Remove \(widget.kind.title) widget")
     }
 
@@ -401,6 +401,7 @@ private struct HomeWidgetTile: View {
                 .allowsHitTesting(false)
         }
         .allowsHitTesting(!isEditing)
+        .keyNavRole(isEditing ? .excluded : .automatic)
     }
 }
 
@@ -430,6 +431,7 @@ private struct HomeWidgetOptions: View {
             #if os(macOS)
             .menuIndicator(.hidden)
             #endif
+            .keyNavTarget(shape: .circle)
             .accessibilityLabel("Edit \(widget.kind.title) options")
         }
     }

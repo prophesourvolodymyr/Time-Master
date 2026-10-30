@@ -35,7 +35,9 @@ struct ExercisePage: Identifiable {
         }
     }
     var effectiveWorkoutType: TimeMasterCore.WorkoutType? { manifest.workoutType ?? inheritedWorkoutType }
-    var totalChildCount: Int { children.count + children.reduce(0) { $0 + $1.totalChildCount } }
+    var totalChildCount: Int {
+        children.isEmpty ? manifest.childIDs.count : children.count + children.reduce(0) { $0 + $1.totalChildCount }
+    }
 
     init(
         manifest: ExercisePageManifest,
@@ -93,6 +95,28 @@ struct ExercisePage: Identifiable {
         }
 
         self.mediaURLs = resolvedMediaURLs
-        self.coverImageURL = resolvedMediaURLs.first
+        let chosenCover = manifest.coverMediaFilename.flatMap { filename in
+            resolvedMediaURLs.first { $0.lastPathComponent == filename }
+        }
+        self.coverImageURL = chosenCover ?? resolvedMediaURLs.first
+    }
+
+    /// The page's local file for one of its media file names (nil when the page does not hold it).
+    func mediaURL(for filename: String) -> URL? {
+        mediaURLs.first { $0.lastPathComponent == filename }
+    }
+
+    /// The cover a skill board card or row shows: only one the page chose (`coverMediaFilename`), never the implicit
+    /// first media item.
+    var cardCoverURL: URL? {
+        manifest.coverMediaFilename.flatMap(mediaURL(for:))
+    }
+
+    /// The picture icon: one of the page's media, or an http(s) image address.
+    var iconImageURL: URL? {
+        guard let reference = manifest.iconImage else { return nil }
+        if let local = mediaURL(for: reference) { return local }
+        guard let url = URL(string: reference), let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http" else { return nil }
+        return url
     }
 }

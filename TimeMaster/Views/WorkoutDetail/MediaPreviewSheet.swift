@@ -34,5 +34,6 @@ struct MediaPreviewSheet: View {
             liveContext: liveContext,
             databasePageID: { _ in workout.flatMap { WorkoutMediaCatalog.pageIDs(in: $0).first } }
         )
+        .keyNavHost()
     }
 }

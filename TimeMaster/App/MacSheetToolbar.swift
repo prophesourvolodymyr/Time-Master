@@ -129,6 +129,7 @@ private struct MacWindowToolbarItems: ToolbarContent {
         HStack(spacing: EverSpacing.x2) {
             ForEach(items) { $0.content }
         }
+        .keyNavAccessoryHost()
     }
 }
 

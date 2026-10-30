@@ -34,6 +34,7 @@ struct BundleEditorSheet: View {
                         .padding(18)
                         .foregroundStyle(.black)
                         .background(.white, in: RoundedRectangle(cornerRadius: 18))
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 18))
                     BundleSectionEditor(section: $draft, normalizesLegacy: false) { id in
                         inspectedPageID = id
                     }
@@ -65,5 +66,6 @@ struct BundleEditorSheet: View {
             }
         }
         .font(TimeMasterFont.body())
+        .keyNavHost()
     }
 }

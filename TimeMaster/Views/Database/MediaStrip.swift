@@ -20,10 +20,14 @@ struct MediaStrip: View {
 
     private var cardWidth: CGFloat {
         let available = containerWidth > 0 ? containerWidth : 340
-        return min(max(available * 0.72, 220), 360)
+        return min(max(available * 0.62, 190), 300)
     }
 
-    private var cardHeight: CGFloat { cardWidth * 1.25 }
+    private var cardHeight: CGFloat { (cardWidth / PageMediaLayout.galleryAspect).rounded() }
+
+    private func tileWidth(at index: Int) -> CGFloat {
+        marksCover && index == 0 ? min(cardHeight, max(containerWidth, cardWidth)) : cardWidth
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -32,8 +36,16 @@ struct MediaStrip: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 12) {
                         ForEach(urls.indices, id: \.self) { index in
-                            card(index: index)
-                                .id(index)
+                            HStack(spacing: 12) {
+                                card(index: index)
+                                if marksCover, index == 0, urls.count > 1 {
+                                    Capsule()
+                                        .fill(Theme.toolbarOrange.opacity(0.75))
+                                        .frame(width: 3, height: cardHeight * 0.7)
+                                        .accessibilityHidden(true)
+                                }
+                            }
+                            .id(index)
                         }
                     }
                     .modifier(MediaStripTargetLayout())
@@ -99,7 +111,7 @@ struct MediaStrip: View {
         let isCover = marksCover && index == 0
         let isVideo = PageMediaKind.isVideo(url)
         let hasNote = comments[url] != nil
-        let width = cardWidth
+        let width = tileWidth(at: index)
         let height = cardHeight
 
         return ZStack(alignment: .bottomLeading) {

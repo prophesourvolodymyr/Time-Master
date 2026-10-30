@@ -340,6 +340,7 @@ struct PhysiqueEligibilityConsentView: View {
                 Text("I don't meet it").tag(AdultAnswer.ineligible)
             }
             .pickerStyle(.radioGroup)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6), action: { changeAdult(adultAnswer == .eligible ? .ineligible : .eligible) })
             #else
             choiceRow("I meet the adult requirement", detail: "18 or older, and any stricter applicable requirement.", selected: adultAnswer == .eligible) { changeAdult(.eligible) }
             choiceRow("I don't meet it", detail: "Leave Physique Duels without saving a new grant.", selected: adultAnswer == .ineligible) { changeAdult(.ineligible) }
@@ -360,6 +361,7 @@ struct PhysiqueEligibilityConsentView: View {
                     .disabled(adultAnswer != .eligible)
             }
             .pickerStyle(.radioGroup)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6), action: { changeAttire(attire == .top ? .shirtlessAdultMan : .top) })
             #else
             choiceRow("Athletic top", detail: "An opaque athletic top or opaque sports bra.", selected: attire == .top) { changeAttire(.top) }
             choiceRow("Shirtless adult man", detail: "I am an adult man; nonsexual fitness poses only.", selected: attire == .shirtlessAdultMan, disabled: adultAnswer != .eligible) { changeAttire(.shirtlessAdultMan) }
@@ -393,6 +395,7 @@ struct PhysiqueEligibilityConsentView: View {
                 .padding(.top, ProfileStyle.spacing)
                 .textSelection(.enabled)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { rulesExpanded.toggle() })
             .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: rulesExpanded)
         }
     }
@@ -424,6 +427,7 @@ struct PhysiqueEligibilityConsentView: View {
                     .padding(.top, ProfileStyle.spacing)
                     .textSelection(.enabled)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { aiExpanded.toggle() })
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: aiExpanded)
             }
         }
@@ -454,6 +458,7 @@ struct PhysiqueEligibilityConsentView: View {
                 .padding(.top, ProfileStyle.spacing)
                 .textSelection(.enabled)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { opponentExpanded.toggle() })
             .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: opponentExpanded)
         }
     }
@@ -506,6 +511,7 @@ struct PhysiqueEligibilityConsentView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, contactPadding)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             Text(supportURL.absoluteString).textSelection(.enabled)
         }
     }
@@ -539,7 +545,7 @@ struct PhysiqueEligibilityConsentView: View {
             statusRow("Actual retention and exceptions", value: policy.retention.isEmpty ? "Not disclosed" : policy.retention)
             statusRow("Judging version", value: policy.judgeVersion.isEmpty ? "Not disclosed" : policy.judgeVersion)
             if let previousPolicy {
-                DisclosureGroup("Earlier notice shown during this visit") {
+                DisclosureGroup {
                     VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
                         Text("Policy \(previousPolicy.version)")
                         Text(previousPolicy.operatorName)
@@ -549,6 +555,9 @@ struct PhysiqueEligibilityConsentView: View {
                         Text("Judging version: \(previousPolicy.judgeVersion)")
                     }
                     .padding(.top, ProfileStyle.spacing)
+                } label: {
+                    Text("Earlier notice shown during this visit")
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0))
                 }
             }
             contactLink
@@ -561,6 +570,7 @@ struct PhysiqueEligibilityConsentView: View {
         Toggle(isOn: selection) {
             Text(title).font(TimeMasterFont.label()).fixedSize(horizontal: false, vertical: true)
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6), action: { selection.wrappedValue.toggle() })
         .disabled(isSaving)
         .accessibilityHint("Separate permission required for rated Physique Duels. Changing this draft does not save it.")
         #if os(macOS)
@@ -579,6 +589,7 @@ struct PhysiqueEligibilityConsentView: View {
                 #endif
         }
         .buttonStyle(.borderless)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
     }
 
     private func choiceRow(_ title: String, detail: String, selected: Bool, disabled: Bool = false, action: @escaping () -> Void) -> some View {

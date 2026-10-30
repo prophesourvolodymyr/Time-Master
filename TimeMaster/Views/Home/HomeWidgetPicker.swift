@@ -109,7 +109,7 @@ struct HomeWidgetPicker: View {
                     }
                     .shadow(color: .black.opacity(0.35), radius: 5, y: 3)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .circle)
             .disabled(!canAdd)
             .accessibilityLabel("Add \(kind.title) widget")
             .padding(7)
@@ -151,6 +151,7 @@ private struct HomeWidgetPreview: View {
             .frame(maxWidth: .infinity)
             .aspectRatio(footprint.aspectRatio, contentMode: .fit)
             .allowsHitTesting(false)
+            .keyNavRole(.excluded)
             .accessibilityHidden(true)
         .clipped()
         .onAppear {

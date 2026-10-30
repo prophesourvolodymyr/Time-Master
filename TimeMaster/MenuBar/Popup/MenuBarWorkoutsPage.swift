@@ -76,7 +76,7 @@ struct MenuBarWorkoutsPage: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Theme.textSecondary)
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .circle)
                 .accessibilityLabel("Clear search")
             }
         }

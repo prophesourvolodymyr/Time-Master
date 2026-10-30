@@ -105,6 +105,7 @@ struct PhysiqueSafetyHubView: View {
                 Button(action: requestRefresh) {
                     Label("Refresh safety", systemImage: "arrow.clockwise")
                 }
+                .physiqueToolbarTarget()
                 .disabled(blocksLoading || store.loading || store.busy)
                 .help("Refresh published support and your blocked players")
             }
@@ -236,6 +237,7 @@ struct PhysiqueSafetyHubView: View {
                                 .frame(minHeight: ProfileStyle.touchTarget)
                         }
                         .buttonStyle(.bordered)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                         Text("Opens the published destination. No photo, case text or match reference is attached, and opening it is not a report receipt.")
                             .font(TimeMasterFont.caption())
                             .foregroundStyle(ProfileStyle.secondary)
@@ -346,6 +348,7 @@ struct PhysiqueSafetyHubView: View {
                                     .frame(minHeight: ProfileStyle.touchTarget)
                             }
                             .buttonStyle(.bordered)
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                             .disabled(blocksLoading)
                         }
                     }
@@ -370,6 +373,7 @@ struct PhysiqueSafetyHubView: View {
                     .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(.bordered)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             .disabled(returningToMatch || store.loading)
             Text("Camera stopped. Help does not pause match timing. Leaving the match is a separate action in the match view.")
                 .font(TimeMasterFont.caption())
@@ -665,6 +669,7 @@ private struct PhysiqueSafetyBlockedRow: View {
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
                 .buttonStyle(.bordered)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .disabled(listRefreshing)
                 .accessibilityLabel("Check unblock status for \(name)")
                 if canRetry {
@@ -690,6 +695,7 @@ private struct PhysiqueSafetyBlockedRow: View {
                 .frame(minHeight: ProfileStyle.touchTarget)
         }
         .buttonStyle(.bordered)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .disabled(listRefreshing)
         .accessibilityLabel("\(title) this player, \(name)")
         .alert("Unblock this player?", isPresented: $confirmsUnblock) {

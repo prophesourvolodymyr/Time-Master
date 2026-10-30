@@ -132,6 +132,7 @@ struct PhysiquePrivacyView: View {
                     store.suspendCapture()
                     dismiss()
                 }
+                .physiqueToolbarTarget()
             }
         }
         .onAppear {
@@ -245,6 +246,7 @@ struct PhysiquePrivacyView: View {
                         .font(TimeMasterFont.secondary())
                         .padding(.top, ProfileStyle.spacing)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { processingDetails.toggle() })
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: processingDetails)
                     PhysiqueAction(title: "Withdraw AI sharing…", systemImage: "hand.raised", role: .destructive, disabled: !canMutate) {
                         prepare(.ai)
@@ -279,6 +281,7 @@ struct PhysiquePrivacyView: View {
                         .font(TimeMasterFont.secondary())
                         .padding(.top, ProfileStyle.spacing)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { opponentDetails.toggle() })
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: opponentDetails)
                     PhysiqueAction(title: "Withdraw opponent access…", systemImage: "eye.slash", role: .destructive, disabled: !canMutate) {
                         prepare(.sharing)
@@ -318,6 +321,7 @@ struct PhysiquePrivacyView: View {
                         .font(TimeMasterFont.secondary())
                         .padding(.top, ProfileStyle.spacing)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { listingDetails.toggle() })
                     .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: listingDetails)
                     PhysiqueAction(title: account.listed ? "Remove me from standings…" : "List me…", systemImage: account.listed ? "eye.slash" : "list.number", role: account.listed ? .destructive : nil, disabled: !canMutate || (!account.listed && (!unconfirmedRequests.isEmpty || store.isStale))) {
                         prepare(.listing)

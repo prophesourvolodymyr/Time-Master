@@ -131,6 +131,7 @@ struct BackupView: View {
                 .background(isExporting ? Color.white.opacity(0.5) : Color.white)
                 .cornerRadius(12)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
             .disabled(isExporting)
         }
         .padding(16)
@@ -194,6 +195,7 @@ struct BackupView: View {
                 .background(isImporting ? Color.white.opacity(0.5) : Color.white)
                 .cornerRadius(12)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
             .disabled(isImporting)
         }
         .padding(16)

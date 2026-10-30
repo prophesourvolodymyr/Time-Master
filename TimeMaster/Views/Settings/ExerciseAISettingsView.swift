@@ -32,6 +32,7 @@ struct ExerciseAISettingsView: View {
                             .textInputAutocapitalization(.never)
                             #endif
                             .foregroundColor(.white)
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                             .onChange(of: apiKey) {
                                 UserDefaults.standard.set($0, forKey: "exercise_ai_api_key")
                             }
@@ -43,6 +44,9 @@ struct ExerciseAISettingsView: View {
                                     .foregroundColor(Theme.textSecondary)
                             }
                             .buttonStyle(.plain)
+                            .padding(6)
+                            .keyNavTarget(shape: .circle)
+                            .padding(-6)
                         }
                     }
                     .padding(.vertical, 4)
@@ -69,6 +73,7 @@ struct ExerciseAISettingsView: View {
                         }
                         .pickerStyle(.menu)
                         .tint(.white)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                         .onChange(of: model) {
                             UserDefaults.standard.set($0, forKey: "exercise_ai_model")
                         }

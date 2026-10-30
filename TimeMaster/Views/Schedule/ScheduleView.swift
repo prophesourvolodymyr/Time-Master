@@ -56,17 +56,21 @@ struct ScheduleView: View {
                 switch destination {
                 case .challenge:
                     ScheduleChallengeSheet(week: currentWeek, weekdays: store.weeklySchedule.challenge(for: currentWeek).weekdays)
+                        .keyNavHost()
                 case .plans:
                     SchedulePlansSheet(week: week)
+                        .keyNavHost()
                 case .calendar:
                     CalendarPage(entries: store.historyEntries, outdoorActivities: outdoorStore.establishedActivities, selectedWeek: week) { selected in
                         move(to: selected)
                     }
+                    .keyNavHost()
                 case .entry(let date, let entry, let custom):
                     ScheduleEntryEditor(date: date, entry: entry, custom: custom, showsRepeat: date >= currentWeek) { updated, repeats in
                         store.saveScheduleEntry(updated, on: date, repeats: repeats,
                                                 completed: updated.workoutID == nil && entry == nil)
                     }
+                    .keyNavHost()
                 }
             }
             .workoutPlayerPage(item: $playerWorkout) { workout in
@@ -141,6 +145,7 @@ struct ScheduleView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel(title)
         .help(title)
     }

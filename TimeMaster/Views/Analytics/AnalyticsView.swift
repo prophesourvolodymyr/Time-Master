@@ -251,6 +251,7 @@ struct AnalyticsView: View {
                             .background(Theme.surface)
                             .cornerRadius(8)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                 }
             }
             Text("You can also set goals in Settings → Workout Types.")
@@ -260,6 +261,7 @@ struct AnalyticsView: View {
         .padding(16)
         .background(Theme.surface)
         .cornerRadius(16)
+        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -594,6 +596,7 @@ struct ActivityHeatmap: View {
         }
         .sheet(isPresented: $showCalendar) {
             CalendarPage(entries: entries, outdoorActivities: outdoorActivities)
+                .keyNavHost()
         }
     }
 
@@ -680,6 +683,7 @@ struct ActivityHeatmap: View {
                                 .frame(width: 44, height: 44)
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
+                        .keyNavShape(.roundedRectangle(cornerRadius: 12))
                         .disabled(isFuture)
                         .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts")
                         .accessibilityIdentifier("activity.day.\(WeeklyWorkoutSchedule.dayKey(date))")
@@ -781,6 +785,7 @@ private struct CalendarActivitySheet: View {
             }
             .sheet(item: $selectedDay) { selection in
                 DayInfoSheet(date: selection.date, entries: entries, outdoorActivities: outdoorActivities)
+                    .keyNavHost()
             }
         }
         #if os(iOS)
@@ -872,12 +877,15 @@ struct CalendarPage: View {
             #endif
             .sheet(isPresented: $showActivity) {
                 CalendarActivitySheet(entries: entries, outdoorActivities: outdoorActivities)
+                    .keyNavHost()
             }
             .sheet(isPresented: $showVacationSheet) {
                 VacationSheet()
+                    .keyNavHost()
             }
             .sheet(item: $selectedDay) { selection in
                 DayInfoSheet(date: selection.date, entries: entries, outdoorActivities: outdoorActivities)
+                    .keyNavHost()
             }
         }
         #if os(iOS)
@@ -1168,6 +1176,7 @@ struct CalendarPage: View {
             .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .keyNavShape(.roundedRectangle(cornerRadius: 10))
         .disabled(isFuture && onSelectWeek == nil)
         .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)), \(count) workouts\(isHighlighted(date) ? ", selected week" : "")")
         .accessibilityHint(onSelectWeek == nil ? "Open day details" : "Open this week in Schedule")
@@ -1451,6 +1460,7 @@ private struct VacationSheet: View {
                                     DatePicker("", selection: $startMonth, displayedComponents: .date)
                                         .labelsHidden().colorScheme(.dark)
                                         .monospacedDigit()
+                                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 4) {
@@ -1458,6 +1468,7 @@ private struct VacationSheet: View {
                                     DatePicker("", selection: $endMonth, displayedComponents: .date)
                                         .labelsHidden().colorScheme(.dark)
                                         .monospacedDigit()
+                                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                                 }
                             }
                             .padding(14).background(Theme.surface).cornerRadius(10)
@@ -1486,6 +1497,7 @@ private struct VacationSheet: View {
                                         .background(selectedTypes.contains(type) ? Color.white : Theme.surface)
                                         .cornerRadius(8)
                                     }
+                                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                                 }
                             }
                         }

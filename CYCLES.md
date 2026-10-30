@@ -2700,6 +2700,45 @@ User direction: let external AI agents (and the in-app Coach) do everything in T
 - [ ] Known limits: undo reverses creations, attachments and notes only (not edits, moves or deletes); a clip end beyond the video's length is clamped and reported; each page write moves the previous manifest into `.trash` (existing behaviour); the `tmax` binary is built for the machine's architecture
 - [ ] The "create 6 different types of exercises" request remains on hold
 
+## Skillmax parity port — 2026-10-29
+
+Implementation connected for review; this does not record human acceptance.
+
+- Skill boards have List, Board and Table views, nested skills, inline creation, status changes, drag placement, collapsible groups and type-based display ordering.
+- A group's title opens its own page; its chevron only folds the group. Groups hold notes, files and file comments, links and link comments, ordered prerequisites and child skills. Strip colours start randomly and remain editable; a strip picture is clipped inside the strip and colours the group.
+- Type presets belong to one skill tree, including skills nested inside ordinary containers. Assignment menus can create a type immediately, then show its clickable chip beside link/file counts. Colour, emoji/symbol, tint/glow/outline/gradient effects and top/bottom rules are editable.
+- Skill titles rename in place on double-click, icons can come from titles or explicit emoji/symbols/pictures, and card covers are explicit rather than the first attachment. Settings → Skills controls card covers and automatic icon style. Skill reading columns expand to 1240 points on Mac; tables can use 1700.
+- Notes use the existing Markdown editor in place and autosave. File previews use the existing media gallery for pictures/video and native Quick Look for other attachments. Files and links can be marked as prerequisites; page/group prerequisites reject cycles.
+- The portable macOS keyboard engine is connected to shared controls and the app's existing screens, with skill cards/rows/group strips as primary targets and their small controls as secondary targets. Arrows move spatially, Shift+arrow moves three targets, Space enters/leaves secondary controls, Return activates, Escape leaves, and Command+left/right changes pages. The arc and menu-bar page selectors are excluded from ordinary arrows. Text editing and native controls keep their own keys.
+- Storage additions decode old manifests without requiring new fields. Group media use `Sections/<section-id>/media/`, within the existing database sync and backup scope. Generated schema descriptions cover the new material, icon, cover, group and type fields.
+- First-run migration skips skill-group media and note-asset directories rather than manufacturing pages from them. Both the page migrator and legacy-cache cleanup preserve ISO dates, so migrated skill manifests remain readable.
+- `TIMEMASTER_DATA_ROOT` overrides the library root for isolated runs. The persistence smoke used `/tmp/tm-port-data`, not the real user library; it exercised group material/pictures, nested placement, types, covers, comments, dependency flags/cycle rejection and legacy decoding.
+- Verification: iPhone Simulator and macOS builds passed; both focused regressions passed (skill-local preset isolation and group-content migration). The preset check includes rename/reload preservation and clearing a deleted type from the root and descendants.
+- Native iPhone proof: directly launched an isolated group page with its picture strip, automatic icon, type glow, explicit card cover, Markdown notes and files. The XCTest UI runner timed out before executing its interaction scenario, so an automated tap/edit pass is not claimed. Disposable launch hooks and the UI smoke source were removed.
+- [ ] Human review of skills, group pages, types, notes, card options, wide Mac layout and keyboard navigation; physical Mac keyboard interaction remains to be reviewed.
+
+## Cycle 54 — Database Page Creation and Page View Polish — 2026-10-30
+
+User direction: fix the Database page UI inconsistencies and bugs without removing the page system — root exercises, a pinned Create bar with grey disabled state, drafts, orange/white accents, link rows with previews, drop sets by name or from the database, dynamic Rest / Rest Between Sets / Big Rest, a media strip that replaces icons with a square cover plus 1080 × 1480 gallery, a live-rendered and resizable guide editor, clear Optional marks, and orange-based corner buttons. All work done directly, without subagents, and exercised on the iPhone 16 (iOS 18.6) simulator with an isolated data root. Nothing here is human-verified.
+
+- [x] Root exercise creation: "New Exercise" (and every add-menu entry, "Create First Page" and row "Add child") now opens through an item-driven sheet, so the first open no longer shows stale state (it used to open as Container); a root exercise saves outside any container and says so in the form
+- [x] Create bar pinned over the bottom of the sheet: Draft and Create Page side by side, both grey and disabled until there is something to save, with a "Add a title to create this page" hint
+- [x] Drafts: autosave about 0.7 s after each change and when the app goes to the background, so a killed app keeps the draft; explicit Draft button with a "Draft saved" toast; corner Drafts button with a count opens a row list (thumbnail, type, media count, days left, last edit, delete); opening a draft restores every field and media; creating the page removes its draft; Cancel on an unsaved new page asks Save Draft / Discard / Keep Editing; drafts expire after 30 days; draft media are no longer recopied on every autosave
+- [x] Orange/white accents in the creation form: one selector style (orange fill, white label) for page type, workout type and skill status; orange focus borders on fields; orange values on steppers
+- [x] External links: one row field per link with a system Paste button (no paste-permission prompt), live preview card under each valid link (thumbnail and title, tap to open and check it works), an invalid-link hint, remove buttons, Return or the "+" button adds the next row
+- [x] Drop sets: "+ Add" for a named drop set and "From Database" (database icon with a plus) that picks a page; rows show which kind they are and have a red-based delete
+- [x] Rest naming everywhere a section is configured (page form, Add to Workout, workout configurator, Mac video save, import): "Rest" with one set; with more sets "Rest Between Sets" appears and the after-exercise rest becomes "Big Rest", placed below it
+- [x] Media: square cover column divided from the 1080 × 1480 gallery column, add tiles, press-and-drag reordering (the first item is always the cover), per-item notes and delete buttons with bases; the same strip appears for containers; page icons are not part of the form
+- [x] Page view media: big square cover card, divider, then 1080 × 1480 gallery cards in a horizontal strip titled "Media"; the cover stays one of the media items
+- [x] Markdown: unfocused blocks hide `**`, `*`, `~~`, backticks and link syntax so text renders live; the block being edited shows dimmed markers; the creation form embeds the editor inline with bottom-corner resize grips and a corner button for the full-screen editor
+- [x] Required and Optional tags on every section and optional config row
+- [x] Buttons: page and skill-group Edit became the same circular orange-based icon as the other corner buttons; media viewer close and notes-drawer buttons, row disclosure chevrons, Attach, Add to Workout steppers and "+" and the page browser sort menu got the shared orange base
+- [x] Page view notes show the page's Markdown instead of the `guide.md` mirror, which repeated the title as a heading
+- [x] Container cards count their child pages instead of showing 0
+- [x] Removed six stray root-level images from the app targets (`project.yml` excludes `*.png` at the source root); the images stay on disk, uncommitted
+- [x] Permanent test: `MarkdownDocumentTests.testUnfocusedBlocksHideMarkupButKeepTheSavedText`; 13 Markdown tests pass; iOS Simulator and macOS targets build
+- [ ] Human review on device: creation form, drafts after force-quitting, link previews, drag reordering, guide resizing and live rendering, page view strip, corner buttons; the workout configurator rest order was compiled but not opened in the simulator
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

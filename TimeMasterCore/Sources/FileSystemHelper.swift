@@ -41,6 +41,10 @@ public final class FileSystemHelper {
     }
 
     public convenience init() {
+        if let path = ProcessInfo.processInfo.environment["TIMEMASTER_DATA_ROOT"], !path.isEmpty {
+            self.init(dataRoot: URL(fileURLWithPath: path, isDirectory: true))
+            return
+        }
         #if os(macOS)
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let root = support.appendingPathComponent("TimeMaster", isDirectory: true)

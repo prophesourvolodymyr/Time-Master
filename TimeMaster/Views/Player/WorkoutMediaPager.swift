@@ -146,6 +146,7 @@ struct WorkoutMediaPager: View {
         .shadow(color: .black.opacity(0.45), radius: 20, x: 0, y: 10)
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .onTapGesture { onOpen(i) }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 24), action: { onOpen(i) })
         .simultaneousGesture(
             DragGesture(minimumDistance: 24)
                 .onEnded { value in
@@ -193,7 +194,7 @@ struct WorkoutMediaPager: View {
                 .frame(width: 24, height: 24)
                 .background(Color.white.opacity(0.16), in: Circle())
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .circle)
         .opacity(enabled ? 1 : 0.3)
         .disabled(!enabled)
         .accessibilityLabel(label)

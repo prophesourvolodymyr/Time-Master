@@ -157,7 +157,7 @@ struct MarkdownLinkCardView: View {
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.07), lineWidth: 1))
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 16))
         .accessibilityLabel("\(title.isEmpty ? info.title : title), \(info.subtitle)")
         .accessibilityHint("Opens the link")
     }

@@ -480,9 +480,11 @@ struct MacVideoSavePopover: View {
             VStack(spacing: 8) {
                 stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s")
                 stepperRow(label: "Prepare Time", value: $prepareTime, range: 0...30, step: 1, unit: "s")
-                stepperRow(label: "Rest After", value: $restAfter, range: 0...120, step: 5, unit: "s")
                 stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
-                stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                if sets > 1 {
+                    stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                }
+                stepperRow(label: sets > 1 ? "Big Rest" : "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
             }
         }
     }

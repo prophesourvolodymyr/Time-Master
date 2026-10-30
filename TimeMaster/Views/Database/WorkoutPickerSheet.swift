@@ -44,8 +44,10 @@ struct WorkoutPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
-                                 }
+                AppToolbar.item(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+                }
             }
             .overlay(alignment: .bottom) {
                 if showToast {
@@ -73,46 +75,56 @@ struct WorkoutPickerSheet: View {
                 compactStepper(label: "Dur.", value: $duration, range: 5...600, step: 5, unit: "s")
                 compactStepper(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
                 compactStepper(label: "Reps", value: $reps, range: 0...100, step: 1, unit: "")
-                compactStepper(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
-                compactStepper(label: "Btwn", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
                 compactStepper(label: "Prep", value: $prepareTime, range: 0...30, step: 1, unit: "s")
+                if sets > 1 {
+                    compactStepper(label: "Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s")
+                }
+                compactStepper(label: sets > 1 ? "Big Rest" : "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s")
             }
+            .animation(.easeOut(duration: 0.2), value: sets > 1)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
     }
 
     private func compactStepper(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int, unit: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 4) {
             Text(label)
-                .font(TimeMasterFont.body(9, relativeTo: .caption2))
+                .font(TimeMasterFont.body(10, relativeTo: .caption2))
                 .foregroundColor(Theme.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Text("\(value.wrappedValue)\(unit)")
-                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                .foregroundColor(.white)
-            HStack(spacing: 4) {
-                Button {
+                .font(TimeMasterFont.black(14, relativeTo: .caption).monospacedDigit())
+                .foregroundColor(Theme.toolbarOrange)
+            HStack(spacing: 6) {
+                compactStepButton("minus", label: "Decrease \(label)") {
                     let new = value.wrappedValue - step
                     if new >= range.lowerBound { value.wrappedValue = new }
-                } label: {
-                    Image(systemName: "minus").font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.white).frame(width: 18, height: 18)
-                        .background(Theme.surface).cornerRadius(4)
                 }
-                Button {
+                compactStepButton("plus", label: "Increase \(label)") {
                     let new = value.wrappedValue + step
                     if new <= range.upperBound { value.wrappedValue = new }
-                } label: {
-                    Image(systemName: "plus").font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.white).frame(width: 18, height: 18)
-                        .background(Theme.surface).cornerRadius(4)
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .background(Theme.surface)
-        .cornerRadius(8)
+        .padding(.vertical, 8)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
+    }
+
+    private func compactStepButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .black))
+                .foregroundColor(.white)
+                .frame(width: 26, height: 26)
+                .background(Theme.toolbarOrange.opacity(0.7), in: Circle())
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     private var workoutList: some View {
@@ -148,9 +160,13 @@ struct WorkoutPickerSheet: View {
                         .foregroundColor(Theme.textSecondary)
                 }
                 Spacer()
-                Image(systemName: "plus.circle")
-                    .font(.title3)
-                    .foregroundColor(Color.white.opacity(0.6))
+                Image(systemName: "plus")
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(Theme.toolbarOrange.opacity(0.75), in: Circle())
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+                    .accessibilityHidden(true)
             }
             .padding(12)
             .background(Theme.surface)

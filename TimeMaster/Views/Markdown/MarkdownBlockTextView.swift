@@ -151,6 +151,7 @@ struct MarkdownBlockTextView: UIViewRepresentable {
     let controller: MarkdownTextController
     let focus: MarkdownFocusRequest?
     let handlers: MarkdownTextHandlers
+    var concealsMarkup = false
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -177,7 +178,7 @@ struct MarkdownBlockTextView: UIViewRepresentable {
         view.accessibilityLabel = "Text block"
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         view.text = text
-        context.coordinator.applyKind(view, kind: kind)
+        context.coordinator.applyStyle(view, kind: kind, concealsMarkup: concealsMarkup)
         controller.view = view
         return view
     }
@@ -197,7 +198,7 @@ struct MarkdownBlockTextView: UIViewRepresentable {
                 view.text = latest
                 replaced = true
             }
-            context.coordinator.applyKind(view, kind: kind)
+            context.coordinator.applyStyle(view, kind: kind, concealsMarkup: concealsMarkup)
         }
         let target = replaced ? MediaCommentFormatting.clamped(selection, in: latest) : selection
         if view.selectedRange != target { view.selectedRange = target }
@@ -232,21 +233,21 @@ struct MarkdownBlockTextView: UIViewRepresentable {
         var isApplying = false
         var lastFocusToken: UUID?
         weak var view: UITextView?
-        private var styledKind: MarkdownBlock.Kind?
+        private var styledKey: (kind: MarkdownBlock.Kind, concealed: Bool)?
 
         init(_ parent: MarkdownBlockTextView) { self.parent = parent }
 
         func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorage.EditActions, range editedRange: NSRange, changeInLength delta: Int) {
             guard editedMask.contains(.editedCharacters), view?.markedTextRange == nil else { return }
-            MarkdownInlineStyler.apply(to: textStorage, kind: parent.kind)
+            MarkdownInlineStyler.apply(to: textStorage, kind: parent.kind, concealsMarkup: parent.concealsMarkup)
         }
 
-        func applyKind(_ view: UITextView, kind: MarkdownBlock.Kind) {
-            guard styledKind != kind else { return }
-            styledKind = kind
+        func applyStyle(_ view: UITextView, kind: MarkdownBlock.Kind, concealsMarkup: Bool) {
+            if let styledKey, styledKey.kind == kind, styledKey.concealed == concealsMarkup { return }
+            styledKey = (kind, concealsMarkup)
             let selection = view.selectedRange
             view.textStorage.beginEditing()
-            MarkdownInlineStyler.apply(to: view.textStorage, kind: kind)
+            MarkdownInlineStyler.apply(to: view.textStorage, kind: kind, concealsMarkup: concealsMarkup)
             view.textStorage.endEditing()
             if view.selectedRange != selection { view.selectedRange = selection }
             let base = MarkdownStyle.base(for: kind)
@@ -259,6 +260,10 @@ struct MarkdownBlockTextView: UIViewRepresentable {
 
         func textViewDidBeginEditing(_ textView: UITextView) {
             parent.handlers.onFocus()
+        }
+
+        func textViewDidEndEditing(_ textView: UITextView) {
+            parent.handlers.onBlur()
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -342,6 +347,12 @@ final class MarkdownNSTextView: NSTextView {
         return accepted
     }
 
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        if resigned { handlers.onBlur() }
+        return resigned
+    }
+
     override func paste(_ sender: Any?) {
         let board = pasteboard
         if let data = board.data(forType: .png) ?? board.data(forType: .tiff), handlers.onPasteImage(data) { return }
@@ -406,6 +417,7 @@ struct MarkdownBlockTextView: NSViewRepresentable {
     let controller: MarkdownTextController
     let focus: MarkdownFocusRequest?
     let handlers: MarkdownTextHandlers
+    var concealsMarkup = false
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -461,11 +473,12 @@ struct MarkdownBlockTextView: NSViewRepresentable {
         var lastFocusToken: UUID?
         private var styledText: String?
         private var styledKind: MarkdownBlock.Kind?
+        private var styledConcealment: Bool?
 
         init(_ parent: MarkdownBlockTextView) { self.parent = parent }
 
         func styleIfNeeded(_ view: NSTextView, kind: MarkdownBlock.Kind) {
-            if styledText == view.string, styledKind == kind { return }
+            if styledText == view.string, styledKind == kind, styledConcealment == parent.concealsMarkup { return }
             restyle(view, kind: kind)
         }
 
@@ -474,7 +487,7 @@ struct MarkdownBlockTextView: NSViewRepresentable {
             let kind = kind ?? parent.kind
             let selection = view.selectedRange()
             storage.beginEditing()
-            MarkdownInlineStyler.apply(to: storage, kind: kind)
+            MarkdownInlineStyler.apply(to: storage, kind: kind, concealsMarkup: parent.concealsMarkup)
             storage.endEditing()
             if view.selectedRange() != selection { view.setSelectedRange(selection) }
             let base = MarkdownStyle.base(for: kind)
@@ -485,6 +498,7 @@ struct MarkdownBlockTextView: NSViewRepresentable {
             ]
             styledText = view.string
             styledKind = kind
+            styledConcealment = parent.concealsMarkup
         }
 
         func focus(_ view: NSTextView, at location: Int, textAtRequest: String, attempts: Int) {

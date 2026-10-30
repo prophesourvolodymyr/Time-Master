@@ -28,13 +28,16 @@ struct WorkoutTypesSettingsView: View {
                 store.addCustomType(name: name, iconName: icon, colorHex: color)
                 showAddSheet = false
             }
+            .keyNavHost()
         }
         .sheet(item: $goalEditType) { type in
             TypeGoalSheet(type: type)
+                .keyNavHost()
         }
         .sheet(item: $scheduleEditType) { type in
             TypeScheduleSheet(type: type)
                 .environmentObject(store)
+                .keyNavHost()
         }
     }
 
@@ -128,10 +131,11 @@ struct WorkoutTypesSettingsView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
         }
         .background(Theme.surface)
         .cornerRadius(12)
+        .keyNavTarget(id: type.id, role: .primary, shape: .roundedRectangle(cornerRadius: 12), action: { goalEditType = type })
     }
 
     private func activeSchedule(for type: WorkoutType) -> TypeSchedule? {
@@ -164,6 +168,7 @@ struct WorkoutTypesSettingsView: View {
                     .stroke(Color.white.opacity(0.15), lineWidth: 1)
             )
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 14))
     }
 }
 
@@ -254,7 +259,7 @@ private struct TypeScheduleSheet: View {
                             .background(selectedDays.contains(day) ? Color.white : Theme.surface)
                             .cornerRadius(8)
                     }
-                    .buttonStyle(.plain)
+                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -265,10 +270,12 @@ private struct TypeScheduleSheet: View {
             Text("Schedule Window").font(TimeMasterFont.black(17, relativeTo: .headline)).foregroundColor(Theme.textPrimary)
             DatePicker("Starts", selection: $startDate, displayedComponents: .date)
                 .colorScheme(.dark).foregroundColor(Theme.textPrimary)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
             Stepper(value: $durationMonths, in: 0...24) {
                 Text(durationMonths == 0 ? "Runs indefinitely" : "Runs for \(durationMonths) month\(durationMonths == 1 ? "" : "s")")
                     .foregroundColor(Theme.textPrimary)
             }
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { durationMonths = durationMonths >= 24 ? 0 : durationMonths + 1 })
         }
         .padding(14).background(Theme.surface).cornerRadius(12)
     }
@@ -279,6 +286,7 @@ private struct TypeScheduleSheet: View {
                 .foregroundColor(Theme.textPrimary)
             Toggle("Set a start time", isOn: $hasStartTime)
                 .foregroundColor(Theme.textPrimary)
+                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { hasStartTime.toggle() })
             if hasStartTime {
                 DatePicker(
                     "Starts",
@@ -287,10 +295,12 @@ private struct TypeScheduleSheet: View {
                 )
                 .colorScheme(.dark)
                 .foregroundColor(Theme.textPrimary)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                 Stepper(value: $durationMinutes, in: 5...240, step: 5) {
                     Text("Duration \(durationMinutes) min")
                         .foregroundColor(Theme.textPrimary)
                 }
+                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { durationMinutes = durationMinutes >= 240 ? 5 : durationMinutes + 5 })
                 Text(scheduleWindowText)
                     .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
@@ -342,7 +352,7 @@ private struct TypeScheduleSheet: View {
                 .background(Theme.background)
                 .cornerRadius(8)
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
     }
 
     private func durationButton(_ label: String, months: Int) -> some View {
@@ -353,7 +363,7 @@ private struct TypeScheduleSheet: View {
             .padding(.vertical, 8)
             .background(durationMonths == months ? Color.white : Theme.background)
             .cornerRadius(8)
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
     }
 
     private var goalSection: some View {
@@ -369,7 +379,7 @@ private struct TypeScheduleSheet: View {
                             .background(weeklyGoal == value ? Color.white : Theme.background)
                             .cornerRadius(8)
                     }
-                    .buttonStyle(.plain)
+                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -527,6 +537,7 @@ private struct TypeEditorSheet: View {
             TextField("e.g., Boxing", text: $name)
                 .padding(14).background(Theme.surface).cornerRadius(10)
                 .foregroundColor(Theme.textPrimary)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -556,6 +567,7 @@ private struct TypeEditorSheet: View {
                             .background(selectedIcon == icon ? Color.white : Theme.surface)
                             .cornerRadius(10)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
                 }
             }
         }
@@ -605,6 +617,7 @@ private struct TypeGoalSheet: View {
                                         .background(draft == n ? Color.white : Theme.surface)
                                         .cornerRadius(10)
                                 }
+                                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
                             }
                         }
                         Text(draft == 1 ? "Once a week" : "\(draft) times a week")
@@ -624,6 +637,7 @@ private struct TypeGoalSheet: View {
                             .background(Color.white)
                             .cornerRadius(14)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 14))
                     .padding(.horizontal, 24)
                 }
                 .padding(32)

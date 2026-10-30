@@ -27,6 +27,7 @@ struct SettingsRootContent: View {
 
                     SettingsMenuSection(title: "Workout") {
                         SettingsDestinationLink(destination: .workoutTypes)
+                        SettingsDestinationLink(destination: .skills)
                         SettingsDestinationLink(destination: .motivation)
                         musicSettingsButton {
                             SettingsMenuCard {
@@ -54,6 +55,7 @@ struct SettingsRootContent: View {
                                 .accessibilityValue("\(extraRestSeconds) seconds")
                             }
                         }
+                        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: EverRadius.card), action: { extraRestSeconds = extraRestSeconds >= 120 ? 5 : extraRestSeconds + 5 })
                     }
 
                     SettingsMenuSection(title: "Data") {
@@ -121,6 +123,7 @@ struct SettingsRootContent: View {
                 )
                 #endif
                 .everSheetBackground()
+                .keyNavHost()
         }
         #if os(iOS)
         .fullScreenCover(isPresented: $showMusicSettings) {
@@ -138,6 +141,7 @@ struct SettingsRootContent: View {
                     idealHeight: EverLayout.standardRowMinimum * 12
                 )
                 .everSheetBackground()
+                .keyNavHost()
         }
         #endif
     }
@@ -188,6 +192,8 @@ struct SettingsDestinationContent: View {
             DatabaseSyncSettingsView()
         case .workoutTypes:
             WorkoutTypesSettingsView()
+        case .skills:
+            SkillsSettingsView()
         case .motivation:
             MotivationSettingsView()
         case .backup:

@@ -348,6 +348,7 @@ struct EverPressButtonStyle: ButtonStyle {
         configuration.label
             .background(SlotNavigationContentClearanceReader())
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .keyNavButtonSurface(.standard)
     }
 }
 

@@ -146,6 +146,36 @@ final class MarkdownDocumentTests: XCTestCase {
         XCTAssertEqual(converted("# Heading text", caret: 14), "p")
         XCTAssertEqual(converted("#nospace"), "p")
     }
+
+    func testUnfocusedBlocksHideMarkupButKeepTheSavedText() {
+        let source = "Keep **elbows** in, go *slow*, ~~drop~~ and [watch](https://example.com)"
+        let rendered = NSMutableAttributedString(string: source)
+        MarkdownInlineStyler.apply(to: rendered, kind: .paragraph, concealsMarkup: true)
+        let editing = NSMutableAttributedString(string: source)
+        MarkdownInlineStyler.apply(to: editing, kind: .paragraph, concealsMarkup: false)
+        let text = source as NSString
+
+        func isHidden(_ string: NSAttributedString, _ fragment: String, from start: Int = 0) -> Bool {
+            let range = text.range(of: fragment, range: NSRange(location: start, length: text.length - start))
+            var hidden = true
+            string.enumerateAttributes(in: range) { attributes, _, _ in
+                let font = attributes[.font] as? MarkdownFont
+                let color = attributes[.foregroundColor] as? MarkdownColor
+                if (font?.pointSize ?? 17) > 1 || color != MarkdownColor.clear { hidden = false }
+            }
+            return hidden
+        }
+
+        XCTAssertEqual(rendered.string, source)
+        for marker in ["**", "*", "~~", "[", "](https://example.com)"] {
+            XCTAssertTrue(isHidden(rendered, marker, from: 4), marker)
+            XCTAssertFalse(isHidden(editing, marker, from: 4), marker)
+        }
+        XCTAssertFalse(isHidden(rendered, "elbows"))
+        XCTAssertFalse(isHidden(rendered, "watch"))
+        let bold = rendered.attribute(.font, at: text.range(of: "elbows").location, effectiveRange: nil) as? MarkdownFont
+        XCTAssertEqual(bold?.pointSize, MarkdownStyle.bodySize)
+    }
 }
 
 @MainActor

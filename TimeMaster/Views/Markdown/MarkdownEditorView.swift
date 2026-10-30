@@ -10,6 +10,7 @@ struct MarkdownEditorView: View {
     var assets: MarkdownAssets?
     var autofocus = false
     var showsBar = true
+    var trailingSpace: CGFloat = 220
     @StateObject private var session: MarkdownEditorSession
     @State private var linkInput = ""
     @State private var showInlineLink = false
@@ -19,11 +20,12 @@ struct MarkdownEditorView: View {
     @State private var pickedItem: PhotosPickerItem?
     #endif
 
-    init(text: Binding<String>, assets: MarkdownAssets? = nil, autofocus: Bool = false, showsBar: Bool = true) {
+    init(text: Binding<String>, assets: MarkdownAssets? = nil, autofocus: Bool = false, showsBar: Bool = true, trailingSpace: CGFloat = 220) {
         _text = text
         self.assets = assets
         self.autofocus = autofocus
         self.showsBar = showsBar
+        self.trailingSpace = trailingSpace
         _session = StateObject(wrappedValue: MarkdownEditorSession(markdown: text.wrappedValue))
     }
 
@@ -41,7 +43,7 @@ struct MarkdownEditorView: View {
                         .id(block.id)
                     }
                     Color.clear
-                        .frame(height: 220)
+                        .frame(height: trailingSpace)
                         .contentShape(Rectangle())
                         .onTapGesture { session.focusEnd() }
                         .accessibilityHidden(true)
@@ -160,7 +162,7 @@ struct MarkdownEditorView: View {
                             .padding(.vertical, 10)
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
                     }
                 }
             }
@@ -253,6 +255,7 @@ struct MarkdownEditorView: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
         .accessibilityLabel("Turn into")
     }
 
@@ -262,7 +265,7 @@ struct MarkdownEditorView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .frame(width: 38, height: 38)
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
         .foregroundStyle(Theme.textPrimary)
         .modifier(MarkdownShortcut(key: shortcut))
         .accessibilityLabel(label)
@@ -448,7 +451,8 @@ private struct MarkdownBlockRow: View {
                 placeholder: session.placeholder(for: block),
                 controller: session.controller(for: block.id),
                 focus: session.focus,
-                handlers: session.handlers(for: block.id)
+                handlers: session.handlers(for: block.id),
+                concealsMarkup: session.editingBlockID != block.id
             )
         }
         .padding(block.isCode ? 8 : 0)
@@ -486,7 +490,7 @@ private struct MarkdownBlockRow: View {
                     .foregroundStyle(done ? Theme.toolbarOrange : Theme.textSecondary)
                     .frame(width: 24, height: 30)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 6))
             .padding(.top, 2)
             .accessibilityLabel(done ? "Completed task" : "Incomplete task")
         case .quote:

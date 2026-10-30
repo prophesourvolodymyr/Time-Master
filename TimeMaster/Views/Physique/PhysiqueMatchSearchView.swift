@@ -235,6 +235,7 @@ struct PhysiqueMatchSearchView: View {
                 } label: {
                     Label("Search details", systemImage: "info.circle")
                 }
+                .physiqueToolbarTarget()
                 .focused($detailsFocused)
             }
             #if os(macOS)
@@ -257,6 +258,7 @@ struct PhysiqueMatchSearchView: View {
         #if os(macOS)
         .popover(isPresented: $showsDetails) {
             searchDetails.frame(minWidth: 380, idealWidth: 460, maxWidth: 540, minHeight: 360, idealHeight: 520)
+                .keyNavHost()
         }
         #else
         .sheet(isPresented: $showsDetails) { searchDetails }
@@ -406,39 +408,52 @@ struct PhysiqueMatchSearchView: View {
                 store.transferControl(to: windowID)
                 refreshRequest += 1
             }
+            .physiqueToolbarTarget()
             Button("Return to lobby") { onOpen(.lobby) }
+                .physiqueToolbarTarget()
         } else if presentation == .signedOut {
             Button("Sign in") { onOpen(.account) }
+                .physiqueToolbarTarget()
             Button("Return to lobby") { onOpen(.lobby) }
+                .physiqueToolbarTarget()
         } else if presentation == .started {
             Button("Rejoin match") { openCurrentMatch() }
+                .physiqueToolbarTarget()
         } else if presentation == .completed {
             Button("Open result") { openCurrentMatch() }
+                .physiqueToolbarTarget()
             Button("Return to lobby") { onOpen(.lobby) }
+                .physiqueToolbarTarget()
         } else if pendingCancellation || presentation == .cancelling {
             if sendingCancellation {
                 ProgressView("Cancelling search")
             } else {
                 Button("Confirm cancellation", action: requestCancellation)
+                    .physiqueToolbarTarget()
                     .disabled(store.busy || !active)
                 Button("Check status") { refreshRequest += 1 }
+                    .physiqueToolbarTarget()
                     .disabled(store.loading || store.busy || !active)
             }
         } else if released {
             if presentation == .noOpponent || presentation == .cancelled {
-                Button("Try again") { onOpen(.camera) }.disabled(!canPrepareAgain)
+                Button("Try again") { onOpen(.camera) }.physiqueToolbarTarget().disabled(!canPrepareAgain)
             } else if eligibilityIssue == nil {
-                Button("Camera preparation") { onOpen(.camera) }.disabled(!canPrepareAgain)
+                Button("Camera preparation") { onOpen(.camera) }.physiqueToolbarTarget().disabled(!canPrepareAgain)
             } else if store.account?.restrictedReason == nil, store.policy?.ready == true {
                 Button("Review sharing choices") { onOpen(.consent) }
+                    .physiqueToolbarTarget()
             }
             Button("Return to lobby") { onOpen(.lobby) }
+                .physiqueToolbarTarget()
         } else {
             if presentation == .unconfirmed || presentation == .checkingCutoff || presentation == .unavailable {
                 Button("Check status") { refreshRequest += 1 }
+                    .physiqueToolbarTarget()
                     .disabled(store.loading || store.busy || !active)
             }
             Button("Cancel search", role: .cancel, action: requestCancellation)
+                .physiqueToolbarTarget()
                 .disabled(!active)
         }
     }
@@ -468,7 +483,7 @@ struct PhysiqueMatchSearchView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { showsDetails = false }.keyboardShortcut(.cancelAction)
+                    Button("Done") { showsDetails = false }.physiqueToolbarTarget().keyboardShortcut(.cancelAction)
                 }
                 #if os(iOS)
                 ToolbarItem(placement: .cancellationAction) {

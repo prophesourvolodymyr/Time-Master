@@ -265,6 +265,7 @@ struct DurationPickerView: View {
             Stepper("", value: $seconds, in: range, step: step)
                 .labelsHidden()
                 .controlSize(.small)
+                .keyNavStepperButtons(value: $seconds, in: range, step: step)
         }
     }
 
@@ -321,6 +322,7 @@ struct DurationPickerView: View {
                     .accessibilityLabel(label.capitalized)
             }
             .frame(width: 130, height: 86)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
             .overlay(alignment: .bottom) {
                 Capsule()
                     .fill(
@@ -441,6 +443,26 @@ struct DurationPickerView: View {
         if focusedMacComponent != .seconds {
             secondText = String(format: "%02d", remainder)
         }
+        #endif
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func keyNavStepperButtons(value: Binding<Int>, in range: ClosedRange<Int>, step: Int = 1) -> some View {
+        #if os(macOS)
+        overlay {
+            VStack(spacing: 0) {
+                Color.clear.keyNavTarget(shape: .roundedRectangle(cornerRadius: 3)) {
+                    value.wrappedValue = min(range.upperBound, value.wrappedValue + step)
+                }
+                Color.clear.keyNavTarget(shape: .roundedRectangle(cornerRadius: 3)) {
+                    value.wrappedValue = max(range.lowerBound, value.wrappedValue - step)
+                }
+            }
+        }
+        #else
+        self
         #endif
     }
 }

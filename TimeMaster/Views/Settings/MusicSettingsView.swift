@@ -109,6 +109,7 @@ struct WorkoutMusicImportSheet: View {
                 if searching {
                     TextField("Search your music library", text: $query)
                         .accessibilityLabel("Search imported music and library")
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                         .listRowBackground(Theme.surface)
                 }
                 SwiftUI.Section("Collected music") {
@@ -133,6 +134,7 @@ struct WorkoutMusicImportSheet: View {
                                 Image(systemName: collected.contains(where: { $0.id == item.id }) ? "checkmark.circle.fill" : "plus.circle")
                             }
                         }
+                        .keyNavTarget()
                         .disabled(collected.contains(where: { $0.id == item.id }))
                         .accessibilityLabel("Collect \(item.title)")
                     }
@@ -167,9 +169,10 @@ struct WorkoutMusicImportSheet: View {
         .fileImporter(isPresented: $showFiles, allowedContentTypes: [.audio, .movie], allowsMultipleSelection: true, onCompletion: importFiles)
         .sheet(isPresented: $showServices) {
             NavigationStack { MusicSettingsView(library: library) }
+                .keyNavHost()
         }
-        .sheet(isPresented: $showConfigurations) { configurationPicker }
-        .sheet(isPresented: $showDestination) { destinationPicker }
+        .sheet(isPresented: $showConfigurations) { configurationPicker.keyNavHost() }
+        .sheet(isPresented: $showDestination) { destinationPicker.keyNavHost() }
         .alert("Music Import", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("OK", role: .cancel) { error = nil }
         } message: { Text(error ?? "") }
@@ -185,7 +188,7 @@ struct WorkoutMusicImportSheet: View {
             .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(color.opacity(0.35), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 16))
         .disabled(importing)
     }
 
@@ -220,6 +223,7 @@ struct WorkoutMusicImportSheet: View {
                                 .font(TimeMasterFont.caption()).monospacedDigit().foregroundStyle(Theme.textSecondary)
                         }
                     }
+                    .keyNavTarget()
                     .disabled(source.musicTimeline == nil)
                 }
             }
@@ -262,6 +266,7 @@ struct WorkoutMusicImportSheet: View {
             showDestination = false
             onSave(destination, configuration)
         }
+        .keyNavTarget()
     }
 
     private func collect(_ item: MusicLibraryItem) {

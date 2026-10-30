@@ -62,6 +62,7 @@ struct PhysiqueNativeShell<Content: View>: View {
             .environment(\.physiqueLiveResizing, liveResizing)
             .opacity(covered ? 0 : 1)
             .allowsHitTesting(!covered)
+            .keyNavRole(covered ? .excluded : .automatic)
             .accessibilityHidden(covered)
             .background(Theme.background.ignoresSafeArea())
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -74,8 +75,10 @@ struct PhysiqueNativeShell<Content: View>: View {
                         Spacer(minLength: 0)
                         if let owner = store.controllingWindowID, PhysiqueWindowRegistry.contains(owner) {
                             Button("Show match window", action: showMatchWindow)
+                                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                         } else {
                             Button("Check status", action: checkStatus)
+                                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                                 .disabled(store.loading)
                         }
                     }
@@ -109,15 +112,18 @@ struct PhysiqueNativeShell<Content: View>: View {
                             Label("Safety", systemImage: "shield")
                         }
                         .help("Stop the camera and open Physique safety")
+                        .physiqueToolbarTarget()
                         Button(action: openPrivacy) {
                             Label("Privacy", systemImage: "hand.raised")
                         }
                         .help("Stop the camera and open privacy choices")
+                        .physiqueToolbarTarget()
                         if ownsCamera {
                             Button(action: stopCamera) {
                                 Label("Stop camera", systemImage: "video.slash")
                             }
                             .help(camera.status.message)
+                            .physiqueToolbarTarget()
                         }
                     }
                     .buttonStyle(.automatic)
@@ -427,6 +433,7 @@ private struct PhysiquePrivacyCover: View {
                     #endif
                 }
                 .buttonStyle(.borderedProminent)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                 .controlSize(.large)
                 .tint(Theme.toolbarOrange)
                 .accessibilityHint("Check the session without starting the camera or reopening media.")

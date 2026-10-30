@@ -411,6 +411,7 @@ private struct PhysiqueBadgeButtonStyle: ButtonStyle {
             }
             .contentShape(shape)
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .keyNavButtonSurface(.roundedRectangle(cornerRadius: 4))
     }
 }
 

@@ -1008,6 +1008,7 @@ struct PageCreationDraft: Codable, Identifiable, Equatable {
 
 final class PageCreationDraftStore: ObservableObject {
     static let shared = PageCreationDraftStore()
+    static let lifetime: TimeInterval = 30 * 24 * 60 * 60
 
     @Published private(set) var drafts: [PageCreationDraft] = []
 
@@ -1072,10 +1073,8 @@ final class PageCreationDraftStore: ObservableObject {
                 continue
             }
             let destination = mediaDirectory.appendingPathComponent(filename)
-            if source.standardizedFileURL.path != destination.standardizedFileURL.path {
-                if fileManager.fileExists(atPath: destination.path) {
-                    try fileManager.removeItem(at: destination)
-                }
+            if source.standardizedFileURL.path != destination.standardizedFileURL.path,
+               !fileManager.fileExists(atPath: destination.path) {
                 try fileManager.copyItem(at: source, to: destination)
             }
         }
@@ -1107,7 +1106,7 @@ final class PageCreationDraftStore: ObservableObject {
             return
         }
 
-        let expiration = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+        let expiration = Date().addingTimeInterval(-Self.lifetime)
         for entry in entries {
             let fileURL = entry.appendingPathComponent("draft.json")
             guard let data = try? Data(contentsOf: fileURL),

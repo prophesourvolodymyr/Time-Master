@@ -57,7 +57,7 @@ struct WorkoutListView: View {
             }
             .oneHandedActions(id: "workouts", actions: oneHandedActions)
             .sheet(isPresented: $showingAddWorkout) {
-                addWorkoutSheet
+                addWorkoutSheet.keyNavHost()
             }
             .workoutPlayerPage(item: $playerWorkout) { workout in
                 WorkoutPlayerView(workout: workout)
@@ -360,6 +360,7 @@ struct WorkoutListView: View {
             .modifier(TimeMasterCardSurface(cornerRadius: 16, flat: true))
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .keyNavShape(.roundedRectangle(cornerRadius: 16))
         .accessibilityLabel(tracker.title)
         .accessibilityValue(value)
         .accessibilityHint("Opens this tracker in Analytics")
@@ -407,13 +408,14 @@ struct WorkoutListView: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Theme.textSecondary)
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .circle)
                 .accessibilityLabel("Clear workout search")
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .modifier(TimeMasterCardSurface(cornerRadius: 14, flat: true))
+        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 14), action: { searchFieldFocused = true })
     }
 
     @ViewBuilder
@@ -511,6 +513,7 @@ struct WorkoutListView: View {
                 }
                 .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textPrimary)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                 .padding(.top, 4)
             }
         }
@@ -606,6 +609,7 @@ struct WorkoutListView: View {
                             .background(Theme.surface)
                             .cornerRadius(12)
                             .foregroundColor(Theme.textPrimary)
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
@@ -636,6 +640,7 @@ struct WorkoutListView: View {
                                             .stroke(newWorkoutType == type ? Color.white : Color.clear, lineWidth: 1)
                                     )
                                 }
+                                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
                             }
                         }
                     }
@@ -674,6 +679,7 @@ struct WorkoutListView: View {
                             .background(newWorkoutName.isEmpty ? Theme.surface : Color.white)
                             .cornerRadius(12)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
                     .disabled(newWorkoutName.isEmpty)
                 }
                 .padding(16)

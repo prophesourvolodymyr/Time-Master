@@ -80,6 +80,7 @@ struct PhysiqueScoreBreakdownView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close", role: .cancel) { dismiss() }
+                    .physiqueToolbarTarget()
                     .accessibilityLabel("Close score breakdown")
                     .keyboardShortcut(.cancelAction)
             }
@@ -217,6 +218,7 @@ struct PhysiqueScoreBreakdownView: View {
                                     animate: false
                                 )
                             }
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { categoryExpansion(category).wrappedValue.toggle() })
                             .id(category.rawValue)
                         }
                     }
@@ -361,6 +363,7 @@ struct PhysiqueScoreBreakdownView: View {
                     Text("What evidence was judged")
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { disclosureExpansion($evidenceExpanded, anchor: "common-evidence").wrappedValue.toggle() })
             }
         }
         .id("common-evidence")
@@ -391,6 +394,7 @@ struct PhysiqueScoreBreakdownView: View {
                     Text("Recorded judging context")
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { disclosureExpansion($versionExpanded, anchor: "judging-version").wrappedValue.toggle() })
             }
         }
         .id("judging-version")
@@ -459,6 +463,7 @@ struct PhysiqueScoreBreakdownView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .keyNavShape(.roundedRectangle(cornerRadius: 6))
         .disabled(disabled)
     }
 

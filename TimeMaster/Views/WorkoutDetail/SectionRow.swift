@@ -44,7 +44,7 @@ struct SectionRow: View {
             Button { tap() } label: {
                 MediaThumbnailView(item: item, size: 60, cornerRadius: 12)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
         } else if let item = section.mediaItems.first {
             MediaThumbnailView(item: item, size: 60, cornerRadius: 12)
         } else {

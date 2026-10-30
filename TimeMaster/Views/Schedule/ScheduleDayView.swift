@@ -177,7 +177,7 @@ struct ScheduleDayView: View {
                     .frame(minWidth: statusSize, minHeight: statusSize)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
             .disabled(isFuture || !store.scheduleIsLoaded)
             .accessibilityLabel("\(item.isComplete ? "Mark incomplete" : "Mark complete"): \(item.entry.title)")
             .accessibilityValue(item.isComplete ? "Completed" : "Not completed")
@@ -218,6 +218,7 @@ struct ScheduleDayView: View {
         }
         .padding(10)
         .modifier(TimeMasterCardSurface(cornerRadius: 16, accent: .green, emphasized: item.isComplete))
+        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 16)) { onEdit(item.entry) }
         .contextMenu {
             Button("Edit time and details") { onEdit(item.entry) }
             Button("Remove from this date", role: .destructive) { pendingRemoval = item.entry }
@@ -231,12 +232,12 @@ struct ScheduleDayView: View {
                 Button { onAdd(false) } label: { Label("Schedule a workout", systemImage: "calendar.badge.plus") }
                 Button { onAdd(true) } label: { Label("Log custom workout", systemImage: "square.and.pencil") }
             } label: { addLabel }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 16))
             .accessibilityLabel("Add workout for today")
             .accessibilityIdentifier("schedule.today.add")
         } else {
             Button { onAdd(false) } label: { addLabel }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 16))
                 .accessibilityLabel("Add workout for \(date.formatted(.dateTime.weekday(.wide)))")
                 .accessibilityIdentifier("schedule.add.\(WeeklyWorkoutSchedule.weekday(date))")
         }

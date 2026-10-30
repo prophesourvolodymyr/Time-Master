@@ -73,6 +73,7 @@ struct FloatingControlsBar: View {
             Button { confirmingStop = true } label: {
                 Image(systemName: "stop.fill").frame(width: controlSize, height: controlSize)
             }
+            .keyNavTarget(shape: .circle)
             .accessibilityLabel("Stop workout")
             VStack(alignment: .leading, spacing: 2) {
                 Text(workoutName).font(TimeMasterFont.black(12, relativeTo: .caption)).lineLimit(1)
@@ -84,6 +85,7 @@ struct FloatingControlsBar: View {
                 Image(systemName: context.progress.isPaused ? "play.fill" : "pause.fill")
                     .frame(width: controlSize, height: controlSize)
             }
+            .keyNavTarget(shape: .circle)
             .accessibilityLabel(context.progress.isPaused ? "Resume workout" : "Pause workout")
         }
         .buttonStyle(.plain)
@@ -96,6 +98,7 @@ struct FloatingControlsBar: View {
                 WorkoutMusicCover(artwork: music.artwork(in: library), size: controlSize * 0.6, circular: false)
                     .frame(width: controlSize, height: controlSize)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
             .accessibilityLabel("Open live music timeline")
             .accessibilityValue(music.title ?? "No music playing")
             WorkoutMusicTransportButtons(session: music)

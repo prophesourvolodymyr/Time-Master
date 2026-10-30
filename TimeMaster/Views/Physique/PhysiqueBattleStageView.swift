@@ -256,6 +256,7 @@ struct PhysiqueBattleStageView: View {
                 .frame(minHeight: safeActionHeight)
                 .contentShape(Rectangle())
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .accessibilityInputLabels(["Safety"])
         Button { open(.privacy, protectAllWindows: true) } label: {
             Label("Privacy", systemImage: "hand.raised")
@@ -264,6 +265,7 @@ struct PhysiqueBattleStageView: View {
                 .frame(minHeight: safeActionHeight)
                 .contentShape(Rectangle())
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .accessibilityInputLabels(["Privacy"])
         Button(action: requestExit) {
             Label(exitActionTitle, systemImage: "rectangle.portrait.and.arrow.right")
@@ -272,6 +274,7 @@ struct PhysiqueBattleStageView: View {
                 .frame(minHeight: safeActionHeight)
                 .contentShape(Rectangle())
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .accessibilityInputLabels(["Exit", exitActionTitle])
     }
 
@@ -422,6 +425,7 @@ struct PhysiqueBattleStageView: View {
                     Text("Immediate").tag(0)
                 }
                 .pickerStyle(.menu)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .disabled(captureToken != nil || camera.isCapturing)
                 .accessibilityHint("This local shutter delay does not change the match deadline.")
                 captureDetail
@@ -491,6 +495,7 @@ struct PhysiqueBattleStageView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(TimeMasterCardButtonStyle())
+                .keyNavShape(.roundedRectangle(cornerRadius: 0))
                 .accessibilityLabel(pose.title)
                 .accessibilityValue(poseStatus(pose))
                 .accessibilityAddTraits(selectedPose == pose ? .isSelected : [])
@@ -546,21 +551,26 @@ struct PhysiqueBattleStageView: View {
         Button { open(.guide) } label: {
             Label("Pose guide", systemImage: "figure.stand")
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         if camera.candidate != nil, camera.candidatePose == selectedPose, camera.ownerID == windowID {
             Button { openReview() } label: { Label("Review pose · Not sent", systemImage: "eye") }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         } else if selectedPreviewAvailable {
             Button { openReview() } label: { Label("Review selected pose", systemImage: "eye") }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         }
         if evidence(for: selectedPose) != nil, !preparingRetake, canRetake {
             Button {
                 preparingRetake = true
                 resumeCamera()
             } label: { Label("Retake \(selectedPose.shortTitle.lowercased())", systemImage: "arrow.counterclockwise") }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             .disabled(captureEligibilityReason != nil || store.loading)
             .accessibilityLabel("Retake \(selectedPose.title)")
         }
         if camera.status == .denied, camera.ownerID == windowID {
             Button(action: openCameraSettings) { Label("Open camera settings", systemImage: "gearshape") }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         }
     }
 
@@ -610,6 +620,7 @@ struct PhysiqueBattleStageView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .buttonStyle(.borderedProminent)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
         .disabled(actionDisabled(action))
         .accessibilityLabel(actionAccessibilityTitle(action))
         .accessibilityInputLabels([actionAccessibilityTitle(action)])
@@ -635,6 +646,7 @@ struct PhysiqueBattleStageView: View {
             #else
             .buttonStyle(TimeMasterActionButtonStyle(prominent: false))
             #endif
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             .accessibilityInputLabels(["Stop camera"])
         }
     }

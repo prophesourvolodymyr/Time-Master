@@ -28,6 +28,7 @@ enum MarkdownStyle {
     static var secondaryColor: MarkdownColor { MarkdownColor(white: 1, alpha: 0.5) }
     static var accentColor: MarkdownColor { MarkdownColor(Theme.toolbarOrange) }
     static var codeBackground: MarkdownColor { MarkdownColor(white: 1, alpha: 0.08) }
+    static let concealedFont: MarkdownFont = .systemFont(ofSize: 0.1)
 
     static func headingSize(_ level: Int) -> CGFloat {
         switch level {
@@ -67,7 +68,7 @@ enum MarkdownInlineStyler {
     private static let link = try! NSRegularExpression(pattern: "\\[([^\\]\\n]*)\\]\\(([^)\\n]*)\\)")
     private static let url = try! NSRegularExpression(pattern: "https?://[^\\s<>\"')\\]]+")
 
-    static func apply(to storage: NSMutableAttributedString, kind: MarkdownBlock.Kind) {
+    static func apply(to storage: NSMutableAttributedString, kind: MarkdownBlock.Kind, concealsMarkup: Bool = false) {
         let full = NSRange(location: 0, length: storage.length)
         let base = MarkdownStyle.base(for: kind)
         storage.setAttributes([
@@ -90,7 +91,14 @@ enum MarkdownInlineStyler {
         var protected: [NSRange] = []
 
         func dim(_ range: NSRange) {
-            storage.addAttribute(.foregroundColor, value: MarkdownStyle.dimColor, range: range)
+            if concealsMarkup {
+                storage.addAttributes([
+                    .font: MarkdownStyle.concealedFont,
+                    .foregroundColor: MarkdownColor.clear
+                ], range: range)
+            } else {
+                storage.addAttribute(.foregroundColor, value: MarkdownStyle.dimColor, range: range)
+            }
         }
         func free(_ range: NSRange) -> Bool {
             !protected.contains { NSIntersectionRange($0, range).length > 0 }
@@ -125,7 +133,12 @@ enum MarkdownInlineStyler {
         var linked: [NSRange] = []
         for match in link.matches(in: string, range: full) where free(match.range) {
             let label = match.range(at: 1)
-            dim(match.range)
+            if concealsMarkup, label.length > 0 {
+                dim(NSRange(location: match.range.location, length: 1))
+                dim(NSRange(location: NSMaxRange(label), length: NSMaxRange(match.range) - NSMaxRange(label)))
+            } else {
+                dim(match.range)
+            }
             if label.length > 0 {
                 storage.addAttributes([
                     .foregroundColor: MarkdownStyle.accentColor,
@@ -149,6 +162,7 @@ struct MarkdownFocusRequest: Equatable {
 
 struct MarkdownTextHandlers {
     var onFocus: () -> Void = {}
+    var onBlur: () -> Void = {}
     var onChange: (String, NSRange) -> Void = { _, _ in }
     var onSelection: (NSRange) -> Void = { _ in }
     var onReturn: (Int) -> Bool = { _ in false }

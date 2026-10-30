@@ -138,6 +138,7 @@ struct MenuBarRowButtonStyle: ButtonStyle {
         configuration.label
             .contentShape(Rectangle())
             .opacity(configuration.isPressed ? 0.6 : 1)
+            .keyNavButtonSurface(.standard)
     }
 }
 

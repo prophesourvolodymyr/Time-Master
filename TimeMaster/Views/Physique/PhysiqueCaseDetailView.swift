@@ -238,6 +238,7 @@ struct PhysiqueCaseDetailView: View {
                     .frame(minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(.bordered)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             Text("Opens the authorized result, not pose images.")
                 .font(TimeMasterFont.caption())
                 .foregroundStyle(ProfileStyle.secondary)
@@ -321,9 +322,11 @@ struct PhysiqueCaseDetailView: View {
                             responseFocused = true
                         }
                         .buttonStyle(.bordered)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     }
                     Button("Discard response", role: .destructive) { discardResponse() }
                         .buttonStyle(.bordered)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 } else if responseState == .unconfirmed || responseState == .sending {
                     Text(responseState == .sending ? "Sending response…" : "Response not confirmed")
                         .font(TimeMasterFont.rowTitle())
@@ -336,6 +339,7 @@ struct PhysiqueCaseDetailView: View {
                             .foregroundStyle(ProfileStyle.secondary)
                         Button("Check status", action: requestRefresh)
                             .buttonStyle(.bordered)
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                         if let pendingResponse, RequestRevision(item) == pendingResponse.revision, item.needsReply {
                             PhysiqueAction(title: "Retry same response", systemImage: "arrow.clockwise", disabled: isMutating || store.busy || isLoading) {
                                 Task { await sendResponse(retrying: true) }
@@ -357,6 +361,7 @@ struct PhysiqueCaseDetailView: View {
                     unsentText
                     Button("Discard response", role: .destructive) { discardResponse() }
                         .buttonStyle(.bordered)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 }
                 if let responseError {
                     Text(responseError)
@@ -415,6 +420,7 @@ struct PhysiqueCaseDetailView: View {
             }
         }
         .buttonStyle(.bordered)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .frame(minHeight: ProfileStyle.touchTarget)
     }
 
@@ -533,6 +539,7 @@ struct PhysiqueCaseDetailView: View {
                                 .padding(.top, ProfileStyle.spacing)
                         }
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { earlierUpdatesExpanded.toggle() })
                     .padding(.top, 6)
                 }
             } else {
@@ -583,6 +590,7 @@ struct PhysiqueCaseDetailView: View {
             }
             .padding(.top, ProfileStyle.spacing)
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { factsExpanded.toggle() })
         .font(TimeMasterFont.body())
     }
 
@@ -598,6 +606,7 @@ struct PhysiqueCaseDetailView: View {
                     .frame(minHeight: ProfileStyle.touchTarget)
             }
             .buttonStyle(.bordered)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             .accessibilityHint("Opens the service's published support channel in another app. No case text is added.")
             Text("Opens another app. Only copy your case reference if you choose; do not send or attach intimate imagery.")
                 .font(TimeMasterFont.caption())
@@ -622,6 +631,7 @@ struct PhysiqueCaseDetailView: View {
             Button(action: requestRefresh) {
                 Label("Refresh case", systemImage: "arrow.clockwise")
             }
+            .physiqueToolbarTarget()
             .disabled(isLoading || isMutating || activeAccountID == nil || !presentationIsActive)
         }
         ToolbarItem(placement: .automatic) {
@@ -643,6 +653,7 @@ struct PhysiqueCaseDetailView: View {
             } label: {
                 Label("Case actions", systemImage: "ellipsis.circle")
             }
+            .physiqueToolbarTarget()
             .confirmationDialog("Withdraw this request?", isPresented: $confirmsWithdrawal, titleVisibility: .visible) {
                 Button("Withdraw request", role: .destructive) { Task { await withdrawRequest() } }
                 Button("Keep request", role: .cancel) {}

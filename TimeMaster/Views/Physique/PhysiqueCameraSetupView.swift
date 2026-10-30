@@ -176,6 +176,7 @@ struct PhysiqueCameraSetupView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, ProfileStyle.spacing)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { showsDetails.toggle() })
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             actionLane
@@ -189,8 +190,10 @@ struct PhysiqueCameraSetupView: View {
                 if !camera.devices.isEmpty { cameraPicker }
                 #endif
                 Button(action: openGuide) { Label("Pose guide", systemImage: "figure.stand") }
+                    .physiqueToolbarTarget()
                 if cameraEngaged || operation != nil {
                     Button(action: stopSetup) { Label("Stop camera", systemImage: "stop.fill") }
+                        .physiqueToolbarTarget()
                 }
             }
         }
@@ -267,6 +270,7 @@ struct PhysiqueCameraSetupView: View {
             }
         }
         .pickerStyle(.menu)
+        .physiqueToolbarTarget()
         .disabled(operation != nil || store.busy || participationRequirement != nil || camera.status == .restricted || !presentationActive || scenePhase != .active)
         .accessibilityLabel("Camera")
         .accessibilityHint("Changing camera discards the local check and starts a fresh private view.")
@@ -355,16 +359,18 @@ struct PhysiqueCameraSetupView: View {
             if camera.status != .restricted {
                 Button(primaryTitle, action: performPrimaryAction)
                     .buttonStyle(.borderedProminent)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                     .tint(Theme.toolbarOrange)
                     .disabled(primaryDisabled)
             }
             if hasLocalReview {
-                Button("Adjust setup", action: startCamera).disabled(operation != nil)
+                Button("Adjust setup", action: startCamera).keyNavTarget(shape: .roundedRectangle(cornerRadius: 6)).disabled(operation != nil)
             } else if cameraEngaged || operation != nil {
                 Button("Stop camera", action: stopSetup)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             }
             Spacer(minLength: 0)
-            Button("Close", action: closeSetup).keyboardShortcut(.cancelAction)
+            Button("Close", action: closeSetup).keyNavTarget(shape: .roundedRectangle(cornerRadius: 6)).keyboardShortcut(.cancelAction)
         }
         .frame(maxWidth: ProfileStyle.readableWidth)
         #else

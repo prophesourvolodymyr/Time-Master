@@ -55,6 +55,7 @@ struct PhysiqueRulesView: View {
                         Label("Sections", systemImage: "list.bullet")
                             .frame(minHeight: controlHeight)
                     }
+                    .physiqueToolbarTarget()
                     .accessibilityHint("Jump to a heading in the complete rulebook.")
                 }
             }
@@ -65,6 +66,7 @@ struct PhysiqueRulesView: View {
                         .font(TimeMasterFont.secondary())
                     Spacer()
                     Button("Close rules") { dismiss() }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                         .keyboardShortcut(.cancelAction)
                 }
                 .padding(ProfileStyle.inset)
@@ -130,6 +132,7 @@ struct PhysiqueRulesView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(minHeight: controlHeight, alignment: .leading)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { servicePolicyExpanded.toggle() })
             .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: servicePolicyExpanded)
             if policyLoadError != nil {
                 PhysiqueAction(title: "Retry policy", systemImage: "arrow.clockwise", disabled: refreshingPolicy) {
@@ -250,6 +253,7 @@ struct PhysiqueRulesView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(minHeight: controlHeight, alignment: .leading)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { expanded.wrappedValue.toggle() })
             .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: expanded.wrappedValue)
         }
         .padding(.vertical, 4)

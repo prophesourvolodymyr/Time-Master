@@ -210,6 +210,7 @@ struct PhysiqueReportComposerView: View {
 
     private var closeButton: some View {
         Button("Close") { requestClose() }
+            .physiqueToolbarTarget()
             #if os(macOS)
             .keyboardShortcut("w", modifiers: .command)
             #endif
@@ -247,6 +248,7 @@ struct PhysiqueReportComposerView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .focused($focusedField, equals: .reason)
                 .accessibilityFocused($accessibleField, equals: .reason)
                 if let reason = draft.reason {
@@ -290,6 +292,7 @@ struct PhysiqueReportComposerView: View {
                     Button("Request scoring review") {
                         requestClose(opening: .review(PhysiqueReviewTarget(kind: "dispute", id: match.id, matchID: match.id)))
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     Text("A scoring disagreement is a separate private review, not a safety allegation. This note is not sent to that review automatically.")
                         .foregroundStyle(ProfileStyle.secondary)
                 }
@@ -346,15 +349,18 @@ struct PhysiqueReportComposerView: View {
                     Text("Duplicate reports, added context and appeals do not restart an evidence-hold clock. Case correspondence and necessary legal or urgent-safety records can follow different disclosed retention rules.")
                     Text("Do not download, screenshot, forward or reupload suspected exploitative material. Withdrawal does not guarantee that necessary safety review or lawful preservation stops.")
                     Button("Open privacy information") { requestClose(opening: .privacy) }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 }
                 .padding(.top, ProfileStyle.spacing)
                 .foregroundStyle(ProfileStyle.secondary)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { evidenceExpanded.toggle() })
             if draft.reason == .urgent {
                 Label("This app is not an emergency service and does not promise continuous monitoring. If someone is in immediate danger, contact your local emergency services.", systemImage: "exclamationmark.shield")
             }
             if let supportURL {
                 Link("Published support contact", destination: supportURL)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             } else {
                 Text("A support contact has not been published by the service.")
                     .foregroundStyle(ProfileStyle.secondary)
@@ -375,6 +381,7 @@ struct PhysiqueReportComposerView: View {
                 Button(draft.blockConfirmed ? "Player blocked" : draft.blockPending ? "Retry pending block" : isIdentity ? "Block player" : "Block match opponent", role: .destructive) {
                     confirmsBlock = true
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .disabled(draft.blockSending || draft.blockConfirmed)
                 .frame(minHeight: ProfileStyle.touchTarget)
                 if draft.blockSending {
@@ -416,6 +423,7 @@ struct PhysiqueReportComposerView: View {
                     Button(draft.withdrawalUnknown ? "Retry withdrawal" : "Withdraw report", role: .destructive) {
                         confirmsWithdrawal = true
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(draft.withdrawing || store.busy)
                 }
             }
@@ -426,6 +434,7 @@ struct PhysiqueReportComposerView: View {
                 Text("Receipt confirmed. Current case details could not be loaded: \(error)")
                     .foregroundStyle(ProfileStyle.secondary)
                 Button("Refresh case status") { Task { await draft.loadCase(using: store) } }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(draft.loadingCase)
             }
             if draft.withdrawing { ProgressView("Withdrawing request…") }
@@ -458,6 +467,7 @@ struct PhysiqueReportComposerView: View {
                 if !store.signedIn {
                     Button("Open Tmax account") { requestClose(opening: .account) }
                         .buttonStyle(.borderedProminent)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                 }
             }
         }
@@ -501,14 +511,17 @@ struct PhysiqueReportComposerView: View {
     private var footerButton: some View {
         if let receiptID = draft.receiptID {
             Button("View case") { requestClose(opening: .caseDetail(receiptID)) }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .frame(minHeight: ProfileStyle.touchTarget)
         } else if draft.delivery == .unconfirmed && draft.pending == nil {
             Button("Open Safety") { requestClose(opening: .safety) }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .frame(minHeight: ProfileStyle.touchTarget)
         } else {
             Button(draft.delivery == .unconfirmed ? "Retry same report" : draft.delivery == .sending ? "Sending…" : "Submit report") {
                 submit()
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             .frame(minHeight: ProfileStyle.touchTarget)
             .disabled(draft.delivery == .sending || unavailableReason != nil || store.busy)
             .accessibilityHint(draft.reason == nil ? "Choose a reason before sending. The note is optional." : "Sends a private safety report. Does not block or change the match.")
@@ -523,12 +536,14 @@ struct PhysiqueReportComposerView: View {
                     HStack(spacing: ProfileStyle.spacing) {
                         PhysiqueTimerView(clock: reportClock(match))
                         Button("Exit match") { prepareExit() }
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                             .frame(minHeight: ProfileStyle.touchTarget)
                             .disabled(isExiting || !store.canControl(from: windowID))
                     }
                     VStack(spacing: 4) {
                         PhysiqueTimerView(clock: reportClock(match))
                         Button("Exit match") { prepareExit() }
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                             .frame(minHeight: ProfileStyle.touchTarget)
                             .disabled(isExiting || !store.canControl(from: windowID))
                     }
@@ -549,6 +564,7 @@ struct PhysiqueReportComposerView: View {
             VStack(spacing: 4) {
                 PhysiqueTimerView(clock: PhysiqueClock(mode: store.isStale ? .unavailable : .remaining, label: "Opponent search", endpoint: store.snapshot?.queueDeadline, serverOffset: store.serverOffset))
                 Button("Cancel search") { prepareExit() }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(isExiting || !store.canControl(from: windowID))
                 if let exitError { Text(exitError).font(TimeMasterFont.secondary()) }
             }

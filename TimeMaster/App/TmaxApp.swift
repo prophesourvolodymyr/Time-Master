@@ -174,11 +174,14 @@ private struct TmaxRootView: View {
                 }
             }
         )) {
-            if cloudAccount.presentsRecovery {
-                RankedAccountView()
-            } else {
-                resumePrompt
+            Group {
+                if cloudAccount.presentsRecovery {
+                    RankedAccountView()
+                } else {
+                    resumePrompt
+                }
             }
+            .keyNavHost()
         }
         .workoutPlayerPage(item: $resumePlayerWorkout) { workout in
             if let store = startup.workoutStore, let database = startup.databaseStore {

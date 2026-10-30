@@ -104,6 +104,7 @@ struct PhysiqueJudgingView: View {
                     Label("Match options", systemImage: "ellipsis.circle")
                 }
                 .help("Match details, privacy and competitive exit")
+                .physiqueToolbarTarget()
             }
         }
         .alert("Return to Physique?", isPresented: $showingReturnConfirmation) {
@@ -383,6 +384,7 @@ struct PhysiqueJudgingView: View {
         }
         .padding(ProfileStyle.inset)
         .modifier(TimeMasterCardSurface(flat: true))
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 20), action: { detailsExpanded.toggle() })
     }
 
     private func poseDetail(_ pose: PhysiquePose, match: PhysiqueMatch) -> some View {

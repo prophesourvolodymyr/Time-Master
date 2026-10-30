@@ -250,7 +250,7 @@ struct PhysiqueDeletionStatusView: View {
                     .font(TimeMasterFont.secondary())
                     .foregroundStyle(ProfileStyle.secondary)
             }
-            DisclosureGroup("Details") {
+            DisclosureGroup {
                 VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
                     fact("Reference", value: receipt.id)
                     fact("Request received", value: formattedTimestamp(receipt.createdAt))
@@ -260,6 +260,9 @@ struct PhysiqueDeletionStatusView: View {
                     fact("Expected completion", value: "Not supplied by the service.")
                 }
                 .padding(.top, ProfileStyle.spacing)
+            } label: {
+                Text("Details")
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0))
             }
         }
         .accessibilityElement(children: .contain)

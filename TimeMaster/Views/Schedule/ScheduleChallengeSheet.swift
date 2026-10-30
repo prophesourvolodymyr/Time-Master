@@ -54,7 +54,7 @@ struct ScheduleChallengeSheet: View {
                                         .strokeBorder(weekdays.contains(day) ? Theme.toolbarOrange.opacity(0.65) : Theme.separator)
                                 }
                             }
-                            .buttonStyle(.plain)
+                            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 14))
                             .accessibilityLabel(dayName(day))
                             .accessibilityAddTraits(weekdays.contains(day) ? .isSelected : [])
                         }

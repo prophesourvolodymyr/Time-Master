@@ -163,6 +163,7 @@ struct PhysiqueLobbyView: View {
                     detailsContent
                         .padding(ProfileStyle.inset)
                 }
+                .keyNavAccessoryHost()
                 .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
                 .background(Theme.background)
             }
@@ -172,12 +173,16 @@ struct PhysiqueLobbyView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .automatic) {
                     Button { onOpen(.rules) } label: { Label("Rules", systemImage: "list.bullet.clipboard") }
+                        .physiqueToolbarTarget()
                     Button { onOpen(.account) } label: { Label("Account", systemImage: "person.crop.circle") }
+                        .physiqueToolbarTarget()
                     Button {
                         if inspectorFits { showsInspector.toggle() }
                         else { showsDetailsSheet = true }
                     } label: { Label("Details", systemImage: "sidebar.right") }
+                        .physiqueToolbarTarget()
                     Button { Task { await refreshLobby() } } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                        .physiqueToolbarTarget()
                         .disabled(store.loading || recentLoading || checkingEntry)
                 }
             }
@@ -206,6 +211,7 @@ struct PhysiqueLobbyView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Close") { showsDetailsSheet = false }
+                            .physiqueToolbarTarget()
                     }
                 }
             }
@@ -213,6 +219,7 @@ struct PhysiqueLobbyView: View {
             #if os(macOS)
             .frame(minWidth: 320, idealWidth: 420, minHeight: 400)
             #endif
+            .keyNavHost()
         }
         .task(id: sessionScope) {
             if recentAccountID != activeAccountID { clearPrivateState() }
@@ -313,6 +320,7 @@ struct PhysiqueLobbyView: View {
                     .frame(minHeight: controlHeight, alignment: .leading)
             }
             .buttonStyle(.borderless)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             .font(TimeMasterFont.secondary())
         } else if store.loading {
             ProgressView("Loading your Physique record…")
@@ -435,6 +443,7 @@ struct PhysiqueLobbyView: View {
                     }
                     Button("Retry recent matches") { Task { await loadRecentMatches() } }
                         .buttonStyle(.bordered)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                         .disabled(recentLoading)
                 }
                 if pendingRecentMatches != nil {
@@ -445,6 +454,7 @@ struct PhysiqueLobbyView: View {
                         Label("New results available", systemImage: "arrow.clockwise")
                     }
                     .buttonStyle(.bordered)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 }
                 ForEach(recentMatches) { match in
                     recentRow(match)
@@ -488,6 +498,7 @@ struct PhysiqueLobbyView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .keyNavShape(.roundedRectangle(cornerRadius: 0))
         .accessibilityElement(children: .combine)
         .accessibilityHint("Opens this exact match. Poses do not open automatically.")
         .overlay(alignment: .bottom) { Divider() }
@@ -570,6 +581,7 @@ struct PhysiqueLobbyView: View {
                 .frame(minHeight: controlHeight)
         }
         .buttonStyle(.borderless)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .font(TimeMasterFont.caption())
     }
 
@@ -634,6 +646,7 @@ struct PhysiqueLobbyView: View {
                 .frame(minHeight: controlHeight)
         }
         .buttonStyle(.borderless)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .font(TimeMasterFont.secondary())
         .disabled(store.loading || recentLoading || checkingEntry || accountStore.busy)
     }
@@ -660,6 +673,7 @@ struct PhysiqueLobbyView: View {
             .frame(maxWidth: .infinity, minHeight: controlHeight, alignment: .leading)
         }
         .buttonStyle(.borderless)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .font(TimeMasterFont.secondary())
     }
 

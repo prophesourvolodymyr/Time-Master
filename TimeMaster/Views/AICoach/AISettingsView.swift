@@ -75,9 +75,11 @@ struct AISettingsView: View {
             }
             .sheet(isPresented: $showModelPicker) {
                 ModelPickerSheet(models: store.availableModels, selected: $store.model)
+                    .keyNavHost()
             }
             .sheet(isPresented: $showProviderPicker) {
                 ProviderPickerSheet(activeID: $store.activeProviderID)
+                    .keyNavHost()
             }
         }
         .font(TimeMasterFont.body())
@@ -161,6 +163,7 @@ struct AISettingsView: View {
                     .foregroundColor(Color.white.opacity(0.45))
                     .frame(width: 36, height: 36)
             }
+            .keyNavTarget(shape: .circle)
         }
     }
 
@@ -255,6 +258,7 @@ struct AISettingsView: View {
                         }
                     }
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
                 .disabled(store.isFetchingModels || apiKeyDraft.isEmpty)
             }
 
@@ -351,9 +355,11 @@ struct AISettingsView: View {
                                     .foregroundColor(.red.opacity(0.7))
                                     .font(.system(size: 13))
                             }
+                            .keyNavTarget(shape: .circle)
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
+                        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 6))
                         if filename != store.knowledgeFilenames.last {
                             Divider()
                                 .background(Color.white.opacity(0.06))
@@ -374,6 +380,7 @@ struct AISettingsView: View {
                     .background(Color.white.opacity(0.08))
                     .cornerRadius(10)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -390,6 +397,7 @@ struct AISettingsView: View {
                     .background(Color.red.opacity(0.08))
                     .cornerRadius(10)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -426,11 +434,11 @@ struct ProviderPickerSheet: View {
                         SwiftUI.Section {
                             ForEach(section.providers) { provider in
                                 Button {
-                                    activeID = provider.id
-                                    dismiss()
+                                    choose(provider)
                                 } label: {
                                     ProviderRow(provider: provider, isActive: activeID == provider.id, store: store)
                                 }
+                                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8)) { choose(provider) }
                                 .listRowBackground(
                                     activeID == provider.id
                                     ? Color.white.opacity(0.08)
@@ -464,6 +472,11 @@ struct ProviderPickerSheet: View {
             }
         }
         .font(TimeMasterFont.body())
+    }
+
+    private func choose(_ provider: AIProvider) {
+        activeID = provider.id
+        dismiss()
     }
 }
 
@@ -572,8 +585,7 @@ struct ModelPickerSheet: View {
                     } else {
                         List(filtered, id: \.self) { modelID in
                             Button {
-                                selected = modelID
-                                dismiss()
+                                choose(modelID)
                             } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -592,6 +604,7 @@ struct ModelPickerSheet: View {
                                 }
                                 .padding(.vertical, 2)
                             }
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8)) { choose(modelID) }
                             .listRowBackground(
                                 selected == modelID
                                 ? Color.white.opacity(0.10)
@@ -619,6 +632,11 @@ struct ModelPickerSheet: View {
             }
         }
         .font(TimeMasterFont.body())
+    }
+
+    private func choose(_ model: String) {
+        selected = model
+        dismiss()
     }
 
     private func modelCategory(_ id: String) -> String {

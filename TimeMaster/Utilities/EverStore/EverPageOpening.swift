@@ -34,18 +34,18 @@ extension View {
 
     func everSheet<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
                                  @ViewBuilder content: @escaping () -> Content) -> some View {
-        sheet(isPresented: isPresented, onDismiss: onDismiss) { content().everPageOpening(from: .bottom) }
+        sheet(isPresented: isPresented, onDismiss: onDismiss) { content().everPageOpening(from: .bottom).keyNavHost() }
     }
 
     func everSheet<Item: Identifiable, Content: View>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil,
                                                      @ViewBuilder content: @escaping (Item) -> Content) -> some View {
-        sheet(item: item, onDismiss: onDismiss) { content($0).everPageOpening(from: .bottom) }
+        sheet(item: item, onDismiss: onDismiss) { content($0).everPageOpening(from: .bottom).keyNavHost() }
     }
 
     func everFullScreenCover<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
                                            @ViewBuilder content: @escaping () -> Content) -> some View {
 #if os(macOS)
-        sheet(isPresented: isPresented, onDismiss: onDismiss) { content().everPageOpening(from: .bottom) }
+        sheet(isPresented: isPresented, onDismiss: onDismiss) { content().everPageOpening(from: .bottom).keyNavHost() }
 #else
         fullScreenCover(isPresented: isPresented, onDismiss: onDismiss) { content().everPageOpening(from: .bottom) }
 #endif
@@ -54,7 +54,7 @@ extension View {
     func everFullScreenCover<Item: Identifiable, Content: View>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil,
                                                                @ViewBuilder content: @escaping (Item) -> Content) -> some View {
 #if os(macOS)
-        sheet(item: item, onDismiss: onDismiss) { content($0).everPageOpening(from: .bottom) }
+        sheet(item: item, onDismiss: onDismiss) { content($0).everPageOpening(from: .bottom).keyNavHost() }
 #else
         fullScreenCover(item: item, onDismiss: onDismiss) { content($0).everPageOpening(from: .bottom) }
 #endif

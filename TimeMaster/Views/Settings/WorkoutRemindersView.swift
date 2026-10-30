@@ -58,6 +58,7 @@ struct WorkoutRemindersView: View {
                         .tint(.white)
                     }
                     .padding(.vertical, 4)
+                    .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 10), action: { handleToggle(!preferences.isEnabled) })
                 } header: {
                     Text("Reminders")
                         .foregroundColor(Theme.textSecondary)
@@ -77,6 +78,7 @@ struct WorkoutRemindersView: View {
                         .datePickerStyle(.compact)
                         .colorScheme(.dark)
                         .foregroundColor(.white)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                         .onChange(of: pickerTime) { newDate in
                             let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
                             preferences.reminderHour = comps.hour ?? 9
@@ -96,12 +98,16 @@ struct WorkoutRemindersView: View {
                             Text("Remind \(preferences.reminderLeadMinutes) min before")
                                 .foregroundColor(.white)
                         }
+                        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { preferences.reminderLeadMinutes = preferences.reminderLeadMinutes >= 60 ? 0 : preferences.reminderLeadMinutes + 5 })
                         .onChange(of: preferences.reminderLeadMinutes) { _ in commit() }
                         Toggle("Streak milestones", isOn: $preferences.streakMotivationEnabled)
+                            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { preferences.streakMotivationEnabled.toggle() })
                             .onChange(of: preferences.streakMotivationEnabled) { _ in commit() }
                         Toggle("Missed-day nudges", isOn: $preferences.missedDayNudgesEnabled)
+                            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { preferences.missedDayNudgesEnabled.toggle() })
                             .onChange(of: preferences.missedDayNudgesEnabled) { _ in commit() }
                         Toggle("Rest-day affirmations", isOn: $preferences.restDayAffirmationsEnabled)
+                            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { preferences.restDayAffirmationsEnabled.toggle() })
                             .onChange(of: preferences.restDayAffirmationsEnabled) { _ in commit() }
                     } header: {
                         Text("Notification Style")
@@ -167,6 +173,7 @@ struct WorkoutRemindersView: View {
                         .padding(.vertical, 4)
                         .contentShape(Rectangle())
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
                     .disabled(testStatus == .sending)
                     .accessibilityIdentifier("reminders.test")
                     if testStatus == .denied {
@@ -174,6 +181,7 @@ struct WorkoutRemindersView: View {
                             NotificationManager.shared.openSystemSettings()
                         }
                         .foregroundColor(.white)
+                        .keyNavTarget(shape: .capsule)
                     }
                 } header: {
                     Text("Check")

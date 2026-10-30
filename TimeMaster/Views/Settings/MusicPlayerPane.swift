@@ -125,6 +125,7 @@ struct MusicPlayerPane: View {
             .padding(.horizontal, 4)
         }
         .buttonStyle(MusicPlayerTransportStyle())
+        .keyNavShape(.roundedRectangle(cornerRadius: 12))
         .frame(width: 64, height: 62)
         .accessibilityLabel(Text(showsAddToWorkout ? "Add current music to a workout" : "Destination: \(destinationName)"))
         .accessibilityHint(showsAddToWorkout ? "Choose a workout destination" : "View the music destination")
@@ -258,6 +259,7 @@ private struct MusicPlayerTransportStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.58 : 1)
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
             .animation(reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 1), value: configuration.isPressed)
+            .keyNavButtonSurface(.roundedRectangle(cornerRadius: 10))
     }
 }
 

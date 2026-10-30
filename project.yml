@@ -49,6 +49,7 @@ targets:
           - "Resources/OfflineRouting"
           - "Info-macOS.plist"
           - "junk"
+          - "*.png"
       - path: TimeMasterShared
       - path: TimeMaster/Resources/MapGlyphs
         type: folder
@@ -171,6 +172,7 @@ targets:
           - "Resources/OfflineRouting"
           - "Info.plist"
           - "junk"
+          - "*.png"
     dependencies:
       - package: ZIPFoundation
       - package: SwiftMP3

@@ -172,6 +172,7 @@ struct SectionEditorView: View {
             )
             .environmentObject(databaseStore)
             .environmentObject(workoutStore)
+            .keyNavHost()
         }
         .onChange(of: showingDatabasePicker) { isPresented in
             if isPresented {
@@ -225,6 +226,7 @@ struct SectionEditorView: View {
                                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
                         )
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
                     Button { showingFilePicker = true } label: {
                         HStack {
                             Image(systemName: "folder.badge.plus")
@@ -241,6 +243,7 @@ struct SectionEditorView: View {
                                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
                         )
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
                 }
             }
         }
@@ -274,6 +277,7 @@ struct SectionEditorView: View {
                         .background(Color.white.opacity(0.12))
                         .cornerRadius(8)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                     .disabled(isSuggestingName)
                 }
             }
@@ -282,6 +286,7 @@ struct SectionEditorView: View {
                 .background(Theme.surface)
                 .cornerRadius(12)
                 .foregroundColor(Theme.textPrimary)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
             if let err = aiErrorMessage {
                 Text(err)
                     .font(TimeMasterFont.caption())
@@ -309,6 +314,7 @@ struct SectionEditorView: View {
                 .cornerRadius(12)
                 .foregroundColor(.white)
             }
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -330,6 +336,7 @@ struct SectionEditorView: View {
                 Toggle("", isOn: $isTimerEnabled)
                     .labelsHidden()
                     .tint(.white)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 4), action: { isTimerEnabled.toggle() })
             }
 
             // Duration stepper — only shown when timer is on
@@ -340,10 +347,12 @@ struct SectionEditorView: View {
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
                     Stepper("", value: $duration, in: 5...300, step: 5).labelsHidden()
+                        .keyNavStepperButtons(value: $duration, in: 5...300, step: 5)
                 }
                 .padding(16)
                 .background(Theme.surface)
                 .cornerRadius(12)
+                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
             }
         }
     }
@@ -364,10 +373,12 @@ struct SectionEditorView: View {
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Stepper("", value: $prepareTime, in: 0...30, step: 1).labelsHidden()
+                    .keyNavStepperButtons(value: $prepareTime, in: 0...30, step: 1)
             }
             .padding(16)
             .background(Theme.surface)
             .cornerRadius(12)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -384,10 +395,12 @@ struct SectionEditorView: View {
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Stepper("", value: $sets, in: 1...20).labelsHidden()
+                    .keyNavStepperButtons(value: $sets, in: 1...20)
             }
             .padding(16)
             .background(Theme.surface)
             .cornerRadius(12)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -404,10 +417,12 @@ struct SectionEditorView: View {
                     .foregroundColor(Theme.textPrimary)
                 Spacer()
                 Stepper("", value: $restBetweenSets, in: 5...120, step: 5).labelsHidden()
+                    .keyNavStepperButtons(value: $restBetweenSets, in: 5...120, step: 5)
             }
             .padding(16)
             .background(Theme.surface)
             .cornerRadius(12)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -430,6 +445,7 @@ struct SectionEditorView: View {
                 Toggle("", isOn: $useCustomRest)
                     .labelsHidden()
                     .tint(.white)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 4), action: { useCustomRest.toggle() })
             }
             if useCustomRest {
                 HStack {
@@ -438,10 +454,12 @@ struct SectionEditorView: View {
                         .foregroundColor(Theme.textPrimary)
                     Spacer()
                     Stepper("", value: $customRestAfter, in: 0...300, step: 5).labelsHidden()
+                        .keyNavStepperButtons(value: $customRestAfter, in: 0...300, step: 5)
                 }
                 .padding(16)
                 .background(Theme.surface)
                 .cornerRadius(12)
+                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
             }
         }
     }

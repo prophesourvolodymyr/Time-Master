@@ -355,19 +355,15 @@ struct DatabaseView: View {
     @State private var exerciseToMove: Exercise?
     @State private var noteToMove: DatabaseNote?
     @State private var folderToExport: ExerciseFolder?
-    @State private var showingCreatePage = false
-    @State private var creationLeafFirst = false
+    @State private var creationRequest: PageCreationRequest?
     @State private var pageToMove: ExercisePage?
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
     @State private var selectedWorkoutTypeIDs: Set<String> = []
-    @State private var creationPageType: PageType?
     @State private var showingDatabaseSearch = false
     @State private var expandedPageIDs: Set<String> = []
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
-    @State private var showingAddChildPage = false
-    @State private var childParentPage: ExercisePage?
 
     var body: some View {
         let isV2 = MigrationManager.isV2PageMigrationComplete
@@ -407,16 +403,21 @@ struct DatabaseView: View {
                     .environmentObject(workoutStore)
                 }
             }
+            .navigationDestination(for: DatabaseSkillGroupRoute.self) { route in
+                SkillGroupPageView(route: route)
+                    .environmentObject(store)
+                    .environmentObject(workoutStore)
+            }
             .oneHandedActions(id: "database", actions: oneHandedActions)
             .sheet(isPresented: $showingNewFolderSheet) {
                 NewFolderSheet { name, colorHex, workoutType in
                     store.addRootFolder(name: name, colorHex: colorHex, workoutType: workoutType)
                 }
             }
-            .sheet(isPresented: $showingCreatePage) {
+            .sheet(item: $creationRequest) { request in
                 PageCreationSheet(
-                    leafFirst: creationLeafFirst,
-                    initialPageType: creationPageType
+                    parentID: request.parentID,
+                    initialPageType: request.pageType
                 ) { manifest, parentID in
                     try store.createPage(manifest: manifest, parentID: parentID)
                 } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
@@ -444,25 +445,6 @@ struct DatabaseView: View {
             .sheet(item: $pageToAddWorkout) { page in
                 WorkoutPickerSheet(page: page)
                     .environmentObject(workoutStore)
-            }
-            .sheet(isPresented: $showingAddChildPage) {
-                if let parent = childParentPage {
-                    PageCreationSheet(parentID: parent.manifest.id) { manifest, parentID in
-                        try store.createPage(manifest: manifest, parentID: parentID)
-                    } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
-                        try store.createPageWithMedia(
-                            manifest: manifest,
-                            parentID: parentID,
-                            coverData: coverData,
-                            mediaData: mediaData
-                        )
-                    }
-                    .environmentObject(workoutStore)
-                    .environmentObject(store)
-                }
-            }
-            .onChange(of: showingAddChildPage) { newValue in
-                if !newValue { childParentPage = nil }
             }
             #if os(iOS)
             .sheet(isPresented: $showingImport) {
@@ -636,30 +618,22 @@ struct DatabaseView: View {
     @ViewBuilder
     private var addMenuItems: some View {
         Button {
-            creationLeafFirst = false
-            creationPageType = .skill
-            showingCreatePage = true
+            creationRequest = PageCreationRequest(pageType: .skill)
         } label: {
             Label("New Skill", systemImage: "flag.checkered")
         }
         Button {
-            creationLeafFirst = true
-            creationPageType = .exercise
-            showingCreatePage = true
+            creationRequest = PageCreationRequest(pageType: .exercise)
         } label: {
             Label("New Exercise", systemImage: "figure.run")
         }
         Button {
-            creationLeafFirst = false
-            creationPageType = nil
-            showingCreatePage = true
+            creationRequest = PageCreationRequest(pageType: nil)
         } label: {
             Label("New Container", systemImage: "folder.badge.plus")
         }
         Button {
-            creationLeafFirst = false
-            creationPageType = .tutorial
-            showingCreatePage = true
+            creationRequest = PageCreationRequest(pageType: .tutorial)
         } label: {
             Label("New Tutorial", systemImage: "book.closed")
         }
@@ -1074,7 +1048,7 @@ struct DatabaseView: View {
             isGridMode: isGridMode,
             onAddToWorkout: { pageToAddWorkout = page },
             onEdit: { pageToEdit = page },
-            onAddChild: { childParentPage = page; showingAddChildPage = true },
+            onAddChild: { creationRequest = PageCreationRequest(pageType: .exercise, parentID: page.manifest.id) },
             onDuplicate: { try? store.duplicatePage(page) },
             onDelete: { try? store.deletePage(id: page.manifest.id) },
             onMoveIntoContainer: { sourceID in
@@ -1105,7 +1079,7 @@ struct DatabaseView: View {
             Group {
                 if isGridMode {
                     NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) { label }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
                 } else {
                     NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) { label }
                         .buttonStyle(TimeMasterCardButtonStyle())
@@ -1117,7 +1091,7 @@ struct DatabaseView: View {
             Group {
                 if isGridMode {
                     Button { toggleExpansion(page) } label: { label }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
                 } else {
                     Button { toggleExpansion(page) } label: { label }
                         .buttonStyle(TimeMasterCardButtonStyle())
@@ -1145,9 +1119,11 @@ struct DatabaseView: View {
         return Button {
             toggleExpansion(page)
         } label: {
-            TimeMasterDisclosureIndicator(systemImage: isExpanded ? "chevron.down" : "chevron.right")
+            Image(systemName: "chevron.right")
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(TimeMasterActionButtonStyle())
         .accessibilityLabel(isExpanded ? "Collapse \(page.title)" : "Expand \(page.title)")
         .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
         .accessibilityIdentifier("database-disclosure-\(page.manifest.id)")
@@ -1166,8 +1142,7 @@ struct DatabaseView: View {
                 .foregroundColor(Theme.textSecondary)
                 .multilineTextAlignment(.center)
             Button {
-                creationLeafFirst = false
-                showingCreatePage = true
+                creationRequest = PageCreationRequest(pageType: nil)
             } label: {
                 Text("Create First Page")
                     .font(TimeMasterFont.sectionTitle())
@@ -1279,6 +1254,9 @@ private struct DatabaseSearchSheet: View {
                                     }
                                     .padding(.vertical, 5)
                                 }
+                                .keyNavTarget(id: page.manifest.id, shape: .roundedRectangle(cornerRadius: 12)) {
+                                    navigationState.path.append(DatabasePageRoute(pageID: page.manifest.id))
+                                }
                                 .listRowBackground(Theme.surface)
                             }
                         }
@@ -1304,6 +1282,11 @@ private struct DatabaseSearchSheet: View {
                     .environmentObject(store)
                     .environmentObject(navigationState)
                 }
+            }
+            .navigationDestination(for: DatabaseSkillGroupRoute.self) { route in
+                SkillGroupPageView(route: route)
+                    .environmentObject(store)
+                    .environmentObject(navigationState)
             }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)

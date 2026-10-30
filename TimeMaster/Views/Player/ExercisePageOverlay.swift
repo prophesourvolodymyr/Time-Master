@@ -35,6 +35,9 @@ struct WorkoutAttachmentBrowser: View {
                     ContainerCategoryPage(destination: ContainerCategoryDestination(containerID: id, tab: route.tab))
                 }
             }
+            .navigationDestination(for: DatabaseSkillGroupRoute.self) { route in
+                SkillGroupPageView(route: route)
+            }
             .toolbar {
                 AppToolbar.item(placement: .confirmationAction) { Button("Close") {
                     if let onClose { onClose() } else { dismiss() }
@@ -62,6 +65,7 @@ struct WorkoutAttachmentBrowser: View {
                 WorkoutMusicPlaybackSheet(workout: currentWorkout, isContinuationPrompt: false, library: library, session: liveContext.music)
             }
         }
+        .keyNavHost()
     }
 }
 
@@ -119,6 +123,7 @@ struct WorkoutAttachmentStrip: View {
                     liveContext: liveContext,
                     databasePageID: { catalog.pageID(for: $0) ?? catalog.firstPageID }
                 )
+                .keyNavHost()
             }
         }
     }

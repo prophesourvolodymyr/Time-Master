@@ -50,6 +50,7 @@ struct HistoryView: View {
                             switch item {
                             case .workout(let entry):
                                 HistoryRow(entry: entry)
+                                    .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: 0))
                                     .listRowBackground(Theme.surface)
                                     .swipeActions {
                                         Button(role: .destructive) {
@@ -73,6 +74,7 @@ struct HistoryView: View {
                                     }
 #else
                                     OutdoorHistoryRow(activity: activity)
+                                        .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: 0))
 #endif
                                 }
                                 .listRowBackground(Theme.surface)

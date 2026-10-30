@@ -73,10 +73,12 @@ struct ProfilePrivacySettingsView: View {
         _ title: String,
         keyPath: WritableKeyPath<LocalUserProfile, Bool>
     ) -> some View {
-        Toggle(title, isOn: privacyBinding(keyPath))
+        let binding = privacyBinding(keyPath)
+        return Toggle(title, isOn: binding)
             .font(TimeMasterFont.rowTitle())
             .tint(EverColor.accent)
             .frame(minHeight: EverLayout.standardRowMinimum)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: EverRadius.field), action: { binding.wrappedValue.toggle() })
     }
 
     private func privacyBinding(_ keyPath: WritableKeyPath<LocalUserProfile, Bool>) -> Binding<Bool> {

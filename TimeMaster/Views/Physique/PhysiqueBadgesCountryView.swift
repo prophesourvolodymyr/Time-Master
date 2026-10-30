@@ -30,6 +30,7 @@ struct PhysiqueBadgesCountryView: View {
     @State private var countryChangedElsewhere = false
     @State private var confirmsClose = false
     @State private var isVisible = false
+    @State private var badgeHelpExpanded = false
 
     private enum SaveState: Equatable {
         case idle, saving, unconfirmed, saved, checked
@@ -92,11 +93,13 @@ struct PhysiqueBadgesCountryView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close", action: requestClose)
+                    .physiqueToolbarTarget()
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button(countryChangedElsewhere ? "Save my selection" : "Save") {
                     Task { await saveCountry() }
                 }
+                .physiqueToolbarTarget()
                 .disabled(!canSave)
                 .tint(Theme.toolbarOrange)
                 .accessibilityHint("Publishes only your selected country or region after the service confirms it.")
@@ -204,7 +207,7 @@ struct PhysiqueBadgesCountryView: View {
                                 .accessibilityLabel("Your \(badge.title.isEmpty ? "badge" : badge.title), earned")
                                 .accessibilityHint("Expands its meaning in the Badges section below.")
                                 .accessibilityAddTraits(.isButton)
-                                .buttonStyle(.plain)
+                                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 4))
                             }
                         }
                     }
@@ -271,6 +274,7 @@ struct PhysiqueBadgesCountryView: View {
                     #endif
                     if !draftCountry.isEmpty {
                         Button("Remove country", role: .destructive) { draftCountry = "" }
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                             .disabled(!canEdit)
                             .accessibilityHint("Clears the draft. Save is required to confirm removal from your public identity.")
                             #if os(iOS)
@@ -283,6 +287,7 @@ struct PhysiqueBadgesCountryView: View {
                             .foregroundStyle(ProfileStyle.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                         Button("Use saved choice", action: useSavedCountry)
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                             .disabled(isSaving || isRefreshing)
                             #if os(iOS)
                             .frame(minHeight: ProfileStyle.touchTarget)
@@ -316,6 +321,7 @@ struct PhysiqueBadgesCountryView: View {
                 Text(country.name).tag(country.code)
             }
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .disabled(!canEdit || countryChoices.isEmpty)
         .accessibilityValue(countryName(draftCountry))
         .accessibilityHint("Optional, manually selected and self-declared. Selecting a value does not save it.")
@@ -340,6 +346,7 @@ struct PhysiqueBadgesCountryView: View {
                     Button("Check saved country") {
                         Task { await refreshIdentity(checkingSave: true) }
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(isRefreshing || store.busy || store.loading)
                     #if os(iOS)
                     .frame(minHeight: ProfileStyle.touchTarget)
@@ -365,6 +372,7 @@ struct PhysiqueBadgesCountryView: View {
         Button(readError == nil ? "Refresh identity" : "Retry identity refresh") {
             Task { await refreshIdentity(checkingSave: needsStatusCheck) }
         }
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .disabled(isRefreshing || isSaving || store.busy || store.loading || activeAccountID == nil)
         #if os(iOS)
         .frame(minHeight: ProfileStyle.touchTarget)
@@ -447,10 +455,11 @@ struct PhysiqueBadgesCountryView: View {
                         .frame(minHeight: ProfileStyle.touchTarget, alignment: .leading)
                         #endif
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { badgeExpansion(badge.id).wrappedValue.toggle() })
                 }
             }
             PhysiqueCard {
-                DisclosureGroup("How Physique badges work") {
+                DisclosureGroup("How Physique badges work", isExpanded: $badgeHelpExpanded) {
                     VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
                         Text("First Bell: first valid AI-judged Physique win, loss or draw. Forfeits and no-contests do not qualify.")
                         Text("Placed: currently five rated results, including eligible rated forfeits. A correction can return placement to provisional or unplaced.")
@@ -463,6 +472,7 @@ struct PhysiqueBadgesCountryView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, ProfileStyle.spacing)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: { badgeHelpExpanded.toggle() })
                 .font(TimeMasterFont.rowTitle())
             }
         }

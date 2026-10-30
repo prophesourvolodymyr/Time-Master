@@ -1544,18 +1544,20 @@ struct WorkoutDetailView: View {
                     get: { pending.repCount ?? 0 },
                     set: { pendingSection?.repCount = ($0 > 0 ? $0 : nil) }
                 ), range: 0...100, step: 1, unit: "")
-                inlineStepper(label: "After Rest", value: Binding(
-                    get: { pending.restAfter },
-                    set: { pendingSection?.restAfter = $0 }
-                ), range: 0...120, step: 5, unit: "s")
-                inlineStepper(label: "Between", value: Binding(
-                    get: { pending.restBetweenSets },
-                    set: { pendingSection?.restBetweenSets = $0 }
-                ), range: 0...120, step: 5, unit: "s")
                 inlineStepper(label: "Prepare", value: Binding(
                     get: { pending.prepareTime },
                     set: { pendingSection?.prepareTime = $0 }
                 ), range: 0...30, step: 1, unit: "s")
+                if pending.sets > 1 {
+                    inlineStepper(label: "Between Sets", value: Binding(
+                        get: { pending.restBetweenSets },
+                        set: { pendingSection?.restBetweenSets = $0 }
+                    ), range: 0...120, step: 5, unit: "s")
+                }
+                inlineStepper(label: pending.sets > 1 ? "Big Rest" : "Rest", value: Binding(
+                    get: { pending.restAfter },
+                    set: { pendingSection?.restAfter = $0 }
+                ), range: 0...120, step: 5, unit: "s")
             }
 
             HStack(spacing: 10) {

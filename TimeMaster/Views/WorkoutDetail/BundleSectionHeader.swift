@@ -24,20 +24,23 @@ struct BundleSectionHeader: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
                 Button(action: onAddSet) {
                     Image(systemName: "plus").frame(width: 44, height: 44)
                 }
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel("Add set to \(section.name)")
                 Button(action: onEdit) {
                     Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
                 }
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel("Edit bundle")
                 Button(action: onToggle) {
                     Image(systemName: "chevron.down")
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                         .frame(width: 32, height: 44)
                 }
+                .keyNavTarget(shape: .capsule)
                 .accessibilityLabel(isExpanded ? "Collapse bundle" : "Expand bundle")
             }
             .buttonStyle(.plain)
@@ -55,7 +58,7 @@ struct BundleSectionHeader: View {
                             }
                             .frame(width: 64)
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
                         .disabled(slot.exercisePageID == nil)
                         .accessibilityLabel("\(slot.displayName), \(slot.duration) seconds")
                     }
@@ -65,5 +68,6 @@ struct BundleSectionHeader: View {
         .foregroundStyle(.black)
         .padding(18)
         .background(.white, in: RoundedRectangle(cornerRadius: 18))
+        .keyNavTarget(id: section.id, role: .primary, shape: .roundedRectangle(cornerRadius: 18), action: onToggle)
     }
 }

@@ -5,6 +5,12 @@ import UniformTypeIdentifiers
 import PhotosUI
 #endif
 
+struct PageCreationRequest: Identifiable {
+    let id = UUID()
+    var pageType: PageType?
+    var parentID: String? = nil
+}
+
 private struct PendingPageMedia {
     let temporaryURL: URL
 
@@ -30,11 +36,84 @@ private struct PageCreationLinkRow: Identifiable, Equatable {
     }
 }
 
+enum PageMediaLayout {
+    static let galleryAspect: CGFloat = 1080.0 / 1480.0
+
+    static func galleryWidth(forHeight height: CGFloat) -> CGFloat {
+        (height * galleryAspect).rounded()
+    }
+}
+
+private enum PageFormTag {
+    case required
+    case optional
+}
+
+private struct PageFormTagLabel: View {
+    let tag: PageFormTag
+
+    var body: some View {
+        let isRequired = tag == .required
+        Text(isRequired ? "REQUIRED" : "OPTIONAL")
+            .font(TimeMasterFont.black(10, relativeTo: .caption2))
+            .tracking(0.6)
+            .foregroundStyle(isRequired ? Theme.toolbarOrange : Theme.textPrimary.opacity(0.62))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(isRequired ? Theme.toolbarOrange.opacity(0.14) : Color.white.opacity(0.07)))
+            .overlay(Capsule().strokeBorder(isRequired ? Theme.toolbarOrange.opacity(0.7) : Color.white.opacity(0.16), lineWidth: 1))
+            .accessibilityLabel(isRequired ? "Required" : "Optional")
+    }
+}
+
+private struct PageFormSelectorStyle: ButtonStyle {
+    let isSelected: Bool
+    var minHeight: CGFloat = 46
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        configuration.label
+            .font(isSelected ? TimeMasterFont.black(15, relativeTo: .subheadline) : TimeMasterFont.body(15, relativeTo: .subheadline))
+            .foregroundStyle(Theme.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: minHeight)
+            .background(shape.fill(isSelected ? Theme.toolbarOrange : Theme.surface))
+            .overlay(shape.strokeBorder(isSelected ? Color.white.opacity(0.55) : Color.white.opacity(0.1), lineWidth: isSelected ? 1.5 : 1))
+            .contentShape(shape)
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .keyNavButtonSurface(.roundedRectangle(cornerRadius: 12))
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct PageFormFieldSurface: ViewModifier {
+    var isFocused = false
+    var isValid = false
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        content
+            .background(Theme.surface, in: shape)
+            .overlay(
+                shape.strokeBorder(
+                    isFocused ? Theme.toolbarOrange : (isValid ? Theme.toolbarOrange.opacity(0.45) : Color.white.opacity(0.1)),
+                    lineWidth: isFocused ? 1.5 : 1
+                )
+                .allowsHitTesting(false)
+            )
+    }
+}
+
 struct PageCreationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @EnvironmentObject var workoutStore: WorkoutStore
     @EnvironmentObject var databaseStore: DatabaseStore
+    @ObservedObject private var draftStore = PageCreationDraftStore.shared
 
     let existingPage: ExercisePage?
     let onSave: (ExercisePageManifest, String?) throws -> Void
@@ -63,12 +142,21 @@ struct PageCreationSheet: View {
     @State private var mediaPreviewThumbnails: [(filename: String, image: Image?)] = []
     @State private var draggedMediaFilename: String?
     @FocusState private var focusedDropSetID: String?
+    @FocusState private var focusedLinkID: UUID?
+    @FocusState private var titleFocused: Bool
     @State private var showDropSetPicker = false
     @State private var showMediaPicker = false
     @State private var showDeleteConfirm = false
     @State private var showDraftList = false
+    @State private var showCancelConfirm = false
+    @State private var showGuideFullScreen = false
+    @State private var guideHeight: CGFloat = 220
+    @State private var guideDragOrigin: CGFloat?
     @State private var draftID: UUID
+    @State private var openedFromDraft = false
+    @State private var draftSavedExplicitly = false
     @State private var didSavePage = false
+    @State private var didDiscard = false
     @State private var draftSavedMessage: String?
     @State private var saveErrorMessage: String?
     @State private var autosaveTask: Task<Void, Never>?
@@ -76,10 +164,12 @@ struct PageCreationSheet: View {
     @State private var pendingMediaItems: [PhotosPickerItem] = []
     #endif
 
+    private static let mediaHeight: CGFloat = 200
+    private static let guideHeightRange: ClosedRange<CGFloat> = 140...760
+
     init(
         page: ExercisePage? = nil,
         parentID: String? = nil,
-        leafFirst: Bool = false,
         initialPageType: PageType? = nil,
         onSave: @escaping (ExercisePageManifest, String?) throws -> Void,
         onSaveWithMedia: ((ExercisePageManifest, String?, Data?, [(filename: String, data: Data)]) throws -> Void)? = nil
@@ -90,15 +180,14 @@ struct PageCreationSheet: View {
         _libraryToken = State(initialValue: ExerciseLibraryAccess.shared.capture())
 
         let resolvedParentID = parentID ?? page?.manifest.parentID
-        let defaultPageType: PageType? = initialPageType
-            ?? ((leafFirst || resolvedParentID != nil) ? .exercise : nil)
+        let defaultPageType: PageType? = initialPageType ?? (resolvedParentID != nil ? .exercise : nil)
         let initialType = page?.manifest.pageType
-            ?? (page?.manifest.pageKind == .leaf ? .exercise : defaultPageType)
+            ?? (page?.manifest.pageKind == .leaf ? .exercise : (page == nil ? defaultPageType : nil))
         let initialKind: ExercisePageManifest.PageKind = {
             if initialType == .skill || initialType == .tutorial {
                 return .container
             }
-            return page?.manifest.pageKind ?? (initialType == .exercise ? .leaf : .container)
+            return initialType == .exercise ? .leaf : (page?.manifest.pageKind ?? .container)
         }()
         let initialLinks = Self.makeLinkRows(
             urls: page?.manifest.linkURLs ?? [],
@@ -129,7 +218,7 @@ struct PageCreationSheet: View {
         _sets = State(initialValue: page?.manifest.sets ?? 1)
         _restBetweenSets = State(initialValue: page?.manifest.restBetweenSets ?? 0)
         _dropSetTemplates = State(initialValue: page?.manifest.dropSetTemplates ?? [])
-        _linkRows = State(initialValue: initialLinks)
+        _linkRows = State(initialValue: initialLinks.isEmpty ? [PageCreationLinkRow(url: "")] : initialLinks)
         _mediaFilenames = State(initialValue: initialMedia)
         _mediaComments = State(initialValue: page?.manifest.mediaComments ?? [:])
         _draftID = State(initialValue: UUID())
@@ -141,13 +230,15 @@ struct PageCreationSheet: View {
                 Theme.background.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 26) {
                         titleCard
                         if let saveErrorMessage {
-                            Text(saveErrorMessage)
-                                .font(TimeMasterFont.body(13, relativeTo: .footnote))
+                            Label(saveErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                                .font(TimeMasterFont.body(14, relativeTo: .footnote))
                                 .foregroundStyle(.red)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(12)
+                                .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                         pageKindCard
                         mediaCard
@@ -167,53 +258,70 @@ struct PageCreationSheet: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 28)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: pageType)
                 }
+                .scrollDismissesKeyboard(.immediately)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 actionBar
             }
             .overlay(alignment: .bottom) {
                 if let draftSavedMessage {
-                    Text(draftSavedMessage)
+                    Label(draftSavedMessage, systemImage: "checkmark.circle.fill")
                         .font(TimeMasterFont.black(13, relativeTo: .footnote))
                         .foregroundStyle(Theme.textPrimary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
                         .background(Theme.surface2, in: Capsule())
                         .overlay(Capsule().stroke(Theme.toolbarOrange.opacity(0.7), lineWidth: 1))
-                        .padding(.bottom, 84)
+                        .padding(.bottom, 96)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .timeMasterNavigationTitle(existingPage == nil ? "New Page" : "Edit Page")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             #endif
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") { requestCancel() }
                         .buttonStyle(TimeMasterToolbarTextButtonStyle())
-                        .tint(Theme.toolbarOrange)
                 }
                 if existingPage == nil {
-                    AppToolbar.iconItem(placement: .primaryAction) {
-                        Button {
-                            PageCreationDraftStore.shared.reload()
-                            showDraftList = true
-                        } label: {
-                            Image(systemName: "doc.badge.clock")
-                        }
-                        .foregroundStyle(Theme.toolbarOrange)
-                        .accessibilityLabel("Open page drafts")
+                    AppToolbar.item(placement: .primaryAction) {
+                        draftsButton
                     }
                 }
             }
+            .confirmationDialog(
+                "Keep this page as a draft?",
+                isPresented: $showCancelConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Save Draft") {
+                    saveDraft()
+                    dismiss()
+                }
+                Button("Discard", role: .destructive) {
+                    discardDraft()
+                }
+                Button("Keep Editing", role: .cancel) {}
+            } message: {
+                Text("Drafts stay in the drafts list for 30 days.")
+            }
             .sheet(isPresented: $showDraftList) {
-                PageCreationDraftListSheet { draft in
+                PageCreationDraftListSheet(currentDraftID: draftID) { draft in
+                    persistDraftIfNeeded()
                     apply(draft: draft)
                     showDraftList = false
                 }
+            }
+            .sheet(isPresented: $showGuideFullScreen) {
+                MarkdownEditorSheet(title: "Guide", text: $markdownBody, assets: pageAssets)
+                    .keyNavHost()
             }
             .sheet(item: $editingMediaComment) { attachment in
                 MediaCommentEditor(mediaURL: attachment.url, comment: mediaComments[attachment.filename] ?? "", assets: pageAssets) { comment in
@@ -283,7 +391,7 @@ struct PageCreationSheet: View {
                 Text("This moves the page and all its children to trash.")
             }
             .task {
-                PageCreationDraftStore.shared.reload()
+                draftStore.reload()
                 loadMediaPreviews()
                 refreshLinkMetadata()
             }
@@ -297,30 +405,57 @@ struct PageCreationSheet: View {
             }
             .onDisappear {
                 autosaveTask?.cancel()
-                persistDraftIfNeeded()
+                if !didDiscard { persistDraftIfNeeded() }
             }
         }
     }
 
+    private var draftsButton: some View {
+        Button {
+            persistDraftIfNeeded()
+            draftStore.reload()
+            showDraftList = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "tray.full")
+                    .font(.system(size: 15, weight: .bold))
+                Text(draftStore.drafts.isEmpty ? "Drafts" : "\(draftStore.drafts.count)")
+                    .monospacedDigit()
+            }
+        }
+        .buttonStyle(TimeMasterToolbarTextButtonStyle())
+        .accessibilityLabel("Open page drafts")
+        .accessibilityValue(draftStore.drafts.isEmpty ? "No drafts" : "\(draftStore.drafts.count) drafts")
+    }
+
     private var titleCard: some View {
         formCard {
-            sectionHeading("Title", required: true)
+            sectionHeading("Title", tag: .required)
             TextField("Page title", text: $title)
                 .textFieldStyle(.plain)
-                .padding(13)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+                .font(TimeMasterFont.body(17))
+                .focused($titleFocused)
+                .padding(14)
                 .foregroundStyle(Theme.textPrimary)
+                .modifier(PageFormFieldSurface(isFocused: titleFocused))
+                .accessibilityLabel("Page title")
         }
     }
 
     private var pageKindCard: some View {
         formCard {
-            sectionHeading("Page Type", required: true)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            sectionHeading("Page Type", tag: .required)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 pageTypeButton(nil, title: "Container", systemImage: "square.stack.3d.up")
                 pageTypeButton(.exercise, title: "Exercise", systemImage: "figure.run")
                 pageTypeButton(.skill, title: "Skill", systemImage: "flag.checkered")
                 pageTypeButton(.tutorial, title: "Tutorial", systemImage: "book.closed")
+            }
+            if pageType == .exercise, draftParentID == nil {
+                Text("Saved at the top of the Database, outside any container.")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
@@ -332,7 +467,7 @@ struct PageCreationSheet: View {
     ) -> some View {
         let isSelected = pageType == type && (type != nil || pageKind == .container)
         return Button {
-            withAnimation(.easeOut(duration: 0.2)) {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
                 pageType = type
                 switch type {
                 case .exercise:
@@ -349,112 +484,167 @@ struct PageCreationSheet: View {
                 }
             }
         } label: {
-            Label {
-                Text(title)
-                    .font(isSelected ? TimeMasterFont.rowTitle() : TimeMasterFont.body(15, relativeTo: .subheadline))
-            } icon: {
+            HStack(spacing: 8) {
                 Image(systemName: systemImage)
-                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                    .font(.subheadline.weight(.semibold))
+                Text(title)
             }
-                .foregroundStyle(isSelected ? .black : Theme.textPrimary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .background(isSelected ? Theme.toolbarOrange : Theme.surface, in: RoundedRectangle(cornerRadius: 9))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PageFormSelectorStyle(isSelected: isSelected))
+        .accessibilityLabel(title)
     }
 
     private var mediaCard: some View {
         formCard {
-            sectionHeading("Media", optional: true)
-
-            if !mediaFilenames.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 10) {
-                        ForEach(mediaFilenames, id: \.self) { filename in
-                            mediaTile(filename: filename, isCover: filename == mediaFilenames.first)
-                                .onDrag {
-                                    draggedMediaFilename = filename
-                                    return NSItemProvider(object: filename as NSString)
-                                }
-                                .onDrop(
-                                    of: [UTType.text],
-                                    delegate: PageMediaDropDelegate(
-                                        targetFilename: filename,
-                                        items: $mediaFilenames,
-                                        draggedFilename: $draggedMediaFilename
-                                    )
-                                )
-                        }
-                    }
-                    .padding(.vertical, 2)
+            sectionHeading("Media", tag: .optional) {
+                if !mediaFilenames.isEmpty {
+                    Text("\(mediaFilenames.count)/20")
+                        .font(TimeMasterFont.caption().monospacedDigit())
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
-
-            if mediaFilenames.count < 20 {
-                Button {
-                    showMediaPicker = true
-                } label: {
-                    Label("Add Media (\(mediaFilenames.count)/20)", systemImage: "plus.rectangle.on.rectangle")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(TimeMasterActionButtonStyle())
-            }
+            mediaStrip
+            Text(mediaFilenames.isEmpty
+                 ? "The first picture becomes the square cover; the rest form the gallery."
+                 : "The first item is the cover. Press and drag any item to reorder.")
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .multilineTextAlignment(.center)
         }
     }
 
-    private func mediaTile(filename: String, isCover: Bool) -> some View {
-        let width: CGFloat = isCover ? 176 : 138
-        let aspectRatio: CGFloat = isCover ? 1 : 1080.0 / 1480.0
+    private var mediaStrip: some View {
+        let height = Self.mediaHeight
+        let galleryWidth = PageMediaLayout.galleryWidth(forHeight: height)
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .bottom, spacing: 10) {
+                if let cover = mediaFilenames.first {
+                    mediaColumn(label: "Cover", accent: true) {
+                        draggableTile(filename: cover, width: height, height: height, isCover: true)
+                    }
+                } else {
+                    mediaColumn(label: "Cover", accent: true) {
+                        addMediaTile(width: height, height: height, title: "Add cover")
+                    }
+                }
 
-        return ZStack(alignment: .topTrailing) {
+                Capsule()
+                    .fill(Theme.toolbarOrange.opacity(0.75))
+                    .frame(width: 3, height: height - 24)
+                    .padding(.horizontal, 4)
+                    .padding(.bottom, 12)
+                    .accessibilityHidden(true)
+
+                mediaColumn(label: mediaFilenames.count > 1 ? "Gallery · \(mediaFilenames.count - 1)" : "Gallery", accent: false) {
+                    HStack(spacing: 10) {
+                        ForEach(Array(mediaFilenames.dropFirst()), id: \.self) { filename in
+                            draggableTile(filename: filename, width: galleryWidth, height: height, isCover: false)
+                        }
+                        if mediaFilenames.count < 20 {
+                            addMediaTile(width: galleryWidth, height: height, title: "Add")
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 2)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: mediaFilenames)
+        }
+    }
+
+    private func mediaColumn<Content: View>(label: String, accent: Bool, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label.uppercased())
+                .font(TimeMasterFont.black(10, relativeTo: .caption2))
+                .tracking(0.6)
+                .foregroundStyle(accent ? Theme.toolbarOrange : Theme.textSecondary)
+            content()
+        }
+    }
+
+    private func draggableTile(filename: String, width: CGFloat, height: CGFloat, isCover: Bool) -> some View {
+        mediaTile(filename: filename, width: width, height: height, isCover: isCover)
+            .onDrag {
+                draggedMediaFilename = filename
+                return NSItemProvider(object: filename as NSString)
+            }
+            .onDrop(
+                of: [UTType.text],
+                delegate: PageMediaDropDelegate(
+                    targetFilename: filename,
+                    items: $mediaFilenames,
+                    draggedFilename: $draggedMediaFilename
+                )
+            )
+    }
+
+    private func addMediaTile(width: CGFloat, height: CGFloat, title: String) -> some View {
+        Button {
+            showMediaPicker = true
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(Theme.toolbarOrange.opacity(0.75), in: Circle())
+                Text(title)
+                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                    .foregroundStyle(Theme.textPrimary)
+            }
+            .frame(width: width, height: height)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Theme.toolbarOrange.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 14))
+        .accessibilityLabel(title == "Add cover" ? "Add cover and media" : "Add media")
+    }
+
+    private func mediaTile(filename: String, width: CGFloat, height: CGFloat, isCover: Bool) -> some View {
+        let isVideo = mediaURL(filename: filename).map(PageMediaKind.isVideo) ?? false
+        return ZStack {
             Group {
                 if let preview = mediaPreviewThumbnails.first(where: { $0.filename == filename })?.image {
                     preview
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 } else {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Theme.surface)
+                    Theme.surface
                         .overlay {
-                            Image(systemName: "photo")
+                            Image(systemName: isVideo ? "play.rectangle" : "photo")
                                 .foregroundStyle(Theme.textSecondary.opacity(0.45))
                         }
                 }
             }
-            .frame(width: width, height: width / aspectRatio)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isCover ? Theme.toolbarOrange : Color.white.opacity(0.08), lineWidth: isCover ? 2 : 1)
-            }
+            .frame(width: width, height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-            if isCover {
-                Label {
-                    Text("Cover")
-                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                } icon: {
-                    Image(systemName: "pin.fill")
-                        .font(.caption2.weight(.bold))
-                }
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(Theme.toolbarOrange, in: Capsule())
-                    .padding(7)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if isVideo {
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 34))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 3)
+                    .accessibilityHidden(true)
             }
-
-            Button {
+        }
+        .frame(width: width, height: height)
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(isCover ? Theme.toolbarOrange : Color.white.opacity(0.1), lineWidth: isCover ? 2 : 1)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button(role: .destructive) {
                 removeMedia(filename: filename)
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title3)
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, .black.opacity(0.45))
-                    .padding(7)
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .black))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 30))
+            .padding(4)
             .accessibilityLabel("Remove media")
         }
         .overlay(alignment: .bottomTrailing) {
@@ -463,47 +653,45 @@ struct PageCreationSheet: View {
                     editingMediaComment = PageCreationComment(filename: filename, url: url)
                 }
             } label: {
-                Image(systemName: mediaComments[filename] == nil ? "bubble.left" : "bubble.left.fill")
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(.black.opacity(0.7), in: Circle())
-                    .padding(6)
+                Image(systemName: mediaComments[filename] == nil ? "text.bubble" : "text.bubble.fill")
+                    .font(.system(size: 13, weight: .bold))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 32))
+            .padding(4)
             .accessibilityLabel(mediaComments[filename] == nil ? "Add media comment" : "Edit media comment")
         }
-        .contentShape(Rectangle())
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isCover ? "Cover" : "Gallery item")
     }
 
     private var workoutTypeCard: some View {
         formCard {
-            sectionHeading("Workout Type", optional: true)
+            sectionHeading("Workout Type", tag: .optional)
             if let inheritedWorkoutType {
                 Text("Uses \(inheritedWorkoutType.name) from the container by default.")
-                    .font(TimeMasterFont.micro())
+                    .font(TimeMasterFont.caption())
                     .foregroundStyle(Theme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 Button {
                     workoutType = nil
                 } label: {
                     Text(inheritedWorkoutType == nil ? "None" : "Container default")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(prominent: workoutType == nil))
+                .buttonStyle(PageFormSelectorStyle(isSelected: workoutType == nil))
 
                 ForEach(WorkoutType.all(custom: workoutStore.customWorkoutTypes), id: \.id) { type in
                     Button {
                         workoutType = type
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: 6) {
                             Image(systemName: type.iconName)
                             Text(type.name)
                         }
-                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(TimeMasterActionButtonStyle(prominent: workoutType == type))
+                    .buttonStyle(PageFormSelectorStyle(isSelected: workoutType == type))
                 }
             }
         }
@@ -511,16 +699,15 @@ struct PageCreationSheet: View {
 
     private var skillTrackingCard: some View {
         formCard {
-            sectionHeading(pageType == .tutorial ? "Tutorial Status" : "Skill Status", required: true)
+            sectionHeading(pageType == .tutorial ? "Tutorial Status" : "Skill Status", tag: .required)
             HStack(spacing: 8) {
                 ForEach(SkillStatus.allCases, id: \.self) { status in
                     Button {
                         skillStatus = status
                     } label: {
                         Text(skillStatusTitle(status))
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(TimeMasterActionButtonStyle(prominent: effectiveSkillStatus == status))
+                    .buttonStyle(PageFormSelectorStyle(isSelected: effectiveSkillStatus == status))
                 }
             }
             if !availableSkillBoardSections.isEmpty {
@@ -538,9 +725,10 @@ struct PageCreationSheet: View {
                         Text(selectedSkillBoardSection?.title ?? "Unsectioned")
                         Spacer()
                         Image(systemName: "chevron.up.chevron.down")
+                            .foregroundStyle(Theme.toolbarOrange)
                     }
-                    .padding(12)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(13)
+                    .modifier(PageFormFieldSurface())
                 }
                 .foregroundStyle(Theme.textPrimary)
             }
@@ -549,114 +737,165 @@ struct PageCreationSheet: View {
 
     private var timingCard: some View {
         formCard {
-            sectionHeading("Workout Config", required: true)
+            sectionHeading("Workout Config", tag: .required)
             VStack(spacing: 8) {
-                stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s", required: true)
-                stepperRow(label: "Prepare Time", value: $prepareTime, range: 0...30, step: 1, unit: "s", optional: true)
-                stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "", required: true)
+                stepperRow(label: "Duration", value: $duration, range: 5...600, step: 5, unit: "s")
+                stepperRow(label: "Prepare Time", value: $prepareTime, range: 0...30, step: 1, unit: "s", tag: .optional)
+                stepperRow(label: "Sets", value: $sets, range: 1...20, step: 1, unit: "")
                 if sets > 1 {
-                    stepperRow(label: "Rest Between Sets", value: $restBetweenSets, range: 0...120, step: 5, unit: "s", optional: true)
-                    stepperRow(label: "Big Rest", value: $restAfter, range: 0...120, step: 5, unit: "s", optional: true)
-                } else {
-                    stepperRow(label: "Rest", value: $restAfter, range: 0...120, step: 5, unit: "s", optional: true)
+                    stepperRow(
+                        label: "Rest Between Sets",
+                        detail: "After every set except the last",
+                        value: $restBetweenSets,
+                        range: 0...120,
+                        step: 5,
+                        unit: "s",
+                        tag: .optional
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+                stepperRow(
+                    label: sets > 1 ? "Big Rest" : "Rest",
+                    detail: sets > 1 ? "After the last set" : "After the exercise",
+                    value: $restAfter,
+                    range: 0...120,
+                    step: 5,
+                    unit: "s",
+                    tag: .optional
+                )
             }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: sets > 1)
         }
     }
 
     private func stepperRow(
         label: String,
+        detail: String? = nil,
         value: Binding<Int>,
         range: ClosedRange<Int>,
         step: Int,
         unit: String,
-        required: Bool = false,
-        optional: Bool = false
+        tag: PageFormTag? = nil
     ) -> some View {
-        HStack {
-            formHeading(label, required: required, optional: optional)
-            Spacer()
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(label)
+                    .font(TimeMasterFont.black(16, relativeTo: .callout))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                if tag != nil || detail != nil {
+                    HStack(spacing: 6) {
+                        if let tag {
+                            PageFormTagLabel(tag: tag)
+                        }
+                        if let detail {
+                            Text(detail)
+                                .font(TimeMasterFont.caption())
+                                .foregroundStyle(Theme.textSecondary)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+            }
+            Spacer(minLength: 4)
             Text("\(value.wrappedValue)\(unit)")
+                .font(TimeMasterFont.black(16, relativeTo: .callout).monospacedDigit())
                 .foregroundStyle(Theme.toolbarOrange)
-                .monospacedDigit()
-                .frame(minWidth: 42, alignment: .trailing)
+                .frame(minWidth: 40, alignment: .trailing)
             Stepper("", value: value, in: range, step: step)
                 .labelsHidden()
                 .tint(Theme.toolbarOrange)
         }
         .padding(12)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+        .modifier(PageFormFieldSurface())
+        .accessibilityElement(children: .combine)
     }
 
     private var dropSetTemplatesCard: some View {
         formCard {
-            sectionHeading("Drop Sets", optional: true)
-            HStack(spacing: 12) {
+            sectionHeading("Drop Sets", tag: .optional)
+            HStack(spacing: 10) {
                 Button {
                     addManualDropSet()
                 } label: {
-                    Image(systemName: "plus")
-                        .frame(width: 44, height: 44)
+                    Label {
+                        Text("Add")
+                    } icon: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .black))
+                    }
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(circular: true))
-                .accessibilityLabel("Add manual drop set")
+                .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 48, fillsWidth: true))
+                .accessibilityLabel("Add drop set by name")
 
                 Button {
                     showDropSetPicker = true
                 } label: {
-                    Image(systemName: "externaldrive.badge.plus")
-                        .frame(width: 44, height: 44)
+                    Label {
+                        Text("From Database")
+                    } icon: {
+                        DatabasePlusIcon()
+                    }
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(circular: true))
-                .accessibilityLabel("Add drop set from database")
+                .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 48, fillsWidth: true))
+                .accessibilityLabel("Add drop set from the database")
             }
-            .frame(maxWidth: .infinity, alignment: .center)
 
-            if !dropSetTemplates.isEmpty {
-                ForEach($dropSetTemplates) { $template in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: template.exerciseID.isEmpty ? "pencil" : "externaldrive")
-                                .foregroundStyle(Theme.toolbarOrange)
-                            TextField("Drop-set exercise name", text: $template.name)
-                                .textFieldStyle(.plain)
-                                .foregroundStyle(Theme.textPrimary)
-                                .focused($focusedDropSetID, equals: template.id)
-                            Spacer()
-                            Button(role: .destructive) {
-                                dropSetTemplates.removeAll { $0.id == template.id }
-                            } label: {
-                                Image(systemName: "trash")
+            ForEach($dropSetTemplates) { $template in
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 10) {
+                        Group {
+                            if template.exerciseID.isEmpty {
+                                Image(systemName: "pencil")
+                            } else {
+                                Image(systemName: "cylinder.split.1x2")
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Remove drop set")
                         }
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.toolbarOrange)
+                        .frame(width: 22)
+                        .accessibilityHidden(true)
+                        TextField("Drop-set exercise name", text: $template.name)
+                            .textFieldStyle(.plain)
+                            .font(TimeMasterFont.body(16))
+                            .foregroundStyle(Theme.textPrimary)
+                            .focused($focusedDropSetID, equals: template.id)
+                        Button(role: .destructive) {
+                            dropSetTemplates.removeAll { $0.id == template.id }
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 13, weight: .bold))
+                        }
+                        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 34))
+                        .accessibilityLabel("Remove drop set")
+                    }
 
-                        HStack {
-                            Text("After set")
-                                .foregroundStyle(Theme.textSecondary)
-                            Spacer()
-                            Stepper(
-                                "",
-                                value: $template.setIndex,
-                                in: 0...max(0, sets - 1)
-                            )
+                    HStack {
+                        Text("After set")
+                            .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                            .foregroundStyle(Theme.textSecondary)
+                        Spacer()
+                        Text("\(template.setIndex + 1)")
+                            .font(TimeMasterFont.black(15, relativeTo: .subheadline).monospacedDigit())
+                            .foregroundStyle(Theme.toolbarOrange)
+                            .frame(minWidth: 24, alignment: .trailing)
+                        Stepper("", value: $template.setIndex, in: 0...max(0, sets - 1))
                             .labelsHidden()
                             .tint(Theme.toolbarOrange)
-                            Text("\(template.setIndex + 1)")
-                                .foregroundStyle(Theme.toolbarOrange)
-                                .monospacedDigit()
-                                .frame(minWidth: 24, alignment: .trailing)
-                        }
-
-                        HStack(spacing: 12) {
-                            stepperValue("Duration", value: $template.duration, range: 5...600, step: 5, unit: "s")
-                            stepperValue("Rest", value: $template.restAfter, range: 0...120, step: 5, unit: "s")
-                        }
                     }
-                    .padding(12)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+
+                    HStack(spacing: 12) {
+                        stepperValue("Duration", value: $template.duration, range: 5...600, step: 5, unit: "s")
+                        stepperValue("Rest", value: $template.restAfter, range: 0...120, step: 5, unit: "s")
+                    }
                 }
+                .padding(12)
+                .modifier(PageFormFieldSurface(isFocused: focusedDropSetID == template.id))
             }
         }
     }
@@ -674,9 +913,8 @@ struct PageCreationSheet: View {
                 .foregroundStyle(Theme.textSecondary)
             HStack(spacing: 4) {
                 Text("\(value.wrappedValue)\(unit)")
-                    .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    .font(TimeMasterFont.black(13, relativeTo: .caption).monospacedDigit())
                     .foregroundStyle(Theme.toolbarOrange)
-                    .monospacedDigit()
                 Stepper("", value: value, in: range, step: step)
                     .labelsHidden()
                     .scaleEffect(0.85, anchor: .trailing)
@@ -692,134 +930,235 @@ struct PageCreationSheet: View {
 
     private var markdownCard: some View {
         formCard {
-            sectionHeading("Guide", optional: true)
-            MarkdownEditorField(
-                title: "Guide",
-                placeholder: "Write a guide here…",
-                text: $markdownBody,
-                assets: pageAssets,
-                minHeight: 140
-            )
+            sectionHeading("Guide", tag: .optional)
+            MarkdownEditorView(text: $markdownBody, assets: pageAssets, showsBar: false, trailingSpace: 56)
+                .frame(height: guideHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .modifier(PageFormFieldSurface())
+                .overlay(alignment: .topTrailing) {
+                    Button {
+                        showGuideFullScreen = true
+                    } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 13, weight: .black))
+                    }
+                    .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 34))
+                    .padding(6)
+                    .accessibilityLabel("Open the guide full screen")
+                }
+                .overlay(alignment: .bottomLeading) {
+                    guideResizeHandle(mirrored: true)
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    guideResizeHandle(mirrored: false)
+                }
+            Text("Markdown renders as you type. Drag a bottom corner to resize, or expand to full screen for formatting tools.")
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .multilineTextAlignment(.center)
         }
+    }
+
+    private func guideResizeHandle(mirrored: Bool) -> some View {
+        GuideResizeGrip()
+            .stroke(Theme.textPrimary, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            .frame(width: 14, height: 14)
+            .scaleEffect(x: mirrored ? -1 : 1, y: 1)
+            .frame(width: 34, height: 34)
+            .background(Theme.toolbarOrange.opacity(0.8), in: Circle())
+            .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 1))
+            .padding(6)
+            .frame(width: 48, height: 48)
+            .contentShape(Rectangle())
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                    .onChanged { value in
+                        let origin = guideDragOrigin ?? guideHeight
+                        if guideDragOrigin == nil { guideDragOrigin = guideHeight }
+                        guideHeight = min(Self.guideHeightRange.upperBound, max(Self.guideHeightRange.lowerBound, origin + value.translation.height))
+                    }
+                    .onEnded { _ in
+                        guideDragOrigin = nil
+                    }
+            )
+            .onTapGesture(count: 2) {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) {
+                    guideHeight = guideHeight < 400 ? 520 : 220
+                }
+            }
+            .accessibilityElement()
+            .accessibilityLabel("Resize guide editor")
+            .accessibilityValue("\(Int(guideHeight)) points tall")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: guideHeight = min(Self.guideHeightRange.upperBound, guideHeight + 80)
+                case .decrement: guideHeight = max(Self.guideHeightRange.lowerBound, guideHeight - 80)
+                @unknown default: break
+                }
+            }
     }
 
     private var linksCard: some View {
         formCard {
-            ZStack {
-                sectionHeading("External Links", optional: true)
-                HStack {
-                    Spacer()
-                    Button {
-                        linkRows.append(PageCreationLinkRow(url: ""))
-                    } label: {
-                        Image(systemName: "plus.circle")
+            sectionHeading("External Links", tag: .optional)
+            ForEach($linkRows) { $row in
+                linkRowView($row)
+            }
+            Button {
+                addLinkRow()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .black))
+            }
+            .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 48))
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel("Add another link")
+        }
+    }
+
+    private func linkRowView(_ row: Binding<PageCreationLinkRow>) -> some View {
+        let value = row.wrappedValue
+        let normalized = normalizedLinkURL(value.url)
+        let isValid = !normalized.isEmpty && isValidHTTPURL(normalized)
+        let isEmpty = value.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "link")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(isValid ? Theme.toolbarOrange : Theme.textSecondary)
+                    .accessibilityHidden(true)
+                TextField("Paste a link", text: row.url)
+                    .textFieldStyle(.plain)
+                    .font(TimeMasterFont.body(16))
+                    .foregroundStyle(Theme.textPrimary)
+                    .focused($focusedLinkID, equals: value.id)
+                    #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    #endif
+                    .onSubmit { submitLink(value.id) }
+                    .onChange(of: value.url) { _ in
+                        refreshLinkMetadata(for: value.id)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.toolbarOrange)
-                    .accessibilityLabel("Add external link")
+                if value.isLoading {
+                    TmaxLoadingIndicator(size: 18)
+                }
+                if isEmpty {
+                    PasteButton(payloadType: String.self) { strings in
+                        let pasted = strings.first ?? ""
+                        Task { @MainActor in pasteLink(pasted, into: value.id) }
+                    }
+                    .labelStyle(.titleOnly)
+                    .buttonBorderShape(.capsule)
+                    .tint(Theme.toolbarOrange)
+                    .controlSize(.small)
+                    .accessibilityLabel("Paste link from clipboard")
+                }
+                if !isEmpty || linkRows.count > 1 {
+                    Button(role: .destructive) {
+                        removeLinkRow(value.id)
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 11, weight: .black))
+                    }
+                    .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 30))
+                    .accessibilityLabel("Remove link")
                 }
             }
+            .padding(.leading, 13)
+            .padding(.trailing, 6)
+            .padding(.vertical, 6)
+            .frame(minHeight: 50)
+            .modifier(PageFormFieldSurface(isFocused: focusedLinkID == value.id, isValid: isValid))
 
-            if !linkRows.isEmpty {
-                ForEach($linkRows) { $row in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            TextField("Paste URL", text: $row.url)
-                                .textFieldStyle(.plain)
-                                .foregroundStyle(Theme.textPrimary)
-                                #if os(iOS)
-                                .textInputAutocapitalization(.never)
-                                .keyboardType(.URL)
-                                #endif
-                                .onChange(of: row.url) { _ in
-                                    refreshLinkMetadata(for: row.id)
-                                }
-                            if row.isLoading {
-                                TmaxLoadingIndicator(size: 18)
-                            }
-                            Button {
-                                linkRows.removeAll { $0.id == row.id }
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(Theme.textSecondary)
-                            .accessibilityLabel("Remove external link")
-                        }
-                        .padding(12)
-                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
-
-                        if let metadata = row.metadata {
-                            PageCreationLinkPreview(metadata: metadata)
-                        } else if !row.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !row.isLoading {
-                            Text("Enter a valid http(s) link to load its preview.")
-                                .font(TimeMasterFont.caption())
-                                .foregroundStyle(.orange)
-                        }
-                        Button {
-                            insertLink(after: row.id)
-                        } label: {
-                            Label {
-                                Text("Add link below")
-                                    .font(TimeMasterFont.black(12, relativeTo: .caption))
-                            } icon: {
-                                Image(systemName: "plus")
-                                    .font(.caption.weight(.semibold))
-                            }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(TimeMasterActionButtonStyle())
-                    }
+            if isValid {
+                PageLinkRow(info: PageLinkInfo(urlString: normalized, metadata: value.metadata)) {
+                    if let url = URL(string: normalized) { openURL(url) }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            } else if !isEmpty {
+                Label("Not a valid web link yet. Links start with https://", systemImage: "exclamationmark.circle")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.toolbarOrange)
             }
         }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: isValid)
     }
 
     private var deleteCard: some View {
         Button(role: .destructive) {
             showDeleteConfirm = true
         } label: {
-            Text("Delete Page")
+            Label("Delete Page", systemImage: "trash")
                 .font(TimeMasterFont.sectionTitle())
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
         }
         .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52, fillsWidth: true))
     }
 
     private var actionBar: some View {
-        HStack(spacing: 10) {
-            Button {
-                savePage()
-            } label: {
-                Text(existingPage == nil ? "Create Page" : "Save Changes")
-                    .frame(maxWidth: .infinity)
+        VStack(spacing: 6) {
+            if !canSave {
+                Text("Add a title to create this page")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
             }
-            .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52))
-            .disabled(!canSave)
-
-            if existingPage == nil {
-                Button {
-                    saveDraft()
-                } label: {
-                    Image(systemName: "doc.badge.clock")
-                        .font(.headline)
-                        .frame(width: 52, height: 52)
+            HStack(spacing: 10) {
+                if existingPage == nil {
+                    Button {
+                        saveDraft()
+                    } label: {
+                        Label {
+                            Text("Draft")
+                        } icon: {
+                            Image(systemName: "tray.and.arrow.down")
+                                .font(.system(size: 15, weight: .bold))
+                        }
+                        .font(TimeMasterFont.black(16, relativeTo: .callout))
+                    }
+                    .buttonStyle(TimeMasterActionButtonStyle(
+                        minimumSize: 54,
+                        horizontalPadding: 18,
+                        tint: canDraft ? Theme.toolbarOrange : Color(white: 0.42)
+                    ))
+                    .disabled(!canDraft)
+                    .accessibilityLabel("Save draft")
                 }
-                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 52))
-                .disabled(!canDraft)
-                .accessibilityLabel("Save draft")
+
+                Button {
+                    savePage()
+                } label: {
+                    Text(existingPage == nil ? "Create Page" : "Save Changes")
+                        .font(TimeMasterFont.black(17, relativeTo: .body))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(TimeMasterActionButtonStyle(
+                    prominent: true,
+                    minimumSize: 54,
+                    fillsWidth: true,
+                    tint: canSave ? Theme.toolbarOrange : Color(white: 0.42)
+                ))
+                .disabled(!canSave)
+                .accessibilityHint(canSave ? "" : "Add a title first")
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 11)
+        .padding(.top, 10)
         .padding(.bottom, 8)
-        .background(.ultraThinMaterial)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(Theme.background.opacity(0.85))
+                .ignoresSafeArea(edges: .bottom)
+        }
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Theme.toolbarOrange.opacity(0.55))
+                .fill(Color.white.opacity(0.1))
                 .frame(height: 1)
         }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: canSave)
     }
 
     private var canSave: Bool {
@@ -848,7 +1187,7 @@ struct PageCreationSheet: View {
     }
 
     private func scheduleAutosave() {
-        guard existingPage == nil, !didSavePage else { return }
+        guard existingPage == nil, !didSavePage, !didDiscard else { return }
         autosaveTask?.cancel()
         autosaveTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 700_000_000)
@@ -866,7 +1205,6 @@ struct PageCreationSheet: View {
             || !markdownBody.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !linkRows.allSatisfy { $0.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             || !mediaFilenames.isEmpty
-            || pageType != nil
             || !dropSetTemplates.isEmpty
     }
 
@@ -891,48 +1229,49 @@ struct PageCreationSheet: View {
     }
 
     private func skillStatusTitle(_ status: SkillStatus) -> String {
-        switch status {
-        case .notStarted: "Not started"
-        case .learning: "Learning"
-        case .completed: "Completed"
-        }
+        status.title
     }
 
     private func formCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10, content: content)
+        VStack(alignment: .leading, spacing: 12, content: content)
     }
 
-    private func sectionHeading(_ title: String, required: Bool = false, optional: Bool = false) -> some View {
-        HStack(spacing: 4) {
+    private func sectionHeading(_ title: String, tag: PageFormTag) -> some View {
+        sectionHeading(title, tag: tag) { EmptyView() }
+    }
+
+    private func sectionHeading<Accessory: View>(
+        _ title: String,
+        tag: PageFormTag,
+        @ViewBuilder accessory: () -> Accessory
+    ) -> some View {
+        HStack(spacing: 8) {
             Spacer(minLength: 0)
             Text(title)
                 .font(TimeMasterFont.heading())
                 .foregroundStyle(Theme.textPrimary)
-            statusMark(required: required, optional: optional)
+            PageFormTagLabel(tag: tag)
+            accessory()
             Spacer(minLength: 0)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 
-    @ViewBuilder
-    private func statusMark(required: Bool, optional: Bool) -> some View {
-        if required {
-            Text("*")
-                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                .foregroundStyle(Theme.toolbarOrange)
-        } else if optional {
-            Text("opt")
-                .font(TimeMasterFont.black(9, relativeTo: .caption2))
-                .foregroundStyle(Theme.textSecondary)
+    private func requestCancel() {
+        if existingPage == nil, hasDraftContent, !draftSavedExplicitly, !openedFromDraft {
+            showCancelConfirm = true
+        } else {
+            dismiss()
         }
     }
 
-    private func formHeading(_ title: String, required: Bool = false, optional: Bool = false) -> some View {
-        HStack(spacing: 4) {
-            Text(title)
-                .font(TimeMasterFont.black(17))
-                .foregroundStyle(Theme.textPrimary)
-            statusMark(required: required, optional: optional)
-        }
+    private func discardDraft() {
+        didDiscard = true
+        autosaveTask?.cancel()
+        draftStore.delete(id: draftID)
+        cleanupTemporaryMedia()
+        dismiss()
     }
 
     private func addManualDropSet() {
@@ -984,35 +1323,37 @@ struct PageCreationSheet: View {
     }
 
     private func saveDraft() {
-        persistDraftIfNeeded(showConfirmation: true)
+        guard persistDraftIfNeeded() else { return }
+        draftSavedExplicitly = true
+        withAnimation(.easeOut(duration: 0.2)) {
+            draftSavedMessage = "Draft saved"
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.easeOut(duration: 0.2)) {
+                draftSavedMessage = nil
+            }
+        }
     }
 
-    private func persistDraftIfNeeded(showConfirmation: Bool = false) {
-        guard existingPage == nil, !didSavePage, hasDraftContent else { return }
+    @discardableResult
+    private func persistDraftIfNeeded() -> Bool {
+        guard existingPage == nil, !didSavePage, !didDiscard, hasDraftContent else { return false }
         let draft = makeDraft()
         let sources = Dictionary(uniqueKeysWithValues: pendingMediaFiles.map { ($0.filename, $0.temporaryURL) })
         do {
             try ExerciseLibraryAccess.shared.perform(token: libraryToken) {
-                try PageCreationDraftStore.shared.save(draft, mediaSources: sources)
+                try draftStore.save(draft, mediaSources: sources)
             }
-            if showConfirmation {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    draftSavedMessage = "Draft saved"
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        draftSavedMessage = nil
-                    }
-                }
-            }
+            return true
         } catch {
             saveErrorMessage = "Could not save draft: \(error.localizedDescription)"
+            return false
         }
     }
 
     private func makeDraft() -> PageCreationDraft {
         let now = Date()
-        let createdAt = PageCreationDraftStore.shared.drafts.first(where: { $0.id == draftID })?.createdAt ?? now
+        let createdAt = draftStore.drafts.first(where: { $0.id == draftID })?.createdAt ?? now
         let links = linkRows.compactMap { row -> (String, LinkMetadata?)? in
             let url = normalizedLinkURL(row.url)
             return url.isEmpty ? nil : (url, row.metadata)
@@ -1067,7 +1408,7 @@ struct PageCreationSheet: View {
                         try uploadMediaAfterFallbackSave(pageID: manifest.id, mediaData: mediaData)
                     }
                 }
-                if existingPage == nil { PageCreationDraftStore.shared.delete(id: draftID) }
+                if existingPage == nil { draftStore.delete(id: draftID) }
             }
             didSavePage = true
             autosaveTask?.cancel()
@@ -1101,7 +1442,7 @@ struct PageCreationSheet: View {
             manifest.pageType = resolvedPageType
             manifest.parentID = draftParentID
             manifest.coverImageFilename = nil
-            manifest.iconName = nil
+            if !isSkillLike { manifest.iconName = nil }
             manifest.workoutType = coreWorkoutType
             manifest.markdownBody = markdownBody
             manifest.mediaFilenames = mediaFilenames
@@ -1211,6 +1552,8 @@ struct PageCreationSheet: View {
 
     private func apply(draft: PageCreationDraft) {
         draftID = draft.id
+        openedFromDraft = true
+        draftSavedExplicitly = false
         title = draft.title
         pageKind = draft.pageKind
         pageType = draft.pageType ?? (draft.pageKind == .leaf ? .exercise : nil)
@@ -1227,16 +1570,17 @@ struct PageCreationSheet: View {
         sets = max(1, draft.sets)
         restBetweenSets = draft.restBetweenSets
         dropSetTemplates = draft.dropSetTemplates
-        linkRows = Self.makeLinkRows(urls: draft.linkURLs, metadata: draft.linkMetadata)
+        let restoredLinks = Self.makeLinkRows(urls: draft.linkURLs, metadata: draft.linkMetadata)
+        linkRows = restoredLinks.isEmpty ? [PageCreationLinkRow(url: "")] : restoredLinks
 
         let availableMedia = draft.mediaFilenames.filter { filename in
-            let url = PageCreationDraftStore.shared.mediaURL(for: draft, filename: filename)
+            let url = draftStore.mediaURL(for: draft, filename: filename)
             return FileManager.default.fileExists(atPath: url.path)
         }
         mediaFilenames = availableMedia
         mediaComments = (draft.mediaComments ?? [:]).filter { availableMedia.contains($0.key) }
         pendingMediaFiles = availableMedia.map { filename in
-            PendingPageMedia(temporaryURL: PageCreationDraftStore.shared.mediaURL(for: draft, filename: filename))
+            PendingPageMedia(temporaryURL: draftStore.mediaURL(for: draft, filename: filename))
         }
         mediaPreviewThumbnails = []
         loadMediaPreviews()
@@ -1249,7 +1593,7 @@ struct PageCreationSheet: View {
             if let pending = pendingMediaFiles.first(where: { $0.filename == filename }) {
                 url = pending.temporaryURL
             } else if let page = existingPage {
-                url = page.mediaURLs[safe: index]
+                url = page.mediaURLs.first { $0.lastPathComponent == filename } ?? page.mediaURLs[safe: index]
             } else {
                 url = nil
             }
@@ -1346,6 +1690,49 @@ struct PageCreationSheet: View {
         }
     }
 
+    private func addLinkRow(after rowID: UUID? = nil) {
+        let row = PageCreationLinkRow(url: "")
+        if let rowID, let index = linkRows.firstIndex(where: { $0.id == rowID }) {
+            linkRows.insert(row, at: index + 1)
+        } else {
+            linkRows.append(row)
+        }
+        focusedLinkID = row.id
+    }
+
+    private func submitLink(_ rowID: UUID) {
+        guard let index = linkRows.firstIndex(where: { $0.id == rowID }) else { return }
+        let hasLink = !linkRows[index].url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let nextIsEmpty = linkRows.indices.contains(index + 1)
+            && linkRows[index + 1].url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if hasLink, !nextIsEmpty {
+            addLinkRow(after: rowID)
+        } else if hasLink, nextIsEmpty {
+            focusedLinkID = linkRows[index + 1].id
+        } else {
+            focusedLinkID = nil
+        }
+    }
+
+    private func removeLinkRow(_ rowID: UUID) {
+        if linkRows.count > 1 {
+            linkRows.removeAll { $0.id == rowID }
+        } else {
+            updateLinkRow(rowID) {
+                $0.url = ""
+                $0.metadata = nil
+                $0.isLoading = false
+            }
+        }
+    }
+
+    private func pasteLink(_ pasted: String, into rowID: UUID) {
+        let value = pasted.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        updateLinkRow(rowID) { $0.url = value }
+        refreshLinkMetadata(for: rowID)
+    }
+
     private func refreshLinkMetadata() {
         for row in linkRows where row.metadata == nil && !row.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             refreshLinkMetadata(for: row.id)
@@ -1355,20 +1742,14 @@ struct PageCreationSheet: View {
     private func refreshLinkMetadata(for rowID: UUID) {
         guard let row = linkRows.first(where: { $0.id == rowID }) else { return }
         let normalized = normalizedLinkURL(row.url)
-        guard !normalized.isEmpty else {
+        guard !normalized.isEmpty, isValidHTTPURL(normalized) else {
             updateLinkRow(rowID) {
                 $0.metadata = nil
                 $0.isLoading = false
             }
             return
         }
-        guard isValidHTTPURL(normalized) else {
-            updateLinkRow(rowID) {
-                $0.metadata = nil
-                $0.isLoading = false
-            }
-            return
-        }
+        if row.metadata?.url == normalized { return }
 
         updateLinkRow(rowID) {
             $0.metadata = nil
@@ -1394,11 +1775,6 @@ struct PageCreationSheet: View {
         mutate(&linkRows[index])
     }
 
-    private func insertLink(after rowID: UUID) {
-        guard let index = linkRows.firstIndex(where: { $0.id == rowID }) else { return }
-        linkRows.insert(PageCreationLinkRow(url: ""), at: index + 1)
-    }
-
     private func normalizedLinkURL(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }
@@ -1412,7 +1788,9 @@ struct PageCreationSheet: View {
         guard let components = URLComponents(string: value),
               (components.scheme?.lowercased() == "http" || components.scheme?.lowercased() == "https"),
               let host = components.host,
-              !host.isEmpty else {
+              host.contains("."),
+              !host.hasPrefix("."),
+              !host.hasSuffix(".") else {
             return false
         }
         return true
@@ -1440,20 +1818,41 @@ struct PageCreationSheet: View {
     }
 }
 
-private struct PageCreationLinkPreview: View {
-    let metadata: LinkMetadata
-
+struct DatabasePlusIcon: View {
     var body: some View {
-        PageLinkRow(info: PageLinkInfo(urlString: metadata.url, metadata: metadata))
+        Image(systemName: "cylinder.split.1x2")
+            .font(.system(size: 15, weight: .bold))
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 10, weight: .black))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Theme.toolbarOrange, Theme.textPrimary)
+                    .offset(x: 5, y: 4)
+            }
+            .padding(.trailing, 4)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct GuideResizeGrip: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.move(to: CGPoint(x: rect.maxX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        return path
     }
 }
 
 private struct PageCreationDraftListSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var store: PageCreationDraftStore
+    let currentDraftID: UUID
     let onSelect: (PageCreationDraft) -> Void
 
-    init(onSelect: @escaping (PageCreationDraft) -> Void) {
+    init(currentDraftID: UUID, onSelect: @escaping (PageCreationDraft) -> Void) {
+        self.currentDraftID = currentDraftID
         self.onSelect = onSelect
         _store = ObservedObject(wrappedValue: PageCreationDraftStore.shared)
     }
@@ -1464,74 +1863,147 @@ private struct PageCreationDraftListSheet: View {
                 Theme.background.ignoresSafeArea()
                 if store.drafts.isEmpty {
                     VStack(spacing: 10) {
-                        Image(systemName: "doc.badge.clock")
-                            .font(.system(size: 38))
+                        Image(systemName: "tray")
+                            .font(.system(size: 38, weight: .semibold))
                             .foregroundStyle(Theme.toolbarOrange)
                         Text("No drafts")
                             .font(TimeMasterFont.sectionTitle())
                             .foregroundStyle(Theme.textPrimary)
-                        Text("Drafts are kept for 30 days.")
+                        Text("Tap Draft while creating a page to keep it here. Drafts are kept for 30 days.")
                             .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                             .foregroundStyle(Theme.textSecondary)
+                            .multilineTextAlignment(.center)
                     }
+                    .padding(32)
                 } else {
-                    List {
-                        ForEach(store.drafts) { draft in
-                            Button {
-                                onSelect(draft)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    RoundedRectangle(cornerRadius: 9)
-                                        .fill(Theme.toolbarOrange.opacity(0.14))
-                                        .frame(width: 44, height: 44)
-                                        .overlay {
-                                            Text(draft.pageKind == .leaf ? "E" : "C")
-                                                .font(TimeMasterFont.sectionTitle())
-                                                .foregroundStyle(Theme.toolbarOrange)
-                                        }
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(draft.title.isEmpty ? "Untitled page" : draft.title)
-                                            .font(TimeMasterFont.rowTitle())
-                                            .foregroundStyle(Theme.textPrimary)
-                                            .lineLimit(1)
-                                        Text("\(draft.pageKind == .leaf ? "Exercise" : "Container") · \(draft.mediaFilenames.count) media · \(draft.updatedAt, style: .relative)")
-                                            .font(TimeMasterFont.caption())
-                                            .foregroundStyle(Theme.textSecondary)
-                                            .lineLimit(1)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundStyle(Theme.toolbarOrange)
-                                }
-                                .padding(.vertical, 5)
+                    ScrollView {
+                        LazyVStack(spacing: 10) {
+                            ForEach(store.drafts) { draft in
+                                draftRow(draft)
                             }
-                            .listRowBackground(Theme.surface)
-                            .buttonStyle(.plain)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    store.delete(id: draft.id)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
+                            Text("Drafts are removed once the page is created, or after 30 days.")
+                                .font(TimeMasterFont.caption())
+                                .foregroundStyle(Theme.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 6)
                         }
+                        .padding(16)
                     }
-                    .scrollContentBackground(.hidden)
                 }
             }
             .timeMasterNavigationTitle("Drafts")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             #endif
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .buttonStyle(TimeMasterToolbarTextButtonStyle())
-                        .tint(Theme.toolbarOrange)
                 }
             }
             .task { store.reload() }
+        }
+    }
+
+    private func draftRow(_ draft: PageCreationDraft) -> some View {
+        let isCurrent = draft.id == currentDraftID
+        return HStack(spacing: 12) {
+            Button {
+                onSelect(draft)
+            } label: {
+                HStack(spacing: 12) {
+                    DraftThumbnail(url: draft.mediaFilenames.first.map { store.mediaURL(for: draft, filename: $0) }, pageType: draft.pageType)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(draft.title.isEmpty ? "Untitled page" : draft.title)
+                            .font(TimeMasterFont.rowTitle())
+                            .foregroundStyle(Theme.textPrimary)
+                            .lineLimit(1)
+                        Text("\(Self.typeTitle(draft.pageType)) · \(draft.mediaFilenames.count) media · \(Self.expiry(draft))")
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(Theme.textSecondary)
+                            .lineLimit(1)
+                        Text(isCurrent ? "Editing now" : "Edited \(draft.updatedAt.formatted(.relative(presentation: .named)))")
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(isCurrent ? Theme.toolbarOrange : Theme.textSecondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 14))
+            .accessibilityLabel("\(draft.title.isEmpty ? "Untitled page" : draft.title), \(Self.typeTitle(draft.pageType))")
+            .accessibilityHint(isCurrent ? "This is the draft you are editing" : "Opens this draft")
+
+            Button(role: .destructive) {
+                store.delete(id: draft.id)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 13, weight: .bold))
+            }
+            .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 36))
+            .accessibilityLabel("Delete draft")
+        }
+        .padding(10)
+        .modifier(PageFormFieldSurface(isValid: isCurrent))
+    }
+
+    private static func typeTitle(_ type: PageType?) -> String {
+        switch type {
+        case .exercise: "Exercise"
+        case .skill: "Skill"
+        case .tutorial: "Tutorial"
+        case nil: "Container"
+        }
+    }
+
+    private static func expiry(_ draft: PageCreationDraft) -> String {
+        let remaining = draft.updatedAt.addingTimeInterval(PageCreationDraftStore.lifetime).timeIntervalSinceNow
+        let days = max(0, Int((remaining / 86_400).rounded(.up)))
+        return days == 1 ? "1 day left" : "\(days) days left"
+    }
+}
+
+private struct DraftThumbnail: View {
+    let url: URL?
+    let pageType: PageType?
+    @State private var image: Image?
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(Theme.toolbarOrange.opacity(0.14))
+            .frame(width: 52, height: 52)
+            .overlay {
+                if let image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: symbol)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Theme.toolbarOrange)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .task(id: url) {
+                guard let url, let loaded = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: 160) else { return }
+                #if os(iOS)
+                image = Image(uiImage: loaded)
+                #else
+                image = Image(nsImage: loaded)
+                #endif
+            }
+            .accessibilityHidden(true)
+    }
+
+    private var symbol: String {
+        switch pageType {
+        case .exercise: "figure.run"
+        case .skill: "flag.checkered"
+        case .tutorial: "book.closed"
+        case nil: "square.stack.3d.up"
         }
     }
 }
@@ -1560,4 +2032,3 @@ private struct PageMediaDropDelegate: DropDelegate {
         return true
     }
 }
-

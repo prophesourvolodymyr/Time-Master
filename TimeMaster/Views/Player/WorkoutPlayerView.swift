@@ -305,6 +305,7 @@ struct WorkoutPlayerView: View {
                         .environmentObject(musicLibrary)
                     }
                     .background(Theme.background)
+                    .keyNavHost()
                     .transition(.opacity)
                 }
             }
@@ -345,6 +346,7 @@ struct WorkoutPlayerView: View {
                     )
                     .environmentObject(databaseStore)
                     .environmentObject(store)
+                    .keyNavHost()
                 }
             }
             .sheet(isPresented: $showMusicChooser) {
@@ -440,7 +442,7 @@ struct WorkoutPlayerView: View {
                                 .frame(maxWidth: .infinity, minHeight: 56)
                                 .background(.white, in: RoundedRectangle(cornerRadius: 16))
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 16))
                     }
                     .frame(maxWidth: 480)
                     .padding(24)
@@ -464,7 +466,7 @@ struct WorkoutPlayerView: View {
                 .background(warmUpDuration == value ? Color.white : Color.white.opacity(0.15))
                 .cornerRadius(12)
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
         .accessibilityLabel(value == 0 ? "No warm-up" : "\(value) seconds warm-up")
         .accessibilityAddTraits(warmUpDuration == value ? .isSelected : [])
     }
@@ -505,6 +507,7 @@ struct WorkoutPlayerView: View {
                         .background(Color.white)
                         .cornerRadius(14)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 14))
                 .padding(.top, 8)
             }
 
@@ -553,6 +556,7 @@ struct WorkoutPlayerView: View {
                         .background(Color.white)
                         .cornerRadius(14)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 14))
                 .padding(.top, 8)
             }
 
@@ -606,7 +610,7 @@ struct WorkoutPlayerView: View {
                                     .foregroundColor(.white.opacity(0.5))
                             }
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.horizontal, 32)
@@ -660,7 +664,7 @@ struct WorkoutPlayerView: View {
                 Button { showBundleReorder = true } label: {
                     Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .circle)
                 .accessibilityLabel("Bundle order and settings")
                 sectionBadge
             }
@@ -684,11 +688,13 @@ struct WorkoutPlayerView: View {
                         Button { restartCurrentExercise() } label: {
                             Image(systemName: "arrow.counterclockwise").frame(width: 48, height: 48)
                         }
+                        .keyNavTarget(shape: .circle)
                         .accessibilityLabel("Restart exercise")
                         pausePlayButton
                         Button { skipCurrentPhase() } label: {
                             Image(systemName: "forward.end.fill").frame(width: 48, height: 48)
                         }
+                        .keyNavTarget(shape: .circle)
                         .accessibilityLabel("Next exercise")
                     }
                     .buttonStyle(.plain)
@@ -812,6 +818,7 @@ struct WorkoutPlayerView: View {
                             .background(Color.white)
                             .cornerRadius(14)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 14))
                 }
                 .padding(.top, 6)
             }
@@ -846,6 +853,11 @@ struct WorkoutPlayerView: View {
             if let firstItem = nextSection.mediaItems.first,
                let idx = nextSectionImages.firstIndex(where: { $0 != nil }),
                let img = nextSectionImages[idx] {
+                let openOverlay: () -> Void = {
+                    overlayMediaItem = firstItem
+                    overlayImage = img
+                    showMediaOverlay = true
+                }
                 Image.platformImg(img)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -857,11 +869,8 @@ struct WorkoutPlayerView: View {
                     )
                     .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
                     .opacity(0.5)
-                    .onTapGesture {
-                        overlayMediaItem = firstItem
-                        overlayImage = img
-                        showMediaOverlay = true
-                    }
+                    .onTapGesture(perform: openOverlay)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 16), action: openOverlay)
             } else if nextSection.mediaItems.isEmpty {
                 VStack(spacing: 6) {
                     Image(systemName: "flag.checkered")
@@ -975,6 +984,7 @@ struct WorkoutPlayerView: View {
                 .background(Color.white.opacity(0.2))
                 .clipShape(Circle())
         }
+        .keyNavTarget(shape: .circle)
     }
 
     private var pausePlayButton: some View {
@@ -989,6 +999,7 @@ struct WorkoutPlayerView: View {
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
         }
+        .keyNavTarget(shape: .circle)
     }
 
     private var skipSectionButton: some View {
@@ -1002,6 +1013,7 @@ struct WorkoutPlayerView: View {
                 .background(Color.white.opacity(0.2))
                 .clipShape(Circle())
         }
+        .keyNavTarget(shape: .circle)
     }
 
     private var musicButton: some View {
@@ -1013,6 +1025,7 @@ struct WorkoutPlayerView: View {
                         .frame(width: 44, height: 44)
                         .background(.white.opacity(0.12), in: Circle())
                 }
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel("Manage active workout")
                 .accessibilityValue("Exercise \(currentSectionIndex + 1) of \(workout.sections.count)")
             }
@@ -1022,6 +1035,7 @@ struct WorkoutPlayerView: View {
                     .frame(width: 44, height: 44)
                     .background(Color.white.opacity(musicSession.isPlaying ? 0.25 : 0.12), in: Circle())
             }
+            .keyNavTarget(shape: .circle)
             .accessibilityLabel("Choose workout music")
             .accessibilityValue(musicSession.title ?? "Silence")
         }
@@ -1783,15 +1797,19 @@ struct WorkoutPlayerView: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.easeOut(duration: 0.3)) {
-                showMediaOverlay = false
-                overlayMediaItem = nil
-                overlayImage = nil
-            }
-        }
+        .onTapGesture(perform: dismissMediaOverlay)
+        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 0), action: dismissMediaOverlay)
+        .keyNavHost()
         .transition(.opacity.combined(with: .scale(scale: 0.9)))
         .animation(.easeOut(duration: 0.3), value: showMediaOverlay)
+    }
+
+    private func dismissMediaOverlay() {
+        withAnimation(.easeOut(duration: 0.3)) {
+            showMediaOverlay = false
+            overlayMediaItem = nil
+            overlayImage = nil
+        }
     }
 
     private func preloadNextSectionMedia() {
@@ -1982,7 +2000,7 @@ extension View {
         }
         #else
         sheet(item: item) { workout in
-            content(workout).interactiveDismissDisabled()
+            content(workout).interactiveDismissDisabled().keyNavHost()
         }
         #endif
     }

@@ -178,7 +178,10 @@ struct DatabasePageBrowserSheet: View {
                     } label: {
                         Image(systemName: "arrow.up.arrow.down")
                     }
-                    .foregroundStyle(Theme.toolbarOrange)
+                    .menuStyle(.button)
+                    .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                    .menuIndicator(.hidden)
+                    .accessibilityLabel("Sort pages")
                 }
                 AppToolbar.iconItem(placement: .primaryAction) {
                     Button {

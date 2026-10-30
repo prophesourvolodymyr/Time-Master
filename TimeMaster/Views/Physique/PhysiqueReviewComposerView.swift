@@ -44,6 +44,7 @@ struct PhysiqueReviewComposerView: View {
                         }
                     }
                     Button("Close") { dismiss() }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 }
             }
         }
@@ -183,6 +184,7 @@ private struct PhysiqueReviewDocument: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(draft.phase == .editing ? "Cancel" : "Close") { requestClose() }
+                    .physiqueToolbarTarget()
             }
         }
         .interactiveDismissDisabled(editable && draft.hasContent)
@@ -277,16 +279,20 @@ private struct PhysiqueReviewDocument: View {
                         .foregroundStyle(ProfileStyle.secondary)
                 }
                 Button(copied ? "Reference copied" : "Copy reference", action: copyReference)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 Button(appeal ? "Open decision" : "Open result") {
                     requestClose(to: appeal ? .caseDetail(draft.target.id) : .result(draft.target.id))
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 if decisionChanged {
                     Label("Decision changed", systemImage: "arrow.triangle.2.circlepath")
                         .font(TimeMasterFont.sectionTitle())
                     Text("Your note has been kept. The displayed context is now current; review it before continuing.")
                     Button("Use this current decision") { decisionChanged = false }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 }
                 Button("Refresh decision") { Task { await loadContext() } }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(loading)
             }
         }
@@ -303,6 +309,11 @@ private struct PhysiqueReviewDocument: View {
             }
             #if os(macOS)
             .pickerStyle(.radioGroup)
+            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6), action: {
+                guard !reasons.isEmpty else { return }
+                let index = reasons.firstIndex { $0.id == draft.reason } ?? -1
+                draft.reason = reasons[(index + 1) % reasons.count].id
+            })
             #else
             .pickerStyle(.menu)
             .frame(minHeight: ProfileStyle.touchTarget, alignment: .leading)
@@ -395,6 +406,7 @@ private struct PhysiqueReviewDocument: View {
                     if let decision = item.decision, !decision.isEmpty { Text(decision) }
                     if item.canWithdraw {
                         Button("Withdraw request", role: .destructive) { confirmsWithdrawal = true }
+                            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                             .disabled(store.busy || withdrawing || withdrawalUnconfirmed)
                     }
                 } else {
@@ -406,7 +418,7 @@ private struct PhysiqueReviewDocument: View {
                     Text("The last confirmed case state remains shown. Check status before trying again.")
                 }
                 if let statusError { Text(statusError) }
-                Button("Check status") { Task { await refreshReceipt() } }.disabled(loading || withdrawing)
+                Button("Check status") { Task { await refreshReceipt() } }.keyNavTarget(shape: .roundedRectangle(cornerRadius: 6)).disabled(loading || withdrawing)
                 PhysiqueAction(title: "View case", systemImage: "doc.text.magnifyingglass") { close(to: .caseDetail(id)) }
             }
             Text(appeal ? "Receipt does not remove a restriction or restore media." : "Receipt does not change the confirmed result or award rating.")
@@ -419,6 +431,7 @@ private struct PhysiqueReviewDocument: View {
     private var publicContact: some View {
         if let supportURL {
             Link(destination: supportURL) { Label("Published operator support", systemImage: "arrow.up.right.square") }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         }
     }
 
@@ -431,9 +444,11 @@ private struct PhysiqueReviewDocument: View {
                 #if os(macOS)
                 HStack {
                     Button("Cancel") { requestClose() }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     Spacer()
                     Button(sendTitle) { Task { await send() } }
                         .buttonStyle(.borderedProminent)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                         .disabled(disabledReason != nil)
                 }
                 #else
@@ -444,6 +459,7 @@ private struct PhysiqueReviewDocument: View {
             } else {
                 Button(draft.phase == .received ? "Done" : "Close") { requestClose() }
                     .buttonStyle(.bordered)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             }
         }
         .frame(maxWidth: ProfileStyle.readableWidth)
@@ -463,6 +479,7 @@ private struct PhysiqueReviewDocument: View {
                     requestClose(to: match.stage == .judging ? .judging : match.stage == .ready || match.stage == .countdown ? .ready : .battle)
                 }
                 .buttonStyle(.bordered)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             }
             .padding(.bottom, ProfileStyle.spacing)
             .background(Theme.background)

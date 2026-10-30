@@ -34,6 +34,7 @@ struct MenuBarPopupContent: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             Rectangle().fill(Theme.separator).frame(height: 1)
             MenuBarPageBar(selection: $navigation.page)
+                .keyNavRole(.excluded)
         }
         .frame(width: MenuBarPopupMetrics.width, height: MenuBarPopupMetrics.height)
         .background(Theme.background)
@@ -44,6 +45,13 @@ struct MenuBarPopupContent: View {
         .onChange(of: live.isActive) { active in
             if active { navigation.page = .home }
         }
+        .keyNavHost(onPageStep: stepPage)
+    }
+
+    private func stepPage(_ delta: Int) {
+        let pages = MenuBarPage.allCases
+        guard let index = pages.firstIndex(of: navigation.page) else { return }
+        navigation.page = pages[((index + delta) % pages.count + pages.count) % pages.count]
     }
 
     @ViewBuilder

@@ -65,6 +65,7 @@ struct WorkoutMusicPlaybackSheet: View {
                     HStack {
                         if session.isManual && session.hasTimeline {
                             Button("Return to timeline", action: session.returnToTimeline)
+                                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                         }
                         Spacer()
                         Menu {
@@ -76,6 +77,7 @@ struct WorkoutMusicPlaybackSheet: View {
                         } label: {
                             Label("Play a selection", systemImage: "music.note.list")
                         }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
                     }
                     .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                 }
@@ -102,6 +104,7 @@ struct WorkoutMusicPlaybackSheet: View {
         .font(TimeMasterFont.body())
         .preferredColorScheme(.dark)
         .task { await library.refreshLocalDurations() }
+        .keyNavHost()
     }
 }
 
@@ -115,12 +118,14 @@ struct WorkoutMusicTransportButtons: View {
                 Image(systemName: session.isSilenced ? "play.fill" : "stop.fill")
                     .frame(width: controlSize, height: controlSize)
             }
+            .keyNavTarget(shape: .circle)
             .accessibilityLabel(session.isSilenced ? "Resume music" : "Stop music")
             if session.isPlaylist {
                 Button(action: session.skipForward) {
                     Image(systemName: "forward.end.fill")
                         .frame(width: controlSize, height: controlSize)
                 }
+                .keyNavTarget(shape: .circle)
                 .disabled(!session.canSkipForward)
                 .accessibilityLabel("Next playlist track")
             }
@@ -148,6 +153,7 @@ struct WorkoutFloatingMusicControls: View {
                     Button { setCollapsed(false) } label: {
                         cover.padding(8)
                     }
+                    .keyNavTarget(shape: .circle)
                     .accessibilityLabel("Expand music controls")
                 } else {
                     HStack(spacing: 4) {
@@ -162,12 +168,14 @@ struct WorkoutFloatingMusicControls: View {
                             .frame(minHeight: controlSize)
                             .contentShape(Rectangle())
                         }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
                         .accessibilityLabel("Open live music timeline")
                         WorkoutMusicTransportButtons(session: session)
                         Button { setCollapsed(true) } label: {
                             Image(systemName: "chevron.down")
                                 .frame(width: controlSize, height: controlSize)
                         }
+                        .keyNavTarget(shape: .circle)
                         .accessibilityLabel("Minimize music controls")
                     }
                     .padding(.horizontal, 10)
@@ -369,6 +377,7 @@ struct WorkoutMusicPreviewSheet: View {
                         .frame(width: controlSize, height: controlSize)
                         .contentShape(Rectangle())
                 }
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel("Previous track")
                 Spacer()
                 Button(action: manager.togglePlayback) {
@@ -377,6 +386,7 @@ struct WorkoutMusicPreviewSheet: View {
                         .frame(width: controlSize * 1.5, height: controlSize * 1.5)
                         .contentShape(Rectangle())
                 }
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel(manager.isPlaying ? "Pause preview" : "Play preview")
                 Spacer()
                 Button(action: manager.skipForward) {
@@ -385,6 +395,7 @@ struct WorkoutMusicPreviewSheet: View {
                         .frame(width: controlSize, height: controlSize)
                         .contentShape(Rectangle())
                 }
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel("Next track")
                 .disabled(!item.isCollection || item.tracks.count < 2)
             }

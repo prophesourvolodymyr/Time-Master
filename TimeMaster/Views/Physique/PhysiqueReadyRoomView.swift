@@ -241,10 +241,12 @@ struct PhysiqueReadyRoomView: View {
                 Button { requestCancel() } label: {
                     Label(cancelling ? "Cancelling" : "Cancel match", systemImage: "xmark")
                 }
+                .physiqueToolbarTarget()
                 .disabled(cancelling || !preGo)
             }
             ToolbarItem(placement: .primaryAction) {
                 Button { openDetails(.safety) } label: { Label("Safety", systemImage: "shield") }
+                    .physiqueToolbarTarget()
             }
         }
     }

@@ -17,7 +17,7 @@ struct SchedulePlansSheet: View {
                     ForEach(store.weeklySchedule.plans) { plan in
                         HStack {
                             Button {
-                                if store.changeWeeklySchedule({ $0.equip(plan, from: week) }) { dismiss() }
+                                equip(plan)
                             } label: {
                                 HStack(spacing: 14) {
                                     Image(systemName: plan.icon).font(.title2).foregroundStyle(.white)
@@ -38,12 +38,15 @@ struct SchedulePlansSheet: View {
                             } label: {
                                 Image(systemName: "ellipsis").padding(12)
                             }
+                            .keyNavTarget(shape: .capsule)
                             .accessibilityLabel("Options for \(plan.name)")
                         }
+                        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 10)) { equip(plan) }
                     }
                     Button {
                         editingPlan = WeeklyWorkoutSchedule.Plan(name: "")
                     } label: { Label("New Plan", systemImage: "plus.circle.fill") }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10))
                     .accessibilityIdentifier("schedule.plan.new")
                 } header: { Text("Your Plans").font(TimeMasterFont.rowTitle()) }
                 footer: {
@@ -53,7 +56,7 @@ struct SchedulePlansSheet: View {
                 }
                 SwiftUI.Section {
                     Button {
-                        if store.changeWeeklySchedule({ $0.equip(nil, from: week) }) { dismiss() }
+                        equip(nil)
                     } label: {
                         HStack(spacing: 14) {
                             Image(systemName: "beach.umbrella.fill").font(.title2)
@@ -67,6 +70,7 @@ struct SchedulePlansSheet: View {
                         }.padding(.vertical, 8)
                     }
                     .buttonStyle(.plain)
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10)) { equip(nil) }
                     .accessibilityIdentifier("schedule.vacation")
                 } footer: {
                     Text("Vacation applies to the whole selected week and continues until you choose a Plan. Saved workouts and completion records are not deleted.")
@@ -83,6 +87,7 @@ struct SchedulePlansSheet: View {
             .toolbar { AppToolbar.item(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(item: $editingPlan) { plan in
                 SchedulePlanEditor(plan: plan, week: week)
+                    .keyNavHost()
             }
             .alert("Delete Plan?", isPresented: Binding(get: { deletingPlan != nil }, set: { if !$0 { deletingPlan = nil } })) {
                 Button("Delete", role: .destructive) {
@@ -96,5 +101,9 @@ struct SchedulePlansSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func equip(_ plan: WeeklyWorkoutSchedule.Plan?) {
+        if store.changeWeeklySchedule({ $0.equip(plan, from: week) }) { dismiss() }
     }
 }

@@ -129,11 +129,13 @@ struct PhysiquePlayerSummaryView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close", action: close)
+                    .physiqueToolbarTarget()
             }
             ToolbarItem(placement: .automatic) {
                 Button(action: requestRefresh) {
                     Label("Refresh player", systemImage: "arrow.clockwise")
                 }
+                .physiqueToolbarTarget()
                 .disabled(isLoading || isBlocking || activeAccountID == nil || !isActive)
             }
         }

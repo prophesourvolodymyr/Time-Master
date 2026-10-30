@@ -58,6 +58,7 @@ final class MarkdownEditorSession: ObservableObject {
     @Published private(set) var document: MarkdownDocument
     @Published private(set) var focus: MarkdownFocusRequest?
     @Published private(set) var focusedBlockID: UUID?
+    @Published private(set) var editingBlockID: UUID?
     @Published private(set) var slash: MarkdownSlashState?
     @Published private(set) var pasteOffer: MarkdownPasteOffer?
     @Published var imagePickerTarget: UUID?
@@ -128,6 +129,7 @@ final class MarkdownEditorSession: ObservableObject {
     func handlers(for id: UUID) -> MarkdownTextHandlers {
         MarkdownTextHandlers(
             onFocus: { [weak self] in self?.didFocus(id) },
+            onBlur: { [weak self] in self?.didBlur(id) },
             onChange: { [weak self] text, selection in self?.textChanged(id, text: text, selection: selection) },
             onSelection: { _ in },
             onReturn: { [weak self] caret in self?.returnPressed(id, caret: caret) ?? false },
@@ -146,6 +148,11 @@ final class MarkdownEditorSession: ObservableObject {
 
     func didFocus(_ id: UUID) {
         if focusedBlockID != id { focusedBlockID = id }
+        if editingBlockID != id { editingBlockID = id }
+    }
+
+    func didBlur(_ id: UUID) {
+        if editingBlockID == id { editingBlockID = nil }
     }
 
     func textChanged(_ id: UUID, text: String, selection: NSRange) {

@@ -1,6 +1,7 @@
 import SwiftUI
 import AVKit
 import TimeMasterCore
+import UniformTypeIdentifiers
 #if os(macOS)
 import AppKit
 #endif
@@ -203,13 +204,10 @@ struct PageMediaGallery: View {
                 Button {
                     isPresented = false
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title)
-                        .foregroundStyle(.white.opacity(0.85))
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .bold))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 44))
                 .accessibilityLabel("Close media viewer")
                 Spacer()
                 if workout != nil, currentDatabasePageID != nil {
@@ -312,14 +310,16 @@ struct PageMediaGallery: View {
         Group {
             if PageMediaKind.isVideo(url) {
                 PageGalleryInlineVideo(url: url, isActive: index == selectedIndex)
-            } else {
+            } else if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true {
                 GalleryImagePage(url: url, isActive: index == selectedIndex, isZoomed: $isZoomed)
+            } else {
+                QuickLookPreview(url: url)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(PageMediaKind.isVideo(url) ? "Video" : "Photo") \(index + 1) of \(urls.count)")
+        .accessibilityLabel("\(url.lastPathComponent), \(index + 1) of \(urls.count)")
     }
 
     private func drawerView(url: URL, travel: CGFloat) -> some View {
@@ -377,24 +377,18 @@ struct PageMediaGallery: View {
                         withAnimation(motion) { mediaHidden.toggle() }
                     } label: {
                         Image(systemName: mediaHidden ? "rectangle.expand.vertical" : "rectangle.compress.vertical")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(Theme.textSecondary)
-                            .frame(width: 36, height: 36)
-                            .contentShape(Rectangle())
+                            .font(.system(size: 13, weight: .bold))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 34))
                     .accessibilityLabel(mediaHidden ? "Show media" : "Hide media")
                 }
                 Button {
                     setDrawer(expanded ? 0 : 1)
                 } label: {
                     Image(systemName: expanded ? "chevron.down" : "chevron.up")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 36, height: 36)
-                        .contentShape(Rectangle())
+                        .font(.system(size: 13, weight: .bold))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 34))
                 .accessibilityLabel(expanded ? "Collapse notes" : "Open notes")
             }
             .padding(.horizontal, 16)
@@ -529,12 +523,8 @@ struct PageMediaGallery: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 38, height: 38)
-                .background(Color.black.opacity(0.5), in: Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 38))
         .opacity(enabled ? 1 : 0.25)
         .disabled(!enabled)
         .accessibilityLabel(label)

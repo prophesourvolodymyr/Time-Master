@@ -71,9 +71,13 @@ struct AICoachView: View {
                     settingsButton.buttonStyle(TimeMasterToolbarIconButtonStyle())
                 }
             ])
-            .sheet(isPresented: $showingSettings) { AISettingsView() }
+            .sheet(isPresented: $showingSettings) {
+                AISettingsView()
+                    .keyNavHost()
+            }
             .sheet(isPresented: $showingSessions) {
                 SessionsListSheet(store: store, isPresented: $showingSessions)
+                    .keyNavHost()
             }
             .fileImporter(
                 isPresented: $showingFilePicker,
@@ -287,6 +291,7 @@ private struct EmptyCoachState: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .keyNavShape(.roundedRectangle(cornerRadius: 12))
         .accessibilityHint("Adds this prompt to your message")
     }
 }
@@ -658,6 +663,7 @@ struct SessionsListSheet: View {
                                     SessionRowView(session: session, isCurrent: session.id == store.currentSessionID)
                                 }
                                 .buttonStyle(TimeMasterCardButtonStyle())
+                                .keyNavShape(.roundedRectangle(cornerRadius: 16))
                                 .accessibilityAddTraits(session.id == store.currentSessionID ? .isSelected : [])
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)

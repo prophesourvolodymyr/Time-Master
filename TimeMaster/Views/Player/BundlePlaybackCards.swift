@@ -57,7 +57,7 @@ struct BundlePlaybackCards: View {
                             .padding(8)
                             .background(index == currentIndex ? .white.opacity(0.16) : .clear, in: RoundedRectangle(cornerRadius: 14))
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 14))
                         .foregroundStyle(.white)
                         .disabled(slot.exercisePageID == nil)
                         .accessibilityLabel("\(slot.displayName), \(slot.duration) seconds\(index == currentIndex ? ", current" : index > currentIndex ? ", upcoming" : ", completed")")
@@ -98,7 +98,7 @@ struct BundlePlaybackCards: View {
                     .strokeBorder(.black.opacity(depth == 0 ? 0 : 0.12), lineWidth: 1)
             }
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 24))
         .disabled(depth != 0 || slot.exercisePageID == nil)
         .allowsHitTesting(depth == 0)
         .scaleEffect(1 - CGFloat(depth) * 0.06)

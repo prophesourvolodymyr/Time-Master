@@ -208,10 +208,13 @@ struct ScrollingChromeControl: View {
     let height: CGFloat
     var isInteractive: Bool = true
 
+    static func cornerRadius(progress: CGFloat, width: CGFloat, height: CGFloat) -> CGFloat {
+        Theme.controlCornerRadius + (min(width, height) / 2 - Theme.controlCornerRadius) * progress
+    }
+
     var body: some View {
         let labelProgress = min(1, progress / 0.65)
-        let cornerRadius = Theme.controlCornerRadius
-            + (min(width, height) / 2 - Theme.controlCornerRadius) * progress
+        let cornerRadius = Self.cornerRadius(progress: progress, width: width, height: height)
 
         ZStack {
             Image(systemName: systemImage)
@@ -233,6 +236,12 @@ struct ScrollingChromeControl: View {
             cornerRadius: cornerRadius,
             isInteractive: isInteractive
         ))
+    }
+}
+
+extension View {
+    func scrollingChromeRing(progress: CGFloat, width: CGFloat, height: CGFloat) -> some View {
+        keyNavShape(.roundedRectangle(cornerRadius: ScrollingChromeControl.cornerRadius(progress: progress, width: width, height: height)))
     }
 }
 

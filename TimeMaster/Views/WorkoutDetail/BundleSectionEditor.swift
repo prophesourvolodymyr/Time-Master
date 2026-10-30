@@ -24,6 +24,7 @@ struct BundleSectionEditor: View {
                     Label("Random", systemImage: "shuffle").tag(BundleOrder.random)
                 }
                 .pickerStyle(.segmented)
+                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: { section.bundleOrder = section.bundleOrder == .ordered ? .random : .ordered })
                 Button {
                     section.bundleVoiceEnabled.toggle()
                 } label: {
@@ -31,7 +32,7 @@ struct BundleSectionEditor: View {
                         .frame(width: 44, height: 44)
                         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
                 .accessibilityLabel("Spoken callouts")
                 .accessibilityValue(section.bundleVoiceEnabled ? "On" : "Off")
             }
@@ -92,6 +93,7 @@ struct BundleSectionEditor: View {
             )
             .environmentObject(databaseStore)
             .environmentObject(workoutStore)
+            .keyNavHost()
         }
         .sheet(isPresented: $showingPhrase) {
             NavigationStack {
@@ -101,6 +103,7 @@ struct BundleSectionEditor: View {
                         .font(TimeMasterFont.black(24, relativeTo: .title2))
                         .padding(16)
                         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 14))
                     DurationPickerView(seconds: $phraseDuration, range: 1...600, step: 1)
                     Spacer()
                 }
@@ -121,6 +124,7 @@ struct BundleSectionEditor: View {
                 }
             }
             .font(TimeMasterFont.body())
+            .keyNavHost()
         }
     }
 
@@ -130,9 +134,7 @@ struct BundleSectionEditor: View {
                 Image(systemName: "line.3.horizontal")
                     .foregroundStyle(Theme.textSecondary)
                 Button {
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
-                        if !expandedSetIDs.insert(set.id).inserted { expandedSetIDs.remove(set.id) }
-                    }
+                    toggleExpansion(of: set.id)
                 } label: {
                     HStack {
                         Text("Set \(index + 1)")
@@ -145,7 +147,7 @@ struct BundleSectionEditor: View {
                             .rotationEffect(.degrees(expandedSetIDs.contains(set.id) ? 180 : 0))
                     }
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
                 .accessibilityLabel("Set \(index + 1)")
                 .accessibilityValue(expandedSetIDs.contains(set.id) ? "Expanded" : "Collapsed")
                 Menu {
@@ -178,9 +180,11 @@ struct BundleSectionEditor: View {
                     Image(systemName: "plus").frame(width: 44, height: 44)
                 }
                 .menuStyle(.borderlessButton)
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel("Add exercise or edit set \(index + 1)")
             }
             .padding(.horizontal, 12)
+            .keyNavTarget(id: set.id, role: .primary, shape: .roundedRectangle(cornerRadius: 14), action: { toggleExpansion(of: set.id) })
             .onDrag {
                 draggedID = set.id
                 return NSItemProvider(object: set.id.uuidString as NSString)
@@ -211,6 +215,12 @@ struct BundleSectionEditor: View {
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
     }
 
+    private func toggleExpansion(of id: UUID) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+            if !expandedSetIDs.insert(id).inserted { expandedSetIDs.remove(id) }
+        }
+    }
+
     private func exerciseRow(_ exercise: SetSlot, setID: UUID, index: Int) -> some View {
         VStack(spacing: 6) {
             HStack(spacing: 10) {
@@ -220,7 +230,7 @@ struct BundleSectionEditor: View {
                 } label: {
                     BundleExerciseThumbnail(slot: exercise, size: 42)
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
                 .disabled(exercise.exercisePageID == nil || onOpenPage == nil)
                 .accessibilityLabel("Open \(exercise.displayName)")
                 Text(exercise.displayName)
@@ -244,6 +254,7 @@ struct BundleSectionEditor: View {
                     Image(systemName: "ellipsis").frame(width: 44, height: 44)
                 }
                 .menuStyle(.borderlessButton)
+                .keyNavTarget(shape: .circle)
                 .accessibilityLabel("Actions for \(exercise.displayName)")
             }
             HStack {
@@ -256,6 +267,7 @@ struct BundleSectionEditor: View {
         }
         .padding(10)
         .background(Theme.toolbarOrange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+        .keyNavTarget(id: exercise.id, role: .primary, shape: .roundedRectangle(cornerRadius: 10))
         .padding(.trailing, 8)
         .padding(.bottom, 6)
         .onDrag {

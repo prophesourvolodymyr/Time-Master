@@ -34,7 +34,7 @@ struct SpotlightSearchBar<Accessory: View>: View {
                                 .foregroundStyle(Theme.textSecondary)
                                 .frame(minWidth: 44, minHeight: 44)
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .circle)
                         .accessibilityLabel("Clear search")
                     }
                 }
@@ -65,7 +65,7 @@ struct SpotlightSearchBar<Accessory: View>: View {
                         .frame(width: 48, height: 48)
                         .background { searchMaterial }
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .circle)
                 .matchedGeometryEffect(id: "search", in: namespace, anchor: .trailing)
                 .accessibilityLabel(placeholder)
                 .accessibilityHint("Open search and filters")

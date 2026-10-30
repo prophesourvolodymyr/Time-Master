@@ -168,12 +168,16 @@ struct SlotCarouselNavigation<Content: View>: View {
             .overlay(alignment: .bottom) {
                 if navigationPlacement == .bottom {
                     navigationOverlay(in: proxy, layout: layout, showsNavigation: showsNavigation, restoreHeight: restoreHeight)
+                        .keyNavRole(.excluded)
+                        .keyNavObstruction()
                         .transition(navigationPresentationTransition(edge: .bottom))
                 }
             }
             .overlay(alignment: .top) {
                 if navigationPlacement == .top {
                     navigationOverlay(in: proxy, layout: layout, showsNavigation: showsNavigation, restoreHeight: restoreHeight)
+                        .keyNavRole(.excluded)
+                        .keyNavObstruction()
                         .transition(navigationPresentationTransition(edge: .top))
                 }
             }
@@ -183,6 +187,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                         .transition(.opacity)
                 }
             }
+            .keyNavYield(isEditing)
             .onPreferenceChange(SlotNavigationContentClearancePreferenceKey.self) { measurement in
                 guard measurement.context == clearanceContext else { return }
                 contentClearance.observe(measurement)

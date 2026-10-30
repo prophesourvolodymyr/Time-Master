@@ -130,7 +130,7 @@ struct HomeWidgetContent: View {
                             .padding(.vertical, 10)
                             .background(.white, in: RoundedRectangle(cornerRadius: 12))
                     }
-                    .buttonStyle(.plain)
+                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
                 }
             } else {
                 emptyAction("Create a workout", systemImage: "plus", action: onCreateWorkout)
@@ -167,11 +167,7 @@ struct HomeWidgetContent: View {
                 VStack(alignment: .leading, spacing: 9) {
                     ForEach(entries) { entry in
                         Button {
-                            if let workout = workoutStore.workout(id: entry.workoutId) {
-                                onStartWorkout(workout)
-                            } else {
-                                onBrowseWorkouts()
-                            }
+                            openHistoryEntry(entry)
                         } label: {
                             HStack(spacing: 9) {
                                 Circle()
@@ -191,6 +187,7 @@ struct HomeWidgetContent: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8)) { openHistoryEntry(entry) }
                     }
                 }
             }
@@ -220,7 +217,7 @@ struct HomeWidgetContent: View {
                             .padding(.vertical, 9)
                             .background(.white, in: RoundedRectangle(cornerRadius: 11))
                     }
-                    .buttonStyle(.plain)
+                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 11))
                 }
             } else {
                 quietEmpty("All caught up.")
@@ -256,6 +253,7 @@ struct HomeWidgetContent: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10)) { onStartWorkout(workout) }
             } else {
                 emptyAction("Choose a workout", systemImage: "list.bullet", action: onBrowseWorkouts)
             }
@@ -398,7 +396,7 @@ struct HomeWidgetContent: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
             .accessibilityLabel("Open live map")
         }
     }
@@ -480,7 +478,7 @@ struct HomeWidgetContent: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -609,7 +607,7 @@ struct HomeWidgetContent: View {
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
         .accessibilityLabel("\(item.workout.name), \(item.timeRangeText), \(item.status.title)")
         .accessibilityHint("Start workout")
         .contextMenu {
@@ -667,7 +665,7 @@ struct HomeWidgetContent: View {
                 .padding(.vertical, 10)
                 .background(.white, in: RoundedRectangle(cornerRadius: 11))
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 11))
     }
 
     private func start(_ shortcut: HomeActivityShortcut) {
@@ -680,6 +678,14 @@ struct HomeWidgetContent: View {
             onStartOutdoor(.walk, nil, nil)
         case .bike:
             onStartOutdoor(.bike, nil, nil)
+        }
+    }
+
+    private func openHistoryEntry(_ entry: WorkoutHistoryEntry) {
+        if let workout = workoutStore.workout(id: entry.workoutId) {
+            onStartWorkout(workout)
+        } else {
+            onBrowseWorkouts()
         }
     }
 
@@ -742,7 +748,7 @@ private struct HomeActivityShortcutCircle: View {
                     .stroke(shortcutColor.opacity(0.72), lineWidth: 1.5)
             )
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle(shape: .circle)
         .contentShape(Circle())
         .accessibilityLabel(shortcut.title)
         .accessibilityHint("Start \(shortcut.title)")

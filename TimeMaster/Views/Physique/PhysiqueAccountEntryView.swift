@@ -188,6 +188,7 @@ struct PhysiqueAccountEntryView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { leave(for: .lobby) }
+                    .physiqueToolbarTarget()
                     .disabled(cloudAccount.busy || leaving)
             }
 #if os(macOS)
@@ -195,6 +196,7 @@ struct PhysiqueAccountEntryView: View {
                 if canContinue {
                     Button("Continue to lobby") { continueToLobby() }
                         .buttonStyle(.borderedProminent)
+                        .physiqueToolbarTarget()
                 }
             }
 #endif

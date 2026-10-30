@@ -64,5 +64,12 @@ private struct PhysiqueActionButtonStyle: ButtonStyle {
             .contentShape(shape)
             .background(SlotNavigationContentClearanceReader(primaryAction: prominent && configuration.role != .cancel))
             .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .keyNavButtonSurface(.roundedRectangle(cornerRadius: ProfileStyle.spacing))
+    }
+}
+
+extension View {
+    func physiqueToolbarTarget(shape: KeyNavShape = .capsule, action: (() -> Void)? = nil) -> some View {
+        keyNavTarget(shape: shape, action: action).keyNavAccessoryHost()
     }
 }

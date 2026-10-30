@@ -121,6 +121,7 @@ struct PhysiqueHistoryView: View {
                 Button { requestLatest() } label: {
                     Label("Show latest", systemImage: "arrow.clockwise")
                 }
+                .physiqueToolbarTarget()
                 .disabled(needsSignIn || accountScope == nil || pageRequest != nil)
                 .accessibilityHint("Replaces the current history pages with the latest matches and returns to the top after success.")
                 .accessibilityIdentifier("physique-history-latest")
@@ -128,6 +129,7 @@ struct PhysiqueHistoryView: View {
                 Button { showsDetails.toggle() } label: {
                     Label("Details", systemImage: "sidebar.trailing")
                 }
+                .physiqueToolbarTarget()
                 .disabled(selectedID == nil)
                 .accessibilityValue(showsDetails ? "Shown" : "Hidden")
 #endif
@@ -197,6 +199,7 @@ struct PhysiqueHistoryView: View {
                             .padding(ProfileStyle.inset)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .keyNavAccessoryHost()
                     .background(Theme.background)
                     .inspectorColumnWidth(min: 300, ideal: 350, max: 420)
                 }
@@ -291,6 +294,7 @@ struct PhysiqueHistoryView: View {
             VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
 #if os(macOS)
                 rowLabel(match)
+                    .keyNavTarget(id: "physique-history-\(match.id)", shape: .roundedRectangle(cornerRadius: 0), action: { selectedID = match.id })
 #else
                 Button {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.28)) {
@@ -392,6 +396,7 @@ struct PhysiqueHistoryView: View {
                         .frame(minWidth: ProfileStyle.touchTarget, minHeight: ProfileStyle.touchTarget)
                 }
                 .buttonStyle(.borderless)
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8))
             }
             if let detail, detail.id == selectedID {
                 matchSummary(detail)
@@ -530,12 +535,14 @@ struct PhysiqueHistoryView: View {
             if continuationBlocked {
                 Text("Show latest to continue").font(TimeMasterFont.rowTitle())
                 Button("Show latest") { requestLatest() }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(pageRequest != nil)
             } else if cursor != nil {
                 Button { requestMore() } label: {
                     Label(pageError == nil ? "Load more" : "Retry", systemImage: "chevron.down")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 .disabled(pageRequest != nil)
                 .focused($pagingFocused)
                 .accessibilityFocused($pagingAccessibilityFocused)

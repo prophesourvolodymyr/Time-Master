@@ -235,6 +235,7 @@ struct PhysiqueCaseCenterView: View {
                         Label("Refresh cases", systemImage: "arrow.clockwise")
                             .frame(minHeight: ProfileStyle.touchTarget)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(isLoading)
                 }
                 .font(TimeMasterFont.caption())
@@ -275,6 +276,7 @@ struct PhysiqueCaseCenterView: View {
                     Label("Sign in", systemImage: "person.crop.circle")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             }
             .listRowBackground(Theme.surface)
         } else {
@@ -295,12 +297,14 @@ struct PhysiqueCaseCenterView: View {
                         Label("Try again", systemImage: "arrow.clockwise")
                             .frame(minHeight: ProfileStyle.touchTarget)
                     }
+                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     .disabled(isLoading)
                     if failure == .access || failure == .unavailable {
                         Button { onOpen(.account) } label: {
                             Label("Open account", systemImage: "person.crop.circle")
                                 .frame(minHeight: ProfileStyle.touchTarget)
                         }
+                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                     }
                 }
                 .listRowBackground(Theme.surface)
@@ -328,6 +332,7 @@ struct PhysiqueCaseCenterView: View {
     private func caseRow(_ item: CaseSummary) -> some View {
         #if os(macOS)
         rowLabel(item)
+            .keyNavTarget(id: "physique-case-\(item.id)", shape: .roundedRectangle(cornerRadius: 0), action: { selectedCaseID = item.id })
             .tag(item.id)
             .accessibilityHint("Select to read this private case")
         #else
@@ -399,6 +404,7 @@ struct PhysiqueCaseCenterView: View {
                     Label("Contact support", systemImage: "arrow.up.right.square")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
                 Text("Opens the published destination in another app. No case text or attachments are included, and opening it does not confirm delivery.")
                     .font(TimeMasterFont.caption())
                     .foregroundStyle(ProfileStyle.secondary)
@@ -414,6 +420,7 @@ struct PhysiqueCaseCenterView: View {
                     Label("Check support availability", systemImage: "arrow.clockwise")
                         .frame(minHeight: ProfileStyle.touchTarget)
                 }
+                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
             }
             if let supportError {
                 Text(supportError)
@@ -430,11 +437,13 @@ struct PhysiqueCaseCenterView: View {
             Button { refreshCases() } label: {
                 Label("Refresh cases", systemImage: "arrow.clockwise")
             }
+            .physiqueToolbarTarget()
             .disabled(isLoading || activeAccountID == nil || !isActive)
             if let url = supportURL {
                 Button { contactSupport(url) } label: {
                     Label("Contact support", systemImage: "arrow.up.right.square")
                 }
+                .physiqueToolbarTarget()
             }
         }
     }

@@ -68,6 +68,7 @@ struct HomeDashboardView: View {
                     pendingWidget = HomeWidgetInstance(kind: kind, footprint: footprint)
                     showingWidgetPicker = false
                 }
+                .keyNavHost()
             }
         }
     }
@@ -118,6 +119,7 @@ struct HomeDashboardView: View {
             ScrollingChromeControl(systemImage: "plus", title: "Add Widget", progress: progress, width: width, height: height)
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel("Add Home widget")
     }
 
@@ -128,6 +130,7 @@ struct HomeDashboardView: View {
             ScrollingChromeControl(systemImage: "checkmark", title: "Done", progress: progress, width: width, height: height)
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel("Done editing Home")
     }
 
@@ -138,6 +141,7 @@ struct HomeDashboardView: View {
             ScrollingChromeControl(systemImage: "pencil", title: "Edit", progress: progress, width: width, height: height)
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel("Edit Home layout")
     }
 
@@ -148,6 +152,7 @@ struct HomeDashboardView: View {
             ScrollingChromeControl(systemImage: "gearshape", title: "Settings", progress: progress, width: width, height: height)
         }
         .buttonStyle(TimeMasterCardButtonStyle())
+        .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel("Open Settings")
     }
 

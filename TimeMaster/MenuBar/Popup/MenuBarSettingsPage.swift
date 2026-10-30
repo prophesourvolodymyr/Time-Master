@@ -52,6 +52,7 @@ struct MenuBarSettingsPage: View {
         .toggleStyle(.switch)
         .tint(Theme.toolbarOrange)
         .frame(minHeight: 36)
+        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 10)) { isOn.wrappedValue.toggle() }
     }
 
     private var menuBarSection: some View {
