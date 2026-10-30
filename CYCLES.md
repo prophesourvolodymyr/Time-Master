@@ -2748,6 +2748,8 @@ User report with a Mac screenshot: the bottom navigation bar looked lopsided, it
 - [x] Icon positions and tilt are taken from the same curve the arc line draws, so each icon sits the same distance under the line and leans with it, symmetrically on both sides
 - [x] Mac: icons keep following the arc toward the edges (and fade out there) instead of stopping at a fixed height
 - [x] Mac: the selected page icon is drawn about a quarter larger; it shrinks back smoothly while the bar is swiped
+- [x] Mac Database rows: the orange expand chevron no longer draws a white focus ring on every row
+- [x] Installed commit `c464b1d` (built from a clean checkout) at `/Applications/Tmax.app` and relaunched it; the previous app and an APFS clone of the whole library with checksums are kept in `~/Library/Application Support/TimeMaster Backups/2026-10-30 before Tmax update`. After launch all 106 pages, 122 media files and the workout are unchanged; only the generated `AGENTS.md`, `schema.json`, `skills/*.md` and the new `.agent/bridge.json` were rewritten. Window captures of Home, Database, Analytics, Ranked and Settings came from a separate probe copy of the same build
 - [ ] Human review in the Mac app at different window widths, while swiping the bar and in edit mode; the iPhone bar keeps its look (no tilt), its icons move by at most a couple of points
 
 ## Notes
