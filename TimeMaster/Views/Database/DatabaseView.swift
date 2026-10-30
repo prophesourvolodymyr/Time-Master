@@ -1122,8 +1122,12 @@ struct DatabaseView: View {
             Image(systemName: "chevron.right")
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                .foregroundStyle(Theme.textPrimary)
+                .frame(width: 44, height: 44)
+                .modifier(TimeMasterGlassSurface(cornerRadius: 18, isInteractive: true))
+                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
-        .buttonStyle(TimeMasterActionButtonStyle())
+        .buttonStyle(TimeMasterCardButtonStyle())
         .accessibilityLabel(isExpanded ? "Collapse \(page.title)" : "Expand \(page.title)")
         .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
         .accessibilityIdentifier("database-disclosure-\(page.manifest.id)")
