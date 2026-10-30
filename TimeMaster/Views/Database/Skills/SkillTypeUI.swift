@@ -1,5 +1,10 @@
 import SwiftUI
 import TimeMasterCore
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 
 /// Colours, names and the base effect of a type (a user-made tag with a colour, an icon, an effect and a sort rule).
 enum SkillTypeStyle {
@@ -51,6 +56,45 @@ enum SkillTypeStyle {
     static func menuTitle(_ type: SkillType) -> String {
         if type.iconType == .emoji, let icon = type.iconName, !icon.isEmpty { return "\(icon) \(type.title)" }
         return type.title
+    }
+
+    /// What a preset without an icon shows: the Select circle.
+    static let presetFallbackSymbol = "chevron.down.circle.fill"
+
+    /// The SF Symbol of a preset for a menu entry: its own symbol, else the Select circle (an emoji goes in the title instead).
+    static func symbolName(_ preset: SkillTypePreset) -> String {
+        guard preset.iconType == .system, let name = preset.iconName, symbolExists(name) else { return presetFallbackSymbol }
+        return name
+    }
+
+    /// A preset's title for a menu entry: an emoji icon goes in front.
+    static func menuTitle(_ preset: SkillTypePreset) -> String {
+        if preset.iconType == .emoji, let icon = preset.iconName, !icon.isEmpty { return "\(icon) \(preset.title)" }
+        return preset.title
+    }
+
+    /// True when this system has an SF Symbol of that name (a name an agent or an older build wrote may not exist).
+    private static func symbolExists(_ name: String) -> Bool {
+        #if os(iOS)
+        return UIImage(systemName: name) != nil
+        #else
+        return NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil
+        #endif
+    }
+}
+
+/// A preset's icon: its symbol or emoji, or the Select circle when it has none.
+struct SkillTypePresetIcon: View {
+    let preset: SkillTypePreset
+    var size: CGFloat = 16
+
+    var body: some View {
+        SkillIconView(
+            iconName: preset.iconName ?? SkillTypeStyle.presetFallbackSymbol,
+            iconType: preset.iconName == nil ? .system : preset.iconType,
+            colorHex: nil,
+            size: size
+        )
     }
 }
 
@@ -150,9 +194,10 @@ extension View {
     }
 }
 
-/// The entries of the type menu: the skill's types preset by preset, "No type", "New type…" (made right here and put on
-/// the page), "Edit…" and "Manage types…". The sheets those open are hosted by whoever owns the two bindings: a menu
-/// (a context menu especially) cannot present a sheet itself.
+/// The entries of the type menu. A page wears one type of one preset, so the menu first asks which preset: every preset is a
+/// submenu holding its types, with "Add an option…" and "Edit preset…" at its end. A skill without presets is told so and
+/// offered a new preset on the spot. Also: "No type", "New preset…", "Edit…" the page's type and "Manage presets…". The sheets
+/// those open are hosted by whoever owns the two bindings: a menu (a context menu especially) cannot present a sheet itself.
 struct SkillTypeMenuItems: View {
     /// A page's manifest id.
     let pageID: String
@@ -165,41 +210,67 @@ struct SkillTypeMenuItems: View {
         let presets = store.skillTypePresets(for: pageID)
         let page = store.page(manifestID: pageID)
         let current = page?.manifest.typeID
-        ForEach(presets) { preset in
-            SwiftUI.Section(preset.title) {
-                ForEach(preset.orderedTypes) { type in
-                    Button {
-                        set(type.id)
-                    } label: {
-                        Label(SkillTypeStyle.menuTitle(type), systemImage: current == type.id ? "checkmark" : "tag")
+        if presets.isEmpty {
+            Text("No type presets yet")
+            Button {
+                editor = .newPreset
+            } label: {
+                Label("Make a preset…", systemImage: "plus")
+            }
+        } else {
+            ForEach(presets) { preset in
+                Menu {
+                    ForEach(preset.orderedTypes) { type in
+                        Button {
+                            set(type.id)
+                        } label: {
+                            Label(SkillTypeStyle.menuTitle(type), systemImage: current == type.id ? "checkmark" : "tag")
+                        }
                     }
+                    if preset.types.isEmpty {
+                        Text("No types in it yet")
+                    }
+                    Divider()
+                    Button {
+                        editor = .newType(presetID: preset.id)
+                    } label: {
+                        Label("Add an option…", systemImage: "plus")
+                    }
+                    Button {
+                        editor = .editPreset(preset)
+                    } label: {
+                        Label("Edit preset…", systemImage: "pencil")
+                    }
+                } label: {
+                    Label(SkillTypeStyle.menuTitle(preset), systemImage: SkillTypeStyle.symbolName(preset))
                 }
             }
-        }
-        if current != nil {
-            Button {
-                set(nil)
-            } label: {
-                Label("No type", systemImage: "xmark.circle")
+            if current != nil {
+                Divider()
+                Button {
+                    set(nil)
+                } label: {
+                    Label("No type", systemImage: "xmark.circle")
+                }
             }
-        }
-        Divider()
-        Button {
-            editor = .new(presetID: nil)
-        } label: {
-            Label("New type…", systemImage: "plus")
-        }
-        if let page, let type = store.skillType(of: page) {
+            Divider()
             Button {
-                editor = .edit(type)
+                editor = .newPreset
             } label: {
-                Label("Edit “\(type.title)”…", systemImage: "pencil")
+                Label("New preset…", systemImage: "plus.square.on.square")
             }
-        }
-        Button {
-            showingManager = true
-        } label: {
-            Label("Manage types…", systemImage: "slider.horizontal.3")
+            if let page, let type = store.skillType(of: page) {
+                Button {
+                    editor = .editType(type)
+                } label: {
+                    Label("Edit “\(type.title)”…", systemImage: "pencil")
+                }
+            }
+            Button {
+                showingManager = true
+            } label: {
+                Label("Manage presets…", systemImage: "slider.horizontal.3")
+            }
         }
     }
 
@@ -209,7 +280,7 @@ struct SkillTypeMenuItems: View {
 }
 
 extension View {
-    /// Hosts the sheets the type menu opens (the editor and the manager) for `pageID`.
+    /// Hosts the sheets the type menu opens (a type, a preset, or the list of presets) for `pageID`.
     func skillTypeSheets(for pageID: String, editor: Binding<SkillTypeEditorRoute?>, showingManager: Binding<Bool>) -> some View {
         modifier(SkillTypeSheets(pageID: pageID, editor: editor, showingManager: showingManager))
     }
@@ -225,8 +296,15 @@ private struct SkillTypeSheets: ViewModifier {
         let rootID = store.skillTypeOwner(of: pageID)?.manifest.id ?? pageID
         content
             .sheet(item: $editor) { route in
-                SkillTypeEditorSheet(rootID: rootID, assigningTo: pageID, route: route)
-                    .environmentObject(store)
+                Group {
+                    switch route {
+                    case .newType, .editType:
+                        SkillTypeEditorSheet(rootID: rootID, assigningTo: pageID, route: route)
+                    case .newPreset, .editPreset:
+                        SkillTypePresetSheet(rootID: rootID, assigningTo: pageID, route: route)
+                    }
+                }
+                .environmentObject(store)
             }
             .sheet(isPresented: $showingManager) {
                 SkillTypesManagerSheet(rootID: rootID)
@@ -261,15 +339,19 @@ struct SkillTypePicker<Label: View>: View {
     }
 }
 
-/// What the type sheet is for.
+/// What the type sheets are for: a type of a preset (new in a preset, or an existing one), or a preset itself.
 enum SkillTypeEditorRoute: Identifiable {
-    case new(presetID: String?)
-    case edit(SkillType)
+    case newType(presetID: String)
+    case editType(SkillType)
+    case newPreset
+    case editPreset(SkillTypePreset)
 
     var id: String {
         switch self {
-        case .new(let presetID): return "new-\(presetID ?? "default")"
-        case .edit(let type): return "edit-\(type.id)"
+        case .newType(let presetID): return "new-type-\(presetID)"
+        case .editType(let type): return "edit-type-\(type.id)"
+        case .newPreset: return "new-preset"
+        case .editPreset(let preset): return "edit-preset-\(preset.id)"
         }
     }
 }

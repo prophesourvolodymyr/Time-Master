@@ -509,16 +509,29 @@ extension DatabaseStore {
     }
 
     @discardableResult
-    func addSkillTypePreset(to id: String, title: String) throws -> SkillTypePreset {
-        try skillWrite { try $0.addSkillTypePreset(to: id, title: title) }
+    func addSkillTypePreset(
+        to id: String,
+        title: String,
+        iconName: String? = nil,
+        iconType: SkillBoardIconType = .system
+    ) throws -> SkillTypePreset {
+        try skillWrite { try $0.addSkillTypePreset(to: id, title: title, iconName: iconName, iconType: iconType) }
     }
 
+    /// Changes a preset's name or icon (its types stay).
     @discardableResult
-    func renameSkillTypePreset(_ presetID: String, in id: String, title: String) throws -> SkillTypePreset {
-        try skillWrite { try $0.renameSkillTypePreset(presetID, in: id, title: title) }
+    func updateSkillTypePreset(_ presetID: String, in id: String, _ change: (inout SkillTypePreset) throws -> Void) throws -> SkillTypePreset {
+        try skillWrite { try $0.updateSkillTypePreset(presetID, in: id, change) }
     }
 
     func deleteSkillTypePreset(_ presetID: String, in id: String) throws {
         try skillWrite { try $0.deleteSkillTypePreset(presetID, in: id) }
+    }
+
+    /// How many pages wear one of `typeIDs` (type ids are unique, so this counts the pages of the skill that owns them):
+    /// what deleting a type or a preset takes away.
+    func skillPageCount(wearing typeIDs: Set<String>) -> Int {
+        guard !typeIDs.isEmpty else { return 0 }
+        return allPagesFlat.filter { page in page.manifest.typeID.map(typeIDs.contains) ?? false }.count
     }
 }

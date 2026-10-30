@@ -96,6 +96,7 @@
 		17A90C7549024F36781B5B74 /* ProfileDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587FF305905A736E4291C57A /* ProfileDesign.swift */; };
 		17EFA4AD1747E1DD263EC35C /* EverPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADEC50745573B660F6B56511 /* EverPopup.swift */; };
 		1863E8C1D715036DCBF0840C /* TimeMasterGlassControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF9944203E54CAB933582B8 /* TimeMasterGlassControls.swift */; };
+		187845AB8D324D7E08674F08 /* SkillTypesManagerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFE7693242D0BE2494A3F335 /* SkillTypesManagerSheet.swift */; };
 		1879D42180EFD8A8806CB816 /* StoreCompactButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EF90713B306EA9A638479BE /* StoreCompactButtonStyle.swift */; };
 		1886A0655332E4E74912DEA6 /* MacWindowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4096D46ECC417B25BA0C5 /* MacWindowChrome.swift */; };
 		18978DA3904F4BB0AE52BC84 /* EverActionButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53635A673D1AF657F9A69F7E /* EverActionButtonStyle.swift */; };
@@ -721,6 +722,7 @@
 		CC5E0C9AB0480190FEEA8B69 /* SkillTypeEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00334E54350C0BED693944CC /* SkillTypeEditorSheet.swift */; };
 		CD1BDC8FEBD8EE67026DA355 /* ExerciseLibraryBackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6161DEB779D8F6C19C5B43A /* ExerciseLibraryBackupTests.swift */; };
 		CD3549ECE4347BD8DDF0A91C /* SectionEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C588F8747756505B157DFC /* SectionEditorView.swift */; };
+		CD673E751E8AAA0A5C41ABB9 /* SkillTypePresetSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 461D15EB1F2567CE9924D956 /* SkillTypePresetSheet.swift */; };
 		CDADD8214F19F68EB852AB80 /* SkillTypeUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD768DF044B08D4D6C83CB7 /* SkillTypeUI.swift */; };
 		CDBD40D8525D5F60ADB26B1F /* PhysiquePoseIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD322E0EE32761239BEF896B /* PhysiquePoseIcon.swift */; };
 		CDE24BA8252701CC03BF9E9C /* MenuBarCoachPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D6251E1381AD39E9012940 /* MenuBarCoachPage.swift */; };
@@ -792,11 +794,13 @@
 		DFA1D40237EE39ECE6544A65 /* RankedMatchFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2C159C54E0C56828B964664 /* RankedMatchFlowView.swift */; };
 		DFC3FE826864F15FA2828413 /* RankedRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0CEF292F32A694895E7868A /* RankedRulesView.swift */; };
 		DFD6E388B2C17EE97B98707E /* MacVideoPreviewWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E395F17240985D059DE11A28 /* MacVideoPreviewWindow.swift */; };
+		E00B91E9F28CED8B2BEDA345 /* SkillTypesManagerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFE7693242D0BE2494A3F335 /* SkillTypesManagerSheet.swift */; };
 		E0E3E0D42E00AE01681A8017 /* AgentJournal.swift in Sources */ = {isa = PBXBuildFile; fileRef = D70BBE4AED05F3C9ABD74C1D /* AgentJournal.swift */; };
 		E0ED966C7E22B325D3808118 /* PhysiqueMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C46D2F11C6F0DF24087A409 /* PhysiqueMetric.swift */; };
 		E1241D86C222AD0E5176530A /* DatabaseStore+Skills.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE4370B324994761F664C894 /* DatabaseStore+Skills.swift */; };
 		E13D7093D8F3D851A764EE3B /* SettingsMenuComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D200153DC87E0F49A842F841 /* SettingsMenuComponents.swift */; };
 		E16DA40BAF0FEAEA458FEAEF /* AgentSettingsTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DC85855C5D732BDACCD8391 /* AgentSettingsTools.swift */; };
+		E16E7240C3F5106470CA46AA /* SkillTypePresetSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 461D15EB1F2567CE9924D956 /* SkillTypePresetSheet.swift */; };
 		E29C20D1CE1F104F088A2108 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 1FF183640894145557F426D7 /* ZIPFoundation */; };
 		E2D6C048BC35E79383BAF960 /* ProfileCollectiblesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF541F05C4FCBDBB9E3A9C5C /* ProfileCollectiblesView.swift */; };
 		E312C41712F672F7AD164CE5 /* MacVideoTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E594F43C94AD7B5F5789FDE /* MacVideoTimelineView.swift */; };
@@ -1069,6 +1073,7 @@
 		43949B88F95AAF38384CF0BA /* ProfilePrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePrivacySettingsView.swift; sourceTree = "<group>"; };
 		449515AADD3620C6E8397EFD /* OutdoorRecordingPreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorRecordingPreferencesStore.swift; sourceTree = "<group>"; };
 		458C20ABA39816E3330A585C /* ProfilePreviewPrice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePreviewPrice.swift; sourceTree = "<group>"; };
+		461D15EB1F2567CE9924D956 /* SkillTypePresetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillTypePresetSheet.swift; sourceTree = "<group>"; };
 		46F70FB8B828BC0671A15D62 /* ReachabilityShelf.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReachabilityShelf.swift; sourceTree = "<group>"; };
 		47569F7D420446526FD590C2 /* DatabaseSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSyncSettingsView.swift; sourceTree = "<group>"; };
 		47FC162E9FB73397A81F0F44 /* TrayCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrayCardView.swift; sourceTree = "<group>"; };
@@ -1342,6 +1347,7 @@
 		DE4370B324994761F664C894 /* DatabaseStore+Skills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DatabaseStore+Skills.swift"; sourceTree = "<group>"; };
 		DEACC97F37B0389CF666C31C /* PhysiqueDeletionStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueDeletionStatusView.swift; sourceTree = "<group>"; };
 		DFA8904DB9F50AB003E17D16 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsView.swift; sourceTree = "<group>"; };
+		DFE7693242D0BE2494A3F335 /* SkillTypesManagerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillTypesManagerSheet.swift; sourceTree = "<group>"; };
 		E04D4E6725BCC8B902A866D6 /* OutdoorTripStopField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripStopField.swift; sourceTree = "<group>"; };
 		E165B27B8BF5FC1F4E7CB844 /* MotionTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionTokens.swift; sourceTree = "<group>"; };
 		E16B75B62811366F3EF745CD /* MANROPE-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "MANROPE-LICENSE.txt"; sourceTree = "<group>"; };
@@ -1795,6 +1801,8 @@
 				B95D2D91BED604633D055793 /* SkillsUIKit.swift */,
 				8669429747D8261D4FF5B7FE /* SkillTableView.swift */,
 				00334E54350C0BED693944CC /* SkillTypeEditorSheet.swift */,
+				461D15EB1F2567CE9924D956 /* SkillTypePresetSheet.swift */,
+				DFE7693242D0BE2494A3F335 /* SkillTypesManagerSheet.swift */,
 				AFD768DF044B08D4D6C83CB7 /* SkillTypeUI.swift */,
 			);
 			path = Skills;
@@ -2870,7 +2878,9 @@
 				81AD0135705512499876A6E1 /* SkillStripImage.swift in Sources */,
 				391D396C50EDF0DB60F377D1 /* SkillTableView.swift in Sources */,
 				CC5E0C9AB0480190FEEA8B69 /* SkillTypeEditorSheet.swift in Sources */,
+				E16E7240C3F5106470CA46AA /* SkillTypePresetSheet.swift in Sources */,
 				CDADD8214F19F68EB852AB80 /* SkillTypeUI.swift in Sources */,
+				187845AB8D324D7E08674F08 /* SkillTypesManagerSheet.swift in Sources */,
 				A8F71FA922FAA3131417FFA1 /* SkillsFoundation.swift in Sources */,
 				647438DC146011B5CD589869 /* SkillsSettingsView.swift in Sources */,
 				23648D8D123A315434C8CF38 /* SkillsUIKit.swift in Sources */,
@@ -3306,7 +3316,9 @@
 				751410973EF284ED0EA6FE35 /* SkillStripImage.swift in Sources */,
 				8CB7F4BE331042BC9CE54BC3 /* SkillTableView.swift in Sources */,
 				08C651644E91514C225742ED /* SkillTypeEditorSheet.swift in Sources */,
+				CD673E751E8AAA0A5C41ABB9 /* SkillTypePresetSheet.swift in Sources */,
 				5E5E04C49950A844A1A49C89 /* SkillTypeUI.swift in Sources */,
+				E00B91E9F28CED8B2BEDA345 /* SkillTypesManagerSheet.swift in Sources */,
 				3693B1042B8CFA05D78E5BCD /* SkillsFoundation.swift in Sources */,
 				B3111BBEC868C8D8FBFC234B /* SkillsSettingsView.swift in Sources */,
 				5D727DA55CE4CE45611AFE3B /* SkillsUIKit.swift in Sources */,

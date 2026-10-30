@@ -89,18 +89,31 @@ public struct SkillType: Codable, Equatable, Hashable, Identifiable, Sendable {
     }
 }
 
-/// A named collection of types ("Tricks", "Chords") a skill offers its nested pages. A skill can keep several presets;
-/// the types of all of them are one pool for its tree. Other skills keep their own presets.
+/// A named collection of types, like a Notion "Select" property: it has a name and an icon, and holds the types
+/// ("Tricks", "Chords") a page of the skill can pick from. A skill can keep several presets; a page wears one type of
+/// one of them (the types of all of them are one pool for its tree). Other skills keep their own presets.
 public struct SkillTypePreset: Codable, Equatable, Hashable, Identifiable, Sendable {
     public var id: String
     public var title: String
+    /// The preset's icon (an SF Symbol name or an emoji, see `iconType`); nil = none.
+    public var iconName: String?
+    public var iconType: SkillBoardIconType
     /// Position among the board's presets.
     public var order: Int
     public var types: [SkillType]
 
-    public init(id: String = UUID().uuidString, title: String, order: Int = 0, types: [SkillType] = []) {
+    public init(
+        id: String = UUID().uuidString,
+        title: String,
+        iconName: String? = nil,
+        iconType: SkillBoardIconType = .system,
+        order: Int = 0,
+        types: [SkillType] = []
+    ) {
         self.id = id
         self.title = title
+        self.iconName = iconName
+        self.iconType = iconType
         self.order = max(0, order)
         self.types = types
     }
@@ -109,7 +122,7 @@ public struct SkillTypePreset: Codable, Equatable, Hashable, Identifiable, Senda
     public var orderedTypes: [SkillType] { types.sorted { $0.order < $1.order } }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, order, types
+        case id, title, iconName, iconType, order, types
     }
 
     public init(from decoder: Decoder) throws {
@@ -117,6 +130,8 @@ public struct SkillTypePreset: Codable, Equatable, Hashable, Identifiable, Senda
         self.init(
             id: try values.decode(String.self, forKey: .id),
             title: values.lenient(String.self, .title) ?? "",
+            iconName: values.lenient(String.self, .iconName),
+            iconType: values.lenient(SkillBoardIconType.self, .iconType) ?? .system,
             order: values.lenient(Int.self, .order) ?? 0,
             types: values.lenient([SkillType].self, .types) ?? []
         )
@@ -126,6 +141,11 @@ public struct SkillTypePreset: Codable, Equatable, Hashable, Identifiable, Senda
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(id, forKey: .id)
         try values.encode(title, forKey: .title)
+        // Optional and new: a preset without an icon keeps the bytes it always had (and older builds still read it).
+        if let iconName {
+            try values.encode(iconName, forKey: .iconName)
+            try values.encode(iconType, forKey: .iconType)
+        }
         try values.encode(order, forKey: .order)
         try values.encode(types, forKey: .types)
     }

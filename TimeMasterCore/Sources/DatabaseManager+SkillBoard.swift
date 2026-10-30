@@ -162,31 +162,47 @@ extension DatabaseManager {
         Self.renumberedTypePresets(try skillTypeOwner(of: pageID).manifest.typePresets)
     }
 
-    /// Adds a preset at the end of the owner's presets.
+    /// Adds a preset at the end of the owner's presets. Its icon is optional (an SF Symbol name or an emoji).
     @discardableResult
-    public func addSkillTypePreset(to pageID: String, title: String) throws -> SkillTypePreset {
+    public func addSkillTypePreset(
+        to pageID: String,
+        title: String,
+        iconName: String? = nil,
+        iconType: SkillBoardIconType = .system
+    ) throws -> SkillTypePreset {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else { throw FileSystemHelper.Error.writeFailed("A preset needs a name.") }
         let owner = try skillTypeOwner(of: pageID)
         var presets = Self.renumberedTypePresets(owner.manifest.typePresets)
-        let preset = SkillTypePreset(title: cleanTitle, order: presets.count)
+        let icon = iconName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        let preset = SkillTypePreset(title: cleanTitle, iconName: icon, iconType: icon == nil ? .system : iconType, order: presets.count)
         presets.append(preset)
         let saved = try savePresets(presets, owner: owner)
         return saved.first { $0.id == preset.id } ?? preset
     }
 
+    /// Edits a preset's name or icon. Its id, order and types are kept; an empty name is refused.
     @discardableResult
-    public func renameSkillTypePreset(_ presetID: String, in pageID: String, title: String) throws -> SkillTypePreset {
-        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanTitle.isEmpty else { throw FileSystemHelper.Error.writeFailed("A preset needs a name.") }
+    public func updateSkillTypePreset(
+        _ presetID: String,
+        in pageID: String,
+        _ change: (inout SkillTypePreset) throws -> Void
+    ) throws -> SkillTypePreset {
         let owner = try skillTypeOwner(of: pageID)
         var presets = Self.renumberedTypePresets(owner.manifest.typePresets)
         guard let index = presets.firstIndex(where: { $0.id == presetID }) else {
             throw FileSystemHelper.Error.notFound(presetID)
         }
-        presets[index].title = cleanTitle
+        var preset = presets[index]
+        try change(&preset)
+        preset.id = presets[index].id
+        preset.order = presets[index].order
+        preset.types = presets[index].types
+        preset.title = preset.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !preset.title.isEmpty else { throw FileSystemHelper.Error.writeFailed("A preset needs a name.") }
+        presets[index] = preset
         let saved = try savePresets(presets, owner: owner)
-        return saved.first { $0.id == presetID } ?? presets[index]
+        return saved.first { $0.id == presetID } ?? preset
     }
 
     /// Deletes a preset with its types; the pages that wore one of them lose their type.
@@ -360,7 +376,7 @@ extension DatabaseManager {
     }
 
     /// Presets and their types sorted by `order` (ties keep their stored order) and numbered 0…n; colours normalised,
-    /// empty titles replaced, repeated ids dropped.
+    /// empty titles replaced, repeated ids dropped, a preset's icon trimmed (an empty one means none).
     static func renumberedTypePresets(_ presets: [SkillTypePreset]) -> [SkillTypePreset] {
         func ordered<T>(_ items: [T], by order: (T) -> Int) -> [T] {
             items.enumerated().sorted { (order($0.element), $0.offset) < (order($1.element), $1.offset) }.map(\.element)
@@ -374,6 +390,8 @@ extension DatabaseManager {
                 var preset = preset
                 preset.order = position
                 preset.title = preset.title.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty ?? "Types"
+                preset.iconName = preset.iconName?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                if preset.iconName == nil { preset.iconType = .system }
                 preset.types = ordered(preset.types, by: \.order)
                     .filter { typeIDs.insert($0.id).inserted }
                     .enumerated()
