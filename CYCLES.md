@@ -2739,6 +2739,15 @@ User direction: fix the Database page UI inconsistencies and bugs without removi
 - [x] Permanent test: `MarkdownDocumentTests.testUnfocusedBlocksHideMarkupButKeepTheSavedText`; 13 Markdown tests pass; iOS Simulator and macOS targets build
 - [ ] Human review on device: creation form, drafts after force-quitting, link previews, drag reordering, guide resizing and live rendering, page view strip, corner buttons; the workout configurator rest order was compiled but not opened in the simulator
 
+## Cycle 55 — Mac Navigation Arc Alignment — 2026-10-30
+
+User report with a Mac screenshot: the bottom navigation bar looked lopsided, its icons were tilted wrongly, and the selected page icon should be a bit bigger. Cause: on the Mac's tall, steep arc the icons stopped following the curve about a quarter of the width from the centre (they were held at a fixed lowest height), so the right-hand icons sat flat and crossed above the arc line while still tilting with it; the icon path was also computed on a slightly different curve from the drawn line. Checked by rendering the real bar off-screen on macOS before and after, building both targets, and launching the iPhone 16 (iOS 18.6) simulator. Nothing here is human-verified.
+
+- [x] Icon positions and tilt are taken from the same curve the arc line draws, so each icon sits the same distance under the line and leans with it, symmetrically on both sides
+- [x] Mac: icons keep following the arc toward the edges (and fade out there) instead of stopping at a fixed height
+- [x] Mac: the selected page icon is drawn about a quarter larger; it shrinks back smoothly while the bar is swiped
+- [ ] Human review in the Mac app at different window widths, while swiping the bar and in edit mode; the iPhone bar keeps its look (no tilt), its icons move by at most a couple of points
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

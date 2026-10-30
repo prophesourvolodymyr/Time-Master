@@ -371,7 +371,12 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let bubbleFactor = max(0, 1 - distance / 34)
         let baseIconSize = 20 + 4 * focus + (4 + 3 * focus) * amount
         let expandedIconSize = 28 + bubbleFactor * 12
-        let iconSize = baseIconSize + intensity * (expandedIconSize - baseIconSize) + (add ? 8 : 0)
+        #if os(macOS)
+        let selectionBoost = 8 * focus * focus * amount * (1 - intensity)
+        #else
+        let selectionBoost: CGFloat = 0
+        #endif
+        let iconSize = baseIconSize + intensity * (expandedIconSize - baseIconSize) + (add ? 8 : 0) + selectionBoost
         let baseScale = 0.88 + 0.18 * focus
         let expandedScale = max(0.4, 1.2 - norm * 0.35)
         let itemScale = (baseScale + intensity * (expandedScale - baseScale)) * (1 + (catalog ? 0 : editProgress) * 0.12)
@@ -395,7 +400,12 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let compactY = Self.inlineHeight / 2
         let expandedY = arcY + 56 - (iconFrameHeight + labelHeight + labelSpacing) / 2 + verticalOffset
         let proposedY = compactY + (expandedY - compactY) * amount
-        let boundedY = min(max(proposedY, itemHeight * (max(1, itemScale) - 0.5)), size.height - itemHeight / 2)
+        #if os(macOS)
+        let lowestY = catalog ? size.height - itemHeight / 2 : size.height + itemHeight
+        #else
+        let lowestY = size.height - itemHeight / 2
+        #endif
+        let boundedY = min(max(proposedY, itemHeight * (max(1, itemScale) - 0.5)), lowestY)
         let itemY = placedY(boundedY, height: size.height)
         let rootY = (catalog ? catalogOriginY : mainOriginY) + itemY
         let selected = role == .page && selection == index
