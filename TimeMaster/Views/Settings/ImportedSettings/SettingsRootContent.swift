@@ -23,6 +23,7 @@ struct SettingsRootContent: View {
                     SettingsMenuSection(title: "Account & Sync") {
                         SettingsDestinationLink(destination: .account)
                         SettingsDestinationLink(destination: .databaseSync)
+                        SettingsDestinationLink(destination: .deviceSync)
                     }
 
                     SettingsMenuSection(title: "Workout") {
@@ -190,6 +191,8 @@ struct SettingsDestinationContent: View {
             CloudAccountSettingsView()
         case .databaseSync:
             DatabaseSyncSettingsView()
+        case .deviceSync:
+            DeviceSyncSettingsView()
         case .workoutTypes:
             WorkoutTypesSettingsView()
         case .skills:

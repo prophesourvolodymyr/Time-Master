@@ -9,9 +9,17 @@ struct SettingsView: View {
         self.isPresentedModally = isPresentedModally
     }
 
+    private var initialDestination: SettingsDestination? {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["TIMEMASTER_QA_SETTINGS_DESTINATION"].flatMap(SettingsDestination.init(rawValue:))
+        #else
+        return nil
+        #endif
+    }
+
     var body: some View {
         NavigationStack {
-            SettingsRootContent(initialDestination: nil)
+            SettingsRootContent(initialDestination: initialDestination)
                 .toolbar {
                     if isPresentedModally {
                         ToolbarItem(placement: .cancellationAction) {

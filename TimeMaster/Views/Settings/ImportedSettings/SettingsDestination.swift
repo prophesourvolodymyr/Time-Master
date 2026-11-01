@@ -4,6 +4,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
     case profile
     case account
     case databaseSync
+    case deviceSync
     case workoutTypes
     case skills
     case motivation
@@ -21,6 +22,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .profile: "Profile"
         case .account: "Tmax Account"
         case .databaseSync: "Database Sync"
+        case .deviceSync: "Device Sync"
         case .workoutTypes: "Workout Types"
         case .skills: "Skills"
         case .motivation: "Motivational Quotes"
@@ -38,6 +40,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .profile: "Local identity, collectibles, and verification"
         case .account: "One secure account for database sync and Ranked"
         case .databaseSync: "Cloud sync or fully local exercise data"
+        case .deviceSync: "Keep your Mac and iPhone in step over Wi-Fi"
         case .workoutTypes: "Customize and create workout categories"
         case .skills: "Covers on cards, icons from titles"
         case .motivation: "Spoken during workouts"
@@ -55,6 +58,7 @@ enum SettingsDestination: String, CaseIterable, Hashable, Identifiable {
         case .profile: "person.text.rectangle"
         case .account: "person.crop.circle"
         case .databaseSync: "arrow.triangle.2.circlepath.icloud"
+        case .deviceSync: "laptopcomputer.and.iphone"
         case .workoutTypes: "list.bullet.rectangle"
         case .skills: "graduationcap"
         case .motivation: "quote.bubble"

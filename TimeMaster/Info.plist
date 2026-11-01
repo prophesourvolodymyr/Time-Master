@@ -47,7 +47,11 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Tmax saves your Planned Trip map image to Photos so you can share it.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Tmax needs local network access to discover the companion server automatically</string>
+	<string>Tmax uses the local network to find your companion server and to keep your Mac and iPhone libraries in step. Nothing leaves your Wi-Fi.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_tmax-sync._tcp</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Tmax records your active Run, Walk, or Bike route while you exercise.</string>
 	<key>NSMotionUsageDescription</key>

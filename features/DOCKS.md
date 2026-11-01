@@ -120,6 +120,7 @@ Typography follows native text-size preferences. SF Symbols, provider-rendered m
 | F21 | Home Quick Settings Access | pending |
 | F22 | Per-Type Time-of-Day Schedule | pending |
 | F23 | Editor Database Picker Fix | pending |
+| **F32** | **Device Sync** | **ready for human verification** | **F09, existing Database, Workouts, History and Settings** |
 
 ## Build Order
 ```

@@ -97,6 +97,17 @@ final class MusicManager: ObservableObject {
         volume = UserDefaults.standard.object(forKey: volumeKey) as? Float ?? 0.7
     }
 
+    func adoptFilesOnDisk() {
+        let onDisk = ((try? FileManager.default.contentsOfDirectory(atPath: musicDir.path)) ?? []).filter { !$0.hasPrefix(".") }
+        let present = Set(onDisk)
+        var updated = trackFilenames.filter { present.contains($0) }
+        let known = Set(updated)
+        updated.append(contentsOf: onDisk.filter { !known.contains($0) }.sorted())
+        guard updated != trackFilenames else { return }
+        trackFilenames = updated
+        UserDefaults.standard.set(trackFilenames, forKey: filenamesKey)
+    }
+
     // MARK: - Import / Delete
 
     /// Copies a file into Documents/Music/ and registers it.

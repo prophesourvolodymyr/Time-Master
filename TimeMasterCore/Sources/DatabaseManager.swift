@@ -129,7 +129,7 @@ This is the local library behind Tmax, a fitness app.
 - **Knowledge/** — AI system prompt material (loaded on session start)
 - **Workspace/** — free-form AI workspace (app ignores this)
 - **skills/** — reusable agent skill definitions
-- **Config/** — app configuration
+- **Config/** — app configuration. `Config/sync/` is Device Sync bookkeeping for this copy only (its id, the secrets of paired devices, what each pair last agreed on); never copy it to another device
 - **History/** — workout history (JSONL)
 - **Music/** — background music tracks
 - **Backups/** — automatic backups
@@ -159,7 +159,7 @@ See `schema.json` for the data contract: page and workout fields and the tool li
 - **Read:** any directory is safe to read.
 - **Write:** only through `tmax`. Never edit manifests by hand.
 - **Workspace/:** free zone for agents; the app ignores it.
-- **Never edit:** `schema.json`, `AGENTS.md`, or files inside `.trash/`.
+- **Never edit:** `schema.json`, `AGENTS.md`, files inside `.trash/`, or anything in `Config/sync/`.
 
 ## Skills
 See `skills/` for step-by-step instructions for common tasks.
@@ -317,6 +317,12 @@ Find pages in the Tmax library.
     // MARK: - Page CRUD
 
     func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?) -> ExercisePageManifest {
+        let parent = parentID.flatMap { try? getPage(id: $0) }
+        let parentIsSkill = parent?.pageType == .skill || parent?.pageType == .tutorial
+        return Self.normalizedPageManifest(manifest, parentID: parentID, parentIsSkill: parentIsSkill)
+    }
+
+    static func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?, parentIsSkill: Bool?) -> ExercisePageManifest {
         var normalized = manifest
         normalized.parentID = parentID
 
@@ -335,9 +341,7 @@ Find pages in the Tmax library.
             normalized.skillStatus = normalized.skillStatus ?? .notStarted
             normalized.skillBoardOrder = max(0, normalized.skillBoardOrder ?? 0)
             normalized.skillBoardSections = Self.renumberedSections(normalized.skillBoardSections)
-            let parent = parentID.flatMap { try? getPage(id: $0) }
-            let parentIsSkill = parent?.pageType == .skill || parent?.pageType == .tutorial
-            normalized.typePresets = parentIsSkill ? [] : Self.renumberedTypePresets(normalized.typePresets)
+            normalized.typePresets = parentIsSkill == true ? [] : Self.renumberedTypePresets(normalized.typePresets)
             let media = Set(normalized.mediaFilenames)
             let links = Set(normalized.linkURLs)
             let icon = normalized.iconName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -1182,10 +1186,12 @@ Find pages in the Tmax library.
             throw FileSystemHelper.Error.notFound(folder.path)
         }
         let manifestURL = folder.appendingPathComponent("manifest.json")
+        let data = try encoder.encode(manifest)
         if fs.fileExists(at: manifestURL) {
+            if (try? fs.readRawData(from: manifestURL)) == data { return }
             try fs.moveToTrash(source: manifestURL)
         }
-        try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
+        try fs.writeAtomically(to: manifestURL, data: data)
     }
 
     public func deleteWorkout(id: String) throws {
@@ -1274,15 +1280,19 @@ Find pages in the Tmax library.
             throw FileSystemHelper.Error.writeFailed(url.path)
         }
         let entryLine = lineStr.replacingOccurrences(of: "\n", with: "") + "\n"
-        if fs.fileExists(at: url) {
-            let existing = try fs.readRawData(from: url)
-            guard let existingStr = String(data: existing, encoding: .utf8) else {
-                throw FileSystemHelper.Error.readFailed(url.path)
+        let sync = SyncStateStore(fs: fs)
+        try sync.locked {
+            if fs.fileExists(at: url) {
+                let existing = try fs.readRawData(from: url)
+                guard let existingStr = String(data: existing, encoding: .utf8) else {
+                    throw FileSystemHelper.Error.readFailed(url.path)
+                }
+                let combined = existingStr + entryLine
+                try fs.writeAtomically(to: url, data: combined.data(using: .utf8)!)
+            } else {
+                try fs.writeAtomically(to: url, data: entryLine.data(using: .utf8)!)
             }
-            let combined = existingStr + entryLine
-            try fs.writeAtomically(to: url, data: combined.data(using: .utf8)!)
-        } else {
-            try fs.writeAtomically(to: url, data: entryLine.data(using: .utf8)!)
+            forgetHistoryTombstones([entry.id], store: sync)
         }
     }
 
@@ -1307,7 +1317,16 @@ Find pages in the Tmax library.
             return line.replacingOccurrences(of: "\n", with: "")
         }
         let content = lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n"
-        try fs.writeAtomically(to: url, data: Data(content.utf8))
+        let sync = SyncStateStore(fs: fs)
+        try sync.locked {
+            var removed: [String] = []
+            if sync.hasState {
+                let kept = Set(entries.map { $0.id.lowercased() })
+                removed = historyLines().compactMap { parseHistoryLine($0)?.key }.filter { !kept.contains($0) }
+            }
+            try fs.writeAtomically(to: url, data: Data(content.utf8))
+            recordHistoryTombstones(removed, store: sync)
+        }
     }
 
     // MARK: - Config

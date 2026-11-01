@@ -205,7 +205,7 @@ public final class SchemaManager {
             "Workspace": "AI sandbox — ignored by the app",
             "Knowledge": "AI system prompt material (.md files)",
             "skills": "Reusable agent skill definitions",
-            "Config": "App configuration",
+            "Config": "App configuration; Config/sync/ is Device Sync bookkeeping for this copy and never leaves the device",
             "History": "Completed workout logs (JSONL)",
             "Activities": "Private outdoor activity manifests and route JSONL files",
             "Music": "Background music files",

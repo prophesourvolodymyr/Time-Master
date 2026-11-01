@@ -152,6 +152,13 @@ struct MainTabView: View {
         }
         .onReceive(workoutStore.$workouts.dropFirst()) { musicLibraryStore.setWorkouts($0) }
         .onReceive(workoutStore.$customWorkoutTypes.dropFirst()) { musicLibraryStore.setCustomTypes($0) }
+        .onReceive(NotificationCenter.default.publisher(for: .deviceSyncDidStoreChanges)) { notification in
+            guard !notification.deviceSyncChanges.isDisjoint(with: [.activities, .routes]) else { return }
+#if os(iOS)
+            guard !outdoorRecorder.isLiveSession else { return }
+#endif
+            outdoorStore.reload()
+        }
     }
 
     private var selectedPage: SlotNavigationDestination {

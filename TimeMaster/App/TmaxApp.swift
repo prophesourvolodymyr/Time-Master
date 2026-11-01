@@ -128,9 +128,11 @@ private struct TmaxRootView: View {
             await cloudAccount.start()
 #if os(iOS)
             databaseSync.handleScenePhase(active: UIApplication.shared.applicationState == .active)
+            DeviceSyncCoordinator.shared.setForeground(UIApplication.shared.applicationState == .active)
 #else
             databaseSync.handleScenePhase(active: NSApplication.shared.isActive)
 #endif
+            DeviceSyncCoordinator.shared.libraryDidLoad()
         }
         .onOpenURL { url in
             if contentIsReady && launchPhase == .finished { handleDeepLink(url) }
@@ -154,6 +156,7 @@ private struct TmaxRootView: View {
 #endif
         .onChange(of: scenePhase) { phase in
             DatabaseSyncStore.shared.handleScenePhase(active: phase == .active)
+            DeviceSyncCoordinator.shared.setForeground(phase == .active)
             if phase == .active, let store = startup.workoutStore {
                 NotificationManager.shared.refreshMissedDayNudges(schedules: store.typeSchedules, history: store.historyEntries)
             }
@@ -164,6 +167,12 @@ private struct TmaxRootView: View {
             } else {
                 startup.databaseStore?.reload()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .deviceSyncDidStoreChanges)) { notification in
+            let changes = notification.deviceSyncChanges
+            if !changes.isDisjoint(with: [.workouts, .history, .config]) { startup.workoutStore?.reload() }
+            if !changes.isDisjoint(with: [.pages, .files]) { startup.databaseStore?.reload() }
+            if changes.contains(.music) { MusicManager.shared.adoptFilesOnDisk() }
         }
         .sheet(isPresented: Binding(
             get: { contentIsReady && launchPhase == .finished && resumePlayerWorkout == nil && (showResumePrompt || cloudAccount.presentsRecovery) },
