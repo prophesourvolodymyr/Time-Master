@@ -71,16 +71,13 @@ struct HomeWidgetContent: View {
     }
 
     private var greeting: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(greetingText)
                 .font(TimeMasterFont.black(26, relativeTo: .title))
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-            Text(now, style: .date)
-                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                .monospacedDigit()
-                .foregroundStyle(Theme.textSecondary)
+            HomeDateLine(date: now, streak: workoutStore.streakInfo().current)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 4)

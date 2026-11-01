@@ -109,6 +109,7 @@
 		1A7A6B9EC38E0781234B5597 /* WorkoutMusicSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6059FE30DDCD5719FCC9FEA3 /* WorkoutMusicSession.swift */; };
 		1B130E5EA021276C8CAFA767 /* WorkoutTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA7B1F489C18D9B86822FDFB /* WorkoutTracking.swift */; };
 		1B594919016AD2D0AAF62E9E /* WorkoutWidgetPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = B92C940BB9EEB2D3E8558F38 /* WorkoutWidgetPlacement.swift */; };
+		1BD383D04AC63D443EE455A2 /* HomeDateLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF7C62837E81E42A4E6A392 /* HomeDateLine.swift */; };
 		1C16DD3A1F1381D60B4E5324 /* OutdoorMapModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2663673BC39C65E6A1A361 /* OutdoorMapModePicker.swift */; };
 		1C31C8E642BED327D8B8BAAC /* MenuBarSchedulePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5BE3F2E21F3895EA03DBB0F /* MenuBarSchedulePage.swift */; };
 		1C569EE71A05017FC049612C /* OutdoorActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */; };
@@ -375,6 +376,7 @@
 		67E1026B34F3E03B03EC9C0B /* ScheduleDayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87C7D4FBE8E6BE50E7EB67C5 /* ScheduleDayView.swift */; };
 		67ECE9D9CA7D0DF2A3C09043 /* MenuBarActivitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AC3B182B075CA9240ABCBB7 /* MenuBarActivitySummary.swift */; };
 		684B7FA8D90BAA64727E6643 /* CollectibleEntrance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED79A92EB2BBCC91C888534 /* CollectibleEntrance.swift */; };
+		686BDEE71344B9EF8C7DE9FC /* HomeDateLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF7C62837E81E42A4E6A392 /* HomeDateLine.swift */; };
 		68A5CE3F374D4FDB07671FEA /* MusicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F596DD500BCC620B6E3318 /* MusicManager.swift */; };
 		68D41116DAA0CDC43F4F6980 /* MenuBarItemPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B3FCE80A927DF75D56671C /* MenuBarItemPresentationTests.swift */; };
 		693258D2DC5B457B54103D59 /* INTER-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8640BA661B18C3C3660EC803 /* INTER-LICENSE.txt */; };
@@ -879,6 +881,7 @@
 		F6838F3448F9386FB0F33390 /* BatchConfirmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */; };
 		F6852AD700DB7C454223A6A5 /* ProfileCheckmarkEntryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22A37151643BB22217211FD0 /* ProfileCheckmarkEntryButton.swift */; };
 		F6A329246AAB634E574C730C /* OutdoorAdaptivePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88745C0EC6D88CDB1EAB1BF /* OutdoorAdaptivePane.swift */; };
+		F6EFCF05FFFD7082DE45AC94 /* HomeDateLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E84F474BD4173A46ACCD5D0 /* HomeDateLineTests.swift */; };
 		F7F3D8CD8C799BB977FD92AA /* ReachabilityActionsModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = E795519BD74239E6FFEE2F67 /* ReachabilityActionsModifier.swift */; };
 		F87FB1F296C4FFF64A2C852D /* MarkdownDocumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E62072D7FCB3263EBAE2EF68 /* MarkdownDocumentTests.swift */; };
 		F8D8047E415F5842E87BF5FD /* PageLinkPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE37AEFDB6AEF4406879D5A3 /* PageLinkPreview.swift */; };
@@ -1135,6 +1138,7 @@
 		5C133EDBB452DFEF8D08CD3C /* RankedCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedCamera.swift; sourceTree = "<group>"; };
 		5D582991CAE01E1427BA7D5B /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		5E287CB0142E9444C0E8CE06 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
+		5E84F474BD4173A46ACCD5D0 /* HomeDateLineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDateLineTests.swift; sourceTree = "<group>"; };
 		5F9DFA16477EC88FEF1F13EF /* TimeMaster-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TimeMaster-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FC65261AB128B4346DD0F22 /* DatabasePageBrowserSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePageBrowserSheet.swift; sourceTree = "<group>"; };
 		604FCB76AD2F1E4AAD560805 /* WorkoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutStore.swift; sourceTree = "<group>"; };
@@ -1233,6 +1237,7 @@
 		9CE430E55C8B0104022D4804 /* KeyNavRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyNavRouter.swift; sourceTree = "<group>"; };
 		9D3758A1B26162EC75AB5911 /* WorkoutMediaCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMediaCatalog.swift; sourceTree = "<group>"; };
 		9D6C7A3D7F676965B4AD2464 /* PhysiqueLobbyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueLobbyView.swift; sourceTree = "<group>"; };
+		9DF7C62837E81E42A4E6A392 /* HomeDateLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDateLine.swift; sourceTree = "<group>"; };
 		9E1AA3CB0542CED7B414EB14 /* BundleSectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSectionHeader.swift; sourceTree = "<group>"; };
 		9F0DD20250970CEB384A5F99 /* PhysiqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueView.swift; sourceTree = "<group>"; };
 		9FABB44EBBE3554FBE8A659C /* DatabaseSyncStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSyncStore.swift; sourceTree = "<group>"; };
@@ -1884,6 +1889,7 @@
 				EE336CB4CD00CC02AB23F185 /* DeviceSyncNetworkTests.swift */,
 				89D9C294E20ECB498D7EA89E /* ExerciseLibraryAccessTests.swift */,
 				F6161DEB779D8F6C19C5B43A /* ExerciseLibraryBackupTests.swift */,
+				5E84F474BD4173A46ACCD5D0 /* HomeDateLineTests.swift */,
 				1A99852CC35A4AB2605E13C0 /* KeyNavGeometryTests.swift */,
 				DC20EBEC0F7AB5D3888D8514 /* LocalProfileTests.swift */,
 				E62072D7FCB3263EBAE2EF68 /* MarkdownDocumentTests.swift */,
@@ -2251,6 +2257,7 @@
 			isa = PBXGroup;
 			children = (
 				A1982E564F4214D2342CB79D /* HomeDashboardView.swift */,
+				9DF7C62837E81E42A4E6A392 /* HomeDateLine.swift */,
 				A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */,
 				15A68E177F2D032AEF2DC4D6 /* HomeWidgetMacInteraction.swift */,
 				CEA516C7C1A9687022D33978 /* HomeWidgetPicker.swift */,
@@ -2633,6 +2640,7 @@
 				D61E3F27C1ECB2FA9C512CA8 /* FloatingControlsBar.swift in Sources */,
 				5B3D5BF736DEF005BB3D9B68 /* HistoryView.swift in Sources */,
 				99D84511BC7FC327EF67428E /* HomeDashboardView.swift in Sources */,
+				686BDEE71344B9EF8C7DE9FC /* HomeDateLine.swift in Sources */,
 				58F48894A2463CFC841E7755 /* HomeToday.swift in Sources */,
 				6C4A94D8E37BEE0F25824ABA /* HomeWidget.swift in Sources */,
 				782B9D5AB04A08739419EA34 /* HomeWidgetCanvas.swift in Sources */,
@@ -3076,6 +3084,7 @@
 				1E682B19040505173A331CB0 /* FloatingControlsBar.swift in Sources */,
 				95F3A280CFA2C2673F4C0137 /* HistoryView.swift in Sources */,
 				09F3F5193FB171C978494FEC /* HomeDashboardView.swift in Sources */,
+				1BD383D04AC63D443EE455A2 /* HomeDateLine.swift in Sources */,
 				C4AF43C7C1323D3F6C8B8DEC /* HomeToday.swift in Sources */,
 				D8A1E60796D329D723DD081E /* HomeWidget.swift in Sources */,
 				C206040FFD075C7DD6E7F8A6 /* HomeWidgetCanvas.swift in Sources */,
@@ -3441,6 +3450,7 @@
 				256A1D79C3758F01CC3F4D0D /* DeviceSyncNetworkTests.swift in Sources */,
 				A6306246216E5D85D0D88AF4 /* ExerciseLibraryAccessTests.swift in Sources */,
 				CD1BDC8FEBD8EE67026DA355 /* ExerciseLibraryBackupTests.swift in Sources */,
+				F6EFCF05FFFD7082DE45AC94 /* HomeDateLineTests.swift in Sources */,
 				63531B629852F4A6F38843BF /* KeyNavGeometryTests.swift in Sources */,
 				EBB8EC99D775A4129F9575DC /* LocalProfileTests.swift in Sources */,
 				F87FB1F296C4FFF64A2C852D /* MarkdownDocumentTests.swift in Sources */,

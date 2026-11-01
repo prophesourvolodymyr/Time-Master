@@ -3,6 +3,9 @@ import SwiftUI
 struct ScheduleFlame: View {
     let difficulty: Int
     var isBurning = true
+    /// `false` draws the flame on its own, with no core and no sparks, so a number can sit on top of it: a soft fill
+    /// inside the outline while it burns, an empty outline when it does not.
+    var showsCore = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
 
@@ -21,20 +24,26 @@ struct ScheduleFlame: View {
     var body: some View {
         let accent = Self.accent(for: difficulty)
         let dark = difficulty == 7
-        let gradient = Gradient(colors: isBurning
-            ? [dark ? .black : accent, dark ? Color(white: 0.16) : accent.opacity(0.72)]
-            : [.gray.opacity(0.45), .gray.opacity(0.2)])
+        let hollow = !showsCore && !isBurning
+        let burningColors: [Color] = [dark ? .black : accent, dark ? Color(white: 0.16) : accent.opacity(0.72)]
+        let gradient: Gradient = {
+            if hollow { return Gradient(colors: [.gray.opacity(0.1), .gray.opacity(0.02)]) }
+            if !isBurning { return Gradient(colors: [.gray.opacity(0.45), .gray.opacity(0.2)]) }
+            return Gradient(colors: showsCore ? burningColors : burningColors.map { $0.opacity(0.42) })
+        }()
+        let outline: Color = hollow ? .gray.opacity(0.6) : accent.opacity(isBurning ? 0.9 : 0.35)
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || !isBurning || scenePhase != .active)) { timeline in
             let phase = reduceMotion || !isBurning ? 0 : timeline.date.timeIntervalSinceReferenceDate * 2.4
             Canvas { context, size in
                 let bounds = CGRect(origin: .zero, size: size).insetBy(dx: size.width * 0.12, dy: size.height * 0.12)
                 let path = flame(in: bounds, phase: phase, level: CGFloat(difficulty))
-                context.addFilter(.shadow(color: accent.opacity(isBurning ? 0.48 : 0.08), radius: size.width * 0.1))
+                if showsCore { context.addFilter(.shadow(color: accent.opacity(isBurning ? 0.48 : 0.08), radius: size.width * 0.1)) }
                 context.fill(path, with: .linearGradient(
                     gradient,
                     startPoint: CGPoint(x: bounds.midX, y: bounds.minY),
                     endPoint: CGPoint(x: bounds.midX, y: bounds.maxY)))
-                context.stroke(path, with: .color(accent.opacity(isBurning ? 0.9 : 0.35)), lineWidth: max(1, size.width * 0.025))
+                context.stroke(path, with: .color(outline), lineWidth: max(1, size.width * 0.025))
+                guard showsCore else { return }
                 let inner = CGRect(x: bounds.minX + bounds.width * 0.28, y: bounds.minY + bounds.height * 0.43,
                                    width: bounds.width * 0.45, height: bounds.height * 0.52)
                 context.fill(flame(in: inner, phase: phase + 1.4, level: 1), with: .color(dark ? accent.opacity(0.7) : .white.opacity(0.8)))

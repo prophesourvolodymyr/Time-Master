@@ -2767,6 +2767,15 @@ User direction: bring the automatic local-network sync built for Skillmax into T
 - [ ] Not exercised: a real iPhone, the Local Network permission prompts, Photos/Music sync in the running app (Core-tested only), iPhone layout of the new screens; the Mac window captures do not show glass buttons (capture limit)
 - [ ] Known limits: one network only, iPhone syncs while in front, an interrupted large file restarts, edits made during a sync may need one more round
 
+## Cycle 57 — Home date with a flame behind the day number — 2026-11-01
+
+User direction: the date under "Good evening" gets a mini streak flame behind its day number, an empty flame when there is no streak, and a little minimal liveness in the text; "the same thing" as the Skillmax Home. Implementation connected for review; nothing here is human-verified.
+
+- [x] `HomeDateLine` (`Views/Home/HomeDateLine.swift`) replaces the plain date text of the Home greeting: "Sunday, November 1" a little larger, the day number on the Schedule page's flame (`ScheduleFlame`, new `showsCore: false` mode: a soft fill inside the outline while it burns, an empty grey outline with no streak). The flame tier follows the streak (yellow, orange, red, purple, pale violet from 1-2, 3-6, 7-13, 14-29, 30+ days). The date is split at its day number by the locale's own format, so the order and punctuation of other languages hold
+- [x] Liveness: one soft glint crosses the letters every nine seconds (2.5 s); the schedule ticks only while the glint moves, so the line costs nothing in between; Reduce Motion and an inactive window keep it still
+- [x] Tests: `HomeDateLineTests` (4) pass on the iPhone 16 Simulator: streak tiers, the date split joining back to the formatted date, the glint position and the glint schedule's ticks; the date rows (empty flame, five tiers, one- and two-digit days, mid-glint) were rendered to images and looked at; macOS and iOS targets build
+- [ ] Human review: the Home greeting in the Mac and iPhone apps with and without a streak, the glint in motion, the flame's clearance below "Good evening" at the larger Dynamic Type sizes
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
