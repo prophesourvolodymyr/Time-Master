@@ -126,6 +126,7 @@ final class AIStore: ObservableObject {
     @Published var pendingDraft: String?
     @Published var agentStatusTitle: String?
     @Published var coachEngineName: String?
+    @Published var isAgentRunning = false
     private var approvalContinuation: CheckedContinuation<Bool, Never>?
 
     // MARK: - Provider helpers
@@ -170,6 +171,12 @@ final class AIStore: ObservableObject {
     }
 
     var knowledgeDirectoryPath: String { knowledgeDir.path }
+
+    func stopAgent() {
+        #if os(macOS)
+        Task { await EverAgentCoachEngine.shared.stop() }
+        #endif
+    }
 
     private init() { load() }
 

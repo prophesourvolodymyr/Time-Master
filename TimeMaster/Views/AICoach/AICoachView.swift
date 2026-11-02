@@ -46,7 +46,8 @@ struct AICoachView: View {
                             isLoading: store.isLoading,
                             isApprovalPending: store.pendingApproval != nil,
                             onSend: sendMessage,
-                            onAttach: { showingFilePicker = true }
+                            onAttach: { showingFilePicker = true },
+                            onStop: store.isAgentRunning ? { store.stopAgent() } : nil
                         )
                     }
                     .frame(maxWidth: 800)
@@ -510,6 +511,7 @@ private struct ChatInputBar: View {
     let isApprovalPending: Bool
     let onSend: () -> Void
     let onAttach: () -> Void
+    var onStop: (() -> Void)? = nil
 
     private var canSend: Bool {
         !isLoading && !isApprovalPending
@@ -549,9 +551,14 @@ private struct ChatInputBar: View {
                         .onSubmit { if canSend { onSend() } }
                 }
 
-                Button(action: onSend) {
+                Button {
+                    if isLoading, let onStop { onStop() } else { onSend() }
+                } label: {
                     Group {
-                        if isLoading {
+                        if isLoading, onStop != nil {
+                            Image(systemName: "stop.fill")
+                                .font(.body.weight(.semibold))
+                        } else if isLoading {
                             TmaxLoadingIndicator(size: 20)
                         } else {
                             Image(systemName: isApprovalPending ? "lock.fill" : "arrow.up")
@@ -560,8 +567,8 @@ private struct ChatInputBar: View {
                     }
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(prominent: true, circular: true))
-                .disabled(!canSend)
-                .accessibilityLabel(isLoading ? "Waiting for response" : "Send message")
+                .disabled(isLoading ? onStop == nil : !canSend)
+                .accessibilityLabel(isLoading ? (onStop != nil ? "Stop" : "Waiting for response") : "Send message")
             }
         }
         .padding(12)

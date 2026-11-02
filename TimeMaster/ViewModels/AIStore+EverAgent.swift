@@ -33,6 +33,7 @@ extension AIStore {
             appendToCurrentSession(userMessage)
             appendToCurrentSession(placeholder)
             isLoading = true
+            isAgentRunning = true
         }
         let title = currentSession.title
         let turn = await EverAgentCoachEngine.shared.run(sessionID: sessionID, title: title, text: prompt) { [weak self] turn in
@@ -40,6 +41,7 @@ extension AIStore {
         }
         showAgentProgress(turn, messageID: placeholder.id, sessionID: sessionID, persist: true)
         isLoading = false
+        isAgentRunning = false
         isExecutingTools = false
         agentStatusTitle = nil
         DatabaseStore.shared.reload()
