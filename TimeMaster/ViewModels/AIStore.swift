@@ -16,6 +16,7 @@ struct ChatMessage: Codable, Identifiable, Equatable {
     var replyToContent: String?  // preview of the quoted message
     var replyToRole: Role?
     var attachmentName: String?  // name of attached file (display only)
+    var activity: [CoachActivity]?
 
     init(
         id: UUID = UUID(),
@@ -25,7 +26,8 @@ struct ChatMessage: Codable, Identifiable, Equatable {
         timestamp: Date = Date(),
         replyToContent: String? = nil,
         replyToRole: Role? = nil,
-        attachmentName: String? = nil
+        attachmentName: String?       = nil,
+        activity: [CoachActivity]?    = nil
     ) {
         self.id             = id
         self.role           = role
@@ -35,6 +37,7 @@ struct ChatMessage: Codable, Identifiable, Equatable {
         self.replyToContent = replyToContent
         self.replyToRole    = replyToRole
         self.attachmentName = attachmentName
+        self.activity       = activity
     }
 
     // Backward-compatible decode (old messages lack timestamp / reply fields)
@@ -48,6 +51,7 @@ struct ChatMessage: Codable, Identifiable, Equatable {
         replyToContent = try? c.decode(String.self,  forKey: .replyToContent)
         replyToRole    = try? c.decode(Role.self,    forKey: .replyToRole)
         attachmentName = try? c.decode(String.self,  forKey: .attachmentName)
+        activity       = try? c.decode([CoachActivity].self, forKey: .activity)
     }
 }
 
@@ -120,6 +124,8 @@ final class AIStore: ObservableObject {
 
     @Published var pendingApproval: ApprovalRequest?
     @Published var pendingDraft: String?
+    @Published var agentStatusTitle: String?
+    @Published var coachEngineName: String?
     private var approvalContinuation: CheckedContinuation<Bool, Never>?
 
     // MARK: - Provider helpers
@@ -162,6 +168,8 @@ final class AIStore: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
+
+    var knowledgeDirectoryPath: String { knowledgeDir.path }
 
     private init() { load() }
 
@@ -221,7 +229,7 @@ final class AIStore: ObservableObject {
         }
     }
 
-    private func saveSessions() {
+    func saveSessions() {
         if let data = try? JSONEncoder().encode(sessions) {
             UserDefaults.standard.set(data, forKey: sessionsKey)
         }
@@ -312,7 +320,7 @@ final class AIStore: ObservableObject {
         saveSessions()
     }
 
-    private func appendToCurrentSession(_ message: ChatMessage) {
+    func appendToCurrentSession(_ message: ChatMessage) {
         mutateCurrentSession { session in
             session.messages.append(message)
             // Auto-title from first user message
@@ -323,7 +331,7 @@ final class AIStore: ObservableObject {
         }
     }
 
-    private func replaceLoadingMessage(id: UUID, with replacement: ChatMessage) {
+    func replaceLoadingMessage(id: UUID, with replacement: ChatMessage) {
         mutateCurrentSession { session in
             if let idx = session.messages.firstIndex(where: { $0.id == id }) {
                 session.messages[idx] = replacement
@@ -353,6 +361,12 @@ final class AIStore: ObservableObject {
     ) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty || attachmentName != nil else { return }
+
+        #if os(macOS)
+        if await sendViaEverAgentIfReady(trimmed, replyTo: replyTo, attachmentName: attachmentName, attachmentContent: attachmentContent) {
+            return
+        }
+        #endif
 
         let userMsg = ChatMessage(
             role:           .user,

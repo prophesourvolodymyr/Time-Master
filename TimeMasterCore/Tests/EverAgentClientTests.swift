@@ -1142,5 +1142,51 @@ final class EverAgentClientTests: XCTestCase {
         let error = await outcome(of: task)
         XCTAssertEqual(error, .cancelled)
     }
+
+    func testCreateSessionUsesTheCallersIdentifier() async throws {
+        let rig = try await rig(responder: { request in
+            switch request.method {
+            case "sessions.save": return .result(request.params["session"])
+            case "sessions.claim": return .result(leaseJSON)
+            default: return nil
+            }
+        })
+        let id = try await rig.client.createSession(projectId: "p1", title: "Coach", sessionId: "chat-42")
+        XCTAssertEqual(id, "chat-42")
+        XCTAssertEqual(rig.connection.receivedRequests[0].params["session"]["id"], "chat-42")
+        XCTAssertEqual(rig.connection.receivedRequests[1].params["sessionId"], "chat-42")
+    }
+
+    func testEnsureSessionResumesAKnownSessionWithoutSavingAgain() async throws {
+        let rig = try await rig(responder: script(["sessions.get": transcriptJSON, "sessions.claim": leaseJSON]))
+        try await rig.client.ensureSession(sessionId: "s-1", projectId: "p1", title: "Coach")
+        XCTAssertEqual(rig.connection.receivedRequests.map(\.method), ["sessions.get", "sessions.claim"])
+    }
+
+    func testEnsureSessionCreatesAnUnknownSessionWithTheSameIdentifier() async throws {
+        let rig = try await rig(responder: { request in
+            switch request.method {
+            case "sessions.get": return .failure(code: "not_found", message: "session not found")
+            case "sessions.save": return .result(request.params["session"])
+            case "sessions.claim": return .result(leaseJSON)
+            default: return nil
+            }
+        })
+        try await rig.client.ensureSession(sessionId: "chat-7", projectId: "p1", title: "Coach")
+        let requests = rig.connection.receivedRequests
+        XCTAssertEqual(requests.map(\.method), ["sessions.get", "sessions.save", "sessions.claim"])
+        XCTAssertEqual(requests[1].params["session"]["id"], "chat-7")
+    }
+
+    func testEnsureSessionDoesNotTurnOtherFailuresIntoANewSession() async throws {
+        let rig = try await rig(responder: { request in
+            if request.method == "sessions.get" { return .failure(code: "unavailable", message: "gateway starting") }
+            return nil
+        })
+        let client = rig.client
+        let error = await failure { try await client.ensureSession(sessionId: "chat-7", projectId: "p1", title: "Coach") }
+        XCTAssertEqual(error, .remote(code: "unavailable", message: "gateway starting", details: nil))
+        XCTAssertEqual(rig.connection.receivedRequests.map(\.method), ["sessions.get"])
+    }
 }
 #endif

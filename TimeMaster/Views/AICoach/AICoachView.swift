@@ -97,17 +97,18 @@ struct AICoachView: View {
             }
             .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.82),
                        value: store.pendingApproval != nil)
+            .coachAgentChrome()
         }
         .font(TimeMasterFont.body())
     }
 
     private var coachContextHeader: some View {
         HStack(spacing: 12) {
-            Label(store.activeProvider.name, systemImage: "brain.head.profile")
+            Label(store.coachEngineName ?? store.activeProvider.name, systemImage: "brain.head.profile")
                 .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textPrimary)
             Spacer(minLength: 8)
-            Text(store.model)
+            Text(store.coachEngineName == nil ? store.model : "Your connected models")
                 .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(1)
@@ -212,7 +213,7 @@ private struct ChatMessageList: View {
                     ForEach(visible) { msg in
                         MessageBubble(
                             message: msg,
-                            loadingTitle: store.pendingApproval != nil ? "Waiting for your approval" : store.isExecutingTools ? "Running requested tools…" : "Waiting for response…",
+                            loadingTitle: store.agentStatusTitle ?? (store.pendingApproval != nil ? "Waiting for your approval" : store.isExecutingTools ? "Running requested tools…" : "Waiting for response…"),
                             isWaitingForApproval: store.pendingApproval != nil,
                             onReply: onReply
                         )
@@ -342,6 +343,13 @@ private struct MessageBubble: View {
                     .padding(.horizontal, 12)
                     .padding(.top, message.replyToContent == nil ? 10 : 0)
                     .padding(.bottom, message.content.isEmpty ? 10 : 4)
+            }
+
+            if let activity = message.activity, !activity.isEmpty {
+                CoachActivityList(activity: activity)
+                    .padding(.horizontal, 14)
+                    .padding(.top, (message.replyToContent != nil || message.attachmentName != nil) ? 0 : 12)
+                    .padding(.bottom, message.content.isEmpty && !message.isLoading ? 12 : 6)
             }
 
             if message.isLoading {

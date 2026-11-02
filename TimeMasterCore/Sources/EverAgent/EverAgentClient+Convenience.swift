@@ -14,8 +14,8 @@ public extension EverAgentClient {
         try EverAgentProject(json: try await request("projects.attach", params: ["root": .string(root)]))
     }
 
-    func createSession(projectId: String, title: String, model: EverAgentModelRef? = nil) async throws -> String {
-        let sessionId = Self.newIdentifier()
+    func createSession(projectId: String, title: String, model: EverAgentModelRef? = nil, sessionId requested: String? = nil) async throws -> String {
+        let sessionId = requested ?? Self.newIdentifier()
         let timestamp = ISO8601DateFormatter().string(from: Date())
         var session: JSONValue = [
             "id": .string(sessionId),
@@ -37,6 +37,15 @@ public extension EverAgentClient {
         let savedId = saved["id"].stringValue ?? sessionId
         _ = try await claimSession(sessionId: savedId)
         return savedId
+    }
+
+    func ensureSession(sessionId: String, projectId: String, title: String, model: EverAgentModelRef? = nil) async throws {
+        do {
+            _ = try await getSession(sessionId: sessionId)
+            _ = try await claimSession(sessionId: sessionId)
+        } catch EverAgentError.remote(let code, _, _) where code == EverAgentErrorCode.notFound {
+            _ = try await createSession(projectId: projectId, title: title, model: model, sessionId: sessionId)
+        }
     }
 
     func claimSession(sessionId: String) async throws -> EverAgentLease {

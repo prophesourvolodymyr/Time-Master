@@ -21,6 +21,7 @@ struct AISettingsView: View {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 16) {
+                        engineSection
                         providerSection
                         modelSection
                         soulSection
@@ -85,6 +86,15 @@ struct AISettingsView: View {
         .font(TimeMasterFont.body())
     }
 
+
+    @ViewBuilder
+    private var engineSection: some View {
+        #if os(macOS)
+        SettingsCard(title: "Coach engine", icon: "sparkles") {
+            CoachEngineSettingsContent()
+        }
+        #endif
+    }
     // MARK: - Provider + API Key (combined)
 
     private var providerSection: some View {

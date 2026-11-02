@@ -67,6 +67,7 @@ public struct EverAgentUIRequest: Sendable, Equatable {
     public let title: String
     public let message: String?
     public let payload: JSONValue
+    public let raw: JSONValue
 
     init?(json: JSONValue) {
         guard let requestId = json["requestId"].stringValue else { return nil }
@@ -75,6 +76,7 @@ public struct EverAgentUIRequest: Sendable, Equatable {
         title = json["title"].text
         message = json["message"].stringValue
         payload = json["payload"]
+        raw = json
     }
 }
 #endif
