@@ -277,5 +277,26 @@ final class CoachTurnTests: XCTestCase {
         XCTAssertEqual(turn.activities.map(\.id), ["tmax-tools", "c1"])
         XCTAssertEqual(turn.activities.first?.title, "Still not connected")
     }
+
+    func testProgressShowsTheRunningToolAsTheStatusAndAFailureAsFinished() {
+        var turn = replay([agent("agent_start"), update([text("Hello")]), toolStart("c1", "bash", args: ["command": "ls"], intent: "Listing the folder")])
+        XCTAssertEqual(turn.progress.text, "Hello")
+        XCTAssertEqual(turn.progress.statusTitle, "Listing the folder")
+        XCTAssertEqual(turn.progress.activities.map(\.title), ["Listing the folder"])
+        XCTAssertFalse(turn.progress.isFinished)
+        turn.fail("Gone")
+        XCTAssertEqual(turn.progress.failure, "Gone")
+        XCTAssertNil(turn.progress.statusTitle)
+        XCTAssertTrue(turn.progress.isFinished)
+    }
+
+    func testProgressAsksForTheUsersAnswerWhileAQuestionIsOpen() {
+        let turn = replay([
+            agent("agent_start"),
+            EverAgentEvent(sequence: 2, topic: EverAgentTopic.uiRequest, sessionId: "s-1", data: ["requestId": "r1", "kind": "confirm", "title": "Go on?"]),
+        ])
+        XCTAssertEqual(turn.progress.statusTitle, "Waiting for your answer")
+        XCTAssertFalse(turn.progress.isFinished)
+    }
 }
 #endif

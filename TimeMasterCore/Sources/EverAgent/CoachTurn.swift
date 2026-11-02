@@ -32,6 +32,24 @@ public struct CoachTurn: Sendable, Equatable {
         }
     }
 
+    public var progress: CoachProgress {
+        var failure: String?
+        if case .failed(let reason) = phase { failure = reason }
+        return CoachProgress(text: text, activities: activities, statusTitle: statusTitle, isFinished: isFinished, failure: failure)
+    }
+
+    private var statusTitle: String? {
+        switch phase {
+        case .waitingForUser:
+            return "Waiting for your answer"
+        case .running, .idle:
+            if let running = activities.last(where: { $0.status == .running }) { return running.title }
+            return isThinking ? "Thinking…" : nil
+        case .finished, .failed:
+            return nil
+        }
+    }
+
     public mutating func apply(_ event: EverAgentEvent) {
         switch event.topic {
         case EverAgentTopic.agent:

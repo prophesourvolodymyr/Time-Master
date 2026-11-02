@@ -127,6 +127,14 @@ final class AIStore: ObservableObject {
     @Published var agentStatusTitle: String?
     @Published var coachEngineName: String?
     @Published var isAgentRunning = false
+    @Published var coachEngineDetail: String?
+    @Published var usesOwnKey = UserDefaults.standard.bool(forKey: "coach_uses_own_key_v1") {
+        didSet {
+            UserDefaults.standard.set(usesOwnKey, forKey: "coach_uses_own_key_v1")
+            Task { @MainActor in self.refreshEngineName() }
+        }
+    }
+    var onDeviceTask: Task<Void, Never>?
     private var approvalContinuation: CheckedContinuation<Bool, Never>?
 
     // MARK: - Provider helpers
@@ -149,6 +157,7 @@ final class AIStore: ObservableObject {
             KeychainHelper.save(key.trimmingCharacters(in: .whitespacesAndNewlines),
                                 forKey: "ai_key_\(providerID)")
         }
+        Task { @MainActor in self.refreshEngineName() }
     }
 
     func hasKey(for providerID: String) -> Bool { !apiKey(for: providerID).isEmpty }
@@ -173,6 +182,7 @@ final class AIStore: ObservableObject {
     var knowledgeDirectoryPath: String { knowledgeDir.path }
 
     func stopAgent() {
+        onDeviceTask?.cancel()
         #if os(macOS)
         Task { await EverAgentCoachEngine.shared.stop() }
         #endif
@@ -375,6 +385,10 @@ final class AIStore: ObservableObject {
         }
         #endif
 
+        if await sendViaOnDeviceIfReady(trimmed, replyTo: replyTo, attachmentName: attachmentName, attachmentContent: attachmentContent) {
+            return
+        }
+
         let userMsg = ChatMessage(
             role:           .user,
             content:        trimmed,
@@ -477,7 +491,7 @@ final class AIStore: ObservableObject {
         return finalResponse
     }
 
-    private func runToolCall(_ call: AgentToolCall) async -> String {
+    func runToolCall(_ call: AgentToolCall) async -> String {
         if let problem = call.argumentError { return "TOOL ERROR: \(problem)" }
         guard let tool = AgentToolRegistry.tool(named: call.name), tool.coach else {
             let available = AgentToolRegistry.tools.filter(\.coach).map(\.name).joined(separator: ", ")
@@ -819,7 +833,13 @@ final class AIStore: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .missingAPIKey:             return "No API key set — open AI Settings to add one."
+            case .missingAPIKey:
+                #if os(iOS)
+                let reason = OnDeviceSupport.availability().reason ?? ""
+                return "No coach engine is available. " + (reason.isEmpty ? "" : reason + " ") + "You can also add your own API key in AI Settings."
+                #else
+                return "No API key set — open AI Settings to add one."
+                #endif
             case .invalidURL:                return "Invalid API base URL."
             case .badResponse:               return "Unexpected server response."
             case .parseError:                return "Could not parse the API response."

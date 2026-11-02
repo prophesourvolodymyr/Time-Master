@@ -158,6 +158,7 @@
 		26A31AF3709B259294075DCC /* MacVideoDatabaseImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1828544134A1982F2E9500F /* MacVideoDatabaseImporter.swift */; };
 		27071C3840BF1635925CB6CD /* DurationPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044840F8C2EAA06CD43381D5 /* DurationPickerView.swift */; };
 		27A62DFC44108BB39DFB4171 /* AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFA8904DB9F50AB003E17D16 /* AboutSettingsView.swift */; };
+		27B410A2C1A06CBB033B3A5F /* CoachOnDeviceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12FBE1793E8B4B0822D613F /* CoachOnDeviceSettings.swift */; };
 		28C9BA6DB2D0CDF328F955D5 /* MacVideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC332F0025272F928B063C5 /* MacVideoEditorView.swift */; };
 		29158F6F1C5270FBE2A7B861 /* Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 282193241415BB7A32B3786C /* Workout.swift */; };
 		2961777529AC80F2A9570C32 /* ExerciseNamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F451370DBD282BA9ED115D /* ExerciseNamingService.swift */; };
@@ -230,6 +231,7 @@
 		3BEB933A275A9D0867FDE411 /* MenuBarHomePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83F77FEAC1731205614EF7D9 /* MenuBarHomePage.swift */; };
 		3C173FB82CA257BC54D9D9AD /* DeviceSyncNetwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123ABE7D06155943773C8909 /* DeviceSyncNetwork.swift */; };
 		3C42A22EDDA3D4E08D4DEECC /* MacVideoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BC332F0025272F928B063C5 /* MacVideoEditorView.swift */; };
+		3C76009EFC649980BA3C43FA /* AIStore+Coach.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7AA4E6D8EE41B6BE716B39D /* AIStore+Coach.swift */; };
 		3CEA7277434EABBC7E1CDDDF /* BundleSectionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CE4357ACDEF13A02E9612C /* BundleSectionEditor.swift */; };
 		3D0E06C5D5B6A4B2D8CBC8F9 /* ImportedProfileChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 242A8E35E2468EA3D3053E8F /* ImportedProfileChrome.swift */; };
 		3D2E57CE4F78E20824FFAB96 /* TmaxStartupModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0886E96B4968D478253874 /* TmaxStartupModel.swift */; };
@@ -281,6 +283,7 @@
 		4AF8953E1920FC31E031074E /* SlotNavigationArc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9307001A6FC7FD76022967AE /* SlotNavigationArc.swift */; };
 		4B6204FF8521EE37D1AFAE20 /* RankedMovementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F42FC19C11DCA8167C71CFA /* RankedMovementTracker.swift */; };
 		4B903E92D428D16BD181A217 /* WorkoutPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901825E1313282F9A698669C /* WorkoutPickerSheet.swift */; };
+		4BB3DE3BC02BB17EDCAA9B43 /* AIStore+OnDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B70E058592B8431B365D046 /* AIStore+OnDevice.swift */; };
 		4BCA0DC6B93D036FB7F5D001 /* RankedMatchPreparationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044CDB53E3E62A23037466CE /* RankedMatchPreparationView.swift */; };
 		4BD50FCED35EF8AC0B80F4AF /* BundleSectionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CE4357ACDEF13A02E9612C /* BundleSectionEditor.swift */; };
 		4BEF22FCAA142C00C8540393 /* ContainerChildrenViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78554D84E1852EC6ED20DC3A /* ContainerChildrenViews.swift */; };
@@ -661,6 +664,7 @@
 		B2D52CB64479681B826E0A02 /* OutdoorTypePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD77E9F42424355F9374FE /* OutdoorTypePicker.swift */; };
 		B3111BBEC868C8D8FBFC234B /* SkillsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 642069229BD2AB2E9A5C5BF9 /* SkillsSettingsView.swift */; };
 		B3DDB5796B4E2A8F36D6CB95 /* LocalPostComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD355F4E800C9A368C6CE1F /* LocalPostComposerView.swift */; };
+		B4B1466E6167EA1742F04A8D /* AIStore+OnDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B70E058592B8431B365D046 /* AIStore+OnDevice.swift */; };
 		B4C478972DEDE4D4A3C53D26 /* MarkdownStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD65DC1EFDF546D16786499B /* MarkdownStyle.swift */; };
 		B526ED61DF885E4B1ACB9496 /* MenuBarIconRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EAB06BC7062B461171477E /* MenuBarIconRenderer.swift */; };
 		B59C5E6ADA0DED352C87485C /* OutdoorTripLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD1AA476D51F35DFA458BBAA /* OutdoorTripLibraryView.swift */; };
@@ -703,6 +707,7 @@
 		C0F8874E24C547F42DACA009 /* ImportSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */; };
 		C1006AD88331E49BB33CE333 /* SettingsRootContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E390E931AB1D067DD94F2FC /* SettingsRootContent.swift */; };
 		C11A94F0964192FCBD1DB5E6 /* MacVideoWindowChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4313836D1E7CD5996C5AB16D /* MacVideoWindowChrome.swift */; };
+		C198D51BD4E8DF59E6FD272C /* CoachOnDeviceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12FBE1793E8B4B0822D613F /* CoachOnDeviceSettings.swift */; };
 		C1A65DCE0C13F3C3294FD511 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
 		C206040FFD075C7DD6E7F8A6 /* HomeWidgetCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */; };
 		C23D08EFE61D318AEC977B24 /* MusicLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC7F0EFE2A38785AFA71B55A /* MusicLibraryStore.swift */; };
@@ -796,6 +801,7 @@
 		DC57B38C3CA59A1E806F6D0A /* LocalProfileReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 799F10EC4C3F0CEDB0523530 /* LocalProfileReportView.swift */; };
 		DCAC8A1DEFC515EA16E5619B /* OutdoorPineGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EAE79631040FBF42F00924E /* OutdoorPineGlass.swift */; };
 		DCC2B0AAC1FA8850A5DEA9D7 /* KeyNavController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8419CC1CD1EA70B7A7668E48 /* KeyNavController.swift */; };
+		DD3059BED451C33B20BD1C72 /* AIStore+Coach.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7AA4E6D8EE41B6BE716B39D /* AIStore+Coach.swift */; };
 		DD3692E698B0CDDCFFD51EE5 /* OutdoorModeReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8733B7850E54109F06C8240F /* OutdoorModeReminder.swift */; };
 		DD5692635CA853C9090A7230 /* OutdoorStartContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAD91AD9DB9234FDA30CEF19 /* OutdoorStartContent.swift */; };
 		DD60B027C9CE74A0DEF36C0B /* PhysiqueCategoryScoreRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E59454FF50960A4A8EBD2C /* PhysiqueCategoryScoreRow.swift */; };
@@ -1054,6 +1060,7 @@
 		282193241415BB7A32B3786C /* Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout.swift; sourceTree = "<group>"; };
 		28E365DA21B3EFFCB6B0BDFE /* MenuBarPopupRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopupRoot.swift; sourceTree = "<group>"; };
 		29E29F8DF7DF448FAFC7C841 /* RankedMatchResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedMatchResultView.swift; sourceTree = "<group>"; };
+		2B70E058592B8431B365D046 /* AIStore+OnDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AIStore+OnDevice.swift"; sourceTree = "<group>"; };
 		2BAF57FAA2C99851D7C32472 /* PhysiqueCamera.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueCamera.swift; sourceTree = "<group>"; };
 		2BC6A632551643734F4C2162 /* MenuBarQuotesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarQuotesTests.swift; sourceTree = "<group>"; };
 		2BD92D4AE76CE95278D8918E /* CloudServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudServices.swift; sourceTree = "<group>"; };
@@ -1272,6 +1279,7 @@
 		A694D8D9DD60CCD872FB8C2D /* MusicLibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryModels.swift; sourceTree = "<group>"; };
 		A6CF17798A9F8B700825FDB4 /* SkillsFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsFoundation.swift; sourceTree = "<group>"; };
 		A6FE42FCB4C619D885173F02 /* SkillMaterialSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillMaterialSections.swift; sourceTree = "<group>"; };
+		A7AA4E6D8EE41B6BE716B39D /* AIStore+Coach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AIStore+Coach.swift"; sourceTree = "<group>"; };
 		A8875009322F4382C939D9A2 /* StoreArtwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreArtwork.swift; sourceTree = "<group>"; };
 		A8AE234B87DE0EB9F718C9BD /* MacInterfaceZoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacInterfaceZoom.swift; sourceTree = "<group>"; };
 		A92F4E6AE0EDA8F666969627 /* DeviceSyncSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSyncSettingsView.swift; sourceTree = "<group>"; };
@@ -1383,6 +1391,7 @@
 		DFA8904DB9F50AB003E17D16 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsView.swift; sourceTree = "<group>"; };
 		DFE7693242D0BE2494A3F335 /* SkillTypesManagerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillTypesManagerSheet.swift; sourceTree = "<group>"; };
 		E04D4E6725BCC8B902A866D6 /* OutdoorTripStopField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripStopField.swift; sourceTree = "<group>"; };
+		E12FBE1793E8B4B0822D613F /* CoachOnDeviceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachOnDeviceSettings.swift; sourceTree = "<group>"; };
 		E165B27B8BF5FC1F4E7CB844 /* MotionTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionTokens.swift; sourceTree = "<group>"; };
 		E16B75B62811366F3EF745CD /* MANROPE-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "MANROPE-LICENSE.txt"; sourceTree = "<group>"; };
 		E177BBE26F2882EE2E2E337C /* WorkoutMusicTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicTimelineView.swift; sourceTree = "<group>"; };
@@ -1724,6 +1733,7 @@
 				0008579785FB963981CED211 /* AISettingsView.swift */,
 				E688108605B6961603118AFC /* CoachActivityList.swift */,
 				9681D7F5A4DEC0DE8287C661 /* CoachAgentChrome.swift */,
+				E12FBE1793E8B4B0822D613F /* CoachOnDeviceSettings.swift */,
 				9B77FC9A19C964B5B4F2F3E0 /* CoachRequestSheet.swift */,
 			);
 			path = AICoach;
@@ -2085,7 +2095,9 @@
 			children = (
 				1A30541E8A14548A023A7CCF /* AIProvider.swift */,
 				08AAEB576B7DB134E5212C54 /* AIStore.swift */,
+				A7AA4E6D8EE41B6BE716B39D /* AIStore+Coach.swift */,
 				1F4EB95EB293455926A00FFF /* AIStore+EverAgent.swift */,
+				2B70E058592B8431B365D046 /* AIStore+OnDevice.swift */,
 				15AA01746BBCB2AC35816B2D /* DatabaseStore.swift */,
 				DE4370B324994761F664C894 /* DatabaseStore+Skills.swift */,
 				508DADF626BD75DC0011E350 /* EverAgentCoachEngine.swift */,
@@ -2586,7 +2598,9 @@
 				2B55D0F00A9F2A54F585FDCC /* AICoachView.swift in Sources */,
 				AE60993DD2ED3AED3CFCDFC1 /* AIProvider.swift in Sources */,
 				FD452ABA07833934841CC4E0 /* AISettingsView.swift in Sources */,
+				3C76009EFC649980BA3C43FA /* AIStore+Coach.swift in Sources */,
 				0E41C2C4C08EF7E33BE085D1 /* AIStore+EverAgent.swift in Sources */,
+				4BB3DE3BC02BB17EDCAA9B43 /* AIStore+OnDevice.swift in Sources */,
 				CB4A98461337E7955D8EAC6B /* AIStore.swift in Sources */,
 				7E217B5D80BDBAB90990C197 /* AboutSettingsView.swift in Sources */,
 				4A8A03F0F18E63F7C3C35E0E /* AgentAccess.swift in Sources */,
@@ -2615,6 +2629,7 @@
 				2A95C7D0F28DFD82A64E37B0 /* CloudServices.swift in Sources */,
 				FC7933C3C1FDB7EB8991EA08 /* CoachActivityList.swift in Sources */,
 				9E6FC8E904FB49036E63C943 /* CoachAgentChrome.swift in Sources */,
+				27B410A2C1A06CBB033B3A5F /* CoachOnDeviceSettings.swift in Sources */,
 				7C6AA4FB6F3ECDE79AC8B9A1 /* CoachRequestSheet.swift in Sources */,
 				A46A1A1051579CB8908B97E3 /* CollectibleArtwork.swift in Sources */,
 				6F11DFB9D44A0C8530FD5AFF /* CollectibleArtworkPalette.swift in Sources */,
@@ -3035,7 +3050,9 @@
 				56E37DD04D21CBCBCEE65195 /* AICoachView.swift in Sources */,
 				AA338139391D16AB2B65CA22 /* AIProvider.swift in Sources */,
 				E4243D9BD9F55DC011375CE8 /* AISettingsView.swift in Sources */,
+				DD3059BED451C33B20BD1C72 /* AIStore+Coach.swift in Sources */,
 				7F8F5B5B53EEFA248953306D /* AIStore+EverAgent.swift in Sources */,
+				B4B1466E6167EA1742F04A8D /* AIStore+OnDevice.swift in Sources */,
 				1721B0FEDD18A9A1C6044358 /* AIStore.swift in Sources */,
 				27A62DFC44108BB39DFB4171 /* AboutSettingsView.swift in Sources */,
 				DBE371914EC04CB55270EBA7 /* AgentAccess.swift in Sources */,
@@ -3064,6 +3081,7 @@
 				0F08E8EAB7797BBB7CE48A8B /* CloudServices.swift in Sources */,
 				81B284D2A8BF194DE91A7AD6 /* CoachActivityList.swift in Sources */,
 				DE0B957F10BAA1521C2C205B /* CoachAgentChrome.swift in Sources */,
+				C198D51BD4E8DF59E6FD272C /* CoachOnDeviceSettings.swift in Sources */,
 				5759CA2A7E8658CA2ECBA0AE /* CoachRequestSheet.swift in Sources */,
 				E57EF1D8AD4E2C87A1B4014E /* CollectibleArtwork.swift in Sources */,
 				413ABCE61D33C4B70D95CDB8 /* CollectibleArtworkPalette.swift in Sources */,

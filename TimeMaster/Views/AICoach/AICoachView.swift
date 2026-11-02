@@ -109,7 +109,7 @@ struct AICoachView: View {
                 .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textPrimary)
             Spacer(minLength: 8)
-            Text(store.coachEngineName == nil ? store.model : "Your connected models")
+            Text(store.coachEngineDetail ?? store.model)
                 .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(1)

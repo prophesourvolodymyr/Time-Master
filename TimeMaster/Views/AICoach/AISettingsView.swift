@@ -93,6 +93,13 @@ struct AISettingsView: View {
         SettingsCard(title: "Coach engine", icon: "sparkles") {
             CoachEngineSettingsContent()
         }
+        SettingsCard(title: "On-device helper", icon: "cpu") {
+            CoachOnDeviceSettingsContent(showsSwitch: false)
+        }
+        #else
+        SettingsCard(title: "On-device helper", icon: "cpu") {
+            CoachOnDeviceSettingsContent(showsSwitch: true)
+        }
         #endif
     }
     // MARK: - Provider + API Key (combined)

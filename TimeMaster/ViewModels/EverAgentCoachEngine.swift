@@ -33,18 +33,11 @@ final class EverAgentCoachEngine: ObservableObject {
         didSet { publishEngineName() }
     }
     @Published private(set) var request: EverAgentUIRequest?
-    @Published var usesOwnKey: Bool {
-        didSet {
-            UserDefaults.standard.set(usesOwnKey, forKey: Self.ownKeyDefault)
-            publishEngineName()
-        }
-    }
     @Published private(set) var models: [EverAgentModelInfo] = []
     @Published var modelChoice: String? {
         didSet { UserDefaults.standard.set(modelChoice, forKey: Self.modelDefault) }
     }
 
-    private static let ownKeyDefault = "coach_uses_own_key_v1"
     private static let modelDefault = "coach_model_v1"
     private static let everAgentBundleIdentifier = "com.everthink.ompp.connect"
     private static let toolWait: TimeInterval = 8
@@ -67,16 +60,15 @@ final class EverAgentCoachEngine: ObservableObject {
         self.socketPath = socketPath
         self.workspaceDirectory = workspaceDirectory
         self.helperPath = helperPath
-        usesOwnKey = UserDefaults.standard.bool(forKey: Self.ownKeyDefault)
         modelChoice = UserDefaults.standard.string(forKey: Self.modelDefault)
     }
 
     private func publishEngineName() {
-        AIStore.shared.coachEngineName = isActive ? "EverAgent" : nil
+        AIStore.shared.refreshEngineName()
     }
 
     var isActive: Bool {
-        availability == .ready && !usesOwnKey
+        availability == .ready && !AIStore.shared.usesOwnKey
     }
 
     var isRunning: Bool {
@@ -128,7 +120,7 @@ final class EverAgentCoachEngine: ObservableObject {
 
     func isReadyToSend() async -> Bool {
         let settled = availability == .ready || availability == .checking || availability == .starting
-        if !usesOwnKey, !settled { await refresh(quiet: true) }
+        if !AIStore.shared.usesOwnKey, !settled { await refresh(quiet: true) }
         return isActive
     }
 

@@ -7,7 +7,7 @@ extension View {
         #if os(macOS)
         modifier(CoachAgentChrome())
         #else
-        self
+        task { AIStore.shared.refreshEngineName() }
         #endif
     }
 }
@@ -54,7 +54,7 @@ struct CoachEngineBanner: View {
 
     var body: some View {
         switch engine.availability {
-        case .unavailable(let message) where !engine.usesOwnKey:
+        case .unavailable(let message) where !store.usesOwnKey:
             banner {
                 VStack(alignment: .leading, spacing: 8) {
                     Label(message, systemImage: "bolt.horizontal.circle")
@@ -62,7 +62,9 @@ struct CoachEngineBanner: View {
                         .foregroundStyle(Theme.textPrimary)
                     Text(hasOwnKey
                          ? "Until it is back, the coach uses your own provider key."
-                         : "Start EverAgent to use the models you connected there, or add your own key in AI Settings.")
+                         : store.shouldUseOnDevice
+                            ? "Until it is back, the coach uses the on-device helper."
+                            : "Start EverAgent to use the models you connected there, or add your own key in AI Settings.")
                         .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -102,10 +104,11 @@ struct CoachEngineBanner: View {
 
 struct CoachEngineSettingsContent: View {
     @ObservedObject private var engine = EverAgentCoachEngine.shared
+    @ObservedObject private var store = AIStore.shared
 
     private var status: String {
         switch engine.availability {
-        case .ready: return engine.usesOwnKey ? "EverAgent is running, but the coach uses your own key." : "The coach runs on EverAgent with the models you connected there."
+        case .ready: return store.usesOwnKey ? "EverAgent is running, but the coach uses your own key." : "The coach runs on EverAgent with the models you connected there."
         case .checking: return "Looking for EverAgent…"
         case .starting: return "Starting EverAgent…"
         case .unknown: return "Not checked yet."
@@ -119,9 +122,9 @@ struct CoachEngineSettingsContent: View {
                 .font(TimeMasterFont.body(14, relativeTo: .subheadline))
                 .foregroundStyle(Theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            Toggle("Use my own provider key instead", isOn: $engine.usesOwnKey)
+            Toggle("Use my own provider key instead", isOn: $store.usesOwnKey)
                 .font(TimeMasterFont.body(14, relativeTo: .subheadline))
-            if engine.availability == .ready, !engine.usesOwnKey, !engine.models.isEmpty {
+            if engine.availability == .ready, !store.usesOwnKey, !engine.models.isEmpty {
                 Picker("Model", selection: $engine.modelChoice) {
                     Text("EverAgent default").tag(String?.none)
                     ForEach(engine.models, id: \.ref) { model in
