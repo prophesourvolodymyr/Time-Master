@@ -108,7 +108,9 @@ struct CoachEngineSettingsContent: View {
 
     private var status: String {
         switch engine.availability {
-        case .ready: return store.usesOwnKey ? "EverAgent is running, but the coach uses your own key." : "The coach runs on EverAgent with the models you connected there."
+        case .ready:
+            let place = engine.gatewayName.map { " “\($0)”" } ?? ""
+            return store.usesOwnKey ? "EverAgent\(place) is running, but the coach uses your own key." : "Connected to EverAgent\(place). The coach runs on the models you connected there."
         case .checking: return "Looking for EverAgent…"
         case .starting: return "Starting EverAgent…"
         case .unknown: return "Not checked yet."

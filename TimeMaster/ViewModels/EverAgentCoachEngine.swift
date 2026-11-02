@@ -34,6 +34,7 @@ final class EverAgentCoachEngine: ObservableObject {
     }
     @Published private(set) var request: EverAgentUIRequest?
     @Published private(set) var models: [EverAgentModelInfo] = []
+    @Published private(set) var gatewayName: String?
     @Published var modelChoice: String? {
         didSet { UserDefaults.standard.set(modelChoice, forKey: Self.modelDefault) }
     }
@@ -44,7 +45,7 @@ final class EverAgentCoachEngine: ObservableObject {
     private static let startupAttempts = 30
     private static let notRunning = "EverAgent isn't running."
 
-    private let socketPath: String
+    private let socketPaths: () -> [String]
     private let workspaceDirectory: URL
     private let helperPath: String
     private var client: EverAgentClient?
@@ -53,11 +54,11 @@ final class EverAgentCoachEngine: ObservableObject {
     private var answered: Set<String> = []
 
     init(
-        socketPath: String = EverAgentClient.defaultSocketPath,
+        socketPaths: @escaping () -> [String] = { EverAgentSocketDiscovery.candidates() },
         workspaceDirectory: URL = CoachWorkspace.defaultDirectory(),
         helperPath: String = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/tmax").path
     ) {
-        self.socketPath = socketPath
+        self.socketPaths = socketPaths
         self.workspaceDirectory = workspaceDirectory
         self.helperPath = helperPath
         modelChoice = UserDefaults.standard.string(forKey: Self.modelDefault)
@@ -78,21 +79,42 @@ final class EverAgentCoachEngine: ObservableObject {
     func refresh(quiet: Bool = false) async {
         guard availability != .checking else { return }
         if !quiet { availability = .checking }
-        let candidate = client ?? EverAgentClient(socketPath: socketPath)
-        client = candidate
-        do {
-            try await candidate.connect()
-            let info = try await candidate.serverInfo()
-            guard info.supportsEventSubscription else { throw EverAgentError.gatewayTooOld }
-            try provisionWorkspace()
-            project = try await candidate.attachProject(root: workspaceDirectory.path)
+        if let client, project != nil, (try? await client.serverInfo()) != nil {
             availability = .ready
-        } catch {
-            await candidate.close()
-            client = nil
-            project = nil
-            availability = .unavailable(Self.explain(error))
+            return
         }
+        await client?.close()
+        client = nil
+        project = nil
+        gatewayName = nil
+        var tooOld = false
+        for path in socketPaths() {
+            let candidate = EverAgentClient(socketPath: path)
+            do {
+                try await candidate.connect()
+                let info = try await candidate.serverInfo()
+                guard info.supportsEventSubscription else {
+                    tooOld = true
+                    await candidate.close()
+                    continue
+                }
+                do {
+                    try provisionWorkspace()
+                } catch {
+                    await candidate.close()
+                    availability = .unavailable(Self.explain(error))
+                    return
+                }
+                project = try await candidate.attachProject(root: workspaceDirectory.path)
+                client = candidate
+                gatewayName = info.name
+                availability = .ready
+                return
+            } catch {
+                await candidate.close()
+            }
+        }
+        availability = .unavailable(tooOld ? Self.explain(EverAgentError.gatewayTooOld) : Self.notRunning)
     }
 
     func startEverAgent() async {
