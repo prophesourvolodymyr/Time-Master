@@ -51,12 +51,14 @@ final class EverAgentCoachEngine: ObservableObject {
     private static let modelDefault = "coach_model_v1"
     private static let toolWait: TimeInterval = 8
     private static let promptRetries = 8
+    private static let retryAfterFailure: TimeInterval = 60
 
     private var client: EverAgentClient?
     private var project: EverAgentProject?
     private var activeSession: (project: String, session: String)?
     private var answered: Set<String> = []
     private(set) var wasStopped = false
+    private var lastUnreachable: Date?
 
     #if os(macOS)
     private let socketPaths: () -> [String]
@@ -100,8 +102,13 @@ final class EverAgentCoachEngine: ObservableObject {
 
     func isReadyToSend() async -> Bool {
         let settled = availability == .ready || availability == .checking || availability == .starting
-        if !AIStore.shared.usesOwnKey, !settled { await refresh(quiet: true) }
+        if !AIStore.shared.usesOwnKey, !settled, isDueForRetry { await refresh(quiet: true) }
         return isActive
+    }
+
+    private var isDueForRetry: Bool {
+        guard let lastUnreachable else { return true }
+        return Date().timeIntervalSince(lastUnreachable) >= Self.retryAfterFailure
     }
 
     func loadModels() async {
@@ -199,6 +206,9 @@ final class EverAgentCoachEngine: ObservableObject {
         await client.close()
         self.client = nil
         project = nil
+        #if os(iOS)
+        lastUnreachable = Date()
+        #endif
         availability = .unavailable(Self.unreachable)
     }
 
@@ -346,15 +356,18 @@ extension EverAgentCoachEngine {
             let found = try await candidate.projects()
             guard let coach = found.first(where: { $0.name == CoachConstants.projectName }) else {
                 await candidate.close()
-                availability = .unavailable("Your Mac has no Tmax coach folder in this EverAhent container yet. Open Tmax on your Mac, open the AI Coach tab once, then check again.")
+                lastUnreachable = Date()
+                availability = .unavailable("Tmax on your Mac has not added its coach folder to this EverAhent container yet. Open Tmax on your Mac while EverAhent is running, then check again.")
                 return
             }
             client = candidate
             project = coach
             gatewayName = profile.name
+            lastUnreachable = nil
             availability = .ready
         } catch {
             await candidate.close()
+            lastUnreachable = Date()
             availability = .unavailable(Self.explain(error))
         }
     }
