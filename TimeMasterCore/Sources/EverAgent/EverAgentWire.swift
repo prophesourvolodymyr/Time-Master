@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 enum EverAgentIncoming: Sendable {
@@ -45,4 +44,3 @@ enum EverAgentWire {
         return .response(id: id, outcome: .success(result))
     }
 }
-#endif

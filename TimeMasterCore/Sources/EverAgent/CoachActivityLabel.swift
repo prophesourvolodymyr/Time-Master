@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 public enum CoachActivityLabel {
@@ -77,4 +76,3 @@ public enum CoachActivityLabel {
         return value
     }
 }
-#endif

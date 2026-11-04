@@ -1,4 +1,3 @@
-#if os(macOS)
 import XCTest
 @testable import TimeMasterCore
 
@@ -299,4 +298,3 @@ final class CoachTurnTests: XCTestCase {
         XCTAssertFalse(turn.progress.isFinished)
     }
 }
-#endif

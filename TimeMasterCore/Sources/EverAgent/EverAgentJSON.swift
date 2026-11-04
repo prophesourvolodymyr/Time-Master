@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 public enum JSONValue: Sendable, Equatable, Hashable {
@@ -470,4 +469,3 @@ extension JSONValue: ExpressibleByDictionaryLiteral {
         self = .object(Dictionary(elements, uniquingKeysWith: { $1 }))
     }
 }
-#endif

@@ -1,21 +1,25 @@
-#if os(macOS)
 import Foundation
 
 public actor EverAgentClient {
     public static let defaultRequestTimeout: TimeInterval = 75
     public static let gatewayRequestLimitBytes = 128 * 1024 * 1024
+    static let remoteRequestLimitBytes = 16 * 1024 * 1024
 
+    #if os(macOS)
     public static var defaultSocketPath: String {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".ompp/server/control.sock").path
     }
+    #endif
 
     public nonisolated let socketPath: String
+    public nonisolated let isRemote: Bool
     public nonisolated let requestTimeout: TimeInterval
     nonisolated let requestLimitBytes: Int
+    private let openLink: @Sendable () async throws -> EverAgentLink
 
     private struct Link {
         let id: Int
-        let socket: EverAgentSocket
+        let socket: EverAgentLink
         let consumer: Task<Void, Never>
     }
 
@@ -30,6 +34,7 @@ public actor EverAgentClient {
     private struct Subscription {
         let token: UUID
         let continuation: AsyncStream<EverAgentEvent>.Continuation
+        let filter: EverAgentEventFilter?
     }
 
     private var link: Link?
@@ -37,15 +42,42 @@ public actor EverAgentClient {
     private var subscription: Subscription?
     private var requestCounter = 0
     private var linkCounter = 0
+    private var generation = 0
 
+    init(
+        isRemote: Bool,
+        requestTimeout: TimeInterval,
+        requestLimitBytes: Int,
+        socketPath: String = "",
+        openLink: @escaping @Sendable () async throws -> EverAgentLink
+    ) {
+        self.socketPath = socketPath
+        self.isRemote = isRemote
+        self.requestTimeout = requestTimeout
+        self.requestLimitBytes = requestLimitBytes
+        self.openLink = openLink
+    }
+
+    #if os(macOS)
     public init(
         socketPath: String = EverAgentClient.defaultSocketPath,
         requestTimeout: TimeInterval = EverAgentClient.defaultRequestTimeout,
         requestLimitBytes: Int = EverAgentClient.gatewayRequestLimitBytes
     ) {
-        self.socketPath = socketPath
-        self.requestTimeout = requestTimeout
-        self.requestLimitBytes = requestLimitBytes
+        self.init(isRemote: false, requestTimeout: requestTimeout, requestLimitBytes: requestLimitBytes, socketPath: socketPath) {
+            try EverAgentSocket.connect(to: socketPath)
+        }
+    }
+    #endif
+
+    public init(
+        remote profile: EverAgentRemoteProfile,
+        identity: EverAgentDeviceIdentity = EverAgentKeychainIdentity(),
+        requestTimeout: TimeInterval = EverAgentClient.defaultRequestTimeout
+    ) {
+        self.init(isRemote: true, requestTimeout: requestTimeout, requestLimitBytes: Self.remoteRequestLimitBytes) {
+            try await EverAgentWebSocket.connect(profile: profile, identity: identity)
+        }
     }
 
     deinit {
@@ -58,9 +90,18 @@ public actor EverAgentClient {
         link != nil
     }
 
-    public func connect() throws {
+    public func connect() async throws {
         guard link == nil else { return }
-        let socket = try EverAgentSocket.connect(to: socketPath)
+        let started = generation
+        let socket = try await openLink()
+        guard started == generation else {
+            socket.shutdown()
+            throw EverAgentError.connectionClosed
+        }
+        guard link == nil else {
+            socket.shutdown()
+            return
+        }
         linkCounter += 1
         let id = linkCounter
         let (incoming, sink) = makeEverAgentStream(of: EverAgentIncoming.self)
@@ -83,6 +124,7 @@ public actor EverAgentClient {
     }
 
     public func close() {
+        generation += 1
         teardown(.connectionClosed)
     }
 
@@ -115,7 +157,12 @@ public actor EverAgentClient {
             Task { await self.endSubscription(token) }
         }
         subscription?.continuation.finish()
-        subscription = Subscription(token: token, continuation: continuation)
+        subscription = Subscription(
+            token: token,
+            continuation: continuation,
+            filter: isRemote ? EverAgentEventFilter(sessionId: sessionId, topics: topics.map(Set.init)) : nil
+        )
+        guard !isRemote else { return stream }
         var params: [String: JSONValue] = [:]
         if let sessionId { params["sessionId"] = .string(sessionId) }
         if let topics { params["topics"] = .array(topics.map { .string($0) }) }
@@ -140,7 +187,8 @@ public actor EverAgentClient {
         case .response(let requestID, let outcome):
             complete(requestID, with: outcome)
         case .event(let event):
-            subscription?.continuation.yield(event)
+            guard let subscription, subscription.filter?.accepts(event) ?? true else { return }
+            subscription.continuation.yield(event)
         case .closed(let reason):
             teardown(reason)
         }
@@ -217,4 +265,3 @@ func makeEverAgentStream<Element: Sendable>(of type: Element.Type) -> (AsyncStre
     let stream = AsyncStream<Element>(bufferingPolicy: .unbounded) { continuation = $0 }
     return (stream, continuation!)
 }
-#endif

@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 public enum EverAgentCapability {
@@ -242,4 +241,3 @@ public struct EverAgentSession: Sendable, Equatable {
         raw = json
     }
 }
-#endif

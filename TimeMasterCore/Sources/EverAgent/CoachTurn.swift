@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 public struct CoachTurn: Sendable, Equatable {
@@ -209,4 +208,3 @@ public struct CoachTurn: Sendable, Equatable {
         return text.isEmpty ? "The provider ended this turn with an error." : text
     }
 }
-#endif

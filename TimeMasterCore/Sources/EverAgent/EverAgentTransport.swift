@@ -149,7 +149,7 @@ final class EverAgentSocket: @unchecked Sendable {
     }
 
     func startReading(
-        maximumLineBytes: Int = EverAgentLineSplitter.defaultMaximumLineBytes,
+        maximumLineBytes: Int,
         onLine: @escaping @Sendable (UnsafeBufferPointer<UInt8>) throws -> Void,
         onClose: @escaping @Sendable (EverAgentError) -> Void
     ) {
@@ -212,6 +212,15 @@ final class EverAgentSocket: @unchecked Sendable {
         }
         shutdown()
         onClose(reason)
+    }
+}
+
+extension EverAgentSocket: EverAgentLink {
+    func startReading(
+        onLine: @escaping @Sendable (UnsafeBufferPointer<UInt8>) throws -> Void,
+        onClose: @escaping @Sendable (EverAgentError) -> Void
+    ) {
+        startReading(maximumLineBytes: EverAgentLineSplitter.defaultMaximumLineBytes, onLine: onLine, onClose: onClose)
     }
 }
 #endif

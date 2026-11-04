@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 public enum EverAgentTopic {
@@ -41,7 +40,18 @@ public struct EverAgentEvent: Sendable, Equatable {
     }
 }
 
+struct EverAgentEventFilter: Sendable, Equatable {
+    let sessionId: String?
+    let topics: Set<String>?
+
+    func accepts(_ event: EverAgentEvent) -> Bool {
+        event.resync || ((sessionId == nil || event.sessionId == sessionId) && (topics?.contains(event.topic) ?? true))
+    }
+}
+
 public extension EverAgentEvent {
+    private static let circularReference = "[Circular]"
+
     var agentType: String? {
         topic == EverAgentTopic.agent ? data["type"].stringValue : nil
     }
@@ -52,8 +62,8 @@ public extension EverAgentEvent {
 
     var message: EverAgentMessage? {
         guard topic == EverAgentTopic.agent else { return nil }
-        let candidate = data["message"].isNull ? data["assistantMessageEvent"]["partial"] : data["message"]
-        return candidate.isNull ? nil : EverAgentMessage(json: candidate)
+        let candidates = [data["message"], data["assistantMessageEvent"]["partial"]]
+        return candidates.first { !$0.isNull && $0["content"].stringValue != Self.circularReference }.map(EverAgentMessage.init(json:))
     }
 
     var uiRequest: EverAgentUIRequest? {
@@ -79,4 +89,3 @@ public struct EverAgentUIRequest: Sendable, Equatable {
         raw = json
     }
 }
-#endif

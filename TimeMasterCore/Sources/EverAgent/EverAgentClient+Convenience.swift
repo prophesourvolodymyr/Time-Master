@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 public extension EverAgentClient {
@@ -169,4 +168,3 @@ extension EverAgentClient {
         try await workerCall("tools.list", projectId: projectId, sessionId: sessionId, timeout: timeout)["tools"].arrayValue.compactMap(EverAgentTool.init(json:))
     }
 }
-#endif

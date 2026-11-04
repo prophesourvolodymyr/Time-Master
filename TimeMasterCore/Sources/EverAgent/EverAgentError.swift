@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 
 public enum EverAgentErrorCode {
@@ -23,13 +22,18 @@ public enum EverAgentError: Error, Sendable, Equatable {
     case cancelled
     case timeout(operation: String, after: TimeInterval)
     case requestTooLarge(bytes: Int, limit: Int)
+    case untrustedServer
+    case unauthorizedDevice
+    case invalidInvitation(String)
+    case invitationExpired
+    case deviceIdentity(String)
 }
 
 extension EverAgentError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .gatewayNotRunning(let path):
-            "EverAgent is not running on this Mac (nothing is listening at \(path))."
+            "EverAgent is not running or cannot be reached (nothing is listening at \(path))."
         case .gatewayTooOld:
             "The running EverAgent is too old to stream live updates. Update EverAgent and restart it."
         case .socketPathTooLong(let path, let limit):
@@ -48,6 +52,16 @@ extension EverAgentError: LocalizedError {
             "EverAgent did not answer \(operation) within \(Self.describe(seconds: seconds))."
         case .requestTooLarge(let bytes, let limit):
             "The request is \(bytes) bytes; EverAgent accepts at most \(limit) bytes per request."
+        case .untrustedServer:
+            "The EverAgent that answered is not the one this device was paired with: its certificate does not match. Pair again from EverAhent."
+        case .unauthorizedDevice:
+            "EverAgent no longer accepts this device. Pair it again from EverAhent."
+        case .invalidInvitation(let reason):
+            reason
+        case .invitationExpired:
+            "This pairing code has expired. Create a new one in EverAhent and scan it again."
+        case .deviceIdentity(let reason):
+            reason
         }
     }
 
@@ -57,4 +71,3 @@ extension EverAgentError: LocalizedError {
         return seconds == 1 ? "\(text) second" : "\(text) seconds"
     }
 }
-#endif
