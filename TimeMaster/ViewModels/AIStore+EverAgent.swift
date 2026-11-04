@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 import TimeMasterCore
 
@@ -16,7 +15,8 @@ extension AIStore {
         let turn = await EverAgentCoachEngine.shared.run(sessionID: start.sessionID, title: start.title, text: start.prompt) { [weak self] turn in
             self?.showCoachProgress(turn.progress, messageID: start.placeholderID, sessionID: start.sessionID, persist: false)
         }
-        finishCoachTurn(turn.progress, start)
+        var progress = turn.progress
+        if EverAgentCoachEngine.shared.wasStopped, progress.text.isEmpty, progress.failure == nil { progress.text = "Stopped." }
+        finishCoachTurn(progress, start)
     }
 }
-#endif

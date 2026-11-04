@@ -18,13 +18,11 @@ extension AIStore {
 
     @MainActor
     func refreshEngineName() {
-        #if os(macOS)
         if EverAgentCoachEngine.shared.isActive {
             coachEngineName = "EverAgent"
-            coachEngineDetail = "Your connected models"
+            coachEngineDetail = EverAgentCoachEngine.shared.gatewayName.map { "Through your Mac · \($0)" } ?? "Your connected models"
             return
         }
-        #endif
         if shouldUseOnDevice {
             coachEngineName = "On-device"
             coachEngineDetail = "Apple Intelligence on this device"

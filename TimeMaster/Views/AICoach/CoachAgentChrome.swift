@@ -2,17 +2,11 @@ import SwiftUI
 import TimeMasterCore
 
 extension View {
-    @ViewBuilder
     func coachAgentChrome() -> some View {
-        #if os(macOS)
         modifier(CoachAgentChrome())
-        #else
-        task { AIStore.shared.refreshEngineName() }
-        #endif
     }
 }
 
-#if os(macOS)
 private struct CoachRequestItem: Identifiable {
     let request: EverAgentUIRequest
     var id: String { request.requestId }
@@ -52,42 +46,71 @@ struct CoachEngineBanner: View {
         !store.currentAPIKey.isEmpty
     }
 
+    private var isRelevant: Bool {
+        #if os(macOS)
+        return true
+        #else
+        return engine.pairedProfile != nil
+        #endif
+    }
+
+    private var fallbackHint: String {
+        if hasOwnKey { return "Until it is back, the coach uses your own provider key." }
+        if store.shouldUseOnDevice { return "Until it is back, the coach uses the on-device helper." }
+        #if os(macOS)
+        return "Start EverAgent to use the models you connected there, or add your own key in AI Settings."
+        #else
+        return "Open EverAhent on your Mac and check again, or add your own key in AI Settings."
+        #endif
+    }
+
     var body: some View {
         switch engine.availability {
-        case .unavailable(let message) where !store.usesOwnKey:
+        case .unavailable(let message) where !store.usesOwnKey && isRelevant:
             banner {
                 VStack(alignment: .leading, spacing: 8) {
                     Label(message, systemImage: "bolt.horizontal.circle")
                         .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textPrimary)
-                    Text(hasOwnKey
-                         ? "Until it is back, the coach uses your own provider key."
-                         : store.shouldUseOnDevice
-                            ? "Until it is back, the coach uses the on-device helper."
-                            : "Start EverAgent to use the models you connected there, or add your own key in AI Settings.")
+                    Text(fallbackHint)
                         .font(TimeMasterFont.caption())
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 8) {
+                        #if os(macOS)
                         Button("Start EverAgent") { Task { await engine.startEverAgent() } }
                             .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
                         Button("Check again") { Task { await engine.refresh() } }
                             .buttonStyle(TimeMasterActionButtonStyle())
+                        #else
+                        Button("Check again") { Task { await engine.refresh() } }
+                            .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
+                        #endif
                     }
                 }
             }
         case .checking, .starting:
-            banner {
-                HStack(spacing: 10) {
-                    ProgressView().controlSize(.small)
-                    Text(engine.availability == .starting ? "Starting EverAgent…" : "Looking for EverAgent…")
-                        .font(TimeMasterFont.body(14, relativeTo: .subheadline))
-                        .foregroundStyle(Theme.textSecondary)
+            if isRelevant {
+                banner {
+                    HStack(spacing: 10) {
+                        ProgressView().controlSize(.small)
+                        Text(checkingText)
+                            .font(TimeMasterFont.body(14, relativeTo: .subheadline))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
             }
         case .unknown, .ready, .unavailable:
             EmptyView()
         }
+    }
+
+    private var checkingText: String {
+        #if os(macOS)
+        return engine.availability == .starting ? "Starting EverAgent…" : "Looking for EverAgent…"
+        #else
+        return "Looking for your Mac…"
+        #endif
     }
 
     private func banner<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
@@ -102,6 +125,7 @@ struct CoachEngineBanner: View {
     }
 }
 
+#if os(macOS)
 struct CoachEngineSettingsContent: View {
     @ObservedObject private var engine = EverAgentCoachEngine.shared
     @ObservedObject private var store = AIStore.shared

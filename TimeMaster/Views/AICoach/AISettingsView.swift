@@ -97,6 +97,9 @@ struct AISettingsView: View {
             CoachOnDeviceSettingsContent(showsSwitch: false)
         }
         #else
+        SettingsCard(title: "EverAhent", icon: "sparkles") {
+            CoachPhoneEngineSettingsContent()
+        }
         SettingsCard(title: "On-device helper", icon: "cpu") {
             CoachOnDeviceSettingsContent(showsSwitch: true)
         }

@@ -41,7 +41,7 @@
 
 	<!-- Privacy usage descriptions -->
 	<key>NSCameraUsageDescription</key>
-	<string>Tmax uses the camera for local exercise tracking and guided Physique stills. Exercise Ranked sends joint estimates, never images. Physique shares only selected face-obscured stills after separate consent.</string>
+	<string>Tmax uses the camera for local exercise tracking, guided Physique stills and to scan the EverAhent pairing code for the AI Coach. Exercise Ranked sends joint estimates, never images. Physique shares only selected face-obscured stills after separate consent.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Tmax needs photo library access to add photos of your exercises</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -52,6 +52,11 @@
 	<array>
 		<string>_tmax-sync._tcp</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Tmax records your active Run, Walk, or Bike route while you exercise.</string>
 	<key>NSMotionUsageDescription</key>

@@ -268,6 +268,22 @@ final class CoachTurnTests: XCTestCase {
         XCTAssertTrue(turn.isFinished)
     }
 
+    func testStopFinishesTheTurnWithoutAFailureAndClosesOpenWork() {
+        var turn = replay([
+            agent("agent_start"),
+            update([text("Looking")]),
+            toolStart("c1", "bash", args: ["command": "sleep 40"]),
+            EverAgentEvent(sequence: 2, topic: EverAgentTopic.uiRequest, sessionId: "s-1", data: ["requestId": "r1", "kind": "confirm", "title": "Go on?"]),
+        ])
+        turn.stop()
+        XCTAssertEqual(turn.phase, .finished)
+        XCTAssertNil(turn.progress.failure)
+        XCTAssertEqual(turn.text, "Looking")
+        XCTAssertEqual(turn.activities.map(\.status), [.failed])
+        XCTAssertNil(turn.request)
+        XCTAssertTrue(turn.progress.isFinished)
+    }
+
     func testANoticeActivityGoesFirstAndIsReplacedNotDuplicated() {
         var turn = replay([toolStart("c1", "read", args: ["path": "/tmp/a.txt"])])
         let notice = CoachActivity(id: "tmax-tools", title: "The Tmax tools did not connect", status: .failed)

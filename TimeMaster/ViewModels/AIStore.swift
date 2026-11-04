@@ -183,9 +183,7 @@ final class AIStore: ObservableObject {
 
     func stopAgent() {
         onDeviceTask?.cancel()
-        #if os(macOS)
         Task { await EverAgentCoachEngine.shared.stop() }
-        #endif
     }
 
     private init() { load() }
@@ -379,11 +377,9 @@ final class AIStore: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty || attachmentName != nil else { return }
 
-        #if os(macOS)
         if await sendViaEverAgentIfReady(trimmed, replyTo: replyTo, attachmentName: attachmentName, attachmentContent: attachmentContent) {
             return
         }
-        #endif
 
         if await sendViaOnDeviceIfReady(trimmed, replyTo: replyTo, attachmentName: attachmentName, attachmentContent: attachmentContent) {
             return

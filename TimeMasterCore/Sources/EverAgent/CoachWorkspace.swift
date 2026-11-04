@@ -2,11 +2,11 @@
 import Foundation
 
 public enum CoachWorkspace {
-    public static let folderName = "TimeMasterCoach"
+    public static let folderName = CoachConstants.projectName
     public static let toolServerFile = ".mcp.json"
     public static let instructionsFile = "AGENTS.md"
     public static let toolServerName = "tmax"
-    public static let toolPrefix = "mcp__tmax_"
+    public static let toolPrefix = CoachConstants.toolPrefix
 
     public static func defaultDirectory() -> URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

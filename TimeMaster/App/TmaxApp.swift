@@ -133,6 +133,9 @@ private struct TmaxRootView: View {
             databaseSync.handleScenePhase(active: NSApplication.shared.isActive)
 #endif
             DeviceSyncCoordinator.shared.libraryDidLoad()
+#if os(macOS)
+            await EverAgentCoachEngine.shared.refresh(quiet: true)
+#endif
         }
         .onOpenURL { url in
             if contentIsReady && launchPhase == .finished { handleDeepLink(url) }

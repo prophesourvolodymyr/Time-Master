@@ -94,6 +94,15 @@ public struct CoachTurn: Sendable, Equatable {
         phase = .failed(message)
     }
 
+    public mutating func stop() {
+        for index in activities.indices where activities[index].status == .running {
+            activities[index].status = .failed
+        }
+        request = nil
+        isThinking = false
+        phase = .finished
+    }
+
     public mutating func reconcile(with session: EverAgentSession) {
         let messages = session.messages
         guard let lastUser = messages.lastIndex(where: { $0.role == "user" }) else { return }

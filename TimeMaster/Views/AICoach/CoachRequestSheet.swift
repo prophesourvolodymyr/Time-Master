@@ -1,4 +1,3 @@
-#if os(macOS)
 import SwiftUI
 import TimeMasterCore
 
@@ -54,7 +53,9 @@ struct CoachRequestSheet: View {
             footer
         }
         .padding(20)
+        #if os(macOS)
         .frame(minWidth: 440, idealWidth: 500, minHeight: 260)
+        #endif
         .background(Theme.background)
         .onAppear { text = request.raw["value"].stringValue ?? "" }
         .interactiveDismissDisabled(false)
@@ -202,4 +203,3 @@ struct CoachRequestSheet: View {
         Task { await EverAgentCoachEngine.shared.answer(.null, cancelled: true) }
     }
 }
-#endif
