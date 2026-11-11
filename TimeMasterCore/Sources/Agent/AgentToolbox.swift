@@ -44,7 +44,11 @@ public final class AgentToolbox {
         case "get_stats": return try stats(args)
         case "list_types": return try listTypes()
         case "batch": return try batch(args, dryRun: dryRun)
-        default: throw AgentToolError("unknown_tool", "Unknown tool '\(name)'.")
+        default:
+            if let output = try runBundleTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runMilestoneTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runNoteTool(name, args, dryRun: dryRun) { return output }
+            throw AgentToolError("unknown_tool", "Unknown tool '\(name)'.")
         }
     }
 

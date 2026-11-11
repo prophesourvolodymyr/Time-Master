@@ -85,6 +85,7 @@ public final class DatabaseManager {
         try bootstrapManagedFile(at: fs.skillsDirectory.appendingPathComponent("create-exercise.md"), content: bootstrapCreateExerciseContent())
         try bootstrapManagedFile(at: fs.skillsDirectory.appendingPathComponent("build-workout.md"), content: bootstrapBuildWorkoutContent())
         try bootstrapManagedFile(at: fs.skillsDirectory.appendingPathComponent("search-database.md"), content: bootstrapSearchDatabaseContent())
+        try bootstrapFeatureSkills()
 
         try bootstrapKnowledgeFile(name: "fitness-philosophy.md", title: "Fitness Philosophy")
         try bootstrapKnowledgeFile(name: "nutrition-rules.md", title: "Nutrition Rules")
@@ -101,7 +102,7 @@ public final class DatabaseManager {
         try fs.writeAtomically(to: fs.schemaURL, data: data)
     }
 
-    private func bootstrapManagedFile(at url: URL, content: String) throws {
+    func bootstrapManagedFile(at url: URL, content: String) throws {
         if fs.fileExists(at: url) {
             let existing = (try? fs.readRawData(from: url)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
             guard existing.contains("timemaster-tool") else { return }

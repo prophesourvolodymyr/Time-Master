@@ -110,10 +110,10 @@ enum AgentSchema {
 }
 
 public enum AgentToolRegistry {
-    private static let pageRef = "Page UUID or title path such as 'Lower Body/Glutes'."
-    private static let typeText = "Workout type name or id (Strength, Stretch, Cardio, HIIT, Yoga, Face, Other, or a custom type). Applies to root pages; nested pages inherit it."
+    static let pageRef = "Page UUID or title path such as 'Lower Body/Glutes'."
+    static let typeText = "Workout type name or id (Strength, Stretch, Cardio, HIIT, Yoga, Face, Other, or a custom type). Applies to root pages; nested pages inherit it."
 
-    public static let tools: [AgentTool] = [
+    private static let baseTools: [AgentTool] = [
         contextTool, listPages, searchPages, getPage,
         createContainerPage, createExercisePage, attachMedia, addPageNote,
         updatePage, movePage, deletePage,
@@ -122,6 +122,8 @@ public enum AgentToolRegistry {
         getSettings, updateSettings,
         importVideo, batch, undo,
     ]
+
+    public static let tools: [AgentTool] = baseTools + bundleTools + milestoneTools + noteTools
 
     public static func tool(named name: String) -> AgentTool? {
         tools.first { $0.name == name }
