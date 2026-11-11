@@ -45,7 +45,7 @@ struct DatabasePageBrowserSheet: View {
     }
 
     private var pages: [ExercisePage] {
-        store.allPagesFlat
+        store.allPagesFlat.filter { !$0.isNote }
     }
 
     private var filteredPages: [ExercisePage] {

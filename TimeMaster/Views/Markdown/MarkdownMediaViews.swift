@@ -61,12 +61,24 @@ struct MarkdownThumbnailImage: View {
     }
 }
 
+private struct MarkdownImageOpenKey: EnvironmentKey {
+    static let defaultValue: ((String) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var markdownImageOpen: ((String) -> Void)? {
+        get { self[MarkdownImageOpenKey.self] }
+        set { self[MarkdownImageOpenKey.self] = newValue }
+    }
+}
+
 struct MarkdownImageBlockView: View {
     let path: String
     let alt: String
     let assets: MarkdownAssets?
     @State private var image: PhotoPlatformImage?
     @State private var failed = false
+    @Environment(\.markdownImageOpen) private var openImage
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -104,6 +116,23 @@ struct MarkdownImageBlockView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(alt.isEmpty ? "Image" : alt)
+        .accessibilityAddTraits(openImage == nil ? [] : .isButton)
+        .modifier(MarkdownImageTap(path: path, open: openImage))
+    }
+}
+
+private struct MarkdownImageTap: ViewModifier {
+    let path: String
+    let open: ((String) -> Void)?
+
+    func body(content: Content) -> some View {
+        if let open {
+            content
+                .contentShape(Rectangle())
+                .onTapGesture { open(path) }
+        } else {
+            content
+        }
     }
 }
 

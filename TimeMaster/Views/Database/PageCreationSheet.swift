@@ -123,6 +123,8 @@ struct PageCreationSheet: View {
     @State private var pageKind: ExercisePageManifest.PageKind
     @State private var pageType: PageType?
     @State private var skillStatus: SkillStatus?
+    @State private var noteIconName: String
+    @State private var noteIconType: SkillBoardIconType
     @State private var skillBoardSectionID: String?
     @State private var draftParentID: String?
     @State private var title: String
@@ -187,7 +189,7 @@ struct PageCreationSheet: View {
             if initialType == .skill || initialType == .tutorial {
                 return .container
             }
-            return initialType == .exercise ? .leaf : (page?.manifest.pageKind ?? .container)
+            return (initialType == .exercise || initialType == .note) ? .leaf : (page?.manifest.pageKind ?? .container)
         }()
         let initialLinks = Self.makeLinkRows(
             urls: page?.manifest.linkURLs ?? [],
@@ -198,6 +200,8 @@ struct PageCreationSheet: View {
         _pageKind = State(initialValue: initialKind)
         _pageType = State(initialValue: initialType)
         _skillStatus = State(initialValue: page?.manifest.skillStatus)
+        _noteIconName = State(initialValue: page?.manifest.iconName ?? "")
+        _noteIconType = State(initialValue: page?.manifest.iconType ?? .system)
         _skillBoardSectionID = State(initialValue: page?.manifest.skillBoardSectionID)
         _draftParentID = State(initialValue: resolvedParentID)
         _title = State(initialValue: page?.manifest.title ?? "")
@@ -241,8 +245,12 @@ struct PageCreationSheet: View {
                                 .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
                         pageKindCard
-                        mediaCard
-                        workoutTypeCard
+                        if isNotePage {
+                            noteIconCard
+                        } else {
+                            mediaCard
+                            workoutTypeCard
+                        }
                         if isSkillLikePage {
                             skillTrackingCard
                         }
@@ -250,8 +258,10 @@ struct PageCreationSheet: View {
                             timingCard
                             dropSetTemplatesCard
                         }
-                        markdownCard
-                        linksCard
+                        if !isNotePage {
+                            markdownCard
+                            linksCard
+                        }
                         if existingPage != nil {
                             deleteCard
                         }
@@ -442,6 +452,24 @@ struct PageCreationSheet: View {
         }
     }
 
+    private var noteIconCard: some View {
+        formCard {
+            sectionHeading("Icon", tag: .optional) {
+                if !noteIconName.isEmpty {
+                    Button {
+                        noteIconName = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    .keyNavPlainButtonStyle()
+                    .accessibilityLabel("Remove the icon")
+                }
+            }
+            SkillIconPicker(iconName: $noteIconName, iconType: $noteIconType)
+        }
+    }
+
     private var pageKindCard: some View {
         formCard {
             sectionHeading("Page Type", tag: .required)
@@ -450,6 +478,7 @@ struct PageCreationSheet: View {
                 pageTypeButton(.exercise, title: "Exercise", systemImage: "figure.run")
                 pageTypeButton(.skill, title: "Skill", systemImage: "flag.checkered")
                 pageTypeButton(.tutorial, title: "Tutorial", systemImage: "book.closed")
+                pageTypeButton(.note, title: "Note", systemImage: "note.text")
             }
             if pageType == .exercise, draftParentID == nil {
                 Text("Saved at the top of the Database, outside any container.")
@@ -470,7 +499,7 @@ struct PageCreationSheet: View {
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
                 pageType = type
                 switch type {
-                case .exercise:
+                case .exercise, .note:
                     pageKind = .leaf
                     skillStatus = nil
                     skillBoardSectionID = nil
@@ -1209,6 +1238,7 @@ struct PageCreationSheet: View {
     }
 
     private var isExercisePage: Bool { pageType == .exercise }
+    private var isNotePage: Bool { pageType == .note }
     private var isSkillLikePage: Bool { pageType == .skill || pageType == .tutorial }
     private var effectiveSkillStatus: SkillStatus { skillStatus ?? .notStarted }
 
@@ -1429,7 +1459,7 @@ struct PageCreationSheet: View {
             TimeMasterCore.WorkoutType(id: $0.id, name: $0.name, iconName: $0.iconName, colorHex: $0.colorHex)
         }
         let resolvedPageType = pageType ?? (pageKind == .leaf ? .exercise : nil)
-        let structuralKind: ExercisePageManifest.PageKind = resolvedPageType == .exercise ? .leaf : .container
+        let structuralKind: ExercisePageManifest.PageKind = (resolvedPageType == .exercise || resolvedPageType == .note) ? .leaf : .container
         let isExercise = resolvedPageType == .exercise
         let isSkillLike = resolvedPageType == .skill || resolvedPageType == .tutorial
         let status = isSkillLike ? effectiveSkillStatus : nil
@@ -1442,7 +1472,12 @@ struct PageCreationSheet: View {
             manifest.pageType = resolvedPageType
             manifest.parentID = draftParentID
             manifest.coverImageFilename = nil
-            if !isSkillLike { manifest.iconName = nil }
+            if resolvedPageType == .note {
+                manifest.iconName = noteIconName.isEmpty ? nil : noteIconName
+                manifest.iconType = noteIconName.isEmpty ? nil : noteIconType
+            } else if !isSkillLike {
+                manifest.iconName = nil
+            }
             manifest.workoutType = coreWorkoutType
             manifest.markdownBody = markdownBody
             manifest.mediaFilenames = mediaFilenames
@@ -1473,7 +1508,8 @@ struct PageCreationSheet: View {
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             pageKind: structuralKind,
             pageType: resolvedPageType,
-            iconName: nil,
+            iconName: resolvedPageType == .note && !noteIconName.isEmpty ? noteIconName : nil,
+            iconType: resolvedPageType == .note && !noteIconName.isEmpty ? noteIconType : nil,
             markdownBody: markdownBody,
             mediaFilenames: mediaFilenames,
             mediaComments: mediaComments.filter { mediaFilenames.contains($0.key) },
@@ -1955,6 +1991,7 @@ private struct PageCreationDraftListSheet: View {
         case .exercise: "Exercise"
         case .skill: "Skill"
         case .tutorial: "Tutorial"
+        case .note: "Note"
         case nil: "Container"
         }
     }
@@ -2003,6 +2040,7 @@ private struct DraftThumbnail: View {
         case .exercise: "figure.run"
         case .skill: "flag.checkered"
         case .tutorial: "book.closed"
+        case .note: "note.text"
         case nil: "square.stack.3d.up"
         }
     }

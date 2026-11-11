@@ -13,7 +13,8 @@ struct MediaSaveDestinationIndex {
     let entries: [Entry]
     private let pathsByID: [String: String]
 
-    init(pages: [ExercisePage] = []) {
+    init(pages allPages: [ExercisePage] = []) {
+        let pages = allPages.filter { !$0.isNote }
         let lookup = Dictionary(pages.map { ($0.manifest.id, $0) }, uniquingKeysWith: { first, _ in first })
         var paths: [String: String] = [:]
         for page in pages {

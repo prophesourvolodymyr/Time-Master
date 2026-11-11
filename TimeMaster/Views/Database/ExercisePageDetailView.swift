@@ -42,6 +42,14 @@ struct ExercisePageDetailView: View {
     private var breadcrumbs: [ExercisePage] { store.breadcrumbs(for: pageID) }
 
     var body: some View {
+        if page?.isNote == true {
+            NotePageView(pageID: pageID)
+        } else {
+            pageBody
+        }
+    }
+
+    private var pageBody: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
 
@@ -715,6 +723,7 @@ private func pageTypeLabel(_ page: ExercisePage) -> String {
     case .exercise: "Exercise"
     case .skill: "Skill"
     case .tutorial: "Tutorial"
+    case .note: "Note"
     case nil: "Container"
     }
 }

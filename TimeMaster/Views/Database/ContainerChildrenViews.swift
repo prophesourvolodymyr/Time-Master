@@ -24,7 +24,7 @@ struct ContainerChildrenTabs: View {
     @State private var selectedTab: ContainerChildTab = .exercises
 
     private var exercises: [ExercisePage] {
-        store.children(of: container.id).filter { $0.isExercise || $0.pageType == nil }
+        store.children(of: container.id).filter { $0.isExercise || $0.isNote || $0.pageType == nil }
     }
 
     var body: some View {
@@ -122,7 +122,7 @@ struct ContainerCategoryPage: View {
 
     private var exercises: [ExercisePage] {
         guard let container else { return [] }
-        return store.children(of: container.id).filter { $0.isExercise || $0.pageType == nil }
+        return store.children(of: container.id).filter { $0.isExercise || $0.isNote || $0.pageType == nil }
     }
 
     var body: some View {

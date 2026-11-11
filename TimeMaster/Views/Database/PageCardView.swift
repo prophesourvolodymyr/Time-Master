@@ -41,7 +41,7 @@ struct PageCardView: View {
 
     private var gridCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            coverHeroGrid
+            if page.isNote { noteHeroGrid } else { coverHeroGrid }
             infoGrid
         }
         .modifier(TimeMasterCardSurface(flat: true))
@@ -139,6 +139,35 @@ struct PageCardView: View {
         .clipped()
     }
 
+    private func noteGlyph(size: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(Theme.surface2)
+            .overlay { noteIcon(size: size * 0.5) }
+            .frame(width: size, height: size)
+    }
+
+    private var noteHeroGrid: some View {
+        LinearGradient(
+            colors: [Theme.toolbarOrange.opacity(0.18), Theme.toolbarOrange.opacity(0.04)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay { noteIcon(size: 44) }
+        .frame(height: 120)
+        .clipped()
+    }
+
+    @ViewBuilder
+    private func noteIcon(size: CGFloat) -> some View {
+        if let name = page.manifest.iconName, !name.isEmpty {
+            SkillIconView(iconName: name, iconType: page.manifest.iconType, size: size)
+        } else {
+            Image(systemName: "note.text")
+                .font(.system(size: size, weight: .semibold))
+                .foregroundStyle(Theme.toolbarOrange)
+        }
+    }
+
     private func coverImageGrid(url: URL) -> some View {
         AsyncCoverImage(url: url, height: 120, contentMode: .fill, overlayGradient: false)
             .frame(height: 120)
@@ -165,6 +194,15 @@ struct PageCardView: View {
     private var infoGrid: some View {
         VStack(alignment: .leading, spacing: 3) {
             titleLabel(font: TimeMasterFont.rowTitle())
+            if page.isNote {
+                let preview = NotePreview.text(from: page.manifest.markdownBody)
+                if !preview.isEmpty {
+                    Text(preview)
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(2)
+                }
+            }
 
             HStack(spacing: 5) {
                 if page.isContainer {
@@ -187,7 +225,9 @@ struct PageCardView: View {
 
     @ViewBuilder
     private var coverArea: some View {
-        if page.isContainer {
+        if page.isNote {
+            noteGlyph(size: listThumbnailSize)
+        } else if page.isContainer {
             DatabaseGroupCover(page: page)
                 .frame(width: listThumbnailSize, height: listThumbnailSize)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -246,6 +286,7 @@ struct PageCardView: View {
     }
 
     private var listMetadata: String {
+        if page.isNote { return NotePreview.text(from: page.manifest.markdownBody) }
         var text = page.effectiveWorkoutType?.name ?? pageTypeLabel ?? "Container"
         if page.isContainer {
             let count = page.totalChildCount
@@ -266,6 +307,7 @@ struct PageCardView: View {
         case .exercise: "Exercise"
         case .skill: "Skill"
         case .tutorial: "Tutorial"
+        case .note: "Note"
         case nil: nil
         }
     }

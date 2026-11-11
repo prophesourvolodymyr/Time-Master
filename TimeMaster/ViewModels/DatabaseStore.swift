@@ -403,6 +403,7 @@ class DatabaseStore: ObservableObject {
         newManifest.coverImageFilename = nil
         newManifest.mediaFilenames = []
         try DatabaseManager.shared.createPage(manifest: newManifest, parentID: page.manifest.parentID)
+        if page.isNote { copyNoteAttachments(from: page, to: newManifest.id) }
 
         for sourceURL in page.mediaURLs where FileManager.default.fileExists(atPath: sourceURL.path) {
             try? DatabaseManager.shared.uploadMediaToPage(

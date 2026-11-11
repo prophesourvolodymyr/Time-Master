@@ -13,9 +13,10 @@ struct ExercisePage: Identifiable {
     var title: String { manifest.title }
     var pageType: PageType? { manifest.pageType }
     var isContainer: Bool { manifest.pageKind == .container }
-    var isLeaf: Bool { manifest.pageKind == .leaf }
+    var isLeaf: Bool { manifest.pageKind == .leaf && !isNote }
     var isRoot: Bool { manifest.parentID == nil }
     var isExercise: Bool { pageType == .exercise }
+    var isNote: Bool { pageType == .note }
     var isSkill: Bool { pageType == .skill }
     var isTutorial: Bool { pageType == .tutorial }
     var isSkillLike: Bool { isSkill || isTutorial }

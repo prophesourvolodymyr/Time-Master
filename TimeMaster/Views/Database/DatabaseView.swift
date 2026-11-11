@@ -356,6 +356,10 @@ struct DatabaseView: View {
     @State private var noteToMove: DatabaseNote?
     @State private var folderToExport: ExerciseFolder?
     @State private var creationRequest: PageCreationRequest?
+    @State private var showingNewNoteAlert = false
+    @State private var newNoteTitle = ""
+    @State private var noteCreationError: String?
+    @State private var showsNotesOnly = false
     @State private var pageToMove: ExercisePage?
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
@@ -413,6 +417,19 @@ struct DatabaseView: View {
                 NewFolderSheet { name, colorHex, workoutType in
                     store.addRootFolder(name: name, colorHex: colorHex, workoutType: workoutType)
                 }
+            }
+            .alert("New Note", isPresented: $showingNewNoteAlert) {
+                TextField("Title", text: $newNoteTitle)
+                Button("Create") { createNote() }
+                Button("Cancel", role: .cancel) { newNoteTitle = "" }
+            }
+            .alert("Could not create the note", isPresented: Binding(
+                get: { noteCreationError != nil },
+                set: { if !$0 { noteCreationError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(noteCreationError ?? "")
             }
             .sheet(item: $creationRequest) { request in
                 PageCreationSheet(
@@ -637,11 +654,43 @@ struct DatabaseView: View {
         } label: {
             Label("New Tutorial", systemImage: "book.closed")
         }
+        Button {
+            newNoteTitle = ""
+            showingNewNoteAlert = true
+        } label: {
+            Label("New Note", systemImage: "note.text")
+        }
         Divider()
         Button {
             showingDatabaseImport = true
         } label: {
             Label("Import Database File", systemImage: "square.and.arrow.down")
+        }
+    }
+
+    private var notesChip: some View {
+        Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
+                showsNotesOnly.toggle()
+                if showsNotesOnly { selectedWorkoutTypeIDs.removeAll() }
+            }
+        } label: {
+            Label("Notes", systemImage: "note.text").lineLimit(1).fixedSize()
+        }
+        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: showsNotesOnly))
+        .accessibilityAddTraits(showsNotesOnly ? .isSelected : [])
+        .accessibilityIdentifier("database-filter-notes")
+    }
+
+    private func createNote() {
+        let title = newNoteTitle
+        newNoteTitle = ""
+        do {
+            let id = try store.createNote(title: title)
+            NoteEditIntent.pending.insert(id)
+            navigationState.path.append(DatabasePageRoute(pageID: id))
+        } catch {
+            noteCreationError = error.localizedDescription
         }
     }
 
@@ -861,6 +910,7 @@ struct DatabaseView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     filterChip(nil, label: "All")
+                    notesChip
                     if !uniqueWorkoutTypes.isEmpty {
                         Capsule()
                             .fill(EverColor.borderStrong)
@@ -913,9 +963,10 @@ struct DatabaseView: View {
     }
 
     private func filterChip(_ typeID: String?, label: String) -> some View {
-        let isActive = typeID.map { selectedWorkoutTypeIDs.contains($0) } ?? selectedWorkoutTypeIDs.isEmpty
+        let isActive = typeID.map { selectedWorkoutTypeIDs.contains($0) } ?? (selectedWorkoutTypeIDs.isEmpty && !showsNotesOnly)
         return Button {
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
+                showsNotesOnly = false
                 if let typeID {
                     if !selectedWorkoutTypeIDs.insert(typeID).inserted {
                         selectedWorkoutTypeIDs.remove(typeID)
@@ -935,10 +986,10 @@ struct DatabaseView: View {
 
     private var noResultsView: some View {
         VStack(spacing: 12) {
-            Image(systemName: "doc.text.magnifyingglass")
+            Image(systemName: showsNotesOnly ? "note.text" : "doc.text.magnifyingglass")
                 .font(.system(size: 36))
                 .foregroundStyle(Theme.textSecondary.opacity(0.4))
-            Text("No exercises match this type")
+            Text(showsNotesOnly ? "No notes yet" : "No exercises match this type")
                 .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
         }
@@ -991,7 +1042,7 @@ struct DatabaseView: View {
     }
 
     private var filteredRootPages: [ExercisePage] {
-        var pages = store.rootPages.filter { !$0.isSkill }
+        var pages = showsNotesOnly ? store.allPagesFlat.filter(\.isNote) : store.rootPages.filter { !$0.isSkill }
 
         if !selectedWorkoutTypeIDs.isEmpty {
             pages = pages.filter {
@@ -1244,7 +1295,7 @@ private struct DatabaseSearchSheet: View {
                             ForEach(results) { page in
                                 NavigationLink(value: DatabasePageRoute(pageID: page.manifest.id)) {
                                     HStack(spacing: 12) {
-                                        Image(systemName: page.isContainer ? "rectangle.stack" : "doc.text")
+                                        Image(systemName: page.isNote ? "note.text" : (page.isContainer ? "rectangle.stack" : "doc.text"))
                                             .foregroundStyle(Theme.toolbarOrange)
                                             .frame(width: 24)
                                         VStack(alignment: .leading, spacing: 3) {
@@ -1308,6 +1359,7 @@ private struct DatabaseSearchSheet: View {
         case .exercise: "Exercise"
         case .skill: "Skill"
         case .tutorial: "Tutorial"
+        case .note: "Note"
         case nil: "Container"
         }
     }
