@@ -147,6 +147,16 @@ public enum AgentApproval {
         case "batch":
             let count = (arguments["operations"] as? [Any])?.count ?? 0
             return "Run \(count) library operation\(count == 1 ? "" : "s") together"
+        case "add_todo", "update_todo", "check_todo", "move_todo", "remove_todo":
+            let noun = (arguments["section"] as? Bool) == true ? "section" : (arguments["list"] as? String) == "milestone" ? "milestone" : "to-do"
+            let item = text("item").map { "“\($0)”" } ?? "a \(noun)"
+            switch tool {
+            case "add_todo": return "Add \(noun) \(quoted("title")) to \(quoted("page"))"
+            case "update_todo": return "Change \(item) on \(quoted("page"))"
+            case "check_todo": return ((arguments["done"] as? Bool) == false ? "Reopen " : "Check off ") + "\(item) on \(quoted("page"))"
+            case "move_todo": return "Move \(item) on \(quoted("page"))"
+            default: return "Delete \(item) and everything inside it from \(quoted("page"))"
+            }
         case "undo": return "Undo the last agent changes"
         default: return "\(tool): \(arguments.keys.sorted().joined(separator: ", "))"
         }

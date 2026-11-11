@@ -21,8 +21,19 @@ public enum OnDeviceActivityLabel {
         case "list_types": return ("Listing workout types", nil)
         case "get_settings": return ("Reading your settings", nil)
         case "update_settings": return ("Changing your settings", nil)
+        case "todo_overview": return ("Looking over your to-dos and milestones", nil)
+        case "list_todos": return (milestones(arguments) ? "Reading the milestones" : "Reading the to-do list", text(arguments["page"]))
+        case "add_todo": return (milestones(arguments) ? "Adding a milestone" : "Adding a to-do", text(arguments["title"]))
+        case "update_todo": return (milestones(arguments) ? "Changing a milestone" : "Changing a to-do", text(arguments["item"]))
+        case "check_todo": return (milestones(arguments) ? "Marking a milestone" : "Checking off a to-do", text(arguments["item"]))
+        case "move_todo": return (milestones(arguments) ? "Moving a milestone" : "Moving a to-do", text(arguments["item"]))
+        case "remove_todo": return (milestones(arguments) ? "Deleting a milestone" : "Deleting a to-do", text(arguments["item"]))
         default: return (sentence(tool), nil)
         }
+    }
+
+    private static func milestones(_ arguments: [String: Any]) -> Bool {
+        (arguments["list"] as? String)?.lowercased() == "milestone"
     }
 
     private static func text(_ value: Any?) -> String? {

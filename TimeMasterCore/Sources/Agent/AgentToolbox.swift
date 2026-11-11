@@ -87,6 +87,9 @@ public final class AgentToolbox {
                     page.markdownBody = previous
                     try database.updatePage(id: pageID, manifest: page, newParentID: page.parentID)
                     notes.append("Restored the notes of \(pageID).")
+                case .addedChecklistEntry(let pageID, let list, let id):
+                    try revertChecklistEntry(pageID: pageID, list: list, id: id)
+                    notes.append("Removed the \(list) \(id) from \(pageID).")
                 }
             } catch {
                 notes.append("Could not reverse \(effect): \(AgentToolError.translating(error).message)")
@@ -208,6 +211,7 @@ extension AgentToolbox {
             return item
         }
         if !attachments.isEmpty { value["media"] = attachments }
+        addChecklistCounts(of: page, to: &value)
         let inside = index.children(of: page.id)
         if !inside.isEmpty {
             value["pages"] = inside.prefix(60).map { index.summary($0) }

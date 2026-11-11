@@ -13,6 +13,10 @@ public enum OnDeviceToolRouting {
         "get_stats": [],
         "list_types": [],
         "get_settings": [],
+        "todo_overview": ["list"],
+        "list_todos": ["page", "list"],
+        "add_todo": ["page", "list", "title"],
+        "check_todo": ["page", "list", "item", "done"],
     ]
     public static let defaults: [String: [String: Int]] = [
         "list_pages": ["limit": 15],
@@ -27,6 +31,10 @@ public enum OnDeviceToolRouting {
     }
 
     private static let intents: [Intent] = [
+        Intent(
+            keywords: ["todo", "to-do", "checklist", "milestone", "check off", "tick off"],
+            tools: ["todo_overview", "list_todos", "add_todo", "check_todo"]
+        ),
         Intent(
             keywords: ["delete", "remove", "trash", "erase", "rename", "change", "update", "edit", "move", "reorder", "create", "build a workout", "make a workout", "add an exercise", "add exercise", "new exercise", "new folder", "new workout", "put together"],
             tools: ["search_pages", "list_workouts"]
@@ -71,7 +79,7 @@ public enum OnDeviceToolRouting {
     }
 
     private static func matches(_ keyword: String, in text: String, words: [String]) -> Bool {
-        if keyword.contains(" ") { return text.contains(keyword) }
+        if keyword.contains(" ") || keyword.contains("-") { return text.contains(keyword) }
         return words.contains { $0 == keyword || ($0.hasPrefix(keyword) && $0.count <= keyword.count + 2) }
     }
 }
