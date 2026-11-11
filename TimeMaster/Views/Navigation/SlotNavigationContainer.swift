@@ -39,6 +39,7 @@ struct SlotCarouselNavigation<Content: View>: View {
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var requestedPresentation: SlotNavigationPresentation?
     @State private var contentDisablesInteraction = false
+    @State private var contentPrefersStrip = false
     @State private var hiddenNavigation = SlotNavigationOverlayState()
     @State private var hiddenNavigationDismissTask: Task<Void, Never>?
     @State private var isEditing = false
@@ -254,6 +255,7 @@ struct SlotCarouselNavigation<Content: View>: View {
             .onPreferenceChange(SlotNavigationInteractionDisabledPreferenceKey.self) { contentDisablesInteraction = $0 }
             .onPreferenceChange(SlotNavigationEditingPreferenceKey.self) { pageSwipesDisabled = $0 }
             .onPreferenceChange(ReachabilityActivePreferenceKey.self) { reachabilityIsActive = $0 }
+            .onPreferenceChange(SlotNavigationStripPreferenceKey.self) { contentPrefersStrip = $0 }
             .onPreferenceChange(SlotNavigationPresentationPreferenceKey.self) { requested in
                 applyPresentation(requested)
             }
@@ -402,7 +404,8 @@ struct SlotCarouselNavigation<Content: View>: View {
             isInteracting: navigationIsInteracting,
             isEditing: isEditing,
             isOverlayVisible: hiddenNavigation.isVisible,
-            contentRequiresInline: contentClearance.requiresInline(in: context)
+            contentRequiresInline: contentClearance.requiresInline(in: context),
+            contentPrefersInline: contentPrefersStrip
         )
     }
 

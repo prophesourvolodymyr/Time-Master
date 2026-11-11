@@ -85,6 +85,13 @@ struct SlotNavigationInteractionDisabledPreferenceKey: PreferenceKey {
     }
 }
 
+struct SlotNavigationStripPreferenceKey: PreferenceKey {
+    static let defaultValue = false
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
 extension View {
     func slotNavigationPresentation(_ presentation: SlotNavigationPresentation) -> some View {
         preference(key: SlotNavigationPresentationPreferenceKey.self, value: presentation)
@@ -95,6 +102,12 @@ extension View {
     /// flag clears.
     func slotNavigationInteractionDisabled(_ disabled: Bool = true) -> some View {
         preference(key: SlotNavigationInteractionDisabledPreferenceKey.self, value: disabled)
+    }
+
+    /// Asks the navigation to use its flat strip instead of the arch while this page is shown,
+    /// for pages that place a primary control directly on top of the bar.
+    func slotNavigationPrefersStrip(_ prefersStrip: Bool = true) -> some View {
+        preference(key: SlotNavigationStripPreferenceKey.self, value: prefersStrip)
     }
 }
 
@@ -469,9 +482,10 @@ enum SlotNavigationBarLayout: Equatable {
         isInteracting: Bool,
         isEditing: Bool,
         isOverlayVisible: Bool,
-        contentRequiresInline: Bool = false
+        contentRequiresInline: Bool = false,
+        contentPrefersInline: Bool = false
     ) -> Self {
-        isExpanded || isInteracting || isEditing || isOverlayVisible || !contentRequiresInline ? .full : .inline
+        isExpanded || isInteracting || isEditing || isOverlayVisible || !(contentRequiresInline || contentPrefersInline) ? .full : .inline
     }
 }
 

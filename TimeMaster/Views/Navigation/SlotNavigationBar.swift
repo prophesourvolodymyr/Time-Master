@@ -400,11 +400,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let compactY = Self.inlineHeight / 2
         let expandedY = arcY + 56 - (iconFrameHeight + labelHeight + labelSpacing) / 2 + verticalOffset
         let proposedY = compactY + (expandedY - compactY) * amount
-        #if os(macOS)
         let lowestY = catalog ? size.height - itemHeight / 2 : size.height + itemHeight
-        #else
-        let lowestY = size.height - itemHeight / 2
-        #endif
         let boundedY = min(max(proposedY, itemHeight * (max(1, itemScale) - 0.5)), lowestY)
         let itemY = placedY(boundedY, height: size.height)
         let rootY = (catalog ? catalogOriginY : mainOriginY) + itemY
