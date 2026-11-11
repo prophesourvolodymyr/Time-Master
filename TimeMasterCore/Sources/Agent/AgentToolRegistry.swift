@@ -162,6 +162,7 @@ public enum AgentToolRegistry {
     - Look before you write: call list_pages or search_pages and reference pages by the id they return. Never invent ids.
     - Exercise pages are workout-ready leaves; containers only organize. Put exercises inside the right container.
     - Note pages are Markdown documents with pictures inside the text; they are never exercises and never go into workouts. Write them with create_note_page.
+    - A workout section is one timed exercise or a bundle: several exercises played back to back for N sets. Drills played every few seconds are a bundle with short durations; read it back with get_workout.
     - Creating, editing and moving run immediately. Deleting asks the user to approve first; if the user declines, accept it and offer an alternative.
     - Keep arguments small and valid JSON. If a tool returns an error, read its hint and correct the call instead of repeating it.
     """
@@ -318,55 +319,6 @@ public enum AgentToolRegistry {
             name: "delete_page", summary: "Move a page and everything inside it to the trash. It can be restored from .trash.",
             risk: .delete, executor: .core, coach: true,
             schema: AgentSchema.object(["page": AgentSchema.string(pageRef)], required: ["page"])
-        )
-    }
-
-    private static var sectionItem: [String: Any] {
-        AgentSchema.object([
-            "exercise": AgentSchema.string("Exercise page to run. \(pageRef)"),
-            "name": AgentSchema.string("Section label; defaults to the exercise title."),
-            "duration": AgentSchema.integer("Seconds per set; defaults to the exercise's duration.", minimum: 5),
-            "sets": AgentSchema.integer("Number of sets; defaults to the exercise's sets.", minimum: 1),
-            "repCount": AgentSchema.integer("Target reps per set.", minimum: 1),
-            "restBetweenSets": AgentSchema.integer("Rest between sets in seconds.", minimum: 0),
-            "prepareTime": AgentSchema.integer("Preparation seconds before the section.", minimum: 0, maximum: 30),
-        ], required: ["exercise"])
-    }
-
-    private static var buildWorkout: AgentTool {
-        AgentTool(
-            name: "build_workout", summary: "Create a workout from existing exercise pages, in order.",
-            risk: .write, executor: .core, coach: true,
-            schema: AgentSchema.object([
-                "name": AgentSchema.string("Workout name."),
-                "type": AgentSchema.string("Workout type name or id. Default Strength."),
-                "restBetweenSections": AgentSchema.integer("Rest between sections in seconds (default 30).", minimum: 0),
-                "sections": AgentSchema.array(of: sectionItem, "Ordered sections."),
-            ], required: ["name", "sections"])
-        )
-    }
-
-    private static var listWorkouts: AgentTool {
-        AgentTool(
-            name: "list_workouts", summary: "List saved workouts with their duration and section count.",
-            risk: .read, executor: .core, coach: true,
-            schema: AgentSchema.object([:])
-        )
-    }
-
-    private static var getWorkout: AgentTool {
-        AgentTool(
-            name: "get_workout", summary: "Read one workout and its sections.",
-            risk: .read, executor: .core, coach: true,
-            schema: AgentSchema.object(["workout": AgentSchema.string("Workout id or exact name.")], required: ["workout"])
-        )
-    }
-
-    private static var deleteWorkout: AgentTool {
-        AgentTool(
-            name: "delete_workout", summary: "Move a workout to the trash.",
-            risk: .delete, executor: .core, coach: true,
-            schema: AgentSchema.object(["workout": AgentSchema.string("Workout id or exact name.")], required: ["workout"])
         )
     }
 

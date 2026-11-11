@@ -285,8 +285,9 @@ final class AgentToolboxTests: XCTestCase {
     }
 
     func testOnlyDeletingToolsRequireApproval() {
-        let deleting = AgentToolRegistry.tools.filter { $0.risk == .delete }.map(\.name).sorted()
-        XCTAssertEqual(deleting, ["delete_page", "delete_workout"])
+        let deleting = Set(AgentToolRegistry.tools.filter { $0.risk == .delete }.map(\.name))
+        XCTAssertTrue(deleting.isSuperset(of: ["delete_page", "delete_workout", "remove_workout_section"]))
+        for name in deleting { XCTAssertTrue(name.hasPrefix("delete_") || name.hasPrefix("remove_"), name) }
         XCTAssertEqual(AgentToolRegistry.tool(named: "update_page")?.risk, .write)
         XCTAssertEqual(AgentToolRegistry.tool(named: "move_page")?.risk, .write)
         XCTAssertEqual(AgentToolRegistry.tool(named: "update_settings")?.risk, .write)

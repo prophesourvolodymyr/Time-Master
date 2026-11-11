@@ -126,6 +126,7 @@ extension AgentToolbox {
                 "Root folders own the workout type; nested pages inherit it.",
                 "Attach media by absolute path; the app copies it. The first item is the cover.",
                 "Deletes go to the trash. dryRun previews a write.",
+                "A workout section is one timed exercise or a bundle: several exercises played back to back (each with its own seconds and rest) for N sets, in order or shuffled. Build with build_workout, change with add_workout_section, update_workout_section and remove_workout_section.",
             ],
         ])
     }
@@ -386,93 +387,6 @@ extension AgentToolbox {
         var value: [String: Any] = ["trashed": path, "id": page.id]
         if inside > 0 { value["inside"] = inside }
         return AgentToolOutput(value: value)
-    }
-
-    private func sectionManifest(_ raw: [String: Any], index pages: AgentPageIndex, position: Int, restAfter: Int) throws -> WorkoutSectionManifest {
-        let page = try pages.resolve(raw["exercise"] as? String ?? "")
-        guard page.pageType != nil, page.pageType != .note else {
-            throw AgentToolError("invalid_argument", "sections[\(position)]: '\(page.title)' is \(page.pageType == .note ? "a note" : "a folder"), not an exercise.", hint: "Pick an exercise page; list_pages shows kind exercise.")
-        }
-        return WorkoutSectionManifest(
-            exerciseID: page.id,
-            name: (raw["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? page.title,
-            duration: raw["duration"] as? Int ?? page.duration ?? 30,
-            sets: raw["sets"] as? Int ?? page.sets ?? 1,
-            repCount: raw["repCount"] as? Int,
-            restBetweenSets: raw["restBetweenSets"] as? Int ?? page.restBetweenSets ?? 10,
-            prepareTime: raw["prepareTime"] as? Int ?? page.prepareTime ?? 4,
-            customRestAfter: restAfter,
-            bigRestRow: WorkoutRestRowManifest(kind: .big, duration: restAfter)
-        )
-    }
-
-    private func buildWorkout(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
-        let index = try AgentPageIndex(database: database)
-        let name = try args.requiredString("name")
-        let type = try resolveType(args.string("type")) ?? .strength
-        let raw = args.objects("sections")
-        guard !raw.isEmpty else { throw AgentToolError("invalid_argument", "A workout needs at least one section.") }
-        let restBetween = max(0, args.int("restBetweenSections") ?? 30)
-        let sections = try raw.enumerated().map { entry in
-            try sectionManifest(entry.element, index: index, position: entry.offset, restAfter: entry.offset == raw.count - 1 ? 0 : restBetween)
-        }
-        let manifest = WorkoutManifest(id: UUID().uuidString, name: name, type: type, sections: sections, restBetweenSections: restBetween)
-        let summary: [String: Any] = ["name": name, "type": type.name, "sections": sections.count, "totalSeconds": manifest.totalDuration]
-        if dryRun {
-            var preview = summary
-            preview["dryRun"] = true
-            return AgentToolOutput(value: preview)
-        }
-        try database.createWorkout(id: manifest.id, manifest: manifest)
-        var value = summary
-        value["id"] = manifest.id
-        return AgentToolOutput(value: value, effects: [.createdWorkout(id: manifest.id)])
-    }
-
-    private func findWorkout(_ reference: String) throws -> WorkoutManifest {
-        let all = try database.listWorkouts()
-        let text = reference.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let match = all.first(where: { $0.id.caseInsensitiveCompare(text) == .orderedSame }) { return match }
-        let named = all.filter { AgentValue.fold($0.name) == AgentValue.fold(text) }
-        if named.count == 1 { return named[0] }
-        if named.count > 1 {
-            throw AgentToolError("ambiguous", "\(named.count) workouts are named '\(text)'.", hint: "Use one of the ids: \(named.map(\.id).joined(separator: ", ")).")
-        }
-        throw AgentToolError("not_found", "No workout matches '\(text)'.", hint: "Use list_workouts to see ids.")
-    }
-
-    private func listWorkouts() throws -> AgentToolOutput {
-        let all = try database.listWorkouts().sorted { $0.name < $1.name }
-        let repeated = Set(Dictionary(grouping: all, by: { AgentValue.fold($0.name) }).filter { $0.value.count > 1 }.keys)
-        let items = all.map { workout -> [String: Any] in
-            var item: [String: Any] = ["name": workout.name, "type": workout.type.name, "sections": workout.sections.count, "totalSeconds": workout.totalDuration]
-            if repeated.contains(AgentValue.fold(workout.name)) { item["id"] = workout.id }
-            return item
-        }
-        return AgentToolOutput(value: ["workouts": items])
-    }
-
-    private func getWorkout(_ args: AgentArguments) throws -> AgentToolOutput {
-        let workout = try findWorkout(try args.requiredString("workout"))
-        let pages = try? AgentPageIndex(database: database)
-        let sections = workout.sections.map { section -> [String: Any] in
-            var label = section.name
-            if let pages, pages.byID[section.exerciseID] != nil { label = pages.titlePath(section.exerciseID) }
-            var item: [String: Any] = ["exercise": label, "duration": section.duration]
-            if section.sets > 1 {
-                item["sets"] = section.sets
-                item["restBetweenSets"] = section.restBetweenSets
-            }
-            return item
-        }
-        return AgentToolOutput(value: ["id": workout.id, "name": workout.name, "type": workout.type.name, "totalSeconds": workout.totalDuration, "restBetweenSections": workout.restBetweenSections, "sections": sections])
-    }
-
-    private func deleteWorkout(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
-        let workout = try findWorkout(try args.requiredString("workout"))
-        if dryRun { return AgentToolOutput(value: ["dryRun": true, "wouldTrash": workout.name]) }
-        try database.deleteWorkout(id: workout.id)
-        return AgentToolOutput(value: ["trashed": workout.name, "id": workout.id])
     }
 
     private func recentWorkouts(_ args: AgentArguments) throws -> AgentToolOutput {

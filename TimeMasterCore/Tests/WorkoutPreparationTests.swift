@@ -112,7 +112,7 @@ final class WorkoutPreparationTests: XCTestCase {
             restBetweenSections: 0
         )
 
-        XCTAssertEqual(manifest.totalDuration, 110)
+        XCTAssertEqual(manifest.totalDuration, 106)
     }
 
     func testPageDropTemplatesRemainBoundToTheirSetIndex() throws {

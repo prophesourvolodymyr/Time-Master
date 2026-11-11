@@ -366,9 +366,9 @@ public struct WorkoutManifest: Codable {
     }
 
     public var totalDuration: Int {
-        sections.reduce(0) { total, section in
-            let sectionDuration = section.calculatedDuration
-
+        sections.enumerated().reduce(0) { total, entry in
+            let section = entry.element
+            guard entry.offset + 1 < sections.count else { return total + section.calculatedDuration }
             let sectionRest: Int
             if let bigRestRow = section.bigRestRow {
                 sectionRest = bigRestRow.duration
@@ -377,7 +377,7 @@ public struct WorkoutManifest: Codable {
             } else {
                 sectionRest = restBetweenSections
             }
-            return total + sectionDuration + sectionRest
+            return total + section.calculatedDuration + sectionRest
         }
     }
 }

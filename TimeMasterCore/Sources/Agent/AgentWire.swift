@@ -142,6 +142,10 @@ public enum AgentApproval {
             let count = (arguments["sections"] as? [Any])?.count ?? 0
             return "Build workout \(quoted("name")) (\(count) section\(count == 1 ? "" : "s"))"
         case "delete_workout": return "Move workout \(quoted("workout")) to the trash"
+        case "remove_workout_section": return "Remove section \(text("section").map { "“\($0)”" } ?? "") from workout \(quoted("workout"))"
+        case "add_workout_section": return "Add a section to workout \(quoted("workout"))"
+        case "update_workout_section": return "Change section \(text("section").map { "“\($0)”" } ?? "") of workout \(quoted("workout"))"
+        case "update_workout": return "Change workout \(quoted("workout"))"
         case "update_settings": return "Update app settings"
         case "import_video": return "Import video clips from \(text("source") ?? "a video")"
         case "batch":
