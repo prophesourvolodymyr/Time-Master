@@ -286,14 +286,14 @@ private struct TmaxRootView: View {
             Task { await CloudAccountStore.shared.handleCallback(url) }
             return
         }
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let workoutID = components?.queryItems?.first { $0.name == "workoutID" }?.value.flatMap(UUID.init(uuidString:))
-        switch url.host {
-        case "detail":
-            guard let workoutID else { return }
+        switch TmaxLink(url: url) {
+        case .workout(let id)?:
+            guard let workoutID = UUID(uuidString: id) else { return }
             NotificationCenter.default.post(name: .openWorkoutDetail, object: nil, userInfo: ["workoutID": workoutID])
-        case "start":
-            NotificationCenter.default.post(name: .launchWorkout, object: nil, userInfo: workoutID.map { ["workoutID": $0] })
+        case .start(let id)?:
+            NotificationCenter.default.post(name: .launchWorkout, object: nil, userInfo: id.flatMap(UUID.init(uuidString:)).map { ["workoutID": $0] })
+        case .page(let id)?:
+            NotificationCenter.default.post(name: .openDatabasePage, object: nil, userInfo: ["pageID": id])
         default:
             break
         }

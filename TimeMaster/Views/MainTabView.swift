@@ -129,6 +129,9 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
             routeToWorkoutDetail(notification)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openDatabasePage)) { notification in
+            routeToDatabasePage(notification)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsCommand)) { _ in
             if !navigationLayout.contains(id: SlotNavigationDestination.settings.rawValue) {
                 navigationLayout.insert(id: SlotNavigationDestination.settings.rawValue, at: navigationLayout.order.count)
@@ -282,6 +285,16 @@ struct MainTabView: View {
         guard let workoutID = notification.userInfo?["workoutID"] as? UUID else { return }
         selectedDestination = SlotNavigationDestination.workouts.rawValue
         requestedWorkoutID = workoutID
+    }
+
+    private func routeToDatabasePage(_ notification: Notification) {
+        guard let id = notification.userInfo?["pageID"] as? String else { return }
+        openPage(.database)
+        if let owner = SkillGroupID.split(id) {
+            databaseNavigationState.path.append(DatabaseSkillGroupRoute(containerID: owner.containerID, sectionID: owner.sectionID))
+        } else {
+            databaseNavigationState.path.append(DatabasePageRoute(pageID: id))
+        }
     }
 
     private func routeToAppPage(_ notification: Notification) {

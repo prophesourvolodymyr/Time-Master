@@ -410,6 +410,7 @@ struct ExercisePageDetailView: View {
 
             if page.isSkill || page.isTutorial {
                 SkillPrerequisitesSection(materialID: page.manifest.id)
+                SkillChecklistSections(pageID: page.manifest.id)
                 SkillNotesSection(materialID: page.manifest.id)
                 SkillFilesSection(materialID: page.manifest.id)
                 SkillLinksSection(materialID: page.manifest.id)
