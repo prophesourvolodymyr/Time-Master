@@ -21,4 +21,20 @@ struct TogglePauseWorkoutIntent: LiveActivityIntent {
         return .result()
     }
 }
+
+@available(iOS 17.0, *)
+struct SkipWorkoutPhaseIntent: LiveActivityIntent {
+    static var title: LocalizedStringResource = "Skip Workout Step"
+    static var isDiscoverable = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        NotificationCenter.default.post(
+            name: .workoutLiveActivityCommand,
+            object: nil,
+            userInfo: ["command": "skipPhase"]
+        )
+        return .result()
+    }
+}
 #endif

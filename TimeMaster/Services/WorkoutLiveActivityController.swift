@@ -15,17 +15,28 @@ struct WorkoutLiveActivitySnapshot {
     let elapsedSeconds: Int
     let nextTitle: String?
     let startedAt: Date
+    var itemIndex: Int? = nil
+    var itemCount: Int? = nil
+    var sectionIndex: Int = 0
+    var sectionCount: Int = 0
+    var isBundle: Bool = false
+    var nextKind: String? = nil
+    var artworkName: String? = nil
+    var nextArtworkName: String? = nil
 }
 
 private func liveActivityText(_ text: String, limit: Int = 60) -> String {
     String(text.prefix(limit))
 }
 
-private extension WorkoutLiveActivitySnapshot {
+extension WorkoutLiveActivitySnapshot {
     var normalized: WorkoutLiveActivitySnapshot {
         let name = liveActivityText(workoutName)
         let heading = liveActivityText(title)
         let remaining = max(0, remainingSeconds)
+        let count = itemCount.flatMap { $0 > 0 ? $0 : nil }
+        let index = count.flatMap { count in itemIndex.map { min(count, max(1, $0)) } }
+        let sections = max(0, sectionCount)
         return WorkoutLiveActivitySnapshot(
             workoutID: workoutID,
             workoutName: name,
@@ -38,8 +49,20 @@ private extension WorkoutLiveActivitySnapshot {
             phaseDuration: max(0, phaseDuration),
             elapsedSeconds: max(0, elapsedSeconds),
             nextTitle: nextTitle.flatMap { $0.isEmpty ? nil : liveActivityText($0) },
-            startedAt: startedAt
+            startedAt: startedAt,
+            itemIndex: index,
+            itemCount: count,
+            sectionIndex: sections == 0 ? 0 : min(sections - 1, max(0, sectionIndex)),
+            sectionCount: sections,
+            isBundle: isBundle,
+            nextKind: nextKind.flatMap { WorkoutLiveNext(rawValue: $0) == nil ? nil : $0 },
+            artworkName: artworkName.flatMap { Self.artworkFileName($0) },
+            nextArtworkName: nextArtworkName.flatMap { Self.artworkFileName($0) }
         )
+    }
+
+    private static func artworkFileName(_ name: String) -> String? {
+        name.isEmpty || name.count > WorkoutLiveActivityArtwork.maxFileNameLength ? nil : name
     }
 }
 
@@ -61,13 +84,13 @@ final class WorkoutLiveActivityController {
     private init() {}
 
     func sync(_ snapshot: WorkoutLiveActivitySnapshot) {
-        if #available(iOS 16.2, *) {
+        if #available(iOS 17.0, *) {
             push(snapshot.normalized)
         }
     }
 
     func end(completed: Bool, elapsedSeconds: Int) {
-        if #available(iOS 16.2, *) {
+        if #available(iOS 17.0, *) {
             finish(completed: completed, elapsedSeconds: elapsedSeconds)
         }
     }
@@ -92,7 +115,15 @@ final class WorkoutLiveActivityController {
               last.subtitle == snapshot.subtitle,
               last.isPaused == snapshot.isPaused,
               last.nextTitle == snapshot.nextTitle,
-              last.phaseDuration == snapshot.phaseDuration
+              last.phaseDuration == snapshot.phaseDuration,
+              last.itemIndex == snapshot.itemIndex,
+              last.itemCount == snapshot.itemCount,
+              last.sectionIndex == snapshot.sectionIndex,
+              last.sectionCount == snapshot.sectionCount,
+              last.isBundle == snapshot.isBundle,
+              last.nextKind == snapshot.nextKind,
+              last.artworkName == snapshot.artworkName,
+              last.nextArtworkName == snapshot.nextArtworkName
         else { return true }
         guard let endDate, let lastEndDate = pushedEndDate else {
             return last.remainingSeconds != snapshot.remainingSeconds
@@ -100,17 +131,17 @@ final class WorkoutLiveActivityController {
         return abs(endDate.timeIntervalSince(lastEndDate)) > Self.endDateTolerance
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 17.0, *)
     private var trackedActivity: Activity<WorkoutActivityAttributes>? {
         activity as? Activity<WorkoutActivityAttributes>
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 17.0, *)
     private static func isLive(_ activity: Activity<WorkoutActivityAttributes>) -> Bool {
         activity.activityState != .ended && activity.activityState != .dismissed
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 17.0, *)
     private static func phase(for phase: WorkoutPhase) -> WorkoutActivityAttributes.ContentState.Phase {
         switch phase {
         case .warmUp: .warmUp
@@ -121,7 +152,7 @@ final class WorkoutLiveActivityController {
         }
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 17.0, *)
     private static func state(
         from snapshot: WorkoutLiveActivitySnapshot,
         endDate: Date?
@@ -135,11 +166,19 @@ final class WorkoutLiveActivityController {
             phaseDuration: snapshot.phaseDuration,
             phaseEndDate: endDate,
             nextTitle: snapshot.nextTitle,
-            elapsedSeconds: snapshot.elapsedSeconds
+            elapsedSeconds: snapshot.elapsedSeconds,
+            itemIndex: snapshot.itemIndex,
+            itemCount: snapshot.itemCount,
+            sectionIndex: snapshot.sectionIndex,
+            sectionCount: snapshot.sectionCount,
+            isBundle: snapshot.isBundle,
+            nextKind: snapshot.nextKind,
+            artworkName: snapshot.artworkName,
+            nextArtworkName: snapshot.nextArtworkName
         )
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 17.0, *)
     private static func completedState(elapsedSeconds: Int) -> WorkoutActivityAttributes.ContentState {
         WorkoutActivityAttributes.ContentState(
             phase: .completed,
@@ -154,10 +193,12 @@ final class WorkoutLiveActivityController {
         )
     }
 
-    @available(iOS 16.2, *)
-    private func adoptStrayActivities(matching workoutID: UUID) {
+    @available(iOS 17.0, *)
+    private func adoptStrayActivities(for snapshot: WorkoutLiveActivitySnapshot) {
+        let workoutID = snapshot.workoutID
         guard !reconciledStrays else { return }
         reconciledStrays = true
+        WorkoutLiveActivityArtwork.prune(keeping: [snapshot.artworkName, snapshot.nextArtworkName].compactMap { $0 })
         for stray in Activity<WorkoutActivityAttributes>.activities where Self.isLive(stray) {
             if activity == nil, stray.attributes.workoutID == workoutID.uuidString {
                 activity = stray
@@ -167,9 +208,9 @@ final class WorkoutLiveActivityController {
         }
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 17.0, *)
     private func push(_ snapshot: WorkoutLiveActivitySnapshot) {
-        adoptStrayActivities(matching: snapshot.workoutID)
+        adoptStrayActivities(for: snapshot)
 
         var current = trackedActivity
         if let existing = current, !Self.isLive(existing) {
@@ -218,7 +259,7 @@ final class WorkoutLiveActivityController {
         }
     }
 
-    @available(iOS 16.2, *)
+    @available(iOS 17.0, *)
     private func finish(completed: Bool, elapsedSeconds: Int) {
         let tracked = trackedActivity
         activity = nil
@@ -245,6 +286,10 @@ final class WorkoutLiveActivityController {
         }
         for other in others {
             enqueue { await other.end(nil, dismissalPolicy: .immediate) }
+        }
+        enqueue { [weak self] in
+            guard self?.activity == nil else { return }
+            WorkoutLiveActivityArtwork.prune(keeping: [String]())
         }
     }
 }

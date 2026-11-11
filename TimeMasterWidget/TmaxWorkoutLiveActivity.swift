@@ -1,450 +1,184 @@
 import ActivityKit
-import AppIntents
 import SwiftUI
 import WidgetKit
 
-@available(iOS 16.2, *)
 struct TmaxWorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            TmaxLiveLockScreenView(context: context)
-                .activityBackgroundTint(Color(widgetHex: "0A0A0A"))
-                .activitySystemActionForegroundColor(.white)
-                .widgetURL(URL(string: "timemaster://open"))
+            TmaxLiveLockScreenView(
+                state: context.state,
+                workoutName: context.attributes.workoutName,
+                colorHex: context.attributes.colorHex,
+                isStale: context.isStale
+            )
+            .activityBackgroundTint(TmaxLiveStyle.background)
+            .activitySystemActionForegroundColor(.white)
+            .widgetURL(URL(string: "timemaster://open"))
         } dynamicIsland: { context in
-            DynamicIsland {
+            let state = context.state
+            let accent = Color(widgetHex: context.attributes.colorHex)
+            let name = context.attributes.workoutName
+            return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    TmaxLiveExpandedLeading(context: context)
+                    TmaxLiveExpandedLeading(state: state, accent: accent)
+                        .dynamicTypeSize(...DynamicTypeSize.xLarge)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    TmaxLiveExpandedTrailing(context: context)
+                    TmaxLiveExpandedTrailing(state: state, isStale: context.isStale)
+                        .dynamicTypeSize(...DynamicTypeSize.xLarge)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    TmaxLiveExpandedBottom(context: context)
+                    TmaxLiveExpandedBottom(state: state, accent: accent, workoutName: name, isStale: context.isStale)
+                        .dynamicTypeSize(...DynamicTypeSize.xLarge)
                 }
             } compactLeading: {
-                TmaxLiveCompactLeading(context: context)
+                TmaxLiveCompactLeading(state: state, accent: accent, workoutName: name)
             } compactTrailing: {
-                TmaxLiveCompactTrailing(context: context)
+                TmaxLiveCompactTrailing(state: state, isStale: context.isStale)
             } minimal: {
-                TmaxLiveMinimal(context: context)
+                TmaxLiveMinimal(state: state, accent: accent, workoutName: name)
             }
-            .keylineTint(Color(widgetHex: context.attributes.colorHex))
+            .keylineTint(state.tone(workout: accent))
             .widgetURL(URL(string: "timemaster://open"))
         }
     }
 }
 
-@available(iOS 16.2, *)
-private enum TmaxLiveStyle {
-    static let secondary = Color.white.opacity(0.62)
-    static let dimmed = 0.45
+struct TmaxLiveExpandedLeading: View {
+    let state: WorkoutActivityAttributes.ContentState
+    let accent: Color
+    @ScaledMetric(relativeTo: .title) private var tileSize: CGFloat = 34
 
-    static func timerFont(size: CGFloat) -> Font {
-        .system(size: size, weight: .bold, design: .rounded).monospacedDigit()
+    var body: some View {
+        TmaxLiveTile(state: state, tone: state.tone(workout: accent), size: tileSize)
     }
 }
 
-@available(iOS 16.2, *)
-private extension WorkoutActivityAttributes.ContentState {
-    var progressLength: Int {
-        max(phaseDuration, remainingSeconds)
-    }
+struct TmaxLiveExpandedTrailing: View {
+    let state: WorkoutActivityAttributes.ContentState
+    let isStale: Bool
+    @ScaledMetric(relativeTo: .title) private var timerSize: CGFloat = 32
 
-    var runningInterval: ClosedRange<Date>? {
-        guard !isPaused, let end = phaseEndDate, progressLength > 0 else { return nil }
-        return end.addingTimeInterval(-TimeInterval(progressLength))...end
-    }
-
-    var elapsedFraction: Double {
-        guard progressLength > 0 else { return 0 }
-        return min(1, max(0, 1 - Double(remainingSeconds) / Double(progressLength)))
-    }
-
-    var symbolName: String {
-        if phase == .completed { return "checkmark.circle.fill" }
-        if isPaused { return "pause.fill" }
-        switch phase {
-        case .warmUp: return "flame.fill"
-        case .prepare: return "hourglass"
-        case .active: return "bolt.fill"
-        case .setRest, .sectionRest: return "drop.fill"
-        case .completed: return "checkmark.circle.fill"
-        }
-    }
-
-    var phaseDescription: String {
-        if phase == .completed { return "Workout complete" }
-        if isPaused { return "Workout paused" }
-        switch phase {
-        case .warmUp: return "Warm up"
-        case .prepare: return "Get ready"
-        case .active: return title
-        case .setRest, .sectionRest: return "Rest"
-        case .completed: return "Workout complete"
-        }
-    }
-
-    func countdownWidth(fontSize: CGFloat, showsHours: Bool) -> CGFloat {
-        let emWidth: CGFloat
-        if showsHours && progressLength >= 3600 {
-            emWidth = 3.7
-        } else if !showsHours && progressLength >= 6000 {
-            emWidth = 3.5
+    var body: some View {
+        if state.phase == .completed {
+            Text(WorkoutActivityAttributes.ContentState.clock(seconds: state.elapsedSeconds, showsHours: true))
+                .font(TmaxLiveStyle.timerFont(size: timerSize))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .accessibilityLabel("Total time \(WorkoutActivityAttributes.ContentState.spokenDuration(state.elapsedSeconds))")
         } else {
-            emWidth = 2.8
+            TmaxLiveCountdown(state: state)
+                .font(TmaxLiveStyle.timerFont(size: timerSize))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(width: state.countdownWidth(fontSize: timerSize, showsHours: true) * 0.93, alignment: .trailing)
+                .opacity(isStale ? TmaxLiveStyle.dimmed : 1)
         }
-        return (fontSize * emWidth).rounded(.up)
     }
 }
 
-@available(iOS 16.2, *)
-private struct TmaxLiveCountdown: View {
+struct TmaxLiveExpandedBottom: View {
     let state: WorkoutActivityAttributes.ContentState
-    var showsHours = true
+    let accent: Color
+    let workoutName: String
+    let isStale: Bool
+    @ScaledMetric(relativeTo: .body) private var buttonSize: CGFloat = 30
+    @ScaledMetric(relativeTo: .body) private var nextSize: CGFloat = 26
+
+    private var tone: Color {
+        state.tone(workout: accent)
+    }
 
     var body: some View {
-        if let endDate = state.phaseEndDate, !state.isPaused {
-            let now = Date.now
-            Text(timerInterval: now...max(now, endDate), countsDown: true, showsHours: showsHours)
-        } else {
-            Text(Self.clock(seconds: state.remainingSeconds, showsHours: showsHours))
-                .accessibilityLabel(Self.spoken(seconds: state.remainingSeconds))
-        }
-    }
-
-    static func clock(seconds: Int, showsHours: Bool) -> String {
-        let total = max(0, seconds)
-        if showsHours && total >= 3600 {
-            return String(format: "%d:%02d:%02d", total / 3600, (total % 3600) / 60, total % 60)
-        }
-        return String(format: "%d:%02d", total / 60, total % 60)
-    }
-
-    private static func spoken(seconds: Int) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .full
-        formatter.allowedUnits = [.hour, .minute, .second]
-        formatter.zeroFormattingBehavior = .dropAll
-        let duration = formatter.string(from: TimeInterval(max(0, seconds))) ?? ""
-        return "\(duration) remaining"
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveProgressBar: View {
-    let state: WorkoutActivityAttributes.ContentState
-    let tint: Color
-
-    var body: some View {
-        Group {
-            if let interval = state.runningInterval {
-                ProgressView(timerInterval: interval, countsDown: false) {
-                    EmptyView()
-                } currentValueLabel: {
-                    EmptyView()
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(state.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .lineLimit(1)
+                        .accessibilityLabel(state.spokenSummary(workoutName: workoutName))
+                    Text(workoutName)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(TmaxLiveStyle.secondary)
+                        .lineLimit(1)
+                        .accessibilityHidden(true)
                 }
-            } else {
-                ProgressView(value: state.elapsedFraction)
-            }
-        }
-        .progressViewStyle(.linear)
-        .tint(tint)
-        .accessibilityHidden(true)
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveProgressRing: View {
-    let state: WorkoutActivityAttributes.ContentState
-    let tint: Color
-
-    var body: some View {
-        Group {
-            if let interval = state.runningInterval {
-                ProgressView(timerInterval: interval, countsDown: false) {
-                    EmptyView()
-                } currentValueLabel: {
-                    EmptyView()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if state.hasNext {
+                    TmaxLiveNextCard(
+                        state: state,
+                        accent: accent,
+                        size: state.isRest ? nextSize : nextSize * 0.86,
+                        maxNameWidth: state.isRest ? 92 : 64
+                    )
+                    .fixedSize()
                 }
-            } else {
-                ProgressView(value: state.elapsedFraction)
+            }
+            if state.phase != .completed {
+                HStack(spacing: 10) {
+                    if isStale {
+                        TmaxLiveStaleMark()
+                    } else if let position = state.position {
+                        TmaxLivePositionView(position: position, isBundle: state.isBundle, tint: tone)
+                    }
+                    Spacer(minLength: 0)
+                    TmaxLiveControls(state: state, tone: tone, diameter: buttonSize)
+                }
+                TmaxLivePhaseBar(state: state, tint: tone)
             }
         }
-        .progressViewStyle(.circular)
-        .tint(tint)
-        .accessibilityHidden(true)
+        .foregroundStyle(.white)
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 }
 
-@available(iOS 16.2, *)
-private struct TmaxLivePauseButton: View {
-    let isPaused: Bool
-    let tint: Color
-    var diameter: CGFloat = 34
+struct TmaxLiveCompactLeading: View {
+    let state: WorkoutActivityAttributes.ContentState
+    let accent: Color
+    let workoutName: String
 
     var body: some View {
-        if #available(iOS 17.0, *) {
-            Button(intent: TogglePauseWorkoutIntent()) {
-                Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                    .font(.system(size: diameter * 0.4, weight: .bold))
-                    .foregroundStyle(tint)
-                    .frame(width: diameter, height: diameter)
-                    .background(tint.opacity(0.2), in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isPaused ? "Resume workout" : "Pause workout")
-        }
+        TmaxLiveBadge(state: state, tone: state.tone(workout: accent), size: 22)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(state.spokenSummary(workoutName: workoutName))
     }
 }
 
-@available(iOS 16.2, *)
-private struct TmaxLiveFooter: View {
+struct TmaxLiveCompactTrailing: View {
     let state: WorkoutActivityAttributes.ContentState
     let isStale: Bool
 
     var body: some View {
-        if isStale {
-            Label("Open Tmax to sync", systemImage: "arrow.triangle.2.circlepath")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(TmaxLiveStyle.secondary)
-                .lineLimit(1)
-        } else if let next = state.nextTitle {
-            HStack(spacing: 5) {
-                Text("Up next")
-                    .foregroundStyle(TmaxLiveStyle.secondary)
-                Text(next)
-                    .lineLimit(1)
-            }
-            .font(.system(size: 13, weight: .semibold))
-            .accessibilityElement(children: .combine)
-        }
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveLockScreenView: View {
-    let context: ActivityViewContext<WorkoutActivityAttributes>
-    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
-
-    private var state: WorkoutActivityAttributes.ContentState {
-        context.state
-    }
-
-    private var accent: Color {
-        Color(widgetHex: context.attributes.colorHex).opacity(isLuminanceReduced ? 0.7 : 1)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            header
-            if state.phase == .completed {
-                completedRow
-            } else {
-                liveRows
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .foregroundStyle(.white)
-    }
-
-    private var header: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(accent)
-                .frame(width: 8, height: 8)
-            Text(context.attributes.workoutName)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(TmaxLiveStyle.secondary)
-                .lineLimit(1)
-            Spacer(minLength: 8)
-            if state.isPaused && state.phase != .completed {
-                Label("Paused", systemImage: "pause.fill")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(accent)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var liveRows: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(state.title)
-                        .font(.system(size: 22, weight: .bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    if !state.subtitle.isEmpty {
-                        Text(state.subtitle)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(TmaxLiveStyle.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                TmaxLiveCountdown(state: state)
-                    .font(TmaxLiveStyle.timerFont(size: 38))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .frame(width: state.countdownWidth(fontSize: 38, showsHours: true), alignment: .trailing)
-                    .opacity(context.isStale ? TmaxLiveStyle.dimmed : 1)
-            }
-            .accessibilityElement(children: .combine)
-
-            TmaxLiveProgressBar(state: state, tint: accent)
-
-            HStack(spacing: 10) {
-                TmaxLiveFooter(state: state, isStale: context.isStale)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                TmaxLivePauseButton(isPaused: state.isPaused, tint: accent)
-            }
-        }
-    }
-
-    private var completedRow: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 36, weight: .semibold))
-                .foregroundStyle(accent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Workout complete")
-                    .font(.system(size: 22, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if state.elapsedSeconds > 0 {
-                    Text("Total time \(TmaxLiveCountdown.clock(seconds: state.elapsedSeconds, showsHours: true))")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(TmaxLiveStyle.secondary)
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveExpandedLeading: View {
-    let context: ActivityViewContext<WorkoutActivityAttributes>
-
-    var body: some View {
-        let state = context.state
-        VStack(alignment: .leading, spacing: 2) {
-            Text(state.phase == .completed ? "Workout complete" : state.title)
-                .font(.system(size: 18, weight: .bold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(state.subtitle.isEmpty ? context.attributes.workoutName : state.subtitle)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(TmaxLiveStyle.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveExpandedTrailing: View {
-    let context: ActivityViewContext<WorkoutActivityAttributes>
-
-    var body: some View {
-        let state = context.state
         if state.phase == .completed {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(Color(widgetHex: context.attributes.colorHex))
-                .accessibilityHidden(true)
-        } else {
-            TmaxLiveCountdown(state: state)
-                .font(TmaxLiveStyle.timerFont(size: 32))
+            Text(WorkoutActivityAttributes.ContentState.clock(seconds: state.elapsedSeconds, showsHours: true))
+                .font(TmaxLiveStyle.timerFont(size: 13))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .frame(width: state.countdownWidth(fontSize: 32, showsHours: true), alignment: .trailing)
-                .opacity(context.isStale ? TmaxLiveStyle.dimmed : 1)
-        }
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveExpandedBottom: View {
-    let context: ActivityViewContext<WorkoutActivityAttributes>
-
-    var body: some View {
-        let state = context.state
-        let accent = Color(widgetHex: context.attributes.colorHex)
-        if state.phase == .completed {
-            if state.elapsedSeconds > 0 {
-                Text("Total time \(TmaxLiveCountdown.clock(seconds: state.elapsedSeconds, showsHours: true))")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(TmaxLiveStyle.secondary)
-            }
-        } else {
-            VStack(spacing: 8) {
-                TmaxLiveProgressBar(state: state, tint: accent)
-                HStack(spacing: 10) {
-                    TmaxLiveFooter(state: state, isStale: context.isStale)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    TmaxLivePauseButton(isPaused: state.isPaused, tint: accent)
-                }
-            }
-        }
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveCompactLeading: View {
-    let context: ActivityViewContext<WorkoutActivityAttributes>
-
-    var body: some View {
-        Image(systemName: context.state.symbolName)
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(Color(widgetHex: context.attributes.colorHex))
-            .accessibilityLabel(context.state.phaseDescription)
-    }
-}
-
-@available(iOS 16.2, *)
-private struct TmaxLiveCompactTrailing: View {
-    let context: ActivityViewContext<WorkoutActivityAttributes>
-
-    var body: some View {
-        let state = context.state
-        if state.phase == .completed {
-            Text("Done")
-                .font(.system(size: 13, weight: .bold))
-                .lineLimit(1)
+                .frame(maxWidth: 52, alignment: .trailing)
+                .accessibilityLabel("Total time \(WorkoutActivityAttributes.ContentState.spokenDuration(state.elapsedSeconds))")
         } else {
             TmaxLiveCountdown(state: state, showsHours: false)
                 .font(TmaxLiveStyle.timerFont(size: 14))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .frame(width: state.countdownWidth(fontSize: 14, showsHours: false), alignment: .trailing)
-                .opacity(context.isStale ? TmaxLiveStyle.dimmed : 1)
+                .opacity(isStale ? TmaxLiveStyle.dimmed : 1)
         }
     }
 }
 
-@available(iOS 16.2, *)
-private struct TmaxLiveMinimal: View {
-    let context: ActivityViewContext<WorkoutActivityAttributes>
+struct TmaxLiveMinimal: View {
+    let state: WorkoutActivityAttributes.ContentState
+    let accent: Color
+    let workoutName: String
 
     var body: some View {
-        let state = context.state
-        let accent = Color(widgetHex: context.attributes.colorHex)
+        let tone = state.tone(workout: accent)
         ZStack {
-            if state.phase != .completed {
-                TmaxLiveProgressRing(state: state, tint: accent)
-            }
-            Image(systemName: state.symbolName)
-                .font(.system(size: state.phase == .completed ? 14 : 10, weight: .bold))
-                .foregroundStyle(accent)
+            TmaxLiveRing(state: state, tint: tone)
+            TmaxLiveBadge(state: state, tone: tone, size: 14, isCircle: true)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.phaseDescription)
+        .accessibilityLabel(state.spokenSummary(workoutName: workoutName))
     }
 }
