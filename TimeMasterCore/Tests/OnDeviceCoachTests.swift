@@ -46,12 +46,13 @@ final class OnDeviceToolRoutingTests: XCTestCase {
         }
     }
 
-    func testTheHelperCanReadAndAddNotesButNeverCreateChangeOrDelete() {
+    func testTheHelperOnlyReadsAddsNotesAndTodosAndTicksThemOff() {
+        let writes: Set<String> = ["add_page_note", "add_todo", "check_todo"]
         for name in OnDeviceToolRouting.toolNames {
             let tool = AgentToolRegistry.tool(named: name)
             XCTAssertNotNil(tool, name)
             XCTAssertEqual(tool?.coach, true, name)
-            XCTAssertEqual(tool?.risk, name == "add_page_note" ? .write : .read, name)
+            XCTAssertEqual(tool?.risk, writes.contains(name) ? .write : .read, name)
         }
     }
 

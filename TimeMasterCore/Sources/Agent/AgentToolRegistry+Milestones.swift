@@ -16,7 +16,7 @@ extension AgentToolRegistry {
     private static var entryFields: [String: [String: Any]] {
         [
             "note": AgentSchema.string("A few lines about it (plain text)."),
-            "icon": AgentSchema.string("An emoji or an SF Symbol name. Empty text clears it."),
+            "icon": AgentSchema.string("An emoji or an SF Symbol name, or a picture of the page (its file name or media number). Empty text clears it."),
             "color": AgentSchema.string("Colour as six hex digits, like FF6A00. Empty text clears it."),
             "cover": AgentSchema.string("A picture of the page as the cover: its file name or its number in the page's media (list_todos shows them). Empty text clears it."),
             "images": AgentSchema.strings("Pictures of the page for the small strip: file names or media numbers (up to 6)."),
