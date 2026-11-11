@@ -39,12 +39,14 @@ struct ScrollingChromeMetrics {
     var expandedGroupWidth: CGFloat { expandedControlWidth * CGFloat(controlCount) + controlSpacing * CGFloat(controlCount - 1) }
     var compactGroupWidth: CGFloat { compactControlSize * CGFloat(controlCount) + controlSpacing * CGFloat(controlCount - 1) }
 
+    /// Header controls sit on the title's row at one size that eases from slightly larger to the compact size.
     func controlWidth(_ progress: CGFloat) -> CGFloat {
-        expandedControlWidth + (compactControlSize - expandedControlWidth) * progress
+        let expanded = compactControlSize + 4
+        return expanded + (compactControlSize - expanded) * progress
     }
 
     func controlHeight(_ progress: CGFloat) -> CGFloat {
-        expandedControlHeight + (compactControlSize - expandedControlHeight) * progress
+        controlWidth(progress)
     }
 
     /// Leading inset of the control group: centered when expanded, trailing when collapsed.
@@ -79,7 +81,6 @@ struct ScrollingChromeHeader<Controls: View>: View {
     var leadingControlWidth: CGFloat = 0
     @ViewBuilder let controls: () -> Controls
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.scrollingChromeSetExpanded) private var setExpanded
     @ScaledMetric(relativeTo: .title) private var expandedTitleSize: CGFloat = 30
     @ScaledMetric(relativeTo: .title2) private var compactTitleSize: CGFloat = 22
@@ -92,14 +93,13 @@ struct ScrollingChromeHeader<Controls: View>: View {
             progress: progress,
             compactTitleScale: compactScale,
             metrics: metrics,
-            leadingControlWidth: leadingControlWidth,
-            stacksControls: dynamicTypeSize.isAccessibilitySize
+            leadingControlWidth: leadingControlWidth
         ) {
-            TimeMasterPageTitle(title, size: 39, relativeTo: .title)
+            ScrollingChromeTitle(text: title)
                 .foregroundStyle(Theme.textPrimary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
                 .scaleEffect(scale, anchor: .topLeading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(title)
                 .accessibilityAddTraits(.isHeader)
             controls()
                 .oneHandedActionSource()
@@ -121,12 +121,66 @@ struct ScrollingChromeHeader<Controls: View>: View {
     }
 }
 
+/// The page title on one line. When it is wider than the room the controls leave it, its end fades out and it slowly
+/// scrolls to the end and back so all of it can be read; with Reduce Motion it stays still with the fade.
+private struct ScrollingChromeTitle: View {
+    let text: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var textWidth: CGFloat = 0
+    @State private var boxWidth: CGFloat = 0
+    @State private var offset: CGFloat = 0
+    private let fadeWidth: CGFloat = 28
+
+    private var overflow: CGFloat { max(0, textWidth - boxWidth) }
+
+    var body: some View {
+        TimeMasterPageTitle(text, size: 39, relativeTo: .title)
+            .lineLimit(1)
+            .fixedSize()
+            .background(widthReader { textWidth = $0 })
+            .offset(x: offset)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(widthReader { boxWidth = $0 })
+            .clipped()
+            .mask {
+                HStack(spacing: 0) {
+                    Rectangle()
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: overflow > 1 ? fadeWidth : 0)
+                }
+            }
+            .task(id: "\(Int(overflow))-\(reduceMotion)-\(text)") { await scroll() }
+    }
+
+    private func widthReader(_ update: @escaping (CGFloat) -> Void) -> some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onAppear { update(proxy.size.width) }
+                .onChange(of: proxy.size.width) { update($0) }
+        }
+    }
+
+    private func scroll() async {
+        offset = 0
+        guard overflow > 1, !reduceMotion else { return }
+        let travel = Double(overflow) / 28
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.linear(duration: travel)) { offset = -overflow }
+            try? await Task.sleep(nanoseconds: UInt64((travel + 1.4) * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            withAnimation(.linear(duration: travel)) { offset = 0 }
+            try? await Task.sleep(nanoseconds: UInt64(travel * 1_000_000_000))
+        }
+    }
+}
+
 private struct ScrollingChromeHeaderLayout: Layout {
     var progress: CGFloat
     let compactTitleScale: CGFloat
     let metrics: ScrollingChromeMetrics
     let leadingControlWidth: CGFloat
-    let stacksControls: Bool
 
     var animatableData: CGFloat {
         get { progress }
@@ -143,41 +197,22 @@ private struct ScrollingChromeHeaderLayout: Layout {
 
     private func geometry(subviews: Subviews) -> Geometry {
         let collapse = min(1, max(0, progress))
-        let expansion = 1 - collapse
         let scale = 1 + (compactTitleScale - 1) * collapse
         let width = metrics.contentWidth
         let leadingInset = leadingControlWidth > 0 ? leadingControlWidth + metrics.controlSpacing : 0
-        let compactWidth = max(1, width - leadingInset - metrics.compactGroupWidth - metrics.controlSpacing)
-        let expandedWidth = max(1, width - leadingInset * 2)
-        let naturalTitle = subviews[0].sizeThatFits(.unspecified)
-        let stacked = stacksControls || naturalTitle.width * compactTitleScale > compactWidth
-        let wrappingWidth = stacked ? expandedWidth : min(expandedWidth, compactWidth / compactTitleScale)
-        let titleSize = subviews[0].sizeThatFits(ProposedViewSize(width: wrappingWidth, height: nil))
         let controlsSize = subviews[1].sizeThatFits(.unspecified)
-        let titleTop = max(4, (metrics.collapsedRowHeight - titleSize.height * compactTitleScale) / 2)
-        let compactTitleRow = max(metrics.collapsedRowHeight, titleTop + titleSize.height * compactTitleScale + 4)
-        let expandedTitleRow = max(metrics.collapsedRowHeight, titleTop + titleSize.height + 4)
-        let compactControlsTop = stacked
-            ? compactTitleRow + metrics.expandedControlPadding
-            : (compactTitleRow - metrics.compactControlSize) / 2
-        let expandedControlsTop = expandedTitleRow + metrics.expandedControlPadding
-        let titleLeading = leadingInset * collapse + (width - titleSize.width) / 2 * expansion
-        let titleRight = titleLeading + titleSize.width * scale
-        let controlsLeading = metrics.groupLeading(collapse)
-        let horizontalGap = max(controlsLeading - titleRight, titleLeading - controlsLeading - controlsSize.width)
-        let clearance = min(1, max(0, 1 - horizontalGap / max(1, metrics.controlSpacing)))
-        let titleBottom = titleTop + titleSize.height * scale
-        let controlsTop = max(
-            compactControlsTop * collapse + expandedControlsTop * expansion,
-            compactControlsTop + (titleBottom + metrics.expandedControlPadding - compactControlsTop) * clearance
-        )
+        let available = max(1, width - leadingInset - controlsSize.width - metrics.controlSpacing)
+        let natural = subviews[0].sizeThatFits(.unspecified)
+        let titleSize = CGSize(width: min(natural.width, available / scale), height: natural.height)
+        let titleHeight = titleSize.height * scale
+        let row = max(metrics.collapsedRowHeight, controlsSize.height + 8, titleHeight + 8)
 
         return Geometry(
             titleSize: titleSize,
-            titleOrigin: CGPoint(x: titleLeading, y: titleTop),
+            titleOrigin: CGPoint(x: leadingInset, y: (row - titleHeight) / 2),
             controlsSize: controlsSize,
-            controlsOrigin: CGPoint(x: controlsLeading, y: controlsTop),
-            height: max(titleBottom, controlsTop + controlsSize.height) + 4
+            controlsOrigin: CGPoint(x: max(0, width - controlsSize.width), y: (row - controlsSize.height) / 2),
+            height: row
         )
     }
 
@@ -213,7 +248,7 @@ struct ScrollingChromeControl: View {
     }
 
     var body: some View {
-        let labelProgress = min(1, progress / 0.65)
+        let labelProgress: CGFloat = 1
         let cornerRadius = Self.cornerRadius(progress: progress, width: width, height: height)
 
         ZStack {

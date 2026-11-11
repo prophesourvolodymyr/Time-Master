@@ -359,7 +359,6 @@ struct DatabaseView: View {
     @State private var showingNewNoteAlert = false
     @State private var newNoteTitle = ""
     @State private var noteCreationError: String?
-    @State private var showsNotesOnly = false
     @State private var pageToMove: ExercisePage?
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
@@ -668,20 +667,6 @@ struct DatabaseView: View {
         }
     }
 
-    private var notesChip: some View {
-        Button {
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
-                showsNotesOnly.toggle()
-                if showsNotesOnly { selectedWorkoutTypeIDs.removeAll() }
-            }
-        } label: {
-            Label("Notes", systemImage: "note.text").lineLimit(1).fixedSize()
-        }
-        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: showsNotesOnly))
-        .accessibilityAddTraits(showsNotesOnly ? .isSelected : [])
-        .accessibilityIdentifier("database-filter-notes")
-    }
-
     private func createNote() {
         let title = newNoteTitle
         newNoteTitle = ""
@@ -910,7 +895,6 @@ struct DatabaseView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     filterChip(nil, label: "All")
-                    notesChip
                     if !uniqueWorkoutTypes.isEmpty {
                         Capsule()
                             .fill(EverColor.borderStrong)
@@ -963,10 +947,9 @@ struct DatabaseView: View {
     }
 
     private func filterChip(_ typeID: String?, label: String) -> some View {
-        let isActive = typeID.map { selectedWorkoutTypeIDs.contains($0) } ?? (selectedWorkoutTypeIDs.isEmpty && !showsNotesOnly)
+        let isActive = typeID.map { selectedWorkoutTypeIDs.contains($0) } ?? selectedWorkoutTypeIDs.isEmpty
         return Button {
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
-                showsNotesOnly = false
                 if let typeID {
                     if !selectedWorkoutTypeIDs.insert(typeID).inserted {
                         selectedWorkoutTypeIDs.remove(typeID)
@@ -986,10 +969,10 @@ struct DatabaseView: View {
 
     private var noResultsView: some View {
         VStack(spacing: 12) {
-            Image(systemName: showsNotesOnly ? "note.text" : "doc.text.magnifyingglass")
+            Image(systemName: "doc.text.magnifyingglass")
                 .font(.system(size: 36))
                 .foregroundStyle(Theme.textSecondary.opacity(0.4))
-            Text(showsNotesOnly ? "No notes yet" : "No exercises match this type")
+            Text("No exercises match this type")
                 .font(TimeMasterFont.sectionTitle())
                 .foregroundStyle(Theme.textPrimary)
         }
@@ -1042,7 +1025,7 @@ struct DatabaseView: View {
     }
 
     private var filteredRootPages: [ExercisePage] {
-        var pages = showsNotesOnly ? store.allPagesFlat.filter(\.isNote) : store.rootPages.filter { !$0.isSkill }
+        var pages = store.rootPages.filter { !$0.isSkill }
 
         if !selectedWorkoutTypeIDs.isEmpty {
             pages = pages.filter {

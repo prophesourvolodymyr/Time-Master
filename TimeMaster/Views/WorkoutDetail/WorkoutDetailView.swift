@@ -148,6 +148,7 @@ struct WorkoutDetailView: View {
         .modifier(WorkoutFloatingControlsOverlay(workoutName: workout.name, context: liveContext, library: musicLibrary))
         .navigationTitle("")
         .slotNavigationPresentation(.visible)
+        .slotNavigationPrefersStrip()
         .slotNavigationInteractionDisabled(musicConfigurationOpen || musicRevealDrag > 0.02)
         .preference(key: SlotNavigationEditingPreferenceKey.self, value: true)
         #if os(iOS)
@@ -458,10 +459,9 @@ struct WorkoutDetailView: View {
                 editorControlsExpanded = expanded
             }
         }
-        .overlay(alignment: .topLeading) {
+        .overlay(alignment: .leading) {
             editorBackButton(diameter: metrics.compactControlSize)
                 .padding(.leading, metrics.horizontalPadding)
-                .padding(.top, 4)
                 .oneHandedActionSource()
         }
         .buttonStyle(.plain)
