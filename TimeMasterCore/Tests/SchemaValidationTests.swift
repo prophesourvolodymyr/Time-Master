@@ -128,7 +128,7 @@ final class SchemaValidationTests: XCTestCase {
         let schema = try JSONDecoder().decode(SchemaDefinition.self, from: data)
 
         XCTAssertEqual(schema.version, "1.2.0")
-        XCTAssertEqual(schema.objects.count, 7)
+        XCTAssertEqual(schema.objects.count, 8)
         XCTAssertEqual(schema.tools.count, AgentToolRegistry.tools.count)
         XCTAssertTrue(schema.tools.contains { $0.name == "create_container_page" })
         XCTAssertTrue(schema.tools.contains { $0.name == "create_exercise_page" })

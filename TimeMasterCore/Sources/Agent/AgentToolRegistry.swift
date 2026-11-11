@@ -161,6 +161,7 @@ public enum AgentToolRegistry {
     ## Tool use
     - Look before you write: call list_pages or search_pages and reference pages by the id they return. Never invent ids.
     - Exercise pages are workout-ready leaves; containers only organize. Put exercises inside the right container.
+    - Note pages are Markdown documents with pictures inside the text; they are never exercises and never go into workouts. Write them with create_note_page.
     - Creating, editing and moving run immediately. Deleting asks the user to approve first; if the user declines, accept it and offer an alternative.
     - Keep arguments small and valid JSON. If a tool returns an error, read its hint and correct the call instead of repeating it.
     """
@@ -196,7 +197,7 @@ public enum AgentToolRegistry {
             schema: AgentSchema.object([
                 "query": AgentSchema.string("Words to find in the title, notes or path."),
                 "type": AgentSchema.string("Only pages with this workout type."),
-                "kind": AgentSchema.string("Only this kind of page.", values: ["exercise", "container"]),
+                "kind": AgentSchema.string("Only this kind of page.", values: ["exercise", "container", "skill", "tutorial", "note"]),
                 "limit": AgentSchema.integer("Maximum results (1-100, default 20). The reply says how many more matched.", minimum: 1, maximum: 100),
             ], required: ["query"])
         )
@@ -204,9 +205,12 @@ public enum AgentToolRegistry {
 
     private static var getPage: AgentTool {
         AgentTool(
-            name: "get_page", summary: "Read one page: notes, timing, links, media attachments and child pages.",
+            name: "get_page", summary: "Read one page: notes, timing, links, media attachments and child pages. Long notes come back in pieces; pass bodyOffset to read on.",
             risk: .read, executor: .core, coach: true,
-            schema: AgentSchema.object(["page": AgentSchema.string(pageRef)], required: ["page"])
+            schema: AgentSchema.object([
+                "page": AgentSchema.string(pageRef),
+                "bodyOffset": AgentSchema.integer("Character to start the Markdown body at, from nextOffset of the previous reply (default 0).", minimum: 0),
+            ], required: ["page"])
         )
     }
 
@@ -286,6 +290,7 @@ public enum AgentToolRegistry {
                 "page": AgentSchema.string(pageRef),
                 "title": AgentSchema.string("New title."),
                 "markdownBody": AgentSchema.string("Replacement Markdown notes."),
+                "icon": AgentSchema.string("Note pages only: an SF Symbol name or an emoji shown on the note's row. Empty text clears it."),
                 "duration": AgentSchema.integer("Seconds per set (exercise pages).", minimum: 5),
                 "restAfter": AgentSchema.integer("Rest after the exercise in seconds.", minimum: 0),
                 "sets": AgentSchema.integer("Default number of sets.", minimum: 1),

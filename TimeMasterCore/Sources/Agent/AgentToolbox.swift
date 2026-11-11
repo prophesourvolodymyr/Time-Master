@@ -111,12 +111,14 @@ extension AgentToolbox {
         }
         var library: [String: Any] = ["exercises": exercises.count, "folders": index.pages.filter { $0.pageType == nil }.count, "roots": roots]
         if allRoots.count > 30 { library["moreRoots"] = allRoots.count - 30 }
+        let noteCount = index.pages.filter { $0.pageType == .note }.count
+        if noteCount > 0 { library["notes"] = noteCount }
         return AgentToolOutput(value: [
             "library": library,
             "types": workoutTypes().map(\.name),
             "workouts": (try? database.listWorkouts().count) ?? 0,
             "conventions": [
-                "Folders organize pages; exercise pages are workout-ready.",
+                "Folders organize pages; exercise pages are workout-ready; note pages are Markdown documents (create_note_page).",
                 "Reference a page by title path ('Lower Body/Glutes') or id. Lists show paths.",
                 "Root folders own the workout type; nested pages inherit it.",
                 "Attach media by absolute path; the app copies it. The first item is the cover.",
@@ -170,7 +172,7 @@ extension AgentToolbox {
         let limit = args.int("limit") ?? 20
         var ranked: [(Int, ExercisePageManifest)] = []
         for page in index.pages {
-            if let kind, (kind == "exercise") != (page.pageType == .exercise) { continue }
+            if let kind, !index.matches(page, kind: kind) { continue }
             if let type, index.effectiveType(page.id)?.id != type.id { continue }
             let title = AgentValue.fold(page.title)
             let path = AgentValue.fold(index.titlePath(page.id))
@@ -195,7 +197,7 @@ extension AgentToolbox {
         let page = try index.resolve(try args.requiredString("page"))
         var value = index.summary(page, withID: true)
         if let type = index.effectiveType(page.id) { value["type"] = type.name }
-        if !page.markdownBody.isEmpty { value["markdownBody"] = page.markdownBody }
+        value.merge(bodyExcerpt(page.markdownBody, offset: args.int("bodyOffset") ?? 0)) { _, new in new }
         if !page.linkURLs.isEmpty { value["linkURLs"] = page.linkURLs }
         if let rest = page.restAfter { value["restAfter"] = rest }
         if let rest = page.restBetweenSets { value["restBetweenSets"] = rest }
@@ -220,7 +222,7 @@ extension AgentToolbox {
         let title = try args.requiredString("title")
         let parent = try args.string("parent").map { try index.resolve($0) }
         if let parent, parent.pageKind != .container {
-            throw AgentToolError("invalid_parent", "'\(parent.title)' is an exercise page and cannot contain other pages.", hint: "Choose a container with list_pages.")
+            throw AgentToolError("invalid_parent", "'\(parent.title)' is \(parent.pageType == .note ? "a note" : "an exercise page") and cannot contain other pages.", hint: "Choose a container with list_pages.")
         }
         if let existing = index.children(of: parent?.id).first(where: { AgentValue.fold($0.title) == AgentValue.fold(title) }) {
             switch args.string("ifExists") ?? "error" {
@@ -283,6 +285,7 @@ extension AgentToolbox {
     private func attachMedia(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
         let index = try AgentPageIndex(database: database)
         let page = try index.resolve(try args.requiredString("page"))
+        if page.pageType == .note { return try attachImageToNote(page, args, titlePath: index.titlePath(page.id), dryRun: dryRun) }
         let url = try AgentMedia.validate(path: try args.requiredString("path"))
         guard page.mediaFilenames.count < 20 else { throw AgentToolError("media_limit", "'\(page.title)' already has 20 attachments.") }
         if dryRun {
@@ -306,8 +309,9 @@ extension AgentToolbox {
         let note = try args.requiredString("note")
         if dryRun { return AgentToolOutput(value: ["dryRun": true, "wouldNote": index.titlePath(page.id)]) }
         var updated = page
-        let separator = page.markdownBody.isEmpty ? "" : "\n\n---\n\n"
-        updated.markdownBody = page.markdownBody + separator + "**Note** (\(iso(Date()))): \(note)"
+        updated.markdownBody = page.pageType == .note
+            ? appendedNoteBody(page.markdownBody, adding: note)
+            : page.markdownBody + (page.markdownBody.isEmpty ? "" : "\n\n---\n\n") + "**Note** (\(iso(Date()))): \(note)"
         try database.updatePage(id: page.id, manifest: updated, newParentID: page.parentID)
         return AgentToolOutput(value: ["id": page.id, "path": index.titlePath(page.id), "noted": true], effects: [.changedMarkdown(pageID: page.id, previous: page.markdownBody)])
     }
@@ -316,6 +320,7 @@ extension AgentToolbox {
         let index = try AgentPageIndex(database: database)
         let page = try index.resolve(try args.requiredString("page"))
         var updated = page
+        if page.pageType == .note { try rejectNonNoteFields(args) }
         var changed: [String] = []
         if args.has("title") { updated.title = try args.requiredString("title"); changed.append("title") }
         if let body = args.string("markdownBody") { updated.markdownBody = body; changed.append("markdownBody") }
@@ -331,6 +336,10 @@ extension AgentToolbox {
             }
             updated.workoutType = type
             changed.append("workoutType")
+        }
+        if let icon = args.string("icon") {
+            try applyIcon(icon, to: &updated)
+            changed.append("icon")
         }
         guard !changed.isEmpty else { throw AgentToolError("invalid_argument", "Nothing to change.", hint: "Pass at least one field besides page.") }
         let parentPrefix = page.parentID.flatMap { index.byID[$0] == nil ? nil : index.titlePath($0) + "/" } ?? ""
@@ -377,8 +386,8 @@ extension AgentToolbox {
 
     private func sectionManifest(_ raw: [String: Any], index pages: AgentPageIndex, position: Int, restAfter: Int) throws -> WorkoutSectionManifest {
         let page = try pages.resolve(raw["exercise"] as? String ?? "")
-        guard page.pageType != nil else {
-            throw AgentToolError("invalid_argument", "sections[\(position)]: '\(page.title)' is a folder, not an exercise.", hint: "Pick an exercise page; list_pages shows kind exercise.")
+        guard page.pageType != nil, page.pageType != .note else {
+            throw AgentToolError("invalid_argument", "sections[\(position)]: '\(page.title)' is \(page.pageType == .note ? "a note" : "a folder"), not an exercise.", hint: "Pick an exercise page; list_pages shows kind exercise.")
         }
         return WorkoutSectionManifest(
             exerciseID: page.id,

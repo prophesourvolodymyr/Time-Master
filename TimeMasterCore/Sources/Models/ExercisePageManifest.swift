@@ -29,6 +29,8 @@ public enum PageType: String, Codable, Equatable, CaseIterable {
     case exercise
     case skill
     case tutorial
+    /// A title plus a Markdown document and nothing else; a leaf that lives at the top level or in a plain folder.
+    case note
 }
 
 public enum SkillStatus: String, Codable, Equatable, CaseIterable {
@@ -208,9 +210,9 @@ public struct ExercisePageManifest: Codable {
     public var pageKind: PageKind
     public var coverImageFilename: String?
     /// Skill and tutorial pages only: an SF Symbol name or an emoji (see `iconType`). nil = automatic (the app may
-    /// pick one from the title). Other pages never keep one.
+    /// pick one from the title). Notes may keep one too (shown on their row). Other pages never keep one.
     public var iconName: String?
-    /// How `iconName` is drawn (skill and tutorial pages).
+    /// How `iconName` is drawn (skill, tutorial and note pages).
     public var iconType: SkillBoardIconType?
     /// Skill and tutorial pages: a picture icon, one of `mediaFilenames` or an http(s) image URL. Wins over `iconName`
     /// wherever a picture can be drawn.
@@ -243,6 +245,10 @@ public struct ExercisePageManifest: Codable {
     public var typePresets: [SkillTypePreset]
     /// Skill and tutorial pages: a type from their highest skill's presets (see `DatabaseManager.skillTypeOwnerID`).
     public var typeID: String?
+    /// Skill and tutorial pages: the to-do list, a tree with optional section dividers (see `TodoItem`).
+    public var todos: [TodoItem]
+    /// Skill and tutorial pages: the milestones, drawn as cards (see `Milestone`).
+    public var milestones: [Milestone]
     public var duration: Int?
     public var restAfter: Int?
     public var prepareTime: Int?
@@ -264,7 +270,7 @@ public struct ExercisePageManifest: Codable {
         case skillStatus, skillBoardSectionID, skillBoardOrder, skillBoardSections
         case childIDs, parentID, order, createdAt, updatedAt
         case iconType, iconImage, coverMediaFilename, linkComments
-        case dependencyPageIDs, dependencyMediaFilenames, dependencyLinkURLs, typePresets, typeID
+        case dependencyPageIDs, dependencyMediaFilenames, dependencyLinkURLs, typePresets, typeID, todos, milestones
     }
 
     public init(
@@ -289,6 +295,8 @@ public struct ExercisePageManifest: Codable {
         dependencyLinkURLs: [String] = [],
         typePresets: [SkillTypePreset] = [],
         typeID: String? = nil,
+        todos: [TodoItem] = [],
+        milestones: [Milestone] = [],
         workoutType: WorkoutType? = nil,
         skillStatus: SkillStatus? = nil,
         skillBoardSectionID: String? = nil,
@@ -307,9 +315,10 @@ public struct ExercisePageManifest: Codable {
         updatedAt: Date = Date()
     ) {
         let resolvedPageType = pageType ?? (pageKind == .leaf ? .exercise : nil)
+        let isNote = resolvedPageType == .note
         let resolvedPageKind: PageKind = (resolvedPageType == .skill || resolvedPageType == .tutorial)
             ? .container
-            : pageKind
+            : (isNote ? .leaf : pageKind)
         let isSkillPage = resolvedPageType == .skill || resolvedPageType == .tutorial
         let ownsBoard = resolvedPageKind == .container && (resolvedPageType == nil || isSkillPage)
 
@@ -317,37 +326,39 @@ public struct ExercisePageManifest: Codable {
         self.title = title
         self.pageKind = resolvedPageKind
         self.pageType = resolvedPageType
-        self.coverImageFilename = coverImageFilename
+        self.coverImageFilename = isNote ? nil : coverImageFilename
         self.iconName = iconName
-        self.iconType = isSkillPage ? iconType : nil
+        self.iconType = isSkillPage || isNote ? iconType : nil
         self.iconImage = isSkillPage ? iconImage : nil
-        self.coverMediaFilename = coverMediaFilename
+        self.coverMediaFilename = isNote ? nil : coverMediaFilename
         self.markdownBody = markdownBody
-        self.mediaFilenames = mediaFilenames
-        self.mediaComments = mediaComments
-        self.linkURLs = linkURLs
-        self.linkMetadata = linkMetadata
-        self.linkComments = linkComments
-        self.linkedPageIDs = resolvedPageType == nil ? [] : linkedPageIDs
+        self.mediaFilenames = isNote ? [] : mediaFilenames
+        self.mediaComments = isNote ? [:] : mediaComments
+        self.linkURLs = isNote ? [] : linkURLs
+        self.linkMetadata = isNote ? [] : linkMetadata
+        self.linkComments = isNote ? [:] : linkComments
+        self.linkedPageIDs = resolvedPageType == nil || isNote ? [] : linkedPageIDs
         self.dependencyPageIDs = isSkillPage ? dependencyPageIDs : []
         self.dependencyMediaFilenames = isSkillPage ? dependencyMediaFilenames : []
         self.dependencyLinkURLs = isSkillPage ? dependencyLinkURLs : []
         self.typePresets = resolvedPageKind == .container && (resolvedPageType == nil || isSkillPage) ? typePresets : []
         self.typeID = isSkillPage ? typeID : nil
-        self.workoutType = workoutType
+        self.todos = isSkillPage ? todos : []
+        self.milestones = isSkillPage ? milestones : []
+        self.workoutType = isNote ? nil : workoutType
         self.skillStatus = isSkillPage ? skillStatus ?? .notStarted : nil
         self.skillBoardSectionID = isSkillPage ? skillBoardSectionID : nil
         self.skillBoardOrder = isSkillPage ? max(0, skillBoardOrder ?? 0) : nil
         self.skillBoardSections = ownsBoard
             ? skillBoardSections.sorted { $0.order < $1.order }
             : []
-        self.duration = duration.map { max(5, $0) }
-        self.restAfter = restAfter.map { max(0, $0) }
-        self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
-        self.sets = sets.map { max(1, $0) }
-        self.restBetweenSets = restBetweenSets.map { max(0, $0) }
-        self.dropSetTemplates = dropSetTemplates
-        self.childIDs = childIDs
+        self.duration = isNote ? nil : duration.map { max(5, $0) }
+        self.restAfter = isNote ? nil : restAfter.map { max(0, $0) }
+        self.prepareTime = isNote ? nil : prepareTime.map { min(30, max(0, $0)) }
+        self.sets = isNote ? nil : sets.map { max(1, $0) }
+        self.restBetweenSets = isNote ? nil : restBetweenSets.map { max(0, $0) }
+        self.dropSetTemplates = isNote ? [] : dropSetTemplates
+        self.childIDs = isNote ? [] : childIDs
         self.parentID = parentID
         self.order = order
         self.createdAt = createdAt
@@ -386,6 +397,8 @@ public struct ExercisePageManifest: Codable {
             dependencyLinkURLs: values.lenient([String].self, .dependencyLinkURLs) ?? [],
             typePresets: values.lenient([SkillTypePreset].self, .typePresets) ?? [],
             typeID: values.lenient(String.self, .typeID),
+            todos: values.lenientList(TodoItem.self, .todos),
+            milestones: values.lenientList(Milestone.self, .milestones),
             workoutType: try values.decodeIfPresent(WorkoutType.self, forKey: .workoutType),
             skillStatus: values.lenient(String.self, .skillStatus).map { SkillStatus(rawValue: $0) ?? .notStarted },
             skillBoardSectionID: try values.decodeIfPresent(String.self, forKey: .skillBoardSectionID),
@@ -447,6 +460,8 @@ public struct ExercisePageManifest: Codable {
         try values.encodeUnlessEmpty(dependencyLinkURLs, forKey: .dependencyLinkURLs)
         try values.encodeUnlessEmpty(typePresets, forKey: .typePresets)
         try values.encodeIfPresent(typeID, forKey: .typeID)
+        try values.encodeUnlessEmpty(todos, forKey: .todos)
+        try values.encodeUnlessEmpty(milestones, forKey: .milestones)
     }
 
     /// The skill board groups this page owns, sorted by `order`.

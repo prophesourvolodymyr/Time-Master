@@ -132,6 +132,7 @@ public enum AgentApproval {
         switch tool {
         case "create_container_page": return "Create folder \(quoted("title"))" + (text("parent").map { " in \($0)" } ?? "")
         case "create_exercise_page": return "Create exercise \(quoted("title"))" + (text("parent").map { " in \($0)" } ?? "")
+        case "create_note_page": return "Create note \(quoted("title"))" + (text("parent").map { " in \($0)" } ?? "")
         case "attach_media": return "Attach \(text("path").map { ($0 as NSString).lastPathComponent } ?? "a file") to \(quoted("page"))"
         case "add_page_note": return "Add a note to \(quoted("page"))"
         case "update_page": return "Edit \(quoted("page"))"

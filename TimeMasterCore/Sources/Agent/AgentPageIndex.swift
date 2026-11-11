@@ -81,7 +81,16 @@ struct AgentPageIndex {
         case .exercise: "exercise"
         case .skill: "skill"
         case .tutorial: "tutorial"
+        case .note: "note"
         case nil: "container"
+        }
+    }
+
+    /// A `kind` filter value against a page. "container" keeps meaning every page that is neither an exercise nor a note.
+    func matches(_ page: ExercisePageManifest, kind wanted: String) -> Bool {
+        switch wanted {
+        case "exercise", "skill", "tutorial", "note": return kind(page) == wanted
+        default: return page.pageType != .exercise && page.pageType != .note
         }
     }
 
@@ -93,6 +102,9 @@ struct AgentPageIndex {
         case .exercise: break
         case .skill: out["kind"] = "skill"
         case .tutorial: out["kind"] = "tutorial"
+        case .note:
+            out["kind"] = "note"
+            if !page.markdownBody.isEmpty { out["chars"] = page.markdownBody.count }
         case nil: out["folder"] = true
         }
         if page.pageType != nil, let duration = page.duration { out["duration"] = duration }

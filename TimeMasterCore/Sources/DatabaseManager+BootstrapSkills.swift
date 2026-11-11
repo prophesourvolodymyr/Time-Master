@@ -10,6 +10,4 @@ extension DatabaseManager {
     func bootstrapBundleSkills() throws {}
 
     func bootstrapMilestoneSkills() throws {}
-
-    func bootstrapNoteSkills() throws {}
 }

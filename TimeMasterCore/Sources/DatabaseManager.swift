@@ -354,6 +354,38 @@ Find pages in the Tmax library.
             normalized.dependencyPageIDs = normalized.dependencyPageIDs.uniqued().filter { $0 != normalized.id }
             normalized.dependencyMediaFilenames = normalized.dependencyMediaFilenames.uniqued().filter(media.contains)
             normalized.dependencyLinkURLs = normalized.dependencyLinkURLs.uniqued().filter(links.contains)
+        } else if contentType == .note {
+            normalized.pageKind = .leaf
+            normalized.pageType = .note
+            normalized.coverImageFilename = nil
+            normalized.coverMediaFilename = nil
+            normalized.mediaFilenames = []
+            normalized.mediaComments = [:]
+            normalized.linkURLs = []
+            normalized.linkMetadata = []
+            normalized.linkComments = [:]
+            normalized.linkedPageIDs = []
+            normalized.workoutType = nil
+            normalized.duration = nil
+            normalized.restAfter = nil
+            normalized.prepareTime = nil
+            normalized.sets = nil
+            normalized.restBetweenSets = nil
+            normalized.dropSetTemplates = []
+            normalized.childIDs = []
+            normalized.skillStatus = nil
+            normalized.skillBoardSectionID = nil
+            normalized.skillBoardOrder = nil
+            normalized.skillBoardSections = []
+            normalized.iconImage = nil
+            normalized.dependencyPageIDs = []
+            normalized.dependencyMediaFilenames = []
+            normalized.dependencyLinkURLs = []
+            normalized.typePresets = []
+            normalized.typeID = nil
+            let icon = normalized.iconName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            normalized.iconName = icon.isEmpty ? nil : icon
+            if normalized.iconName == nil { normalized.iconType = nil }
         } else if contentType == .exercise {
             normalized.pageKind = .leaf
             normalized.pageType = .exercise
@@ -412,6 +444,7 @@ Find pages in the Tmax library.
                 links.contains($0.key) && !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
         }
+        normalizedChecklists(&normalized)
         return normalized
     }
 
@@ -444,7 +477,8 @@ Find pages in the Tmax library.
         try fs.writeAtomically(to: manifestURL, value: manifest, encoder: encoder)
 
         let guideURL = folder.appendingPathComponent("guide.md")
-        let guideContent = "# \(manifest.title)\n\n\(manifest.markdownBody.isEmpty ? "Add content here." : manifest.markdownBody)"
+        let placeholder = manifest.pageType == .note ? "" : "Add content here."
+        let guideContent = "# \(manifest.title)\n\n\(manifest.markdownBody.isEmpty ? placeholder : manifest.markdownBody)"
         try fs.writeAtomically(to: guideURL, data: guideContent.data(using: .utf8)!)
     }
 
@@ -521,6 +555,16 @@ Find pages in the Tmax library.
             }
             if !manifest.childIDs.isEmpty {
                 throw FileSystemHelper.Error.invalidPageKind("exercise pages cannot contain child pages")
+            }
+        case .note:
+            guard manifest.pageKind == .leaf, manifest.childIDs.isEmpty else {
+                throw FileSystemHelper.Error.invalidPageKind("note pages cannot contain child pages")
+            }
+            if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
+                throw FileSystemHelper.Error.invalidPageKind("note pages do not have workout timing")
+            }
+            if let parentID, try getPage(id: parentID).pageType != nil {
+                throw FileSystemHelper.Error.invalidPageKind("notes live at the top level or inside folders, not inside exercises, skills or tutorials")
             }
         case .skill, .tutorial:
             if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
@@ -998,6 +1042,7 @@ Find pages in the Tmax library.
         manifest.dependencyMediaFilenames.removeAll { $0 == filename }
         if manifest.coverMediaFilename == filename { manifest.coverMediaFilename = nil }
         if manifest.iconImage == filename { manifest.iconImage = nil }
+        manifest.dropChecklistMedia(filename)
         manifest.updatedAt = Date()
         try writePageManifest(manifest, at: folder)
     }
