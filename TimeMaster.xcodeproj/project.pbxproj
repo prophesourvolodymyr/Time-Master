@@ -103,6 +103,7 @@
 		15B20E94E62C194E03C71187 /* CollectibleBadgeSkin.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1CA336BEBA420F79D3409DF /* CollectibleBadgeSkin.swift */; };
 		1618CBEAE8E1829601F44DA7 /* TmaxLoadingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D71578FA3BFD38D84701ED09 /* TmaxLoadingIndicator.swift */; };
 		165200D832A888523A55B6F5 /* MarkdownEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52753AF823E8CBF7CF3DC8B6 /* MarkdownEditorView.swift */; };
+		16793001E3ED18FF9A524FBC /* TmaxGlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05765DCBB77A6F2CC3371062 /* TmaxGlow.swift */; };
 		1721B0FEDD18A9A1C6044358 /* AIStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08AAEB576B7DB134E5212C54 /* AIStore.swift */; };
 		175C0A94CEDB6ACB59BAEB1E /* MilestoneCheckButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68FC6E8B3CBA5029654AF3A4 /* MilestoneCheckButton.swift */; };
 		1769A05BC16C6576C3A3628F /* CloudOAuthPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D737751C0CAF9818EE0022D0 /* CloudOAuthPresenter.swift */; };
@@ -301,6 +302,7 @@
 		48E9F1364A95189284534D25 /* BundleExerciseThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = C29F38492314234367363CF9 /* BundleExerciseThumbnail.swift */; };
 		492AE9B38A2F71F366AD1D51 /* PhysiqueRatingReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCFAD63A5204BA660C5DA9D9 /* PhysiqueRatingReceiptView.swift */; };
 		492B767B1C89FA50174EF0F8 /* ChecklistEditorRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 682E457B00ADEF3D0F3B4DA4 /* ChecklistEditorRoute.swift */; };
+		494C0058ED2976F7CBF0B0C7 /* TmaxGlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05765DCBB77A6F2CC3371062 /* TmaxGlow.swift */; };
 		49611ADEE1F8FD290645DE4A /* EverPopupStepMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FAD21AC453676A04FD527D /* EverPopupStepMotion.swift */; };
 		4967AD7A3D05BEF778610FC1 /* MenuBarActivityPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFFB490835836062C573BD5C /* MenuBarActivityPage.swift */; };
 		4986FBC4105C7ECB9A1DF962 /* AsyncCoverImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31AF35A8C9D810F6A66D610F /* AsyncCoverImage.swift */; };
@@ -1108,6 +1110,7 @@
 		044CDB53E3E62A23037466CE /* RankedMatchPreparationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankedMatchPreparationView.swift; sourceTree = "<group>"; };
 		04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorSelectionControls.swift; sourceTree = "<group>"; };
 		054FEA84D6CCF3FE4D1D67F6 /* SkillGroupPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillGroupPageView.swift; sourceTree = "<group>"; };
+		05765DCBB77A6F2CC3371062 /* TmaxGlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmaxGlow.swift; sourceTree = "<group>"; };
 		060694A44FDEE266D9FF9E66 /* MediaNotesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaNotesStore.swift; sourceTree = "<group>"; };
 		066DA8112F0CED117EACE9C7 /* TimeMasterWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeMasterWidgetBundle.swift; sourceTree = "<group>"; };
 		07039CBA843ED7E620E0D936 /* OutdoorTripDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorTripDetailsView.swift; sourceTree = "<group>"; };
@@ -2000,6 +2003,7 @@
 				1FF9944203E54CAB933582B8 /* TimeMasterGlassControls.swift */,
 				498BB0563DA4D3D1DAF38133 /* TmaxAnimatedLogo.swift */,
 				271FFEA519E24DA80581892C /* TmaxCircularLoader.swift */,
+				05765DCBB77A6F2CC3371062 /* TmaxGlow.swift */,
 				D71578FA3BFD38D84701ED09 /* TmaxLoadingIndicator.swift */,
 				A0C25EB22255E700F3E9CECB /* TmaxLoadingState.swift */,
 				4B8F09BC79AB1A0F48B16E57 /* TmaxMark.swift */,
@@ -3290,6 +3294,7 @@
 				E7E5E2EFDB04855602C7F493 /* TmaxApp.swift in Sources */,
 				AD0EF4B3AEBBB42FF9166DBE /* TmaxCircularLoader.swift in Sources */,
 				711F50876914AB1F62D89F4D /* TmaxCommands.swift in Sources */,
+				494C0058ED2976F7CBF0B0C7 /* TmaxGlow.swift in Sources */,
 				64E8C0CF168AF48304F22644 /* TmaxLoadingIndicator.swift in Sources */,
 				3DE689BF1E1DB9E628E3042F /* TmaxLoadingState.swift in Sources */,
 				B17BA1C4911A23EEFB6B37E8 /* TmaxMark.swift in Sources */,
@@ -3804,6 +3809,7 @@
 				A6E3CEE5502308130C636849 /* TmaxApp.swift in Sources */,
 				05F93EF9C440977F3A58B46B /* TmaxCircularLoader.swift in Sources */,
 				BECECBD1EA1C607F87B7D0C3 /* TmaxCommands.swift in Sources */,
+				16793001E3ED18FF9A524FBC /* TmaxGlow.swift in Sources */,
 				1618CBEAE8E1829601F44DA7 /* TmaxLoadingIndicator.swift in Sources */,
 				037DE4CD2905F911C3C741F6 /* TmaxLoadingState.swift in Sources */,
 				4E95389CFDB91B4292F5D70A /* TmaxMark.swift in Sources */,
