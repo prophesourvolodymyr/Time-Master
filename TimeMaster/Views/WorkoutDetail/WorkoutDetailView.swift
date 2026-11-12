@@ -459,9 +459,10 @@ struct WorkoutDetailView: View {
                 editorControlsExpanded = expanded
             }
         }
-        .overlay(alignment: .leading) {
+        .overlay(alignment: .topLeading) {
             editorBackButton(diameter: metrics.compactControlSize)
                 .padding(.leading, metrics.horizontalPadding)
+                .padding(.top, 4)
                 .oneHandedActionSource()
         }
         .buttonStyle(.plain)
