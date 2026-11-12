@@ -2902,6 +2902,22 @@ User direction (voice-dictated): prepare the apps for people who collect and per
 - [ ] Human review of everything above on a device (iPhone with iOS 16 and with iOS 17 or later, and the Mac)
 - [ ] Open decisions: Notes may live at the top level or in plain folders but not inside an exercise, skill or tutorial; an older Tmax build cannot read the `note` page type; the iOS 16 Lock Screen player holds an exclusive audio session while a workout runs (other apps' audio pauses)
 
+## Cycle 63 — Glow look: login, app icon, warm pages, Physique Duels and Map UI — 2026-11-11
+
+User direction (voice-typed, with screenshots on the iPhone 16 simulator): centre the login screen and give its background the smooth, animated orange gradient of the user's reference icon (dark top, warm glow rising from the bottom); change the main app logo so the M dissolves smoothly into that gradient; add the same soft orange gradient to views that are too dark; send one Opus agent to unify the Physique Duels page with the Ranked duels in the new gradient and colour system, make the Map's Nearby, New trip, Nearby/Yours/Starred and Offline areas surfaces visual instead of text-heavy (insets, input affordances, our fonts, no map change during trip planning), and animate page changes inside the Map's bottom pane; test on the iPhone 16; do not change UI that was not mentioned. Nothing here is human-verified.
+
+### Parent: glow system, login, icon, warm pages
+- [x] Glow system (`TimeMaster/Utilities/TmaxGlow.swift`, commit `4d3a012`): palette (night, umber, rust, ember, flame = the brand orange, blaze, peach), a full-screen animated glow in two strengths (hero for the login, ambient for pages) that rises from the bottom edge and drifts slowly (30 fps, paused off-screen, in an inactive scene and with Reduce Motion), a warm card surface, and the glowing tile with the M dissolving downward into the glow
+- [x] Login (`CloudAccountLoginView.swift`, `CloudAccountSettingsView.swift`, commit `bf77d7f`): signed out (and "Sign in again or switch account") now opens a centred page over the hero glow, which rises in on arrival; the glowing M tile breathes at the top; heading, two short lines, a gradient Sign in / Create account switch, email, password and display-name fields with icons and an orange focus ring, Sign in, Forgot password and Resend confirmation links, an "or" divider, Apple and Google buttons with an Off / Not checked chip, compact status rows and the Backup & Transfer link. Accessibility identifiers kept. The signed-in account page is unchanged
+- [x] App icon (commit `cb53264`): the M in orange dissolving downward into a warm glow, rendered from the same view code at every iPhone and Mac size, opaque PNGs
+- [x] Soft ambient glow behind the Ranked, Workouts, Database, Analytics and Schedule pages (commit `b49f68c`); Home, Profile, Coach and Settings were left alone because another agent was editing them
+- [x] Checked on the iPhone 16 simulator (iOS 18.6): the login sheet opened from Ranked (through a temporary launch hook, removed before commit), frames 3 s apart differ in the glow and the logo (the animation runs), and the five pages with the glow above the navigation arch
+- [ ] Not exercised: typing and submitting, Create account and reconnect states, provider sign-in, the login on the Mac (the Mac scheme was not built by the parent), Reduce Motion, large text sizes, VoiceOver, the new icon on a home screen
+- [ ] Left as is: the launch animation still draws the white M (the startup screen was being changed by another agent); switching it to the glowing M is an open decision
+
+### PhysiqueMapUI (one Opus agent): Physique Duels lobby and Map UI
+- [ ] In progress
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
