@@ -26,7 +26,6 @@ struct CollectibleShopView: View {
                 compactHeight: EverLayout.standardRowMinimum,
                 expandedHeaderHeight: { expandedHeight(width: readableWidth($0)) },
                 tabHeight: 0,
-                rasterizesContent: false,
                 chrome: { width, progress in
                     seasonCover(width: readableWidth(width), progress: progress)
                         .padding(.horizontal, EverSpacing.x3)

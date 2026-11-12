@@ -81,7 +81,6 @@ struct EverProfileScaffold<Chrome: View, Content: View>: View {
     let compactHeight: CGFloat
     let expandedHeaderHeight: (CGFloat) -> CGFloat
     let tabHeight: CGFloat
-    let rasterizesContent: Bool
     let chrome: (CGFloat, CGFloat) -> Chrome
     let content: Content
     @State private var scrollOffset: CGFloat = 0
@@ -90,14 +89,12 @@ struct EverProfileScaffold<Chrome: View, Content: View>: View {
         compactHeight: CGFloat,
         expandedHeaderHeight: @escaping (CGFloat) -> CGFloat,
         tabHeight: CGFloat,
-        rasterizesContent: Bool = true,
         @ViewBuilder chrome: @escaping (CGFloat, CGFloat) -> Chrome,
         @ViewBuilder content: () -> Content
     ) {
         self.compactHeight = compactHeight
         self.expandedHeaderHeight = expandedHeaderHeight
         self.tabHeight = tabHeight
-        self.rasterizesContent = rasterizesContent
         self.chrome = chrome
         self.content = content()
     }
@@ -131,24 +128,17 @@ struct EverProfileScaffold<Chrome: View, Content: View>: View {
                         }
                     }
                 }
-                Group {
-                    if rasterizesContent {
-                        scrolling.modifier(EverScrollSmear())
-                    } else {
-                        scrolling
+                scrolling
+                    .modifier(EverArcScrollableContent())
+                    .overlay(alignment: .top) {
+                        chrome(viewport.size.width, progress)
+                            .frame(height: chromeHeight, alignment: .top)
+                            .frame(maxWidth: .infinity, alignment: .top)
+                            .background(EverColor.background)
+                            .offset(y: -scrollOffset)
                     }
-                }
-                .modifier(EverArcScrollableContent())
-                .overlay(alignment: .top) {
-                    chrome(viewport.size.width, progress)
-                        .frame(height: chromeHeight, alignment: .top)
-                        .frame(maxWidth: .infinity, alignment: .top)
-                        .background(EverColor.background)
-                        .offset(y: -scrollOffset)
-                }
             }
             .modifier(EverVerticalScrollOffset(offset: $scrollOffset))
-            .modifier(EverScrollMotion())
             .modifier(EverArcScrollOverflow())
             .coordinateSpace(name: coordinateSpace)
             .scrollIndicators(.hidden)

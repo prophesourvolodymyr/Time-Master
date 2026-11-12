@@ -95,7 +95,6 @@ struct ProfileVerificationView: View {
                 .padding(EverLayout.phoneInset)
                 .everReadableWidth()
             }
-            .modifier(EverScrollMotion())
             .everScreenBackground()
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 purchaseAction {

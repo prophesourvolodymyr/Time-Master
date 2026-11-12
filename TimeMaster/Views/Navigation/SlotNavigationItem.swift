@@ -138,7 +138,7 @@ struct SlotNavigationBarFrameReader: View {
 
 // MARK: - Arc lens frame
 
-private struct SlotNavigationArcLensFrameKey: EnvironmentKey {
+private struct SlotNavigationArcFrameKey: EnvironmentKey {
     static let defaultValue = CGRect.zero
 }
 
@@ -146,9 +146,9 @@ extension EnvironmentValues {
     /// Rectangle covering the arc surface, in the global coordinate space, whenever the bar
     /// is in its full layout and the editor is closed. Content that stretches or refracts
     /// around the arc reads it; it stays `.zero` at every other time.
-    var slotNavigationArcLensFrame: CGRect {
-        get { self[SlotNavigationArcLensFrameKey.self] }
-        set { self[SlotNavigationArcLensFrameKey.self] = newValue }
+    var slotNavigationArcFrame: CGRect {
+        get { self[SlotNavigationArcFrameKey.self] }
+        set { self[SlotNavigationArcFrameKey.self] = newValue }
     }
 }
 
@@ -645,7 +645,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     }
 
     /// The arrangement the app ships with, before anyone edits the bar.
-    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .home, .map, .ranked, .physique, .workouts, .schedule, .database, .analytics, .settings]
+    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .workouts, .home, .database, .schedule, .map, .ranked, .physique, .analytics, .settings]
 }
 
 extension SlotNavigationItem {
@@ -671,13 +671,31 @@ final class SlotNavigationLayoutStore: ObservableObject {
 
     private let defaults: UserDefaults
     private let orderKey = "tm.navigation.order.v1"
+    private static let workoutsLeftOfHomeKey = "tm.navigation.workoutsLeftOfHome.v1"
+
+    /// Every arrangement an earlier build shipped, including the Mac one after its library-near-home
+    /// migration. A saved order that still equals one of these was never edited by the person.
+    static let previousDefaultOrders: [[SlotNavigationDestination]] = [
+        [.coach, .profile, .home, .map, .ranked, .physique, .workouts, .schedule, .database, .analytics, .settings],
+        [.coach, .profile, .home, .database, .analytics, .map, .ranked, .physique, .workouts, .schedule, .settings]
+    ]
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let stored = defaults.stringArray(forKey: orderKey)?
             .compactMap(SlotNavigationDestination.init(rawValue:))
-        let resolved = stored?.isEmpty == false ? stored! : SlotNavigationDestination.defaultOrder
-        order = resolved.filter(\.isAvailable)
+        guard let stored, !stored.isEmpty else {
+            order = SlotNavigationDestination.defaultOrder.filter(\.isAvailable)
+            save()
+            for key in [
+                "tm.navigation.scheduleSettingsAdded", "tm.navigation.rankedAdded",
+                "tm.navigation.macLibraryNearHome.v1", Self.workoutsLeftOfHomeKey
+            ] {
+                defaults.set(true, forKey: key)
+            }
+            return
+        }
+        order = stored.filter(\.isAvailable)
         if !defaults.bool(forKey: "tm.navigation.scheduleSettingsAdded") {
             if !order.contains(.schedule) {
                 let index = order.firstIndex(of: .workouts).map { $0 + 1 } ?? order.count
@@ -708,6 +726,13 @@ final class SlotNavigationLayoutStore: ObservableObject {
             defaults.set(true, forKey: "tm.navigation.macLibraryNearHome.v1")
         }
         #endif
+        if !defaults.bool(forKey: Self.workoutsLeftOfHomeKey) {
+            if Self.previousDefaultOrders.contains(where: { $0.filter(\.isAvailable) == order }) {
+                order = SlotNavigationDestination.defaultOrder.filter(\.isAvailable)
+                save()
+            }
+            defaults.set(true, forKey: Self.workoutsLeftOfHomeKey)
+        }
     }
 
     var items: [SlotNavigationItem] {

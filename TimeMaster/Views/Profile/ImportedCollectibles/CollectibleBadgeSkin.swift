@@ -7,12 +7,11 @@ struct CollectibleBadgeSkin: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.everRasterizedContent) private var rasterizedContent
     @Environment(\.everPageTravelActive) private var pageTravelActive
     @State private var isVisible = false
 
     private var shouldAnimate: Bool {
-        active && isVisible && scenePhase == .active && !reduceMotion && !rasterizedContent && !pageTravelActive
+        active && isVisible && scenePhase == .active && !reduceMotion && !pageTravelActive
     }
 
     private var glyph: String {

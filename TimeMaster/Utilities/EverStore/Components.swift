@@ -57,7 +57,6 @@ struct EverSurfaceMaterial: View {
                     EverSpecularRim(shape: RoundedRectangle(cornerRadius: radius, style: .continuous))
                 }
             }
-            .modifier(EverArcStretch())
     }
 }
 

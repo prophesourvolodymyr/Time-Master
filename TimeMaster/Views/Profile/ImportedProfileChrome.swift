@@ -3,11 +3,11 @@ import SwiftUI
 
 extension ProfileView {
     private var chromeEntranceOpacity: Double {
-        isChromeVisible || reduceMotion || rasterizedContent || isProfileRoot ? 1 : 0
+        isChromeVisible || reduceMotion || isProfileRoot ? 1 : 0
     }
 
     private func chromeEntranceOffset(_ distance: CGFloat) -> CGFloat {
-        isChromeVisible || reduceMotion || rasterizedContent || isProfileRoot ? 0 : -distance
+        isChromeVisible || reduceMotion || isProfileRoot ? 0 : -distance
     }
 
     private var chromeEntranceAnimation: Animation {

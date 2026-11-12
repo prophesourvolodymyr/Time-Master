@@ -38,7 +38,6 @@ struct ProfileVerificationBadge: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.everRasterizedContent) private var everRasterizedContent
     @State private var lowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var isVisible = false
 
@@ -52,24 +51,11 @@ struct ProfileVerificationBadge: View {
     }
 
     private var animationEnabled: Bool {
-        animated && !reduceMotion && isVisible && !everRasterizedContent
-            && !lowPowerMode && scenePhase == .active
+        animated && !reduceMotion && isVisible && !lowPowerMode && scenePhase == .active
     }
 
     var body: some View {
-        Group {
-            if everRasterizedContent {
-                #if os(iOS)
-                Image(uiImage: VerificationBadgeScene.preview(tier: tier, color: VerificationBadgeColor(color ?? resolvedTierColor), size: resolvedSize))
-                    .resizable()
-                #elseif os(macOS)
-                Image(nsImage: VerificationBadgeScene.preview(tier: tier, color: VerificationBadgeColor(color ?? resolvedTierColor), size: resolvedSize))
-                    .resizable()
-                #endif
-            } else {
-                VerificationBadgeScene(tier: tier, color: VerificationBadgeColor(color ?? resolvedTierColor), size: resolvedSize, animates: animationEnabled)
-            }
-        }
+        VerificationBadgeScene(tier: tier, color: VerificationBadgeColor(color ?? resolvedTierColor), size: resolvedSize, animates: animationEnabled)
         .frame(width: resolvedSize, height: resolvedSize)
         .allowsHitTesting(false)
         .accessibilityElement()
@@ -143,30 +129,6 @@ private struct VerificationBadgeScene: VerificationBadgeRepresentable {
         view.scene = nil
     }
     #endif
-
-    private static let previews: NSCache<NSString, VerificationBadgeImage> = {
-        let cache = NSCache<NSString, VerificationBadgeImage>()
-        cache.countLimit = 48
-        return cache
-    }()
-
-    static func preview(tier: LocalBadgeTier, color: VerificationBadgeColor, size: CGFloat) -> VerificationBadgeImage {
-        #if os(iOS)
-        let pixels = ceil(size * UIScreen.main.scale)
-        #elseif os(macOS)
-        let pixels = ceil(size * (NSScreen.main?.backingScaleFactor ?? 1))
-        #endif
-        let key = "\(tier.rawValue)|\(color.description)|\(pixels)" as NSString
-        if let cached = previews.object(forKey: key) { return cached }
-        let coordinator = Coordinator()
-        coordinator.update(tier: tier, color: color, animates: false)
-        let renderer = SCNRenderer(device: nil, options: nil)
-        renderer.scene = coordinator.scene
-        renderer.pointOfView = coordinator.camera
-        let image = renderer.snapshot(atTime: 0, with: CGSize(width: pixels, height: pixels), antialiasingMode: .multisampling4X)
-        previews.setObject(image, forKey: key)
-        return image
-    }
 
     final class Coordinator {
         let scene = SCNScene()

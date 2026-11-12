@@ -8,13 +8,12 @@ struct CollectibleEntrance: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.everRasterizedContent) private var rasterizedContent
     @Environment(\.everPageTravelActive) private var pageTravelActive
     @State private var isVisible = false
     @State private var entranceStart: Date?
 
     private var motionAllowed: Bool {
-        active && isVisible && scenePhase == .active && !reduceMotion && !rasterizedContent && !pageTravelActive
+        active && isVisible && scenePhase == .active && !reduceMotion && !pageTravelActive
     }
 
     private var shouldAnimate: Bool {
@@ -42,7 +41,7 @@ struct CollectibleEntrance: View {
         .accessibilityHidden(true)
         .onAppear {
             isVisible = true
-            if active && scenePhase == .active && !reduceMotion && !rasterizedContent && !pageTravelActive {
+            if active && scenePhase == .active && !reduceMotion && !pageTravelActive {
                 entranceStart = Date()
             }
         }

@@ -8,12 +8,11 @@ struct CollectibleName: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.everRasterizedContent) private var rasterizedContent
     @Environment(\.everPageTravelActive) private var pageTravelActive
     @State private var isVisible = false
 
     private var shouldAnimate: Bool {
-        item != nil && active && isVisible && scenePhase == .active && !reduceMotion && !rasterizedContent && !pageTravelActive
+        item != nil && active && isVisible && scenePhase == .active && !reduceMotion && !pageTravelActive
     }
 
     var body: some View {

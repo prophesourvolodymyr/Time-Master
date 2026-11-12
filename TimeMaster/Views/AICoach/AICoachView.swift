@@ -15,44 +15,51 @@ struct AICoachView: View {
     @State private var showingFilePicker = false
     @FocusState private var inputFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.slotNavigationContentBounds) private var navigationBounds
+
+    private func visibleHeight(in geometry: GeometryProxy) -> CGFloat {
+        navigationBounds.map {
+            min(geometry.size.height, max(0, $0.maxY - geometry.frame(in: .global).minY))
+        } ?? geometry.size.height
+    }
 
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                ZStack {
-                    Theme.background.ignoresSafeArea()
-                    VStack(spacing: 0) {
-                        coachContextHeader
-                        ChatMessageList(
-                            store: store,
-                            onReply: { replyingTo = $0 },
-                            onSelectPrompt: {
-                                inputText = $0
-                                inputFocused = true
-                            }
-                        )
-                        if let approval = store.pendingApproval {
-                            ApprovalCardView(approval: approval, store: store)
-                                .frame(maxHeight: geometry.size.height * 0.45)
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 8)
-                                .transition(.opacity)
+                VStack(spacing: 0) {
+                    coachContextHeader
+                    ChatMessageList(
+                        store: store,
+                        onReply: { replyingTo = $0 },
+                        onSelectPrompt: {
+                            inputText = $0
+                            inputFocused = true
                         }
-                        ChatInputBar(
-                            text: $inputText,
-                            replyingTo: $replyingTo,
-                            pendingAttachName: $pendingAttachName,
-                            isFocused: $inputFocused,
-                            isLoading: store.isLoading,
-                            isApprovalPending: store.pendingApproval != nil,
-                            onSend: sendMessage,
-                            onAttach: { showingFilePicker = true },
-                            onStop: store.isAgentRunning ? { store.stopAgent() } : nil
-                        )
+                    )
+                    if let approval = store.pendingApproval {
+                        ApprovalCardView(approval: approval, store: store)
+                            .frame(maxHeight: geometry.size.height * 0.45)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 8)
+                            .transition(.opacity)
                     }
-                    .frame(maxWidth: 800)
-                    .frame(maxWidth: .infinity)
+                    ChatInputBar(
+                        text: $inputText,
+                        replyingTo: $replyingTo,
+                        pendingAttachName: $pendingAttachName,
+                        isFocused: $inputFocused,
+                        isLoading: store.isLoading,
+                        isApprovalPending: store.pendingApproval != nil,
+                        onSend: sendMessage,
+                        onAttach: { showingFilePicker = true },
+                        onStop: store.isAgentRunning ? { store.stopAgent() } : nil
+                    )
                 }
+                .frame(maxWidth: 800)
+                .frame(maxWidth: .infinity)
+                .frame(width: geometry.size.width, height: visibleHeight(in: geometry), alignment: .top)
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+                .background(Theme.background.ignoresSafeArea())
             }
             .timeMasterNavigationTitle(store.currentSession.title.isEmpty ? "AI Coach" : store.currentSession.title)
             #if os(iOS)

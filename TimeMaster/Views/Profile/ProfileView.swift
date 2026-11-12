@@ -24,7 +24,6 @@ struct ProfileView: View {
     @EnvironmentObject private var outdoorPreferencesStore: OutdoorRecordingPreferencesStore
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.dismiss) var dismiss
-    @Environment(\.everRasterizedContent) var rasterizedContent
     @Environment(\.everPageTravelActive) var pageTravelActive
     @Environment(\.collectiblePreviewItem) var collectiblePreviewItem
     @Environment(\.verificationPreviewTier) var verificationPreviewTier
@@ -56,7 +55,7 @@ struct ProfileView: View {
     var canSeeDetails: Bool { !asVisitor || !profile.isPrivate }
     var isProfileRoot: Bool { !previewOnly }
     var palette: StoreProfilePalette { .midnight }
-    var collectibleArtworkActive: Bool { isChromeVisible && !rasterizedContent && !pageTravelActive }
+    var collectibleArtworkActive: Bool { isChromeVisible && !pageTravelActive }
     var selectedStats: [ProfileAchievementSide] {
         canSeeDetails && (!asVisitor || profile.showAchievements) ? ProfileAchievementSide.allCases : []
     }
@@ -174,7 +173,7 @@ struct ProfileView: View {
             .toolbar(.hidden, for: .navigationBar)
             #endif
             .onAppear {
-                guard !rasterizedContent, !isChromeVisible else { return }
+                guard !isChromeVisible else { return }
                 if reduceMotion || pageTravelActive || isProfileRoot {
                     isChromeVisible = true
                 } else {
@@ -182,7 +181,7 @@ struct ProfileView: View {
                 }
             }
             .task {
-                guard !previewOnly, !rasterizedContent else { return }
+                guard !previewOnly else { return }
                 await rankedAccount.restore()
                 if rankedAccount.identity != nil { await rankedAccount.refresh() }
             }

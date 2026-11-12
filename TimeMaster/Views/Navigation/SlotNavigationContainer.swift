@@ -132,7 +132,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                             measurement.measuredArchedLayout = layout == .full
                         }
                     }
-                    .environment(\.slotNavigationArcLensFrame, layout == .full && showsNavigation
+                    .environment(\.slotNavigationArcFrame, layout == .full && showsNavigation
                         && !isEditing && !reduceMotion && !reduceTransparency && !lowPower && scenePhase == .active
                         ? CGRect(
                             x: proxy.frame(in: .global).minX,

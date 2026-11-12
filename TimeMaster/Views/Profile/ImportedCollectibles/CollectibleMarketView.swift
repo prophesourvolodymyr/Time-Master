@@ -79,7 +79,6 @@ struct CollectibleMarketView: View {
             .everReadableWidth()
             .accessibilityHidden(showsSearch)
         }
-        .modifier(EverScrollMotion(appliesSmear: false))
         .everScreenBackground()
         .foregroundStyle(EverColor.textPrimary)
         .timeMasterNavigationTitle("Local previews")
@@ -149,7 +148,7 @@ struct CollectibleCollectionView: View {
             .padding(.bottom, EverSpacing.x8)
             .everReadableWidth()
         }
-        .modifier(EverScrollMotion()).everScreenBackground().foregroundStyle(EverColor.textPrimary)
+        .everScreenBackground().foregroundStyle(EverColor.textPrimary)
         .timeMasterNavigationTitle("Your local styles")
         .navigationBarBackButtonHidden()
         .toolbar {
