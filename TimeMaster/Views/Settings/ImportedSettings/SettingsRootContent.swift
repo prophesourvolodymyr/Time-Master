@@ -42,6 +42,12 @@ struct SettingsRootContent: View {
                         }
                         .buttonStyle(TimeMasterCardButtonStyle())
                         SettingsDestinationLink(destination: .notifications)
+#if os(iOS)
+                        WorkoutHapticsSettingsCard()
+                        if WorkoutNowPlayingController.isSupported {
+                            WorkoutLockScreenSettingsCard()
+                        }
+#endif
                         SettingsMenuCard {
                             VStack(alignment: .leading, spacing: EverSpacing.x3) {
                                 SettingsActionRow(title: "Extra Rest Time", symbol: "plus.circle")

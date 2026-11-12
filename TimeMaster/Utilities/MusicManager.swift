@@ -253,8 +253,7 @@ final class MusicManager: ObservableObject {
             return
         }
         #if os(iOS)
-        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        AudioManager.shared.activateSession()
         #endif
         let descriptors = requested.map {
             MusicPlaybackTrack(id: $0, title: displayName(for: $0), localFilename: $0)
@@ -295,8 +294,7 @@ final class MusicManager: ObservableObject {
         }
         let paired = zip(filenames, descriptors).filter { playable.contains($0.0) }
         #if os(iOS)
-        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        AudioManager.shared.activateSession()
         #endif
         rebuildAndPlay(filenames: paired.map { $0.0 }, startIndex: startIndex, descriptors: paired.map { $0.1 })
         return .started

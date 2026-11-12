@@ -24,25 +24,25 @@ extension Workout {
     var musicBoundaries: [Double] {
         var boundaries: [Double] = [0]
         var time: Double = 0
-        for section in sections {
-            for (index, slot) in section.effectiveSlots.enumerated() {
+        func mark() {
+            if time > boundaries[boundaries.count - 1] { boundaries.append(time) }
+        }
+        for (sectionIndex, section) in sections.enumerated() {
+            let slots = section.playbackSlots()
+            for (index, slot) in slots.enumerated() {
                 time += Double(section.preparationTime(for: slot))
-                boundaries.append(time)
-                if section.mode == .timed { time += Double(slot.duration) }
-                boundaries.append(time)
-                for drop in slot.drops {
-                    if section.mode == .timed { time += Double(drop.duration) }
-                    boundaries.append(time)
-                    time += Double(drop.restAfter)
-                    boundaries.append(time)
-                }
-                if index < section.effectiveSlots.count - 1 {
-                    time += Double(slot.restRow?.duration ?? slot.restAfter)
-                    boundaries.append(time)
+                mark()
+                time += Double(slot.duration)
+                mark()
+                if index < slots.count - 1 {
+                    time += Double(slot.playbackRest)
+                    mark()
                 }
             }
-            time += Double(section.bigRestRow?.duration ?? (section.customRestAfter == 0 ? 0 : restBetweenSections))
-            boundaries.append(time)
+            if sectionIndex < sections.count - 1 {
+                time += Double(section.bigRestRow?.duration ?? (section.customRestAfter == 0 ? 0 : restBetweenSections))
+                mark()
+            }
         }
         return boundaries
     }

@@ -8,10 +8,10 @@ enum TmaxLiveStyle {
     static let track = Color.white.opacity(0.18)
     static let dimmed = 0.45
     static let background = Color(widgetHex: "0A0A0A")
-    static let rest = Color(widgetHex: "3CC8E0")
-    static let prepare = Color(widgetHex: "FFB020")
-    static let warmUp = Color(widgetHex: "FF4D2E")
-    static let completed = Color(widgetHex: "34C759")
+    static let rest = Color.white
+    static let prepare = Color.white
+    static let warmUp = Color.white
+    static let completed = Color.white
 
     static func timerFont(size: CGFloat) -> Font {
         .system(size: size, weight: .bold, design: .rounded).monospacedDigit()

@@ -300,8 +300,7 @@ final class WorkoutMusicSession: ObservableObject {
                 activePlayer = player
                 if !paused {
                     #if os(iOS)
-                    try AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
-                    try AVAudioSession.sharedInstance().setActive(true)
+                    AudioManager.shared.activateSession()
                     #endif
                     player.play()
                     player.setVolume(MusicManager.shared.volume, fadeDuration: fadeDuration)

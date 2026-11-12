@@ -7,7 +7,13 @@ import AudioToolbox
 final class AudioManager {
     static let shared = AudioManager()
 
+    enum SessionMode {
+        case mixing
+        case exclusive
+    }
+
     private let synthesizer = AVSpeechSynthesizer()
+    private var mode: SessionMode = .mixing
 
     private init() {
         #if os(iOS)
@@ -30,19 +36,27 @@ final class AudioManager {
 
     #if os(iOS)
     private func configureSession() {
-        #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(
-            .playback, mode: .default, options: [.mixWithOthers]
+            .playback, mode: .default, options: mode == .mixing ? [.mixWithOthers] : []
         )
         try? AVAudioSession.sharedInstance().setActive(true)
-        #endif
     }
 
     func activateSession() {
         configureSession()
     }
+
+    func setSessionMode(_ newMode: SessionMode) {
+        guard newMode != mode else { return }
+        mode = newMode
+        if newMode == .mixing {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        }
+        configureSession()
+    }
     #else
     func activateSession() {}
+    func setSessionMode(_ newMode: SessionMode) {}
     #endif
 
     func playCountdownBeep() {

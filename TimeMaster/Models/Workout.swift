@@ -238,6 +238,8 @@ struct SetSlot: Identifiable, Codable, Equatable {
         restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
     }
 
+    var playbackRest: Int { restRow?.duration ?? restAfter }
+
     func duplicated() -> SetSlot {
         var copy = self
         copy.id = UUID()
@@ -442,8 +444,7 @@ struct Section: Identifiable, Codable, Equatable {
     var calculatedDuration: Int { coreManifest.calculatedDuration }
 
     func playbackSlots(order: [UUID]? = nil) -> [SetSlot] {
-        guard mode == .bundle else { return effectiveSlots }
-        return coreManifest.bundlePlaybackSlots(order: order?.map(\.uuidString)).map { $0.toAppSlot() }
+        coreManifest.playbackSlots(order: order?.map(\.uuidString)).map { $0.toAppSlot() }
     }
 
     var bundleSets: [SetSlot] {
@@ -560,7 +561,9 @@ struct Workout: Identifiable, Codable, Equatable {
     }
 
     var totalDuration: Int {
-        sections.reduce(0) { total, section in
+        sections.enumerated().reduce(0) { total, entry in
+            let section = entry.element
+            guard entry.offset + 1 < sections.count else { return total + section.calculatedDuration }
             let sectionRest: Int
             if let bigRestRow = section.bigRestRow {
                 sectionRest = bigRestRow.duration

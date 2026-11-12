@@ -23,10 +23,9 @@ struct WorkoutMediaPager: View {
                 if entries.count > 1 {
                     pageControls
                 }
-                Label("Swipe up for notes", systemImage: "chevron.up")
-                    .font(TimeMasterFont.micro())
+                Image(systemName: "chevron.compact.up")
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.45))
-                    .labelStyle(.titleAndIcon)
                     .accessibilityHidden(true)
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .center)
@@ -227,8 +226,7 @@ private struct WorkoutLoopingVideo: View {
     private func start() {
         guard player == nil, FileManager.default.fileExists(atPath: url.path) else { return }
         #if os(iOS)
-        try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        AudioManager.shared.activateSession()
         #endif
         let item = AVPlayerItem(url: url)
         let queue = AVQueuePlayer(items: [item])
