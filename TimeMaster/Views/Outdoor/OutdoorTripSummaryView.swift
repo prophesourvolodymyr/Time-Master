@@ -9,12 +9,12 @@ struct OutdoorTripSummaryView<Action: View, Footer: View>: View {
     @ViewBuilder let footer: () -> Footer
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(trip.isRouted ? outdoorDistanceText(trip.activeDistanceMeters, unitSystem: units, precision: true) : "—")
-                        .font(TimeMasterFont.black(22, relativeTo: .title2)).monospacedDigit()
-                    Text(trip.kind == .bike ? "Riding distance" : "On-foot distance")
+                        .font(TimeMasterFont.black(26, relativeTo: .title2)).monospacedDigit()
+                    Label(trip.kind == .bike ? "Riding distance" : "On-foot distance", systemImage: trip.kind.iconName)
                         .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                 }
                 Spacer(minLength: 0)
@@ -29,7 +29,7 @@ struct OutdoorTripSummaryView<Action: View, Footer: View>: View {
                 action()
             }
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 18) { metrics }
+                HStack(spacing: 8) { metrics }
                 VStack(alignment: .leading, spacing: 8) { metrics }
             }
             if trip.isRouted {
@@ -50,13 +50,30 @@ struct OutdoorTripSummaryView<Action: View, Footer: View>: View {
 
     private var metrics: some View {
         Group {
-            Label(trip.isRouted ? outdoorDurationText(Int(trip.activeDurationSeconds.rounded())) : "—", systemImage: "clock")
+            metric(trip.isRouted ? outdoorDurationText(Int(trip.activeDurationSeconds.rounded())) : "—", symbol: "clock")
                 .accessibilityLabel("Estimated active time \(trip.isRouted ? outdoorDurationText(Int(trip.activeDurationSeconds.rounded())) : "unknown")")
-            Label(trip.isRouted ? outdoorElevationText(trip.ascentMeters, unitSystem: units) : "—", systemImage: "mountain.2")
+            metric(trip.isRouted ? outdoorElevationText(trip.ascentMeters, unitSystem: units) : "—", symbol: "mountain.2")
                 .accessibilityLabel("Elevation gain \(trip.isRouted ? outdoorElevationText(trip.ascentMeters, unitSystem: units) : "unknown")")
-            Label(trip.isRouted ? trip.effortTitle : "—", systemImage: "gauge.with.dots.needle.50percent")
+            metric(trip.isRouted ? trip.effortTitle : "—", symbol: "gauge.with.dots.needle.50percent")
+                .accessibilityLabel("Effort \(trip.isRouted ? trip.effortTitle : "unknown")")
         }
-        .font(TimeMasterFont.black(12, relativeTo: .caption)).monospacedDigit()
+    }
+
+    private func metric(_ value: String, symbol: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.textSecondary)
+            Text(value)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                .monospacedDigit()
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(Color.black.opacity(0.3)))
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+        .accessibilityElement(children: .ignore)
     }
 }
 

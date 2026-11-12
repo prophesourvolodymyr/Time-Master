@@ -5,11 +5,15 @@ struct OutdoorTripStopField<Field: View, Accessory: View>: View {
     let index: Int
     let isBus: Bool
     let connectsBelow: Bool
+    var symbol = "magnifyingglass"
+    var accent = false
+    var focused = false
     @ViewBuilder let field: () -> Field
     @ViewBuilder let accessory: () -> Accessory
     @ScaledMetric(relativeTo: .subheadline) private var railWidth = 24.0
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         HStack(spacing: 10) {
             Image(systemName: index == 0 ? "circle.circle.fill" : isBus ? "bus.fill" : "mappin.circle.fill")
                 .font(.system(size: railWidth * 0.85, weight: .semibold))
@@ -17,7 +21,12 @@ struct OutdoorTripStopField<Field: View, Accessory: View>: View {
                 .frame(width: railWidth)
                 .background(Theme.surface, in: Circle())
                 .accessibilityHidden(true)
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(accent || focused ? Theme.toolbarOrange : Theme.textSecondary)
+                    .frame(width: 20)
+                    .accessibilityHidden(true)
                 field()
                     .font(TimeMasterFont.secondary())
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -25,11 +34,11 @@ struct OutdoorTripStopField<Field: View, Accessory: View>: View {
             }
             .padding(.leading, 12)
             .padding(.trailing, 4)
-            .frame(minHeight: 50)
-            .background(Theme.surface2.opacity(0.76), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .frame(minHeight: 52)
+            .background(shape.fill(Color.black.opacity(0.38)))
             .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                shape
+                    .strokeBorder(focused ? Theme.toolbarOrange.opacity(0.9) : Color.white.opacity(0.16), lineWidth: focused ? 1.5 : 1)
                     .allowsHitTesting(false)
             }
         }
@@ -48,21 +57,45 @@ struct OutdoorTripStopField<Field: View, Accessory: View>: View {
 
 struct OutdoorTripAddDestination: View {
     let action: () -> Void
+    @ScaledMetric(relativeTo: .subheadline) private var railWidth = 24.0
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         Button(action: action) {
-            Label("Add destination", systemImage: "plus")
-                .font(TimeMasterFont.rowTitle())
-                .frame(maxWidth: .infinity, minHeight: 48)
-                .foregroundStyle(Theme.toolbarOrange)
-                .background(Theme.toolbarOrange.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Theme.toolbarOrange.opacity(0.65), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+            HStack(spacing: 10) {
+                Image(systemName: "plus")
+                    .font(.system(size: railWidth * 0.5, weight: .bold))
+                    .foregroundStyle(Theme.toolbarOrange)
+                    .frame(width: railWidth, height: railWidth)
+                    .background(Theme.surface, in: Circle())
+                    .overlay(Circle().strokeBorder(Theme.toolbarOrange.opacity(0.75), style: StrokeStyle(lineWidth: 1.5, dash: [3, 2.5])))
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 20)
+                    Text("Add destination")
+                        .font(TimeMasterFont.secondary())
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(Theme.toolbarOrange)
                 }
-                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(.leading, 12)
+                .padding(.trailing, 12)
+                .frame(minHeight: 52)
+                .background(shape.fill(Color.black.opacity(0.38)))
+                .overlay {
+                    shape.strokeBorder(Color.white.opacity(0.16), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                        .allowsHitTesting(false)
+                }
+            }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Add destination")
+        .accessibilityHint("Search for a place or choose one on the map")
         .accessibilityIdentifier("trip.addStop")
     }
 }

@@ -23,6 +23,7 @@ struct OutdoorTripPlannerView: View {
     @State private var query = ""
     @State private var addingDestination = false
     @FocusState private var focusedField: StopField?
+    @FocusState private var titleFocused: Bool
 
     private enum StopField: Hashable {
         case start, stop(UUID), destination
@@ -75,9 +76,9 @@ struct OutdoorTripPlannerView: View {
                                     editor.picking = false
                                 }
                             }
-                            .padding(.leading, 14)
-                            .padding(.trailing, 4)
-                            .padding(.vertical, 4)
+                            .padding(.leading, 16)
+                            .padding(.trailing, 8)
+                            .padding(.vertical, 8)
                         }
                     }
                 }
@@ -171,17 +172,28 @@ struct OutdoorTripPlannerView: View {
     }
 
     private func destinationContent(maximumHeight: CGFloat, compact: Bool = false) -> some View {
-            VStack(spacing: 4) {
-                HStack(spacing: 4) {
+            VStack(spacing: 8) {
+                HStack(spacing: 6) {
                     OutdoorPineIconAction(symbol: "chevron.left", label: entry == .preview ? "Back to Routes" : "Close trip editor", size: 44) {
                         if editor.trip.stops.isEmpty || (entry == .preview && !editor.hasChanges) { onClose() }
                         else { closePresented = true }
                     }
                     routingPreferences
-                    TextField("Trip name", text: Binding(get: { editor.route.title }, set: editor.rename))
-                        .font(TimeMasterFont.sectionTitle())
-                        .submitLabel(.done)
-                        .accessibilityIdentifier("trip.title")
+                    HStack(spacing: 6) {
+                        TextField("Trip name", text: Binding(get: { editor.route.title }, set: editor.rename))
+                            .font(TimeMasterFont.sectionTitle())
+                            .submitLabel(.done)
+                            .focused($titleFocused)
+                            .accessibilityIdentifier("trip.title")
+                        if !titleFocused {
+                            Image(systemName: "pencil")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(Theme.textSecondary)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { titleFocused = true }
                     OutdoorPineIconAction(
                         symbol: "arrow.uturn.backward",
                         label: "Undo trip edit",
@@ -202,6 +214,8 @@ struct OutdoorTripPlannerView: View {
                         }
                     }
                 }
+                .padding(.horizontal, 8)
+                .padding(.top, entry == .preview ? 0 : 8)
                 if entry == .preview, !searching {
                     OutdoorTripPreviewSummary(route: editor.route, kind: editor.trip.kind, units: units, isRouting: editor.isRouting, compact: compact)
                     if !compact {
@@ -266,7 +280,7 @@ struct OutdoorTripPlannerView: View {
                     Text(editor.trip.stops.isEmpty ? "Choose a start" : editor.trip.stops.map(\.name).joined(separator: " → "))
                         .font(TimeMasterFont.secondary()).lineLimit(1).padding(.horizontal, 16)
                 }
-            }.padding(.bottom, 10)
+            }.padding(.bottom, 12)
     }
 
     private var suggestionConfiguration: some View {
@@ -340,7 +354,12 @@ struct OutdoorTripPlannerView: View {
     }
 
     private func stopRow(_ stop: TripStop, index: Int) -> some View {
-        OutdoorTripStopField(index: index, isBus: index > 0 && stop.incomingMode == .bus, connectsBelow: !showsConfiguration) {
+        let focused = focusedField == .stop(stop.id)
+        let current = stop.name == "Current location"
+        return OutdoorTripStopField(
+            index: index, isBus: index > 0 && stop.incomingMode == .bus, connectsBelow: !showsConfiguration,
+            symbol: current && !focused ? "location.fill" : "magnifyingglass", accent: current && !focused, focused: focused
+        ) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(index == 0 ? "Start" : "Destination \(index)")
                     .font(TimeMasterFont.micro())
@@ -361,7 +380,16 @@ struct OutdoorTripPlannerView: View {
                 }
             }
             .padding(.vertical, 8)
+            .contentShape(Rectangle())
+            .onTapGesture { focusedField = .stop(stop.id) }
         } accessory: {
+            if !focused {
+                Image(systemName: "pencil")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                    .padding(.trailing, showsConfiguration ? 10 : 0)
+                    .accessibilityHidden(true)
+            }
             if !showsConfiguration {
                 Menu {
                     if index > 0 {
@@ -412,13 +440,13 @@ struct OutdoorTripPlannerView: View {
                         }
                         OutdoorPineIconAction(symbol: "arrow.down.circle", label: "Manage offline areas", size: 38, action: onManageAreas)
                     }
-                    .padding(.leading, 12)
-                    .padding(.trailing, 4)
-                    .padding(.vertical, 4)
+                    .padding(.leading, 14)
+                    .padding(.trailing, 8)
+                    .padding(.vertical, 8)
                 }
             }
             if !showsConfiguration || busy {
-                OutdoorPineGlassSurface(identity: "trip-summary", namespace: namespace, cornerRadius: 22) {
+                OutdoorPineGlassSurface(identity: "trip-summary", namespace: namespace, cornerRadius: 24) {
                     OutdoorTripSummaryView(trip: editor.trip, units: units) {
                         if busy || editor.isRouting {
                             TmaxLoadingIndicator().accessibilityLabel("Calculating route")
@@ -429,14 +457,18 @@ struct OutdoorTripPlannerView: View {
                             ) { focusedField = nil; detailsPresented = true }
                         }
                     } footer: {
-                        Text(busy ? "Finding offline routes…" : editor.isRouting ? "Snapping to accessible roads…" : editor.trip.isRouted ? "Hold and drag the blue route" : "Add destinations to build your trip")
-                            .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
+                        Label(
+                            busy ? "Finding offline routes…" : editor.isRouting ? "Snapping to accessible roads…" : editor.trip.isRouted ? "Hold and drag the blue route" : "Add destinations to build your trip",
+                            systemImage: busy || editor.isRouting ? "hourglass" : editor.trip.isRouted ? "hand.draw" : "plus.circle"
+                        )
+                        .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
                     }
-                    .padding(14)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 16)
                 }
             }
             if !showsConfiguration, suggestions.count > 1 {
-                OutdoorPineGlassSurface(identity: "trip-suggestions", namespace: namespace, cornerRadius: 22) {
+                OutdoorPineGlassSurface(identity: "trip-suggestions", namespace: namespace, cornerRadius: 24) {
                     HStack(spacing: 8) {
                         OutdoorPineIconAction(
                             symbol: "chevron.left",
@@ -457,7 +489,7 @@ struct OutdoorTripPlannerView: View {
                             disabled: selectedSuggestion == suggestions.count - 1
                         ) { chooseSuggestion(selectedSuggestion + 1) }
                     }
-                    .padding(4)
+                    .padding(8)
                 }
             }
             OutdoorPineConnectedActions {
@@ -490,7 +522,7 @@ struct OutdoorTripPlannerView: View {
     }
 
     private func pendingField(_ field: StopField, index: Int, placeholder: String) -> some View {
-        OutdoorTripStopField(index: index, isBus: false, connectsBelow: !showsConfiguration) {
+        OutdoorTripStopField(index: index, isBus: false, connectsBelow: !showsConfiguration, focused: focusedField == field) {
             TextField(placeholder, text: $query)
                 .focused($focusedField, equals: field)
                 .submitLabel(.search)
@@ -508,8 +540,6 @@ struct OutdoorTripPlannerView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Cancel new destination")
-            } else {
-                Image(systemName: "magnifyingglass").foregroundStyle(Theme.textSecondary).padding(12)
             }
         }
         .id(field)
