@@ -149,4 +149,14 @@ final class WorkoutPlaybackTests: XCTestCase {
         XCTAssertEqual(decoded.sections[0].slots[0].children.map(\.id), ["A", "B"])
         XCTAssertEqual(decoded.totalDuration, workout.totalDuration)
     }
+
+    func testGeneratedSetsKeepStableValidIdentifiers() {
+        let section = WorkoutSectionManifest(id: UUID().uuidString, exerciseID: "page-A", name: "Pushups", duration: 30, sets: 3)
+
+        let first = section.playbackSlots().map(\.id)
+
+        XCTAssertEqual(first, section.playbackSlots().map(\.id))
+        XCTAssertEqual(Set(first).count, 3)
+        XCTAssertTrue(first.allSatisfy { UUID(uuidString: $0) != nil })
+    }
 }

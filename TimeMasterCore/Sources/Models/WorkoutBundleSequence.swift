@@ -71,10 +71,17 @@ extension WorkoutSectionManifest {
     private var generatedSlots: [WorkoutSetSlotManifest] {
         (0..<sets).map { index in
             WorkoutSetSlotManifest(
-                id: "\(id)-set-\(index)", exerciseID: exerciseID, name: name,
+                id: generatedSlotID(index), exerciseID: exerciseID, name: name,
                 duration: duration, restAfter: index + 1 < sets ? restBetweenSets : 0
             )
         }
+    }
+
+    private func generatedSlotID(_ index: Int) -> String {
+        guard let base = UUID(uuidString: id) else { return "\(id)-set-\(index)" }
+        var bytes = base.uuid
+        bytes.15 = bytes.15 &+ UInt8(truncatingIfNeeded: index + 1)
+        return UUID(uuid: bytes).uuidString
     }
 
     private func bundleUnits(_ slot: WorkoutSetSlotManifest) -> [[WorkoutSetSlotManifest]] {
