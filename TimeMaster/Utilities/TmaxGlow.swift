@@ -42,10 +42,11 @@ struct TmaxGlowBackground: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var appearedAt: Date?
+    @State private var settled = true
 
     var body: some View {
         GeometryReader { proxy in
-            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || appearedAt == nil || scenePhase != .active)) { timeline in
+            TimelineView(.animation(minimumInterval: settled ? 1.0 / 20 : 1.0 / 60, paused: reduceMotion || appearedAt == nil || scenePhase != .active)) { timeline in
                 TmaxGlowField(
                     intensity: intensity,
                     size: proxy.size,
@@ -57,8 +58,16 @@ struct TmaxGlowBackground: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-        .onAppear { appearedAt = .now }
+        .onAppear {
+            appearedAt = .now
+            settled = !rises || reduceMotion
+        }
         .onDisappear { appearedAt = nil }
+        .task(id: appearedAt) {
+            guard !settled, appearedAt != nil else { return }
+            try? await Task.sleep(nanoseconds: 1_900_000_000)
+            if !Task.isCancelled { settled = true }
+        }
     }
 
     private func rise(at date: Date) -> Double {
@@ -241,7 +250,7 @@ struct TmaxGlowLogo: View {
     var body: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
-            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated || reduceMotion || !onScreen || scenePhase != .active)) { timeline in
+            TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !animated || reduceMotion || !onScreen || scenePhase != .active)) { timeline in
                 let breathe = animated && !reduceMotion
                     ? (TmaxGlow.wave(timeline.date.timeIntervalSinceReferenceDate, period: 6.5) + 1) / 2
                     : 0.5
