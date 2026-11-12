@@ -654,4 +654,69 @@ final class DatabaseManagerTests: XCTestCase {
         XCTAssertEqual(try db.getPage(id: second.id).skillStatus, .completed)
     }
 
+    private func placedSkill() throws -> (boardA: ExercisePageManifest, boardB: ExercisePageManifest, skill: ExercisePageManifest, group: SkillBoardSection) {
+        try db.bootstrapIfNeeded()
+        let boardA = ExercisePageManifest(id: "board-a", title: "Board A")
+        let boardB = ExercisePageManifest(id: "board-b", title: "Board B")
+        try db.createPage(manifest: boardA)
+        try db.createPage(manifest: boardB)
+        let skill = ExercisePageManifest(id: "placed-skill", title: "Handstand", pageKind: .container, pageType: .skill, parentID: boardA.id)
+        try db.createPage(manifest: skill, parentID: boardA.id)
+        let group = SkillBoardSection(id: "group-a", title: "Strength")
+        try db.updateSkillBoard(
+            containerID: boardA.id,
+            sections: [group],
+            placements: [SkillBoardPlacement(pageID: skill.id, status: .learning, sectionID: group.id, order: 2)]
+        )
+        XCTAssertEqual(try db.getPage(id: skill.id).skillBoardSectionID, group.id)
+        return (boardA, boardB, skill, group)
+    }
+
+    func testMovingAPlacedSkillToAnotherPageLeavesItsOldGroupBehind() throws {
+        let (boardA, boardB, skill, group) = try placedSkill()
+
+        try db.movePage(id: skill.id, newParentID: boardB.id, newOrder: 0)
+
+        let moved = try db.getPage(id: skill.id)
+        XCTAssertEqual(moved.parentID, boardB.id)
+        XCTAssertNil(moved.skillBoardSectionID)
+        XCTAssertEqual(moved.skillStatus, .learning)
+        XCTAssertEqual(try db.getPage(id: boardA.id).skillBoardSections, [group])
+    }
+
+    func testMovingAPlacedSkillWithinItsBoardKeepsItsGroup() throws {
+        let (boardA, _, skill, group) = try placedSkill()
+
+        try db.movePage(id: skill.id, newParentID: boardA.id, newOrder: 0)
+
+        XCTAssertEqual(try db.getPage(id: skill.id).skillBoardSectionID, group.id)
+    }
+
+    func testUpdatingAPlacedSkillIntoAnotherParentDropsItsOldGroup() throws {
+        let (_, boardB, skill, _) = try placedSkill()
+        var changed = try db.getPage(id: skill.id)
+        changed.title = "Handstand Hold"
+
+        try db.updatePage(id: skill.id, manifest: changed, newParentID: boardB.id)
+
+        let updated = try db.getPage(id: skill.id)
+        XCTAssertEqual(updated.parentID, boardB.id)
+        XCTAssertNil(updated.skillBoardSectionID)
+        XCTAssertEqual(updated.title, "Handstand Hold")
+    }
+
+    func testAPageCreatedInAnUnknownGroupIsNotGrouped() throws {
+        try db.bootstrapIfNeeded()
+        let board = ExercisePageManifest(id: "board-unknown", title: "Board")
+        try db.createPage(manifest: board)
+        let skill = ExercisePageManifest(
+            id: "ungrouped-skill", title: "Pull-up", pageKind: .container, pageType: .skill,
+            skillBoardSectionID: "no-such-group", parentID: board.id
+        )
+
+        try db.createPage(manifest: skill, parentID: board.id)
+
+        XCTAssertNil(try db.getPage(id: skill.id).skillBoardSectionID)
+    }
+
 }

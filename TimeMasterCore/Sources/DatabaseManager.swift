@@ -320,7 +320,12 @@ Find pages in the Tmax library.
     func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?) -> ExercisePageManifest {
         let parent = parentID.flatMap { try? getPage(id: $0) }
         let parentIsSkill = parent?.pageType == .skill || parent?.pageType == .tutorial
-        return Self.normalizedPageManifest(manifest, parentID: parentID, parentIsSkill: parentIsSkill)
+        var normalized = Self.normalizedPageManifest(manifest, parentID: parentID, parentIsSkill: parentIsSkill)
+        if let section = normalized.skillBoardSectionID,
+           parent?.skillBoardSections.contains(where: { $0.id == section }) != true {
+            normalized.skillBoardSectionID = nil
+        }
+        return normalized
     }
 
     static func normalizedPageManifest(_ manifest: ExercisePageManifest, parentID: String?, parentIsSkill: Bool?) -> ExercisePageManifest {
