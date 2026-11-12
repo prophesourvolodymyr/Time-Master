@@ -338,6 +338,7 @@
 		4F50E39DF84433A0B97A134F /* ChecklistProgressRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC946449E7BE914D6BA838A9 /* ChecklistProgressRing.swift */; };
 		4F827B5F7BFAB9ECD9CCF4D2 /* MusicProviderAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18C92EF761CE54686C4177F7 /* MusicProviderAdapters.swift */; };
 		4FB9A036F1A1A024318EE9DF /* OutdoorSelectionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AF8AB922F261D8E3981B0F /* OutdoorSelectionControls.swift */; };
+		502DE21C6CC3454E2E1E9344 /* CloudAccountLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A421D0FA63E9D434CE45477 /* CloudAccountLoginView.swift */; };
 		503AAAF4D7ECC2DB86C6CF5A /* PhysiqueDeletionStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEACC97F37B0389CF666C31C /* PhysiqueDeletionStatusView.swift */; };
 		5096DC9813F2D0312B136FF6 /* KeyNavModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D26C329CEB8C6F73DBFC8C9 /* KeyNavModifiers.swift */; };
 		509AF75C21A4991BD8E064C0 /* PhysiqueRulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5932D6F8B34C716C35BE39EE /* PhysiqueRulesView.swift */; };
@@ -679,6 +680,7 @@
 		A610C5130B7740502281E80C /* PageCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147E3BD8DE078C3FE350F602 /* PageCardView.swift */; };
 		A6306246216E5D85D0D88AF4 /* ExerciseLibraryAccessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89D9C294E20ECB498D7EA89E /* ExerciseLibraryAccessTests.swift */; };
 		A63A82A54B07FE0E0F83B3DA /* RankedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E55E14C7F15B6B9D92D27D /* RankedComponents.swift */; };
+		A6704FC1E15DFE1D639E9D7E /* CloudAccountLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A421D0FA63E9D434CE45477 /* CloudAccountLoginView.swift */; };
 		A6C55CFC4B06225222CDFA23 /* KeyNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = A58136487D02DFCA7149043C /* KeyNav.swift */; };
 		A6E3CEE5502308130C636849 /* TmaxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EAA3E14F5A8169A3C5D2E49 /* TmaxApp.swift */; };
 		A6F55114B692E1DA0A558CC4 /* OutdoorMapQuickStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42789063925993436C4FC1F5 /* OutdoorMapQuickStack.swift */; };
@@ -1152,6 +1154,7 @@
 		199BD9E189FB30BCE83BBA8C /* MenuBarMomentDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMomentDetectorTests.swift; sourceTree = "<group>"; };
 		19EDBF9CDB5977A862387CF1 /* WorkoutMediaPager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMediaPager.swift; sourceTree = "<group>"; };
 		1A30541E8A14548A023A7CCF /* AIProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProvider.swift; sourceTree = "<group>"; };
+		1A421D0FA63E9D434CE45477 /* CloudAccountLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudAccountLoginView.swift; sourceTree = "<group>"; };
 		1A99852CC35A4AB2605E13C0 /* KeyNavGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyNavGeometryTests.swift; sourceTree = "<group>"; };
 		1AF102743F20E4127F1E5EF6 /* OutdoorActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorActivity.swift; sourceTree = "<group>"; };
 		1B0886E96B4968D478253874 /* TmaxStartupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmaxStartupModel.swift; sourceTree = "<group>"; };
@@ -1836,6 +1839,7 @@
 			children = (
 				DFA8904DB9F50AB003E17D16 /* AboutSettingsView.swift */,
 				B4EBE1E32191E610E32D1032 /* AgentAccessSettingsView.swift */,
+				1A421D0FA63E9D434CE45477 /* CloudAccountLoginView.swift */,
 				FDDA573FC341CA74DA56AA84 /* CloudAccountSettingsView.swift */,
 				47569F7D420446526FD590C2 /* DatabaseSyncSettingsView.swift */,
 				2C3C3A868068088D9B04106B /* DeviceSyncPairingSheet.swift */,
@@ -2905,6 +2909,7 @@
 				516ED595C5C523D0E01371D0 /* ChecklistSectionDivider.swift in Sources */,
 				2BA71E4ABE3E7B501712BC6D /* ChecklistSectionHeader.swift in Sources */,
 				E2DABF21EEF74833AACADB03 /* ChecklistThumbnail.swift in Sources */,
+				502DE21C6CC3454E2E1E9344 /* CloudAccountLoginView.swift in Sources */,
 				0B1BC8C3F38D8BDCC112AA7D /* CloudAccountSettingsView.swift in Sources */,
 				CBECEFC6C506F854CF9CC8E8 /* CloudAccountStore.swift in Sources */,
 				1769A05BC16C6576C3A3628F /* CloudOAuthPresenter.swift in Sources */,
@@ -3420,6 +3425,7 @@
 				39FD6C3DAD2FA80F29060BD6 /* ChecklistSectionDivider.swift in Sources */,
 				858A5F5A3B8196D6D07F75EC /* ChecklistSectionHeader.swift in Sources */,
 				9AA45AD3BCA6F1FC8196388A /* ChecklistThumbnail.swift in Sources */,
+				A6704FC1E15DFE1D639E9D7E /* CloudAccountLoginView.swift in Sources */,
 				AC7632568F9ECCA2EAEF1018 /* CloudAccountSettingsView.swift in Sources */,
 				81D0BF5BEA812D00B03A2DAD /* CloudAccountStore.swift in Sources */,
 				809047526B87C697CC2212C3 /* CloudOAuthPresenter.swift in Sources */,
