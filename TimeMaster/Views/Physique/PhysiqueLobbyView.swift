@@ -6,26 +6,22 @@ struct PhysiqueLobbyView: View {
     let onOpen: (PhysiqueRoute) -> Void
 
     @ObservedObject private var accountStore = CloudAccountStore.shared
+    @EnvironmentObject private var profileStore: LocalProfileStore
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @Environment(\.physiqueWindowID) private var windowID
     @Environment(\.physiquePresentationActive) private var presentationActive
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.physiqueLiveResizing) private var liveResizing
     @State private var recentMatches: [PhysiqueMatch] = []
-    @State private var pendingRecentMatches: [PhysiqueMatch]?
     @State private var recentAccountID: String?
     @State private var recentLoading = false
-    @State private var recentLoaded = false
     @State private var recentError: String?
     @State private var recentRequestID: UUID?
     @State private var checkingEntry = false
     @State private var entryRequestID: UUID?
-    @State private var recordExpanded = false
     @State private var showsDetailsSheet = false
     @State private var showsInspector = false
-    @State private var contextExpanded = false
+    private let artSize = ProfileStyle.touchTarget * 1.35
 
     private enum EntryAction {
         case open(PhysiqueRoute), prepare, refresh, none
@@ -35,8 +31,17 @@ struct PhysiqueLobbyView: View {
         let title: String
         let symbol: String
         let detail: String?
+        let status: String
+        let statusSymbol: String
         let action: EntryAction
         var disabled = false
+        var busy = false
+    }
+
+    private struct Notice {
+        let title: String
+        let detail: String
+        let symbol: String
     }
 
     private var activeAccountID: String? {
@@ -62,99 +67,97 @@ struct PhysiqueLobbyView: View {
 
     private var nextStep: Entry {
         guard accountStore.restored, !accountStore.busy else {
-            return Entry(title: "Checking account", symbol: "person.crop.circle", detail: "Restoring your Tmax account.", action: .none, disabled: true)
+            return Entry(title: "Checking account", symbol: "person.crop.circle", detail: "Restoring your Tmax account.", status: "Restoring account", statusSymbol: "person.crop.circle", action: .none, disabled: true, busy: true)
         }
         guard activeAccountID != nil, store.signedIn else {
-            return Entry(title: "Find opponent", symbol: "person.badge.key", detail: "Sign in to keep your own Physique record.", action: .open(.account))
+            return Entry(title: "Sign in to compete", symbol: "person.badge.key", detail: "Sign in to keep your own Physique record.", status: "Sign in for your own record", statusSymbol: "person.badge.key", action: .open(.account))
         }
         guard presentationActive, scenePhase == .active else {
-            return Entry(title: "Physique is private", symbol: "lock", detail: nil, action: .none, disabled: true)
+            return Entry(title: "Physique is private", symbol: "lock", detail: nil, status: "Private", statusSymbol: "lock", action: .none, disabled: true)
         }
         if checkingEntry || store.loading {
-            return Entry(title: "Checking availability", symbol: "arrow.clockwise", detail: "Confirming your account and active match.", action: .none, disabled: true)
+            return Entry(title: "Checking availability", symbol: "arrow.clockwise", detail: "Confirming your account and active match.", status: "Checking availability", statusSymbol: "arrow.clockwise", action: .none, disabled: true, busy: true)
         }
         guard let account = currentAccount else {
-            return Entry(title: "Retry status", symbol: "arrow.clockwise", detail: "Record and match availability are unconfirmed.", action: .refresh)
+            return Entry(title: "Retry status", symbol: "arrow.clockwise", detail: "Record and match availability are unconfirmed.", status: "Status not confirmed", statusSymbol: "exclamationmark.circle", action: .refresh)
         }
         if store.isStale {
-            return Entry(title: "Check status", symbol: "arrow.clockwise", detail: "Saved record. Reconnect to start or resume.", action: .refresh)
+            return Entry(title: "Check status", symbol: "arrow.clockwise", detail: "Saved record. Reconnect to start or resume.", status: "Saved record · offline", statusSymbol: "wifi.exclamationmark", action: .refresh)
         }
         if store.cancellationPending {
-            return Entry(title: "Check cancellation", symbol: "arrow.clockwise", detail: "Confirm the previous cancellation before another search.", action: .open(.search))
+            return Entry(title: "Check cancellation", symbol: "arrow.clockwise", detail: "Confirm the previous cancellation before another search.", status: "Cancellation pending", statusSymbol: "xmark.circle", action: .open(.search))
         }
         if let match = store.match, !match.stage.terminal {
             let anotherWindow = !store.canControl(from: windowID)
             let title = anotherWindow ? "View active match" : match.stage == .judging || match.stage == .submitting ? "View match" : match.stage == .searching ? "Resume search" : "Resume match"
             let detail = anotherWindow ? "Another window controls this session. Review its status to continue." : match.stage.title
-            return Entry(title: title, symbol: "arrow.right.circle", detail: detail, action: .open(route(for: match)))
+            return Entry(title: title, symbol: "arrow.right.circle", detail: detail, status: anotherWindow ? "Open in another window" : match.stage.title, statusSymbol: anotherWindow ? "macwindow.on.rectangle" : "bolt.circle", action: .open(route(for: match)))
         }
         if store.stage == .searching {
-            return Entry(title: "Resume search", symbol: "person.2", detail: "Continue your existing search.", action: .open(.search))
+            return Entry(title: "Resume search", symbol: "person.2", detail: "Continue your existing search.", status: "Search running", statusSymbol: "person.2", action: .open(.search))
         }
         if let reason = account.restrictedReason, !reason.isEmpty {
-            return Entry(title: "View restriction", symbol: "shield", detail: reason, action: .open(.safety))
+            return Entry(title: "View restriction", symbol: "shield", detail: reason, status: "Account restricted", statusSymbol: "exclamationmark.shield", action: .open(.safety))
         }
         guard let policy = currentPolicy, policy.ready else {
-            return Entry(title: "Find opponent", symbol: "bolt.fill", detail: currentPolicy?.unavailableReason ?? "Rated matches are unavailable until the service confirms participation.", action: .none, disabled: true)
+            return Entry(title: "Find opponent", symbol: "bolt.fill", detail: currentPolicy?.unavailableReason ?? "Rated matches are unavailable until the service confirms participation.", status: "Matches paused", statusSymbol: "pause.circle", action: .none, disabled: true)
         }
         guard account.allowance.remaining > 0 else {
-            return Entry(title: "Find opponent", symbol: "bolt.fill", detail: account.allowance.nextAvailableAt == nil ? "No matches available. Refresh to check the next slot." : "No matches available. Refresh after the next slot to confirm.", action: .none, disabled: true)
+            let next = account.allowance.nextAvailableAt.map { "No matches left · next \(slotTime($0))" } ?? "No matches left"
+            return Entry(title: "Find opponent", symbol: "bolt.fill", detail: account.allowance.nextAvailableAt == nil ? "No matches available. Refresh to check the next slot." : "No matches available. Refresh after the next slot to confirm.", status: next, statusSymbol: "hourglass", action: .none, disabled: true)
         }
         if store.localProcessingStopped || store.localOwnMediaHidden {
-            return Entry(title: "Review sharing choices", symbol: "hand.raised", detail: "Processing or sharing is stopped. Review your choices to continue.", action: .prepare)
+            return Entry(title: "Review sharing choices", symbol: "hand.raised", detail: "Processing or sharing is stopped. Review your choices to continue.", status: "Sharing paused", statusSymbol: "hand.raised", action: .prepare)
         }
         guard account.consent.accepted, account.consent.policyVersion == policy.version else {
-            return Entry(title: "Review eligibility", symbol: "hand.raised", detail: "Review adult eligibility, rules and image sharing.", action: .prepare)
+            return Entry(title: "Review eligibility", symbol: "checkmark.shield", detail: "Review adult eligibility, rules and image sharing.", status: "Eligibility check first", statusSymbol: "checkmark.shield", action: .prepare)
         }
-        let detail: String
         switch store.stage {
-        case .noOpponent: detail = "No opponent found. Prepare to try again."
-        case .cancelled: detail = "Search cancelled. Prepare when you're ready."
-        default: detail = "Camera setup comes next. No search starts here."
+        case .noOpponent:
+            return Entry(title: "Find opponent", symbol: "bolt.fill", detail: "No opponent found. Prepare to try again.", status: "No opponent last time", statusSymbol: "person.fill.questionmark", action: .prepare)
+        case .cancelled:
+            return Entry(title: "Find opponent", symbol: "bolt.fill", detail: "Search cancelled. Prepare when you're ready.", status: "Search cancelled", statusSymbol: "xmark.circle", action: .prepare)
+        default:
+            return Entry(title: "Find opponent", symbol: "bolt.fill", detail: "Camera setup comes next. No search starts here.", status: "Camera setup comes next", statusSymbol: "camera", action: .prepare)
         }
-        return Entry(title: "Find opponent", symbol: "bolt.fill", detail: detail, action: .prepare)
+    }
+
+    private var notice: Notice? {
+        guard accountStore.restored, !accountStore.busy, presentationActive, scenePhase == .active else { return nil }
+        if let error = store.error {
+            return Notice(title: store.isStale ? "Using saved record" : "Unable to confirm Physique", detail: error, symbol: "wifi.exclamationmark")
+        }
+        if let policy = currentPolicy, !policy.ready {
+            return Notice(title: "Matches unavailable", detail: policy.unavailableReason ?? "The service has not enabled rated participation.", symbol: "pause.circle")
+        }
+        if let reason = currentAccount?.restrictedReason, !reason.isEmpty {
+            return Notice(title: "Account restricted", detail: reason, symbol: "exclamationmark.shield")
+        }
+        if activeAccountID != nil, store.signedIn, currentAccount == nil, !store.loading, !checkingEntry {
+            return Notice(title: "Record unavailable", detail: "Your Physique record has not loaded. Check status to retrieve your own rating, badges and allowance.", symbol: "person.crop.circle.badge.exclamationmark")
+        }
+        return nil
     }
 
     var body: some View {
         GeometryReader { viewport in
             let frame = viewport.frame(in: .global)
             let contentBounds = frame.intersection(navigationBounds ?? frame)
-            let pinsEntry = contentBounds.height >= ProfileStyle.touchTarget * 10 && !dynamicTypeSize.isAccessibilitySize
+            #if os(macOS)
             let inspectorFits = viewport.size.width >= ProfileStyle.readableWidth + 300 + ProfileStyle.inset * 3
-            let wide = viewport.size.width >= 760 && !showsInspector && !dynamicTypeSize.isAccessibilitySize
-            let lobbyWidth: CGFloat = wide ? 1040 : ProfileStyle.readableWidth
-            let heroWidth = min(lobbyWidth, max(0, viewport.size.width - ProfileStyle.inset * 2 - (showsInspector ? 360 : 0)))
+            #endif
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: ProfileStyle.inset * 1.5) {
-                    #if os(iOS)
-                    phoneHeading
-                    #endif
-                    PhysiqueLobbyHero(wide: wide, availableWidth: heroWidth)
-                    statusSection
-                    if !pinsEntry {
-                        entryBar(wide: wide)
+            Group {
+                if dynamicTypeSize >= .xxLarge {
+                    scrollingLobby
+                } else {
+                    ViewThatFits(in: .vertical) {
+                        lobby(scrolls: false)
+                        scrollingLobby
                     }
-                    scoreboard(wide: wide)
-                    utilityRoutes
-                    recentSection
-                    participationContext
-                }
-                .padding(ProfileStyle.inset)
-                .frame(maxWidth: lobbyWidth, alignment: .leading)
-                .frame(maxWidth: .infinity)
-            }
-            .refreshable { await refreshLobby() }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if pinsEntry {
-                    entryBar(wide: wide)
-                        .padding(ProfileStyle.inset)
-                        .frame(maxWidth: lobbyWidth)
-                        .frame(maxWidth: .infinity)
-                        .background(Theme.surface)
-                        .overlay(alignment: .top) { Divider() }
                 }
             }
+            .frame(maxWidth: .infinity)
             .frame(height: max(1, contentBounds.height), alignment: .top)
             .frame(maxHeight: .infinity, alignment: .top)
             #if os(macOS)
@@ -183,12 +186,12 @@ struct PhysiqueLobbyView: View {
                         .physiqueToolbarTarget()
                     Button { Task { await refreshLobby() } } label: { Label("Refresh", systemImage: "arrow.clockwise") }
                         .physiqueToolbarTarget()
-                        .disabled(store.loading || recentLoading || checkingEntry)
+                        .disabled(refreshDisabled)
                 }
             }
             #endif
         }
-        .background(Theme.background.ignoresSafeArea())
+        .background(TmaxGlowBackground(intensity: .ambient))
         .foregroundStyle(Theme.textPrimary)
         .tint(Theme.toolbarOrange)
         #if os(iOS)
@@ -254,346 +257,189 @@ struct PhysiqueLobbyView: View {
         }
     }
 
-    private var phoneHeading: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: ProfileStyle.spacing) {
-                routeButton("Rules", symbol: "list.bullet.clipboard", route: .rules)
-                routeButton("Account", symbol: "person.crop.circle", route: .account)
-                refreshButton
+    private func lobby(scrolls: Bool) -> some View {
+        VStack(spacing: ProfileStyle.spacing) {
+            identityBar
+            if let notice {
+                PhysiqueLobbyNotice(title: notice.title, detail: notice.detail, systemImage: notice.symbol)
+                    .id(notice.title + notice.detail)
             }
-            VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                routeButton("Rules", symbol: "list.bullet.clipboard", route: .rules)
-                routeButton("Account", symbol: "person.crop.circle", route: .account)
-                refreshButton
-            }
+            stage
+                .frame(minHeight: artSize * 3.5, maxHeight: scrolls ? nil : .infinity)
+            battleDock
         }
+        .padding(ProfileStyle.inset)
+        .frame(maxWidth: ProfileStyle.readableWidth, maxHeight: scrolls ? nil : .infinity)
+        .frame(maxWidth: .infinity)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
-    private func scoreboard(wide: Bool) -> some View {
-        let layout = wide
-            ? AnyLayout(HStackLayout(alignment: .top, spacing: 40))
-            : AnyLayout(VStackLayout(alignment: .leading, spacing: 20))
-        return layout {
-            VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                identitySection
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let account = currentAccount {
-                recordSection(account)
-                    .frame(width: wide ? 300 : nil, alignment: .leading)
-            }
-        }
-        .padding(.top, 24)
-        .overlay(alignment: .topLeading) {
-            Rectangle()
-                .fill(Theme.toolbarOrange)
-                .frame(width: 48, height: 2)
-                .accessibilityHidden(true)
-        }
+    private var scrollingLobby: some View {
+        ScrollView { lobby(scrolls: true) }
+            .scrollIndicators(.hidden)
+            .refreshable { await refreshLobby() }
     }
 
-    @ViewBuilder
-    private var identitySection: some View {
-        if !presentationActive || scenePhase != .active {
-            Label("Private Physique record", systemImage: "lock")
-                .font(TimeMasterFont.heading())
-        } else if !accountStore.restored || accountStore.busy {
-            ProgressView("Restoring account…")
-                .font(TimeMasterFont.body())
-        } else if activeAccountID == nil || !store.signedIn {
-            VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                Text("YOUR CORNER")
-                    .font(TimeMasterFont.black(11, relativeTo: .caption))
-                    .tracking(1.8)
-                    .foregroundStyle(Theme.toolbarOrange)
-                Text("Your record starts with you.")
-                    .font(TimeMasterFont.heading())
-                Text("Sign in for your own Physique Elo and match history.")
-                    .font(TimeMasterFont.secondary())
-            }
-        } else if let account = currentAccount {
-            PhysiqueIdentityRail(identity: account.identity, ownerLabel: "Your corner") { _ in onOpen(.badges) }
-            freshness
-            Button { onOpen(.badges) } label: {
-                Label("Your badges and country", systemImage: "medal")
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(minHeight: controlHeight, alignment: .leading)
-            }
-            .buttonStyle(.borderless)
-            .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
-            .font(TimeMasterFont.secondary())
-        } else if store.loading {
-            ProgressView("Loading your Physique record…")
-                .font(TimeMasterFont.body())
-        } else {
-            PhysiqueStatusView(title: "Record unavailable", detail: "Your Physique record has not loaded. Check status to retrieve your own rating, badges and allowance.", systemImage: "person.crop.circle.badge.exclamationmark")
-        }
-    }
-
-    @ViewBuilder
-    private var statusSection: some View {
-        if let error = store.error, accountStore.restored, !accountStore.busy, presentationActive, scenePhase == .active {
-            PhysiqueStatusView(title: store.isStale ? "Using saved record" : "Unable to confirm Physique", detail: error, systemImage: "wifi.exclamationmark")
-        }
-        if activeAccountID == nil, let policy = currentPolicy, !policy.ready, presentationActive, scenePhase == .active {
-            PhysiqueStatusView(title: "Matches unavailable", detail: policy.unavailableReason ?? "The service has not enabled rated participation.", systemImage: "pause.circle")
-        }
-    }
-
-    private func recordSection(_ account: PhysiqueAccount) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 200 : 84), alignment: .leading)],
-                alignment: .leading,
-                spacing: ProfileStyle.spacing
-            ) {
-                PhysiqueMetric(label: "Wins", value: account.record.wins.formatted())
-                PhysiqueMetric(label: "Losses", value: account.record.losses.formatted())
-                PhysiqueMetric(label: "Draws", value: account.record.draws.formatted())
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Best Physique Elo")
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(ProfileStyle.secondary)
-                Text(account.record.best.map { $0.formatted() } ?? (account.record.games == 0 ? "Unplaced" : "Unavailable"))
-                    .font(TimeMasterFont.rowTitle())
-                    .monospacedDigit()
-            }
-            .accessibilityElement(children: .combine)
-            #if os(iOS)
-            DisclosureGroup("Record details", isExpanded: $recordExpanded) {
-                recordDetails(account)
-                    .padding(.top, ProfileStyle.spacing)
-            }
-            .font(TimeMasterFont.secondary())
-            .animation(disclosureAnimation, value: recordExpanded)
-            #endif
-        }
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var utilityRoutes: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading, spacing: ProfileStyle.spacing) {
-            routeButton("Pose guide", symbol: "figure.stand", route: .guide)
-            routeButton("Standings", symbol: "list.number", route: .standings)
-            routeButton("Safety and support", symbol: "shield", route: .safety)
-            routeButton("Privacy and sharing", symbol: "hand.raised", route: .privacy)
-        }
-    }
-
-    private var participationContext: some View {
-        DisclosureGroup(isExpanded: $contextExpanded) {
-            VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                Text("Three guided poses, followed by an AI judgement. Physique Elo is a separate competition record, not a health measurement.")
-                Text("Images are processed by AI. After a judged result, your paired opponent can intentionally open approved stills. Review the current sharing terms before continuing.")
-                Text("Browsing does not start matchmaking or open your camera.")
-                routeButton("Read the rules", symbol: "list.bullet.clipboard", route: .rules)
-            }
-            .font(TimeMasterFont.secondary())
-            .foregroundStyle(ProfileStyle.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.top, ProfileStyle.spacing)
-        } label: {
-            Label("How a duel works", systemImage: "info.circle")
-                .font(TimeMasterFont.rowTitle())
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.vertical, ProfileStyle.spacing)
-        .overlay(alignment: .top) { Divider() }
-        .animation(disclosureAnimation, value: contextExpanded)
-    }
-
-    private var disclosureAnimation: Animation? {
-        let process = ProcessInfo.processInfo
-        guard presentationActive, scenePhase == .active, !liveResizing, !reduceMotion,
-              !process.isLowPowerModeEnabled,
-              process.thermalState != .serious, process.thermalState != .critical else { return nil }
-        return .easeInOut(duration: 0.22)
-    }
-
-    private var recentSection: some View {
-        VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    Text("Recent").font(TimeMasterFont.sectionTitle()).accessibilityAddTraits(.isHeader)
-                    Spacer(minLength: ProfileStyle.spacing)
-                    routeButton("History", symbol: "clock.arrow.circlepath", route: .history)
-                }
-                VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                    Text("Recent").font(TimeMasterFont.sectionTitle()).accessibilityAddTraits(.isHeader)
-                    routeButton("History", symbol: "clock.arrow.circlepath", route: .history)
-                }
-            }
-            if !presentationActive || scenePhase != .active {
-                Text("Private matches are hidden.")
-                    .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            } else if !accountStore.restored || accountStore.busy {
-                Text("Checking account…")
-                    .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            } else if activeAccountID == nil {
-                Text("Sign in to view your private matches.")
-                    .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-            } else if recentAccountID == activeAccountID {
-                if let error = recentError {
-                    Label("Recent matches unavailable", systemImage: "wifi.exclamationmark")
-                        .font(TimeMasterFont.rowTitle())
-                    Text(error).font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                    if !recentMatches.isEmpty {
-                        Text("Saved recent matches").font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+    private var identityBar: some View {
+        HStack(spacing: ProfileStyle.spacing) {
+            Button(action: openIdentity) {
+                HStack(spacing: EverSpacing.x2) {
+                    ProfileStyledAvatar(profile: profileStore.profile, size: ProfileStyle.touchTarget)
+                    VStack(alignment: .leading, spacing: EverSpacing.x1) {
+                        Text(eloTitle)
+                            .font(TimeMasterFont.rowTitle().monospacedDigit())
+                            .foregroundStyle(TmaxGlow.flame)
+                        Text(identityName)
+                            .font(TimeMasterFont.caption())
                     }
-                    Button("Retry recent matches") { Task { await loadRecentMatches() } }
-                        .buttonStyle(.bordered)
-                        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
-                        .disabled(recentLoading)
+                    .lineLimit(1)
                 }
-                if pendingRecentMatches != nil {
-                    Button {
-                        if let pendingRecentMatches { recentMatches = pendingRecentMatches }
-                        pendingRecentMatches = nil
-                    } label: {
-                        Label("New results available", systemImage: "arrow.clockwise")
-                    }
-                    .buttonStyle(.bordered)
-                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
-                }
-                ForEach(recentMatches) { match in
-                    recentRow(match)
-                }
-                if recentMatches.isEmpty, recentLoaded, recentError == nil, pendingRecentMatches == nil {
-                    VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
-                        Text("No physique matches yet").font(TimeMasterFont.rowTitle())
-                        Text("Your started matches will appear here. Searches do not count as matches.")
-                            .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
-                    }
-                }
-                if recentLoading {
-                    ProgressView(recentMatches.isEmpty ? "Loading recent matches…" : "Refreshing recent matches…")
-                        .font(TimeMasterFont.secondary())
-                }
-            } else {
-                ProgressView("Loading recent matches…").font(TimeMasterFont.secondary())
+                .contentShape(Rectangle())
             }
+            .buttonStyle(TimeMasterCardButtonStyle())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(currentAccount == nil ? "Physique account" : "Your battle identity")
+            .accessibilityValue("\(identityName), \(eloAccessibilityValue)")
+            .accessibilityHint(currentAccount == nil ? "Opens Physique account" : "Opens your badges and country")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("physique-identity")
+            Spacer(minLength: 0)
+            RankedIconAction(symbol: accountSymbol, label: activeAccountID == nil ? "Sign in" : "Account", id: "physique-account") { onOpen(.account) }
+                .accessibilityValue(activeAccountID == nil ? "Signed out" : store.isStale ? "Reconnecting" : "Connected")
+            RankedIconAction(symbol: "arrow.clockwise", label: "Refresh", id: "physique-refresh") {
+                Task { await refreshLobby() }
+            }
+            .disabled(refreshDisabled)
         }
     }
 
-    private func recentRow(_ match: PhysiqueMatch) -> some View {
-        Button { onOpen(route(for: match)) } label: {
-            VStack(alignment: .leading, spacing: ProfileStyle.spacing / 2) {
-                Label(match.result?.title ?? (match.stage.terminal ? "Result unavailable" : "Pending"), systemImage: outcomeSymbol(match.result?.outcome))
-                    .font(TimeMasterFont.rowTitle())
-                Text(opponentName(in: match))
-                    .font(TimeMasterFont.secondary())
-                Text(Date(timeIntervalSince1970: match.startAt ?? match.createdAt), format: .dateTime.month().day().year().hour().minute())
-                    .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                Text(ratingEffect(in: match))
-                    .font(TimeMasterFont.secondary()).monospacedDigit()
-                if match.result?.corrected == true {
-                    Label("Corrected", systemImage: "arrow.triangle.2.circlepath")
-                        .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+    private var stage: some View {
+        PhysiqueLobbyHero(artTopInset: artSize * 0.5) {
+            allowanceMetric
+        } trailing: {
+            rankBadge
+        } footer: {
+            recentStrip
+        }
+    }
+
+    private var allowanceMetric: some View {
+        let allowance = currentAccount?.allowance
+        return Button { showsDetailsSheet = true } label: {
+            VStack(alignment: .leading, spacing: EverSpacing.x1) {
+                HStack(spacing: EverSpacing.x1) {
+                    Text("Matches")
+                    Image(systemName: "info.circle")
+                        .font(.caption2.weight(.semibold))
+                }
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(ProfileStyle.secondary)
+                RankedMetric(
+                    value: allowance.map { $0.remaining.formatted() } ?? "—",
+                    unit: allowance.map { "of \($0.limit.formatted())" } ?? "",
+                    emphasized: (allowance?.remaining ?? 0) > 0
+                )
+                if let next = allowance?.nextAvailableAt {
+                    Label(slotTime(next), systemImage: "clock")
+                        .font(TimeMasterFont.micro())
+                        .foregroundStyle(ProfileStyle.secondary)
+                        .lineLimit(1)
                 }
             }
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, ProfileStyle.spacing)
+            .frame(minWidth: ProfileStyle.touchTarget, minHeight: ProfileStyle.touchTarget, alignment: .topLeading)
             .contentShape(Rectangle())
         }
         .buttonStyle(TimeMasterCardButtonStyle())
-        .keyNavShape(.roundedRectangle(cornerRadius: 0))
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Opens this exact match. Poses do not open automatically.")
-        .overlay(alignment: .bottom) { Divider() }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Physique match allowance")
+        .accessibilityValue(allowanceAccessibilityValue)
+        .accessibilityHint("Opens your record and allowance details")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("physique-allowance")
     }
 
-    private func entryBar(wide: Bool) -> some View {
-        let entry = nextStep
-        let layout = wide
-            ? AnyLayout(HStackLayout(alignment: .center, spacing: 32))
-            : AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-        return VStack(alignment: .leading, spacing: 10) {
-            layout {
-                VStack(alignment: .leading, spacing: 4) {
-                    allowanceSummary
-                    if let detail = entry.detail {
-                        Text(detail)
-                            .font(TimeMasterFont.secondary())
-                            .foregroundStyle(ProfileStyle.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                PhysiqueAction(title: entry.title, systemImage: entry.symbol, disabled: entry.disabled || store.busy || checkingEntry) {
-                    activate(entry.action)
-                }
-                .frame(width: wide ? 320 : nil)
-                .accessibilityHint(entry.detail ?? "")
-            }
-            if accountStore.restored, !accountStore.busy, currentAccount?.consent.accepted != true || currentAccount?.record.games == 0 {
-                Text("AI processing · Opponent sharing after a judged result.")
-                    .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+    private var rankBadge: some View {
+        Button { onOpen(.standings) } label: {
+            VStack(spacing: EverSpacing.x1) {
+                PhysiqueRankCrest(rating: crestRating, caption: crestCaption)
+                    .frame(width: artSize * 1.65, height: artSize * 1.65)
+                Text("Standings")
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
             }
         }
-    }
-
-    private var allowanceSummary: some View {
-        VStack(alignment: .leading, spacing: ProfileStyle.spacing / 2) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline, spacing: ProfileStyle.spacing) {
-                    allowanceLabel
-                    Spacer(minLength: 0)
-                    allowanceDetailsButton
-                }
-                VStack(alignment: .leading, spacing: ProfileStyle.spacing / 2) {
-                    allowanceLabel
-                    allowanceDetailsButton
-                }
-            }
-            if let next = currentAccount?.allowance.nextAvailableAt {
-                Text("Next slot: \(Date(timeIntervalSince1970: next).formatted(date: .abbreviated, time: .shortened))")
-                    .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                    .accessibilityLabel("Next Physique slot, \(Date(timeIntervalSince1970: next).formatted(.dateTime.year().month().day().hour().minute().timeZone()))")
-            }
-        }
-    }
-
-    private var allowanceLabel: some View {
-        Group {
-            if let allowance = currentAccount?.allowance {
-                Text("\(allowance.remaining.formatted()) / \(allowance.limit.formatted()) matches available\(store.isStale ? " · Saved" : "")")
-                    .accessibilityLabel("\(allowance.remaining.formatted()) of \(allowance.limit.formatted()) Physique matches available\(store.isStale ? ", saved record" : "")")
-            } else if !accountStore.restored || accountStore.busy {
-                Text("Checking match allowance")
-            } else if activeAccountID == nil {
-                Text("Match allowance · Sign in")
-            } else {
-                Text("Match allowance · Unavailable")
-            }
-        }
-        .font(TimeMasterFont.caption())
-        .monospacedDigit()
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var allowanceDetailsButton: some View {
-        Button { showsDetailsSheet = true } label: {
-            Label("Allowance details", systemImage: "info.circle")
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(minHeight: controlHeight)
-        }
-        .buttonStyle(.borderless)
-        .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
-        .font(TimeMasterFont.caption())
+        .buttonStyle(TimeMasterCardButtonStyle())
+        .accessibilityLabel("Physique standings")
+        .accessibilityValue(eloAccessibilityValue)
+        .accessibilityIdentifier("physique-standings")
     }
 
     @ViewBuilder
-    private var freshness: some View {
-        if let updated = store.lastRefreshedAt {
-            Label("\(store.isStale ? "Saved" : "Updated") \(updated.formatted(date: .abbreviated, time: .shortened))", systemImage: store.isStale ? "wifi.exclamationmark" : "clock")
-                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+    private var recentStrip: some View {
+        if canShowRecent, !recentMatches.isEmpty || recentError != nil {
+            VStack(alignment: .leading, spacing: EverSpacing.x1) {
+                Text("Recent")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(ProfileStyle.secondary)
+                HStack(spacing: 0) {
+                    ForEach(recentMatches) { match in
+                        Button { onOpen(route(for: match)) } label: {
+                            PhysiqueResultPip(systemImage: outcomeSymbol(match), highlighted: isWin(match))
+                                .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(TimeMasterCardButtonStyle())
+                        .accessibilityLabel(recentLabel(match))
+                        .accessibilityHint("Opens this exact match. Poses do not open automatically.")
+                    }
+                    if recentError != nil {
+                        Button { Task { await loadRecentMatches() } } label: {
+                            PhysiqueResultPip(systemImage: "wifi.exclamationmark")
+                                .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(TimeMasterCardButtonStyle())
+                        .disabled(recentLoading)
+                        .accessibilityLabel("Recent matches unavailable")
+                        .accessibilityValue(recentError ?? "")
+                        .accessibilityHint("Tries loading your recent matches again")
+                    }
+                }
+            }
         }
-        if store.loading {
-            ProgressView("Refreshing record…").font(TimeMasterFont.caption())
+    }
+
+    private var battleDock: some View {
+        let entry = nextStep
+        return VStack(spacing: ProfileStyle.spacing) {
+            Button { onOpen(.guide) } label: {
+                PhysiquePoseLoadout(showsSharing: showsSharingNote)
+            }
+            .buttonStyle(PhysiqueGlowCardButtonStyle())
+            .accessibilityLabel("Pose guide")
+            .accessibilityValue(showsSharingNote ? "Three poses: front, side and rear. AI judged. Approved stills are shared with your opponent after a judged result." : "Three poses: front, side and rear. AI judged.")
+            .accessibilityIdentifier("physique-pose-guide")
+            HStack(spacing: ProfileStyle.spacing) {
+                RankedIconAction(symbol: "list.bullet.clipboard", label: "Rules") { onOpen(.rules) }
+                    .frame(maxWidth: .infinity)
+                RankedIconAction(symbol: "clock.arrow.circlepath", label: "History", id: "physique-history") { onOpen(.history) }
+                    .frame(maxWidth: .infinity)
+                RankedIconAction(symbol: "shield", label: "Safety", id: "physique-safety") { onOpen(.safety) }
+                    .frame(maxWidth: .infinity)
+                RankedIconAction(symbol: "hand.raised", label: "Privacy", id: "physique-privacy") { onOpen(.privacy) }
+                    .frame(maxWidth: .infinity)
+            }
+            VStack(spacing: EverSpacing.x2) {
+                PhysiqueLobbyChip(entry.status, systemImage: entry.statusSymbol, busy: entry.busy)
+                Button { activate(entry.action) } label: {
+                    Label(entry.title, systemImage: entry.symbol)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .buttonStyle(PhysiqueGlowButtonStyle())
+                .disabled(entry.disabled || store.busy || checkingEntry)
+                .accessibilityHint(entry.detail ?? "")
+                .accessibilityIdentifier("physique-entry")
+            }
         }
     }
 
@@ -625,17 +471,69 @@ struct PhysiqueLobbyView: View {
                     .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
             }
             refreshButton
+            Divider()
+            Label("How a duel works", systemImage: "info.circle")
+                .font(TimeMasterFont.sectionTitle())
+                .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
+                Text("Three guided poses, followed by an AI judgement. Physique Elo is a separate competition record, not a health measurement.")
+                Text("Images are processed by AI. After a judged result, your paired opponent can intentionally open approved stills. Review the current sharing terms before continuing.")
+                Text("Browsing does not start matchmaking or open your camera.")
+                routeButton("Read the rules", symbol: "list.bullet.clipboard", route: .rules)
+            }
+            .font(TimeMasterFont.secondary())
+            .foregroundStyle(ProfileStyle.secondary)
         }
         .fixedSize(horizontal: false, vertical: true)
     }
 
     private func recordDetails(_ account: PhysiqueAccount) -> some View {
         VStack(alignment: .leading, spacing: ProfileStyle.spacing) {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 84), alignment: .leading)],
+                alignment: .leading,
+                spacing: ProfileStyle.spacing
+            ) {
+                PhysiqueMetric(label: "Wins", value: account.record.wins.formatted())
+                PhysiqueMetric(label: "Losses", value: account.record.losses.formatted())
+                PhysiqueMetric(label: "Draws", value: account.record.draws.formatted())
+            }
+            PhysiqueMetric(label: "Best Physique Elo", value: account.record.best.map { $0.formatted() } ?? (account.record.games == 0 ? "Unplaced" : "Unavailable"))
             PhysiqueMetric(label: "Rated matches", value: account.record.games.formatted())
             PhysiqueMetric(label: "Win rate", value: account.record.games == 0 ? "Not available" : (Double(account.record.wins) / Double(account.record.games)).formatted(.percent.precision(.fractionLength(1))))
             Text("Wins, losses and draws include eligible rated forfeits once. Pending matches and no-contests do not count as rated results. Physique Elo is a competition rating, not an AI appearance score or a health measurement.")
                 .font(TimeMasterFont.secondary()).foregroundStyle(ProfileStyle.secondary)
             routeButton("View detailed outcomes", symbol: "clock.arrow.circlepath", route: .history)
+        }
+    }
+
+    private var allowanceLabel: some View {
+        Group {
+            if let allowance = currentAccount?.allowance {
+                Text("\(allowance.remaining.formatted()) / \(allowance.limit.formatted()) matches available\(store.isStale ? " · Saved" : "")")
+                    .accessibilityLabel("\(allowance.remaining.formatted()) of \(allowance.limit.formatted()) Physique matches available\(store.isStale ? ", saved record" : "")")
+            } else if !accountStore.restored || accountStore.busy {
+                Text("Checking match allowance")
+            } else if activeAccountID == nil {
+                Text("Match allowance · Sign in")
+            } else {
+                Text("Match allowance · Unavailable")
+            }
+        }
+        .font(TimeMasterFont.caption())
+        .monospacedDigit()
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private var freshness: some View {
+        if let updated = store.lastRefreshedAt {
+            Label("\(store.isStale ? "Saved" : "Updated") \(updated.formatted(date: .abbreviated, time: .shortened))", systemImage: store.isStale ? "wifi.exclamationmark" : "clock")
+                .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        if store.loading {
+            ProgressView("Refreshing record…").font(TimeMasterFont.caption())
         }
     }
 
@@ -648,7 +546,7 @@ struct PhysiqueLobbyView: View {
         .buttonStyle(.borderless)
         .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .font(TimeMasterFont.secondary())
-        .disabled(store.loading || recentLoading || checkingEntry || accountStore.busy)
+        .disabled(refreshDisabled)
     }
 
     private var controlHeight: CGFloat {
@@ -660,7 +558,10 @@ struct PhysiqueLobbyView: View {
     }
 
     private func routeButton(_ title: String, symbol: String, route: PhysiqueRoute) -> some View {
-        Button { onOpen(route) } label: {
+        Button {
+            showsDetailsSheet = false
+            onOpen(route)
+        } label: {
             Label {
                 Text(title)
                     .foregroundStyle(Theme.textPrimary)
@@ -675,6 +576,82 @@ struct PhysiqueLobbyView: View {
         .buttonStyle(.borderless)
         .keyNavTarget(shape: .roundedRectangle(cornerRadius: 6))
         .font(TimeMasterFont.secondary())
+    }
+
+    private var refreshDisabled: Bool {
+        store.loading || recentLoading || checkingEntry || accountStore.busy
+    }
+
+    private var canShowRecent: Bool {
+        presentationActive && scenePhase == .active && activeAccountID != nil && recentAccountID == activeAccountID
+    }
+
+    private var showsSharingNote: Bool {
+        accountStore.restored && !accountStore.busy
+            && (currentAccount?.consent.accepted != true || currentAccount?.record.games == 0)
+    }
+
+    private var accountSymbol: String {
+        guard accountStore.restored, !accountStore.busy else { return "person.crop.circle" }
+        if activeAccountID == nil { return "person.badge.key" }
+        return store.isStale ? "wifi.exclamationmark" : "person.crop.circle.badge.checkmark"
+    }
+
+    private var eloTitle: String {
+        guard accountStore.restored, !accountStore.busy else { return "Checking…" }
+        guard let identity = currentAccount?.identity else { return "— Elo" }
+        if identity.games == 0 { return "Unplaced" }
+        return identity.rating.map { "\($0.formatted()) Elo" } ?? "— Elo"
+    }
+
+    private var identityName: String {
+        if let name = currentAccount?.identity.displayName, !name.isEmpty { return name }
+        return profileStore.profile.displayName
+    }
+
+    private var crestRating: Int? {
+        guard let identity = currentAccount?.identity, identity.games > 0 else { return nil }
+        return identity.rating
+    }
+
+    private var crestCaption: String {
+        guard let identity = currentAccount?.identity else { return "Elo" }
+        if identity.games == 0 { return "Unplaced" }
+        if identity.games < 5 { return "Provisional" }
+        if let tier = identity.tier, !tier.isEmpty { return tier }
+        return "Elo"
+    }
+
+    private var eloAccessibilityValue: String {
+        guard let identity = currentAccount?.identity else {
+            return activeAccountID == nil ? "Signed out" : "Physique Elo unavailable"
+        }
+        if identity.games == 0 { return "Unplaced" }
+        let rating = identity.rating.map { "Physique Elo \($0.formatted())" } ?? "Physique Elo unavailable"
+        return identity.games < 5 ? "\(rating), \(identity.placementLabel)" : rating
+    }
+
+    private var allowanceAccessibilityValue: String {
+        if let allowance = currentAccount?.allowance {
+            var value = "\(allowance.remaining.formatted()) of \(allowance.limit.formatted()) matches available"
+            if let next = allowance.nextAvailableAt {
+                value += ", next slot \(Date(timeIntervalSince1970: next).formatted(.dateTime.year().month().day().hour().minute().timeZone()))"
+            }
+            return store.isStale ? value + ", saved record" : value
+        }
+        if !accountStore.restored || accountStore.busy { return "Checking" }
+        return activeAccountID == nil ? "Sign in to load" : "Unavailable"
+    }
+
+    private func slotTime(_ timestamp: Double) -> String {
+        let date = Date(timeIntervalSince1970: timestamp)
+        return Calendar.current.isDateInToday(date)
+            ? date.formatted(date: .omitted, time: .shortened)
+            : date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
+    }
+
+    private func openIdentity() {
+        onOpen(currentAccount == nil ? .account : .badges)
     }
 
     private func activate(_ action: EntryAction) {
@@ -727,15 +704,27 @@ struct PhysiqueLobbyView: View {
         return match.opponent.identity.displayName.isEmpty ? "Unavailable player" : match.opponent.identity.displayName
     }
 
-    private func outcomeSymbol(_ outcome: String?) -> String {
-        switch outcome {
-        case "win": return "arrow.up.right.circle"
-        case "loss": return "arrow.down.right.circle"
-        case "draw": return "equal.circle"
-        case "forfeitWin", "forfeitLoss": return "flag"
-        case "noContest": return "minus.circle"
-        default: return "hourglass"
+    private func isWin(_ match: PhysiqueMatch) -> Bool {
+        match.result?.outcome == "win" || match.result?.outcome == "forfeitWin"
+    }
+
+    private func outcomeSymbol(_ match: PhysiqueMatch) -> String {
+        switch match.result?.outcome {
+        case "win": return "arrow.up.right"
+        case "loss": return "arrow.down.right"
+        case "draw": return "equal"
+        case "forfeitWin": return "flag.fill"
+        case "forfeitLoss": return "flag"
+        case "noContest": return "minus"
+        default: return match.stage.terminal ? "questionmark" : "hourglass"
         }
+    }
+
+    private func recentLabel(_ match: PhysiqueMatch) -> String {
+        let outcome = match.result?.title ?? (match.stage.terminal ? "Result unavailable" : "Pending")
+        let date = Date(timeIntervalSince1970: match.startAt ?? match.createdAt).formatted(date: .abbreviated, time: .shortened)
+        let corrected = match.result?.corrected == true ? ", corrected" : ""
+        return "\(outcome) against \(opponentName(in: match)), \(date), \(ratingEffect(in: match))\(corrected)"
     }
 
     private func ratingEffect(in match: PhysiqueMatch) -> String {
@@ -747,15 +736,11 @@ struct PhysiqueLobbyView: View {
     private func clearPrivateState() {
         recentRequestID = nil
         recentMatches.removeAll()
-        pendingRecentMatches = nil
         recentAccountID = nil
         recentLoading = false
-        recentLoaded = false
         recentError = nil
         entryRequestID = nil
         checkingEntry = false
-        recordExpanded = false
-        contextExpanded = false
         showsDetailsSheet = false
         showsInspector = false
     }
@@ -796,18 +781,8 @@ struct PhysiqueLobbyView: View {
                 if let cursor, !visitedCursors.insert(cursor).inserted { break }
             } while matches.count < 3 && cursor != nil
             guard !Task.isCancelled, recentRequestID == requestID, activeAccountID == accountID else { return }
-            let previousIDs = Set(recentMatches.map(\.id))
-            let incomingIDs = Set(matches.map(\.id))
-            if !recentMatches.isEmpty, !incomingIDs.subtracting(previousIDs).isEmpty {
-                let updatedByID = Dictionary(uniqueKeysWithValues: matches.map { ($0.id, $0) })
-                recentMatches = recentMatches.compactMap { updatedByID[$0.id] }
-                pendingRecentMatches = matches
-            } else {
-                recentMatches = matches
-                pendingRecentMatches = nil
-            }
+            recentMatches = matches
             recentError = nil
-            recentLoaded = true
         } catch is CancellationError {
         } catch {
             guard !Task.isCancelled, recentRequestID == requestID, activeAccountID == accountID else { return }
