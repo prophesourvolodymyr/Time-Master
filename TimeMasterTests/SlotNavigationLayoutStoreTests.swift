@@ -37,13 +37,16 @@ final class SlotNavigationLayoutStoreTests: XCTestCase {
 
     func testADeviceStillOnAPreviousDefaultMovesToTheNewOne() {
         for previous in SlotNavigationLayoutStore.previousDefaultOrders {
-            let defaults = makeDefaults()
-            defaults.set(previous.map(\.rawValue), forKey: "tm.navigation.order.v1")
-            for key in ["scheduleSettingsAdded", "rankedAdded"] { defaults.set(true, forKey: "tm.navigation.\(key)") }
-            defaults.set(true, forKey: "tm.navigation.macLibraryNearHome.v1")
-            let store = SlotNavigationLayoutStore(defaults: defaults)
-            XCTAssertEqual(store.order, newDefault)
-            XCTAssertEqual(SlotNavigationLayoutStore(defaults: defaults).order, newDefault)
+            for saved in [previous, previous.filter { $0 != .physique }] {
+                let defaults = makeDefaults()
+                defaults.set(saved.map(\.rawValue), forKey: "tm.navigation.order.v1")
+                for key in ["scheduleSettingsAdded", "rankedAdded"] { defaults.set(true, forKey: "tm.navigation.\(key)") }
+                defaults.set(true, forKey: "tm.navigation.macLibraryNearHome.v1")
+                let store = SlotNavigationLayoutStore(defaults: defaults)
+                let expected = newDefault.filter { saved.contains($0) }
+                XCTAssertEqual(store.order, expected)
+                XCTAssertEqual(SlotNavigationLayoutStore(defaults: defaults).order, expected)
+            }
         }
     }
 

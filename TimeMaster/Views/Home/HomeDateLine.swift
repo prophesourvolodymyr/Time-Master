@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The date under Home's greeting, "Sunday, November 1", a little larger than caption text. The day number sits on a small
-/// flame, the one from the Schedule page: lit, and hotter the longer the streak, or an empty outline when there is none.
-/// Now and then a soft glint glides across the text. Reduce Motion keeps everything still.
+/// The date under Home's greeting, "Sunday, November 1", a little larger than caption text, followed by a small flame, the
+/// one from the Schedule page, with the current streak in it: lit, and hotter the longer the streak, or an empty outline
+/// holding 0 when there is none. Now and then a soft glint glides across the text. Reduce Motion keeps everything still.
 struct HomeDateLine: View {
     let date: Date
     let streak: Int
@@ -34,30 +34,12 @@ struct HomeDateLine: View {
         return local < glintDuration ? local / glintDuration : nil
     }
 
-    /// The date cut at its day number: "Sunday, November " + "1" + "". Order and punctuation follow the locale.
-    static func pieces(of date: Date) -> (before: String, day: String, after: String) {
-        let formatted = date.formatted(.dateTime.weekday(.wide).month(.wide).day().attributed)
-        var before = "", day = "", after = ""
-        for run in formatted.runs {
-            let text = String(formatted[run.range].characters)
-            if run[AttributeScopes.FoundationAttributes.DateFieldAttribute.self] == .day {
-                day += text
-            } else if day.isEmpty {
-                before += text
-            } else {
-                after += text
-            }
+    static func streakDescription(_ streak: Int) -> String {
+        switch streak {
+        case ...0: "no streak"
+        case 1: "1 day streak"
+        default: "\(streak) day streak"
         }
-        guard !day.isEmpty else { return (String(formatted.characters), "", "") }
-        return (keepingEdgeSpace(before), day, keepingEdgeSpace(after))
-    }
-
-    /// A no-break space at either end, so the space survives as its own `Text`.
-    private static func keepingEdgeSpace(_ text: String) -> String {
-        var result = text
-        if result.hasSuffix(" ") { result = String(result.dropLast()) + "\u{00A0}" }
-        if result.hasPrefix(" ") { result = "\u{00A0}" + result.dropFirst() }
-        return result
     }
 
     var body: some View {
@@ -98,21 +80,21 @@ struct HomeDateRow: View {
 
     @ScaledMetric(relativeTo: .subheadline) private var flameSize: CGFloat = 30
 
-    private typealias Pieces = (before: String, day: String, after: String)
-
-    var body: some View {
-        let pieces = HomeDateLine.pieces(of: date)
-        textRow(pieces, flame: true)
-            .overlay { glintLayer(pieces) }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+    private var dateText: String {
+        date.formatted(.dateTime.weekday(.wide).month(.wide).day())
     }
 
-    private func textRow(_ pieces: Pieces, flame: Bool) -> some View {
+    var body: some View {
+        textRow(flame: true)
+            .overlay { glintLayer }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(dateText), \(HomeDateLine.streakDescription(streak))")
+    }
+
+    private func textRow(flame: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Text(pieces.before)
-            dayNumber(pieces.day, flame: flame)
-            Text(pieces.after)
+            Text(dateText)
+            streakNumber(flame: flame)
         }
         .font(TimeMasterFont.black(15, relativeTo: .subheadline))
         .foregroundStyle(Theme.textSecondary)
@@ -120,10 +102,13 @@ struct HomeDateRow: View {
     }
 
     @ViewBuilder
-    private func dayNumber(_ day: String, flame: Bool) -> some View {
-        let tier = HomeDateLine.flameTier(forStreak: streak)
-        let side = day.count > 1 ? flameSize * 1.12 : flameSize
-        Text(day)
+    private func streakNumber(flame: Bool) -> some View {
+        let days = max(0, streak)
+        let tier = HomeDateLine.flameTier(forStreak: days)
+        let digits = String(days).count
+        let side = flameSize * (digits > 2 ? 1.3 : digits > 1 ? 1.12 : 1)
+        Text("\(days)")
+            .monospacedDigit()
             .foregroundStyle(tier == nil ? Theme.textSecondary : Theme.textPrimary)
             .padding(.horizontal, 8)
             .background {
@@ -133,13 +118,14 @@ struct HomeDateRow: View {
                         .offset(y: -3.5)
                 }
             }
+            .padding(.leading, 8)
     }
 
     private static func clamped(_ value: Double) -> Double { min(1, max(0, value)) }
 
     /// A soft band of light over the letters (and only the letters) that moves from the left edge to the right.
     @ViewBuilder
-    private func glintLayer(_ pieces: Pieces) -> some View {
+    private var glintLayer: some View {
         if let glint {
             let half = 0.2
             let centre = -half + glint * (1 + 2 * half)
@@ -148,7 +134,7 @@ struct HomeDateRow: View {
                 .init(color: Theme.textPrimary.opacity(0.85), location: Self.clamped(centre)),
                 .init(color: Theme.textPrimary.opacity(0), location: Self.clamped(centre + half)),
             ], startPoint: .leading, endPoint: .trailing)
-            .mask { textRow(pieces, flame: false) }
+            .mask { textRow(flame: false) }
             .allowsHitTesting(false)
         }
     }

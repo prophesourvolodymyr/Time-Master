@@ -21,7 +21,7 @@ final class TmaxStartupModel: ObservableObject {
         AgentBridge.shared.activate()
 #endif
         isPreparing = true
-        let minimumDisplayDeadline = ContinuousClock.now.advanced(by: .seconds(5))
+        let minimumDisplayDeadline = ContinuousClock.now.advanced(by: .milliseconds(1200))
 
 #if os(macOS)
         status = "Opening your local library…"

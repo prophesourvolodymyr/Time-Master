@@ -816,13 +816,7 @@ class WorkoutStore: ObservableObject {
         let cal = Calendar.current
         let daySet = Set(historyEntries.map { cal.startOfDay(for: $0.completedAt) })
 
-        var current = 0
-        var check = cal.startOfDay(for: Date())
-        while daySet.contains(check) || isRestDay(check) {
-            current += 1
-            guard let prev = cal.date(byAdding: .day, value: -1, to: check) else { break }
-            check = prev
-        }
+        let current = WorkoutStreak.current(workoutDays: daySet, isRestDay: isRestDay)
 
         let days = daySet.sorted()
         var best = 0
@@ -853,7 +847,7 @@ class WorkoutStore: ObservableObject {
             prev = day
         }
 
-        return (current, best)
+        return (current, max(best, current))
     }
 
     func typeStats(for type: WorkoutType, asOf date: Date = Date()) -> (sessionsThisWeek: Int, totalSeconds: Int, streak: Int, adherence: Double?) {

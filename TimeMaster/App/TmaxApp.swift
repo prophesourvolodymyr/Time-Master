@@ -209,14 +209,14 @@ private struct TmaxRootView: View {
         let generation = launchGeneration
         do {
             try await animateLaunch(
-                reduceMotion ? .easeOut(duration: 0.25) : .timingCurve(0.15, 0.7, 0.3, 1, duration: 0.4),
-                fallbackDuration: reduceMotion ? 300_000_000 : 450_000_000
+                reduceMotion ? .easeOut(duration: 0.2) : .timingCurve(0.15, 0.7, 0.3, 1, duration: 0.28),
+                fallbackDuration: reduceMotion ? 220_000_000 : 320_000_000
             ) {
                 launchPhase = .zooming
                 departureProgress = 1
             }
             launchPhase = .revealing
-            try await animateLaunch(.easeOut(duration: 0.42), fallbackDuration: 500_000_000) {
+            try await animateLaunch(.easeOut(duration: 0.26), fallbackDuration: 320_000_000) {
                 loadingOpacity = 0
             }
             launchPhase = .finished

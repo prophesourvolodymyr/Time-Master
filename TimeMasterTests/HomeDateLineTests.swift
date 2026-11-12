@@ -12,14 +12,11 @@ final class HomeDateLineTests: XCTestCase {
         }
     }
 
-    func testTheDateSplitsAtTheDayNumberWithoutChangingTheText() throws {
-        for day in [1, 9, 11, 28] {
-            let date = try XCTUnwrap(Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: day, hour: 12)))
-            let pieces = HomeDateLine.pieces(of: date)
-            XCTAssertEqual(pieces.day, date.formatted(.dateTime.day()), "day \(day)")
-            let joined = (pieces.before + pieces.day + pieces.after).replacingOccurrences(of: "\u{00A0}", with: " ")
-            XCTAssertEqual(joined, date.formatted(.dateTime.weekday(.wide).month(.wide).day()), "day \(day)")
-        }
+    func testTheStreakIsDescribedHonestly() {
+        XCTAssertEqual(HomeDateLine.streakDescription(0), "no streak")
+        XCTAssertEqual(HomeDateLine.streakDescription(-2), "no streak")
+        XCTAssertEqual(HomeDateLine.streakDescription(1), "1 day streak")
+        XCTAssertEqual(HomeDateLine.streakDescription(11), "11 day streak")
     }
 
     func testTheGlintCrossesTheLineOncePerCycleAndRestsBetween() throws {

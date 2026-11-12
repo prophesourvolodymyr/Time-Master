@@ -727,12 +727,18 @@ final class SlotNavigationLayoutStore: ObservableObject {
         }
         #endif
         if !defaults.bool(forKey: Self.workoutsLeftOfHomeKey) {
-            if Self.previousDefaultOrders.contains(where: { $0.filter(\.isAvailable) == order }) {
-                order = SlotNavigationDestination.defaultOrder.filter(\.isAvailable)
+            let current = Self.withoutLateAdditions(order)
+            if Self.previousDefaultOrders.contains(where: { Self.withoutLateAdditions($0.filter(\.isAvailable)) == current }) {
+                let present = Set(order)
+                order = SlotNavigationDestination.defaultOrder.filter(\.isAvailable).filter { present.contains($0) }
                 save()
             }
             defaults.set(true, forKey: Self.workoutsLeftOfHomeKey)
         }
+    }
+
+    private static func withoutLateAdditions(_ order: [SlotNavigationDestination]) -> [SlotNavigationDestination] {
+        order.filter { $0 != .physique }
     }
 
     var items: [SlotNavigationItem] {

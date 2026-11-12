@@ -107,7 +107,7 @@ struct TmaxLoadingState: View {
         .task(id: showsQuote && scenePhase == .active && !isFinishing) {
             guard showsQuote, scenePhase == .active, !isFinishing else { return }
             if quote == nil {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.65)) {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
                     quote = TmaxQuotes.next()
                 }
             }
@@ -182,7 +182,7 @@ private struct TmaxStartupLogWheel: View {
             ], startPoint: .top, endPoint: .bottom)
         }
         .clipped()
-        .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 1, blendDuration: 0.12), value: selected)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 1, blendDuration: 0.08), value: selected)
         .task(id: FeedbackContext(index: latest, current: current, active: isActive && scenePhase == .active)) {
             guard isActive, scenePhase == .active else { return }
             AppInteractionHaptics.shared.prepareSelection()
@@ -194,7 +194,7 @@ private struct TmaxStartupLogWheel: View {
                     try Task.checkCancellation()
                     displayedIndex = nextFeedbackIndex
                     nextFeedbackIndex += 1
-                    nextStepAt = .now.advanced(by: .milliseconds(450))
+                    nextStepAt = .now.advanced(by: .milliseconds(110))
                     AppInteractionHaptics.shared.selectionChanged()
                 }
             } catch {}
