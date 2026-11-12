@@ -81,8 +81,8 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     var onHeadingChange: ((CLLocationDirection) -> Void)? = nil
     var onFocusFailure: ((String) -> Void)? = nil
     var tripEditing: TripMapEditing? = nil
-    var offlineStyleURL: URL? = nil
-    var offlineBounds: OfflineTripManifest.Bounds? = nil
+    var planningFallbackStyleURL: URL? = nil
+    var planningFallbackBounds: OfflineTripManifest.Bounds? = nil
     var plannedTrip: OutdoorTrip? = nil
     var routeFitPoints: [OutdoorTrackPoint]? = nil
     var onLocationChange: ((TripCoordinate) -> Void)? = nil
@@ -102,16 +102,13 @@ struct OutdoorMapLibreView: UIViewRepresentable {
     }
     func updateUIView(_ view: UIView, context: Context) {
         context.coordinator.onLocationChange = onLocationChange
-        context.coordinator.updateOfflineStyle(offlineStyleURL, bounds: offlineBounds)
+        context.coordinator.updatePlanningFallback(planningFallbackStyleURL, bounds: planningFallbackBounds)
         context.coordinator.updateTripEditing(tripEditing, plannedTrip: plannedTrip)
         guard isVisible || tripEditing != nil else {
             context.coordinator.detach()
             return
         }
-        let map = context.coordinator.mount(
-            in: view,
-            styleURL: offlineStyleURL ?? context.coordinator.preferredStyleURL
-        )
+        let map = context.coordinator.mount(in: view, styleURL: context.coordinator.activeStyleURL)
         context.coordinator.render(
             map: map,
             points: points,
@@ -146,20 +143,46 @@ struct OutdoorMapLibreView: UIViewRepresentable {
         private weak var map: MLNMapView?
         private var tripInteraction: OutdoorTripMapInteraction?
         private var tripEditing: TripMapEditing?
-        private var offlineStyleURL: URL?
+        private var fallbackStyleURL: URL?
         private var offlineBounds: OfflineTripManifest.Bounds?
+        private var usesOfflineFallback = false
+        private var baseStyleFailed = false
         private var pendingOfflineFrame = false
         private var plannedTrip: OutdoorTrip?
         private var latestRouteFitPoints: [OutdoorTrackPoint]?
         private var restoresOnlineStyle = false
 
-        func updateOfflineStyle(_ url: URL?, bounds: OfflineTripManifest.Bounds?) {
+        private var offlineStyleURL: URL? {
+            usesOfflineFallback ? fallbackStyleURL : nil
+        }
+
+        var activeStyleURL: URL? {
+            offlineStyleURL ?? preferredStyleURL
+        }
+
+        func updatePlanningFallback(_ url: URL?, bounds: OfflineTripManifest.Bounds?) {
             offlineBounds = bounds
-            guard offlineStyleURL != url else { return }
-            pendingOfflineFrame = url != nil
-            restoresOnlineStyle = url == nil
-            offlineStyleURL = url
+            guard fallbackStyleURL != url else { return }
+            fallbackStyleURL = url
+            guard usesOfflineFallback else { return }
+            if let url, url != OfflineTripResources.emptyStyle {
+                pendingOfflineFrame = true
+            } else {
+                usesOfflineFallback = false
+                restoresOnlineStyle = true
+            }
             didRenderInputs = false
+        }
+
+        @discardableResult
+        private func engageOfflineFallback() -> Bool {
+            guard !usesOfflineFallback, tripEditing != nil,
+                  let url = fallbackStyleURL, url != OfflineTripResources.emptyStyle else { return false }
+            usesOfflineFallback = true
+            pendingOfflineFrame = true
+            didRenderInputs = false
+            reportFocusFailure("Your map can't load without a connection, so planning shows your installed offline area.")
+            return true
         }
 
         func updateTripEditing(_ input: TripMapEditing?, plannedTrip: OutdoorTrip?) {
@@ -170,6 +193,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             tripEditing = input
             self.plannedTrip = plannedTrip
             tripInteraction?.update(input, plannedTrip: plannedTrip)
+            if entering, baseStyleFailed { engageOfflineFallback() }
             if entering, let location = map?.userLocation?.location,
                location.horizontalAccuracy >= 0, location.horizontalAccuracy <= 100,
                abs(location.timestamp.timeIntervalSinceNow) < 30 {
@@ -460,7 +484,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
                 reportCapability(OutdoorMapCapability(
                     mode: .explore, provider: .device,
                     status: offlineStyleURL == OfflineTripResources.emptyStyle ? .limitedCoverage : .available,
-                    reason: "Planning uses only the installed offline street map.",
+                    reason: "No connection: planning shows the installed offline street map.",
                     attribution: OutdoorMapAttribution(providerName: "OpenStreetMap", notices: ["© OpenStreetMap contributors · ODbL 1.0"], URLs: ["https://www.openstreetmap.org/copyright"].compactMap(URL.init(string:))),
                     cacheRights: OutdoorMapCacheRights(networkRequired: false, cachePermission: .allowed, offlineInstallationAllowed: true, explanation: "Imported area stored on this device."),
                     freshness: .init(maximumAge: nil, lastUpdated: nil), coverage: .configuredRegions
@@ -532,6 +556,7 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
         func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
             loadedStyleURL = mapView.styleURL
+            if !usesOfflineFallback { baseStyleFailed = false }
             hideNativeOrnaments(on: mapView)
             isApplyingCamera = true
             session.restoreCamera(on: mapView)
@@ -549,8 +574,15 @@ struct OutdoorMapLibreView: UIViewRepresentable {
 
 
         func mapViewDidFailLoadingMap(_ mapView: MLNMapView, withError error: Error) {
-            if offlineStyleURL != nil {
+            if usesOfflineFallback, mapView.styleURL == fallbackStyleURL {
                 onFocusFailure?("The offline map could not be loaded. Reimport this area. \(error.localizedDescription)")
+                return
+            }
+            baseStyleFailed = true
+            if engageOfflineFallback(), let fallbackStyleURL {
+                fallbackModeForPendingStyle = nil
+                loadedStyleURL = fallbackStyleURL
+                mapView.styleURL = fallbackStyleURL
                 return
             }
             let failedMode = session.requestedMode
@@ -725,14 +757,14 @@ struct OutdoorMapLibreView: UIViewRepresentable {
             let framingPoints = latestPlannedPoints.isEmpty ? latestPoints : latestPlannedPoints + latestPoints
             guard let first = framingPoints.first else { return }
             if framingPoints.count == 1 {
-                map.setCenter(coordinate(for: first), zoomLevel: 15, animated: false)
+                map.setCenter(coordinate(for: first), zoomLevel: 15, animated: tripEditing != nil && !UIAccessibility.isReduceMotionEnabled)
             } else {
                 map.setVisibleCoordinateBounds(
                     bounds(for: framingPoints),
                     edgePadding: tripEditing == nil ? UIEdgeInsets(top: 80, left: 40, bottom: 180, right: 40)
                         : UIEdgeInsets(top: map.safeAreaInsets.top + (tripEditing?.topInset ?? 0) + 24, left: 48,
                             bottom: map.safeAreaInsets.bottom + (tripEditing?.bottomInset ?? 0) + 24, right: 48),
-                    animated: false
+                    animated: tripEditing != nil && !UIAccessibility.isReduceMotionEnabled
                 )
             }
             session.captureCamera(from: map)

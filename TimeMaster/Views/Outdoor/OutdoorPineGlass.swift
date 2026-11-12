@@ -314,6 +314,241 @@ struct OutdoorCornerResizeHandle: View {
     }
 }
 
+enum OutdoorPaneMotion {
+    static func page(reduceMotion: Bool) -> Animation {
+        reduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.42, dampingFraction: 1, blendDuration: 0.12)
+    }
+}
 
+final class OutdoorPaneDirection {
+    private(set) var forward = true
+    private var key: AnyHashable?
+    private var depth = 0
+
+    func track(_ key: AnyHashable, depth: Int) {
+        if let current = self.key, current != key {
+            forward = depth >= self.depth
+        }
+        self.key = key
+        self.depth = depth
+    }
+}
+
+private struct OutdoorPaneSlide: ViewModifier {
+    enum Role { case identity, insertion, removal }
+    let role: Role
+    let direction: OutdoorPaneDirection
+    let width: CGFloat
+
+    func body(content: Content) -> some View {
+        let forward = direction.forward
+        let covered = (role == .insertion && !forward) || (role == .removal && forward)
+        content
+            .offset(x: offset(forward: forward))
+            .opacity(role != .identity && covered ? 0 : 1)
+    }
+
+    private func offset(forward: Bool) -> CGFloat {
+        switch role {
+        case .identity: return 0
+        case .insertion: return forward ? width : -width * 0.3
+        case .removal: return forward ? -width * 0.3 : width
+        }
+    }
+}
+
+struct OutdoorPanePager<Key: Hashable, Content: View>: View {
+    let key: Key
+    let depth: Int
+    @ViewBuilder let content: () -> Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var direction = OutdoorPaneDirection()
+
+    var body: some View {
+        let _ = direction.track(AnyHashable(key), depth: depth)
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                content()
+                    .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+                    .id(key)
+                    .zIndex(Double(depth))
+                    .transition(transition(width: proxy.size.width))
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+        }
+        .clipped()
+    }
+
+    private func transition(width: CGFloat) -> AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        let width = max(width, 1)
+        return .asymmetric(
+            insertion: .modifier(
+                active: OutdoorPaneSlide(role: .insertion, direction: direction, width: width),
+                identity: OutdoorPaneSlide(role: .identity, direction: direction, width: width)
+            ),
+            removal: .modifier(
+                active: OutdoorPaneSlide(role: .removal, direction: direction, width: width),
+                identity: OutdoorPaneSlide(role: .identity, direction: direction, width: width)
+            )
+        )
+    }
+}
+
+struct OutdoorPaneLabeledAction: View {
+    let symbol: String
+    let title: String
+    var accessibilityTitle: String?
+    var prominent = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+        }
+        .buttonStyle(OutdoorPaneLabeledButtonStyle(title: title, prominent: prominent))
+        .accessibilityLabel(accessibilityTitle ?? title)
+    }
+}
+
+private struct OutdoorPaneLabeledButtonStyle: ButtonStyle {
+    let title: String
+    let prominent: Bool
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(spacing: 5) {
+            TimeMasterActionButtonStyle(prominent: prominent, circular: true, minimumSize: 44)
+                .makeBody(configuration: configuration)
+            Text(title)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                .foregroundStyle(isEnabled ? Theme.textPrimary : Theme.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
+        }
+        .frame(minWidth: 60)
+        .contentShape(Rectangle())
+    }
+}
+
+struct OutdoorPaneStatusTile<Actions: View>: View {
+    let symbol: String
+    let title: String
+    var detail: String?
+    var loading = false
+    var stacksActions = false
+    @ViewBuilder let actions: () -> Actions
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showsDetail = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .fill(Theme.toolbarOrange.opacity(0.16))
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .strokeBorder(Theme.toolbarOrange.opacity(0.36), lineWidth: 1)
+                    if loading {
+                        TmaxLoadingIndicator(size: 22)
+                    } else {
+                        Image(systemName: symbol)
+                            .font(.system(size: 21, weight: .semibold))
+                            .foregroundStyle(Theme.toolbarOrange)
+                    }
+                }
+                .frame(width: 50, height: 50)
+                .accessibilityHidden(true)
+                Text(title)
+                    .font(TimeMasterFont.rowTitle())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if detail != nil {
+                    Button {
+                        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9)) { showsDetail.toggle() }
+                    } label: {
+                        Image(systemName: showsDetail ? "chevron.up.circle.fill" : "info.circle")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(showsDetail ? "Hide details" : "Show details")
+                }
+                if !stacksActions, Actions.self != EmptyView.self {
+                    actions()
+                }
+            }
+            if showsDetail, let detail {
+                Text(detail)
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                    .transition(.opacity)
+            }
+            if stacksActions, Actions.self != EmptyView.self {
+                HStack(alignment: .top, spacing: 16) { actions() }
+                    .padding(.leading, 62)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(shape.fill(Color.black.opacity(0.24)))
+        .overlay(shape.strokeBorder(Color.white.opacity(0.1), lineWidth: 1).allowsHitTesting(false))
+        .accessibilityElement(children: .contain)
+    }
+}
+
+struct OutdoorPaneSectionHeader: View {
+    let title: String
+    let symbol: String
+    var count: Int?
+    var onShowAll: (() -> Void)?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.toolbarOrange)
+                .frame(width: 22)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(TimeMasterFont.sectionTitle())
+                .accessibilityAddTraits(.isHeader)
+            if let count, count > 0 {
+                Text(count.formatted())
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    .monospacedDigit()
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.white.opacity(0.12)))
+                    .accessibilityLabel("\(count.formatted()) routes")
+            }
+            Spacer(minLength: 8)
+            if let onShowAll {
+                Button(action: onShowAll) {
+                    HStack(spacing: 4) {
+                        Text("All")
+                            .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Show all \(title)")
+            }
+        }
+        .frame(minHeight: 32)
+    }
+}
 
 #endif

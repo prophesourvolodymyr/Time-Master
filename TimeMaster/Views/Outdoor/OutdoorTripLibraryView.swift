@@ -5,12 +5,14 @@ import TimeMasterCore
 struct OutdoorTripsMenu: View {
     @ObservedObject var store: OutdoorActivityStore
     @ObservedObject var nearby: OutdoorNearbyRoutes
+    @ObservedObject var areas: OutdoorOfflineAreas
     var kind: OutdoorActivityKind
     var units: OutdoorUnitSystem
     var canSelect: Bool
     var onOpen: (TripPlannerEntry, PlannedRoute?) -> Void
     var onManageAreas: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
     @AppStorage("outdoor.trip.sortOrder") private var sortOrder: OutdoorLibrarySortOrder = .recent
     @State private var library: TripLibrarySection?
@@ -21,61 +23,10 @@ struct OutdoorTripsMenu: View {
     @State private var recovery: PlannedRoute?
 
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 8) {
-                header
-                ScrollViewReader { scroll in
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 20) {
-                            if !searchPresented, library == nil {
-                                shortcuts(width: geometry.size.width - 28, scroll: scroll)
-                                if let recovery {
-                                    Button { onOpen(.build, recovery) } label: {
-                                        Label("Resume unfinished edit", systemImage: "arrow.clockwise.circle")
-                                            .frame(maxWidth: .infinity, minHeight: 44)
-                                    }
-                                    .buttonStyle(TimeMasterActionButtonStyle())
-                                }
-                            }
-                            if searchPresented || library == nil || library == .nearby {
-                                sectionTitle("Nearby")
-                                    .id(TripLibrarySection.nearby)
-                                let routes = filtered(nearby.routes, preservingRank: true)
-                                if routes.isEmpty { nearbyStatus } else {
-                                    horizontal(routes, width: geometry.size.width)
-                                }
-                                if library == .nearby, !searchPresented {
-                                    Button { onOpen(.custom, nil) } label: {
-                                        Label("Adjust distance and places", systemImage: "slider.horizontal.3")
-                                            .frame(maxWidth: .infinity, minHeight: 44)
-                                    }
-                                    .buttonStyle(TimeMasterActionButtonStyle())
-                                }
-                            }
-                            if searchPresented || library == nil || library == .yours || library == .saved {
-                                sectionTitle(library == .saved && !searchPresented ? "Saved routes" : "Yours")
-                                vertical(filtered(store.plannedRoutes.filter { !$0.isDraft }), empty: "No saved routes")
-                            }
-                            if searchPresented || library == nil {
-                                sectionTitle("Starred")
-                                let routes = filtered(store.plannedRoutes.filter(\.starred))
-                                if routes.isEmpty { emptyState(query.isEmpty ? "Star routes to keep them here" : "No matching starred routes") }
-                                else { horizontal(routes, width: geometry.size.width) }
-                            }
-                            if library == .drafts, !searchPresented {
-                                sectionTitle("Drafts")
-                                vertical(filtered(store.plannedRoutes.filter(\.isDraft)), empty: "No drafts")
-                            }
-                            if !canSelect {
-                                Label("Finish the workout before starting another route.", systemImage: "figure.run.circle")
-                                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
-                            }
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 14)
-                    }
-                    .scrollDismissesKeyboard(.interactively)
-                }
+        VStack(spacing: 4) {
+            header
+            OutdoorPanePager(key: library, depth: library == nil ? 0 : 1) {
+                page
             }
         }
         .task(id: kind) { nearby.activate(kind: kind) }
@@ -91,9 +42,16 @@ struct OutdoorTripsMenu: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            if library != nil, !searchPresented {
-                OutdoorPineIconAction(symbol: "chevron.left", label: "Back to Routes", size: 44) { library = nil }
-                TimeMasterPageTitle(library?.title ?? "Routes", size: 22, relativeTo: .headline).lineLimit(1)
+            if !searchPresented {
+                if library != nil {
+                    OutdoorPineIconAction(symbol: "chevron.left", label: "Back to Routes", size: 44) { show(nil) }
+                        .transition(.opacity)
+                }
+                TimeMasterPageTitle(library?.title ?? "Routes", size: 22, relativeTo: .headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .id(library)
+                    .transition(.opacity)
             }
             Spacer(minLength: 0)
             SpotlightSearchBar(text: $query, isPresented: $searchPresented, placeholder: "Search routes") {
@@ -114,28 +72,210 @@ struct OutdoorTripsMenu: View {
             }
         }
         .padding(.horizontal, 14)
+        .frame(minHeight: 50)
     }
 
-    private func shortcuts(width: CGFloat, scroll: ScrollViewProxy) -> some View {
-        VStack(spacing: 10) {
+    private var page: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 22) {
+                    if !searchPresented, library == nil {
+                        shortcuts(width: geometry.size.width - 28)
+                        if let recovery {
+                            Button { onOpen(.build, recovery) } label: {
+                                Label("Resume unfinished edit", systemImage: "arrow.clockwise.circle")
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                            }
+                            .buttonStyle(TimeMasterActionButtonStyle())
+                        }
+                    }
+                    if searchPresented || library == nil || library == .nearby {
+                        nearbySection(width: geometry.size.width)
+                    }
+                    if searchPresented || library == nil || library == .yours || library == .saved {
+                        yoursSection
+                    }
+                    if searchPresented || library == nil {
+                        starredSection(width: geometry.size.width)
+                    }
+                    if library == .drafts, !searchPresented {
+                        draftsSection
+                    }
+                    if !canSelect {
+                        Label("Finish the workout before starting another route.", systemImage: "figure.run.circle")
+                            .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 12)
+                    Color.black
+                }
+            }
+        }
+    }
+
+    private func shortcuts(width: CGFloat) -> some View {
+        let saved = store.plannedRoutes.filter { !$0.isDraft }.count
+        let drafts = store.plannedRoutes.filter(\.isDraft).count
+        return VStack(spacing: 10) {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
                 OutdoorPineTileAction(symbol: "point.topleft.down.curvedto.point.bottomright.up", title: "Make trip") { onOpen(.build, nil) }
-                OutdoorPineTileAction(symbol: "location.magnifyingglass", title: "Nearby") {
-                    library = .nearby
-                    scroll.scrollTo(TripLibrarySection.nearby, anchor: .top)
-                }
-                OutdoorPineTileAction(symbol: "slider.horizontal.3", title: "Custom") { library = .yours }
-                OutdoorPineTileAction(symbol: "map.fill", title: "Saved") { library = .saved }
+                OutdoorPineTileAction(symbol: "location.magnifyingglass", title: "Nearby", badge: nearby.routes.isEmpty ? nil : nearby.routes.count.formatted()) { show(.nearby) }
+                OutdoorPineTileAction(symbol: "slider.horizontal.3", title: "Custom") { show(.yours) }
+                OutdoorPineTileAction(symbol: "map.fill", title: "Saved", badge: saved > 0 ? saved.formatted() : nil) { show(.saved) }
             }
-            OutdoorPineTileAction(symbol: "archivebox.fill", title: "Drafts") { library = .drafts }
+            OutdoorPineTileAction(symbol: "archivebox.fill", title: "Drafts", badge: drafts > 0 ? drafts.formatted() : nil) { show(.drafts) }
                 .frame(width: max(0, (width - 10) / 2))
         }
     }
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title).font(TimeMasterFont.heading())
-            .frame(maxWidth: .infinity, alignment: .center)
-            .accessibilityAddTraits(.isHeader)
+    private func nearbySection(width: CGFloat) -> some View {
+        let routes = filtered(nearby.routes, preservingRank: true)
+        let page = library == .nearby && !searchPresented
+        return VStack(alignment: .leading, spacing: 12) {
+            if !page {
+                OutdoorPaneSectionHeader(
+                    title: "Nearby", symbol: "location.magnifyingglass", count: routes.count,
+                    onShowAll: library == nil && !searchPresented ? { show(.nearby) } : nil
+                )
+            }
+            if routes.isEmpty {
+                nearbyStatus
+            } else if page {
+                grid(routes)
+            } else {
+                horizontal(routes, width: width)
+            }
+            if page {
+                Button { onOpen(.custom, nil) } label: {
+                    Label("Adjust distance and places", systemImage: "slider.horizontal.3")
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(TimeMasterActionButtonStyle())
+            }
+        }
+    }
+
+    private var yoursSection: some View {
+        let routes = filtered(store.plannedRoutes.filter { !$0.isDraft })
+        let page = (library == .yours || library == .saved) && !searchPresented
+        return VStack(alignment: .leading, spacing: 12) {
+            if !page {
+                OutdoorPaneSectionHeader(
+                    title: "Yours", symbol: "map.fill", count: routes.count,
+                    onShowAll: library == nil && !searchPresented && !routes.isEmpty ? { show(.yours) } : nil
+                )
+            }
+            if routes.isEmpty {
+                OutdoorPaneStatusTile(symbol: "map", title: query.isEmpty ? "No saved routes yet" : "No matching routes") {
+                    if query.isEmpty { makeTripAction }
+                }
+            } else {
+                grid(routes)
+            }
+        }
+    }
+
+    private func starredSection(width: CGFloat) -> some View {
+        let routes = filtered(store.plannedRoutes.filter(\.starred))
+        let hasSaved = store.plannedRoutes.contains { !$0.isDraft }
+        return VStack(alignment: .leading, spacing: 12) {
+            OutdoorPaneSectionHeader(title: "Starred", symbol: "star.fill", count: routes.count)
+            if routes.isEmpty {
+                OutdoorPaneStatusTile(symbol: "star", title: query.isEmpty ? "Long-press a route to star it" : "No matching starred routes") {
+                    if query.isEmpty {
+                        if hasSaved {
+                            OutdoorPaneLabeledAction(symbol: "map.fill", title: "Yours", accessibilityTitle: "Open your routes") { show(.yours) }
+                        } else {
+                            makeTripAction
+                        }
+                    }
+                }
+            } else {
+                horizontal(routes, width: width)
+            }
+        }
+    }
+
+    private var draftsSection: some View {
+        let routes = filtered(store.plannedRoutes.filter(\.isDraft))
+        return Group {
+            if routes.isEmpty {
+                OutdoorPaneStatusTile(symbol: "archivebox", title: query.isEmpty ? "No drafts" : "No matching drafts") {
+                    if query.isEmpty { makeTripAction }
+                }
+            } else {
+                grid(routes)
+            }
+        }
+    }
+
+    private var makeTripAction: some View {
+        OutdoorPaneLabeledAction(symbol: "point.topleft.down.curvedto.point.bottomright.up", title: "Make trip") { onOpen(.build, nil) }
+    }
+
+    @ViewBuilder
+    private var nearbyStatus: some View {
+        if nearby.isLoading {
+            OutdoorPaneStatusTile(symbol: "location.magnifyingglass", title: "Finding roads near you…", loading: true) { EmptyView() }
+        } else if nearby.location == nil {
+            OutdoorPaneStatusTile(
+                symbol: nearby.locationDenied ? "location.slash" : "location",
+                title: nearby.locationDenied ? "Location is off" : "Waiting for your location",
+                detail: nearby.errorMessage
+            ) {
+                if nearby.locationDenied {
+                    OutdoorPaneLabeledAction(symbol: "gearshape", title: "Settings", accessibilityTitle: "Location settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    }
+                } else {
+                    OutdoorPaneLabeledAction(symbol: "location.fill", title: "Locate", accessibilityTitle: "Use current location") {
+                        nearby.requestLocation()
+                    }
+                }
+            }
+        } else if let message = nearby.errorMessage {
+            let issue = nearbyIssue
+            OutdoorPaneStatusTile(symbol: issue.symbol, title: issue.title, detail: message, stacksActions: true) {
+                OutdoorPaneLabeledAction(symbol: "arrow.clockwise", title: "Try again", accessibilityTitle: "Find nearby routes again") {
+                    nearby.refresh(kind: kind)
+                }
+                OutdoorPaneLabeledAction(symbol: "square.and.arrow.down", title: "Offline areas", action: onManageAreas)
+            }
+        } else {
+            OutdoorPaneStatusTile(
+                symbol: "point.topleft.down.to.point.bottomright.curvepath",
+                title: query.isEmpty ? "No nearby routes in your areas" : "No matching nearby routes"
+            ) {
+                if query.isEmpty {
+                    OutdoorPaneLabeledAction(symbol: "slider.horizontal.3", title: "Adjust", accessibilityTitle: "Adjust distance and places") {
+                        onOpen(.custom, nil)
+                    }
+                }
+            }
+        }
+    }
+
+    private var nearbyIssue: (symbol: String, title: String) {
+        guard !areas.isLoading else { return ("exclamationmark.triangle", "Nearby routes unavailable") }
+        let compatible = areas.regions.filter(\.compatible)
+        if areas.regions.isEmpty { return ("arrow.down.circle", "No offline area installed") }
+        if compatible.isEmpty { return ("arrow.triangle.2.circlepath", "Offline areas need an update") }
+        if let location = nearby.location, !compatible.contains(where: { $0.manifest.bounds.contains(location) }) {
+            return ("location.slash", "You're outside your offline areas")
+        }
+        return ("exclamationmark.triangle", "Nearby routes unavailable")
+    }
+
+    private func show(_ section: TripLibrarySection?) {
+        withAnimation(OutdoorPaneMotion.page(reduceMotion: reduceMotion)) { library = section }
     }
 
     private func horizontal(_ routes: [PlannedRoute], width: CGFloat) -> some View {
@@ -148,14 +288,9 @@ struct OutdoorTripsMenu: View {
         }
     }
 
-    private func vertical(_ routes: [PlannedRoute], empty: String) -> some View {
-        Group {
-            if routes.isEmpty { emptyState(query.isEmpty ? empty : "No matching routes") }
-            else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2), spacing: 12) {
-                    ForEach(routes) { route in card(route) }
-                }
-            }
+    private func grid(_ routes: [PlannedRoute]) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2), spacing: 12) {
+            ForEach(routes) { route in card(route) }
         }
     }
 
@@ -170,40 +305,6 @@ struct OutdoorTripsMenu: View {
                 catch { self.error = error.localizedDescription }
             }
         }
-    }
-
-    private var nearbyStatus: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if nearby.isLoading {
-                TmaxLoadingIndicator("Finding roads near you…")
-            } else if nearby.location == nil {
-                Label(nearby.locationDenied ? "Location access is unavailable" : "Waiting for your current location", systemImage: "location")
-                if let message = nearby.errorMessage {
-                    Text(message).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
-                }
-                Button(nearby.locationDenied ? "Location settings" : "Use current location") {
-                    if nearby.locationDenied, let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
-                    else { nearby.requestLocation() }
-                }
-                .frame(minHeight: 44)
-            } else if let message = nearby.errorMessage {
-                Text(message).font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
-                HStack {
-                    Button("Try again") { nearby.refresh(kind: kind) }.frame(minHeight: 44)
-                    Spacer()
-                    Button("Offline areas", action: onManageAreas).frame(minHeight: 44)
-                }
-            } else {
-                Text(query.isEmpty ? "No nearby routes available in the installed area." : "No matching nearby routes")
-                    .font(TimeMasterFont.caption()).foregroundStyle(Theme.textSecondary)
-            }
-        }
-        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-    }
-
-    private func emptyState(_ title: String) -> some View {
-        Text(title).font(TimeMasterFont.secondary()).foregroundStyle(Theme.textSecondary)
-            .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
     }
 
     private func filtered(_ routes: [PlannedRoute], preservingRank: Bool = false) -> [PlannedRoute] {

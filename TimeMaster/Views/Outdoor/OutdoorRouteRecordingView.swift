@@ -87,7 +87,6 @@ struct OutdoorRouteRecordingView: View {
     @State private var tripFitPoints: [OutdoorTrackPoint]?
     @State private var tripPreviewFitPending = false
     @State private var offlineAreasPresented = false
-    @State private var mapModeBeforeTrip: OutdoorMapMode?
 
     init(
         kind: OutdoorActivityKind,
@@ -177,8 +176,8 @@ struct OutdoorRouteRecordingView: View {
                         mapOfflineMessage = message
                     },
                     tripEditing: tripMapEditing,
-                    offlineStyleURL: tripEntry != nil || feature == .route ? tripAreas.styleURL : nil,
-                    offlineBounds: tripEntry != nil || feature == .route ? tripAreas.displayedRegion?.manifest.bounds : nil,
+                    planningFallbackStyleURL: tripEntry != nil ? tripAreas.styleURL : nil,
+                    planningFallbackBounds: tripEntry != nil ? tripAreas.displayedRegion?.manifest.bounds : nil,
                     plannedTrip: tripEntry != nil ? tripEditor.route.trip : feature == .route || recordingMapPlan == nil ? nil : recorder.selectedPlan?.trip,
                     routeFitPoints: tripFitPoints,
                     onLocationChange: nearbyRoutes.updateLocation
@@ -589,8 +588,6 @@ struct OutdoorRouteRecordingView: View {
         tripPreviewFitPending = entry == .preview
         tripFitPoints = nil
         mapFollowsUser = false
-        mapModeBeforeTrip = mapMode
-        mapMode = .explore
         animate {
             upperQuickFeature = nil
             tripEntry = entry
@@ -604,8 +601,6 @@ struct OutdoorRouteRecordingView: View {
         tripPanelHeight = 0
         tripBottomHeight = 0
         tripPreviewFitPending = false
-        if let mapModeBeforeTrip { mapMode = mapModeBeforeTrip }
-        mapModeBeforeTrip = nil
         animate { tripEntry = nil }
         tripMenuRevision += 1
     }
@@ -633,7 +628,7 @@ struct OutdoorRouteRecordingView: View {
         let bottomClearance = tripEntry == nil
             ? max(18, layout.size.height - mainTop + 18)
             : max(0, layout.size.height - plannerControlsTop - controlsHeight)
-        let attributionMode: OutdoorMapMode = tripEntry != nil ? .explore : mapOverlayModes.contains(.threeD) ? .threeD : activeMapMode
+        let attributionMode: OutdoorMapMode = mapOverlayModes.contains(.threeD) ? .threeD : activeMapMode
         let mapAttribution = (
             mapCapabilities[attributionMode]
                 ?? OutdoorMapProviderConfiguration.main.capability(for: attributionMode)
@@ -835,19 +830,22 @@ struct OutdoorRouteRecordingView: View {
                     }
                     .allowsHitTesting(!paneModalPresented)
                     .accessibilityHidden(paneModalPresented)
+                    .animation(paneAnimation, value: libraryActivityID)
                 }
 
-                mainContentView(expansion: expansion, availableHeight: contentHeight, layout: layout)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .allowsHitTesting(!blocksMainControls)
-                    .accessibilityHidden(blocksMainControls)
-                    .clipped()
-                    .transaction {
-                        if mainDrag.isDragging || featureDrag.isDragging || fullscreenDrag.isDragging {
-                            $0.animation = nil
-                            $0.disablesAnimations = true
-                        }
+                OutdoorPanePager(key: mainContent, depth: mainPageDepth) {
+                    mainContentView(expansion: expansion, availableHeight: contentHeight, layout: layout)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(!blocksMainControls)
+                .accessibilityHidden(blocksMainControls)
+                .clipped()
+                .transaction {
+                    if mainDrag.isDragging || featureDrag.isDragging || fullscreenDrag.isDragging {
+                        $0.animation = nil
+                        $0.disablesAnimations = true
                     }
+                }
             }
             .padding(.top, topPadding)
             .padding(.bottom, showsSection ? 0 : bottomPadding)
@@ -1005,9 +1003,11 @@ struct OutdoorRouteRecordingView: View {
                     musicSession.reset()
                     musicLibrary.resetRouteSession()
                     pineFinishedActivity = nil
-                    mainContent = .start
-                    mainDetent = .compact
-                    animate { mainHeight = layout.mainCompactHeight }
+                    animate {
+                        mainContent = .start
+                        mainDetent = .compact
+                        mainHeight = layout.mainCompactHeight
+                    }
                 },
                 onDeleted: {
                     shortSessionReason = nil
@@ -1017,9 +1017,11 @@ struct OutdoorRouteRecordingView: View {
                     pineFinishedActivity = nil
                     exposedFinishedActivity = nil
                     libraryActivityID = nil
-                    mainContent = .start
-                    mainDetent = .compact
-                    animate { mainHeight = layout.mainCompactHeight }
+                    animate {
+                        mainContent = .start
+                        mainDetent = .compact
+                        mainHeight = layout.mainCompactHeight
+                    }
                 },
                 onModalStateChange: { paneModalPresented = $0 }
             )
@@ -1064,7 +1066,7 @@ struct OutdoorRouteRecordingView: View {
             )
         case .route:
             OutdoorTripsMenu(
-                store: store, nearby: nearbyRoutes, kind: committedKind, units: preferences.preferences.unitSystem,
+                store: store, nearby: nearbyRoutes, areas: tripAreas, kind: committedKind, units: preferences.preferences.unitSystem,
                 canSelect: recorder.state == .idle, onOpen: openTrip,
                 onManageAreas: { offlineAreasPresented = true }
             )
@@ -1495,7 +1497,7 @@ struct OutdoorRouteRecordingView: View {
 
     private func beginConfirmedRecording() {
         shortSessionReason = nil
-        mainContent = .live
+        animate { mainContent = .live }
         recorder.updateKind(committedKind)
         recorder.start()
     }
@@ -1511,9 +1513,11 @@ struct OutdoorRouteRecordingView: View {
         switch recorder.finishWithOutcome() {
         case .shortSessionDiscarded:
             closeFeature(restoreMainHeight: false)
-            mainContent = .start
-            mainDetent = .compact
-            animate { mainHeight = layout.mainCompactHeight }
+            animate {
+                mainContent = .start
+                mainDetent = .compact
+                mainHeight = layout.mainCompactHeight
+            }
             pineFinishedActivity = nil
             exposedFinishedActivity = nil
             shortSessionReason = recorder.errorMessage ?? "Workout not saved — less than 3 m recorded."
@@ -1531,7 +1535,7 @@ struct OutdoorRouteRecordingView: View {
             closeFeature(restoreMainHeight: false)
             pineFinishedActivity = finalizedActivity
             exposedFinishedActivity = finalizedActivity
-            mainContent = .finish
+            animate { mainContent = .finish }
         case .failed(let message):
             shortSessionReason = message
         }
@@ -1551,7 +1555,7 @@ struct OutdoorRouteRecordingView: View {
         musicSession.start(activityID: latest.id, existingEvents: latest.playedTracks)
         pineFinishedActivity = nil
         exposedFinishedActivity = nil
-        mainContent = .live
+        animate { mainContent = .live }
         shortSessionReason = nil
     }
 
@@ -1681,7 +1685,15 @@ struct OutdoorRouteRecordingView: View {
     }
 
     private var paneAnimation: Animation {
-        reduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.42, dampingFraction: 1, blendDuration: 0.12)
+        OutdoorPaneMotion.page(reduceMotion: reduceMotion)
+    }
+
+    private var mainPageDepth: Int {
+        switch mainContent {
+        case .start: 0
+        case .library, .routes, .live: 1
+        case .finish: 2
+        }
     }
 
     private var paneDismissalAnimation: Animation {

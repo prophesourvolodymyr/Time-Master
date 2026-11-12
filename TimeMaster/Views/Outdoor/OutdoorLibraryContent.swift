@@ -37,7 +37,7 @@ struct OutdoorLibraryContent<Handle: View>: View {
     }
 
     var body: some View {
-        Group {
+        OutdoorPanePager(key: selectedActivityID, depth: selectedActivityID == nil ? 0 : 1) {
             if let selectedActivityID {
                 OutdoorActivityDetailPineContent(
                     store: store,
@@ -49,17 +49,15 @@ struct OutdoorLibraryContent<Handle: View>: View {
                     onDeleted: { self.selectedActivityID = nil },
                     onModalStateChange: onModalStateChange
                 )
-                .transition(.opacity)
             } else {
                 GeometryReader { proxy in
                     let activities = filteredActivities
                     let starred = activities.filter(\.starred)
                     libraryList(activities: activities, starred: starred, width: proxy.size.width)
                 }
-                .transition(.opacity)
             }
         }
-        .animation(reduceMotion ? .none : .easeOut(duration: 0.18), value: selectedActivityID)
+        .animation(OutdoorPaneMotion.page(reduceMotion: reduceMotion), value: selectedActivityID)
         .onAppear { loadRoutePoints() }
         .onChange(of: store.activities) { _ in
             loadRoutePoints()
