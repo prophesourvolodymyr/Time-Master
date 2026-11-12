@@ -32,6 +32,10 @@
 | **F28** | **Better Maps and Route Recording** | **in_progress (Cycle 23)** | **F09, F24, F25, F26, F27, existing Cycle 11 outdoor data** |
 | **F30** | **Tmax Marketing Website** | **in_progress (Cycle 49)** — [specification](F30-tmax-website/DOCKS.md) | **Existing app features (recorded), brand assets, Higgsfield, fgen** |
 | **F31** | **Agent Bridge and the tmax Command** | **ready for human verification (Cycle 53)** — [specification](F31-agent-bridge/DOCKS.md) | **F09-A, F09-B, F14, F06** |
+| **F33** | **Workout Player V3: Bundles, Up Next and the Original Player Look** | **ready for human verification (Cycle 62)** — [specification](F33-workout-player-v3/DOCKS.md) | **F02, F03, F11, F16, F19, F31** |
+| **F34** | **Lock Screen Workout: Live Activity and Now Playing** | **ready for human verification (Cycle 62)** — [specification](F34-lock-screen-player/DOCKS.md) | **F03, F11, F19, F33** |
+| **F35** | **Milestones and To-dos** | **ready for human verification (Cycle 62)** — [specification](F35-milestones-todos/DOCKS.md) | **F01-B, F09, F14, F31, F32, F33 (workout links)** |
+| **F36** | **Note Pages** | **ready for human verification (Cycle 62)** — [specification](F36-note-pages/DOCKS.md) | **F01-B, F14, F32, Cycle 52 Markdown editor** |
 
 ## F29 — Physique Duels
 
