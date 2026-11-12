@@ -373,7 +373,7 @@ struct DatabaseView: View {
 
         return NavigationStack(path: $navigationState.path) {
             ZStack {
-                Theme.background.ignoresSafeArea()
+                TmaxGlowBackground()
                 if isV2 {
                     databaseV2Content
                 } else {

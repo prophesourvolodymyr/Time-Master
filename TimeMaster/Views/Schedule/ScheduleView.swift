@@ -46,7 +46,7 @@ struct ScheduleView: View {
                 }
             }
             .font(TimeMasterFont.body())
-            .background(Theme.background)
+            .background(TmaxGlowBackground())
             .navigationTitle("")
             #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)

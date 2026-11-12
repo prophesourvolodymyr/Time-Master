@@ -41,7 +41,7 @@ struct RankedView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: max(1, contentBounds.height), alignment: .top)
             }
-            .background(Theme.background.ignoresSafeArea())
+            .background(TmaxGlowBackground())
             .foregroundStyle(.white)
 #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)

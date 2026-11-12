@@ -58,7 +58,7 @@ struct AnalyticsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Theme.background.ignoresSafeArea()
+                TmaxGlowBackground()
                 VStack(spacing: 0) {
                     typePicker
                     analyticsScroll

@@ -40,7 +40,7 @@ struct WorkoutListView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
-                Theme.background.ignoresSafeArea()
+                TmaxGlowBackground()
 
                 if store.workouts.isEmpty {
                     emptyState

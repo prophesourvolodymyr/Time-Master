@@ -82,8 +82,8 @@ private struct TmaxGlowField: View {
         let breathe = (TmaxGlow.wave(time, period: 11, phase: 0.8) + 1) / 2
         let wander = TmaxGlow.wave(time, period: 27, phase: 1.7)
         let hero = intensity == .hero
-        let strength = hero ? 1.0 : 0.5
-        let reach = (hero ? 1.0 : 0.6) * (0.3 + 0.7 * rise)
+        let strength = hero ? 1.0 : 0.62
+        let reach = (hero ? 1.0 : 0.8) * (0.3 + 0.7 * rise)
 
         ZStack {
             hero ? Color.black : Theme.background
@@ -115,14 +115,6 @@ private struct TmaxGlowField: View {
             ])
             .frame(width: width * 1.1, height: height * 0.5 * reach)
             .position(x: width * (0.5 + 0.34 * wander), y: height * (0.9 + 0.03 * breathe))
-            if !hero {
-                glow([
-                    .init(color: TmaxGlow.umber.opacity(0.55), location: 0),
-                    .init(color: TmaxGlow.umber.opacity(0), location: 1)
-                ])
-                .frame(width: width * 1.4, height: height * 0.55)
-                .position(x: width * (0.85 + 0.05 * wander), y: 0)
-            }
         }
         .frame(width: width, height: height)
         .clipped()
