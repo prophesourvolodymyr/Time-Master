@@ -15,13 +15,13 @@ enum TmaxGlow {
         endPoint: .bottomTrailing
     )
 
-    static func dissolve(_ boundary: Double = 0.62) -> LinearGradient {
+    static func dissolve(_ boundary: Double = 0.66) -> LinearGradient {
         LinearGradient(
             stops: [
-                .init(color: blaze, location: 0),
-                .init(color: flame, location: max(0.05, boundary - 0.3)),
-                .init(color: ember.opacity(0.55), location: boundary),
-                .init(color: ember.opacity(0), location: min(1, boundary + 0.32))
+                .init(color: .white, location: 0),
+                .init(color: .white, location: boundary),
+                .init(color: Color(hex: "FFE3CF"), location: min(1, boundary + 0.16)),
+                .init(color: blaze.opacity(0.9), location: 1)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -195,12 +195,11 @@ struct TmaxGlowTile: View {
         ZStack {
             shape.fill(LinearGradient(
                 stops: [
-                    .init(color: Color(hex: "0D0705"), location: 0),
-                    .init(color: Color(hex: "120805"), location: 0.4),
-                    .init(color: Color(hex: "2A0E05"), location: 0.62),
-                    .init(color: Color(hex: "6E260A"), location: 0.78),
-                    .init(color: Color(hex: "C9531A"), location: 0.9),
-                    .init(color: Color(hex: "F08C4C"), location: 0.97),
+                    .init(color: Color(hex: "0C0806"), location: 0),
+                    .init(color: Color(hex: "0E0806"), location: 0.6),
+                    .init(color: Color(hex: "2A0F06"), location: 0.72),
+                    .init(color: Color(hex: "8C3410"), location: 0.84),
+                    .init(color: Color(hex: "E06A28"), location: 0.93),
                     .init(color: TmaxGlow.peach, location: 1)
                 ],
                 startPoint: .top,
@@ -208,18 +207,18 @@ struct TmaxGlowTile: View {
             ))
             shape.fill(EllipticalGradient(
                 stops: [
-                    .init(color: TmaxGlow.peach.opacity(0.42 + 0.18 * breathe), location: 0),
-                    .init(color: TmaxGlow.flame.opacity(0.3 + 0.1 * breathe), location: 0.32),
+                    .init(color: TmaxGlow.peach.opacity(0.45 + 0.15 * breathe), location: 0),
+                    .init(color: TmaxGlow.flame.opacity(0.28 + 0.1 * breathe), location: 0.35),
                     .init(color: TmaxGlow.flame.opacity(0), location: 1)
                 ],
-                center: UnitPoint(x: 0.5, y: 1.02),
+                center: UnitPoint(x: 0.5, y: 1.05),
                 startRadiusFraction: 0,
-                endRadiusFraction: 0.72
+                endRadiusFraction: 0.5
             ))
             TmaxMark()
-                .fill(TmaxGlow.dissolve(0.6 + 0.08 * breathe))
+                .fill(TmaxGlow.dissolve(0.64 + 0.05 * breathe))
                 .frame(width: markWidth, height: markWidth / TmaxMark.aspectRatio)
-                .offset(y: -side * 0.07)
+                .offset(y: -side * 0.04)
             if showsRim {
                 shape.strokeBorder(
                     LinearGradient(
