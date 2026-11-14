@@ -30,6 +30,47 @@ public final class DatabaseManager {
     private var pendingApprovals: [UUID: WriteApproval] = [:]
     private let approvalLock = NSLock()
 
+    /// Page folder lookup cache (page id to folder). Page folders are named by id, so a hit is confirmed with one
+    /// directory check and a miss falls back to the recursive search; without it every lookup of a nested page walks
+    /// the whole library, which makes creating the nth page of a large folder cost n full walks.
+    private var folderCache: [String: URL] = [:]
+    private var folderCacheBase = ""
+    private let folderCacheLock = NSLock()
+
+    private func cachedPageFolder(for id: String) -> URL? {
+        let base = fs.exercisesDatabaseDirectory.standardizedFileURL.path
+        folderCacheLock.lock()
+        defer { folderCacheLock.unlock() }
+        if folderCacheBase != base {
+            folderCache.removeAll(keepingCapacity: true)
+            folderCacheBase = base
+            return nil
+        }
+        guard let url = folderCache[id] else { return nil }
+        if url.lastPathComponent == id, url.standardizedFileURL.path.hasPrefix(base + "/"), fs.directoryExists(at: url) {
+            return url
+        }
+        folderCache[id] = nil
+        return nil
+    }
+
+    private func rememberPageFolder(_ url: URL, for id: String) {
+        let base = fs.exercisesDatabaseDirectory.standardizedFileURL.path
+        folderCacheLock.lock()
+        defer { folderCacheLock.unlock() }
+        if folderCacheBase != base {
+            folderCache.removeAll(keepingCapacity: true)
+            folderCacheBase = base
+        }
+        folderCache[id] = url
+    }
+
+    private func forgetPageFolders() {
+        folderCacheLock.lock()
+        defer { folderCacheLock.unlock() }
+        folderCache.removeAll(keepingCapacity: true)
+    }
+
     private init() {
         self.fs = FileSystemHelper()
         self.schemaManager = SchemaManager(fs: fs)
@@ -643,6 +684,7 @@ Find pages in the Tmax library.
 
         for (index, childID) in orderedIDs.enumerated() {
             var child = try getPage(id: childID)
+            if child.parentID == parentID && child.order == index { continue }
             child.parentID = parentID
             child.order = index
             child.updatedAt = Date()
@@ -672,6 +714,7 @@ Find pages in the Tmax library.
         let folder = try pageFolder(for: manifest.id, parentID: manifest.parentID)
         try fs.ensureDirectory(folder)
         try fs.ensureDirectory(folder.appendingPathComponent("media", isDirectory: true))
+        rememberPageFolder(folder, for: manifest.id)
         try writePageFiles(manifest, in: folder)
 
         if let parentID = manifest.parentID {
@@ -738,6 +781,7 @@ Find pages in the Tmax library.
 
 
     public func deletePage(id: String) throws {
+        forgetPageFolders()
         guard SkillGroupID.split(id) == nil else {
             throw FileSystemHelper.Error.invalidPageKind("a group is removed from its board with deleteSkillGroup")
         }
@@ -1056,6 +1100,7 @@ Find pages in the Tmax library.
     }
 
     public func movePage(id: String, newParentID: String?, newOrder: Int) throws {
+        forgetPageFolders()
         guard SkillGroupID.split(id) == nil, newParentID.flatMap(SkillGroupID.split) == nil else {
             throw FileSystemHelper.Error.invalidPageKind("groups stay on their board; place pages in a group with updateSkillBoard")
         }
@@ -1170,7 +1215,11 @@ Find pages in the Tmax library.
         if fs.directoryExists(at: directURL) {
             return directURL
         }
+        if let cached = cachedPageFolder(for: id) {
+            return cached
+        }
         if let found = findPageFolder(id: id, in: base) {
+            rememberPageFolder(found, for: id)
             return found
         }
         return directURL
