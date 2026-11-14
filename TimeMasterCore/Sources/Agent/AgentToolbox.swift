@@ -48,6 +48,7 @@ public final class AgentToolbox {
             if let output = try runBundleTool(name, args, dryRun: dryRun) { return output }
             if let output = try runMilestoneTool(name, args, dryRun: dryRun) { return output }
             if let output = try runNoteTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runSkillTool(name, args, dryRun: dryRun) { return output }
             throw AgentToolError("unknown_tool", "Unknown tool '\(name)'.")
         }
     }
@@ -116,12 +117,14 @@ extension AgentToolbox {
         if allRoots.count > 30 { library["moreRoots"] = allRoots.count - 30 }
         let noteCount = index.pages.filter { $0.pageType == .note }.count
         if noteCount > 0 { library["notes"] = noteCount }
+        let skillCount = index.pages.filter { $0.pageType == .skill || $0.pageType == .tutorial }.count
+        if skillCount > 0 { library["skills"] = skillCount }
         return AgentToolOutput(value: [
             "library": library,
             "types": workoutTypes().map(\.name),
             "workouts": (try? database.listWorkouts().count) ?? 0,
             "conventions": [
-                "Folders organize pages; exercise pages are workout-ready; note pages are Markdown documents (create_note_page).",
+                "Folders organize pages; exercise pages are workout-ready; note pages are Markdown documents (create_note_page); skill and tutorial pages (create_skill_page) are things to learn, with notes, many clips, links and sub-pages, sorted into groups on their parent's skill board.",
                 "Reference a page by title path ('Lower Body/Glutes') or id. Lists show paths.",
                 "Root folders own the workout type; nested pages inherit it.",
                 "Attach media by absolute path; the app copies it. The first item is the cover.",
@@ -136,7 +139,7 @@ extension AgentToolbox {
         let parent = try args.string("parent").map { try index.resolve($0) }
         var value: [String: Any] = [:]
         if let parent { value["in"] = index.titlePath(parent.id) }
-        if let parent, parent.pageType != nil {
+        if let parent, parent.pageKind == .leaf {
             value["pages"] = [] as [Any]
             return AgentToolOutput(value: value)
         }
@@ -149,7 +152,7 @@ extension AgentToolbox {
                 guard budget > 0 else { skipped += 1; continue }
                 budget -= 1
                 var node = index.summary(page)
-                if level < depth, page.pageType == nil {
+                if level < depth, page.pageKind == .container {
                     let inner = nodes(page.id, level: level + 1)
                     if !inner.isEmpty {
                         node["pages"] = inner
@@ -187,6 +190,11 @@ extension AgentToolbox {
             else if path.contains(query) { score = 40 }
             else if AgentValue.fold(page.markdownBody).contains(query) { score = 20 }
             else if query.split(separator: " ").allSatisfy({ title.contains($0) || path.contains($0) }) { score = 30 }
+            else {
+                let words = query.split(separator: " ")
+                let haystack = AgentValue.fold(([page.markdownBody] + Array(page.mediaComments.values) + page.linkURLs).joined(separator: " "))
+                if words.allSatisfy({ title.contains($0) || path.contains($0) || haystack.contains($0) }) { score = 10 }
+            }
             if score > 0 { ranked.append((score, page)) }
         }
         ranked.sort { $0.0 != $1.0 ? $0.0 > $1.0 : index.titlePath($0.1.id) < index.titlePath($1.1.id) }
@@ -201,6 +209,22 @@ extension AgentToolbox {
         let page = try index.resolve(try args.requiredString("page"))
         var value = index.summary(page, withID: true)
         if let type = index.effectiveType(page.id) { value["type"] = type.name }
+        if page.pageType == .skill || page.pageType == .tutorial {
+            if let status = page.skillStatus { value["status"] = status.rawValue }
+            if let owner = page.parentID.flatMap({ index.byID[$0] }), let sectionID = page.skillBoardSectionID, let group = owner.skillBoardSection(sectionID) {
+                value["group"] = group.title
+            }
+        }
+        if !page.skillBoardSections.isEmpty {
+            let inside = index.children(of: page.id)
+            value["groups"] = page.orderedSkillBoardSections.map { section -> [String: Any] in
+                var item: [String: Any] = ["title": section.title]
+                let count = inside.filter { $0.skillBoardSectionID == section.id }.count
+                if count > 0 { item["skills"] = count }
+                if !section.markdownBody.isEmpty { item["notes"] = String(section.markdownBody.prefix(1500)) }
+                return item
+            }
+        }
         value.merge(bodyExcerpt(page.markdownBody, offset: args.int("bodyOffset") ?? 0)) { _, new in new }
         if !page.linkURLs.isEmpty { value["linkURLs"] = page.linkURLs }
         if let rest = page.restAfter { value["restAfter"] = rest }
@@ -292,7 +316,8 @@ extension AgentToolbox {
         let page = try index.resolve(try args.requiredString("page"))
         if page.pageType == .note { return try attachImageToNote(page, args, titlePath: index.titlePath(page.id), dryRun: dryRun) }
         let url = try AgentMedia.validate(path: try args.requiredString("path"))
-        guard page.mediaFilenames.count < 20 else { throw AgentToolError("media_limit", "'\(page.title)' already has 20 attachments.") }
+        let limit = DatabaseManager.mediaLimit(for: page)
+        guard page.mediaFilenames.count < limit else { throw AgentToolError("media_limit", "'\(page.title)' already has \(limit) attachments.") }
         if dryRun {
             return AgentToolOutput(value: ["dryRun": true, "wouldAttach": url.lastPathComponent, "to": index.titlePath(page.id)])
         }

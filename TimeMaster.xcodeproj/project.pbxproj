@@ -221,6 +221,7 @@
 		32C3F52FBE05CFD0BF9867DB /* OutdoorTripService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B34E5635E729208DA51B19 /* OutdoorTripService.swift */; };
 		3310C1BAE9EFA0E958FF7713 /* PhysiqueBattleBrandHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCD1C3231D60D4EE4DB33F4 /* PhysiqueBattleBrandHeader.swift */; };
 		33B91A2434A40488D46D3D2F /* OutdoorRideEndToEndTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */; };
+		33DE65B3F2C12AD833C8111D /* SkillSubPagesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53C8946EB098EACA8A5F924 /* SkillSubPagesSection.swift */; };
 		33E3584F263DE12FA431D8D0 /* KeyNavGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB4FD606419DF01C98E93576 /* KeyNavGeometry.swift */; };
 		33E739BF7130062B8901B5E2 /* ScheduleEntryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E9E367E393C1744ED9CDFE8 /* ScheduleEntryEditor.swift */; };
 		343BBDB2F5A1E1766176D135 /* SlotNavigationLayoutStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072E678E9F46BF1BEE305EF0 /* SlotNavigationLayoutStoreTests.swift */; };
@@ -803,6 +804,7 @@
 		C1E7CCB247250969B8C8C2D9 /* ChecklistFlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 823C412EBE09126B9D0B57A9 /* ChecklistFlowLayout.swift */; };
 		C206040FFD075C7DD6E7F8A6 /* HomeWidgetCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */; };
 		C23D08EFE61D318AEC977B24 /* MusicLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC7F0EFE2A38785AFA71B55A /* MusicLibraryStore.swift */; };
+		C2A9B8276CEE65E380447FC4 /* SkillSubPagesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53C8946EB098EACA8A5F924 /* SkillSubPagesSection.swift */; };
 		C2B0F2C2FC7882062F732B10 /* CollectibleName.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBCF83D5729BCE96D040BA3 /* CollectibleName.swift */; };
 		C2B75BC306BA255C920F453D /* ImportSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0277E8EAC54A87487B40EC00 /* ImportSheetView.swift */; };
 		C3055F4F04A8E450F67A14C5 /* OutdoorPrivacyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E979AE3B62E51D54E10AB4 /* OutdoorPrivacyService.swift */; };
@@ -1446,6 +1448,7 @@
 		A480AD8CCC16DAF111B35EA8 /* HomeWidgetCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetCanvas.swift; sourceTree = "<group>"; };
 		A4F573BAF3EA86E8057FD38A /* PhysiqueIdentityRail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueIdentityRail.swift; sourceTree = "<group>"; };
 		A5008199504DD9BF8E058ACF /* SkillStripImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillStripImage.swift; sourceTree = "<group>"; };
+		A53C8946EB098EACA8A5F924 /* SkillSubPagesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillSubPagesSection.swift; sourceTree = "<group>"; };
 		A58136487D02DFCA7149043C /* KeyNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyNav.swift; sourceTree = "<group>"; };
 		A694D8D9DD60CCD872FB8C2D /* MusicLibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryModels.swift; sourceTree = "<group>"; };
 		A6CF17798A9F8B700825FDB4 /* SkillsFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsFoundation.swift; sourceTree = "<group>"; };
@@ -2047,6 +2050,7 @@
 				0A6E747570512587ABC2E4E3 /* SkillPickers.swift */,
 				A6CF17798A9F8B700825FDB4 /* SkillsFoundation.swift */,
 				A5008199504DD9BF8E058ACF /* SkillStripImage.swift */,
+				A53C8946EB098EACA8A5F924 /* SkillSubPagesSection.swift */,
 				B95D2D91BED604633D055793 /* SkillsUIKit.swift */,
 				8669429747D8261D4FF5B7FE /* SkillTableView.swift */,
 				00334E54350C0BED693944CC /* SkillTypeEditorSheet.swift */,
@@ -3275,6 +3279,7 @@
 				BD3E1A43215AE466DB7B2AD1 /* SkillMilestonesSection.swift in Sources */,
 				A7B8DA4A69CD1AD856AB1041 /* SkillPickers.swift in Sources */,
 				81AD0135705512499876A6E1 /* SkillStripImage.swift in Sources */,
+				33DE65B3F2C12AD833C8111D /* SkillSubPagesSection.swift in Sources */,
 				391D396C50EDF0DB60F377D1 /* SkillTableView.swift in Sources */,
 				5E98AD6B96E2C5F35D1EE13D /* SkillTodoSection.swift in Sources */,
 				CC5E0C9AB0480190FEEA8B69 /* SkillTypeEditorSheet.swift in Sources */,
@@ -3791,6 +3796,7 @@
 				107F1C11A123B0B8FD2CCF15 /* SkillMilestonesSection.swift in Sources */,
 				BBE4BB97DC34B7082EDC48BF /* SkillPickers.swift in Sources */,
 				751410973EF284ED0EA6FE35 /* SkillStripImage.swift in Sources */,
+				C2A9B8276CEE65E380447FC4 /* SkillSubPagesSection.swift in Sources */,
 				8CB7F4BE331042BC9CE54BC3 /* SkillTableView.swift in Sources */,
 				F787BF46DCF98D44B940A726 /* SkillTodoSection.swift in Sources */,
 				08C651644E91514C225742ED /* SkillTypeEditorSheet.swift in Sources */,

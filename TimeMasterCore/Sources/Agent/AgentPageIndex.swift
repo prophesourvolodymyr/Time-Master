@@ -111,7 +111,7 @@ struct AgentPageIndex {
         if let sets = page.sets, sets > 1 { out["sets"] = sets }
         if !page.mediaFilenames.isEmpty { out["media"] = page.mediaFilenames.count }
         if page.parentID.flatMap({ byID[$0] }) == nil, let type = effectiveType(page.id) { out["type"] = type.name }
-        if page.pageType == nil {
+        if page.pageKind == .container {
             let inside = children(of: page.id).count
             if inside > 0 { out["children"] = inside }
         }

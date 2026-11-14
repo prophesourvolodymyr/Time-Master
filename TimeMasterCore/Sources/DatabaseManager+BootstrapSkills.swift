@@ -5,5 +5,6 @@ extension DatabaseManager {
         try bootstrapBundleSkills()
         try bootstrapMilestoneSkills()
         try bootstrapNoteSkills()
+        try bootstrapSkillPageSkills()
     }
 }

@@ -420,6 +420,7 @@ struct ExercisePageDetailView: View {
                         .foregroundStyle(Theme.textPrimary)
                     SkillBoardScreen(boardID: page.manifest.id)
                 }
+                SkillSubPagesSection(skill: page)
                 if !linkedPages.isEmpty {
                     attachedPagesSection
                 }

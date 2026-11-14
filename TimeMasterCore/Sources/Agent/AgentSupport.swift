@@ -34,7 +34,7 @@ public struct AgentToolError: Error, LocalizedError {
                 return AgentToolError("invalid_page", "That change is not allowed: \(reason).")
             case .writeFailed(let reason):
                 if reason.contains("media items") {
-                    return AgentToolError("media_limit", reason, hint: "A page holds up to 20 attachments.")
+                    return AgentToolError("media_limit", reason, hint: "Skill and tutorial pages hold up to 100 attachments, other pages up to 20.")
                 }
                 return AgentToolError("write_failed", reason)
             case .decodeFailed(let reason):

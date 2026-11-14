@@ -568,9 +568,6 @@ Find pages in the Tmax library.
             if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
                 throw FileSystemHelper.Error.invalidPageKind("note pages do not have workout timing")
             }
-            if let parentID, try getPage(id: parentID).pageType != nil {
-                throw FileSystemHelper.Error.invalidPageKind("notes live at the top level or inside folders, not inside exercises, skills or tutorials")
-            }
         case .skill, .tutorial:
             if manifest.duration != nil || manifest.restAfter != nil || manifest.prepareTime != nil || manifest.sets != nil || manifest.restBetweenSets != nil {
                 throw FileSystemHelper.Error.invalidPageKind("skill and tutorial pages do not have workout timing")
@@ -979,6 +976,11 @@ Find pages in the Tmax library.
         return filename
     }
 
+    /// Most media items one page keeps: a skill or tutorial collects many demonstration clips, other pages keep a few.
+    public static func mediaLimit(for page: ExercisePageManifest) -> Int {
+        page.pageType == .skill || page.pageType == .tutorial ? 100 : 20
+    }
+
     @discardableResult
     public func uploadMediaToPage(pageID: String, sourceURL: URL) throws -> String {
         let folder = try resolvePageFolder(id: pageID)
@@ -987,8 +989,9 @@ Find pages in the Tmax library.
         let ext = sourceURL.pathExtension.isEmpty ? "jpg" : sourceURL.pathExtension
         let filename = "\(UUID().uuidString).\(ext)"
         let manifest = try getPage(id: pageID)
-        guard manifest.mediaFilenames.count < 20 else {
-            throw FileSystemHelper.Error.writeFailed("A page can contain up to 20 media items.")
+        let limit = Self.mediaLimit(for: manifest)
+        guard manifest.mediaFilenames.count < limit else {
+            throw FileSystemHelper.Error.writeFailed("A page can contain up to \(limit) media items.")
         }
         let destination = mediaDir.appendingPathComponent(filename)
         try fs.copyItem(from: sourceURL, to: destination)

@@ -79,7 +79,7 @@ final class NotePageTests: XCTestCase {
         XCTAssertEqual(decoded.markdownBody, manifest.markdownBody)
     }
 
-    func testANoteLivesAtTheRootOrInAPlainFolderOnly() throws {
+    func testANoteLivesAtTheRootInAFolderOrInASkillButNotInAnExercise() throws {
         let plain = try folder("Study")
         XCTAssertEqual(try makeNote("Top").parentID, nil)
         let inside = try makeNote("Inside", parent: plain.id)
@@ -87,14 +87,21 @@ final class NotePageTests: XCTestCase {
 
         let skill = ExercisePageManifest(title: "Piano", pageType: .skill)
         try database.createPage(manifest: skill)
-        XCTAssertNotNil(failure { try self.database.createPage(manifest: ExercisePageManifest(title: "N", pageType: .note), parentID: skill.id) })
-        XCTAssertNotNil(failure { try self.database.movePage(id: inside.id, newParentID: skill.id, newOrder: 0) })
-        XCTAssertEqual(try database.getPage(id: inside.id).parentID, plain.id)
+        let underSkill = try makeNote("Theory", parent: skill.id)
+        XCTAssertEqual(try database.getPage(id: skill.id).childIDs, [underSkill.id])
+        try database.movePage(id: inside.id, newParentID: skill.id, newOrder: 1)
+        XCTAssertEqual(try database.getPage(id: inside.id).parentID, skill.id)
+        XCTAssertEqual(try database.getPage(id: skill.id).childIDs.count, 2)
+
+        let tutorial = ExercisePageManifest(title: "Chords", pageType: .tutorial)
+        try database.createPage(manifest: tutorial)
+        XCTAssertEqual(try makeNote("Chart", parent: tutorial.id).parentID, tutorial.id)
 
         let exercise = ExercisePageManifest(title: "Squat", pageKind: .leaf, duration: 30)
         try database.createPage(manifest: exercise)
         XCTAssertNotNil(failure { try self.database.createPage(manifest: ExercisePageManifest(title: "N", pageType: .note), parentID: exercise.id) })
         XCTAssertNotNil(failure { try self.database.createPage(manifest: ExercisePageManifest(title: "Child", pageKind: .leaf, duration: 30), parentID: inside.id) })
+        XCTAssertNotNil(failure { try self.database.createPage(manifest: ExercisePageManifest(title: "N2", pageType: .note), parentID: inside.id) })
     }
 
     func testANoteCanMoveBetweenFoldersAndTheRoot() throws {
@@ -203,10 +210,11 @@ final class NotePageTests: XCTestCase {
         try call("create_exercise_page", ["title": "Squat"])
         XCTAssertEqual((failure { _ = try self.call("create_note_page", ["title": "N", "parent": "Squat"]) } as? AgentToolError)?.code, "invalid_parent")
         try database.createPage(manifest: ExercisePageManifest(title: "Piano", pageType: .skill))
-        XCTAssertEqual((failure { _ = try self.call("create_note_page", ["title": "N", "parent": "Piano"]) } as? AgentToolError)?.code, "invalid_parent")
+        let underSkill = try call("create_note_page", ["title": "Theory", "parent": "Piano"])
+        XCTAssertEqual(underSkill["path"] as? String, "Piano/Theory")
         XCTAssertEqual((failure { _ = try self.call("create_note_page", ["title": "N", "images": [try self.picture("clip.mp4").path]]) } as? AgentToolError)?.code, "unsupported_media")
         XCTAssertEqual((failure { _ = try self.call("create_note_page", ["title": "N", "images": ["/nope/missing.jpg"]]) } as? AgentToolError)?.code, "file_not_found")
-        XCTAssertEqual(try AgentPageIndex(database: database).pages.count, 4)
+        XCTAssertEqual(try AgentPageIndex(database: database).pages.count, 5)
     }
 
     func testAnAgentReadsEditsAppendsMovesAndTrashesANote() throws {

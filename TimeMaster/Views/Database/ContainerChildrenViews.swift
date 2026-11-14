@@ -80,7 +80,7 @@ struct ContainerChildrenTabs: View {
     }
 }
 
-private struct ExerciseChildList: View {
+struct ExerciseChildList: View {
     let pages: [ExercisePage]
 
     var body: some View {

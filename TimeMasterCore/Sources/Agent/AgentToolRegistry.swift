@@ -123,7 +123,7 @@ public enum AgentToolRegistry {
         importVideo, batch, undo,
     ]
 
-    public static let tools: [AgentTool] = baseTools + bundleTools + milestoneTools + noteTools
+    public static let tools: [AgentTool] = baseTools + bundleTools + milestoneTools + noteTools + skillTools
 
     public static func tool(named name: String) -> AgentTool? {
         tools.first { $0.name == name }
@@ -161,7 +161,8 @@ public enum AgentToolRegistry {
     ## Tool use
     - Look before you write: call list_pages or search_pages and reference pages by the id they return. Never invent ids.
     - Exercise pages are workout-ready leaves; containers only organize. Put exercises inside the right container.
-    - Note pages are Markdown documents with pictures inside the text; they are never exercises and never go into workouts. Write them with create_note_page.
+    - Note pages are Markdown documents with pictures inside the text; they are never exercises and never go into workouts. Write them with create_note_page. A note can sit in a folder or inside a skill or tutorial page.
+    - Skill and tutorial pages (create_skill_page) are things to learn: Markdown notes, many video clips with a comment each, links, and sub-pages (sub-skills, exercises, notes). They sit in groups (create_skill_group) on their parent's skill board. Read them with get_page; search_pages also finds words inside notes and clip comments.
     - A workout section is one timed exercise or a bundle: several exercises played back to back for N sets. Drills played every few seconds are a bundle with short durations; read it back with get_workout.
     - Creating, editing and moving run immediately. Deleting asks the user to approve first; if the user declines, accept it and offer an alternative.
     - Keep arguments small and valid JSON. If a tool returns an error, read its hint and correct the call instead of repeating it.

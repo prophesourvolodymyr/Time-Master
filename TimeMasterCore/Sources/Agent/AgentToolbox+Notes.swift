@@ -42,8 +42,8 @@ extension AgentToolbox {
     }
 
     func applyIcon(_ icon: String, to page: inout ExercisePageManifest) throws {
-        guard page.pageType == .note else {
-            throw AgentToolError("invalid_page", "Only note pages take an icon here.")
+        guard page.pageType == .note || page.pageType == .skill || page.pageType == .tutorial else {
+            throw AgentToolError("invalid_page", "Only note, skill and tutorial pages take an icon here.")
         }
         let clean = icon.trimmingCharacters(in: .whitespacesAndNewlines)
         page.iconName = clean.isEmpty ? nil : clean
@@ -79,11 +79,9 @@ extension AgentToolbox {
         let parent = try args.string("parent").map { try index.resolve($0) }
         if let parent {
             switch parent.pageType {
-            case nil: break
-            case .skill?, .tutorial?:
-                throw AgentToolError("invalid_parent", "'\(parent.title)' is a \(index.kind(parent)); notes cannot live inside skills or tutorials.", hint: "Choose a folder with list_pages, or omit parent for the root.")
+            case nil, .skill?, .tutorial?: break
             case .exercise?, .note?:
-                throw AgentToolError("invalid_parent", "'\(parent.title)' is \(parent.pageType == .note ? "a note" : "an exercise page") and cannot contain other pages.", hint: "Choose a folder with list_pages.")
+                throw AgentToolError("invalid_parent", "'\(parent.title)' is \(parent.pageType == .note ? "a note" : "an exercise page") and cannot contain other pages.", hint: "Choose a folder or a skill with list_pages.")
             }
         }
         if let existing = index.children(of: parent?.id).first(where: { AgentValue.fold($0.title) == AgentValue.fold(title) }) {
