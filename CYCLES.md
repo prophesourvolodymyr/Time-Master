@@ -3005,6 +3005,17 @@ User direction: add five Instagram reels with their own words: two with no place
 - [ ] Human review: the names marked descriptive or medium confidence (Loop Statodynamic Squat Hold, Copenhagen Plank With Knee Tuck, Standing Bundle Throw, the 2⁄1 and 1⁄2 turns); the loop-squat clip is 86 seconds because the rigging is part of it; not seen on screen
 - [ ] Open: the disk is almost full (macOS swap and other apps' caches take most of it); the library and the app can fail to save when it hits zero
 
+## Cycle 67 — 8-week training camp in the library (fight + handstand performance) — 2026-11-15
+- [x] Research by four agents from professional coaches and studies: boxing from zero to a first fight, wrestling from zero (for MMA), handstand → one-arm / straddle press / planche / pancake / toes-to-bar, and the science underneath it (Nate Belmar checked, food before training, morning vs evening, periodization and taper, recovery checks, injuries). Saved as notes in `8-Week Camp/Research`
+- [x] Missing beginner techniques added from coach videos as short cut clips with notes: 14 new boxing skills (stance, step-drag, cross, double jab, jab to the body, block, step back, lean back, roll under a hook, body shots, cutting off the ring, getting off the ropes, corner escapes) plus extra clips on Jab, Slip, Parry, Uppercut and Hook; 10 new wrestling skills and 15 exercises (wall get-up, double leg finish, single leg finishes, double-to-single chain, body lock trip, sprawl with head control, hand fighting quadrants…); tuck planche, PNF pancake, hollow body hold, toe taps and chest-to-wall shrugs
+- [x] 21 new plain pages the sessions needed (hill sprint 20 m, sprint warm-up drills, shadow/bag/mitt/sparring rounds, Soviet boxing finisher, ring support hold, frog stand, straddle press negative, handstand transitions, toes-to-bar top-down hold, loaded pancake, gym lifts, stance-and-motion call-out drill…)
+- [x] Folder `8-Week Camp`: notes Camp Overview, Fuel & Timing, Morning Check-In & When to Back Off, Equipment to Buy; tutorials Camp Plan & Weekly Schedule, Boxing: Zero to Fight-Ready (31 milestones in 6 stages), Wrestling: Zero to Fight-Ready (21 in 4 stages), Handstand, Press, Planche & Flexibility (54 in 4 tracks)
+- [x] 59 workouts named `Camp <phase> · <day> <AM|PM> · <content>` (weeks 1-3, 4 deload, 5-6, 7 taper start, 8 fight week) plus `Camp · Checkpoint Tests`; durations fitted to the planned block minutes (mornings about 60 min, evenings about 90)
+- [x] The schedule as a to-do list: one section per week, one entry per session linked to its workout, Sunday rest, phase notes (first sparring week 3, peak week 6, last hard sparring week 7 Tuesday, no contact from D-4), plus 12 camp milestones
+- [x] Found while rebuilding: `tmax undo --help` ran an undo instead of printing help (it reverted the batch it was checking; that batch was being rebuilt anyway). `undo` now prints its usage for `--help`/`-h`
+- [ ] Human review: the weekly layout and loads, the honest expectations (clean one-arm handstand unlikely in 8 weeks; first straddle press weeks 6-8 possible), the fight assumptions (amateur, 3 x 3 min, Saturday of week 8, a coach and partners twice a week)
+- [ ] Open: the fight date and format, weigh-in, and whether the handstand performance is on the same day; slide week 8 to match
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).

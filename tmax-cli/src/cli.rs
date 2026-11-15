@@ -259,6 +259,10 @@ fn batch(rest: &[String]) -> Result<Option<Value>, Failure> {
 
 fn undo(rest: &[String]) -> Result<Option<Value>, Failure> {
     let options = parse(rest)?;
+    if options.help {
+        println!("tmax undo [batch] — reverse the last agent batch, or the batch with this id (creations, attachments and notes; created pages and workouts go to the trash).");
+        return Ok(None);
+    }
     let mut arguments = json!({});
     if let Some(id) = options.positional.first() {
         arguments["batch"] = json!(id);
