@@ -66,6 +66,11 @@ struct OutdoorLibraryContent<Handle: View>: View {
             }
         }
         .onChange(of: searchPresented) { if !$0 { typeFilter = .all } }
+        .findCommand {
+            guard selectedActivityID == nil else { return false }
+            searchPresented = true
+            return true
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(selectedActivityID == nil ? "Outdoor workout library" : "Outdoor workout details")
     }

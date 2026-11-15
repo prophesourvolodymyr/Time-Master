@@ -29,6 +29,8 @@ class WorkoutStore: ObservableObject {
     @Published var restDays: Set<String> = []
     @Published var typeSchedules: [TypeSchedule] = []
     @Published var customWorkoutTypes: [WorkoutType] = []
+    /// The titled sections on the Workouts page, in the user's order.
+    @Published var workoutGroups: [WorkoutGroup] = []
 
     // MARK: - Training Schedule (global)
     @Published var trainingDays: Set<Int> = []
@@ -46,6 +48,7 @@ class WorkoutStore: ObservableObject {
             loadRestDays()
             loadSchedules()
             loadCustomTypes()
+            loadWorkoutGroups()
             loadTrainingSchedule()
             loadGoal()
             if workouts.isEmpty {
@@ -75,6 +78,7 @@ class WorkoutStore: ObservableObject {
             config = ConfigManifest()
         }
         customWorkoutTypes = config.customWorkoutTypes.map { WorkoutType(core: $0) }
+        workoutGroups = config.workoutGroups.map(WorkoutGroup.init(core:))
         restDays = Set(config.restDays)
         let goalVal = config.weeklyGoal
         if goalVal >= 1, goalVal <= 7 { weeklyGoal = goalVal }
@@ -142,6 +146,7 @@ class WorkoutStore: ObservableObject {
             }
         }
         workouts.removeAll { $0.id == workout.id }
+        removeFromWorkoutGroups(workout.id)
         if isMigrated {
             try? DatabaseManager.shared.deleteWorkout(id: workout.id.uuidString)
         }
@@ -172,6 +177,7 @@ class WorkoutStore: ObservableObject {
         clonedWorkout.sections = newSections
 
         workouts.append(clonedWorkout)
+        placeClone(clonedWorkout.id, after: workout.id)
         saveWorkouts()
     }
 
@@ -721,7 +727,7 @@ class WorkoutStore: ObservableObject {
         }
     }
 
-    private func saveConfigToFileSystem() {
+    func saveConfigToFileSystem() {
         let db = DatabaseManager.shared
         guard var config = try? db.loadConfig() else { return }
         config.typeSchedules = typeSchedules.map {
@@ -739,6 +745,7 @@ class WorkoutStore: ObservableObject {
             )
         }
         config.customWorkoutTypes = customWorkoutTypes.map(\.core)
+        config.workoutGroups = workoutGroups.map(\.core)
         config.restDays = Array(restDays).sorted()
         config.trainingDays = Array(trainingDays).sorted()
         config.trainingStartDate = trainingStartDate

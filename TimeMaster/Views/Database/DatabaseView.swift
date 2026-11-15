@@ -502,6 +502,10 @@ struct DatabaseView: View {
                 handleDatabaseImport(result)
             }
         }
+        .findCommand {
+            if !showingDatabaseSearch { showingDatabaseSearch = true }
+            return true
+        }
     }
 
     private var databaseV2Content: some View {
@@ -1206,6 +1210,7 @@ private struct DatabaseSearchSheet: View {
     @EnvironmentObject private var store: DatabaseStore
     @StateObject private var navigationState = DatabaseNavigationState()
     @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
 
     private var results: [ExercisePage] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1229,6 +1234,7 @@ private struct DatabaseSearchSheet: View {
                         TextField("Search every page", text: $searchText)
                             .textFieldStyle(.plain)
                             .foregroundStyle(Theme.textPrimary)
+                            .focused($searchFocused)
                         if !searchText.isEmpty {
                             Button {
                                 searchText = ""
@@ -1336,6 +1342,12 @@ private struct DatabaseSearchSheet: View {
             }
         }
         .environmentObject(navigationState)
+        .onAppear { searchFocused = true }
+        .findCommand {
+            navigationState.path = NavigationPath()
+            searchFocused = true
+            return true
+        }
     }
     private func searchTypeLabel(_ page: ExercisePage) -> String {
         switch page.pageType {

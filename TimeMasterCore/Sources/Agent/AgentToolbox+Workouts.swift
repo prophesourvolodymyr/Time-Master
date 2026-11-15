@@ -141,11 +141,14 @@ extension AgentToolbox {
     func listWorkouts() throws -> AgentToolOutput {
         let all = try database.listWorkouts().sorted { $0.name < $1.name }
         let repeated = Set(Dictionary(grouping: all, by: { AgentValue.fold($0.name) }).filter { $0.value.count > 1 }.keys)
+        let groups = (try? database.loadConfig())?.workoutGroups ?? []
+        let groupTitles = Dictionary(groups.flatMap { group in group.workoutIDs.map { ($0, group.title) } }, uniquingKeysWith: { first, _ in first })
         let items = all.map { workout -> [String: Any] in
             var item: [String: Any] = ["name": workout.name, "type": workout.type.name, "sections": workout.sections.count, "totalSeconds": workout.totalDuration]
             let bundles = workout.sections.filter { $0.mode == .bundle }.count
             if bundles > 0 { item["bundles"] = bundles }
             if repeated.contains(AgentValue.fold(workout.name)) { item["id"] = workout.id }
+            if let group = groupTitles[workout.id] { item["group"] = group }
             return item
         }
         return AgentToolOutput(value: ["workouts": items])
@@ -206,6 +209,7 @@ extension AgentToolbox {
         let workout = try findWorkout(try args.requiredString("workout"))
         if dryRun { return AgentToolOutput(value: ["dryRun": true, "wouldTrash": workout.name]) }
         try database.deleteWorkout(id: workout.id)
+        try? removeWorkoutFromGroups(workout.id)
         return AgentToolOutput(value: ["trashed": workout.name, "id": workout.id])
     }
 

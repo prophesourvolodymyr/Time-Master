@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 import TimeMasterCore
 #if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
 #endif
 
 struct MainTabView: View {
@@ -322,6 +324,7 @@ struct MainTabView: View {
 #if os(macOS)
     private func handleKeyPress(_ keyPress: KeyPress) -> KeyPress.Result {
         guard selectedPage != .physique,
+              !Self.isTyping,
               let character = keyPress.characters.first,
               let number = Int(String(character)),
               number > 0,
@@ -330,6 +333,12 @@ struct MainTabView: View {
         }
         selectedDestination = navigationLayout.order[number - 1].rawValue
         return .handled
+    }
+
+    /// A text field or text view has the keyboard: digits are text, not page shortcuts.
+    private static var isTyping: Bool {
+        guard let responder = NSApp.keyWindow?.firstResponder else { return false }
+        return responder is NSText || responder is NSTextField
     }
 
     private func moveSelection(by delta: Int) {

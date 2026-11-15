@@ -46,6 +46,7 @@ public final class AgentToolbox {
         case "batch": return try batch(args, dryRun: dryRun)
         default:
             if let output = try runBundleTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runWorkoutGroupTool(name, args, dryRun: dryRun) { return output }
             if let output = try runMilestoneTool(name, args, dryRun: dryRun) { return output }
             if let output = try runNoteTool(name, args, dryRun: dryRun) { return output }
             if let output = try runSkillTool(name, args, dryRun: dryRun) { return output }
@@ -82,7 +83,11 @@ public final class AgentToolbox {
                     notes.append("Removed attachment \(filename) from \(pageID).")
                 case .createdWorkout(let id):
                     try database.deleteWorkout(id: id)
+                    try? removeWorkoutFromGroups(id)
                     notes.append("Moved workout \(id) to the trash.")
+                case .createdWorkoutGroup(let id):
+                    try removeWorkoutGroup(id: id)
+                    notes.append("Removed workout group \(id); its workouts stay saved.")
                 case .changedMarkdown(let pageID, let previous):
                     var page = try database.getPage(id: pageID)
                     page.markdownBody = previous
@@ -130,6 +135,7 @@ extension AgentToolbox {
                 "Attach media by absolute path; the app copies it. The first item is the cover.",
                 "Deletes go to the trash. dryRun previews a write.",
                 "A workout section is one timed exercise or a bundle: several exercises played back to back (each with its own seconds and rest) for N sets, in order or shuffled. Build with build_workout, change with add_workout_section, update_workout_section and remove_workout_section.",
+                "Workout groups are the titled sections on the Workouts page that hold whole workouts in the user's order (create_workout_group, update_workout_group, list_workout_groups). They are not the sections inside a workout.",
             ],
         ])
     }

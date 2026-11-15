@@ -17,6 +17,7 @@ struct MusicLibraryScreen: View {
     @State private var pendingDeletion: MusicLibraryItem?
     @State private var searchPresented = false
     @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
     @State private var enabledProviders = Set<MusicProvider>()
     @State private var providerMessage: String?
     @State private var guidePresented = false
@@ -63,6 +64,16 @@ struct MusicLibraryScreen: View {
                 if searchPresented { searchOverlay.keyNavHost() }
         }
         .font(TimeMasterFont.body())
+        .findCommand {
+            guard selectingItem == nil, pendingTransfer == nil else { return false }
+            if !searchPresented {
+                enabledProviders.removeAll()
+                searchText = ""
+                searchPresented = true
+            }
+            searchFocused = true
+            return true
+        }
         .animation(reduceMotion ? .none : .spring(response: 0.58, dampingFraction: 0.86), value: isWorkoutFocused)
         .animation(reduceMotion ? .none : .spring(response: 0.42, dampingFraction: 0.88), value: playingItem?.id)
         .alert("Remove Music", isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } })) {
@@ -427,6 +438,8 @@ struct MusicLibraryScreen: View {
                 HStack {
                     Button { searchPresented = false } label: { Image(systemName: "chevron.left") }.buttonStyle(.plain).padding(8).keyNavTarget(shape: .circle).padding(-8).accessibilityLabel("Back to Music")
                     TextField("Search music", text: $searchText).textFieldStyle(.plain).padding(10).background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12)).keyNavTarget(shape: .roundedRectangle(cornerRadius: 12))
+                        .focused($searchFocused)
+                        .onAppear { searchFocused = true }
                     ForEach([MusicProvider.spotify, .youtubeMusic, .soundCloud], id: \.self) { provider in
                         Button { toggle(provider) } label: {
                             providerLogo(provider).padding(6).frame(width: 34, height: 34)

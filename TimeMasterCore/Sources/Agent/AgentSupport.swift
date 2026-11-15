@@ -53,6 +53,7 @@ public enum AgentEffect: Codable, Equatable {
     case createdWorkout(id: String)
     case changedMarkdown(pageID: String, previous: String)
     case addedChecklistEntry(pageID: String, list: String, id: String)
+    case createdWorkoutGroup(id: String)
 }
 
 public struct AgentToolOutput {

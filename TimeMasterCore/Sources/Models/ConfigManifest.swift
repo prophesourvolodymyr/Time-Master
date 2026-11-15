@@ -177,6 +177,40 @@ public struct TypeScheduleManifest: Codable, Equatable {
     }
 }
 
+/// A titled section on the Workouts page that holds workouts in the order the user put them. The sections themselves
+/// keep the order of the array: nothing sorts them.
+public struct WorkoutGroupManifest: Codable, Equatable, Identifiable, Sendable {
+    public var id: String
+    public var title: String
+    /// An SF Symbol name or an emoji; empty draws the default section symbol.
+    public var icon: String
+    public var iconType: SkillBoardIconType?
+    public var workoutIDs: [String]
+
+    public init(id: String = UUID().uuidString, title: String, icon: String = "", iconType: SkillBoardIconType? = nil, workoutIDs: [String] = []) {
+        self.id = id
+        self.title = title
+        self.icon = icon
+        self.iconType = iconType
+        self.workoutIDs = workoutIDs
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, icon, iconType, workoutIDs
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try c.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString,
+            title: try c.decodeIfPresent(String.self, forKey: .title) ?? "",
+            icon: try c.decodeIfPresent(String.self, forKey: .icon) ?? "",
+            iconType: try c.decodeIfPresent(SkillBoardIconType.self, forKey: .iconType),
+            workoutIDs: try c.decodeIfPresent([String].self, forKey: .workoutIDs) ?? []
+        )
+    }
+}
+
 public struct ConfigManifest: Codable, Equatable {
     public var customWorkoutTypes: [WorkoutType]
     public var weeklyGoal: Int
@@ -187,6 +221,7 @@ public struct ConfigManifest: Codable, Equatable {
     public var typeSchedules: [TypeScheduleManifest]
     public var outdoorRecording: OutdoorRecordingPreferences?
     public var workoutSchedule: WeeklyWorkoutSchedule?
+    public var workoutGroups: [WorkoutGroupManifest]
 
     public var kind: String { "config" }
 
@@ -199,7 +234,8 @@ public struct ConfigManifest: Codable, Equatable {
         trainingDurationMonths: Int = 3,
         typeSchedules: [TypeScheduleManifest] = [],
         outdoorRecording: OutdoorRecordingPreferences? = nil,
-        workoutSchedule: WeeklyWorkoutSchedule? = nil
+        workoutSchedule: WeeklyWorkoutSchedule? = nil,
+        workoutGroups: [WorkoutGroupManifest] = []
     ) {
         self.customWorkoutTypes = customWorkoutTypes
         self.weeklyGoal = max(1, min(7, weeklyGoal))
@@ -210,11 +246,12 @@ public struct ConfigManifest: Codable, Equatable {
         self.typeSchedules = typeSchedules
         self.outdoorRecording = outdoorRecording
         self.workoutSchedule = workoutSchedule
+        self.workoutGroups = workoutGroups
     }
  
     private enum CodingKeys: String, CodingKey {
         case customWorkoutTypes, weeklyGoal, restDays, trainingDays, trainingStartDate
-        case trainingDurationMonths, typeSchedules, outdoorRecording, workoutSchedule
+        case trainingDurationMonths, typeSchedules, outdoorRecording, workoutSchedule, workoutGroups
     }
 
     public init(from decoder: Decoder) throws {
@@ -228,7 +265,8 @@ public struct ConfigManifest: Codable, Equatable {
             trainingDurationMonths: try c.decodeIfPresent(Int.self, forKey: .trainingDurationMonths) ?? 3,
             typeSchedules: try c.decodeIfPresent([TypeScheduleManifest].self, forKey: .typeSchedules) ?? [],
             outdoorRecording: try c.decodeIfPresent(OutdoorRecordingPreferences.self, forKey: .outdoorRecording),
-            workoutSchedule: try c.decodeIfPresent(WeeklyWorkoutSchedule.self, forKey: .workoutSchedule)
+            workoutSchedule: try c.decodeIfPresent(WeeklyWorkoutSchedule.self, forKey: .workoutSchedule),
+            workoutGroups: try c.decodeIfPresent([WorkoutGroupManifest].self, forKey: .workoutGroups) ?? []
         )
     }
 
@@ -243,5 +281,6 @@ public struct ConfigManifest: Codable, Equatable {
         try c.encode(typeSchedules, forKey: .typeSchedules)
         try c.encodeIfPresent(outdoorRecording, forKey: .outdoorRecording)
         try c.encodeIfPresent(workoutSchedule, forKey: .workoutSchedule)
+        if !workoutGroups.isEmpty { try c.encode(workoutGroups, forKey: .workoutGroups) }
     }
 }

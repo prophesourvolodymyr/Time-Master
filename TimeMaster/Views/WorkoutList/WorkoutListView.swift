@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import TimeMasterCore
 #if os(iOS)
 import UIKit
 #endif
@@ -25,6 +26,10 @@ struct WorkoutListView: View {
     @State private var showingSearch = false
     @FocusState private var searchFieldFocused: Bool
     @State private var playerWorkout: Workout?
+    @State private var groupEditor: WorkoutGroupEditorRequest?
+    @State private var groupPendingDeletion: WorkoutGroup?
+    @State private var dropTargetID: String?
+    @AppStorage("workouts.collapsedSections") private var collapsedSectionsRaw = ""
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     #endif
@@ -58,6 +63,26 @@ struct WorkoutListView: View {
             .oneHandedActions(id: "workouts", actions: oneHandedActions)
             .sheet(isPresented: $showingAddWorkout) {
                 addWorkoutSheet.keyNavHost()
+            }
+            .sheet(item: $groupEditor) { request in
+                WorkoutGroupEditorSheet(group: request.group) { title, icon, iconType in
+                    saveGroup(request, title: title, icon: icon, iconType: iconType)
+                } onCancel: {
+                    groupEditor = nil
+                }
+                .keyNavHost()
+            }
+            .alert(
+                groupPendingDeletion.map { "Delete “\($0.title)”?" } ?? "",
+                isPresented: Binding(get: { groupPendingDeletion != nil }, set: { if !$0 { groupPendingDeletion = nil } }),
+                presenting: groupPendingDeletion
+            ) { group in
+                Button("Delete Section", role: .destructive) {
+                    withAnimation(.smooth(duration: 0.2)) { store.deleteWorkoutGroup(id: group.id) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("Its workouts stay saved and move out of the section.")
             }
             .workoutPlayerPage(item: $playerWorkout) { workout in
                 WorkoutPlayerView(workout: workout)
@@ -94,6 +119,15 @@ struct WorkoutListView: View {
             .onReceive(NotificationCenter.default.publisher(for: .newWorkoutCommand)) { _ in
                 showingAddWorkout = true
             }
+        }
+        .findCommand {
+            guard navigationPath.isEmpty, playerWorkout == nil, !showingAddWorkout, groupEditor == nil, !store.workouts.isEmpty else { return false }
+            if showingSearch {
+                searchFieldFocused = true
+            } else {
+                withAnimation(.smooth(duration: 0.2)) { showingSearch = true }
+            }
+            return true
         }
         .font(TimeMasterFont.body())
     }
@@ -172,48 +206,283 @@ struct WorkoutListView: View {
             if visibleWorkouts.isEmpty {
                 filteredEmptyState
             } else {
-                LazyVStack(spacing: 12) {
-                    ForEach(visibleWorkouts) { workout in
-                        NavigationLink(value: workout) {
-                            workoutCardLabel(for: workout)
-                        }
-                        .buttonStyle(TimeMasterCardButtonStyle())
-                        .contextMenu {
-                            Button {
-                                playerWorkout = workout
-                            } label: {
-                                Label("Start Workout", systemImage: "play.fill")
-                            }
-                            .disabled(workout.sections.isEmpty)
-
-                            Button {
-                                pinToWidget(workout)
-                            } label: {
-                                Label("Pin to Widget", systemImage: "pin")
-                            }
-
-                            Button {
-                                store.cloneWorkout(workout)
-                            } label: {
-                                Label("Duplicate", systemImage: "plus.square.on.square")
-                            }
-
-                            Divider()
-
-                            Button(role: .destructive) {
-                                store.deleteWorkout(workout)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-                }
+                groupedWorkouts
             }
         }
         .frame(maxWidth: Self.contentMaxWidth, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.top, 4)
         .padding(.bottom, 18)
+    }
+
+    // MARK: - Sections
+
+    private static let looseSectionKey = "other"
+
+    private var isFiltering: Bool {
+        showingTodayOnly || selectedTypeID != nil || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var collapsedSections: Set<String> {
+        Set(collapsedSectionsRaw.split(separator: ",").map(String.init))
+    }
+
+    /// While filtering every section is open, so no match hides behind a fold.
+    private func isCollapsed(_ key: String) -> Bool {
+        !isFiltering && collapsedSections.contains(key)
+    }
+
+    private func toggleCollapsed(_ key: String) {
+        var keys = collapsedSections
+        if keys.remove(key) == nil { keys.insert(key) }
+        withAnimation(.smooth(duration: 0.2)) {
+            collapsedSectionsRaw = keys.sorted().joined(separator: ",")
+        }
+    }
+
+    private var groupedWorkouts: some View {
+        let visible = visibleWorkouts
+        let byID = Dictionary(visible.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let grouped = Set(store.workoutGroups.flatMap(\.workoutIDs))
+        let loose = visible.filter { !grouped.contains($0.id) }
+        let groups = store.workoutGroups
+
+        return LazyVStack(alignment: .leading, spacing: 12) {
+            ForEach(groups) { group in
+                let members = group.workoutIDs.compactMap { byID[$0] }
+                if !isFiltering || !members.isEmpty {
+                    groupHeader(group, count: members.count, isFirst: group.id == groups.first?.id, isLast: group.id == groups.last?.id)
+                    if !isCollapsed(group.id.uuidString) {
+                        if members.isEmpty {
+                            WorkoutGroupDropZone(isTargeted: dropTargetID == "zone:\(group.id)")
+                                .dropDestination(for: String.self) { items, _ in
+                                    drop(items, onGroup: group.id)
+                                } isTargeted: { setDropTarget("zone:\(group.id)", $0) }
+                        }
+                        ForEach(members) { workout in
+                            workoutRow(workout, in: group)
+                        }
+                    }
+                }
+            }
+            if !loose.isEmpty {
+                if !groups.isEmpty {
+                    looseHeader(count: loose.count)
+                }
+                if groups.isEmpty || !isCollapsed(Self.looseSectionKey) {
+                    ForEach(loose) { workout in
+                        workoutRow(workout, in: nil)
+                    }
+                }
+            }
+            if !isFiltering {
+                NewWorkoutGroupButton { groupEditor = WorkoutGroupEditorRequest() }
+                    .padding(.top, 6)
+            }
+        }
+    }
+
+    private func groupHeader(_ group: WorkoutGroup, count: Int, isFirst: Bool, isLast: Bool) -> some View {
+        WorkoutGroupHeader(
+            title: group.title,
+            icon: group.icon,
+            iconType: group.iconType,
+            count: count,
+            isCollapsed: isCollapsed(group.id.uuidString),
+            isDropTarget: dropTargetID == "group:\(group.id)"
+        ) {
+            toggleCollapsed(group.id.uuidString)
+        }
+        .padding(.top, isFirst ? 0 : 14)
+        .contextMenu {
+            Button {
+                groupEditor = WorkoutGroupEditorRequest(group: group)
+            } label: {
+                Label("Edit Section", systemImage: "pencil")
+            }
+            Button {
+                withAnimation(.smooth(duration: 0.2)) { store.moveWorkoutGroup(group.id, by: -1) }
+            } label: {
+                Label("Move Up", systemImage: "arrow.up")
+            }
+            .disabled(isFirst)
+            Button {
+                withAnimation(.smooth(duration: 0.2)) { store.moveWorkoutGroup(group.id, by: 1) }
+            } label: {
+                Label("Move Down", systemImage: "arrow.down")
+            }
+            .disabled(isLast)
+            Divider()
+            Button(role: .destructive) {
+                groupPendingDeletion = group
+            } label: {
+                Label("Delete Section", systemImage: "trash")
+            }
+        }
+        .draggable(WorkoutListDrag.group(group.id).payload) {
+            dragPreview(title: group.title, systemImage: "square.stack.fill")
+        }
+        .dropDestination(for: String.self) { items, _ in
+            drop(items, onGroup: group.id)
+        } isTargeted: { setDropTarget("group:\(group.id)", $0) }
+    }
+
+    private func looseHeader(count: Int) -> some View {
+        WorkoutGroupHeader(
+            title: "Other Workouts",
+            icon: "tray.fill",
+            iconType: .system,
+            count: count,
+            isCollapsed: isCollapsed(Self.looseSectionKey),
+            isDropTarget: dropTargetID == "group:\(Self.looseSectionKey)"
+        ) {
+            toggleCollapsed(Self.looseSectionKey)
+        }
+        .padding(.top, 14)
+        .dropDestination(for: String.self) { items, _ in
+            drop(items, onGroup: nil)
+        } isTargeted: { setDropTarget("group:\(Self.looseSectionKey)", $0) }
+    }
+
+    private func workoutRow(_ workout: Workout, in group: WorkoutGroup?) -> some View {
+        NavigationLink(value: workout) {
+            workoutCardLabel(for: workout)
+        }
+        .buttonStyle(TimeMasterCardButtonStyle())
+        .contextMenu {
+            Button {
+                playerWorkout = workout
+            } label: {
+                Label("Start Workout", systemImage: "play.fill")
+            }
+            .disabled(workout.sections.isEmpty)
+
+            Button {
+                pinToWidget(workout)
+            } label: {
+                Label("Pin to Widget", systemImage: "pin")
+            }
+
+            Button {
+                store.cloneWorkout(workout)
+            } label: {
+                Label("Duplicate", systemImage: "plus.square.on.square")
+            }
+
+            moveToSectionMenu(workout, current: group)
+
+            Divider()
+
+            Button(role: .destructive) {
+                store.deleteWorkout(workout)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .draggable(WorkoutListDrag.workout(workout.id).payload) {
+            dragPreview(title: workout.name, systemImage: workout.type.icon)
+        }
+        .dropDestination(for: String.self) { items, _ in
+            drop(items, onWorkout: workout.id, in: group?.id)
+        } isTargeted: { setDropTarget("workout:\(workout.id)", $0) }
+        .overlay(alignment: .top) {
+            if dropTargetID == "workout:\(workout.id)" {
+                Capsule()
+                    .fill(Theme.toolbarOrange)
+                    .frame(height: 3)
+                    .offset(y: -7)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func moveToSectionMenu(_ workout: Workout, current: WorkoutGroup?) -> some View {
+        Menu {
+            ForEach(store.workoutGroups) { target in
+                Button {
+                    withAnimation(.smooth(duration: 0.2)) { store.moveWorkout(workout.id, toGroup: target.id) }
+                } label: {
+                    if target.id == current?.id {
+                        Label(target.title, systemImage: "checkmark")
+                    } else {
+                        Text(target.title)
+                    }
+                }
+                .disabled(target.id == current?.id)
+            }
+            if current != nil {
+                Divider()
+                Button("No Section") {
+                    withAnimation(.smooth(duration: 0.2)) { store.moveWorkout(workout.id, toGroup: nil) }
+                }
+            }
+            Divider()
+            Button("New Section…") {
+                groupEditor = WorkoutGroupEditorRequest(workoutToMove: workout.id)
+            }
+        } label: {
+            Label("Move to Section", systemImage: "rectangle.stack")
+        }
+    }
+
+    private func dragPreview(title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+            .foregroundStyle(Theme.textPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Theme.surface2, in: Capsule())
+    }
+
+    private func setDropTarget(_ key: String, _ isTargeted: Bool) {
+        if isTargeted {
+            dropTargetID = key
+        } else if dropTargetID == key {
+            dropTargetID = nil
+        }
+    }
+
+    /// A workout dropped on a section title goes to the end of that section; a section dropped on another takes its
+    /// place. Nil is "Other Workouts": a workout leaves its section, a section moves to the bottom.
+    private func drop(_ items: [String], onGroup groupID: UUID?) -> Bool {
+        guard let item = items.lazy.compactMap(WorkoutListDrag.init).first else { return false }
+        withAnimation(.smooth(duration: 0.2)) {
+            switch item {
+            case .workout(let id):
+                store.moveWorkout(id, toGroup: groupID)
+            case .group(let id):
+                if let groupID { store.moveWorkoutGroup(id, onto: groupID) } else { store.moveWorkoutGroupToEnd(id) }
+            }
+        }
+        dropTargetID = nil
+        return true
+    }
+
+    /// A workout dropped on another one takes its place in that workout's section.
+    private func drop(_ items: [String], onWorkout targetID: UUID, in groupID: UUID?) -> Bool {
+        guard let item = items.lazy.compactMap(WorkoutListDrag.init).first else { return false }
+        if case .workout(let id) = item {
+            withAnimation(.smooth(duration: 0.2)) { store.moveWorkout(id, toGroup: groupID, at: targetID) }
+            dropTargetID = nil
+            return true
+        }
+        return drop(items, onGroup: groupID)
+    }
+
+    private func saveGroup(_ request: WorkoutGroupEditorRequest, title: String, icon: String, iconType: SkillBoardIconType?) {
+        if let group = request.group {
+            store.updateWorkoutGroup(id: group.id, title: title, icon: icon, iconType: iconType)
+        } else {
+            withAnimation(.smooth(duration: 0.2)) {
+                let created = store.addWorkoutGroup(title: title, icon: icon, iconType: iconType)
+                if let workoutID = request.workoutToMove {
+                    store.moveWorkout(workoutID, toGroup: created.id)
+                }
+            }
+        }
+        groupEditor = nil
     }
 
     private var oneHandedActions: [ReachabilityAction] {
