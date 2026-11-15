@@ -2991,6 +2991,19 @@ User direction (voice-dictated, with screenshots): summarise what the plyometric
 - [ ] Human review: whether the clips are the ones you want (weaker ones: Push-ups is only about 2.5 reps, Scapular Pulls is a subtle rear view, Jump Squats and Glute Bridges carry a small caption and watermark); not seen on screen (covers checked through `tmax get_page` and the page manifests only)
 - [ ] Open: the Knowledge folder holds only notes, so it has no cover; say if it should get one
 
+## Cycle 66 — Five more reels added to the library (the same ingest, run for five links) — 2026-11-15
+
+User direction: add five Instagram reels with their own words: two with no placement ("add this one", "this one"), one "good to do in home", one "goes to calisthenics as a skill + exercises", one "to wrestling skill". Pure databasing, no schedules; no screen pictures and no focus changes (everything ran through the `tmax` command).
+
+- [x] Downloaded with yt-dlp, prepared (transcript, on-screen text, scene cuts, contact sheets, the user's note in each brief) and analysed by five `sonnet-medium` agents (one per reel); the parent looked at frames of every cut clip. A new helper in the ingest folder (`add_new.py`) adds analysed videos to the running library without touching the rest: a movement that already has a page gets the clip as an extra attachment (and the source link), a new movement gets a page, and everything went in with one atomic `tmax batch`
+- [x] `Calisthenics/L-Sit/Straddle L-Sit` (new skill under the existing L-Sit skill, from Ivan Lysiuk's "Straddle / L Support" tutorial) with nine new exercise pages inside it (Straddle Seated Leg Lifts, Straddle L-Sit Hold, Banded L-Sit Hold, L-Sit Leg Sweeps, Straddle L-Sit Leg Sweeps, Straddle L-Sit 2⁄1 Turns, L-Sit 2⁄1 Turns, Straddle to L-Sit Transition, Straddle L-Sit 1⁄2 Turns; the creator's step labels, whose "2⁄1" and "1⁄2" meaning is not explained in the reel) and a note with the step list; the tutorial's first step is an existing page, so its clip became a third clip of `Calisthenics/L-Sit/Seated Leg Lifts`
+- [x] `Wrestling/Standing Bundle Throw` (new skill, group Throws, from JJ Howland's reel; named after his own post, medium confidence) with the six caption steps, cues, the "kick through, not to" mistake and a note inside
+- [x] Good to do at home: `Strength & Conditioning/Core & Lower Back/Copenhagen Plank With Knee Tuck` carries "Good to do at home (user note on the source reel)" and its equipment (two couches or raised surfaces) in its notes; the name comes from a web search because the creator names nothing (medium confidence)
+- [x] No placement given, classified from the footage: `Strength & Conditioning/Force Absorption & Hips/Hamstring Switches` (Lucas Tailin, the on-screen name, with a note on why it transfers to sprinting) and `Strength & Conditioning/Bands & Cords/Loop Statodynamic Squat Hold` (a rubber-loop exercise from the Bendwrestling creator, Russian, translated; no established name, so a descriptive one) with a note holding the rigging steps and the creator research
+- [x] Result: 2 skills, 12 new exercises, 1 extra clip, 4 notes; every page read back (clips exist in the library folders, source links set); the disk had under 450 MB free the whole time
+- [ ] Human review: the names marked descriptive or medium confidence (Loop Statodynamic Squat Hold, Copenhagen Plank With Knee Tuck, Standing Bundle Throw, the 2⁄1 and 1⁄2 turns); the loop-squat clip is 86 seconds because the rigging is part of it; not seen on screen
+- [ ] Open: the disk is almost full (macOS swap and other apps' caches take most of it); the library and the app can fail to save when it hits zero
+
 ## Notes
 - Codebase converted to this system: 2026-07-04.
 - Cycles 1-3: original F01-F08 features (documented retroactively from working code).
