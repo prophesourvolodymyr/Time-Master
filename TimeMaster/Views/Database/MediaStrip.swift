@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum PageMediaKind {
     private static let videoExtensions: Set<String> = ["mov", "mp4", "m4v", "avi", "mkv"]
@@ -15,8 +16,15 @@ struct MediaStrip: View {
     let comments: [URL: String]
     let onOpen: (Int) -> Void
     var onOpenNotes: ((Int) -> Void)? = nil
+    /// Plays videos inside their card: a click plays or pauses, a double click opens the viewer (`onOpen`).
+    var playback: MediaInlinePlayback? = nil
+    /// The actions of a card's menu (its ellipsis button and its context menu).
+    var cardActions: ((Int) -> [MediaCardAction])? = nil
+    /// Adds media: a plus button in the header.
+    var onAdd: (() -> Void)? = nil
     @State private var containerWidth: CGFloat = 0
     @State private var focusedIndex: Int? = 0
+    @ObservedObject private var revisions = MediaRevisions.shared
 
     private var cardWidth: CGFloat {
         let available = containerWidth > 0 ? containerWidth : 340
@@ -60,7 +68,7 @@ struct MediaStrip: View {
 
     @ViewBuilder
     private func header(_ proxy: ScrollViewProxy) -> some View {
-        if !title.isEmpty || urls.count > 1 {
+        if !title.isEmpty || urls.count > 1 || onAdd != nil {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if !title.isEmpty {
                     Text(title)
@@ -82,6 +90,16 @@ struct MediaStrip: View {
                     }
                 }
                 #endif
+                if let onAdd {
+                    Button(action: onAdd) {
+                        Label("Add", systemImage: "plus")
+                            .font(TimeMasterFont.rowTitle())
+                            .foregroundStyle(Theme.toolbarOrange)
+                    }
+                    .keyNavPlainButtonStyle()
+                    .help("Add files")
+                    .accessibilityLabel("Add files")
+                }
             }
         }
     }
@@ -108,86 +126,65 @@ struct MediaStrip: View {
 
     private func card(index: Int) -> some View {
         let url = urls[index]
-        let isCover = marksCover && index == 0
-        let isVideo = PageMediaKind.isVideo(url)
-        let hasNote = comments[url] != nil
-        let width = tileWidth(at: index)
-        let height = cardHeight
+        return MediaStripCard(
+            url: url,
+            index: index,
+            count: urls.count,
+            width: tileWidth(at: index),
+            height: cardHeight,
+            isCover: marksCover && index == 0,
+            hasNote: comments[url] != nil,
+            revision: revisions.revision(of: url),
+            playback: playback,
+            actions: cardActions?(index) ?? [],
+            onOpen: { onOpen(index) },
+            onOpenNotes: onOpenNotes.map { open in { open(index) } }
+        )
+    }
+}
 
-        return ZStack(alignment: .bottomLeading) {
-            Button {
-                onOpen(index)
-            } label: {
-                AsyncCoverImage(
-                    url: url,
-                    fallbackIcon: isVideo ? "play.rectangle.fill" : "photo",
-                    fallbackColor: isVideo ? Theme.toolbarOrange : nil,
-                    height: height,
-                    contentMode: .fill,
-                    overlayGradient: false
-                )
-                .frame(width: width, height: height)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(isCover ? Theme.toolbarOrange : Theme.separator, lineWidth: isCover ? 2 : 1)
-                }
-                .overlay(alignment: .topLeading) {
-                    if isCover {
-                        Label {
-                            Text("Cover")
-                                .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                        } icon: {
-                            Image(systemName: "pin.fill")
-                                .font(.caption2.weight(.semibold))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(.black.opacity(0.7), in: Capsule())
-                        .padding(10)
-                    }
-                }
-                .overlay(alignment: .topTrailing) {
-                    if urls.count > 1 {
-                        Text("\(index + 1)/\(urls.count)")
-                            .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(.black.opacity(0.6), in: Capsule())
-                            .padding(10)
-                    }
-                }
-                .overlay {
-                    if isVideo {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.5), radius: 3)
-                    }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    if hasNote {
-                        Image(systemName: "text.alignleft")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(8)
-                            .background(.black.opacity(0.65), in: Circle())
-                            .padding(10)
-                    }
-                }
-                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+/// One media card. A video with `playback` plays right in the card on a click and grows into the viewer on a double
+/// click (or its expand button); anything else opens the viewer on a click.
+private struct MediaStripCard: View {
+    let url: URL
+    let index: Int
+    let count: Int
+    let width: CGFloat
+    let height: CGFloat
+    let isCover: Bool
+    let hasNote: Bool
+    let revision: Int
+    let playback: MediaInlinePlayback?
+    let actions: [MediaCardAction]
+    let onOpen: () -> Void
+    let onOpenNotes: (() -> Void)?
+
+    private var isVideo: Bool { PageMediaKind.isVideo(url) }
+    private var isImage: Bool { UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true }
+    private var playsInline: Bool { isVideo && playback != nil }
+    private var kindName: String { isVideo ? "Video" : (isImage ? "Photo" : "File") }
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: 18, style: .continuous) }
+
+    private var hint: String {
+        if playsInline { return "Plays or pauses the video here" }
+        return hasNote ? "Opens the media viewer and its notes" : "Opens the media viewer"
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            Button(action: click) {
+                face
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 18))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(isCover ? "Cover, " : "")\(isVideo ? "Video" : "Photo") \(index + 1) of \(urls.count)")
-            .accessibilityHint(hasNote ? "Opens the media viewer and its notes" : "Opens the media viewer")
+            .accessibilityLabel("\(isCover ? "Cover, " : "")\(kindName) \(index + 1) of \(count)")
+            .accessibilityHint(hint)
+            .modifier(MediaCardViewerAction(enabled: playsInline) { openViewer() })
+            .help(playsInline ? "Click to play or pause, double-click to expand" : "Open in the viewer")
+            .modifier(MediaCardContextMenu(actions: actions))
 
             if let onOpenNotes {
-                Button {
-                    onOpenNotes(index)
-                } label: {
+                Button(action: onOpenNotes) {
                     Label {
                         Text(hasNote ? "Notes" : "Add notes")
                             .font(TimeMasterFont.black(12, relativeTo: .caption))
@@ -200,12 +197,263 @@ struct MediaStrip: View {
                     .padding(.vertical, 7)
                     .background(.black.opacity(0.65), in: Capsule())
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .capsule)
                 .padding(10)
                 .accessibilityLabel(hasNote ? "Open notes for media \(index + 1)" : "Add notes to media \(index + 1)")
             }
         }
+        .overlay(alignment: .topLeading) {
+            if isCover { coverBadge }
+        }
+        .overlay(alignment: .topTrailing) { topTrailing }
+        .overlay(alignment: .bottomTrailing) { bottomTrailing }
         .frame(width: width, height: height)
+        .modifier(MediaCardFrameReporter(url: url, playback: playback))
+    }
+
+    private var face: some View {
+        ZStack {
+            AsyncCoverImage(
+                url: url,
+                fallbackIcon: isVideo ? "play.rectangle.fill" : (isImage ? "photo" : "doc"),
+                fallbackColor: isVideo ? Theme.toolbarOrange : nil,
+                height: height,
+                contentMode: .fill,
+                overlayGradient: false
+            )
+            .frame(width: width, height: height)
+            .id(revision)
+            if isVideo {
+                if let playback {
+                    MediaInlineVideoLayer(playback: playback, url: url)
+                } else {
+                    MediaPlayGlyph()
+                }
+            }
+        }
+        .frame(width: width, height: height)
+        .clipShape(shape)
+        .overlay {
+            shape.strokeBorder(isCover ? Theme.toolbarOrange : Theme.separator, lineWidth: isCover ? 2 : 1)
+        }
+        .contentShape(shape)
+    }
+
+    private var coverBadge: some View {
+        Label {
+            Text("Cover")
+                .font(TimeMasterFont.black(11, relativeTo: .caption2))
+        } icon: {
+            Image(systemName: "pin.fill")
+                .font(.caption2.weight(.semibold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(.black.opacity(0.7), in: Capsule())
+        .padding(10)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private var topTrailing: some View {
+        HStack(spacing: 6) {
+            if count > 1 {
+                Text("\(index + 1)/\(count)")
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(.black.opacity(0.6), in: Capsule())
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            if !actions.isEmpty {
+                Menu {
+                    MediaCardMenuItems(actions: actions)
+                } label: {
+                    roundGlyph("ellipsis")
+                }
+                .menuStyle(.button)
+                .menuIndicator(.hidden)
+                .keyNavPlainButtonStyle(shape: .circle)
+                .help("More")
+                .accessibilityLabel("\(kindName) \(index + 1) options")
+            }
+        }
+        .padding(10)
+    }
+
+    private var bottomTrailing: some View {
+        HStack(spacing: 6) {
+            if hasNote {
+                Image(systemName: "text.alignleft")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(.black.opacity(0.65), in: Circle())
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            if playsInline {
+                Button(action: openViewer) {
+                    roundGlyph("arrow.up.left.and.arrow.down.right")
+                }
+                .keyNavPlainButtonStyle(shape: .circle)
+                .help("Expand (or double-click the video)")
+                .accessibilityLabel("Open video \(index + 1) in the viewer")
+            }
+        }
+        .padding(10)
+    }
+
+    private func roundGlyph(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(width: 30, height: 30)
+            .background(.black.opacity(0.65), in: Circle())
+            .contentShape(Circle())
+    }
+
+    private func click() {
+        guard playsInline, let playback else {
+            onOpen()
+            return
+        }
+        if playback.registerClick(on: url) {
+            openViewer()
+        } else {
+            playback.toggle(url)
+        }
+    }
+
+    private func openViewer() {
+        if playsInline { playback?.play(url) }
+        onOpen()
+    }
+}
+
+/// The card's video: the inline player once it started, the play glyph while it does not play, and its progress.
+private struct MediaInlineVideoLayer: View {
+    @ObservedObject var playback: MediaInlinePlayback
+    let url: URL
+
+    var body: some View {
+        let isActive = playback.url == url
+        let isPlaying = isActive && playback.isPlaying
+        ZStack(alignment: .bottom) {
+            if isActive, let player = playback.player {
+                MediaPlayerSurface(player: player, gravity: .resizeAspectFill)
+                    .id(playback.surfaceEpoch)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+            MediaPlayGlyph()
+                .opacity(isPlaying ? 0 : 1)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if isActive {
+                MediaInlineProgressLine(progress: playback.progress)
+            }
+        }
+        .animation(.easeOut(duration: 0.18), value: isPlaying)
+        .onDisappear {
+            if playback.url == url { playback.pause() }
+        }
+    }
+}
+
+private struct MediaPlayGlyph: View {
+    var body: some View {
+        Image(systemName: "play.circle.fill")
+            .font(.system(size: 44))
+            .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.5), radius: 3)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct MediaInlineProgressLine: View {
+    @ObservedObject var progress: MediaInlineProgress
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Rectangle()
+                .fill(Color.white.opacity(0.25))
+            Rectangle()
+                .fill(Theme.toolbarOrange)
+                .scaleEffect(x: max(0.001, progress.value), y: 1, anchor: .leading)
+        }
+        .frame(height: 3)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct MediaCardMenuItems: View {
+    let actions: [MediaCardAction]
+
+    var body: some View {
+        ForEach(actions.filter { $0.role != .destructive }) { action in
+            Button(action: action.perform) {
+                Label(action.title, systemImage: action.systemImage)
+            }
+        }
+        let destructive = actions.filter { $0.role == .destructive }
+        if !destructive.isEmpty {
+            Divider()
+            ForEach(destructive) { action in
+                Button(role: .destructive, action: action.perform) {
+                    Label(action.title, systemImage: action.systemImage)
+                }
+            }
+        }
+    }
+}
+
+private struct MediaCardContextMenu: ViewModifier {
+    let actions: [MediaCardAction]
+
+    func body(content: Content) -> some View {
+        if actions.isEmpty {
+            content
+        } else {
+            content.contextMenu {
+                MediaCardMenuItems(actions: actions)
+            }
+        }
+    }
+}
+
+private struct MediaCardViewerAction: ViewModifier {
+    let enabled: Bool
+    let open: () -> Void
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.accessibilityAction(named: "Open in viewer", open)
+        } else {
+            content
+        }
+    }
+}
+
+/// Keeps the page's inline playback told where the card is, so the viewer can grow out of it.
+private struct MediaCardFrameReporter: ViewModifier {
+    let url: URL
+    let playback: MediaInlinePlayback?
+
+    func body(content: Content) -> some View {
+        if let playback {
+            content
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+                    playback.setCardFrame(frame, for: url)
+                }
+                .onDisappear { playback.removeCardFrame(for: url) }
+        } else {
+            content
+        }
     }
 }
 

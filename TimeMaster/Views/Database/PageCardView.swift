@@ -9,8 +9,13 @@ struct PageCardView: View {
     var onEdit: (() -> Void)? = nil
     var onAddChild: (() -> Void)? = nil
     var onDuplicate: (() -> Void)? = nil
+    var onMove: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
     var onMoveIntoContainer: ((String) -> Void)? = nil
+    /// Where the page sits below the list's container ("Footwork › Drills"); nil for a direct child.
+    var location: String? = nil
+    /// Why a search showed the page when its title did not match.
+    var match: ContainerMatchReason? = nil
     @State private var isDropTargeted = false
     @ScaledMetric(relativeTo: .body) private var listThumbnailSize: CGFloat = 56
 
@@ -61,34 +66,16 @@ struct PageCardView: View {
         .contextMenu { contextMenuContent }
     }
 
-    @ViewBuilder
     private var contextMenuContent: some View {
-        if page.isWorkoutAddable, let onAddToWorkout {
-            Button { onAddToWorkout() } label: {
-                Label("Add to Workout", systemImage: "figure.strengthtraining.traditional")
-            }
-        }
-        if let onEdit {
-            Button { onEdit() } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-        }
-        if page.isContainer, let onAddChild {
-            Button { onAddChild() } label: {
-                Label("Add Child Page", systemImage: "doc.badge.plus")
-            }
-        }
-        if let onDuplicate {
-            Button { onDuplicate() } label: {
-                Label("Duplicate", systemImage: "doc.on.doc")
-            }
-        }
-        if let onDelete {
-            Divider()
-            Button(role: .destructive) { onDelete() } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        }
+        PageCardMenu(
+            page: page,
+            onAddToWorkout: onAddToWorkout,
+            onEdit: onEdit,
+            onAddChild: onAddChild,
+            onDuplicate: onDuplicate,
+            onMove: onMove,
+            onDelete: onDelete
+        )
     }
 
     private var coverHeroGrid: some View {
@@ -194,6 +181,9 @@ struct PageCardView: View {
     private var infoGrid: some View {
         VStack(alignment: .leading, spacing: 3) {
             titleLabel(font: TimeMasterFont.rowTitle())
+            if let location {
+                ContainerPathLabel(path: location)
+            }
             if page.isNote {
                 let preview = NotePreview.text(from: page.manifest.markdownBody)
                 if !preview.isEmpty {
@@ -266,6 +256,12 @@ struct PageCardView: View {
                     .font(TimeMasterFont.body(15, relativeTo: .subheadline))
                     .foregroundStyle(Theme.textSecondary)
                     .lineLimit(2)
+            }
+            if let location {
+                ContainerPathLabel(path: location)
+            }
+            if let match {
+                ContainerMatchLabel(reason: match)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

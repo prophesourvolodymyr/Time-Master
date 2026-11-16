@@ -1,8 +1,7 @@
 import SwiftUI
 import TimeMasterCore
-import UniformTypeIdentifiers
 
-/// How a board shows its skills.
+/// How a board shows its sub-skills: the sections list, a status board, or a sortable table.
 enum SkillBoardMode: String, CaseIterable, Identifiable {
     case list
     case board
@@ -26,88 +25,124 @@ enum SkillBoardMode: String, CaseIterable, Identifiable {
         }
     }
 
-    static var standard: SkillBoardMode {
+    /// ⌘1 / ⌘2 / ⌘3 on the Mac.
+    var shortcutKey: KeyEquivalent {
+        switch self {
+        case .list: "1"
+        case .board: "2"
+        case .table: "3"
+        }
+    }
+
+    /// Tooltip: the name, plus its shortcut on the Mac.
+    var helpText: String {
         #if os(macOS)
-        .board
+        return "\(title) (⌘\(shortcutKey.character))"
         #else
-        .list
+        return title
         #endif
     }
 }
 
-/// The skills of one board page, or of one group opened as a page: List · Board · Table, groups as tinted panels
-/// with their own strip, types on every card, drag to move between columns and groups.
+/// The Skills section of a skill page, a container page or a group opened as a page: the "Skills" heading, one slim
+/// row with the List · Board · Table switch (remembered per board) and "New section", the status chips with their
+/// counts (List and Table), then the sections list, the status board or the table. Opening a sub-skill or a group
+/// pushes it onto the navigation stack the screen sits in (`DatabaseNavigationState` of the Database tab, a search
+/// sheet or the workout popup).
 struct SkillBoardScreen: View {
+    /// Tmax orange as `RRGGBB`: the tint of rows, cards and progress.
+    static let accentHex = "FF6A00"
+
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
+    @Environment(\.openURL) private var openURL
 
     /// A board page's id, or a group id.
     let boardID: String
-    /// Whether the List · Board · Table switch and the add menu show (a page embeds the screen with its own title).
-    var showsToolbar = true
+    /// Draws the "Skills" heading (a host with a heading of its own passes false).
+    let showsHeading: Bool
+    /// Asks the surrounding scroll view to bring an id into view (rows and sections added at the end).
+    let scrollTo: (String) -> Void
 
-    @State private var mode: SkillBoardMode = .standard
-    @State private var folded: Set<String> = []
-    @State private var draggedPageID: String?
-    @State private var groupEditor: SkillGroupEditorSheet.Mode?
+    @AppStorage private var modeRaw: String
+    @State private var filter: SkillStatus?
+    @State private var groupOverride: Bool?
+    @State private var addingSection = false
+    @State private var sectionToEdit: SkillBoardSection?
+    @State private var sectionToDelete: SkillBoardSection?
+    @State private var pageToEdit: SkillPageTarget?
+    @State private var pageToChangeIcon: SkillPageTarget?
+    @State private var pageToMove: SkillPageTarget?
     @State private var pageToDelete: ExercisePage?
-    @State private var groupToDelete: SkillBoardSection?
     @State private var showingDetailedCreation = false
-    @State private var quickAddLane: String?
 
-    private let looseLaneID = "ungrouped"
-
-    private var isGroupBoard: Bool { SkillGroupID.split(boardID) != nil }
-    private var container: ExercisePage? { isGroupBoard ? nil : store.page(manifestID: boardID) }
-    private var groups: [SkillBoardSection] { store.skillGroups(of: boardID) }
-
-    private struct Lane: Identifiable {
-        let section: SkillBoardSection?
-        let pages: [ExercisePage]
-        var id: String { section?.id ?? "ungrouped" }
+    init(boardID: String, showsHeading: Bool = true, scrollTo: @escaping (String) -> Void = { _ in }) {
+        self.boardID = boardID
+        self.showsHeading = showsHeading
+        self.scrollTo = scrollTo
+        _modeRaw = AppStorage(wrappedValue: SkillBoardMode.list.rawValue, SkillSettings.viewModeKeyPrefix + boardID)
     }
 
-    private var lanes: [Lane] {
-        if isGroupBoard {
-            return [Lane(section: nil, pages: store.orderedByTypeRules(store.skillBoardPages(of: boardID), boardID: boardID))]
-        }
-        var result: [Lane] = []
-        let loose = store.skillPages(onBoard: boardID, sectionID: nil)
-        if !loose.isEmpty || groups.isEmpty {
-            result.append(Lane(section: nil, pages: store.orderedByTypeRules(loose, boardID: boardID)))
-        }
-        for group in groups {
-            result.append(Lane(section: group, pages: store.orderedByTypeRules(store.skillPages(onBoard: boardID, sectionID: group.id), boardID: boardID)))
-        }
-        return result
-    }
+    private var mode: SkillBoardMode { SkillBoardMode(rawValue: modeRaw) ?? .list }
 
-    private var allPages: [ExercisePage] { store.skillBoardPages(of: boardID) }
+    private var modeBinding: Binding<SkillBoardMode> {
+        Binding(get: { mode }, set: { modeRaw = $0.rawValue })
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if showsToolbar { toolbarRow }
-            if quickAddLane == looseLaneID {
-                SkillQuickAddRow(boardID: boardID, sectionID: nil)
+        let mode = self.mode
+        let snapshot = SkillBoardSnapshot(store: store, boardID: boardID, includesNested: mode != .list)
+        VStack(alignment: .leading, spacing: SkillMetrics.s2) {
+            if showsHeading {
+                SkillSectionHeading(symbol: "square.grid.2x2", title: "Skills", count: snapshot.direct.count)
             }
-            if mode == .table {
-                SkillTableView(pages: store.orderedByTypeRules(allPages, boardID: boardID), context: context)
-            } else {
-                ForEach(lanes) { lane in
-                    laneView(lane)
-                }
-                if allPages.isEmpty && groups.isEmpty {
-                    emptyState
+            VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+                header(snapshot, mode: mode)
+                switch mode {
+                case .list:
+                    SkillBoardListView(
+                        snapshot: snapshot,
+                        statusFilter: filter,
+                        actions: actions(snapshot),
+                        onEditSection: { sectionToEdit = $0 },
+                        onDeleteSection: { sectionToDelete = $0 },
+                        scrollTo: scrollTo
+                    )
+                case .board:
+                    SkillStatusBoardView(snapshot: snapshot, groupBySection: groupBinding(snapshot), actions: actions(snapshot))
+                case .table:
+                    SkillTableView(snapshot: snapshot, items: filtered(snapshot.items), statusFilter: filter, actions: actions(snapshot))
                 }
             }
         }
-        .onAppear { mode = restoredMode() }
-        .onChange(of: mode) { newValue in
-            UserDefaults.standard.set(newValue.rawValue, forKey: SkillSettings.viewModeKeyPrefix + boardID)
+        .sheet(isPresented: $addingSection) {
+            SkillSectionEditorSheet(
+                boardID: snapshot.scope.containerID,
+                suggestedColorHex: SkillColors.random(avoiding: snapshot.sections.compactMap(\.colorHex)),
+                onCreated: { _ in sectionCreated() }
+            )
+            .environmentObject(store)
         }
-        .sheet(item: $groupEditor) { editorMode in
-            SkillGroupEditorSheet(containerID: boardID, mode: editorMode)
+        .sheet(item: $sectionToEdit) { section in
+            SkillSectionEditorSheet(boardID: snapshot.scope.containerID, section: section)
+                .environmentObject(store)
+        }
+        .sheet(item: $pageToEdit) { target in
+            if let page = store.page(manifestID: target.id) {
+                PageCreationSheet(page: page) { manifest, _ in
+                    try store.updatePage(id: page.manifest.id, manifest: manifest, newParentID: manifest.parentID)
+                }
+                .environmentObject(store)
+                .environmentObject(workoutStore)
+            }
+        }
+        .sheet(item: $pageToChangeIcon) { target in
+            SkillIconChooserSheet(pageID: target.id)
+                .environmentObject(store)
+        }
+        .sheet(item: $pageToMove) { target in
+            SkillMovePickerSheet(pageID: target.id)
                 .environmentObject(store)
         }
         .sheet(isPresented: $showingDetailedCreation) {
@@ -120,258 +155,159 @@ struct SkillBoardScreen: View {
             .environmentObject(workoutStore)
         }
         .confirmationDialog(
-            "Delete this skill?",
+            "Delete this sub-skill?",
             isPresented: Binding(get: { pageToDelete != nil }, set: { if !$0 { pageToDelete = nil } }),
             titleVisibility: .visible,
             presenting: pageToDelete
         ) { page in
             Button("Delete “\(page.title)”", role: .destructive) {
-                SkillErrorCenter.shared.attempt("Delete the skill") { try store.deletePage(id: page.manifest.id) }
+                if SkillErrorCenter.shared.attempt("Delete the sub-skill", { try store.deletePage(id: page.manifest.id) }) {
+                    EverHaptic.warning()
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: { _ in
             Text("Its notes, files and sub-skills go with it.")
         }
         .confirmationDialog(
-            "Delete this group?",
-            isPresented: Binding(get: { groupToDelete != nil }, set: { if !$0 { groupToDelete = nil } }),
+            "Delete this section?",
+            isPresented: Binding(get: { sectionToDelete != nil }, set: { if !$0 { sectionToDelete = nil } }),
             titleVisibility: .visible,
-            presenting: groupToDelete
-        ) { group in
-            Button("Delete “\(group.title)”", role: .destructive) {
-                SkillErrorCenter.shared.attempt("Delete the group") {
-                    try store.deleteSkillGroup(containerID: boardID, sectionID: group.id)
+            presenting: sectionToDelete
+        ) { section in
+            Button("Delete “\(section.title)”", role: .destructive) {
+                SkillErrorCenter.shared.attempt("Delete the section") {
+                    try store.deleteSkillGroup(containerID: snapshot.scope.containerID, sectionID: section.id)
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: { _ in
-            Text("Its skills stay on the board, outside any group. The group's own notes and files are removed.")
+            Text("Its sub-skills stay on the board, outside any section. The section's own notes and files are removed.")
         }
     }
 
-    // MARK: Toolbar
+    // MARK: Header
 
-    private var toolbarRow: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 6) {
-                ForEach(availableModes) { option in
-                    SkillChoicePill(title: option.title, isSelected: mode == option) {
-                        withAnimation(.easeInOut(duration: 0.18)) { mode = option }
-                    }
-                    .fixedSize()
-                }
+    @ViewBuilder
+    private func header(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
+        switch mode {
+        case .board:
+            switcherRow(snapshot, mode: mode)
+        case .list, .table:
+            VStack(alignment: .leading, spacing: SkillMetrics.s2) {
+                switcherRow(snapshot, mode: mode)
+                SkillStatusFilterBar(selection: $filter, counts: counts(snapshot, mode: mode))
+            }
+        }
+    }
+
+    /// List · Board · Table, the group toggle (Board) and New section: whatever the view, the section controls sit
+    /// beside the view switch. The menu at the end makes a sub-skill with every detail (type, cover, media).
+    private func switcherRow(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
+        HStack(spacing: SkillMetrics.s2) {
+            SkillViewModePicker(selection: modeBinding)
+            if mode == .board && snapshot.hasSections {
+                groupToggle(snapshot)
+            }
+            if !snapshot.scope.isGroup {
+                SkillNewSectionButton { addingSection = true }
             }
             Spacer(minLength: 0)
-            Menu {
-                Button { quickAddLane = quickAddLane == looseLaneID ? nil : looseLaneID } label: {
-                    Label("Quick add", systemImage: "plus")
-                }
-                if !isGroupBoard {
-                    Button { showingDetailedCreation = true } label: {
-                        Label("New skill with details…", systemImage: "square.and.pencil")
+            if !snapshot.scope.isGroup {
+                Menu {
+                    Button {
+                        showingDetailedCreation = true
+                    } label: {
+                        Label("New sub-skill with details…", systemImage: "square.and.pencil")
                     }
-                    Button { groupEditor = .new } label: {
-                        Label("New group…", systemImage: "square.grid.2x2")
-                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .semibold))
                 }
-            } label: {
-                Image(systemName: "plus")
-                    .font(.headline.weight(.semibold))
+                .menuStyle(.button)
+                .buttonStyle(TimeMasterToolbarIconButtonStyle())
+                .menuIndicator(.hidden)
+                .accessibilityLabel("More ways to add")
+                .help("More ways to add")
             }
-            .menuStyle(.button)
-            .buttonStyle(TimeMasterToolbarIconButtonStyle())
-            .menuIndicator(.hidden)
-            .accessibilityLabel("Add to this board")
         }
     }
 
-    private var availableModes: [SkillBoardMode] { SkillBoardMode.allCases }
-
-    private func restoredMode() -> SkillBoardMode {
-        let raw = UserDefaults.standard.string(forKey: SkillSettings.viewModeKeyPrefix + boardID)
-        let stored = raw.flatMap(SkillBoardMode.init(rawValue:)) ?? .standard
-        return availableModes.contains(stored) ? stored : .standard
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 6) {
-            Text("Nothing here yet")
-                .font(TimeMasterFont.rowTitle())
-                .foregroundStyle(Theme.textPrimary)
-            Text("Add a skill, or make a group to sort them.")
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(Theme.textSecondary)
-            SkillQuickAddRow(boardID: boardID, sectionID: nil)
-                .padding(.top, 8)
+    private func groupToggle(_ snapshot: SkillBoardSnapshot) -> some View {
+        let grouped = isGrouped(snapshot)
+        return Button {
+            groupOverride = !grouped
+            EverHaptic.selection()
+        } label: {
+            Image(systemName: "rectangle.grid.1x2")
+                .font(.system(size: 14, weight: .semibold))
         }
-        .frame(maxWidth: .infinity)
-        .padding(20)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+        .buttonStyle(SkillSegmentButtonStyle(isSelected: grouped, fillsWidth: false))
+        .skillSegmentTrack()
+        .fixedSize()
+        .accessibilityLabel("Group by section")
+        .accessibilityAddTraits(grouped ? .isSelected : [])
+        .help("Group by section")
     }
 
-    // MARK: Lanes
+    // MARK: Data
 
-    private var context: SkillBoardContext {
-        SkillBoardContext(
-            boardID: boardID,
-            groups: groups,
-            open: { page in navigationState.path.append(DatabasePageRoute(pageID: page.manifest.id)) },
+    /// The list counts the board's own sub-skills; the table counts every depth.
+    private func counts(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> [SkillStatus: Int] {
+        SkillBoardSnapshot.counts(of: mode == .table ? snapshot.items : snapshot.direct)
+    }
+
+    private func filtered(_ items: [SkillBoardItem]) -> [SkillBoardItem] {
+        guard let filter else { return items }
+        return items.filter { $0.status == filter }
+    }
+
+    /// Swimlanes by default once two sections hold sub-skills.
+    private func isGrouped(_ snapshot: SkillBoardSnapshot) -> Bool {
+        groupOverride ?? (snapshot.sectionsWithPages >= 2)
+    }
+
+    private func groupBinding(_ snapshot: SkillBoardSnapshot) -> Binding<Bool> {
+        Binding(get: { isGrouped(snapshot) }, set: { groupOverride = $0 })
+    }
+
+    /// A section made from the header shows at once on the board too (swimlanes only appear by themselves once two
+    /// sections hold sub-skills).
+    private func sectionCreated() {
+        if mode == .board { groupOverride = true }
+    }
+
+    // MARK: Actions
+
+    private func actions(_ snapshot: SkillBoardSnapshot) -> SkillBoardActions {
+        SkillBoardActions(
+            open: { page in navigationState.open(skillID: page.manifest.id) },
+            setStatus: { page, status in setStatus(page, status) },
+            changeIcon: { pageToChangeIcon = SkillPageTarget(id: $0.manifest.id) },
+            edit: { pageToEdit = SkillPageTarget(id: $0.manifest.id) },
+            moveTo: { pageToMove = SkillPageTarget(id: $0.manifest.id) },
+            moveToSection: { page, sectionID in moveToSection(page, sectionID, scope: snapshot.scope) },
             requestDelete: { pageToDelete = $0 },
-            beginDrag: { page in
-                draggedPageID = page.manifest.id
-                return NSItemProvider(object: page.manifest.id as NSString)
-            },
-            dropBefore: { target in
-                guard let dragged = draggedPageID, dragged != target.manifest.id else { return }
-                draggedPageID = nil
-                place(dragged, status: target.manifest.skillStatus ?? .notStarted, sectionID: store.skillSectionID(of: target), before: target.manifest.id)
-            }
+            openLink: { openURL($0) }
         )
     }
 
-    private func place(_ pageID: String, status: SkillStatus, sectionID: String?, before: String?) {
-        SkillErrorCenter.shared.attempt("Move the skill") {
-            try store.placeSkillPage(pageID, status: status, sectionID: .some(sectionID), before: before)
+    private func setStatus(_ page: ExercisePage, _ status: SkillStatus) {
+        guard (page.manifest.skillStatus ?? .notStarted) != status else { return }
+        if SkillErrorCenter.shared.attempt("Change the status", { try store.setSkillStatus(status, for: page.manifest.id) }) {
+            if status == .completed { EverHaptic.success() } else { EverHaptic.selection() }
         }
     }
 
-    @ViewBuilder
-    private func laneView(_ lane: Lane) -> some View {
-        if let section = lane.section, let container {
-            let isFolded = folded.contains(section.id)
-            SkillGroupSurface(section: section, imageURL: store.skillGroupImageURL(container: container, section: section)) {
-                VStack(alignment: .leading, spacing: 10) {
-                    SkillGroupHeader(
-                        container: container,
-                        section: section,
-                        count: lane.pages.count,
-                        isCollapsed: isFolded,
-                        onToggle: { withAnimation(.easeInOut(duration: 0.2)) { toggleFold(section.id) } },
-                        onOpen: { navigationState.path.append(DatabaseSkillGroupRoute(containerID: container.manifest.id, sectionID: section.id)) },
-                        onEdit: { groupEditor = .edit(section) },
-                        onAddSkill: { quickAddLane = section.id; folded.remove(section.id) },
-                        onDelete: { groupToDelete = section }
-                    )
-                    if !isFolded {
-                        if quickAddLane == section.id {
-                            SkillQuickAddRow(boardID: boardID, sectionID: section.id)
-                                .padding(.horizontal, 10)
-                        }
-                        laneBody(lane)
-                            .padding(.horizontal, 10)
-                            .padding(.bottom, 10)
-                    }
-                }
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                if !groups.isEmpty, !isGroupBoard {
-                    Text("Outside any group")
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                laneBody(lane)
-            }
+    private func moveToSection(_ page: ExercisePage, _ sectionID: String?, scope: SkillBoardScope) {
+        let stored = scope.storedSectionID(forLane: sectionID)
+        if SkillErrorCenter.shared.attempt("Move the sub-skill", { try store.placeSkillPage(page.manifest.id, sectionID: .some(stored)) }) {
+            EverHaptic.selection()
         }
     }
+}
 
-    private func toggleFold(_ id: String) {
-        if folded.contains(id) { folded.remove(id) } else { folded.insert(id) }
-    }
-
-    @ViewBuilder
-    private func laneBody(_ lane: Lane) -> some View {
-        switch mode {
-        case .list, .table:
-            listBody(lane)
-        case .board:
-            boardBody(lane)
-        }
-    }
-
-    private func listBody(_ lane: Lane) -> some View {
-        let ctx = context
-        return VStack(spacing: 8) {
-            if lane.pages.isEmpty {
-                dropHint(lane: lane, status: .notStarted)
-            }
-            ForEach(lane.pages) { page in
-                SkillBoardRow(page: page, context: ctx)
-            }
-        }
-        .onDrop(of: [UTType.plainText], isTargeted: nil) { _ in
-            drop(on: lane, status: nil)
-        }
-    }
-
-    private func boardBody(_ lane: Lane) -> some View {
-        let statuses = SkillStatus.boardOrder.filter { status in
-            status != .abandoned || lane.pages.contains { ($0.manifest.skillStatus ?? .notStarted) == .abandoned }
-        }
-        return ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 10) {
-                ForEach(statuses, id: \.self) { status in
-                    column(status, lane: lane).frame(minWidth: 230)
-                }
-            }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 10) {
-                    ForEach(statuses, id: \.self) { status in
-                        column(status, lane: lane).frame(width: 270)
-                    }
-                }
-            }
-        }
-    }
-
-    private func column(_ status: SkillStatus, lane: Lane) -> some View {
-        let ctx = context
-        let pages = lane.pages.filter { ($0.manifest.skillStatus ?? .notStarted) == status }
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: status.symbolName)
-                    .font(.system(size: 12, weight: .semibold))
-                Text(status.title)
-                    .font(TimeMasterFont.black(12, relativeTo: .caption))
-                Text("\(pages.count)")
-                    .font(TimeMasterFont.caption())
-                    .opacity(0.7)
-            }
-            .foregroundStyle(status.color)
-            .padding(.horizontal, 4)
-            ForEach(pages) { page in
-                SkillBoardCard(page: page, context: ctx)
-            }
-            if pages.isEmpty {
-                dropHint(lane: lane, status: status)
-            }
-        }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .onDrop(of: [UTType.plainText], isTargeted: nil) { _ in
-            drop(on: lane, status: status)
-        }
-    }
-
-    private func dropHint(lane: Lane, status: SkillStatus) -> some View {
-        Text("Drop skills here")
-            .font(TimeMasterFont.caption())
-            .foregroundStyle(Theme.textSecondary)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Theme.separator, style: StrokeStyle(lineWidth: 1, dash: [5]))
-            )
-    }
-
-    /// A drop on the empty part of a column or list: the skill goes to the end of it.
-    private func drop(on lane: Lane, status: SkillStatus?) -> Bool {
-        guard let dragged = draggedPageID else { return false }
-        draggedPageID = nil
-        let current = store.page(manifestID: dragged)?.manifest.skillStatus ?? .notStarted
-        let sectionID = isGroupBoard ? store.page(manifestID: dragged).flatMap { store.skillSectionID(of: $0) } : lane.section?.id
-        place(dragged, status: status ?? current, sectionID: sectionID, before: nil)
-        return true
-    }
+/// A page a sheet is about (by manifest id, so the sheet survives the page being reloaded).
+struct SkillPageTarget: Identifiable, Equatable {
+    let id: String
 }

@@ -87,10 +87,13 @@ enum SkillIconResolution: Equatable {
 }
 
 /// The icon of a skill page: the picture clipped to a rounded tile, or the glyph on a transparent background (no
-/// fill, so an emoji sits straight on the card). Automatic icons are a little dimmer than chosen ones.
+/// fill, so an emoji sits straight on the card). Automatic icons are a little dimmer than chosen ones. With
+/// `tilesSymbols` an SF Symbol (and the sparkles of a page without an icon) sits on a debossed tile, as on the board's
+/// rows and cards.
 struct SkillPageIconTile: View {
     let page: ExercisePage
     var size: CGFloat = 36
+    var tilesSymbols = false
     @AppStorage(SkillSettings.autoIconStyleKey) private var autoStyleRaw = SkillAutoIcon.Style.emoji.rawValue
 
     private var style: SkillAutoIcon.Style { SkillAutoIcon.Style(rawValue: autoStyleRaw) ?? .emoji }
@@ -112,44 +115,34 @@ struct SkillPageIconTile: View {
             .frame(width: size, height: size)
             .clipShape(RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
         case .glyph(let name, let type, let isAutomatic):
-            SkillIconView(iconName: name, iconType: type, size: size * 0.64)
-                .opacity(isAutomatic ? 0.8 : 1)
-                .frame(width: size, height: size)
-        case .none:
-            Image(systemName: "sparkles")
-                .font(.system(size: size * 0.5, weight: .semibold))
-                .foregroundStyle(Theme.textSecondary)
-                .frame(width: size, height: size)
-        }
-    }
-}
-
-/// The icon of a group: its symbol or emoji on a transparent background, or the board symbol.
-struct SkillGroupIconView: View {
-    let section: SkillBoardSection
-    var size: CGFloat = 18
-    var colorHex: String?
-
-    var body: some View {
-        Group {
-            if let icon = section.icon, !icon.isEmpty {
-                SkillIconView(iconName: icon, iconType: section.iconType ?? .emoji, colorHex: colorHex, size: size)
+            if tilesSymbols && type == .system {
+                SkillIconView(iconName: name, iconType: type, size: size * 0.48)
+                    .opacity(isAutomatic ? 0.8 : 1)
+                    .frame(width: size, height: size)
+                    .skillTile(cornerRadius: size * 0.32)
             } else {
-                Image(systemName: "square.grid.2x2")
-                    .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(colorHex.map { Color(hex: $0) } ?? Theme.toolbarOrange)
+                SkillIconView(iconName: name, iconType: type, size: size * 0.64)
+                    .opacity(isAutomatic ? 0.8 : 1)
+                    .frame(width: size, height: size)
+            }
+        case .none:
+            if tilesSymbols {
+                Image(systemName: "sparkles")
+                    .font(.system(size: size * 0.42, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: size, height: size)
+                    .skillTile(cornerRadius: size * 0.32)
+            } else {
+                Image(systemName: "sparkles")
+                    .font(.system(size: size * 0.5, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: size, height: size)
             }
         }
-        .frame(width: size + 8, height: size + 8)
     }
 }
 
 // MARK: - Shared bits
-
-extension SkillBoardSection {
-    /// The strip colour as a SwiftUI colour; nil draws the neutral strip.
-    var stripColor: Color? { SkillColors.normalizedHex(colorHex).map { Color(hex: $0) } }
-}
 
 /// Short, warm labels for the page list.
 enum SkillCopy {

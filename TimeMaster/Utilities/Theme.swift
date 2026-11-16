@@ -246,18 +246,46 @@ struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
     }
 }
 
+/// Closes the container (a sheet or an in-window overlay) whose root page is showing. Set it on the root page only:
+/// its `TimeMasterBackButton` becomes a close button that runs it, while pages pushed deeper keep their back chevron.
+struct PageCloseAction {
+    private let action: () -> Void
+
+    init(_ action: @escaping () -> Void) {
+        self.action = action
+    }
+
+    func callAsFunction() {
+        action()
+    }
+}
+
+private struct PageCloseActionKey: EnvironmentKey {
+    static let defaultValue: PageCloseAction? = nil
+}
+
+extension EnvironmentValues {
+    /// The root page's close action; nil below the root (see `PageCloseAction`).
+    var pageCloseAction: PageCloseAction? {
+        get { self[PageCloseActionKey.self] }
+        set { self[PageCloseActionKey.self] = newValue }
+    }
+}
+
 struct TimeMasterBackButton: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.pageCloseAction) private var close
 
     var body: some View {
         Button {
-            dismiss()
+            if let close { close() } else { dismiss() }
         } label: {
-            Image(systemName: "chevron.left")
+            Image(systemName: close == nil ? "chevron.left" : "xmark")
                 .font(.system(size: 16, weight: .bold))
         }
         .buttonStyle(TimeMasterToolbarIconButtonStyle())
-        .accessibilityLabel("Back")
+        .help(close == nil ? "Back" : "Close")
+        .accessibilityLabel(close == nil ? "Back" : "Close")
     }
 }
 
@@ -336,5 +364,18 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+private struct AppToolbarInlineKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// On the Mac, `toolbar` items of views below draw in their own action row at the top of the content (as they do
+    /// in a sheet) instead of joining the window toolbar. Set it for pages shown inside an in-window overlay.
+    var appToolbarInline: Bool {
+        get { self[AppToolbarInlineKey.self] }
+        set { self[AppToolbarInlineKey.self] = newValue }
     }
 }

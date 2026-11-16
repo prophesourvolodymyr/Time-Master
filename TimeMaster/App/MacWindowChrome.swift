@@ -1,6 +1,30 @@
+import SwiftUI
+
+extension View {
+    /// The title the window carries (Window menu, page travel) for everything below, replacing titles set deeper in
+    /// the tree, e.g. by a header row that a list recycles while scrolling. No effect on iOS.
+    @ViewBuilder
+    func macWindowTitle(_ title: String) -> some View {
+        #if os(macOS)
+        transformPreference(MacWindowTitlePreferenceKey.self) { $0 = title }
+        #else
+        self
+        #endif
+    }
+
+    /// The pages below draw their own big title, so the window's titlebar stays empty instead of repeating it.
+    @ViewBuilder
+    func macWindowTitleHidden() -> some View {
+        #if os(macOS)
+        transformPreference(MacWindowTitleHiddenPreferenceKey.self) { $0 = true }
+        #else
+        self
+        #endif
+    }
+}
+
 #if os(macOS)
 import AppKit
-import SwiftUI
 
 struct MacWindowTitlePreferenceKey: PreferenceKey {
     static let defaultValue: String? = nil
@@ -10,28 +34,43 @@ struct MacWindowTitlePreferenceKey: PreferenceKey {
     }
 }
 
+struct MacWindowTitleHiddenPreferenceKey: PreferenceKey {
+    static let defaultValue = false
+
+    static func reduce(value: inout Bool, nextValue: () -> Bool) {
+        value = value || nextValue()
+    }
+}
+
 struct MacWindowChrome: ViewModifier {
+    @State private var titleHidden = false
+
     func body(content: Content) -> some View {
-        content.overlayPreferenceValue(MacWindowTitlePreferenceKey.self) { title in
-            MacWindowProbe(title: title ?? "Tmax")
-                .frame(width: 0, height: 0)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
+        content
+            .onPreferenceChange(MacWindowTitleHiddenPreferenceKey.self) { titleHidden = $0 }
+            .overlayPreferenceValue(MacWindowTitlePreferenceKey.self) { title in
+                MacWindowProbe(title: title ?? "Tmax", showsTitle: !titleHidden)
+                    .frame(width: 0, height: 0)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
     }
 }
 
 private struct MacWindowProbe: NSViewRepresentable {
     let title: String
+    let showsTitle: Bool
 
     func makeNSView(context: Context) -> Probe {
         let view = Probe()
         view.title = title
+        view.showsTitle = showsTitle
         return view
     }
 
     func updateNSView(_ view: Probe, context: Context) {
         view.title = title
+        view.showsTitle = showsTitle
         view.apply()
     }
 
@@ -41,6 +80,8 @@ private struct MacWindowProbe: NSViewRepresentable {
 
     final class Probe: NSView {
         var title = "Tmax"
+        var showsTitle = true
+        private var displayedShowsTitle = true
         private weak var styledWindow: NSWindow?
         private var accessory: NSTitlebarAccessoryViewController?
         private var titleView: NSHostingView<AnyView>?
@@ -94,8 +135,9 @@ private struct MacWindowProbe: NSViewRepresentable {
                 }
             }
             window.titleVisibility = .hidden
-            if displayedTitle != title {
+            if displayedTitle != title || displayedShowsTitle != showsTitle {
                 displayedTitle = title
+                displayedShowsTitle = showsTitle
                 window.title = TimeMasterFont.initialCapitalizedTitle(title)
                 titleView?.rootView = titleContent
                 sizeTitle()
@@ -104,7 +146,8 @@ private struct MacWindowProbe: NSViewRepresentable {
         }
 
         private var titleContent: AnyView {
-            AnyView(TimeMasterPageTitle(title, size: 22, relativeTo: .headline)
+            guard showsTitle else { return AnyView(EmptyView()) }
+            return AnyView(TimeMasterPageTitle(title, size: 22, relativeTo: .headline)
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)

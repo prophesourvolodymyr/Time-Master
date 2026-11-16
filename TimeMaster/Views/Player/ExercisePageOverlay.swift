@@ -27,6 +27,7 @@ struct WorkoutAttachmentBrowser: View {
     var body: some View {
         NavigationStack(path: $navigationState.path) {
             ExercisePageDetailView(pageID: pageID, showsHero: false)
+            .environment(\.pageCloseAction, PageCloseAction { close() })
             .navigationDestination(for: DatabasePageRoute.self) { route in
                 if let id = UUID(uuidString: route.pageID) { ExercisePageDetailView(pageID: id, showsHero: false) }
             }
@@ -37,12 +38,6 @@ struct WorkoutAttachmentBrowser: View {
             }
             .navigationDestination(for: DatabaseSkillGroupRoute.self) { route in
                 SkillGroupPageView(route: route)
-            }
-            .toolbar {
-                AppToolbar.item(placement: .confirmationAction) { Button("Close") {
-                    if let onClose { onClose() } else { dismiss() }
-                }
-                                 }
             }
             .modifier(WorkoutFloatingControlsOverlay(
                 workoutName: currentWorkout.name,
@@ -56,6 +51,7 @@ struct WorkoutAttachmentBrowser: View {
                 library: library
             ))
         }
+        .environment(\.pageCloseAction, nil)
         .environmentObject(navigationState)
         .environment(\.workoutMedia, WorkoutMediaEnvironment(workout: currentWorkout, liveContext: liveContext))
         .background(Theme.background)
@@ -66,6 +62,10 @@ struct WorkoutAttachmentBrowser: View {
             }
         }
         .keyNavHost()
+    }
+
+    private func close() {
+        if let onClose { onClose() } else { dismiss() }
     }
 }
 
@@ -121,7 +121,8 @@ struct WorkoutAttachmentStrip: View {
                     notesAssets: { catalog.assets(for: $0, databaseStore: databaseStore, notes: notes) },
                     workout: workout,
                     liveContext: liveContext,
-                    databasePageID: { catalog.pageID(for: $0) ?? catalog.firstPageID }
+                    databasePageID: { catalog.pageID(for: $0) ?? catalog.firstPageID },
+                    mediaOwnerID: { url in catalog.pageID(for: url).flatMap { databaseStore.page(id: $0)?.manifest.id } }
                 )
                 .keyNavHost()
             }

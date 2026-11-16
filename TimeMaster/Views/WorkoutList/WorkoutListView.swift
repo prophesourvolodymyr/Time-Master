@@ -22,6 +22,9 @@ struct WorkoutListView: View {
     @State private var newWorkoutColor: String = "FFFFFF"
     @State private var showingTodayOnly = false
     @State private var selectedTypeID: String?
+    @State private var selectedGroupID: UUID?
+    @State private var collapsedSections: Set<String> = []
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var searchText = ""
     @State private var showingSearch = false
     @FocusState private var searchFieldFocused: Bool
@@ -106,6 +109,10 @@ struct WorkoutListView: View {
             #endif
             .onAppear {
                 openRequestedWorkout(requestedWorkoutID)
+                collapsedSections = Set(collapsedSectionsRaw.split(separator: ",").map(String.init))
+            }
+            .onChange(of: store.workoutGroups.map(\.id)) { ids in
+                if let selected = selectedGroupID, !ids.contains(selected) { selectedGroupID = nil }
             }
             .onChange(of: requestedWorkoutID) { workoutID in
                 openRequestedWorkout(workoutID)
@@ -129,6 +136,7 @@ struct WorkoutListView: View {
             }
             return true
         }
+        .macWindowTitleHidden()
         .font(TimeMasterFont.body())
     }
 
@@ -164,13 +172,15 @@ struct WorkoutListView: View {
     }
 
     private var visibleWorkouts: [Workout] {
-        store.workouts.filter { workout in
+        let sectionMembers = selectedGroupID.flatMap { id in store.workoutGroups.first { $0.id == id } }.map { Set($0.workoutIDs) }
+        return store.workouts.filter { workout in
             let matchesToday = !showingTodayOnly || scheduleByWorkoutID[workout.id] != nil
             let matchesType = selectedTypeID == nil || workout.type.id == selectedTypeID
+            let matchesSection = sectionMembers?.contains(workout.id) ?? true
             let matchesSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || workout.name.localizedCaseInsensitiveContains(searchText)
                 || workout.type.name.localizedCaseInsensitiveContains(searchText)
-            return matchesToday && matchesType && matchesSearch
+            return matchesToday && matchesType && matchesSection && matchesSearch
         }
     }
 
@@ -220,11 +230,12 @@ struct WorkoutListView: View {
     private static let looseSectionKey = "other"
 
     private var isFiltering: Bool {
-        showingTodayOnly || selectedTypeID != nil || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        showingTodayOnly || selectedTypeID != nil || selectedGroupID != nil
+            || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var collapsedSections: Set<String> {
-        Set(collapsedSectionsRaw.split(separator: ",").map(String.init))
+    private var listAnimation: Animation? {
+        reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.86)
     }
 
     /// While filtering every section is open, so no match hides behind a fold.
@@ -233,11 +244,17 @@ struct WorkoutListView: View {
     }
 
     private func toggleCollapsed(_ key: String) {
-        var keys = collapsedSections
-        if keys.remove(key) == nil { keys.insert(key) }
-        withAnimation(.smooth(duration: 0.2)) {
-            collapsedSectionsRaw = keys.sorted().joined(separator: ",")
+        withAnimation(listAnimation) {
+            if collapsedSections.remove(key) == nil { collapsedSections.insert(key) }
         }
+        collapsedSectionsRaw = collapsedSections.sorted().joined(separator: ",")
+    }
+
+    private var sectionBodyTransition: AnyTransition {
+        reduceMotion ? .opacity : .asymmetric(
+            insertion: .opacity.combined(with: .offset(y: -10)),
+            removal: .opacity.combined(with: .offset(y: -6))
+        )
     }
 
     private var groupedWorkouts: some View {
@@ -253,15 +270,18 @@ struct WorkoutListView: View {
                 if !isFiltering || !members.isEmpty {
                     groupHeader(group, count: members.count, isFirst: group.id == groups.first?.id, isLast: group.id == groups.last?.id)
                     if !isCollapsed(group.id.uuidString) {
-                        if members.isEmpty {
-                            WorkoutGroupDropZone(isTargeted: dropTargetID == "zone:\(group.id)")
-                                .dropDestination(for: String.self) { items, _ in
-                                    drop(items, onGroup: group.id)
-                                } isTargeted: { setDropTarget("zone:\(group.id)", $0) }
+                        VStack(spacing: 12) {
+                            if members.isEmpty {
+                                WorkoutGroupDropZone(isTargeted: dropTargetID == "zone:\(group.id)")
+                                    .dropDestination(for: String.self) { items, _ in
+                                        drop(items, onGroup: group.id)
+                                    } isTargeted: { setDropTarget("zone:\(group.id)", $0) }
+                            }
+                            ForEach(members) { workout in
+                                workoutRow(workout, in: group)
+                            }
                         }
-                        ForEach(members) { workout in
-                            workoutRow(workout, in: group)
-                        }
+                        .transition(sectionBodyTransition)
                     }
                 }
             }
@@ -270,9 +290,12 @@ struct WorkoutListView: View {
                     looseHeader(count: loose.count)
                 }
                 if groups.isEmpty || !isCollapsed(Self.looseSectionKey) {
-                    ForEach(loose) { workout in
-                        workoutRow(workout, in: nil)
+                    VStack(spacing: 12) {
+                        ForEach(loose) { workout in
+                            workoutRow(workout, in: nil)
+                        }
                     }
+                    .transition(sectionBodyTransition)
                 }
             }
             if !isFiltering {
@@ -718,36 +741,125 @@ struct WorkoutListView: View {
     }
 
     private var filterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                filterChip(
-                    label: "All",
-                    isSelected: !showingTodayOnly && selectedTypeID == nil
-                ) {
-                    showingTodayOnly = false
-                    selectedTypeID = nil
-                }
-
-                filterChip(
-                    label: "Today",
-                    isSelected: showingTodayOnly
-                ) {
-                    showingTodayOnly.toggle()
-                }
-
-                ForEach(WorkoutType.all(custom: store.customWorkoutTypes)) { type in
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
                     filterChip(
-                        label: type.name,
-                        isSelected: selectedTypeID == type.id
+                        label: "All",
+                        isSelected: !showingTodayOnly && selectedTypeID == nil && selectedGroupID == nil
                     ) {
-                        selectedTypeID = selectedTypeID == type.id ? nil : type.id
+                        withAnimation(listAnimation) {
+                            showingTodayOnly = false
+                            selectedTypeID = nil
+                            selectedGroupID = nil
+                        }
+                    }
+
+                    filterChip(
+                        label: "Today",
+                        isSelected: showingTodayOnly
+                    ) {
+                        withAnimation(listAnimation) { showingTodayOnly.toggle() }
+                    }
+
+                    if !store.workoutGroups.isEmpty {
+                        filterDivider
+                        ForEach(store.workoutGroups) { group in
+                            sectionChip(group)
+                        }
+                        filterDivider
+                    }
+
+                    ForEach(WorkoutType.all(custom: store.customWorkoutTypes)) { type in
+                        filterChip(
+                            label: type.name,
+                            isSelected: selectedTypeID == type.id
+                        ) {
+                            withAnimation(listAnimation) {
+                                selectedTypeID = selectedTypeID == type.id ? nil : type.id
+                            }
+                        }
                     }
                 }
+                .padding(.leading, 20)
+                .padding(.trailing, 10)
+                .padding(.vertical, 6)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 6)
+            .mask {
+                HStack(spacing: 0) {
+                    Rectangle()
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: 18)
+                }
+            }
+
+            Button {
+                groupEditor = WorkoutGroupEditorRequest()
+            } label: {
+                Image(systemName: "rectangle.stack.badge.plus")
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 38))
+            .help("New Section")
+            .accessibilityLabel("New Section")
+            .padding(.leading, 6)
+            .padding(.trailing, 20)
         }
         .frame(height: selectorRowHeight)
+    }
+
+    private var filterDivider: some View {
+        Capsule()
+            .fill(Color.white.opacity(0.14))
+            .frame(width: 1, height: 22)
+            .padding(.horizontal, 2)
+            .accessibilityHidden(true)
+    }
+
+    private func sectionChip(_ group: WorkoutGroup) -> some View {
+        let isSelected = selectedGroupID == group.id
+        return Button {
+            withAnimation(listAnimation) {
+                selectedGroupID = isSelected ? nil : group.id
+            }
+        } label: {
+            HStack(spacing: 6) {
+                if !group.icon.isEmpty {
+                    SkillIconView(
+                        iconName: group.icon,
+                        iconType: group.iconType ?? .emoji,
+                        colorHex: isSelected ? "FFFFFF" : nil,
+                        size: 13
+                    )
+                }
+                Text(group.title).lineLimit(1).fixedSize()
+            }
+        }
+        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
+        .overlay {
+            if dropTargetID == "chip:\(group.id)" {
+                RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous)
+                    .stroke(Theme.toolbarOrange, lineWidth: 2)
+                    .allowsHitTesting(false)
+            }
+        }
+        .dropDestination(for: String.self) { items, _ in
+            drop(items, onGroup: group.id)
+        } isTargeted: { setDropTarget("chip:\(group.id)", $0) }
+        .contextMenu {
+            Button {
+                groupEditor = WorkoutGroupEditorRequest(group: group)
+            } label: {
+                Label("Edit Section", systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                groupPendingDeletion = group
+            } label: {
+                Label("Delete Section", systemImage: "trash")
+            }
+        }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint("Shows only this section")
     }
 
     private func filterChip(

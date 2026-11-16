@@ -54,6 +54,7 @@ final class RankedProfileTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(["settings", "home", "profile"], forKey: "tm.navigation.order.v1")
         defaults.set(true, forKey: "tm.navigation.scheduleSettingsAdded")
+        defaults.set(true, forKey: "tm.navigation.skillsAdded")
         let first = SlotNavigationLayoutStore(defaults: defaults)
         XCTAssertEqual(first.order, [.settings, .home, .ranked, .profile])
         first.remove(id: "ranked")

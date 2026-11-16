@@ -1,15 +1,15 @@
 import SwiftUI
 import TimeMasterCore
 
-/// A group opened as a page of its own: its strip (colour, or the picture clipped inside it), icon and name, the
-/// skills inside it as a board, and everything a skill page holds: what to learn first, notes, files, links.
+/// A group opened as a page of its own: its picture as a banner when it has one, its icon tile and name, how much of it
+/// is done, then everything it holds: its files and links first, its sub-skills as a board, what to learn first, and
+/// its notes below.
 struct SkillGroupPageView: View {
     @EnvironmentObject private var store: DatabaseStore
-    @EnvironmentObject private var workoutStore: WorkoutStore
 
     let route: DatabaseSkillGroupRoute
 
-    @State private var editing: SkillGroupEditorSheet.Mode?
+    @State private var editing: SkillBoardSection?
     @State private var choosingIcon = false
     @StateObject private var strip = SkillStripImageModel()
 
@@ -21,16 +21,21 @@ struct SkillGroupPageView: View {
             Theme.background.ignoresSafeArea()
             if let container, let section {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: SkillMetrics.s6) {
                         hero(container: container, section: section)
-                        SkillBoardScreen(boardID: route.groupID)
-                        SkillPrerequisitesSection(materialID: route.groupID)
-                        SkillNotesSection(materialID: route.groupID)
-                        SkillFilesSection(materialID: route.groupID)
-                        SkillLinksSection(materialID: route.groupID)
+                        VStack(alignment: .leading, spacing: SkillMetrics.s6) {
+                            SkillFilesSection(materialID: route.groupID)
+                            SkillLinksSection(materialID: route.groupID)
+                            divider
+                            SkillBoardScreen(boardID: route.groupID)
+                            divider
+                            SkillPrerequisitesSection(materialID: route.groupID)
+                            divider
+                            SkillNotesSection(materialID: route.groupID)
+                        }
+                        .skillsContained()
                     }
-                    .padding(.vertical, 16)
-                    .skillsContained()
+                    .padding(.bottom, 40)
                 }
             } else {
                 VStack(spacing: 10) {
@@ -58,7 +63,7 @@ struct SkillGroupPageView: View {
             }
             if let section {
                 AppToolbar.iconItem(placement: .primaryAction) {
-                    Button { editing = .edit(section) } label: {
+                    Button { editing = section } label: {
                         Image(systemName: "pencil")
                             .font(.system(size: 16, weight: .bold))
                     }
@@ -72,8 +77,8 @@ struct SkillGroupPageView: View {
             id: "skill-group-\(route.groupID)",
             actions: [ReachabilityAction("back", title: "Back") { TimeMasterBackButton() }]
         )
-        .sheet(item: $editing) { mode in
-            SkillGroupEditorSheet(containerID: route.containerID, mode: mode)
+        .sheet(item: $editing) { section in
+            SkillSectionEditorSheet(boardID: route.containerID, section: section)
                 .environmentObject(store)
         }
         .sheet(isPresented: $choosingIcon) {
@@ -83,33 +88,111 @@ struct SkillGroupPageView: View {
         .skillErrorAlert()
     }
 
+    private var divider: some View {
+        Rectangle()
+            .fill(Theme.separator)
+            .frame(height: 1)
+            .accessibilityHidden(true)
+    }
+
+    // MARK: Hero
+
     private func hero(container: ExercisePage, section: SkillBoardSection) -> some View {
         let imageURL = store.skillGroupImageURL(container: container, section: section)
-        return VStack(alignment: .leading, spacing: 6) {
-            Spacer(minLength: 36)
-            Text("Group in \(container.title)")
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(.white.opacity(0.75))
-            HStack(alignment: .center, spacing: 12) {
-                Button { choosingIcon = true } label: {
-                    SkillGroupIconView(section: section, size: 30, colorHex: strip.colors?.top ?? SkillColors.normalizedHex(section.colorHex))
-                }.keyNavPlainButtonStyle()
-                .help("Change the icon")
-                .accessibilityLabel("Change the icon")
-                SkillEditableTitle(
-                    pageID: route.groupID,
-                    title: section.title,
-                    font: TimeMasterFont.pageTitle(34, relativeTo: .largeTitle),
-                    color: .white,
-                    lineLimit: 3,
-                    renamesOnPhone: true
-                )
+        let index = container.manifest.orderedSkillBoardSections.firstIndex { $0.id == section.id } ?? 0
+        let tintHex = strip.colors?.top ?? SkillSectionPalette.resolvedHex(for: section, index: index)
+        let progress = store.skillProgress(of: route.groupID)
+        return VStack(alignment: .leading, spacing: 0) {
+            if let imageURL {
+                banner(imageURL)
             }
+            VStack(alignment: .leading, spacing: SkillMetrics.s1) {
+                Text("Group in \(TimeMasterFont.initialCapitalizedTitle(container.title))")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
+                HStack(alignment: .center, spacing: SkillGroupHeroMetrics.iconSpacing) {
+                    Button { choosingIcon = true } label: {
+                        SkillIconView(
+                            iconName: section.icon ?? "square.grid.2x2",
+                            iconType: section.icon == nil ? SkillBoardIconType.system : section.iconType,
+                            colorHex: tintHex,
+                            size: SkillGroupHeroMetrics.glyphSize
+                        )
+                        .frame(width: SkillGroupHeroMetrics.iconSide, height: SkillGroupHeroMetrics.iconSide)
+                        .skillTile(cornerRadius: SkillGroupHeroMetrics.iconSide * 0.32)
+                    }
+                    .buttonStyle(SkillPressButtonStyle())
+                    .help("Change the icon")
+                    .accessibilityLabel("Change the icon")
+                    SkillEditableTitle(
+                        pageID: route.groupID,
+                        title: section.title,
+                        font: TimeMasterFont.pageTitle(SkillGroupHeroMetrics.titleSize, relativeTo: .title),
+                        lineLimit: 2,
+                        renamesOnPhone: true
+                    )
+                    .accessibilityAddTraits(.isHeader)
+                }
+                HStack(spacing: SkillMetrics.s3) {
+                    Capsule(style: .continuous)
+                        .fill(Color(hex: tintHex))
+                        .frame(width: 22, height: 5)
+                        .accessibilityHidden(true)
+                    if progress.total > 0 {
+                        SkillProgressRing(fraction: progress.fraction, tint: Color(hex: tintHex), lineWidth: 3)
+                            .frame(width: 18, height: 18)
+                    }
+                    Text(progress.summary)
+                        .font(TimeMasterFont.secondary())
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                }
+                .frame(minHeight: SkillMetrics.touch)
+            }
+            .padding(.top, imageURL == nil ? SkillMetrics.s5 : SkillMetrics.s2)
+            .skillsContained()
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 150, alignment: .bottomLeading)
-        .background { SkillGroupStripBackground(imageURL: imageURL, color: section.stripColor, cornerRadius: 20) }
         .task(id: imageURL) { await strip.load(imageURL) }
     }
+
+    /// The group's picture across the full width, fading into the page at the bottom.
+    private func banner(_ url: URL) -> some View {
+        SkillLocalImage(url: url, maxPixel: 1600)
+            .frame(maxWidth: .infinity)
+            .frame(height: SkillGroupHeroMetrics.bannerHeight)
+            .clipped()
+            .overlay {
+                LinearGradient(
+                    stops: [
+                        .init(color: Theme.background.opacity(0.3), location: 0),
+                        .init(color: Theme.background.opacity(0), location: 0.28),
+                        .init(color: Theme.background.opacity(0), location: 0.5),
+                        .init(color: Theme.background.opacity(0.72), location: 0.84),
+                        .init(color: Theme.background, location: 1),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+/// Sizes of the group page's hero; the Mac gets a larger tile and title, read from further away than a phone.
+private enum SkillGroupHeroMetrics {
+    #if os(macOS)
+    static let iconSide: CGFloat = 64
+    static let glyphSize: CGFloat = 28
+    static let titleSize: CGFloat = 34
+    static let iconSpacing: CGFloat = SkillMetrics.s5
+    static let bannerHeight: CGFloat = 168
+    #else
+    static let iconSide: CGFloat = 56
+    static let glyphSize: CGFloat = 26
+    static let titleSize: CGFloat = 28
+    static let iconSpacing: CGFloat = SkillMetrics.s4
+    static let bannerHeight: CGFloat = 132
+    #endif
 }

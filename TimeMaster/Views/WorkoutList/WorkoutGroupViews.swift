@@ -39,41 +39,47 @@ struct WorkoutGroupHeader: View {
 
     var body: some View {
         Button(action: onToggle) {
-            HStack(spacing: 10) {
-                Group {
-                    if icon.isEmpty {
-                        Image(systemName: "square.stack.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(Theme.toolbarOrange)
-                    } else {
-                        SkillIconView(iconName: icon, iconType: iconType ?? .emoji, size: 20)
+            VStack(spacing: 0) {
+                HStack(spacing: 10) {
+                    Group {
+                        if icon.isEmpty {
+                            Image(systemName: "square.stack.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(Theme.toolbarOrange)
+                        } else {
+                            SkillIconView(iconName: icon, iconType: iconType ?? .emoji, size: 20)
+                        }
                     }
+                    .frame(width: 30, height: 30)
+                    Text(title)
+                        .font(TimeMasterFont.black(24, relativeTo: .title2))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                    Text("\(count)")
+                        .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textSecondary)
+                        .contentTransition(.numericText())
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .rotationEffect(.degrees(isCollapsed ? -90 : 0))
+                        .frame(width: 30, height: 30)
+                        .background(Color.white.opacity(0.06), in: Circle())
                 }
-                .frame(width: 30, height: 30)
-                Text(title)
-                    .font(TimeMasterFont.black(24, relativeTo: .title2))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                Text("\(count)")
-                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.textSecondary)
-                    .rotationEffect(.degrees(isCollapsed ? -90 : 0))
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                .padding(.bottom, 10)
+                Rectangle()
+                    .fill(isDropTarget ? Theme.toolbarOrange : Color.white.opacity(0.1))
+                    .frame(height: isDropTarget ? 2 : 1)
+                    .padding(.horizontal, 8)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
             .contentShape(Rectangle())
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Theme.toolbarOrange.opacity(isDropTarget ? 0.14 : 0))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(Theme.toolbarOrange.opacity(isDropTarget ? 1 : 0), lineWidth: 2)
+                    .fill(Theme.toolbarOrange.opacity(isDropTarget ? 0.1 : 0))
             }
         }
         .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 14))

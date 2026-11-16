@@ -6,6 +6,13 @@ import UniformTypeIdentifiers
 import AppKit
 #endif
 
+/// How a media viewer is shown: over everything (a full-screen cover or a sheet), or grown in place over the page
+/// that opened it (see `AnyTransition.mediaExpand`).
+enum PageMediaGalleryPresentation {
+    case modal
+    case inPlace
+}
+
 struct PageMediaGallery: View {
     let urls: [URL]
     @Binding var selectedIndex: Int
@@ -16,11 +23,13 @@ struct PageMediaGallery: View {
     let workout: Workout?
     let liveContext: WorkoutLiveContext?
     let databasePageID: ((URL) -> UUID?)?
+    let presentation: PageMediaGalleryPresentation
+    let playback: MediaInlinePlayback?
+    let mediaOwnerID: ((URL) -> String?)?
 
     @State private var drawer: CGFloat
-    @State private var liveDrag: CGFloat = 0
-    @State private var dismissDrag: CGFloat = 0
-    @State private var dragAxis: Axis?
+    @State private var notesRevealed: Bool
+    @State private var dragMotion = GalleryDragMotion()
     @State private var scrollID: Int?
     @State private var isZoomed = false
     @State private var mediaHidden = false
@@ -30,16 +39,21 @@ struct PageMediaGallery: View {
     @State private var saveError: String?
     @State private var showDatabase = false
     @State private var showMusic = false
+    @State private var trimTarget: MediaTrimTarget?
     #if os(iOS)
     @State private var keyboardVisible = false
     #endif
     @ObservedObject private var library = MusicLibraryStore.shared
+    @ObservedObject private var revisions = MediaRevisions.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(macOS)
     @EnvironmentObject private var databaseStore: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
     #endif
 
+    /// - Parameters:
+    ///   - playback: the page's inline playback; the viewer continues its video instead of loading it again.
+    ///   - mediaOwnerID: the page that holds a file, so a trim can be saved as a new clip on it.
     init(
         urls: [URL],
         selectedIndex: Binding<Int>,
@@ -50,7 +64,10 @@ struct PageMediaGallery: View {
         notesAssets: ((URL) -> MarkdownAssets?)? = nil,
         workout: Workout? = nil,
         liveContext: WorkoutLiveContext? = nil,
-        databasePageID: ((URL) -> UUID?)? = nil
+        databasePageID: ((URL) -> UUID?)? = nil,
+        presentation: PageMediaGalleryPresentation = .modal,
+        playback: MediaInlinePlayback? = nil,
+        mediaOwnerID: ((URL) -> String?)? = nil
     ) {
         self.urls = urls
         _selectedIndex = selectedIndex
@@ -61,7 +78,12 @@ struct PageMediaGallery: View {
         self.workout = workout
         self.liveContext = liveContext
         self.databasePageID = databasePageID
-        _drawer = State(initialValue: opensEditor && onSaveComment != nil ? 1 : 0)
+        self.presentation = presentation
+        self.playback = playback
+        self.mediaOwnerID = mediaOwnerID
+        let opens = opensEditor && onSaveComment != nil
+        _drawer = State(initialValue: opens ? 1 : 0)
+        _notesRevealed = State(initialValue: opens)
         _scrollID = State(initialValue: selectedIndex.wrappedValue)
     }
 
@@ -78,10 +100,7 @@ struct PageMediaGallery: View {
         selectedURL != nil && (onSaveComment != nil || !currentNote.isEmpty)
     }
 
-    private var fraction: CGFloat {
-        guard hasNotesSurface else { return 0 }
-        return min(1, max(0, drawer + liveDrag))
-    }
+    private var isDrawerOpen: Bool { hasNotesSurface && drawer > 0.5 }
 
     private var motion: Animation? {
         reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.86)
@@ -98,11 +117,11 @@ struct PageMediaGallery: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            GeometryReader { proxy in
-                content(size: proxy.size)
+            GalleryDismissOffset(motion: dragMotion) {
+                GeometryReader { proxy in
+                    content(size: proxy.size)
+                }
             }
-            .offset(y: dismissDrag * 0.6)
-            .opacity(1 - min(0.5, dismissDrag / 500))
             #if os(macOS)
             arrowKeys
             #endif
@@ -124,6 +143,9 @@ struct PageMediaGallery: View {
             if let workout, let liveContext {
                 WorkoutMusicPlaybackSheet(workout: workout, isContinuationPrompt: false, library: library, session: liveContext.music)
             }
+        }
+        .sheet(item: $trimTarget) { target in
+            MediaTrimSheet(target: target, onOpenFullEditor: fullEditorAction(for: target.url))
         }
         .alert("Notes", isPresented: Binding(
             get: { saveError != nil },
@@ -147,7 +169,12 @@ struct PageMediaGallery: View {
         }
         #endif
         #if os(macOS)
-        .frame(minWidth: 720, idealWidth: 980, minHeight: 560, idealHeight: 760)
+        .frame(
+            minWidth: presentation == .modal ? 720 : nil,
+            idealWidth: presentation == .modal ? 980 : nil,
+            minHeight: presentation == .modal ? 560 : nil,
+            idealHeight: presentation == .modal ? 760 : nil
+        )
         #endif
     }
 
@@ -175,27 +202,33 @@ struct PageMediaGallery: View {
         let collapsedPager = max(120, available - handle)
         let compactPager = mediaHidden ? 0 : min(max(available * 0.32, 170), 300) * (compactScale)
         let expandedPager = hasNotesSurface ? min(compactPager, collapsedPager) : collapsedPager
-        let pagerHeight = collapsedPager + (expandedPager - collapsedPager) * fraction
+        let openFraction: CGFloat = hasNotesSurface ? drawer : 0
+        let pagerHeight = collapsedPager + (expandedPager - collapsedPager) * openFraction
         let travel = max(1, collapsedPager - expandedPager)
 
-        return VStack(spacing: 0) {
-            topBar
-                .frame(height: topBarHeight)
-            pager
-                .frame(height: pagerHeight)
-                .clipped()
-                #if os(macOS)
-                .overlay { macChevrons }
-                #endif
-                .simultaneousGesture(drawerDrag(travel: travel), including: isZoomed ? .subviews : .all)
-            if hasNotesSurface, let url = selectedURL {
-                drawerView(url: url, travel: travel)
-                    .frame(maxHeight: .infinity, alignment: .top)
-            } else {
+        return ZStack(alignment: .top) {
+            VStack(spacing: 0) {
+                topBar
+                    .frame(height: topBarHeight)
+                pager
+                    .frame(height: pagerHeight)
+                    .clipped()
+                    #if os(macOS)
+                    .overlay { macChevrons }
+                    #else
+                    .simultaneousGesture(mediaDrag(travel: travel), including: isZoomed ? .subviews : .all)
+                    #endif
                 Spacer(minLength: 0)
             }
+            if hasNotesSurface, let url = selectedURL {
+                GalleryDrawerOffset(motion: dragMotion, base: topBarHeight + pagerHeight) {
+                    drawerView(url: url, travel: travel)
+                        .frame(height: max(handle, size.height - topBarHeight - expandedPager), alignment: .top)
+                }
+            }
         }
-        .frame(width: size.width, height: size.height)
+        .frame(width: size.width, height: size.height, alignment: .top)
+        .clipped()
     }
 
     private var topBar: some View {
@@ -204,10 +237,14 @@ struct PageMediaGallery: View {
                 Button {
                     isPresented = false
                 } label: {
-                    Image(systemName: "xmark")
+                    Image(systemName: presentation == .inPlace ? "arrow.down.right.and.arrow.up.left" : "xmark")
                         .font(.system(size: 16, weight: .bold))
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 44))
+                #if os(macOS)
+                .keyboardShortcut(.cancelAction)
+                #endif
+                .help(presentation == .inPlace ? "Shrink back into the page" : "Close")
                 .accessibilityLabel("Close media viewer")
                 Spacer()
                 if workout != nil, currentDatabasePageID != nil {
@@ -220,21 +257,9 @@ struct PageMediaGallery: View {
                     .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 36, horizontalPadding: 12))
                     .accessibilityHint("Opens the exercise page without leaving the viewer")
                 }
-                #if os(macOS)
-                if let url = selectedURL, PageMediaKind.isVideo(url) {
-                    Button {
-                        MacVideoWorkspaceWindowPresenter.shared.present(
-                            sources: [MacVideoSource(url: url)],
-                            databaseStore: databaseStore,
-                            workoutStore: workoutStore
-                        )
-                    } label: {
-                        Label("Cut video", systemImage: "scissors")
-                            .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                    }
-                    .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 36, horizontalPadding: 12))
+                if let url = selectedURL, url.isFileURL, PageMediaKind.isVideo(url) {
+                    trimButton(url)
                 }
-                #endif
             }
             if urls.count > 1 {
                 Text("\(selectedIndex + 1) / \(urls.count)")
@@ -248,6 +273,45 @@ struct PageMediaGallery: View {
         }
         .padding(.horizontal, 12)
     }
+
+    private func trimButton(_ url: URL) -> some View {
+        Button {
+            trimTarget = MediaTrimTarget(url: url, pageID: mediaOwnerID?(url))
+        } label: {
+            Image(systemName: "scissors")
+                .font(.system(size: 16, weight: .bold))
+        }
+        .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 44))
+        .help("Trim video")
+        .accessibilityLabel("Trim video")
+        #if os(macOS)
+        .contextMenu {
+            Button {
+                openFullEditor(url)
+            } label: {
+                Label("Open full editor…", systemImage: "film")
+            }
+        }
+        #endif
+    }
+
+    private func fullEditorAction(for url: URL) -> (() -> Void)? {
+        #if os(macOS)
+        return { openFullEditor(url) }
+        #else
+        return nil
+        #endif
+    }
+
+    #if os(macOS)
+    private func openFullEditor(_ url: URL) {
+        MacVideoWorkspaceWindowPresenter.shared.present(
+            sources: [MacVideoSource(url: url)],
+            databaseStore: databaseStore,
+            workoutStore: workoutStore
+        )
+    }
+    #endif
 
     @ViewBuilder
     private var pager: some View {
@@ -309,7 +373,12 @@ struct PageMediaGallery: View {
     private func page(_ url: URL, index: Int) -> some View {
         Group {
             if PageMediaKind.isVideo(url) {
-                PageGalleryInlineVideo(url: url, isActive: index == selectedIndex)
+                PageGalleryInlineVideo(
+                    url: url,
+                    isActive: index == selectedIndex && trimTarget == nil,
+                    sharedPlayer: playback?.player(for: url)
+                )
+                .id(revisions.revision(of: url))
             } else if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true {
                 GalleryImagePage(url: url, isActive: index == selectedIndex, isZoomed: $isZoomed)
             } else {
@@ -322,22 +391,19 @@ struct PageMediaGallery: View {
         .accessibilityLabel("\(url.lastPathComponent), \(index + 1) of \(urls.count)")
     }
 
+    // MARK: Notes drawer
+
     private func drawerView(url: URL, travel: CGFloat) -> some View {
         VStack(spacing: 0) {
-            drawerHeader(url: url)
-                .contentShape(Rectangle())
-                .onTapGesture { if fraction < 0.5 { setDrawer(1) } }
-                .gesture(drawerDrag(travel: travel))
-                #if os(macOS)
-                .overlay { MacScrollSwipeCatcher { up in setDrawer(up ? 1 : 0) } }
-                #endif
-            if fraction > 0.02 {
+            drawerHeader(url: url, travel: travel)
+            if drawer > 0 || notesRevealed {
                 drawerBody(url: url)
-                    .opacity(min(1, fraction * 1.6))
-                    .allowsHitTesting(fraction > 0.9)
+                    .allowsHitTesting(isDrawerOpen)
+            } else {
+                Spacer(minLength: 0)
             }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Theme.background, in: TopRoundedShape(radius: 22))
         .overlay(alignment: .top) {
             TopRoundedShape(radius: 22)
@@ -346,32 +412,43 @@ struct PageMediaGallery: View {
         .clipShape(TopRoundedShape(radius: 22))
     }
 
-    private func drawerHeader(url: URL) -> some View {
+    private func drawerHeader(url: URL, travel: CGFloat) -> some View {
         let note = currentNote
-        let expanded = fraction > 0.5
-        return VStack(spacing: 8) {
-            Capsule()
-                .fill(Color.white.opacity(0.35))
-                .frame(width: 38, height: 5)
-                .padding(.top, 8)
+        let expanded = isDrawerOpen
+        return VStack(spacing: 0) {
+            grabber(travel: travel)
             HStack(spacing: 10) {
-                Image(systemName: "text.alignleft")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.toolbarOrange)
-                if expanded {
-                    Text("Notes")
-                        .font(TimeMasterFont.black(16, relativeTo: .headline))
-                        .foregroundStyle(Theme.textPrimary)
-                    Text(kindLabel(for: url))
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                } else {
-                    Text(note.isEmpty ? "Swipe up to write notes" : Self.preview(of: note))
-                        .font(TimeMasterFont.rowTitle())
-                        .foregroundStyle(note.isEmpty ? Theme.textSecondary : Theme.textPrimary)
-                        .lineLimit(1)
+                Button {
+                    setDrawer(expanded ? 0 : 1)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "text.alignleft")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Theme.toolbarOrange)
+                        if expanded {
+                            Text("Notes")
+                                .font(TimeMasterFont.black(16, relativeTo: .headline))
+                                .foregroundStyle(Theme.textPrimary)
+                            Text(kindLabel(for: url))
+                                .font(TimeMasterFont.caption())
+                                .foregroundStyle(Theme.textSecondary)
+                        } else if note.isEmpty {
+                            Text(Self.emptyNotesPrompt)
+                                .font(TimeMasterFont.rowTitle())
+                                .foregroundStyle(Theme.textSecondary)
+                                .lineLimit(1)
+                        } else {
+                            DrawerNotePreview(note: note)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .frame(minHeight: 34)
+                    .contentShape(Rectangle())
                 }
-                Spacer(minLength: 8)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
+                .help(expanded ? "Collapse the notes" : "Open the notes")
+                .accessibilityLabel(expanded ? "Notes, \(kindLabel(for: url))" : (note.isEmpty ? "Write notes" : "Notes"))
+                .accessibilityHint(expanded ? "Collapses the notes" : "Opens the notes")
                 if expanded {
                     Button {
                         withAnimation(motion) { mediaHidden.toggle() }
@@ -393,9 +470,29 @@ struct PageMediaGallery: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 6)
+            #if os(iOS)
+            .simultaneousGesture(headerDrag(travel: travel))
+            #endif
         }
+        #if os(macOS)
+        .background {
+            MacDrawerSwipeCatcher { up in swipeDrawer(up: up) }
+        }
+        #endif
         .accessibilityElement(children: .contain)
         .accessibilityAction(named: expanded ? "Collapse notes" : "Open notes") { setDrawer(expanded ? 0 : 1) }
+    }
+
+    /// The grabber strip: a click opens or closes the notes, a drag moves them with the pointer and settles.
+    private func grabber(travel: CGFloat) -> some View {
+        Capsule()
+            .fill(Color.white.opacity(0.35))
+            .frame(width: 38, height: 5)
+            .frame(maxWidth: .infinity)
+            .frame(height: 20)
+            .contentShape(Rectangle())
+            .gesture(grabberDrag(travel: travel))
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -411,14 +508,17 @@ struct PageMediaGallery: View {
         }
     }
 
+    private static var emptyNotesPrompt: String {
+        #if os(macOS)
+        return "Click to write notes"
+        #else
+        return "Swipe up to write notes"
+        #endif
+    }
+
     private func kindLabel(for url: URL) -> String {
         let index = (urls.firstIndex(of: url) ?? 0) + 1
         return "\(PageMediaKind.isVideo(url) ? "Video" : "Photo") \(index)"
-    }
-
-    private static func preview(of note: String) -> String {
-        let line = note.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? note
-        return line.trimmingCharacters(in: CharacterSet(charactersIn: "#>*-` ").union(.whitespaces))
     }
 
     private func noteBinding(for url: URL) -> Binding<String> {
@@ -459,10 +559,11 @@ struct PageMediaGallery: View {
     }
 
     private func setDrawer(_ value: CGFloat) {
+        if value > 0, !notesRevealed { notesRevealed = true }
         withAnimation(motion) {
             drawer = value
-            liveDrag = 0
-            dismissDrag = 0
+            dragMotion.drawer = 0
+            dragMotion.dismiss = 0
         }
         if value == 0 { flushDrafts() }
         #if os(iOS)
@@ -472,42 +573,111 @@ struct PageMediaGallery: View {
         #endif
     }
 
-    private func drawerDrag(travel: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 14)
+    private func revealNotes() {
+        if !notesRevealed { notesRevealed = true }
+    }
+
+    /// How far a drag moves the drawer: up to fully open or closed, with a little give past either end.
+    private func drawerOffset(for dy: CGFloat, travel: CGFloat) -> CGFloat {
+        if isDrawerOpen {
+            return dy < 0 ? -Self.rubberBand(-dy) : min(travel, dy)
+        }
+        return dy > 0 ? Self.rubberBand(dy) : max(-travel, dy)
+    }
+
+    private static func rubberBand(_ distance: CGFloat) -> CGFloat {
+        20 * (1 - exp(-distance / 80))
+    }
+
+    private func settleDrawer(predicted dy: CGFloat, travel: CGFloat) {
+        if isDrawerOpen {
+            setDrawer(dy > travel * 0.5 ? 0 : 1)
+        } else {
+            setDrawer(-dy > travel * 0.5 ? 1 : 0)
+        }
+    }
+
+    private func grabberDrag(travel: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
             .onChanged { value in
-                if dragAxis == nil {
-                    dragAxis = abs(value.translation.height) > abs(value.translation.width) ? .vertical : .horizontal
-                }
-                guard dragAxis == .vertical else { return }
-                let dy = value.translation.height
-                if hasNotesSurface {
-                    let delta = -dy / travel
-                    liveDrag = min(1 - drawer, max(-drawer, delta))
-                }
-                dismissDrag = drawer == 0 && dy > 0 ? dy : 0
+                if value.translation.height < 0 { revealNotes() }
+                dragMotion.drawer = drawerOffset(for: value.translation.height, travel: travel)
             }
             .onEnded { value in
-                let axis = dragAxis
-                dragAxis = nil
+                let moved = abs(value.translation.height) > 4 || abs(value.translation.width) > 4
+                if moved {
+                    settleDrawer(predicted: value.predictedEndTranslation.height, travel: travel)
+                } else {
+                    setDrawer(isDrawerOpen ? 0 : 1)
+                }
+            }
+    }
+
+    #if os(iOS)
+    private func headerDrag(travel: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 10)
+            .onChanged { value in
+                if value.translation.height < 0 { revealNotes() }
+                dragMotion.drawer = drawerOffset(for: value.translation.height, travel: travel)
+            }
+            .onEnded { value in
+                settleDrawer(predicted: value.predictedEndTranslation.height, travel: travel)
+            }
+    }
+
+    /// Swipes on the media: up opens the notes, down (with the notes closed) closes the viewer.
+    private func mediaDrag(travel: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 14)
+            .onChanged { value in
+                let live = dragMotion
+                if live.axis == nil {
+                    live.axis = abs(value.translation.height) > abs(value.translation.width) ? .vertical : .horizontal
+                }
+                guard live.axis == .vertical else { return }
+                let dy = value.translation.height
+                if hasNotesSurface {
+                    if dy < 0 { revealNotes() }
+                    live.drawer = isDrawerOpen || dy < 0 ? drawerOffset(for: dy, travel: travel) : 0
+                }
+                live.dismiss = !isDrawerOpen && dy > 0 ? dy : 0
+            }
+            .onEnded { value in
+                let axis = dragMotion.axis
+                dragMotion.axis = nil
                 guard axis == .vertical else {
-                    withAnimation(motion) { liveDrag = 0; dismissDrag = 0 }
+                    resetDrag()
                     return
                 }
                 let dy = value.translation.height
-                if drawer == 0, dy > 110 {
+                if !isDrawerOpen, dy > 110 {
                     isPresented = false
                     return
                 }
                 guard hasNotesSurface else {
-                    withAnimation(motion) { liveDrag = 0; dismissDrag = 0 }
+                    resetDrag()
                     return
                 }
-                let projected = drawer + (-value.predictedEndTranslation.height / travel)
-                setDrawer(projected > 0.5 ? 1 : 0)
+                settleDrawer(predicted: value.predictedEndTranslation.height, travel: travel)
             }
     }
 
+    private func resetDrag() {
+        withAnimation(motion) {
+            dragMotion.drawer = 0
+            dragMotion.dismiss = 0
+        }
+    }
+    #endif
+
     #if os(macOS)
+    private func swipeDrawer(up: Bool) {
+        if up, !isDrawerOpen {
+            setDrawer(1)
+        } else if !up, isDrawerOpen {
+            setDrawer(0)
+        }
+    }
+
     private var macChevrons: some View {
         HStack {
             chevron("chevron.left", label: "Previous media", enabled: selectedIndex > 0) { step(-1) }
@@ -540,10 +710,10 @@ struct PageMediaGallery: View {
                 Button("Open notes") { setDrawer(1) }
                     .keyboardShortcut(.upArrow, modifiers: [.command, .option])
             }
-            .disabled(fraction > 0.5)
+            .disabled(isDrawerOpen)
             Button("Collapse notes") { setDrawer(0) }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
-                .disabled(fraction < 0.5)
+                .disabled(!isDrawerOpen)
         }
         .opacity(0)
         .frame(width: 0, height: 0)
@@ -555,6 +725,94 @@ struct PageMediaGallery: View {
         if target != selectedIndex { selectedIndex = target }
     }
     #endif
+}
+
+/// The live drag of the notes drawer and of the viewer itself (swipe down to close on iPhone). Only the views that
+/// draw these offsets observe it, so a drag moves layers instead of laying the viewer out again on every frame.
+private final class GalleryDragMotion: ObservableObject {
+    @Published var drawer: CGFloat = 0
+    @Published var dismiss: CGFloat = 0
+    var axis: Axis?
+}
+
+private struct GalleryDrawerOffset<Content: View>: View {
+    @ObservedObject var motion: GalleryDragMotion
+    let base: CGFloat
+    let content: Content
+
+    init(motion: GalleryDragMotion, base: CGFloat, @ViewBuilder content: () -> Content) {
+        _motion = ObservedObject(wrappedValue: motion)
+        self.base = base
+        self.content = content()
+    }
+
+    var body: some View {
+        content.offset(y: base + motion.drawer)
+    }
+}
+
+private struct GalleryDismissOffset<Content: View>: View {
+    @ObservedObject var motion: GalleryDragMotion
+    let content: Content
+
+    init(motion: GalleryDragMotion, @ViewBuilder content: () -> Content) {
+        _motion = ObservedObject(wrappedValue: motion)
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .offset(y: motion.dismiss * 0.6)
+            .opacity(1 - min(0.5, motion.dismiss / 500))
+    }
+}
+
+/// The first line of a note in the closed drawer, its Markdown drawn: links show their title, emphasis its style.
+private struct DrawerNotePreview: View {
+    let note: String
+
+    var body: some View {
+        Text(Self.render(note))
+            .foregroundStyle(Theme.textPrimary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+    }
+
+    static func render(_ note: String) -> AttributedString {
+        let block = MarkdownDocument(markdown: note).blocks.first { block in
+            switch block.kind {
+            case .divider, .image, .code: return false
+            default: return !block.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+        }
+        guard let block else {
+            return styled(AttributedString(NotePreview.text(from: note, maxLines: 1)))
+        }
+        let line = block.text
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .first
+            .map(String.init) ?? block.text
+        if case .linkCard = block.kind {
+            var title = styled(AttributedString(line))
+            title.foregroundColor = Theme.toolbarOrange
+            return title
+        }
+        let parsed = (try? AttributedString(
+            markdown: line,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(line)
+        var rendered = styled(parsed)
+        let linked = rendered.runs.filter { $0.link != nil }.map(\.range)
+        for range in linked {
+            rendered[range].link = nil
+            rendered[range].foregroundColor = Theme.toolbarOrange
+        }
+        return rendered
+    }
+
+    private static func styled(_ text: AttributedString) -> AttributedString {
+        TimeMasterFont.styledText(text, size: 15, relativeTo: .subheadline)
+    }
 }
 
 private struct TopRoundedShape: Shape {
@@ -584,10 +842,15 @@ private struct TopRoundedShape: Shape {
     }
 }
 
+/// A video page of the viewer. With `sharedPlayer` (the page's inline playback of this video) it continues that
+/// player and leaves it running when the viewer closes, so the card goes on where the viewer stopped.
 private struct PageGalleryInlineVideo: View {
     let url: URL
     let isActive: Bool
-    @State private var player: AVPlayer?
+    var sharedPlayer: AVPlayer?
+    @State private var ownPlayer: AVPlayer?
+
+    private var player: AVPlayer? { sharedPlayer ?? ownPlayer }
 
     var body: some View {
         Group {
@@ -598,11 +861,13 @@ private struct PageGalleryInlineVideo: View {
             }
         }
         .onAppear {
-            if player == nil { player = AVPlayer(url: url) }
+            if sharedPlayer == nil, ownPlayer == nil { ownPlayer = AVPlayer(url: url) }
             sync()
         }
         .onChange(of: isActive) { _ in sync() }
-        .onDisappear { player?.pause() }
+        .onDisappear {
+            if sharedPlayer == nil { ownPlayer?.pause() }
+        }
     }
 
     private func sync() {
@@ -701,7 +966,9 @@ private struct GalleryImagePage: View {
 }
 
 #if os(macOS)
-private struct MacScrollSwipeCatcher: NSViewRepresentable {
+/// Reads two-finger swipes over the notes header without taking any click: a whole trackpad swipe (or one turn of a
+/// mouse wheel) reports its direction once, decided by where it started, so the drawer moves once per gesture.
+private struct MacDrawerSwipeCatcher: NSViewRepresentable {
     let onSwipe: (Bool) -> Void
 
     func makeNSView(context: Context) -> CatcherView {
@@ -714,23 +981,34 @@ private struct MacScrollSwipeCatcher: NSViewRepresentable {
         nsView.onSwipe = onSwipe
     }
 
+    static func dismantleNSView(_ nsView: CatcherView, coordinator: ()) {
+        nsView.stopMonitoring()
+    }
+
     final class CatcherView: NSView {
         var onSwipe: ((Bool) -> Void)?
         private var monitor: Any?
-        private var accumulated: CGFloat = 0
+        private var tracking = false
         private var fired = false
+        private var travelX: CGFloat = 0
+        private var travelY: CGFloat = 0
+        private var lastWheel: TimeInterval = 0
 
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            if let monitor { NSEvent.removeMonitor(monitor) }
-            monitor = nil
+            stopMonitoring()
             guard window != nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
                 self?.handle(event)
                 return event
             }
+        }
+
+        func stopMonitoring() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
         }
 
         deinit {
@@ -739,23 +1017,31 @@ private struct MacScrollSwipeCatcher: NSViewRepresentable {
 
         private func handle(_ event: NSEvent) {
             guard let window, event.window === window else { return }
-            let point = convert(event.locationInWindow, from: nil)
-            guard bounds.contains(point), abs(event.scrollingDeltaY) > abs(event.scrollingDeltaX) else { return }
-            let fingersUp = event.isDirectionInvertedFromDevice ? event.scrollingDeltaY < 0 : event.scrollingDeltaY > 0
+            let inside = bounds.contains(convert(event.locationInWindow, from: nil))
+            let up = event.isDirectionInvertedFromDevice ? -event.scrollingDeltaY : event.scrollingDeltaY
             if event.phase.isEmpty && event.momentumPhase.isEmpty {
-                onSwipe?(fingersUp)
+                guard inside, abs(event.scrollingDeltaY) > abs(event.scrollingDeltaX), up != 0,
+                      event.timestamp - lastWheel > 0.4 else { return }
+                lastWheel = event.timestamp
+                onSwipe?(up > 0)
                 return
             }
-            if event.phase == .began || event.phase == .mayBegin {
-                accumulated = 0
+            if event.phase.contains(.mayBegin) || (event.phase.contains(.began) && !tracking) {
+                tracking = inside
                 fired = false
+                travelX = 0
+                travelY = 0
             }
-            guard event.momentumPhase.isEmpty, !fired else { return }
-            accumulated += fingersUp ? abs(event.scrollingDeltaY) : -abs(event.scrollingDeltaY)
-            if abs(accumulated) > 18 {
-                fired = true
-                onSwipe?(accumulated > 0)
+            if event.phase.contains(.ended) || event.phase.contains(.cancelled) {
+                tracking = false
+                return
             }
+            guard tracking, !fired, event.momentumPhase.isEmpty else { return }
+            travelX += abs(event.scrollingDeltaX)
+            travelY += up
+            guard abs(travelY) > 24, abs(travelY) > travelX * 1.2 else { return }
+            fired = true
+            onSwipe?(travelY > 0)
         }
     }
 }

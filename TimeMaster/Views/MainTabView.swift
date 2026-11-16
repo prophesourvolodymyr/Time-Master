@@ -187,6 +187,11 @@ struct MainTabView: View {
                 .environmentObject(databaseStore)
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
+        case .skills:
+            SkillsRootView()
+                .environmentObject(databaseStore)
+                .environmentObject(workoutStore)
+                .environmentObject(outdoorStore)
         case .analytics:
             AnalyticsView(requestedTracker: $requestedAnalyticsTracker)
                 .environmentObject(workoutStore)

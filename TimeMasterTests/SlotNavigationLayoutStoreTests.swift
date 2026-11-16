@@ -40,7 +40,7 @@ final class SlotNavigationLayoutStoreTests: XCTestCase {
             for saved in [previous, previous.filter { $0 != .physique }] {
                 let defaults = makeDefaults()
                 defaults.set(saved.map(\.rawValue), forKey: "tm.navigation.order.v1")
-                for key in ["scheduleSettingsAdded", "rankedAdded"] { defaults.set(true, forKey: "tm.navigation.\(key)") }
+                for key in ["scheduleSettingsAdded", "rankedAdded", "skillsAdded"] { defaults.set(true, forKey: "tm.navigation.\(key)") }
                 defaults.set(true, forKey: "tm.navigation.macLibraryNearHome.v1")
                 let store = SlotNavigationLayoutStore(defaults: defaults)
                 let expected = newDefault.filter { saved.contains($0) }
@@ -54,7 +54,7 @@ final class SlotNavigationLayoutStoreTests: XCTestCase {
         let defaults = makeDefaults()
         let custom: [SlotNavigationDestination] = [.home, .coach, .workouts, .database, .schedule, .settings, .ranked, .map, .profile, .physique, .analytics]
         defaults.set(custom.map(\.rawValue), forKey: "tm.navigation.order.v1")
-        for key in ["scheduleSettingsAdded", "rankedAdded"] { defaults.set(true, forKey: "tm.navigation.\(key)") }
+        for key in ["scheduleSettingsAdded", "rankedAdded", "skillsAdded"] { defaults.set(true, forKey: "tm.navigation.\(key)") }
         defaults.set(true, forKey: "tm.navigation.macLibraryNearHome.v1")
         let store = SlotNavigationLayoutStore(defaults: defaults)
         XCTAssertEqual(store.order, custom.filter(\.isAvailable))
@@ -69,5 +69,18 @@ final class SlotNavigationLayoutStoreTests: XCTestCase {
         _ = SlotNavigationLayoutStore(defaults: defaults)
         defaults.set(previous.map(\.rawValue), forKey: "tm.navigation.order.v1")
         XCTAssertEqual(SlotNavigationLayoutStore(defaults: defaults).order, previous.filter(\.isAvailable))
+    }
+
+    func testSkillsJoinsAnExistingBarOnceRightAfterTheDatabase() {
+        let defaults = makeDefaults()
+        let saved: [SlotNavigationDestination] = [.home, .coach, .database, .workouts, .settings]
+        defaults.set(saved.map(\.rawValue), forKey: "tm.navigation.order.v1")
+        for key in ["scheduleSettingsAdded", "rankedAdded"] { defaults.set(true, forKey: "tm.navigation.\(key)") }
+        defaults.set(true, forKey: "tm.navigation.macLibraryNearHome.v1")
+        defaults.set(true, forKey: "tm.navigation.workoutsLeftOfHome.v1")
+        let store = SlotNavigationLayoutStore(defaults: defaults)
+        XCTAssertEqual(store.order, [.home, .coach, .database, .skills, .workouts, .settings])
+        store.remove(id: SlotNavigationDestination.skills.rawValue)
+        XCTAssertEqual(SlotNavigationLayoutStore(defaults: defaults).order, saved)
     }
 }

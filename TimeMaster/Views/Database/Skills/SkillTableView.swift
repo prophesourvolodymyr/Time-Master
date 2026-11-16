@@ -1,155 +1,483 @@
 import SwiftUI
 import TimeMasterCore
 
-/// Every skill of a board on one line each: name, status, type, group, links. Status, type and group change in place.
+/// The Table view of a board: every sub-skill at any depth on one row (done check, status, title with where it lives,
+/// section, type, files, links and how much of what is inside it is done). Wide windows get column headers that sort;
+/// phones get two-line rows and a sort menu. A row opens its sub-skill; its section and type change in place.
 struct SkillTableView: View {
-    @EnvironmentObject private var store: DatabaseStore
-    let pages: [ExercisePage]
-    let context: SkillBoardContext
+    let snapshot: SkillBoardSnapshot
+    /// Already filtered by status; in board order.
+    let items: [SkillBoardItem]
+    /// The status filter above the table: a new sub-skill joins it, so it does not vanish the moment it exists.
+    var statusFilter: SkillStatus?
+    let actions: SkillBoardActions
 
-    private let statusWidth: CGFloat = 124
-    private let typeWidth: CGFloat = 150
-    private let groupWidth: CGFloat = 150
-    private let linksWidth: CGFloat = 56
+    @EnvironmentObject private var store: DatabaseStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    #endif
+
+    @State private var sortKey: SkillTableSortKey = .status
+    @State private var ascending = true
+
+    private var isWide: Bool {
+        #if os(macOS)
+        return true
+        #else
+        return sizeClass == .regular
+        #endif
+    }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            VStack(spacing: 0) {
-                header
-                if pages.isEmpty {
-                    Text("No skills yet")
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 56)
+        let rows = sortKey.sorted(items, ascending: ascending)
+        let showsSection = snapshot.hasSections
+        VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+            if !isWide { sortBar(count: rows.count) }
+            if !rows.isEmpty {
+                VStack(spacing: 0) {
+                    if isWide { headerRow(showsSection: showsSection) }
+                    LazyVStack(spacing: 0) {
+                        ForEach(rows) { item in
+                            SkillTableRow(
+                                item: item,
+                                isWide: isWide,
+                                showsSection: showsSection,
+                                moveTargets: snapshot.moveTargets,
+                                actions: actions
+                            )
+                            if item.id != rows.last?.id { separator }
+                        }
+                    }
                 }
-                ForEach(pages) { page in
-                    row(page)
-                }
+                .clipShape(RoundedRectangle(cornerRadius: SkillMetrics.cardRadius, style: .continuous))
+                .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.cardRadius, flat: true))
             }
-            .frame(minWidth: 720, maxWidth: SkillsLayout.tableWidth)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            SkillQuickAddRow(placeholder: "Add a sub-skill…") { title in
+                let added = SkillErrorCenter.shared.attempt("Add the sub-skill") {
+                    try store.createBoardSkill(title: title, on: snapshot.scope.boardID, sectionID: nil, status: statusFilter ?? .notStarted)
+                }
+                if added { EverHaptic.selection() }
+                return added
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var header: some View {
-        HStack(spacing: 10) {
-            head("Skill").frame(maxWidth: .infinity, alignment: .leading)
-            head("Status").frame(width: statusWidth, alignment: .leading)
-            head("Type").frame(width: typeWidth, alignment: .leading)
-            head("Group").frame(width: groupWidth, alignment: .leading)
-            head("Links").frame(width: linksWidth, alignment: .trailing)
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 34)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 1) }
-    }
+    // MARK: Header (wide)
 
-    private func head(_ text: String) -> some View {
-        Text(text.uppercased())
-            .font(TimeMasterFont.caption())
-            .tracking(1)
+    private func headerRow(showsSection: Bool) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: SkillMetrics.s3) {
+                Color.clear.frame(width: SkillMetrics.touch, height: 1).accessibilityHidden(true)
+                headerCell(.status, width: SkillTableLayout.statusWidth)
+                headerCell(.title, width: nil)
+                if showsSection { headerCell(.section, width: SkillTableLayout.sectionWidth) }
+                headerCell(.type, width: SkillTableLayout.typeWidth)
+                headerCell(.files, width: SkillTableLayout.countWidth, trailing: true, symbol: "paperclip")
+                headerCell(.links, width: SkillTableLayout.countWidth, trailing: true, symbol: "link")
+                headerCell(.inside, width: SkillTableLayout.insideWidth, trailing: true)
+            }
+            .font(TimeMasterFont.black(12, relativeTo: .caption))
             .foregroundStyle(Theme.textSecondary)
+            .padding(.horizontal, SkillMetrics.s4)
+            .frame(height: 40)
+            separator
+        }
     }
 
-    private func row(_ page: ExercisePage) -> some View {
-        let status = page.manifest.skillStatus ?? .notStarted
-        let type = store.skillType(of: page)
-        return HStack(spacing: 10) {
-            HStack(spacing: 8) {
-                SkillPageIconTile(page: page, size: 26)
-                SkillEditableTitle(
-                    pageID: page.manifest.id,
-                    title: page.title,
-                    color: Theme.textPrimary.opacity(status.titleOpacity),
-                    lineLimit: 1,
-                    onOpen: { context.open(page) }
-                )
+    private func headerCell(_ key: SkillTableSortKey, width: CGFloat?, trailing: Bool = false, symbol: String? = nil) -> some View {
+        let isActive = sortKey == key
+        return Button {
+            tap(key)
+        } label: {
+            HStack(spacing: 4) {
+                if trailing { Spacer(minLength: 0) }
+                if let symbol {
+                    Image(systemName: symbol)
+                        .accessibilityLabel(key.label)
+                } else {
+                    Text(key.label)
+                        .lineLimit(1)
+                }
+                if isActive {
+                    Image(systemName: ascending ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                if !trailing { Spacer(minLength: 0) }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .foregroundStyle(isActive ? Theme.textPrimary : Theme.textSecondary)
+            .frame(height: 40)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SkillPressButtonStyle())
+        .frame(width: width)
+        .frame(maxWidth: width == nil ? .infinity : nil)
+        .accessibilityLabel("Sort by \(key.label)")
+        .accessibilityValue(isActive ? (ascending ? "Ascending" : "Descending") : "")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
 
+    private var separator: some View {
+        Rectangle()
+            .fill(Theme.separator)
+            .frame(height: 1)
+    }
+
+    // MARK: Sort (phone)
+
+    private func sortBar(count: Int) -> some View {
+        HStack(spacing: SkillMetrics.s2) {
+            Text("\(count)")
+                .font(TimeMasterFont.technical())
+                .foregroundStyle(Theme.textSecondary)
+            Spacer(minLength: 0)
             Menu {
-                ForEach(SkillStatus.boardOrder, id: \.self) { option in
+                ForEach(SkillTableSortKey.allCases) { key in
                     Button {
-                        SkillErrorCenter.shared.attempt("Change the status") { try store.setSkillStatus(option, for: page.manifest.id) }
+                        tap(key)
                     } label: {
-                        Label(option.title, systemImage: status == option ? "checkmark" : option.symbolName)
+                        if key == sortKey {
+                            Label(key.label, systemImage: ascending ? "chevron.up" : "chevron.down")
+                        } else {
+                            Text(key.label)
+                        }
                     }
                 }
             } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: status.symbolName).font(.system(size: 12, weight: .semibold))
-                    Text(status.title).font(TimeMasterFont.caption())
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(sortKey.label)
+                        .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                    Image(systemName: ascending ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
                 }
-                .foregroundStyle(status.color)
-                .frame(width: statusWidth, height: 32, alignment: .leading)
+                .foregroundStyle(Theme.textPrimary)
+                .padding(.horizontal, SkillMetrics.s3)
+                .frame(minHeight: SkillMetrics.touch)
                 .contentShape(Rectangle())
             }
-            .menuStyle(.button).keyNavPlainButtonStyle()
+            .menuStyle(.button)
+            .buttonStyle(SkillPressButtonStyle())
             .menuIndicator(.hidden)
-            .accessibilityLabel("Status: \(status.title)")
+            .fixedSize()
+            .accessibilityLabel("Sort by \(sortKey.label)")
+            .accessibilityValue(ascending ? "Ascending" : "Descending")
+        }
+    }
 
-            SkillTypePicker(pageID: page.manifest.id) {
+    /// The same column again flips the direction; a new column starts ascending (counts start with the largest).
+    private func tap(_ key: SkillTableSortKey) {
+        withAnimation(reduceMotion ? nil : EverMotion.state) {
+            if sortKey == key {
+                ascending.toggle()
+            } else {
+                sortKey = key
+                ascending = !key.startsDescending
+            }
+        }
+        EverHaptic.selection()
+    }
+}
+
+// MARK: - Column widths
+
+private enum SkillTableLayout {
+    static let statusWidth: CGFloat = 132
+    static let sectionWidth: CGFloat = 150
+    static let typeWidth: CGFloat = 140
+    static let countWidth: CGFloat = 44
+    static let insideWidth: CGFloat = 72
+}
+
+// MARK: - Sorting
+
+/// The columns a table sorts by.
+enum SkillTableSortKey: String, CaseIterable, Identifiable {
+    case title, status, section, type, files, links, inside
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .title: return "Title"
+        case .status: return "Status"
+        case .section: return "Section"
+        case .type: return "Type"
+        case .files: return "Files"
+        case .links: return "Links"
+        case .inside: return "Inside"
+        }
+    }
+
+    /// Counts sort from the largest when picked.
+    var startsDescending: Bool {
+        switch self {
+        case .files, .links, .inside: return true
+        case .title, .status, .section, .type: return false
+        }
+    }
+
+    /// A sorted copy; ties keep board order.
+    func sorted(_ items: [SkillBoardItem], ascending: Bool) -> [SkillBoardItem] {
+        items.enumerated()
+            .sorted { lhs, rhs in
+                let result = compare(lhs.element, rhs.element)
+                if result == .orderedSame { return lhs.offset < rhs.offset }
+                return ascending ? result == .orderedAscending : result == .orderedDescending
+            }
+            .map(\.element)
+    }
+
+    private func compare(_ a: SkillBoardItem, _ b: SkillBoardItem) -> ComparisonResult {
+        switch self {
+        case .title:
+            return a.title.localizedCaseInsensitiveCompare(b.title)
+        case .status:
+            return Self.compare(Self.rank(a.status), Self.rank(b.status))
+        case .section:
+            return Self.compare(a.laneIndex == 0 ? Int.max : a.laneIndex, b.laneIndex == 0 ? Int.max : b.laneIndex)
+        case .type:
+            switch (a.type?.title, b.type?.title) {
+            case (nil, nil): return .orderedSame
+            case (nil, _): return .orderedDescending
+            case (_, nil): return .orderedAscending
+            case let (x?, y?): return x.localizedCaseInsensitiveCompare(y)
+            }
+        case .files:
+            return Self.compare(a.mediaCount, b.mediaCount)
+        case .links:
+            return Self.compare(a.linkCount, b.linkCount)
+        case .inside:
+            return Self.compare(a.progress.total, b.progress.total)
+        }
+    }
+
+    private static func rank(_ status: SkillStatus) -> Int {
+        SkillStatus.boardOrder.firstIndex(of: status) ?? 0
+    }
+
+    private static func compare(_ x: Int, _ y: Int) -> ComparisonResult {
+        x == y ? .orderedSame : (x < y ? .orderedAscending : .orderedDescending)
+    }
+}
+
+// MARK: - Row
+
+private struct SkillTableRow: View {
+    let item: SkillBoardItem
+    let isWide: Bool
+    let showsSection: Bool
+    let moveTargets: [SkillBoardLane]
+    let actions: SkillBoardActions
+
+    @State private var isHovering = false
+    @State private var typeEditor: SkillTypeEditorRoute?
+    @State private var showingTypeManager = false
+
+    private var page: ExercisePage { item.page }
+    private var status: SkillStatus { item.status }
+
+    var body: some View {
+        Group {
+            if isWide { wideRow } else { compactRow }
+        }
+        .background(Color.white.opacity(isHovering ? 0.04 : 0))
+        .skillTypeBase(item.type, cornerRadius: 0)
+        .contentShape(Rectangle())
+        .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: open)
+        .onHover { isHovering = $0 }
+        .onTapGesture(perform: open)
+        .skillTypeSheets(for: item.id, editor: $typeEditor, showingManager: $showingTypeManager)
+        .contextMenu {
+            SkillPageMenuItems(
+                item: item,
+                actions: actions,
+                moveTargets: moveTargets,
+                statusAsMenu: true,
+                typeEditor: $typeEditor,
+                showingTypeManager: $showingTypeManager
+            )
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(item.spokenSummary)
+        .accessibilityAction(named: "Open", open)
+    }
+
+    private func open() {
+        actions.open(page)
+    }
+
+    // MARK: Wide
+
+    private var wideRow: some View {
+        HStack(spacing: SkillMetrics.s3) {
+            SkillDoneButton(title: item.title, status: status, pageID: item.id) { actions.setStatus(page, $0) }
+            statusMenu(showsLabel: true)
+                .frame(width: SkillTableLayout.statusWidth, alignment: .leading)
+            HStack(spacing: SkillMetrics.s2) {
+                SkillPageIconTile(page: page, size: 26)
+                VStack(alignment: .leading, spacing: 2) {
+                    title
+                    if !item.path.isEmpty {
+                        Text(item.path)
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(Theme.textSecondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if showsSection {
+                sectionCell
+                    .frame(width: SkillTableLayout.sectionWidth, alignment: .leading)
+            }
+            SkillTypePicker(pageID: item.id) {
                 Group {
-                    if let type {
+                    if let type = item.type {
                         SkillTypeChip(type: type, showsChevron: true)
                     } else {
                         SkillAddTypeChip()
                     }
                 }
-                .frame(width: typeWidth, height: 32, alignment: .leading)
+                .frame(width: SkillTableLayout.typeWidth, height: 32, alignment: .leading)
                 .contentShape(Rectangle())
             }
+            count(item.mediaCount)
+            count(item.linkCount)
+            Text(item.progress.total > 0 ? "\(item.progress.completed)/\(item.progress.total)" : "—")
+                .font(TimeMasterFont.technical())
+                .foregroundStyle(item.progress.total > 0 ? Theme.textPrimary : Theme.textSecondary)
+                .frame(width: SkillTableLayout.insideWidth, alignment: .trailing)
+        }
+        .padding(.horizontal, SkillMetrics.s4)
+        .frame(minHeight: 52)
+    }
 
+    /// Where the sub-skill sits: a menu that moves a direct sub-skill to another section, plain text for nested ones.
+    @ViewBuilder
+    private var sectionCell: some View {
+        let label = HStack(spacing: SkillMetrics.s2) {
+            if let hex = item.sectionColorHex {
+                Capsule(style: .continuous)
+                    .fill(Color(hex: hex))
+                    .frame(width: 4, height: 18)
+                    .accessibilityHidden(true)
+            }
+            Text(item.sectionTitle ?? "—")
+                .font(TimeMasterFont.secondary())
+                .foregroundStyle(item.sectionTitle == nil ? Theme.textSecondary : Theme.textPrimary)
+                .lineLimit(1)
+        }
+        if item.isDirect && !moveTargets.isEmpty {
             Menu {
-                Button {
-                    move(page, to: nil)
-                } label: {
-                    Label("No group", systemImage: store.skillSectionID(of: page) == nil ? "checkmark" : "tray")
-                }
-                ForEach(context.groups) { group in
+                ForEach(moveTargets) { lane in
                     Button {
-                        move(page, to: group.id)
+                        actions.moveToSection(page, lane.sectionID)
                     } label: {
-                        Label(group.title, systemImage: store.skillSectionID(of: page) == group.id ? "checkmark" : "square.grid.2x2")
+                        Label(lane.title, systemImage: lane.key == item.laneKey ? "checkmark" : lane.symbolName)
                     }
                 }
             } label: {
-                Text(groupTitle(of: page))
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-                    .frame(width: groupWidth, height: 32, alignment: .leading)
+                label
+                    .frame(height: 32)
                     .contentShape(Rectangle())
             }
-            .menuStyle(.button).keyNavPlainButtonStyle()
+            .menuStyle(.button)
+            .buttonStyle(SkillPressButtonStyle())
             .menuIndicator(.hidden)
-            .disabled(context.groups.isEmpty)
+            .accessibilityLabel("Section: \(item.sectionTitle ?? "none")")
+        } else {
+            label
+        }
+    }
 
-            Text(page.manifest.linkURLs.isEmpty ? "–" : "\(page.manifest.linkURLs.count)")
-                .font(TimeMasterFont.caption())
+    private func count(_ value: Int) -> some View {
+        Text(value > 0 ? "\(value)" : "—")
+            .font(TimeMasterFont.technical())
+            .foregroundStyle(value > 0 ? Theme.textPrimary : Theme.textSecondary)
+            .frame(width: SkillTableLayout.countWidth, alignment: .trailing)
+    }
+
+    // MARK: Compact
+
+    private var compactRow: some View {
+        HStack(spacing: SkillMetrics.s2) {
+            SkillDoneButton(title: item.title, status: status, pageID: item.id) { actions.setStatus(page, $0) }
+            statusMenu(showsLabel: false)
+            VStack(alignment: .leading, spacing: 3) {
+                title
+                metaLine
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.textSecondary)
-                .frame(width: linksWidth, alignment: .trailing)
+                .accessibilityHidden(true)
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 44)
-        .skillTypeBase(type, cornerRadius: 0)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 1) }
-        .contextMenu { SkillPageMenu(page: page, context: context) }
-        .keyNavTarget(id: page.manifest.id, role: .primary, shape: .roundedRectangle(cornerRadius: 4)) {
-            context.open(page)
-        }
+        .padding(.leading, SkillMetrics.s2)
+        .padding(.trailing, SkillMetrics.s4)
+        .padding(.vertical, SkillMetrics.s1)
+        .frame(minHeight: 60)
     }
 
-    private func groupTitle(of page: ExercisePage) -> String {
-        guard let id = store.skillSectionID(of: page),
-              let group = context.groups.first(where: { $0.id == id }) else { return "–" }
-        return group.title
+    private var metaLine: some View {
+        HStack(spacing: SkillMetrics.s3) {
+            if let place = item.path.isEmpty ? item.sectionTitle : item.path {
+                HStack(spacing: 5) {
+                    if item.path.isEmpty, let hex = item.sectionColorHex {
+                        Circle()
+                            .fill(Color(hex: hex))
+                            .frame(width: 8, height: 8)
+                            .accessibilityHidden(true)
+                    }
+                    Text(place)
+                        .lineLimit(1)
+                }
+                .layoutPriority(-1)
+            }
+            if let type = item.type { SkillTypeChip(type: type) }
+            if item.mediaCount > 0 { badge("paperclip", "\(item.mediaCount)") }
+            if item.linkCount > 0 { badge("link", "\(item.linkCount)") }
+            if item.progress.total > 0 { badge("arrow.turn.down.right", "\(item.progress.completed)/\(item.progress.total)") }
+        }
+        .font(TimeMasterFont.caption())
+        .foregroundStyle(Theme.textSecondary)
     }
 
-    private func move(_ page: ExercisePage, to sectionID: String?) {
-        SkillErrorCenter.shared.attempt("Move the skill") {
-            try store.placeSkillPage(page.manifest.id, sectionID: .some(sectionID))
+    private func badge(_ symbol: String, _ text: String) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .semibold))
+            Text(text)
+                .font(TimeMasterFont.technical())
+                .lineLimit(1)
         }
+        .fixedSize()
+    }
+
+    // MARK: Shared
+
+    private var title: some View {
+        SkillEditableTitle(
+            pageID: item.id,
+            title: item.title,
+            font: TimeMasterFont.rowTitle(),
+            color: Theme.textPrimary.opacity(status.titleOpacity),
+            lineLimit: 1,
+            onOpen: open
+        )
+    }
+
+    private func statusMenu(showsLabel: Bool) -> some View {
+        SkillStatusMenu(status: status, onChange: { actions.setStatus(page, $0) }) {
+            SkillStatusChip(status, showsLabel: showsLabel)
+                .frame(minHeight: SkillMetrics.touch)
+                .padding(.horizontal, showsLabel ? 0 : 4)
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(SkillPressButtonStyle())
+        .fixedSize()
     }
 }

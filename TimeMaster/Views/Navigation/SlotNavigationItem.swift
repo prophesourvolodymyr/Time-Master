@@ -570,6 +570,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     case home
     case workouts
     case database
+    case skills
     case analytics
     case coach
     case profile
@@ -586,6 +587,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .home: "Home"
         case .workouts: "Workouts"
         case .database: "Database"
+        case .skills: "Skills"
         case .analytics: "Analytics"
         case .coach: "AI Coach"
         case .profile: "Profile"
@@ -602,6 +604,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .home: .system("house.fill")
         case .workouts: .system("dumbbell.fill")
         case .database: .system("books.vertical.fill")
+        case .skills: .system("square.stack.3d.up.fill")
         case .analytics: .system("chart.bar.fill")
         case .coach: .system("brain.head.profile")
         case .profile: .system("person.crop.circle")
@@ -618,6 +621,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
         case .home: "Shows your daily dashboard."
         case .workouts: "Shows your workouts."
         case .database: "Shows your exercise database."
+        case .skills: "Shows the skills you are learning."
         case .analytics: "Shows your workout analytics."
         case .coach: "Opens your AI coach."
         case .profile: "Shows your profile and history."
@@ -645,7 +649,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     }
 
     /// The arrangement the app ships with, before anyone edits the bar.
-    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .workouts, .home, .database, .schedule, .map, .ranked, .physique, .analytics, .settings]
+    static let defaultOrder: [SlotNavigationDestination] = [.coach, .profile, .workouts, .home, .database, .schedule, .skills, .map, .ranked, .physique, .analytics, .settings]
 }
 
 extension SlotNavigationItem {
@@ -672,6 +676,7 @@ final class SlotNavigationLayoutStore: ObservableObject {
     private let defaults: UserDefaults
     private let orderKey = "tm.navigation.order.v1"
     private static let workoutsLeftOfHomeKey = "tm.navigation.workoutsLeftOfHome.v1"
+    private static let skillsAddedKey = "tm.navigation.skillsAdded"
 
     /// Every arrangement an earlier build shipped, including the Mac one after its library-near-home
     /// migration. A saved order that still equals one of these was never edited by the person.
@@ -689,7 +694,7 @@ final class SlotNavigationLayoutStore: ObservableObject {
             save()
             for key in [
                 "tm.navigation.scheduleSettingsAdded", "tm.navigation.rankedAdded",
-                "tm.navigation.macLibraryNearHome.v1", Self.workoutsLeftOfHomeKey
+                "tm.navigation.macLibraryNearHome.v1", Self.workoutsLeftOfHomeKey, Self.skillsAddedKey
             ] {
                 defaults.set(true, forKey: key)
             }
@@ -734,6 +739,14 @@ final class SlotNavigationLayoutStore: ObservableObject {
                 save()
             }
             defaults.set(true, forKey: Self.workoutsLeftOfHomeKey)
+        }
+        if !defaults.bool(forKey: Self.skillsAddedKey) {
+            if !order.contains(.skills) {
+                let index = order.firstIndex(of: .database).map { $0 + 1 } ?? order.count
+                order.insert(.skills, at: index)
+                save()
+            }
+            defaults.set(true, forKey: Self.skillsAddedKey)
         }
     }
 

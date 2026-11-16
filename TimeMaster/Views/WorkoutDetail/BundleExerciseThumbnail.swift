@@ -15,7 +15,7 @@ struct BundleExerciseThumbnail: View {
             overlayGradient: false
         )
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: BuilderMetrics.thumbnailRadius(size), style: .continuous))
         .accessibilityHidden(true)
     }
 }

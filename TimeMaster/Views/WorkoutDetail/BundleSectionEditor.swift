@@ -6,6 +6,7 @@ struct BundleSectionEditor: View {
     @EnvironmentObject private var databaseStore: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.workoutHeroSources) private var heroSources
     @State private var expandedSetIDs: Set<UUID> = []
     @State private var draggedID: UUID?
     @State private var addingToSetID: UUID?
@@ -29,10 +30,8 @@ struct BundleSectionEditor: View {
                     section.bundleVoiceEnabled.toggle()
                 } label: {
                     Image(systemName: section.bundleVoiceEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                        .frame(width: 44, height: 44)
-                        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 12))
                 }
-                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
+                .buttonStyle(BuilderChipButtonStyle())
                 .accessibilityLabel("Spoken callouts")
                 .accessibilityValue(section.bundleVoiceEnabled ? "On" : "Off")
             }
@@ -131,8 +130,7 @@ struct BundleSectionEditor: View {
     private func setCard(_ set: SetSlot, index: Int) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Image(systemName: "line.3.horizontal")
-                    .foregroundStyle(Theme.textSecondary)
+                BuilderHandle()
                 Button {
                     toggleExpansion(of: set.id)
                 } label: {
@@ -144,6 +142,8 @@ struct BundleSectionEditor: View {
                             .foregroundStyle(Theme.textSecondary)
                         Spacer()
                         Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Theme.textSecondary)
                             .rotationEffect(.degrees(expandedSetIDs.contains(set.id) ? 180 : 0))
                     }
                 }
@@ -177,10 +177,9 @@ struct BundleSectionEditor: View {
                     }
                     .disabled(section.slots.count == 1)
                 } label: {
-                    Image(systemName: "plus").frame(width: 44, height: 44)
+                    Image(systemName: "plus")
                 }
-                .menuStyle(.borderlessButton)
-                .keyNavTarget(shape: .circle)
+                .builderChipMenu()
                 .accessibilityLabel("Add exercise or edit set \(index + 1)")
             }
             .padding(.horizontal, 12)
@@ -200,8 +199,12 @@ struct BundleSectionEditor: View {
                     exerciseRow(exercise, setID: set.id, index: exerciseIndex)
                         .padding(.leading, 18)
                         .overlay(alignment: .leading) {
-                            Rectangle().fill(Theme.separator).frame(width: 2).padding(.leading, 8)
+                            Rectangle()
+                                .fill(Color.white.opacity(0.16))
+                                .frame(width: BuilderMetrics.rail)
+                                .padding(.leading, 8)
                         }
+                        .transition(.opacity)
                 }
                 HStack {
                     Label("Between sets", systemImage: "pause.fill")
@@ -210,13 +213,19 @@ struct BundleSectionEditor: View {
                 }
                 .font(TimeMasterFont.caption())
                 .padding(12)
+                .transition(.opacity)
             }
         }
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Theme.separator, lineWidth: 1)
+                .allowsHitTesting(false)
+        )
     }
 
     private func toggleExpansion(of id: UUID) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+        withAnimation(reduceMotion ? nil : EverMotion.disclosure) {
             if !expandedSetIDs.insert(id).inserted { expandedSetIDs.remove(id) }
         }
     }
@@ -226,9 +235,13 @@ struct BundleSectionEditor: View {
             HStack(spacing: 10) {
                 Image(systemName: "line.3.horizontal").font(.caption)
                 Button {
-                    if let id = exercise.exercisePageID { onOpenPage?(id) }
+                    if let id = exercise.exercisePageID {
+                        heroSources?.markTapped("bundle-exercise-\(exercise.id)")
+                        onOpenPage?(id)
+                    }
                 } label: {
                     BundleExerciseThumbnail(slot: exercise, size: 42)
+                        .workoutHeroSource("bundle-exercise-\(exercise.id)")
                 }
                 .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
                 .disabled(exercise.exercisePageID == nil || onOpenPage == nil)
@@ -251,10 +264,9 @@ struct BundleSectionEditor: View {
                     }
                     .disabled(section.slots.first(where: { $0.id == setID })?.children.count == 1)
                 } label: {
-                    Image(systemName: "ellipsis").frame(width: 44, height: 44)
+                    Image(systemName: "ellipsis")
                 }
-                .menuStyle(.borderlessButton)
-                .keyNavTarget(shape: .circle)
+                .builderChipMenu()
                 .accessibilityLabel("Actions for \(exercise.displayName)")
             }
             HStack {

@@ -34,19 +34,42 @@ enum SkillSettings {
     static let autoIconStyleKey = "tm.skills.autoIcon"
     /// Prefix of the remembered List · Board · Table choice per board (`<prefix><board id>`).
     static let viewModeKeyPrefix = "tm.skills.viewMode."
+    /// Int, default `SkillGroupLimit.standard`: how many sub-skills a section or a column shows before its
+    /// "Expand all" (0 = every one).
+    static let perGroupKey = "tm.skills.perGroup"
+    /// `[page id: status raw value]`: what a page was before its done check was ticked, so un-ticking restores it.
+    static let statusBeforeDoneKey = "tm.skills.statusBeforeDone"
+}
+
+/// The spacing, radii and sizes of the skill board: Skillmax's scale, unchanged.
+enum SkillMetrics {
+    static let s1: CGFloat = 4
+    static let s2: CGFloat = 8
+    static let s3: CGFloat = 12
+    static let s4: CGFloat = 16
+    static let s5: CGFloat = 20
+    static let s6: CGFloat = 24
+    /// Section groups, columns and tables.
+    static let cardRadius: CGFloat = 20
+    /// Rows, cards, fields and quick-add rows.
+    static let fieldRadius: CGFloat = 14
+    static let touch: CGFloat = 44
+    static let row: CGFloat = 56
+    static let phoneInset: CGFloat = 20
+    static let regularInset: CGFloat = 32
 }
 
 // MARK: - The four statuses
 
 extension SkillStatus {
-    /// Column and filter order.
+    /// Column and filter order: Not started · In progress · Done · Abandoned.
     static let boardOrder: [SkillStatus] = [.notStarted, .learning, .completed, .abandoned]
 
     var title: String {
         switch self {
         case .notStarted: "Not started"
-        case .learning: "Learning"
-        case .completed: "Completed"
+        case .learning: "In progress"
+        case .completed: "Done"
         case .abandoned: "Abandoned"
         }
     }
@@ -73,14 +96,31 @@ extension SkillStatus {
     /// Soft fill behind `color` text.
     var tint: Color { color.opacity(0.14) }
 
-    /// The done toggle: done goes back to not started, anything else becomes done.
-    var toggledDone: SkillStatus { self == .completed ? .notStarted : .completed }
+    /// Tap cycle of the status chip: not started → in progress → done → not started; abandoned → not started.
+    var next: SkillStatus {
+        switch self {
+        case .notStarted: .learning
+        case .learning: .completed
+        case .completed: .notStarted
+        case .abandoned: .notStarted
+        }
+    }
+
+    /// Context-menu wording: "Mark done", "In progress", "Not started", "Abandon".
+    var quickActionTitle: String {
+        switch self {
+        case .completed: "Mark done"
+        case .learning: "In progress"
+        case .notStarted: "Not started"
+        case .abandoned: "Abandon"
+        }
+    }
 
     /// Opacity of a page title: abandoned pages sit back.
     var titleOpacity: Double { self == .abandoned ? 0.55 : 1 }
 }
 
-// MARK: - Groups opened as pages
+// MARK: - Opening pages and groups
 
 /// A board group opened as a page of its own (tapping the title of its header).
 struct DatabaseSkillGroupRoute: Hashable {
@@ -88,4 +128,16 @@ struct DatabaseSkillGroupRoute: Hashable {
     let sectionID: String
 
     var groupID: String { SkillGroupID.make(containerID: containerID, sectionID: sectionID) }
+}
+
+extension DatabaseNavigationState {
+    /// Pushes a page (a manifest id) or a group (a group id) onto the stack this state drives: the Database tab's, a
+    /// search sheet's or the workout popup's, whichever the board sits in.
+    func open(skillID id: String) {
+        if let owner = SkillGroupID.split(id) {
+            path.append(DatabaseSkillGroupRoute(containerID: owner.containerID, sectionID: owner.sectionID))
+        } else {
+            path.append(DatabasePageRoute(pageID: id))
+        }
+    }
 }

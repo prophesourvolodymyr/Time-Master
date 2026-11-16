@@ -10,15 +10,18 @@ import AppKit
 struct ExercisePageDetailView: View {
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
-    @Environment(\.workoutMedia) private var workoutMedia
+    @Environment(\.pageCloseAction) private var closeAction
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let pageID: UUID
     var showsHero = true
     @ScaledMetric(relativeTo: .largeTitle) private var coverMinimumHeight: CGFloat = 220
 
     @State private var isEditing = false
-    @State private var mediaGalleryPresented = false
     @State private var selectedMediaIndex = 0
-    @State private var mediaGalleryOpensEditor = false
+    @State private var viewer: MediaViewerPresentation?
+    @StateObject private var inlinePlayback = MediaInlinePlayback()
+    @State private var trimTarget: MediaTrimTarget?
+    @State private var showingFileImporter = false
     @State private var linkMetadata: [LinkMetadata] = []
     @State private var showMediaPicker = false
     @State private var showWorkoutPicker = false
@@ -63,8 +66,17 @@ struct ExercisePageDetailView: View {
             } else {
                 emptyPageView
             }
+
+            if let page, let viewer {
+                mediaViewer(page: page, presentation: viewer)
+                    .transition(reduceMotion ? AnyTransition.opacity : AnyTransition.mediaExpand(from: viewer.source, in: viewer.container))
+                    .zIndex(1)
+            }
         }
-        .timeMasterNavigationTitle(showsHero ? "" : (page?.title ?? "Workout"))
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+            inlinePlayback.setContainerFrame(frame)
+        }
+        .timeMasterNavigationTitle(navigationTitle)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -76,6 +88,7 @@ struct ExercisePageDetailView: View {
         .toolbar {
             AppToolbar.iconItem(placement: .cancellationAction) {
                 TimeMasterBackButton()
+                    .disabled(viewerHoldsEscape)
                     .oneHandedActionSource()
             }
             if page?.isWorkoutAddable == true {
@@ -102,7 +115,8 @@ struct ExercisePageDetailView: View {
             }
             #endif
         }
-        .oneHandedActions(id: "exercise-page-\(pageID)", actions: pageActions)
+        .oneHandedActions(id: "exercise-page-\(pageID)", actions: viewer == nil ? pageActions : [])
+        .slotNavigationInteractionDisabled(viewer != nil)
         .sheet(isPresented: $isEditing) {
             if let page {
                 PageCreationSheet(page: page) { manifest, _ in
@@ -158,23 +172,10 @@ struct ExercisePageDetailView: View {
         .onChange(of: showingAddChildPage) { isPresented in
             if !isPresented { childPageParent = nil }
         }
-        .mediaViewerCover(isPresented: $mediaGalleryPresented) {
-            if let page {
-                PageMediaGallery(
-                    urls: page.mediaURLs,
-                    selectedIndex: $selectedMediaIndex,
-                    isPresented: $mediaGalleryPresented,
-                    comments: page.mediaCommentsByURL,
-                    onSaveComment: { url, comment in
-                        try store.updateMediaComment(pageID: page.manifest.id, filename: url.lastPathComponent, comment: comment)
-                    },
-                    opensEditor: mediaGalleryOpensEditor,
-                    notesAssets: { _ in FolderMarkdownAssets(folder: store.folderURL(for: page)) },
-                    workout: workoutMedia?.workout,
-                    liveContext: workoutMedia?.liveContext
-                )
-            }
+        .sheet(item: $trimTarget) { target in
+            MediaTrimSheet(target: target, onOpenFullEditor: fullEditorAction(for: target.url))
         }
+        .onDisappear { inlinePlayback.pause() }
         .task {
             guard let page, !page.manifest.linkURLs.isEmpty else { return }
             linkMetadata = await LinkMetadataFetcher.fetchMetadata(
@@ -199,7 +200,7 @@ struct ExercisePageDetailView: View {
 
     private var pageActions: [ReachabilityAction] {
         var actions = [
-            ReachabilityAction("back", title: "Back") {
+            ReachabilityAction("back", title: closeAction == nil ? "Back" : "Close") {
                 TimeMasterBackButton()
             }
         ]
@@ -311,30 +312,7 @@ struct ExercisePageDetailView: View {
                     .shadow(color: .black.opacity(0.4), radius: 3)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 8) {
-                Text(pageTypeLabel(page))
-                    .font(TimeMasterFont.black(12, relativeTo: .caption))
-                    .foregroundStyle(.white.opacity(0.85))
-                if let type = page.effectiveWorkoutType {
-                    Label {
-                        Text(type.name)
-                            .font(TimeMasterFont.black(12, relativeTo: .caption))
-                    } icon: {
-                        Image(systemName: type.iconName)
-                            .font(.caption.weight(.medium))
-                    }
-                        .foregroundStyle(.white)
-                }
-                if page.isSkillLike {
-                    SkillTypePicker(pageID: page.manifest.id) {
-                        if let skillType = store.skillType(of: page) {
-                            SkillTypeChip(type: skillType, showsChevron: true)
-                        } else {
-                            SkillAddTypeChip()
-                        }
-                    }
-                }
-            }
+            pageInfoRow(page: page, color: .white.opacity(0.85), emphasis: .white)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -388,31 +366,23 @@ struct ExercisePageDetailView: View {
     }
 
     private func detailContent(page: ExercisePage) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            if page.hasMedia && !page.isSkillLike {
-                MediaStrip(
-                    title: showsHero ? "Media" : "",
-                    urls: page.mediaURLs,
-                    marksCover: showsHero,
-                    comments: page.mediaCommentsByURL,
-                    onOpen: { index in
-                        selectedMediaIndex = index
-                        mediaGalleryOpensEditor = false
-                        mediaGalleryPresented = true
-                    },
-                    onOpenNotes: { index in
-                        selectedMediaIndex = index
-                        mediaGalleryOpensEditor = true
-                        mediaGalleryPresented = true
-                    }
-                )
+        let showsStrip = page.hasMedia && (!page.isSkillLike || !showsHero)
+        return VStack(alignment: .leading, spacing: 20) {
+            if !showsHero {
+                compactHeader(page: page)
+            }
+
+            if showsStrip {
+                mediaStrip(page: page)
             }
 
             if page.isSkill || page.isTutorial {
                 SkillPrerequisitesSection(materialID: page.manifest.id)
                 SkillChecklistSections(pageID: page.manifest.id)
                 SkillNotesSection(materialID: page.manifest.id)
-                SkillFilesSection(materialID: page.manifest.id)
+                if !showsStrip {
+                    SkillFilesSection(materialID: page.manifest.id)
+                }
                 SkillLinksSection(materialID: page.manifest.id)
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Sub-skills")
@@ -458,6 +428,230 @@ struct ExercisePageDetailView: View {
         .padding(.top, 20)
         .padding(.bottom, 40)
     }
+
+    /// The title and kind at the top of a page shown without its cover (a workout's page popup).
+    private func compactHeader(page: ExercisePage) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if page.isSkillLike {
+                HStack(alignment: .center, spacing: 12) {
+                    Button { choosingIcon = true } label: {
+                        SkillPageIconTile(page: page, size: 36)
+                    }
+                    .keyNavPlainButtonStyle()
+                    .help("Change the icon")
+                    .accessibilityLabel("Change the icon")
+                    SkillEditableTitle(
+                        pageID: page.manifest.id,
+                        title: page.title,
+                        font: TimeMasterFont.pageTitle(30, relativeTo: .title),
+                        color: Theme.textPrimary,
+                        lineLimit: 3,
+                        renamesOnPhone: true
+                    )
+                }
+            } else {
+                TimeMasterPageTitle(page.title, size: 30, relativeTo: .title)
+                    .foregroundStyle(Theme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            pageInfoRow(page: page, color: Theme.textSecondary, emphasis: Theme.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func pageInfoRow(page: ExercisePage, color: Color, emphasis: Color) -> some View {
+        HStack(spacing: 8) {
+            Text(pageTypeLabel(page))
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                .foregroundStyle(color)
+            if let type = page.effectiveWorkoutType {
+                Label {
+                    Text(type.name)
+                        .font(TimeMasterFont.black(12, relativeTo: .caption))
+                } icon: {
+                    Image(systemName: type.iconName)
+                        .font(.caption.weight(.medium))
+                }
+                    .foregroundStyle(emphasis)
+            }
+            if page.isSkillLike {
+                SkillTypePicker(pageID: page.manifest.id) {
+                    if let skillType = store.skillType(of: page) {
+                        SkillTypeChip(type: skillType, showsChevron: true)
+                    } else {
+                        SkillAddTypeChip()
+                    }
+                }
+            }
+        }
+    }
+
+    private func mediaStrip(page: ExercisePage) -> some View {
+        MediaStrip(
+            title: showsHero ? "Media" : "",
+            urls: page.mediaURLs,
+            marksCover: showsHero,
+            comments: page.mediaCommentsByURL,
+            onOpen: { index in openViewer(at: index, of: page, opensEditor: false) },
+            onOpenNotes: { index in openViewer(at: index, of: page, opensEditor: true) },
+            playback: inlinePlayback,
+            cardActions: { index in cardActions(at: index, of: page) },
+            onAdd: page.isSkillLike ? { showingFileImporter = true } : nil
+        )
+        .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+            guard case .success(let picked) = result else { return }
+            for url in picked {
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                SkillErrorCenter.shared.attempt("Add the file") {
+                    try store.uploadSkillMedia(url, to: page.manifest.id)
+                }
+            }
+        }
+    }
+
+    /// The menu of a media card. Skill and tutorial pages also get the actions of their Files section, which the
+    /// popup leaves out because the strip already shows those files.
+    private func cardActions(at index: Int, of page: ExercisePage) -> [MediaCardAction] {
+        guard page.mediaURLs.indices.contains(index) else { return [] }
+        let url = page.mediaURLs[index]
+        let filename = url.lastPathComponent
+        let pageID = page.manifest.id
+        var actions = [
+            MediaCardAction("Open in viewer", systemImage: "arrow.up.left.and.arrow.down.right") {
+                openViewer(at: index, of: page, opensEditor: false)
+            }
+        ]
+        if PageMediaKind.isVideo(url) {
+            actions.append(MediaCardAction("Trim video…", systemImage: "scissors") {
+                inlinePlayback.pause()
+                trimTarget = MediaTrimTarget(url: url, pageID: pageID)
+            })
+            #if os(macOS)
+            actions.append(MediaCardAction("Open full editor…", systemImage: "film") {
+                openFullEditor(url)
+            })
+            #endif
+        }
+        guard page.isSkillLike else { return actions }
+        let isPrerequisite = page.manifest.dependencyMediaFilenames.contains(filename)
+        actions.append(MediaCardAction(
+            isPrerequisite ? "Not a prerequisite" : "Learn this first",
+            systemImage: "arrow.turn.down.right"
+        ) {
+            SkillErrorCenter.shared.attempt("Change the prerequisite flag") {
+                try store.setSkillMediaIsDependency(filename, in: pageID, !isPrerequisite)
+            }
+        })
+        if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true {
+            let isCover = page.manifest.coverMediaFilename == filename
+            actions.append(MediaCardAction(isCover ? "Remove the cover" : "Use as cover", systemImage: "photo") {
+                SkillErrorCenter.shared.attempt("Set the cover") {
+                    try store.setSkillCover(pageID, filename: isCover ? nil : filename)
+                }
+            })
+            actions.append(MediaCardAction("Use as icon", systemImage: "person.crop.square") {
+                SkillErrorCenter.shared.attempt("Set the icon") {
+                    try store.setSkillIcon(pageID, name: nil, type: nil, image: filename)
+                }
+            })
+        }
+        actions.append(MediaCardAction("Remove", systemImage: "trash", role: .destructive) {
+            if inlinePlayback.url == url { inlinePlayback.stop() }
+            SkillErrorCenter.shared.attempt("Remove the file") {
+                try store.removeSkillMedia(filename, from: pageID)
+            }
+        })
+        return actions
+    }
+
+    private func mediaViewer(page: ExercisePage, presentation: MediaViewerPresentation) -> some View {
+        PageMediaGallery(
+            urls: page.mediaURLs,
+            selectedIndex: $selectedMediaIndex,
+            isPresented: Binding(get: { viewer != nil }, set: { if !$0 { closeViewer() } }),
+            comments: page.mediaCommentsByURL,
+            onSaveComment: { url, comment in
+                try store.updateMediaComment(pageID: page.manifest.id, filename: url.lastPathComponent, comment: comment)
+            },
+            opensEditor: presentation.opensEditor,
+            notesAssets: { _ in FolderMarkdownAssets(folder: store.folderURL(for: page)) },
+            presentation: .inPlace,
+            playback: inlinePlayback,
+            mediaOwnerID: { _ in page.manifest.id }
+        )
+        .keyNavHost()
+    }
+
+    private var viewerAnimation: Animation {
+        reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.9)
+    }
+
+    /// Opens the media viewer in place: it grows out of the card at `index` (the card's video keeps playing in it).
+    private func openViewer(at index: Int, of page: ExercisePage, opensEditor: Bool) {
+        guard page.mediaURLs.indices.contains(index) else { return }
+        let url = page.mediaURLs[index]
+        if inlinePlayback.url != url { inlinePlayback.pause() }
+        selectedMediaIndex = index
+        let presentation = MediaViewerPresentation(
+            opensEditor: opensEditor,
+            source: inlinePlayback.cardRect(for: url),
+            container: inlinePlayback.containerSize
+        )
+        withAnimation(viewerAnimation) { viewer = presentation }
+    }
+
+    /// Shrinks the viewer back into the card of the media it shows (the card it came from when that one is gone).
+    private func closeViewer() {
+        guard viewer != nil else { return }
+        if let page, page.mediaURLs.indices.contains(selectedMediaIndex),
+           let card = inlinePlayback.cardRect(for: page.mediaURLs[selectedMediaIndex]) {
+            viewer?.source = card
+        }
+        let animation = viewerAnimation
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 16_000_000)
+            withAnimation(animation) { viewer = nil }
+            try? await Task.sleep(nanoseconds: 550_000_000)
+            inlinePlayback.redrawSurface()
+        }
+    }
+
+    private var navigationTitle: String {
+        #if os(macOS)
+        return showsHero ? "" : (page?.title ?? "Workout")
+        #else
+        return ""
+        #endif
+    }
+
+    /// On the Mac the in-place viewer answers Escape, so the page's close or back button rests while it is open.
+    private var viewerHoldsEscape: Bool {
+        #if os(macOS)
+        return viewer != nil
+        #else
+        return false
+        #endif
+    }
+
+    private func fullEditorAction(for url: URL) -> (() -> Void)? {
+        #if os(macOS)
+        return { openFullEditor(url) }
+        #else
+        return nil
+        #endif
+    }
+
+    #if os(macOS)
+    private func openFullEditor(_ url: URL) {
+        inlinePlayback.pause()
+        MacVideoWorkspaceWindowPresenter.shared.present(
+            sources: [MacVideoSource(url: url)],
+            databaseStore: store,
+            workoutStore: workoutStore
+        )
+    }
+    #endif
 
 
     private func markdownSection(page: ExercisePage, title: String) -> some View {

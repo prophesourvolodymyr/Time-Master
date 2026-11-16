@@ -1,675 +1,795 @@
 import SwiftUI
 import TimeMasterCore
-import UniformTypeIdentifiers
 
-// MARK: - Shared context
+// MARK: - Scope
 
-/// What a card or row needs from the board that draws it.
-struct SkillBoardContext {
-    /// The board's page id, or a group id when the board is a group's own page.
-    var boardID: String
-    /// The groups a skill can be moved to (empty on a group's page, where the board is the group).
-    var groups: [SkillBoardSection]
-    var open: (ExercisePage) -> Void
-    var requestDelete: (ExercisePage) -> Void
-    var beginDrag: (ExercisePage) -> NSItemProvider
-    var dropBefore: (ExercisePage) -> Void
+/// Which board a screen shows: a page's own board, or a group opened as a page (`SkillGroupID`).
+struct SkillBoardScope: Equatable {
+    /// The page id, or the group id.
+    let boardID: String
+    /// The page whose children the board shows: the board page itself, or the page that holds the group.
+    let containerID: String
+    /// The group the board is; nil on a page's own board.
+    let groupSectionID: String?
+
+    init(boardID: String) {
+        self.boardID = boardID
+        if let owner = SkillGroupID.split(boardID) {
+            containerID = owner.containerID
+            groupSectionID = owner.sectionID
+        } else {
+            containerID = boardID
+            groupSectionID = nil
+        }
+    }
+
+    var isGroup: Bool { groupSectionID != nil }
+
+    /// The group a page is stored in for a lane: the lane's section, or on a group's page the group itself.
+    func storedSectionID(forLane sectionID: String?) -> String? { sectionID ?? groupSectionID }
 }
 
-// MARK: - Group surface and header
+// MARK: - Lanes and items
 
-/// The tinted panel behind a group: its strip colour, or the two colours its picture gives.
-struct SkillGroupSurface<Content: View>: View {
-    let section: SkillBoardSection
+/// One group of a board: the skills outside every group (on a group's page, the group's own skills), or a section.
+struct SkillBoardLane: Identifiable, Equatable {
+    static let unsortedKey = "unsorted"
+
+    let key: String
+    let section: SkillBoardSection?
+    /// Position among the lanes: 0 for the loose skills, then the sections in order.
+    let index: Int
+    /// Strip colour (`RRGGBB`): the section's own, else its palette colour; nil for the loose skills.
+    let colorHex: String?
+    /// The picture inside the strip.
     let imageURL: URL?
-    var cornerRadius: CGFloat = 18
-    @ViewBuilder let content: () -> Content
 
-    @StateObject private var model = SkillStripImageModel()
+    var id: String { key }
+    var sectionID: String? { section?.id }
+    var title: String { section?.title ?? "Unsorted" }
 
-    private var top: Color {
-        model.colors.map { Color(hex: $0.top) } ?? section.stripColor ?? Color.white.opacity(0.35)
-    }
-
-    private var bottom: Color {
-        model.colors.map { Color(hex: $0.bottom) } ?? section.stripColor ?? Color.white.opacity(0.35)
-    }
-
-    var body: some View {
-        content()
-            .background {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(LinearGradient(colors: [top.opacity(0.14), bottom.opacity(0.05)], startPoint: .top, endPoint: .bottom))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(LinearGradient(colors: [top.opacity(0.45), bottom.opacity(0.22)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-            .task(id: imageURL) { await model.load(imageURL) }
+    /// An SF Symbol for menus (an emoji icon falls back to the grid).
+    var symbolName: String {
+        guard let section else { return "tray" }
+        if section.iconType == .system, let icon = section.icon, !icon.isEmpty { return icon }
+        return "square.grid.2x2"
     }
 }
 
-/// The strip of a group: colour (or the picture clipped inside it), icon, title and count. The chevron folds the
-/// group; the title opens it as a page.
-struct SkillGroupHeader: View {
-    @EnvironmentObject private var store: DatabaseStore
-    let container: ExercisePage
-    let section: SkillBoardSection
-    let count: Int
-    let isCollapsed: Bool
-    let onToggle: () -> Void
-    let onOpen: () -> Void
-    let onEdit: () -> Void
-    let onAddSkill: () -> Void
-    let onDelete: () -> Void
+/// How the sub-skills below a page stand: skill and tutorial pages at any depth (through plain folders too), the page
+/// itself left out. `total` leaves abandoned ones out, as the skill cards of the library count.
+struct SkillBoardTally: Equatable {
+    var completed = 0
+    var learning = 0
+    var total = 0
+    var abandoned = 0
 
-    @StateObject private var model = SkillStripImageModel()
+    var fraction: Double { total == 0 ? 0 : Double(completed) / Double(total) }
 
-    private var imageURL: URL? { store.skillGroupImageURL(container: container, section: section) }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Button(action: onToggle) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .rotationEffect(.degrees(isCollapsed ? 0 : 90))
-                    .foregroundStyle(Theme.textSecondary)
-                    .frame(width: 30, height: 30)
-                    .contentShape(Rectangle())
-            }.keyNavPlainButtonStyle()
-            .accessibilityLabel(isCollapsed ? "Show \(section.title)" : "Fold \(section.title)")
-
-            SkillGroupIconView(section: section, size: 18, colorHex: model.colors?.top ?? SkillColors.normalizedHex(section.colorHex))
-
-            SkillEditableTitle(
-                pageID: SkillGroupID.make(containerID: container.manifest.id, sectionID: section.id),
-                title: section.title,
-                font: TimeMasterFont.rowTitle(),
-                lineLimit: 1,
-                onOpen: onOpen,
-                renamesOnPhone: true
-            )
-
-            Text("\(count)")
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(Theme.textSecondary)
-
-            Menu {
-                Button(action: onOpen) { Label("Open page", systemImage: "arrow.up.forward.square") }
-                Button(action: onAddSkill) { Label("Add skill here", systemImage: "plus") }
-                Button(action: onEdit) { Label("Edit group…", systemImage: "pencil") }
-                Divider()
-                Button(role: .destructive, action: onDelete) { Label("Delete group…", systemImage: "trash") }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.textSecondary)
-                    .frame(width: 30, height: 30)
-                    .contentShape(Rectangle())
-            }
-            .menuStyle(.button).keyNavPlainButtonStyle()
-            .menuIndicator(.hidden)
-            .accessibilityLabel("\(section.title) options")
+    mutating func count(_ status: SkillStatus) {
+        switch status {
+        case .completed:
+            completed += 1
+            total += 1
+        case .learning:
+            learning += 1
+            total += 1
+        case .notStarted:
+            total += 1
+        case .abandoned:
+            abandoned += 1
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .background {
-            SkillGroupStripBackground(imageURL: imageURL, color: section.stripColor)
-        }
-        .keyNavTarget(id: section.id, role: .primary, shape: .roundedRectangle(cornerRadius: 14), action: onOpen)
-        .task(id: imageURL) { await model.load(imageURL) }
     }
 }
 
-/// The strip itself: a colour bar down the left edge, or the picture filling the strip under a dark wash so the title
-/// stays readable.
-struct SkillGroupStripBackground: View {
-    let imageURL: URL?
-    let color: Color?
-    var cornerRadius: CGFloat = 14
-
-    var body: some View {
-        ZStack {
-            if let imageURL {
-                SkillLocalImage(url: imageURL, maxPixel: 900)
-                LinearGradient(
-                    colors: [Theme.background.opacity(0.88), Theme.background.opacity(0.35)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            } else {
-                Theme.surface
-                HStack(spacing: 0) {
-                    (color ?? Color.white.opacity(0.25)).frame(width: 4)
-                    Spacer(minLength: 0)
-                }
-                if let color {
-                    LinearGradient(colors: [color.opacity(0.16), .clear], startPoint: .leading, endPoint: .trailing)
-                }
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-}
-
-// MARK: - Page menu
-
-/// The context menu of a card or row: open, status, type, move, delete.
-struct SkillPageMenu: View {
-    @EnvironmentObject private var store: DatabaseStore
+/// One sub-skill as the board, the table and the list draw it, resolved once per render: its lane, place, type,
+/// counts and links.
+struct SkillBoardItem: Identifiable {
     let page: ExercisePage
-    let context: SkillBoardContext
+    let laneKey: String
+    let laneIndex: Int
+    let sectionTitle: String?
+    let sectionColorHex: String?
+    /// "Basics › Scales" for sub-skills nested below the board's own; empty for direct ones.
+    let path: String
+    /// A direct sub-skill of the board (the only ones whose section can change from it).
+    let isDirect: Bool
+    let type: SkillType?
+    /// Its own sub-skills, in their board order.
+    let children: [ExercisePage]
+    let progress: SkillBoardTally
+    /// Note pages inside it, plus its own notes when it has any.
+    let noteCount: Int
+    /// What it waits for: pages and groups to learn first, prerequisite files and links.
+    let dependencyCount: Int
+    let links: [SkillCardLink]
 
-    var body: some View {
-        let current = page.manifest.skillStatus ?? .notStarted
-        Button { context.open(page) } label: { Label("Open", systemImage: "arrow.up.forward.square") }
-        Divider()
-        Menu {
-            ForEach(SkillStatus.boardOrder, id: \.self) { status in
-                Button {
-                    SkillErrorCenter.shared.attempt("Change the status") { try store.setSkillStatus(status, for: page.manifest.id) }
-                } label: {
-                    Label(status.title, systemImage: current == status ? "checkmark" : status.symbolName)
+    var id: String { page.manifest.id }
+    var title: String { page.title }
+    var status: SkillStatus { page.manifest.skillStatus ?? .notStarted }
+    var mediaCount: Int { page.mediaURLs.count }
+    var linkCount: Int { page.manifest.linkURLs.count }
+
+    /// "Title, In progress, 3 of 8 done, 2 files, 1 link" for VoiceOver.
+    var spokenSummary: String {
+        var parts = [title, status.title]
+        if progress.total > 0 { parts.append("\(progress.completed) of \(progress.total) done") }
+        if mediaCount > 0 { parts.append(mediaCount == 1 ? "1 file" : "\(mediaCount) files") }
+        if linkCount > 0 { parts.append(linkCount == 1 ? "1 link" : "\(linkCount) links") }
+        if noteCount > 0 { parts.append(noteCount == 1 ? "1 note" : "\(noteCount) notes") }
+        return parts.joined(separator: ", ")
+    }
+}
+
+/// Everything one render of a board needs, read from the library once: pages are found through one index instead of
+/// a scan of the library per row.
+struct SkillBoardSnapshot {
+    let scope: SkillBoardScope
+    let container: ExercisePage?
+    /// The board page's sections in order; empty on a group's page.
+    let sections: [SkillBoardSection]
+    /// The loose skills first, then one lane per section.
+    let lanes: [SkillBoardLane]
+    /// The board's own sub-skills per lane key, in display order (type rules applied).
+    let directItems: [String: [SkillBoardItem]]
+    /// The board's own sub-skills lane by lane, each followed by the sub-skills below it when built with
+    /// `includesNested` (Board and Table show every depth).
+    let items: [SkillBoardItem]
+    let itemsByID: [String: SkillBoardItem]
+
+    init(store: DatabaseStore, boardID: String, includesNested: Bool) {
+        let scope = SkillBoardScope(boardID: boardID)
+        var lookup: [String: ExercisePage] = [:]
+        lookup.reserveCapacity(store.allPagesFlat.count)
+        for page in store.allPagesFlat where lookup[page.manifest.id] == nil {
+            lookup[page.manifest.id] = page
+        }
+        let index = lookup
+        let container = index[scope.containerID]
+        let allSections = container?.manifest.orderedSkillBoardSections ?? []
+        let known = Set(allSections.map(\.id))
+        let sections = scope.isGroup ? [] : allSections
+
+        func children(of page: ExercisePage) -> [ExercisePage] {
+            page.manifest.childIDs.compactMap { index[$0] }
+        }
+
+        func storedSection(of page: ExercisePage) -> String? {
+            page.manifest.skillBoardSectionID.flatMap { known.contains($0) ? $0 : nil }
+        }
+
+        func tally(below page: ExercisePage) -> SkillBoardTally {
+            var result = SkillBoardTally()
+            var visited: Set<String> = [page.manifest.id]
+            var pending = children(of: page)
+            while let next = pending.popLast() {
+                guard visited.insert(next.manifest.id).inserted else { continue }
+                if next.isSkillLike { result.count(next.manifest.skillStatus ?? .notStarted) }
+                if next.isSkillLike || (next.pageType == nil && next.isContainer) {
+                    pending.append(contentsOf: children(of: next))
                 }
             }
-        } label: {
-            Label("Status", systemImage: "circle.lefthalf.filled")
+            return result
         }
-        Menu {
-            let presets = store.skillTypePresets(for: page.manifest.id)
-            ForEach(presets) { preset in
-                SwiftUI.Section(preset.title) {
-                    ForEach(preset.orderedTypes) { type in
+
+        func dependencyCount(of page: ExercisePage) -> Int {
+            let manifest = page.manifest
+            var count = manifest.dependencyPageIDs.filter { id in
+                if let owner = SkillGroupID.split(id) {
+                    return index[owner.containerID]?.manifest.skillBoardSection(owner.sectionID) != nil
+                }
+                return index[id] != nil
+            }.count
+            if !manifest.dependencyMediaFilenames.isEmpty {
+                let media = Set(manifest.dependencyMediaFilenames)
+                count += page.mediaURLs.filter { media.contains($0.lastPathComponent) }.count
+            }
+            if !manifest.dependencyLinkURLs.isEmpty {
+                let links = Set(manifest.dependencyLinkURLs)
+                count += manifest.linkURLs.filter { links.contains($0) }.count
+            }
+            return count
+        }
+
+        /// A skill board's pages (at any depth) share the types of its skill tree, read once; a plain folder's skills
+        /// each own their types, asked page by page (only pages that wear one).
+        let boardTypes: [String: SkillType]? = container?.isSkillLike == true ? store.skillTypesByID(for: boardID) : nil
+
+        func wornType(_ page: ExercisePage) -> SkillType? {
+            guard let typeID = page.manifest.typeID else { return nil }
+            if let boardTypes { return boardTypes[typeID] }
+            return store.skillType(of: page)
+        }
+
+        /// The type sort rules applied (top types first, bottom types last), as `orderedByTypeRules` does.
+        func ordered(_ pages: [ExercisePage]) -> [ExercisePage] {
+            var worn: [String: SkillType] = [:]
+            for page in pages {
+                if let found = wornType(page) { worn[found.id] = found }
+            }
+            return SkillTypeOrdering.ordered(pages, types: worn) { $0.manifest.typeID }
+        }
+
+        func makeItem(_ page: ExercisePage, lane: SkillBoardLane, path: [String], isDirect: Bool) -> SkillBoardItem {
+            let inside = children(of: page)
+            return SkillBoardItem(
+                page: page,
+                laneKey: lane.key,
+                laneIndex: lane.index,
+                sectionTitle: lane.section?.title,
+                sectionColorHex: lane.colorHex,
+                path: path.joined(separator: " › "),
+                isDirect: isDirect,
+                type: wornType(page),
+                children: DatabaseStore.boardOrdered(inside.filter(\.isSkillLike)),
+                progress: tally(below: page),
+                noteCount: inside.filter(\.isNote).count + (page.hasMarkdown ? 1 : 0),
+                dependencyCount: dependencyCount(of: page),
+                links: SkillCardLink.openable(in: page.manifest)
+            )
+        }
+
+        var lanes = [SkillBoardLane(key: SkillBoardLane.unsortedKey, section: nil, index: 0, colorHex: nil, imageURL: nil)]
+        for (offset, section) in sections.enumerated() {
+            lanes.append(SkillBoardLane(
+                key: section.id,
+                section: section,
+                index: offset + 1,
+                colorHex: SkillSectionPalette.resolvedHex(for: section, index: offset),
+                imageURL: container.flatMap { store.skillGroupImageURL(container: $0, section: section) }
+            ))
+        }
+
+        let skillChildren = container.map { children(of: $0).filter(\.isSkillLike) } ?? []
+        var directItems: [String: [SkillBoardItem]] = [:]
+        var items: [SkillBoardItem] = []
+        var placed: Set<String> = [scope.containerID]
+
+        func appendNested(below page: ExercisePage, lane: SkillBoardLane, path: [String]) {
+            for child in DatabaseStore.boardOrdered(children(of: page).filter(\.isSkillLike))
+            where placed.insert(child.manifest.id).inserted {
+                items.append(makeItem(child, lane: lane, path: path, isDirect: false))
+                appendNested(below: child, lane: lane, path: path + [child.title])
+            }
+        }
+
+        for lane in lanes {
+            let stored = lane.section?.id ?? scope.groupSectionID
+            let pages = ordered(DatabaseStore.boardOrdered(skillChildren.filter { storedSection(of: $0) == stored }))
+            var laneItems: [SkillBoardItem] = []
+            for page in pages where placed.insert(page.manifest.id).inserted {
+                let item = makeItem(page, lane: lane, path: [], isDirect: true)
+                laneItems.append(item)
+                items.append(item)
+                if includesNested { appendNested(below: page, lane: lane, path: [page.title]) }
+            }
+            directItems[lane.key] = laneItems
+        }
+
+        self.scope = scope
+        self.container = container
+        self.sections = sections
+        self.lanes = lanes
+        self.directItems = directItems
+        self.items = items
+        self.itemsByID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    var unsortedLane: SkillBoardLane { lanes[0] }
+    var sectionLanes: [SkillBoardLane] { Array(lanes.dropFirst()) }
+    var hasSections: Bool { !sections.isEmpty }
+
+    /// The board's own sub-skills, lane by lane.
+    var direct: [SkillBoardItem] { lanes.flatMap { directItems[$0.key] ?? [] } }
+
+    func direct(inLane key: String) -> [SkillBoardItem] { directItems[key] ?? [] }
+
+    /// Sections that hold at least one sub-skill.
+    var sectionsWithPages: Int { sectionLanes.filter { !direct(inLane: $0.key).isEmpty }.count }
+
+    /// Where a menu can move a sub-skill: outside every group, then each group (nothing without groups).
+    var moveTargets: [SkillBoardLane] { hasSections ? lanes : [] }
+
+    /// The swimlanes of the status board: the loose skills when there are any, then every section.
+    var boardLanes: [SkillBoardLane] {
+        lanes.filter { $0.section != nil || !direct(inLane: $0.key).isEmpty || sections.isEmpty }
+    }
+
+    /// Every item of a lane (all items for nil).
+    func items(inLane key: String?) -> [SkillBoardItem] {
+        guard let key else { return items }
+        return items.filter { $0.laneKey == key }
+    }
+
+    /// Ids, places, statuses and titles of every item: what the board animates when the library moves something.
+    var signature: [String] {
+        items.map { "\($0.id)|\($0.laneKey)|\($0.status.rawValue)|\($0.title)" }
+    }
+
+    /// Items per status, all four keys present.
+    static func counts(of items: [SkillBoardItem]) -> [SkillStatus: Int] {
+        var counts: [SkillStatus: Int] = [:]
+        for status in SkillStatus.boardOrder { counts[status] = 0 }
+        for item in items { counts[item.status, default: 0] += 1 }
+        return counts
+    }
+}
+
+// MARK: - Actions
+
+/// What rows, cards and table rows ask the board screen to do; the screen owns the store calls, sheets and dialogs.
+struct SkillBoardActions {
+    var open: (ExercisePage) -> Void
+    var setStatus: (ExercisePage, SkillStatus) -> Void
+    var changeIcon: (ExercisePage) -> Void
+    var edit: (ExercisePage) -> Void
+    /// "Move to…": another page of the library.
+    var moveTo: (ExercisePage) -> Void
+    /// Another section of this board (`nil` = outside every group).
+    var moveToSection: (ExercisePage, String?) -> Void
+    var requestDelete: (ExercisePage) -> Void
+    var openLink: (URL) -> Void
+}
+
+// MARK: - Links on cards
+
+/// One link of a page as a card chip shows it: a short label (its own title, else its host) and the address it opens.
+/// Only http(s) addresses with a host qualify.
+struct SkillCardLink: Identifiable, Equatable {
+    /// A card with more links than this also offers a menu that lists them all.
+    static let menuAfter = 2
+    static let chipLabelLimit = 28
+    static let menuLabelLimit = 40
+
+    let url: URL
+    let label: String
+
+    var id: String { url.absoluteString }
+
+    init?(address: String, title: String?) {
+        guard let url = URL(string: address),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let rawHost = URLComponents(url: url, resolvingAgainstBaseURL: false)?.host, !rawHost.isEmpty
+        else { return nil }
+        self.url = url
+        label = Self.chipLabel(title: title, url: url, host: Self.displayHost(rawHost))
+    }
+
+    var chipTitle: String { Self.truncated(label, limit: Self.chipLabelLimit) }
+    var menuTitle: String { Self.truncated(label, limit: Self.menuLabelLimit) }
+
+    /// Every openable link of a page, in order, each once.
+    static func openable(in manifest: ExercisePageManifest) -> [SkillCardLink] {
+        guard !manifest.linkURLs.isEmpty else { return [] }
+        var seen = Set<String>()
+        return manifest.linkURLs.compactMap { address in
+            guard seen.insert(address).inserted else { return nil }
+            return SkillCardLink(address: address, title: manifest.linkMetadata.first { $0.url == address }?.title)
+        }
+    }
+
+    static func offersMenu(_ links: [SkillCardLink]) -> Bool { links.count > menuAfter }
+
+    /// "WWW.YouTube.com" becomes "youtube.com".
+    static func displayHost(_ host: String) -> String {
+        let lowered = host.lowercased()
+        guard lowered.hasPrefix("www."), lowered.count > 4 else { return lowered }
+        return String(lowered.dropFirst(4))
+    }
+
+    static func truncated(_ text: String, limit: Int) -> String {
+        guard limit > 1, text.count > limit else { return text }
+        return String(text.prefix(limit - 1)).trimmingCharacters(in: .whitespaces) + "…"
+    }
+
+    /// The title when it says more than the address does, on one line; the host otherwise.
+    private static func chipLabel(title: String?, url: URL, host: String) -> String {
+        guard let title else { return host }
+        let text = title.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        guard !text.isEmpty else { return host }
+        let bare = bareAddress(text)
+        return bare == host || bare == bareAddress(url.absoluteString) ? host : text
+    }
+
+    private static func bareAddress(_ text: String) -> String {
+        var value = text.lowercased()
+        if value.hasPrefix("https://") {
+            value.removeFirst(8)
+        } else if value.hasPrefix("http://") {
+            value.removeFirst(7)
+        }
+        if value.hasPrefix("www.") { value.removeFirst(4) }
+        while value.hasSuffix("/") { value.removeLast() }
+        return value
+    }
+}
+
+// MARK: - Context menu
+
+/// The context menu of a sub-skill: open, change icon, links and sub-skills (cards), status, type, edit, move, delete.
+struct SkillPageMenuItems: View {
+    let item: SkillBoardItem
+    let actions: SkillBoardActions
+    let moveTargets: [SkillBoardLane]
+    /// Status as one submenu (cards, table) instead of a button per status (list rows).
+    var statusAsMenu = false
+    /// Adds the card's links and its sub-skills.
+    var showsContents = false
+    @Binding var typeEditor: SkillTypeEditorRoute?
+    @Binding var showingTypeManager: Bool
+
+    private static let inlineMenuLinks = 3
+
+    var body: some View {
+        openItems
+        Divider()
+        statusItems
+        Divider()
+        moveItems
+        Divider()
+        Button(role: .destructive) {
+            actions.requestDelete(item.page)
+        } label: {
+            Label("Delete…", systemImage: "trash")
+        }
+    }
+
+    @ViewBuilder
+    private var openItems: some View {
+        Button {
+            actions.open(item.page)
+        } label: {
+            Label("Open", systemImage: "arrow.up.forward.square")
+        }
+        Button {
+            actions.changeIcon(item.page)
+        } label: {
+            Label("Change icon…", systemImage: "face.smiling")
+        }
+        if showsContents {
+            linkItems
+            if !item.children.isEmpty {
+                Menu {
+                    ForEach(item.children, id: \.manifest.id) { child in
                         Button {
-                            SkillErrorCenter.shared.attempt("Set the type") { try store.setSkillType(type.id, for: page.manifest.id) }
+                            actions.open(child)
                         } label: {
-                            Label(SkillTypeStyle.menuTitle(type), systemImage: page.manifest.typeID == type.id ? "checkmark" : "tag")
+                            Label(child.title, systemImage: "arrow.turn.down.right")
                         }
                     }
-                }
-            }
-            if page.manifest.typeID != nil {
-                Button {
-                    SkillErrorCenter.shared.attempt("Clear the type") { try store.setSkillType(nil, for: page.manifest.id) }
                 } label: {
-                    Label("No type", systemImage: "xmark.circle")
+                    Label("Sub-skills", systemImage: "arrow.turn.down.right")
                 }
             }
-            if presets.isEmpty { Text("Use the tag on the card to make the first type") }
+        }
+    }
+
+    @ViewBuilder
+    private var statusItems: some View {
+        if statusAsMenu {
+            SkillStatusMenu(status: item.status, onChange: { actions.setStatus(item.page, $0) }) {
+                Label("Status", systemImage: "flag")
+            }
+        } else {
+            SkillStatusQuickActions(status: item.status) { actions.setStatus(item.page, $0) }
+        }
+        Menu {
+            SkillTypeMenuItems(pageID: item.id, editor: $typeEditor, showingManager: $showingTypeManager)
         } label: {
             Label("Type", systemImage: "tag")
         }
-        if !context.groups.isEmpty {
+    }
+
+    @ViewBuilder
+    private var moveItems: some View {
+        Button {
+            actions.edit(item.page)
+        } label: {
+            Label("Edit…", systemImage: "pencil")
+        }
+        if item.isDirect, !moveTargets.isEmpty {
             Menu {
-                Button {
-                    move(to: nil)
-                } label: {
-                    Label("No group", systemImage: store.skillSectionID(of: page) == nil ? "checkmark" : "tray")
-                }
-                ForEach(context.groups) { group in
+                ForEach(moveTargets) { lane in
                     Button {
-                        move(to: group.id)
+                        actions.moveToSection(item.page, lane.sectionID)
                     } label: {
-                        Label(group.title, systemImage: store.skillSectionID(of: page) == group.id ? "checkmark" : "square.grid.2x2")
+                        Label(lane.title, systemImage: lane.key == item.laneKey ? "checkmark" : lane.symbolName)
                     }
                 }
             } label: {
-                Label("Move to", systemImage: "arrow.right.square")
+                Label("Move to section", systemImage: "rectangle.stack")
             }
         }
-        Divider()
-        Button(role: .destructive) { context.requestDelete(page) } label: { Label("Delete…", systemImage: "trash") }
-    }
-
-    private func move(to sectionID: String?) {
-        SkillErrorCenter.shared.attempt("Move the skill") {
-            try store.placeSkillPage(page.manifest.id, sectionID: .some(sectionID))
-        }
-    }
-}
-
-// MARK: - Done toggle and chips
-
-private struct SkillDoneButton: View {
-    @EnvironmentObject private var store: DatabaseStore
-    let page: ExercisePage
-
-    var body: some View {
-        let status = page.manifest.skillStatus ?? .notStarted
         Button {
-            SkillErrorCenter.shared.attempt("Change the status") {
-                try store.setSkillStatus(status.toggledDone, for: page.manifest.id)
-            }
+            actions.moveTo(item.page)
         } label: {
-            Image(systemName: status.symbolName)
-                .font(.system(size: 22))
-                .foregroundStyle(status.color)
-                .frame(width: 34, height: 34)
-                .contentShape(Rectangle())
-        }
-        .keyNavPlainButtonStyle(shape: .circle)
-        .accessibilityLabel(status == .completed ? "Mark as not started" : "Mark as completed")
-        .help(status == .completed ? "Mark as not started" : "Mark as completed")
-    }
-}
-
-/// The footer chips of a card or row: the type chip (its menu changes it) and the counts of links and files.
-private struct SkillPageFooter: View {
-    @EnvironmentObject private var store: DatabaseStore
-    let page: ExercisePage
-
-    var body: some View {
-        HStack(spacing: 8) {
-            SkillTypePicker(pageID: page.manifest.id) {
-                if let type = store.skillType(of: page) {
-                    SkillTypeChip(type: type, showsChevron: true)
-                } else {
-                    Image(systemName: "tag")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 26, height: 22)
-                        .overlay(Capsule(style: .continuous).strokeBorder(Theme.separator, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
-                        .accessibilityLabel("Add a type")
-                }
-            }
-            if !page.manifest.linkURLs.isEmpty {
-                Label("\(page.manifest.linkURLs.count)", systemImage: "link")
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
-                    .labelStyle(.titleAndIcon)
-                    .accessibilityLabel(SkillCopy.count(page.manifest.linkURLs.count, "link", "links"))
-            }
-            if !page.mediaURLs.isEmpty {
-                Label("\(page.mediaURLs.count)", systemImage: "paperclip")
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
-                    .accessibilityLabel(SkillCopy.count(page.mediaURLs.count, "file", "files"))
-            }
-            let waits = store.skillDependencyCount(of: page.manifest.id)
-            if waits > 0 {
-                Label("\(waits)", systemImage: "arrow.turn.down.right")
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
-                    .accessibilityLabel("Needs \(SkillCopy.count(waits, "thing", "things")) first")
-            }
-            Spacer(minLength: 0)
+            Label("Move to…", systemImage: "arrow.turn.up.right")
         }
     }
-}
 
-// MARK: - Card (board)
-
-/// A skill on the board: done toggle, icon, title, the cover it chose, and the chips under it.
-struct SkillBoardCard: View {
-    @EnvironmentObject private var store: DatabaseStore
-    @AppStorage(SkillSettings.showsCardCoversKey) private var showsCovers = true
-    let page: ExercisePage
-    let context: SkillBoardContext
-
-    var body: some View {
-        let status = page.manifest.skillStatus ?? .notStarted
-        let type = store.skillType(of: page)
-        VStack(alignment: .leading, spacing: 10) {
-            if showsCovers, let cover = page.cardCoverURL {
-                SkillLocalImage(url: cover, maxPixel: 640)
-                    .frame(height: 104)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .accessibilityHidden(true)
-            }
-            HStack(alignment: .top, spacing: 8) {
-                SkillDoneButton(page: page)
-                SkillPageIconTile(page: page, size: 28)
-                SkillEditableTitle(
-                    pageID: page.manifest.id,
-                    title: page.title,
-                    color: Theme.textPrimary.opacity(status.titleOpacity),
-                    onOpen: { context.open(page) }
-                )
-                .padding(.top, 5)
-            }
-            SkillPageFooter(page: page)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .skillTypeBase(type, cornerRadius: 14)
-        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .onDrag { context.beginDrag(page) }
-        .onDrop(of: [UTType.plainText], isTargeted: nil) { _ in
-            context.dropBefore(page)
-            return true
-        }
-        .contextMenu { SkillPageMenu(page: page, context: context) }
-        .keyNavTarget(id: page.manifest.id, role: .primary, shape: .roundedRectangle(cornerRadius: 14)) {
-            context.open(page)
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(page.title)
-    }
-}
-
-// MARK: - Row (list)
-
-/// A skill in the list: the same material as the card on one line.
-struct SkillBoardRow: View {
-    @EnvironmentObject private var store: DatabaseStore
-    @AppStorage(SkillSettings.showsCardCoversKey) private var showsCovers = true
-    let page: ExercisePage
-    let context: SkillBoardContext
-
-    var body: some View {
-        let status = page.manifest.skillStatus ?? .notStarted
-        let type = store.skillType(of: page)
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 10) {
-                SkillDoneButton(page: page)
-                SkillPageIconTile(page: page, size: 30)
-                SkillEditableTitle(
-                    pageID: page.manifest.id,
-                    title: page.title,
-                    color: Theme.textPrimary.opacity(status.titleOpacity),
-                    lineLimit: 1,
-                    onOpen: { context.open(page) }
-                )
-                if showsCovers, let cover = page.cardCoverURL {
-                    SkillLocalImage(url: cover, maxPixel: 200)
-                        .frame(width: 64, height: 44)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .accessibilityHidden(true)
+    /// An "Open link" entry per link; one submenu once the page holds more than a few.
+    @ViewBuilder
+    private var linkItems: some View {
+        if item.links.count > Self.inlineMenuLinks {
+            Menu {
+                ForEach(item.links) { link in
+                    Button {
+                        actions.openLink(link.url)
+                    } label: {
+                        Label(link.menuTitle, systemImage: "link")
+                    }
                 }
-                #if os(macOS)
-                Text(status.title)
-                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                    .foregroundStyle(status.color)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(status.tint, in: Capsule())
-                #endif
-                Button { context.open(page) } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(width: 28, height: 34)
-                        .contentShape(Rectangle())
-                }
-                .keyNavPlainButtonStyle()
-                .accessibilityLabel("Open \(page.title)")
-                .keyNavRole(.excluded)
+            } label: {
+                Label("Open link", systemImage: "link")
             }
-            SkillPageFooter(page: page)
-                .padding(.leading, 44)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .skillTypeBase(type, cornerRadius: 14)
-        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .onDrag { context.beginDrag(page) }
-        .onDrop(of: [UTType.plainText], isTargeted: nil) { _ in
-            context.dropBefore(page)
-            return true
-        }
-        .contextMenu { SkillPageMenu(page: page, context: context) }
-        .accessibilityValue(status.title)
-        .keyNavTarget(id: page.manifest.id, role: .primary, shape: .roundedRectangle(cornerRadius: 14)) {
-            context.open(page)
+        } else {
+            ForEach(item.links) { link in
+                Button {
+                    actions.openLink(link.url)
+                } label: {
+                    Label("Open link · \(link.menuTitle)", systemImage: "link")
+                }
+            }
         }
     }
 }
 
 // MARK: - Quick add
 
-/// One line to add a skill to a board or a group by typing its name.
+/// "Add a sub-skill…": Return adds and keeps the field focused, so ten sub-skills take ten seconds. The same row adds
+/// sections ("Add a section…", with a strip in the colour the new section will wear).
 struct SkillQuickAddRow: View {
-    @EnvironmentObject private var store: DatabaseStore
-    let boardID: String
-    var sectionID: String?
-    var placeholder = "Add a skill"
+    let placeholder: String
+    /// Leading glyph: a plus unless the row adds something other than a sub-skill.
+    var symbol = "plus"
+    /// Colour (`RRGGBB`) of the glyph, the outline and the Return button; nil = Tmax orange.
+    var tintHex: String?
+    /// Draws a colour strip on the leading edge: the row stands in for a section that does not exist yet.
+    var showsStrip = false
+    var isDropTarget = false
+    /// Receives the trimmed text. True when it was taken (the field clears); false keeps the text to fix it.
+    let onAdd: (String) -> Bool
 
-    @State private var title = ""
+    @State private var text = ""
     @FocusState private var focused: Bool
 
+    private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "plus")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.textSecondary)
-            TextField(placeholder, text: $title)
+        let tint = tintHex.map { Color(hex: $0) } ?? Theme.toolbarOrange
+        let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
+        let isActive = focused || isDropTarget
+        HStack(spacing: SkillMetrics.s3) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(isActive ? tint : tint.opacity(0.8))
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            TextField(placeholder, text: $text, prompt: Text(placeholder).foregroundColor(Theme.textSecondary))
                 .textFieldStyle(.plain)
-                .font(TimeMasterFont.body(15))
+                .font(TimeMasterFont.body(16))
                 .foregroundStyle(Theme.textPrimary)
                 .focused($focused)
-                .submitLabel(.done)
-                .onSubmit(add)
+                .submitLabel(.next)
+                .onSubmit(commit)
+            if !trimmed.isEmpty {
+                Button(action: commit) {
+                    Image(systemName: "return")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.background)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(tint))
+                        .frame(width: SkillMetrics.touch, height: SkillMetrics.touch)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(SkillPressButtonStyle())
+                .accessibilityLabel("Add")
+                .help("Add")
+            }
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 40)
+        .padding(.leading, showsStrip ? SkillSectionGroupSurface.contentLeading : SkillMetrics.s4)
+        .padding(.trailing, trimmed.isEmpty ? SkillMetrics.s4 : SkillMetrics.s1)
+        .frame(minHeight: SkillMetrics.touch + SkillMetrics.s2)
+        .background(shape.fill(Color.white.opacity(isDropTarget ? 0.08 : 0.03)))
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(focused ? Theme.toolbarOrange.opacity(0.8) : Theme.separator, style: StrokeStyle(lineWidth: 1, dash: focused ? [] : [5]))
+            shape
+                .strokeBorder(
+                    tint.opacity(isActive ? 0.9 : 0.45),
+                    style: StrokeStyle(lineWidth: isActive ? 2 : 1.5, dash: isActive ? [] : [6, 4])
+                )
+                .allowsHitTesting(false)
         }
-        .keyNavTarget(id: "add-\(boardID)-\(sectionID ?? "")", shape: .roundedRectangle(cornerRadius: 12)) {
-            focused = true
+        .overlay(alignment: .leading) {
+            if showsStrip {
+                Capsule(style: .continuous)
+                    .fill(tint)
+                    .frame(width: SkillSectionGroupSurface.stripWidth)
+                    .padding(.vertical, SkillMetrics.s3)
+                    .padding(.leading, SkillSectionGroupSurface.stripInset)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
         }
+        .contentShape(Rectangle())
+        .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius), action: { focused = true })
+        .onTapGesture { focused = true }
     }
 
-    private func add() {
-        let name = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        if SkillErrorCenter.shared.attempt("Add the skill", { try store.createSkillPage(title: name, on: boardID, sectionID: sectionID) }) {
-            title = ""
-            focused = true
-        }
+    private func commit() {
+        let title = trimmed
+        guard !title.isEmpty, onAdd(title) else { return }
+        text = ""
+        DispatchQueue.main.async { focused = true }
     }
 }
 
-// MARK: - Group editor
+// MARK: - Long groups
 
-/// Makes a group or edits one: name, icon, strip colour, strip picture.
-struct SkillGroupEditorSheet: View {
-    enum Mode: Identifiable {
-        case new
-        case edit(SkillBoardSection)
+/// How many sub-skills one section of the list or one column of the board shows before the rest wait behind
+/// "Expand all". 0 means no limit.
+enum SkillGroupLimit {
+    static let standard = 10
 
-        var id: String {
-            switch self {
-            case .new: return "new"
-            case .edit(let section): return section.id
-            }
-        }
+    /// What to draw now and how many were left out.
+    static func split<Item>(_ items: [Item], limit: Int, expanded: Bool) -> (shown: [Item], hidden: Int) {
+        guard isCapped(count: items.count, limit: limit), !expanded else { return (items, 0) }
+        return (Array(items.prefix(limit)), items.count - limit)
     }
 
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var store: DatabaseStore
-
-    let containerID: String
-    let mode: Mode
-
-    @State private var title = ""
-    @State private var iconName = ""
-    @State private var iconType: SkillBoardIconType = .emoji
-    @State private var colorHex: String?
-    @State private var pictureURL: URL?
-    @State private var removesPicture = false
-    @State private var showingPicker = false
-    @State private var loaded = false
-    @State private var createdSectionID: String?
-    @FocusState private var titleFocused: Bool
-
-    private var existing: SkillBoardSection? {
-        if case .edit(let section) = mode { return section }
-        return nil
+    static func isCapped(count: Int, limit: Int) -> Bool {
+        limit > 0 && count > limit
     }
+}
 
-    private var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-    private var currentPictureURL: URL? {
-        if removesPicture { return nil }
-        if let pictureURL { return pictureURL }
-        guard let existing, let container = store.page(manifestID: containerID) else { return nil }
-        return store.skillGroupImageURL(container: container, section: existing)
-    }
+/// The foot of a capped group: "Expand all" with how many are hidden, and "Show fewer" once they all show.
+struct SkillGroupMoreButton: View {
+    let hidden: Int
+    let isExpanded: Bool
+    var tintHex: String?
+    let action: () -> Void
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    preview
-                    field("Name") {
-                        TextField("e.g. Foundations", text: $title)
-                            .textFieldStyle(.plain)
-                            .font(TimeMasterFont.heading())
-                            .foregroundStyle(Theme.textPrimary)
-                            .focused($titleFocused)
-                            .submitLabel(.done)
-                            .onSubmit(save)
-                            .padding(13)
-                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    field("Colour") { SkillColorPicker(selection: $colorHex, allowsAutomatic: false) }
-                    field("Picture in the strip") { pictureRow }
-                    field("Icon") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            SkillIconPicker(iconName: $iconName, iconType: $iconType)
-                            if !iconName.isEmpty {
-                                Button("No icon") { iconName = "" }
-                                    .font(TimeMasterFont.caption())
-                                    .foregroundStyle(Theme.textSecondary).keyNavPlainButtonStyle()
-                            }
-                        }
-                    }
+        let tint = tintHex.map { Color(hex: $0) } ?? Theme.toolbarOrange
+        let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
+        Button(action: action) {
+            HStack(spacing: SkillMetrics.s2) {
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .accessibilityHidden(true)
+                Text(isExpanded ? "Show fewer" : "Expand all")
+                    .font(TimeMasterFont.rowTitle())
+                    .foregroundStyle(Theme.textPrimary)
+                if !isExpanded {
+                    Text("\(hidden) more")
+                        .font(TimeMasterFont.technical())
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                .padding(20)
-                .frame(maxWidth: 640)
-                .frame(maxWidth: .infinity)
+                Spacer(minLength: 0)
             }
-            .background(Theme.background.ignoresSafeArea())
-            .timeMasterNavigationTitle(existing == nil ? "New group" : "Edit group")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                AppToolbar.item(placement: .confirmationAction) {
-                    Button("Save", action: save).disabled(trimmedTitle.isEmpty)
+            .padding(.horizontal, SkillMetrics.s4)
+            .frame(maxWidth: .infinity, minHeight: SkillMetrics.touch, alignment: .leading)
+            .background(shape.fill(Color.white.opacity(0.03)))
+            .overlay { shape.strokeBorder(Theme.separator, lineWidth: 1).allowsHitTesting(false) }
+            .contentShape(shape)
+        }
+        .buttonStyle(SkillPressButtonStyle())
+        .accessibilityLabel(isExpanded ? "Show fewer" : "Expand all, \(hidden) more")
+    }
+}
+
+// MARK: - Header controls
+
+/// The "New section" call to action: a plus and the words on an orange pill, at least 44 pt tall.
+struct SkillNewSectionButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: SkillMetrics.s2) {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("New section")
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+            }
+            .lineLimit(1)
+            .fixedSize()
+        }
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, horizontalPadding: SkillMetrics.s4))
+        .accessibilityLabel("New section")
+        .accessibilityHint("Adds a coloured group for your sub-skills")
+        .help("New section")
+    }
+}
+
+/// List · Board · Table as a slim track of glyphs; the names show as tooltips and are read by VoiceOver.
+struct SkillViewModePicker: View {
+    @Binding var selection: SkillBoardMode
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(SkillBoardMode.allCases) { mode in
+                Button {
+                    select(mode)
+                } label: {
+                    Image(systemName: mode.symbolName)
+                        .font(.system(size: 14, weight: .semibold))
                 }
+                .buttonStyle(SkillSegmentButtonStyle(isSelected: selection == mode, namespace: namespace, fillsWidth: false))
+                .accessibilityLabel(mode.title)
+                .accessibilityAddTraits(selection == mode ? .isSelected : [])
+                .help(mode.helpText)
             }
         }
-        .keyNavHost()
-        .fileImporter(isPresented: $showingPicker, allowedContentTypes: [.image]) { result in
-            if case .success(let url) = result { pictureURL = copyToTemporary(url); removesPicture = false }
-        }
-        .skillErrorAlert()
+        .skillSegmentTrack()
+        .fixedSize()
         #if os(macOS)
-        .frame(minWidth: 520, idealWidth: 560, minHeight: 560, idealHeight: 720)
+        .background(shortcuts)
         #endif
-        .onAppear(perform: load)
     }
 
-    private var preview: some View {
-        let section = SkillBoardSection(
-            id: existing?.id ?? "draft", title: trimmedTitle.isEmpty ? "Group name" : trimmedTitle, order: 0,
-            icon: iconName.isEmpty ? nil : iconName, iconType: iconName.isEmpty ? nil : iconType, colorHex: colorHex
-        )
-        return HStack(spacing: 10) {
-            SkillGroupIconView(section: section, size: 18, colorHex: SkillColors.normalizedHex(colorHex))
-            Text(section.title)
-                .font(TimeMasterFont.rowTitle())
-                .foregroundStyle(Theme.textPrimary)
-            Spacer(minLength: 0)
+    private func select(_ mode: SkillBoardMode) {
+        guard mode != selection else { return }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) {
+            selection = mode
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background { SkillGroupStripBackground(imageURL: currentPictureURL, color: section.stripColor) }
+        EverHaptic.selection()
+    }
+
+    #if os(macOS)
+    private var shortcuts: some View {
+        ZStack {
+            ForEach(SkillBoardMode.allCases) { mode in
+                Button("") { select(mode) }
+                    .keyboardShortcut(mode.shortcutKey, modifiers: .command)
+            }
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
         .accessibilityHidden(true)
+        .allowsHitTesting(false)
     }
+    #endif
+}
 
-    private var pictureRow: some View {
-        HStack(spacing: 10) {
-            Button {
-                showingPicker = true
-            } label: {
-                Label(currentPictureURL == nil ? "Choose a picture" : "Change picture", systemImage: "photo")
-            }
-            .foregroundStyle(Theme.toolbarOrange)
-            if currentPictureURL != nil {
-                Button("Remove") {
-                    pictureURL = nil
-                    removesPicture = true
+// MARK: - Icons on rows and cards
+
+/// A sub-skill's icon on a row or a card as a button that opens its icon picker. A real `Button`, so it wins over the
+/// card's own tap (open the page) and drag; a pencil shows on its corner under the pointer.
+struct SkillIconChangeButton: View {
+    let page: ExercisePage
+    let side: CGFloat
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            SkillPageIconTile(page: page, size: side, tilesSymbols: true)
+                .overlay(alignment: .bottomTrailing) {
+                    if isHovering { badge }
                 }
-                .foregroundStyle(Theme.textSecondary)
-            }
-        }.keyNavPlainButtonStyle()
+                .contentShape(Rectangle().inset(by: -6))
+        }
+        .buttonStyle(SkillPressButtonStyle())
+        .onHover { isHovering = $0 }
+        .help("Change icon")
+        .accessibilityLabel("Change icon of \(page.title)")
+        .accessibilityHint("Opens the icon picker")
     }
 
-    private func field<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label.uppercased())
-                .font(TimeMasterFont.caption())
-                .tracking(1.2)
-                .foregroundStyle(Theme.textSecondary)
-            content()
-        }
-    }
-
-    private func load() {
-        guard !loaded else { return }
-        loaded = true
-        if let existing {
-            title = existing.title
-            iconName = existing.icon ?? ""
-            iconType = existing.iconType ?? .emoji
-            colorHex = SkillColors.normalizedHex(existing.colorHex)
-        } else {
-            let taken = store.skillGroups(of: containerID).compactMap(\.colorHex)
-            colorHex = SkillColors.random(avoiding: taken)
-            iconType = .emoji
-            titleFocused = true
-        }
-    }
-
-    /// The importer's URL is security-scoped and short-lived; the picture is copied out before the store reads it.
-    private func copyToTemporary(_ url: URL) -> URL? {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let target = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString + "-" + url.lastPathComponent)
-        do {
-            try FileManager.default.copyItem(at: url, to: target)
-            return target
-        } catch {
-            SkillErrorCenter.shared.report("Read the picture", error)
-            return nil
-        }
-    }
-
-    private func save() {
-        let name = trimmedTitle
-        guard !name.isEmpty else { return }
-        let icon = iconName.isEmpty ? nil : iconName
-        let ok = SkillErrorCenter.shared.attempt("Save the group") {
-            let sectionID: String
-            if let id = existing?.id ?? createdSectionID {
-                sectionID = id
-                try store.updateSkillGroup(containerID: containerID, sectionID: id) { section in
-                    section.title = name
-                    section.icon = icon
-                    section.iconType = icon == nil ? nil : iconType
-                    section.colorHex = colorHex
-                    if removesPicture { section.imageFilename = nil }
-                }
-            } else {
-                sectionID = try store.addSkillGroup(to: containerID, title: name, icon: icon, iconType: icon == nil ? nil : iconType, colorHex: colorHex).id
-                createdSectionID = sectionID
-            }
-            if let pictureURL {
-                try store.setSkillGroupPicture(containerID: containerID, sectionID: sectionID, sourceURL: pictureURL)
-            }
-        }
-        if ok {
-            if let pictureURL { try? FileManager.default.removeItem(at: pictureURL) }
-            dismiss()
-        }
+    private var badge: some View {
+        Image(systemName: "pencil")
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(Theme.background)
+            .frame(width: 16, height: 16)
+            .background(Circle().fill(Theme.toolbarOrange))
+            .overlay(Circle().strokeBorder(Theme.background, lineWidth: 1.5))
+            .offset(x: 3, y: 3)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }

@@ -81,6 +81,7 @@ enum MacSheetContext {
 private struct AppToolbarModifier: ViewModifier {
     let entries: [AppToolbarEntry]
     @State private var inSheet: Bool
+    @Environment(\.appToolbarInline) private var inline
 
     init(entries: [AppToolbarEntry]) {
         self.entries = entries
@@ -88,10 +89,11 @@ private struct AppToolbarModifier: ViewModifier {
     }
 
     func body(content: Content) -> some View {
+        let showsRow = inSheet || inline
         content
-            .padding(.top, inSheet ? MacSheetActionRow.height : 0)
+            .padding(.top, showsRow ? MacSheetActionRow.height : 0)
             .overlay(alignment: .top) {
-                if inSheet { MacSheetActionRow(entries: entries) }
+                if showsRow { MacSheetActionRow(entries: entries) }
             }
             .background(
                 MacSheetProbe(inSheet: $inSheet)
@@ -99,7 +101,7 @@ private struct AppToolbarModifier: ViewModifier {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             )
-            .toolbar { MacWindowToolbarItems(entries: entries) }
+            .toolbar { MacWindowToolbarItems(entries: inline ? [] : entries) }
     }
 }
 
