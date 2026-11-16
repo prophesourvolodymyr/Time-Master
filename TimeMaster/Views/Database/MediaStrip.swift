@@ -22,6 +22,11 @@ struct MediaStrip: View {
     var cardActions: ((Int) -> [MediaCardAction])? = nil
     /// Adds media: a plus button in the header.
     var onAdd: (() -> Void)? = nil
+    /// Draws the header as a page section's heading (Skillmax's icon tile with this symbol, the title, `headerCount`)
+    /// with the add button as an orange plus.
+    var headerSymbol: String? = nil
+    /// The count beside a section heading's title; `urls.count` when nil.
+    var headerCount: Int? = nil
     @State private var containerWidth: CGFloat = 0
     @State private var focusedIndex: Int? = 0
     @ObservedObject private var revisions = MediaRevisions.shared
@@ -68,7 +73,17 @@ struct MediaStrip: View {
 
     @ViewBuilder
     private func header(_ proxy: ScrollViewProxy) -> some View {
-        if !title.isEmpty || urls.count > 1 || onAdd != nil {
+        if let headerSymbol {
+            PageSectionHeader(symbol: headerSymbol, title: title, count: headerCount ?? urls.count) {
+                if urls.count > 1 {
+                    position
+                }
+                stepButtons(proxy)
+                if let onAdd {
+                    PageSectionAddButton(label: "Add files", action: onAdd)
+                }
+            }
+        } else if !title.isEmpty || urls.count > 1 || onAdd != nil {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if !title.isEmpty {
                     Text(title)
@@ -76,20 +91,8 @@ struct MediaStrip: View {
                         .foregroundStyle(Theme.textPrimary)
                 }
                 Spacer()
-                Text("\(min((focusedIndex ?? 0) + 1, urls.count)) / \(urls.count)")
-                    .font(TimeMasterFont.caption().monospacedDigit())
-                    .foregroundStyle(Theme.textSecondary)
-                    .accessibilityLabel("Item \(min((focusedIndex ?? 0) + 1, urls.count)) of \(urls.count)")
-                #if os(macOS)
-                if urls.count > 1 {
-                    stepButton("chevron.left", label: "Previous media", enabled: (focusedIndex ?? 0) > 0) {
-                        scroll(proxy, to: (focusedIndex ?? 0) - 1)
-                    }
-                    stepButton("chevron.right", label: "Next media", enabled: (focusedIndex ?? 0) < urls.count - 1) {
-                        scroll(proxy, to: (focusedIndex ?? 0) + 1)
-                    }
-                }
-                #endif
+                position
+                stepButtons(proxy)
                 if let onAdd {
                     Button(action: onAdd) {
                         Label("Add", systemImage: "plus")
@@ -102,6 +105,27 @@ struct MediaStrip: View {
                 }
             }
         }
+    }
+
+    private var position: some View {
+        Text("\(min((focusedIndex ?? 0) + 1, urls.count)) / \(urls.count)")
+            .font(TimeMasterFont.caption().monospacedDigit())
+            .foregroundStyle(Theme.textSecondary)
+            .accessibilityLabel("Item \(min((focusedIndex ?? 0) + 1, urls.count)) of \(urls.count)")
+    }
+
+    @ViewBuilder
+    private func stepButtons(_ proxy: ScrollViewProxy) -> some View {
+        #if os(macOS)
+        if urls.count > 1 {
+            stepButton("chevron.left", label: "Previous media", enabled: (focusedIndex ?? 0) > 0) {
+                scroll(proxy, to: (focusedIndex ?? 0) - 1)
+            }
+            stepButton("chevron.right", label: "Next media", enabled: (focusedIndex ?? 0) < urls.count - 1) {
+                scroll(proxy, to: (focusedIndex ?? 0) + 1)
+            }
+        }
+        #endif
     }
 
     #if os(macOS)

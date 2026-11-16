@@ -7,6 +7,20 @@ import PhotosUI
 import AppKit
 #endif
 
+/// Where the page's file importer puts what it picks.
+private enum PageImportPurpose {
+    case attachments
+    /// A skill's or a tutorial's files to have first.
+    case dependencies
+    /// A new cover picture, kept with the page's files.
+    case cover
+
+    var contentTypes: [UTType] { self == .cover ? [.image] : [.item] }
+}
+
+/// Every library page but a note, on one design: Tmax's cover hero holding the page's head (a workout's popup shows
+/// the head alone), the widget strip, Skillmax's tabs and the parts of the selected tab, the attachments first and the
+/// notes after them. `PageTabModel` says which tabs each kind of page gets and where it opens.
 struct ExercisePageDetailView: View {
     @EnvironmentObject var store: DatabaseStore
     @EnvironmentObject var workoutStore: WorkoutStore
@@ -14,24 +28,32 @@ struct ExercisePageDetailView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let pageID: UUID
     var showsHero = true
-    @ScaledMetric(relativeTo: .largeTitle) private var coverMinimumHeight: CGFloat = 220
 
     @State private var isEditing = false
     @State private var selectedMediaIndex = 0
     @State private var viewer: MediaViewerPresentation?
     @StateObject private var inlinePlayback = MediaInlinePlayback()
     @State private var trimTarget: MediaTrimTarget?
-    @State private var showingFileImporter = false
+    @State private var showingImporter = false
+    @State private var importPurpose = PageImportPurpose.attachments
+    @State private var isImportingCover = false
     @State private var linkMetadata: [LinkMetadata] = []
     @State private var showMediaPicker = false
     @State private var showWorkoutPicker = false
     @State private var showingAddChildPage = false
-    @State private var childPageParent: ExercisePage?
     @State private var showingLinkedPagePicker = false
     @State private var choosingIcon = false
+    @State private var showingWorkouts = false
+    @State private var selectedTab: PageTab?
+    @State private var mediaToRemove: URL?
+    @State private var viewportHeight: CGFloat = 0
     #if os(iOS)
     @State private var pendingMediaItems: [PhotosPickerItem] = []
+    @State private var picksCover = false
+    @State private var showingAddOptions = false
     #endif
+
+    private static let tabBarID = "page-tab-bar"
 
     private var page: ExercisePage? { store.page(id: pageID) }
 
@@ -57,12 +79,7 @@ struct ExercisePageDetailView: View {
             Theme.background.ignoresSafeArea()
 
             if let page {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        if showsHero { coverHero(page: page) }
-                        detailContent(page: page)
-                    }
-                }
+                scrollContent(page)
             } else {
                 emptyPageView
             }
@@ -75,6 +92,7 @@ struct ExercisePageDetailView: View {
         }
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
             inlinePlayback.setContainerFrame(frame)
+            if viewportHeight != frame.height { viewportHeight = frame.height }
         }
         .timeMasterNavigationTitle(navigationTitle)
         #if os(iOS)
@@ -138,7 +156,6 @@ struct ExercisePageDetailView: View {
                     .environmentObject(store)
             }
         }
-
         .sheet(isPresented: $showingLinkedPagePicker) {
             if let page {
                 LinkedPagePickerSheet(
@@ -154,8 +171,8 @@ struct ExercisePageDetailView: View {
             }
         }
         .sheet(isPresented: $showingAddChildPage) {
-            if let parent = childPageParent ?? page {
-                PageCreationSheet(parentID: parent.manifest.id) { manifest, parentID in
+            if let page {
+                PageCreationSheet(parentID: page.manifest.id) { manifest, parentID in
                     try store.createPage(manifest: manifest, parentID: parentID)
                 } onSaveWithMedia: { manifest, parentID, coverData, mediaData in
                     try store.createPageWithMedia(
@@ -169,14 +186,37 @@ struct ExercisePageDetailView: View {
                 .environmentObject(store)
             }
         }
-        .onChange(of: showingAddChildPage) { isPresented in
-            if !isPresented { childPageParent = nil }
+        .sheet(isPresented: $showingWorkouts) {
+            PageWorkoutsSheet(pageID: pageID)
+                .environmentObject(store)
+                .environmentObject(workoutStore)
         }
         .sheet(item: $trimTarget) { target in
             MediaTrimSheet(target: target, onOpenFullEditor: fullEditorAction(for: target.url))
         }
+        .confirmationDialog(
+            "Remove this file?",
+            isPresented: Binding(get: { mediaToRemove != nil }, set: { if !$0 { mediaToRemove = nil } }),
+            titleVisibility: .visible,
+            presenting: mediaToRemove
+        ) { url in
+            Button("Remove", role: .destructive) {
+                if let page { removeMedia(url, from: page) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Its notes go with it.")
+        }
+        .fileImporter(
+            isPresented: $showingImporter,
+            allowedContentTypes: importPurpose.contentTypes,
+            allowsMultipleSelection: importPurpose != .cover
+        ) { result in
+            guard case .success(let picked) = result, let page else { return }
+            importPicked(picked, purpose: importPurpose, into: page.manifest.id)
+        }
         .onDisappear { inlinePlayback.pause() }
-        .task {
+        .task(id: page?.manifest.linkURLs ?? []) {
             guard let page, !page.manifest.linkURLs.isEmpty else { return }
             linkMetadata = await LinkMetadataFetcher.fetchMetadata(
                 for: page.manifest.linkURLs,
@@ -184,19 +224,502 @@ struct ExercisePageDetailView: View {
             )
         }
         #if os(iOS)
+        .confirmationDialog("Add to the attachments", isPresented: $showingAddOptions) {
+            Button("Photos & Videos") { pickPhotos(forCover: false) }
+            Button("Files") { importFiles(for: .attachments) }
+            Button("Cancel", role: .cancel) {}
+        }
         .photosPicker(
             isPresented: $showMediaPicker,
             selection: $pendingMediaItems,
-            maxSelectionCount: 10,
-            matching: .any(of: [.images, .videos])
+            maxSelectionCount: picksCover ? 1 : 10,
+            matching: picksCover ? PHPickerFilter.images : PHPickerFilter.any(of: [.images, .videos])
         )
         .onChange(of: pendingMediaItems) { items in
             guard let page, !items.isEmpty else { return }
-            uploadPickedMedia(items: items, pageID: page.manifest.id)
+            uploadPickedMedia(items: items, pageID: page.manifest.id, asCover: picksCover)
         }
         #endif
         .skillErrorAlert()
     }
+
+    // MARK: Page
+
+    private func scrollContent(_ page: ExercisePage) -> some View {
+        let library = SkillLibrary(pages: store.allPagesFlat)
+        let usage = PageWorkoutUsage.of(page, library: library, workoutStore: workoutStore)
+        let linked = linkedPages
+        let model = PageTabModel(
+            page: page,
+            store: store,
+            library: library,
+            linkedPageCount: linked.count,
+            hasWorkout: page.isExercise && (page.hasWorkoutConfig || !usage.isEmpty)
+        )
+        let tab = model.resolved(selectedTab ?? PageTabMemory.tab(for: page.manifest.id))
+        let progress = library.progress(of: page)
+        return ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if showsHero {
+                        PageCoverHero(
+                            page: page,
+                            breadcrumbs: breadcrumbs,
+                            isImportingCover: isImportingCover,
+                            onChooseCover: { setCover($0, of: page) },
+                            onImportCover: importCover
+                        ) {
+                            head(page, progress: progress, usage: usage, compact: false)
+                        }
+                    }
+                    pageTop(page, model: model, tab: tab, progress: progress, usage: usage, proxy: proxy)
+                    tabContent(tab, page: page, model: model, linked: linked, proxy: proxy)
+                }
+                .padding(.bottom, 40)
+            }
+            #if os(iOS)
+            .scrollDismissesKeyboard(.interactively)
+            #endif
+        }
+    }
+
+    private func head(_ page: ExercisePage, progress: SkillProgress, usage: PageWorkoutUsage, compact: Bool) -> some View {
+        PageHeroHeader(
+            page: page,
+            progress: progress,
+            usage: usage,
+            onCover: !compact,
+            compact: compact,
+            onChangeIcon: { choosingIcon = true },
+            onSetStatus: { setStatus($0, of: page) }
+        )
+    }
+
+    /// The head of a page shown without its cover, the widgets and the tabs.
+    private func pageTop(
+        _ page: ExercisePage,
+        model: PageTabModel,
+        tab: PageTab,
+        progress: SkillProgress,
+        usage: PageWorkoutUsage,
+        proxy: ScrollViewProxy
+    ) -> some View {
+        VStack(alignment: .leading, spacing: SkillMetrics.s4) {
+            if !showsHero {
+                head(page, progress: progress, usage: usage, compact: true)
+            }
+            PageWidgetStrip(pageID: pageID) { target in
+                open(target, page: page, model: model, current: tab, proxy: proxy)
+            }
+            PageTabBar(tabs: model.tabs, selection: tab, badge: model.badge(for:)) { selected in
+                select(selected, page: page, current: tab, proxy: proxy, reveal: false)
+            }
+            .id(Self.tabBarID)
+            #if os(macOS)
+            .background {
+                PageTabStepKeys(tabs: model.tabs, selection: tab, isEnabled: viewer == nil) { selected in
+                    select(selected, page: page, current: tab, proxy: proxy, reveal: true)
+                }
+            }
+            #endif
+        }
+        .skillsContained()
+        .padding(.top, showsHero ? SkillMetrics.s4 : SkillMetrics.s5)
+        .padding(.bottom, SkillMetrics.s4)
+    }
+
+    /// The selected tab's parts, cross-fading in place when the tab changes. At least as tall as the page, so a short
+    /// tab never pulls the tabs away from under the finger.
+    private func tabContent(_ tab: PageTab, page: ExercisePage, model: PageTabModel, linked: [ExercisePage], proxy: ScrollViewProxy) -> some View {
+        ZStack(alignment: .top) {
+            Group {
+                if tab == .all {
+                    VStack(alignment: .leading, spacing: SkillMetrics.s6) {
+                        ForEach(Array(model.allParts.enumerated()), id: \.element) { index, part in
+                            if index > 0 {
+                                PageSectionDivider()
+                            }
+                            section(part, page: page, model: model, linked: linked, proxy: proxy)
+                        }
+                    }
+                } else {
+                    section(tab, page: page, model: model, linked: linked, proxy: proxy)
+                }
+            }
+            .id(tab)
+            .transition(.opacity)
+        }
+        .skillsContained()
+        .frame(minHeight: viewportHeight, alignment: .top)
+    }
+
+    @ViewBuilder
+    private func section(_ part: PageTab, page: ExercisePage, model: PageTabModel, linked: [ExercisePage], proxy: ScrollViewProxy) -> some View {
+        switch part {
+        case .all:
+            EmptyView()
+        case .attachments:
+            PageAttachmentsSection(
+                page: page,
+                role: .attachments,
+                marksCover: showsHero,
+                playback: inlinePlayback,
+                linkedPages: linked,
+                actions: mediaActions(page)
+            )
+        case .dependencies:
+            PageDependenciesSection(page: page, playback: inlinePlayback, actions: mediaActions(page))
+        case .notes:
+            SkillNotesSection(materialID: page.manifest.id)
+        case .skills:
+            VStack(alignment: .leading, spacing: SkillMetrics.s6) {
+                SkillBoardScreen(boardID: page.manifest.id, scrollTo: scrollAction(proxy))
+                SkillSubPagesSection(skill: page)
+            }
+        case .children:
+            VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+                PageSectionHeader(symbol: PageTab.children.symbol, title: PageTab.children.title, count: model.badge(for: .children))
+                ContainerChildrenTabs(container: page)
+                    .environmentObject(store)
+                    .environmentObject(workoutStore)
+            }
+        case .todos:
+            SkillTodoSection(pageID: page.manifest.id)
+        case .milestones:
+            SkillMilestonesSection(pageID: page.manifest.id)
+        case .workout:
+            PageWorkoutSection(page: page) { showWorkoutPicker = true }
+        case .links:
+            PageLinksSection(urls: page.manifest.linkURLs, metadata: linkMetadata, onOpen: openLink)
+        }
+    }
+
+    // MARK: Tabs
+
+    /// Selects a tab (remembered for the page); `reveal` brings the tabs to the top so the new tab reads from its start.
+    private func select(_ tab: PageTab, page: ExercisePage, current: PageTab, proxy: ScrollViewProxy, reveal: Bool) {
+        PageTabMemory.remember(tab, for: page.manifest.id)
+        if tab == current {
+            selectedTab = tab
+        } else {
+            withAnimation(reduceMotion ? nil : EverMotion.state) {
+                selectedTab = tab
+            }
+            EverHaptic.selection()
+        }
+        guard reveal else { return }
+        DispatchQueue.main.async {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                proxy.scrollTo(Self.tabBarID, anchor: .top)
+            }
+        }
+    }
+
+    /// A tap on a widget: its tab, scrolled into view. The Clips widget also opens its clip in the viewer, grown out of
+    /// its card; the Workouts widget of a page without a Workout tab lists them in a sheet.
+    private func open(_ target: PageWidgetTarget, page: ExercisePage, model: PageTabModel, current: PageTab, proxy: ScrollViewProxy) {
+        let tab: PageTab
+        switch target {
+        case .attachments(let index):
+            let url = index.flatMap { page.mediaURLs.indices.contains($0) ? page.mediaURLs[$0] : nil }
+            let isNeededFirst = url.map { page.manifest.dependencyMediaFilenames.contains($0.lastPathComponent) } ?? false
+            tab = page.isSkillLike && isNeededFirst ? .dependencies : .attachments
+            if let url { openViewerSoon(for: url) }
+        case .subSkills:
+            tab = .skills
+        case .children:
+            tab = model.tabs.contains(.children) ? .children : .skills
+        case .todos:
+            tab = .todos
+        case .milestones:
+            tab = .milestones
+        case .dependencies:
+            tab = .dependencies
+        case .workouts:
+            guard model.tabs.contains(.workout) else {
+                showingWorkouts = true
+                return
+            }
+            tab = .workout
+        }
+        select(model.tabs.contains(tab) ? tab : .all, page: page, current: current, proxy: proxy, reveal: true)
+    }
+
+    private func scrollAction(_ proxy: ScrollViewProxy) -> (String) -> Void {
+        { id in
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                proxy.scrollTo(id, anchor: .center)
+            }
+        }
+    }
+
+    // MARK: Head
+
+    private func setStatus(_ status: SkillStatus, of page: ExercisePage) {
+        guard (page.manifest.skillStatus ?? .notStarted) != status else { return }
+        let id = page.manifest.id
+        let changed = SkillErrorCenter.shared.attempt("Change the status") {
+            if let parentID = page.manifest.parentID, store.page(manifestID: parentID) != nil {
+                try store.setSkillStatus(status, for: id)
+            } else {
+                try store.skillWrite { database in
+                    var manifest = try database.getPage(id: id)
+                    manifest.skillStatus = status
+                    try database.updatePage(id: id, manifest: manifest, newParentID: manifest.parentID)
+                }
+            }
+        }
+        guard changed else { return }
+        if status == .completed { EverHaptic.success() } else { EverHaptic.selection() }
+    }
+
+    /// Makes one of the page's files its cover; nil goes back to its first file.
+    private func setCover(_ filename: String?, of page: ExercisePage) {
+        guard page.manifest.coverMediaFilename != filename else { return }
+        if SkillErrorCenter.shared.attempt("Set the cover", { try store.setSkillCover(page.manifest.id, filename: filename) }) {
+            EverHaptic.selection()
+        }
+    }
+
+    private func importCover() {
+        #if os(iOS)
+        pickPhotos(forCover: true)
+        #else
+        importPurpose = .cover
+        showingImporter = true
+        #endif
+    }
+
+    // MARK: Media
+
+    private func mediaActions(_ page: ExercisePage) -> PageMediaActions {
+        PageMediaActions(
+            open: { openViewer(for: $0, of: page, opensEditor: false) },
+            openNotes: { openViewer(for: $0, of: page, opensEditor: true) },
+            cardActions: { cardActions(for: $0, of: page) },
+            add: { add($0) },
+            addFiles: { importFiles(for: $0) },
+            addPhotos: photosAction,
+            attachPage: { showingLinkedPagePicker = true }
+        )
+    }
+
+    private var photosAction: (() -> Void)? {
+        #if os(iOS)
+        return { pickPhotos(forCover: false) }
+        #else
+        return nil
+        #endif
+    }
+
+    /// The plus of a part's heading: photos or files on iPhone and iPad, files on the Mac.
+    private func add(_ role: PageAttachmentRole) {
+        #if os(iOS)
+        if role == .attachments {
+            showingAddOptions = true
+            return
+        }
+        #endif
+        importFiles(for: role)
+    }
+
+    private func importFiles(for role: PageAttachmentRole) {
+        importPurpose = role == .dependencies ? .dependencies : .attachments
+        showingImporter = true
+    }
+
+    private func importPicked(_ urls: [URL], purpose: PageImportPurpose, into id: String) {
+        var added: [String] = []
+        for url in urls {
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            SkillErrorCenter.shared.attempt("Add the file") {
+                let filename = try store.uploadSkillMedia(url, to: id, asDependency: purpose == .dependencies)
+                added.append(filename)
+            }
+        }
+        guard let first = added.first else { return }
+        if purpose == .cover {
+            guard SkillErrorCenter.shared.attempt("Set the cover", { try store.setSkillCover(id, filename: first) }) else { return }
+        }
+        EverHaptic.success()
+    }
+
+    /// The menu of a media card: open it, trim and edit a video, make it the cover, on a skill or a tutorial move it
+    /// between Attachments and Dependencies or make a picture the icon, and remove it.
+    private func cardActions(for url: URL, of page: ExercisePage) -> [MediaCardAction] {
+        guard let index = page.mediaURLs.firstIndex(of: url) else { return [] }
+        let filename = url.lastPathComponent
+        let pageID = page.manifest.id
+        let isVideo = PageMediaKind.isVideo(url)
+        let isImage = UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true
+        var actions = [
+            MediaCardAction("Open in viewer", systemImage: "arrow.up.left.and.arrow.down.right") {
+                openViewer(at: index, of: page, opensEditor: false)
+            }
+        ]
+        if isVideo {
+            actions.append(MediaCardAction("Trim video…", systemImage: "scissors") {
+                inlinePlayback.pause()
+                trimTarget = MediaTrimTarget(url: url, pageID: pageID)
+            })
+            #if os(macOS)
+            actions.append(MediaCardAction("Open full editor…", systemImage: "film") {
+                openFullEditor(url)
+            })
+            #endif
+        }
+        if isVideo || isImage {
+            let isCover = page.manifest.coverMediaFilename == filename
+            actions.append(MediaCardAction(isCover ? "Remove the cover" : "Use as cover", systemImage: "photo") {
+                setCover(isCover ? nil : filename, of: page)
+            })
+        }
+        if page.isSkillLike {
+            let isNeededFirst = page.manifest.dependencyMediaFilenames.contains(filename)
+            actions.append(MediaCardAction(
+                isNeededFirst ? "Move to Attachments" : "Move to Dependencies",
+                systemImage: isNeededFirst ? "paperclip" : "arrow.triangle.branch"
+            ) {
+                if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
+                    try store.setSkillMediaIsDependency(filename, in: pageID, !isNeededFirst)
+                }) {
+                    EverHaptic.selection()
+                }
+            })
+            if isImage {
+                actions.append(MediaCardAction("Use as icon", systemImage: "person.crop.square") {
+                    SkillErrorCenter.shared.attempt("Set the icon") {
+                        try store.setSkillIcon(pageID, name: nil, type: nil, image: filename)
+                    }
+                })
+            }
+        }
+        actions.append(MediaCardAction("Remove", systemImage: "trash", role: .destructive) {
+            mediaToRemove = url
+        })
+        return actions
+    }
+
+    private func removeMedia(_ url: URL, from page: ExercisePage) {
+        if inlinePlayback.url == url { inlinePlayback.stop() }
+        if SkillErrorCenter.shared.attempt("Remove the file", { try store.removeSkillMedia(url.lastPathComponent, from: page.manifest.id) }) {
+            EverHaptic.selection()
+        }
+    }
+
+    private func mediaViewer(page: ExercisePage, presentation: MediaViewerPresentation) -> some View {
+        PageMediaGallery(
+            urls: page.mediaURLs,
+            selectedIndex: $selectedMediaIndex,
+            isPresented: Binding(get: { viewer != nil }, set: { if !$0 { closeViewer() } }),
+            comments: page.mediaCommentsByURL,
+            onSaveComment: { url, comment in
+                try store.updateMediaComment(pageID: page.manifest.id, filename: url.lastPathComponent, comment: comment)
+            },
+            opensEditor: presentation.opensEditor,
+            notesAssets: { _ in FolderMarkdownAssets(folder: store.folderURL(for: page)) },
+            presentation: .inPlace,
+            playback: inlinePlayback,
+            mediaOwnerID: { _ in page.manifest.id }
+        )
+        .keyNavHost()
+    }
+
+    private var viewerAnimation: Animation {
+        reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.9)
+    }
+
+    private func openViewer(for url: URL, of page: ExercisePage, opensEditor: Bool) {
+        guard let index = page.mediaURLs.firstIndex(of: url) else { return }
+        openViewer(at: index, of: page, opensEditor: opensEditor)
+    }
+
+    /// Opens the media viewer in place: it grows out of the card at `index` (the card's video keeps playing in it).
+    private func openViewer(at index: Int, of page: ExercisePage, opensEditor: Bool) {
+        guard page.mediaURLs.indices.contains(index) else { return }
+        let url = page.mediaURLs[index]
+        if inlinePlayback.url != url { inlinePlayback.pause() }
+        selectedMediaIndex = index
+        let presentation = MediaViewerPresentation(
+            opensEditor: opensEditor,
+            source: inlinePlayback.cardRect(for: url),
+            container: inlinePlayback.containerSize
+        )
+        withAnimation(viewerAnimation) { viewer = presentation }
+    }
+
+    /// Opens the viewer once a tab change has settled and the card it grows out of is on screen.
+    private func openViewerSoon(for url: URL) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard viewer == nil, let page else { return }
+            openViewer(for: url, of: page, opensEditor: false)
+        }
+    }
+
+    /// Shrinks the viewer back into the card of the media it shows (the card it came from when that one is gone).
+    private func closeViewer() {
+        guard viewer != nil else { return }
+        if let page, page.mediaURLs.indices.contains(selectedMediaIndex),
+           let card = inlinePlayback.cardRect(for: page.mediaURLs[selectedMediaIndex]) {
+            viewer?.source = card
+        }
+        let animation = viewerAnimation
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 16_000_000)
+            withAnimation(animation) { viewer = nil }
+            try? await Task.sleep(nanoseconds: 550_000_000)
+            inlinePlayback.redrawSurface()
+        }
+    }
+
+    private func openLink(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        #if os(iOS)
+        UIApplication.shared.open(url)
+        #elseif os(macOS)
+        NSWorkspace.shared.open(url)
+        #endif
+    }
+
+    private var navigationTitle: String {
+        #if os(macOS)
+        return showsHero ? "" : (page?.title ?? "Workout")
+        #else
+        return ""
+        #endif
+    }
+
+    /// On the Mac the in-place viewer answers Escape, so the page's close or back button rests while it is open.
+    private var viewerHoldsEscape: Bool {
+        #if os(macOS)
+        return viewer != nil
+        #else
+        return false
+        #endif
+    }
+
+    private func fullEditorAction(for url: URL) -> (() -> Void)? {
+        #if os(macOS)
+        return { openFullEditor(url) }
+        #else
+        return nil
+        #endif
+    }
+
+    #if os(macOS)
+    private func openFullEditor(_ url: URL) {
+        inlinePlayback.pause()
+        MacVideoWorkspaceWindowPresenter.shared.present(
+            sources: [MacVideoSource(url: url)],
+            databaseStore: store,
+            workoutStore: workoutStore
+        )
+    }
+    #endif
+
+    // MARK: Toolbar
 
     private var pageActions: [ReachabilityAction] {
         var actions = [
@@ -274,525 +797,24 @@ struct ExercisePageDetailView: View {
     #if os(iOS)
     private var addMediaButton: some View {
         Button {
-            showMediaPicker = true
+            pickPhotos(forCover: false)
         } label: {
             Image(systemName: "photo.badge.plus")
         }
         .accessibilityLabel("Add Media")
     }
-    #endif
 
-    private func coverHero(page: ExercisePage) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Spacer(minLength: coverMinimumHeight * 0.35)
-            if breadcrumbs.count > 1 {
-                breadcrumbRow
-            }
-            if page.isSkillLike {
-                HStack(alignment: .center, spacing: 12) {
-                    Button { choosingIcon = true } label: {
-                        SkillPageIconTile(page: page, size: 44)
-                    }
-                    .keyNavPlainButtonStyle()
-                    .help("Change the icon")
-                    .accessibilityLabel("Change the icon")
-                    SkillEditableTitle(
-                        pageID: page.manifest.id,
-                        title: page.title,
-                        font: TimeMasterFont.pageTitle(40, relativeTo: .largeTitle),
-                        color: .white,
-                        lineLimit: 3,
-                        renamesOnPhone: true
-                    )
-                }
-                .shadow(color: .black.opacity(0.4), radius: 3)
-            } else {
-                TimeMasterPageTitle(page.title)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.4), radius: 3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            pageInfoRow(page: page, color: .white.opacity(0.85), emphasis: .white)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: coverMinimumHeight, alignment: .bottomLeading)
-        .background {
-            GeometryReader { proxy in
-                ZStack {
-                    if let coverURL = page.coverImageURL {
-                        AsyncCoverImage(url: coverURL, height: proxy.size.height, overlayGradient: false)
-                    } else {
-                        Theme.surface
-                    }
-                    LinearGradient(
-                        colors: [.clear, .black.opacity(0.75)],
-                        startPoint: .center,
-                        endPoint: .bottom
-                    )
-                }
-            }
-        }
-        .clipped()
+    private func pickPhotos(forCover: Bool) {
+        picksCover = forCover
+        showMediaPicker = true
     }
 
-    private var breadcrumbRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                ForEach(Array(breadcrumbs.enumerated()), id: \.offset) { index, crumb in
-                    if index > 0 {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.5))
-                    }
-                    if crumb.id != pageID {
-                        NavigationLink(value: DatabasePageRoute(pageID: crumb.manifest.id)) {
-                            Text(crumb.title)
-                                .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                                .foregroundStyle(.white.opacity(0.8))
-                                .lineLimit(1)
-                        }
-                        .keyNavPlainButtonStyle()
-                    } else {
-                        Text(crumb.title)
-                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                            .foregroundStyle(.white.opacity(0.6))
-                            .lineLimit(1)
-                    }
-                }
-            }
-            .padding(.bottom, 2)
-        }
-    }
-
-    private func detailContent(page: ExercisePage) -> some View {
-        let showsStrip = page.hasMedia && (!page.isSkillLike || !showsHero)
-        return VStack(alignment: .leading, spacing: 20) {
-            if !showsHero {
-                compactHeader(page: page)
-            }
-
-            if showsStrip {
-                mediaStrip(page: page)
-            }
-
-            if page.isSkill || page.isTutorial {
-                SkillPrerequisitesSection(materialID: page.manifest.id)
-                SkillChecklistSections(pageID: page.manifest.id)
-                SkillNotesSection(materialID: page.manifest.id)
-                if !showsStrip {
-                    SkillFilesSection(materialID: page.manifest.id)
-                }
-                SkillLinksSection(materialID: page.manifest.id)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Sub-skills")
-                        .font(TimeMasterFont.sectionTitle())
-                        .foregroundStyle(Theme.textPrimary)
-                    SkillBoardScreen(boardID: page.manifest.id)
-                }
-                SkillSubPagesSection(skill: page)
-                if !linkedPages.isEmpty {
-                    attachedPagesSection
-                }
-            } else if page.isContainer {
-                ContainerChildrenTabs(container: page)
-                    .environmentObject(store)
-                    .environmentObject(workoutStore)
-                if page.hasMarkdown {
-                    markdownSection(page: page, title: "Notes")
-                }
-                if page.hasLinks {
-                    linksSection(page: page)
-                }
-            } else {
-                if page.hasMarkdown {
-                    markdownSection(page: page, title: "Guide")
-                }
-                if page.hasWorkoutConfig {
-                    workoutConfigSection(page: page)
-                }
-                if page.hasLinks {
-                    linksSection(page: page)
-                }
-            }
-
-            if !page.isContainer &&
-                !page.isSkillLike &&
-                !page.hasMarkdown &&
-                !page.hasMedia &&
-                !page.hasLinks {
-                emptyContentPrompt
-            }
-        }
-        .skillsContained(maxWidth: page.isSkillLike || page.isContainer ? SkillsLayout.pageWidth : .infinity)
-        .padding(.top, 20)
-        .padding(.bottom, 40)
-    }
-
-    /// The title and kind at the top of a page shown without its cover (a workout's page popup).
-    private func compactHeader(page: ExercisePage) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if page.isSkillLike {
-                HStack(alignment: .center, spacing: 12) {
-                    Button { choosingIcon = true } label: {
-                        SkillPageIconTile(page: page, size: 36)
-                    }
-                    .keyNavPlainButtonStyle()
-                    .help("Change the icon")
-                    .accessibilityLabel("Change the icon")
-                    SkillEditableTitle(
-                        pageID: page.manifest.id,
-                        title: page.title,
-                        font: TimeMasterFont.pageTitle(30, relativeTo: .title),
-                        color: Theme.textPrimary,
-                        lineLimit: 3,
-                        renamesOnPhone: true
-                    )
-                }
-            } else {
-                TimeMasterPageTitle(page.title, size: 30, relativeTo: .title)
-                    .foregroundStyle(Theme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            pageInfoRow(page: page, color: Theme.textSecondary, emphasis: Theme.textPrimary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func pageInfoRow(page: ExercisePage, color: Color, emphasis: Color) -> some View {
-        HStack(spacing: 8) {
-            Text(pageTypeLabel(page))
-                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                .foregroundStyle(color)
-            if let type = page.effectiveWorkoutType {
-                Label {
-                    Text(type.name)
-                        .font(TimeMasterFont.black(12, relativeTo: .caption))
-                } icon: {
-                    Image(systemName: type.iconName)
-                        .font(.caption.weight(.medium))
-                }
-                    .foregroundStyle(emphasis)
-            }
-            if page.isSkillLike {
-                SkillTypePicker(pageID: page.manifest.id) {
-                    if let skillType = store.skillType(of: page) {
-                        SkillTypeChip(type: skillType, showsChevron: true)
-                    } else {
-                        SkillAddTypeChip()
-                    }
-                }
-            }
-        }
-    }
-
-    private func mediaStrip(page: ExercisePage) -> some View {
-        MediaStrip(
-            title: showsHero ? "Media" : "",
-            urls: page.mediaURLs,
-            marksCover: showsHero,
-            comments: page.mediaCommentsByURL,
-            onOpen: { index in openViewer(at: index, of: page, opensEditor: false) },
-            onOpenNotes: { index in openViewer(at: index, of: page, opensEditor: true) },
-            playback: inlinePlayback,
-            cardActions: { index in cardActions(at: index, of: page) },
-            onAdd: page.isSkillLike ? { showingFileImporter = true } : nil
-        )
-        .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
-            guard case .success(let picked) = result else { return }
-            for url in picked {
-                let scoped = url.startAccessingSecurityScopedResource()
-                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-                SkillErrorCenter.shared.attempt("Add the file") {
-                    try store.uploadSkillMedia(url, to: page.manifest.id)
-                }
-            }
-        }
-    }
-
-    /// The menu of a media card. Skill and tutorial pages also get the actions of their Files section, which the
-    /// popup leaves out because the strip already shows those files.
-    private func cardActions(at index: Int, of page: ExercisePage) -> [MediaCardAction] {
-        guard page.mediaURLs.indices.contains(index) else { return [] }
-        let url = page.mediaURLs[index]
-        let filename = url.lastPathComponent
-        let pageID = page.manifest.id
-        var actions = [
-            MediaCardAction("Open in viewer", systemImage: "arrow.up.left.and.arrow.down.right") {
-                openViewer(at: index, of: page, opensEditor: false)
-            }
-        ]
-        if PageMediaKind.isVideo(url) {
-            actions.append(MediaCardAction("Trim video…", systemImage: "scissors") {
-                inlinePlayback.pause()
-                trimTarget = MediaTrimTarget(url: url, pageID: pageID)
-            })
-            #if os(macOS)
-            actions.append(MediaCardAction("Open full editor…", systemImage: "film") {
-                openFullEditor(url)
-            })
-            #endif
-        }
-        guard page.isSkillLike else { return actions }
-        let isPrerequisite = page.manifest.dependencyMediaFilenames.contains(filename)
-        actions.append(MediaCardAction(
-            isPrerequisite ? "Not a prerequisite" : "Learn this first",
-            systemImage: "arrow.turn.down.right"
-        ) {
-            SkillErrorCenter.shared.attempt("Change the prerequisite flag") {
-                try store.setSkillMediaIsDependency(filename, in: pageID, !isPrerequisite)
-            }
-        })
-        if UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) == true {
-            let isCover = page.manifest.coverMediaFilename == filename
-            actions.append(MediaCardAction(isCover ? "Remove the cover" : "Use as cover", systemImage: "photo") {
-                SkillErrorCenter.shared.attempt("Set the cover") {
-                    try store.setSkillCover(pageID, filename: isCover ? nil : filename)
-                }
-            })
-            actions.append(MediaCardAction("Use as icon", systemImage: "person.crop.square") {
-                SkillErrorCenter.shared.attempt("Set the icon") {
-                    try store.setSkillIcon(pageID, name: nil, type: nil, image: filename)
-                }
-            })
-        }
-        actions.append(MediaCardAction("Remove", systemImage: "trash", role: .destructive) {
-            if inlinePlayback.url == url { inlinePlayback.stop() }
-            SkillErrorCenter.shared.attempt("Remove the file") {
-                try store.removeSkillMedia(filename, from: pageID)
-            }
-        })
-        return actions
-    }
-
-    private func mediaViewer(page: ExercisePage, presentation: MediaViewerPresentation) -> some View {
-        PageMediaGallery(
-            urls: page.mediaURLs,
-            selectedIndex: $selectedMediaIndex,
-            isPresented: Binding(get: { viewer != nil }, set: { if !$0 { closeViewer() } }),
-            comments: page.mediaCommentsByURL,
-            onSaveComment: { url, comment in
-                try store.updateMediaComment(pageID: page.manifest.id, filename: url.lastPathComponent, comment: comment)
-            },
-            opensEditor: presentation.opensEditor,
-            notesAssets: { _ in FolderMarkdownAssets(folder: store.folderURL(for: page)) },
-            presentation: .inPlace,
-            playback: inlinePlayback,
-            mediaOwnerID: { _ in page.manifest.id }
-        )
-        .keyNavHost()
-    }
-
-    private var viewerAnimation: Animation {
-        reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.9)
-    }
-
-    /// Opens the media viewer in place: it grows out of the card at `index` (the card's video keeps playing in it).
-    private func openViewer(at index: Int, of page: ExercisePage, opensEditor: Bool) {
-        guard page.mediaURLs.indices.contains(index) else { return }
-        let url = page.mediaURLs[index]
-        if inlinePlayback.url != url { inlinePlayback.pause() }
-        selectedMediaIndex = index
-        let presentation = MediaViewerPresentation(
-            opensEditor: opensEditor,
-            source: inlinePlayback.cardRect(for: url),
-            container: inlinePlayback.containerSize
-        )
-        withAnimation(viewerAnimation) { viewer = presentation }
-    }
-
-    /// Shrinks the viewer back into the card of the media it shows (the card it came from when that one is gone).
-    private func closeViewer() {
-        guard viewer != nil else { return }
-        if let page, page.mediaURLs.indices.contains(selectedMediaIndex),
-           let card = inlinePlayback.cardRect(for: page.mediaURLs[selectedMediaIndex]) {
-            viewer?.source = card
-        }
-        let animation = viewerAnimation
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 16_000_000)
-            withAnimation(animation) { viewer = nil }
-            try? await Task.sleep(nanoseconds: 550_000_000)
-            inlinePlayback.redrawSurface()
-        }
-    }
-
-    private var navigationTitle: String {
-        #if os(macOS)
-        return showsHero ? "" : (page?.title ?? "Workout")
-        #else
-        return ""
-        #endif
-    }
-
-    /// On the Mac the in-place viewer answers Escape, so the page's close or back button rests while it is open.
-    private var viewerHoldsEscape: Bool {
-        #if os(macOS)
-        return viewer != nil
-        #else
-        return false
-        #endif
-    }
-
-    private func fullEditorAction(for url: URL) -> (() -> Void)? {
-        #if os(macOS)
-        return { openFullEditor(url) }
-        #else
-        return nil
-        #endif
-    }
-
-    #if os(macOS)
-    private func openFullEditor(_ url: URL) {
-        inlinePlayback.pause()
-        MacVideoWorkspaceWindowPresenter.shared.present(
-            sources: [MacVideoSource(url: url)],
-            databaseStore: store,
-            workoutStore: workoutStore
-        )
-    }
-    #endif
-
-
-    private func markdownSection(page: ExercisePage, title: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(TimeMasterFont.sectionTitle())
-                .foregroundStyle(Theme.textPrimary)
-            MarkdownTextView(
-                text: page.manifest.markdownBody,
-                assets: FolderMarkdownAssets(folder: store.folderURL(for: page))
-            )
-        }
-    }
-
-
-    private func linksSection(page: ExercisePage) -> some View {
-        VideoEmbedListView(
-            urls: page.manifest.linkURLs,
-            metadata: linkMetadata
-        ) { urlString in
-            guard let url = URL(string: urlString) else { return }
-            #if os(iOS)
-            UIApplication.shared.open(url)
-            #elseif os(macOS)
-            NSWorkspace.shared.open(url)
-            #endif
-        }
-    }
-
-    private func workoutConfigSection(page: ExercisePage) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Workout Config")
-                .font(TimeMasterFont.sectionTitle())
-                .foregroundStyle(Theme.textPrimary)
-            HStack(spacing: 10) {
-                configBadge(label: "Duration", value: "\(page.manifest.duration ?? 0)s")
-                if let sets = page.manifest.sets {
-                    configBadge(label: "Sets", value: "\(sets)")
-                }
-                if let restSets = page.manifest.restBetweenSets, (page.manifest.sets ?? 1) > 1 {
-                    configBadge(label: "Rest Between Sets", value: "\(restSets)s")
-                }
-                if let rest = page.manifest.restAfter {
-                    configBadge(
-                        label: (page.manifest.sets ?? 1) > 1 ? "Big Rest" : "Rest",
-                        value: "\(rest)s"
-                    )
-                }
-            }
-        }
-    }
-
-    private func configBadge(label: String, value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(TimeMasterFont.heading())
-                .foregroundStyle(.white)
-            Text(label)
-                .font(TimeMasterFont.micro())
-                .foregroundStyle(Theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
-    }
-
-    private var attachedPagesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Attached Pages")
-                    .font(TimeMasterFont.sectionTitle())
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                Button {
-                    showingLinkedPagePicker = true
-                } label: {
-                    Label {
-                        Text("Attach")
-                            .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                    } icon: {
-                        Image(systemName: "link.badge.plus")
-                            .font(.subheadline.weight(.semibold))
-                    }
-                }
-                .buttonStyle(TimeMasterActionButtonStyle(minimumSize: 36, horizontalPadding: 12))
-            }
-
-            if linkedPages.isEmpty {
-                Text("Attach any existing page as a reference.")
-                    .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                    .foregroundStyle(Theme.textSecondary)
-            } else {
-                ForEach(linkedPages) { linkedPage in
-                    NavigationLink(value: DatabasePageRoute(pageID: linkedPage.manifest.id)) {
-                        PageCardView(page: linkedPage)
-                            .padding(12)
-                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-                    }
-                    .keyNavPlainButtonStyle()
-                }
-            }
-        }
-    }
-
-    private var emptyContentPrompt: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "doc.badge.plus")
-                .font(.system(size: 36))
-                .foregroundStyle(Theme.textSecondary.opacity(0.5))
-            Text("This page is empty")
-                .font(TimeMasterFont.sectionTitle())
-                .foregroundStyle(Theme.textPrimary)
-            Text("Tap Edit to add a guide, media, links, and more.")
-                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                .foregroundStyle(Theme.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-    }
-
-    private var emptyPageView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40))
-                .foregroundStyle(Theme.textSecondary)
-            Text("Page not found")
-                .font(TimeMasterFont.sectionTitle())
-                .foregroundStyle(Theme.textPrimary)
-            Text("This page may have been moved or deleted.")
-                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
-                .foregroundStyle(Theme.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-
-    #if os(iOS)
-    private func uploadPickedMedia(items: [PhotosPickerItem], pageID: String) {
+    /// Copies the picked photos and videos into the page; with `asCover` the first becomes its cover.
+    private func uploadPickedMedia(items: [PhotosPickerItem], pageID: String, asCover: Bool) {
         let libraryToken = ExerciseLibraryAccess.shared.capture()
+        if asCover { isImportingCover = true }
         Task { @MainActor in
+            var added: [String] = []
             for item in items {
                 let isVideo = item.supportedContentTypes.contains { $0.conforms(to: .audiovisualContent) }
                 let sourceURL: URL?
@@ -808,15 +830,40 @@ struct ExercisePageDetailView: View {
 
                 guard let sourceURL else { continue }
                 defer { try? FileManager.default.removeItem(at: sourceURL) }
-                try? ExerciseLibraryAccess.shared.perform(token: libraryToken) {
-                    _ = try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: sourceURL)
+                if let filename = try? ExerciseLibraryAccess.shared.perform(token: libraryToken, operation: {
+                    try DatabaseManager.shared.uploadMediaToPage(pageID: pageID, sourceURL: sourceURL)
+                }) {
+                    added.append(filename)
                 }
             }
             store.reload()
             pendingMediaItems = []
+            if asCover, let first = added.first {
+                if SkillErrorCenter.shared.attempt("Set the cover", { try store.setSkillCover(pageID, filename: first) }) {
+                    EverHaptic.success()
+                }
+            } else if !added.isEmpty {
+                EverHaptic.success()
+            }
+            isImportingCover = false
         }
     }
     #endif
+
+    private var emptyPageView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40))
+                .foregroundStyle(Theme.textSecondary)
+            Text("Page not found")
+                .font(TimeMasterFont.sectionTitle())
+                .foregroundStyle(Theme.textPrimary)
+            Text("This page may have been moved or deleted.")
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline))
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 }
 
 private struct LinkedPagePickerSheet: View {
@@ -855,7 +902,7 @@ private struct LinkedPagePickerSheet: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(candidate.title)
                                         .foregroundStyle(Theme.textPrimary)
-                                    Text(pageTypeLabel(candidate))
+                                    Text(PageKindStyle.title(candidate))
                                         .font(TimeMasterFont.caption())
                                         .foregroundStyle(Theme.textSecondary)
                                 }
@@ -910,16 +957,5 @@ private struct LinkedPagePickerSheet: View {
         } catch {
             saveError = error.localizedDescription
         }
-    }
-}
-
-
-private func pageTypeLabel(_ page: ExercisePage) -> String {
-    switch page.pageType {
-    case .exercise: "Exercise"
-    case .skill: "Skill"
-    case .tutorial: "Tutorial"
-    case .note: "Note"
-    case nil: "Container"
     }
 }

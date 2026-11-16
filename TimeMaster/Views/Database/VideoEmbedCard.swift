@@ -1,27 +1,6 @@
 import SwiftUI
 import TimeMasterCore
 
-struct VideoEmbedListView: View {
-    let urls: [String]
-    let metadata: [LinkMetadata]
-    let onTapURL: (String) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Links")
-                .font(TimeMasterFont.sectionTitle())
-                .foregroundColor(Theme.textPrimary)
-
-            ForEach(Array(urls.enumerated()), id: \.offset) { index, urlString in
-                PageLinkRow(
-                    info: PageLinkInfo(urlString: urlString, metadata: index < metadata.count ? metadata[index] : nil),
-                    onOpen: { onTapURL(urlString) }
-                )
-            }
-        }
-    }
-}
-
 struct PageLinkRow: View {
     let info: PageLinkInfo
     var onOpen: (() -> Void)?

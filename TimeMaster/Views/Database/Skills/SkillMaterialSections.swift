@@ -2,16 +2,11 @@ import SwiftUI
 import TimeMasterCore
 import UniformTypeIdentifiers
 
-private func skillSectionHeader(_ title: String) -> some View {
-    Text(title)
-        .font(TimeMasterFont.sectionTitle())
-        .foregroundStyle(Theme.textPrimary)
-}
-
 // MARK: - Prerequisites
 
-/// "Learn first": the pages and groups a page or group waits for, in order. A page that already waits on this one
-/// is not offered (no loops).
+/// "Learn first", in Skillmax's Dependencies layout: the pages and groups a page or group waits for, in the order to
+/// learn them, each as a card with its place, its icon, its status and where it lives. A page that already waits on
+/// this one is not offered (no loops).
 struct SkillPrerequisitesSection: View {
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
@@ -31,84 +26,186 @@ struct SkillPrerequisitesSection: View {
 
     var body: some View {
         let dependencies = store.skillDependencies(of: materialID)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                skillSectionHeader("Learn first")
-                Spacer()
-                Menu {
-                    ForEach(candidates) { candidate in
-                        Button {
-                            SkillErrorCenter.shared.attempt("Add the prerequisite") {
-                                try store.addSkillDependency(candidate.id, to: materialID)
-                            }
-                        } label: {
-                            Label(candidate.title, systemImage: candidate.isGroup ? "square.grid.2x2" : "circle.dashed")
-                        }
-                    }
-                } label: {
-                    Label("Add", systemImage: "plus")
-                        .font(TimeMasterFont.rowTitle())
-                        .foregroundStyle(candidates.isEmpty ? Theme.textSecondary : Theme.toolbarOrange)
+        let candidates = self.candidates
+        let library = SkillLibrary(pages: store.allPagesFlat)
+        VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+            PageSectionHeader(symbol: "list.number", title: "Learn first", count: dependencies.count) {
+                addMenu(candidates, shape: .circle) {
+                    PageSectionAddGlyph()
                 }
-                .menuStyle(.button).keyNavPlainButtonStyle()
-                .menuIndicator(.hidden)
-                .disabled(candidates.isEmpty)
+                .help("Add a page to learn first")
+                .accessibilityLabel("Add a page to learn first")
             }
             if dependencies.isEmpty {
-                Text("Nothing to learn first.")
-                    .font(TimeMasterFont.caption())
+                addMenu(candidates, shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius)) {
+                    PageEmptyCard(
+                        symbol: "arrow.triangle.branch",
+                        title: "Nothing to learn first",
+                        detail: candidates.isEmpty
+                            ? "There is no other skill to learn before this one yet."
+                            : "Pick the skills that come before this one. They show here in the order to learn them."
+                    )
+                }
+                .accessibilityLabel("Nothing to learn first. Add a page.")
+            } else {
+                VStack(spacing: SkillMetrics.s2) {
+                    ForEach(Array(dependencies.enumerated()), id: \.element.id) { index, dependency in
+                        row(dependency, index: index, in: dependencies, library: library)
+                    }
+                }
+            }
+        }
+    }
+
+    private func addMenu<Content: View>(_ candidates: [SkillMaterial], shape: KeyNavShape, @ViewBuilder label: () -> Content) -> some View {
+        Menu {
+            ForEach(candidates) { candidate in
+                Button {
+                    add(candidate)
+                } label: {
+                    Label(candidate.title, systemImage: candidate.isGroup ? "square.grid.2x2" : "circle.dashed")
+                }
+            }
+        } label: {
+            label()
+        }
+        .menuStyle(.button)
+        .keyNavPlainButtonStyle(shape: shape)
+        .menuIndicator(.hidden)
+        .disabled(candidates.isEmpty)
+    }
+
+    private func row(_ dependency: SkillMaterial, index: Int, in all: [SkillMaterial], library: SkillLibrary) -> some View {
+        let status = self.status(of: dependency)
+        return HStack(spacing: SkillMetrics.s2) {
+            Text("\(index + 1)")
+                .font(TimeMasterFont.technical())
+                .foregroundStyle(Theme.textSecondary)
+                .frame(width: 20)
+                .accessibilityHidden(true)
+            Button {
+                open(dependency)
+            } label: {
+                rowLabel(dependency, status: status, path: path(of: dependency, library: library))
+            }
+            .buttonStyle(SkillPressButtonStyle())
+            .accessibilityLabel("\(index + 1). \(dependency.title), \(status.title)")
+            .accessibilityHint(dependency.isGroup ? "Opens this group" : "Opens this page")
+            Menu {
+                actions(for: dependency, index: index, in: all)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
+                    .frame(width: SkillMetrics.touch, height: SkillMetrics.touch)
+                    .contentShape(Rectangle())
             }
-            ForEach(Array(dependencies.enumerated()), id: \.element.id) { index, dependency in
-                HStack(spacing: 10) {
-                    Image(systemName: dependency.isGroup ? "square.grid.2x2" : (dependency.manifest.skillStatus ?? .notStarted).symbolName)
-                        .foregroundStyle((dependency.manifest.skillStatus ?? .notStarted).color)
-                        .frame(width: 24)
-                    Button {
-                        open(dependency)
-                    } label: {
-                        Text(dependency.title)
-                            .font(TimeMasterFont.rowTitle())
-                            .foregroundStyle(Theme.textPrimary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .keyNavRole(.excluded)
-                    Menu {
-                        Button {
-                            reorder(dependencies, from: index, to: index - 1)
-                        } label: { Label("Move up", systemImage: "arrow.up") }
-                        .disabled(index == 0)
-                        Button {
-                            reorder(dependencies, from: index, to: index + 1)
-                        } label: { Label("Move down", systemImage: "arrow.down") }
-                        .disabled(index == dependencies.count - 1)
-                        Button(role: .destructive) {
-                            SkillErrorCenter.shared.attempt("Remove the prerequisite") {
-                                try store.removeSkillDependency(dependency.id, from: materialID)
-                            }
-                        } label: {
-                            Label("Remove", systemImage: "xmark")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.caption.weight(.bold))
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .keyNavPlainButtonStyle(shape: .circle)
+            .fixedSize()
+            .accessibilityLabel("Options for \(dependency.title)")
+        }
+        .padding(.horizontal, SkillMetrics.s3)
+        .padding(.vertical, SkillMetrics.s2)
+        .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.fieldRadius, flat: true))
+        .contextMenu { actions(for: dependency, index: index, in: all) }
+    }
+
+    private func rowLabel(_ dependency: SkillMaterial, status: SkillStatus, path: String) -> some View {
+        HStack(spacing: SkillMetrics.s3) {
+            icon(of: dependency)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(TimeMasterFont.initialCapitalizedTitle(dependency.title))
+                    .font(TimeMasterFont.rowTitle())
+                    .foregroundStyle(Theme.textPrimary)
+                    .opacity(status.titleOpacity)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                HStack(spacing: SkillMetrics.s2) {
+                    SkillStatusChip(status)
+                        .fixedSize()
+                    if !path.isEmpty {
+                        Text(path)
+                            .font(TimeMasterFont.caption())
                             .foregroundStyle(Theme.textSecondary)
-                            .frame(width: 30, height: 30)
+                            .lineLimit(1)
                     }
-                    .menuStyle(.button)
-                    .menuIndicator(.hidden)
-                    .keyNavPlainButtonStyle()
-                    .accessibilityLabel("\(dependency.title) options")
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .keyNavTarget(id: dependency.id, role: .primary, shape: .roundedRectangle(cornerRadius: 12)) {
-                    open(dependency)
                 }
             }
+            Spacer(minLength: SkillMetrics.s2)
+        }
+        .frame(minHeight: SkillMetrics.touch)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private func icon(of dependency: SkillMaterial) -> some View {
+        if let page = dependency.page {
+            SkillPageIconTile(page: page, size: 40, tilesSymbols: true)
+        } else if let section = dependency.section {
+            let icon = section.icon.flatMap { $0.isEmpty ? nil : $0 }
+            SkillIconView(
+                iconName: icon ?? "square.grid.2x2",
+                iconType: icon == nil ? SkillBoardIconType.system : section.iconType,
+                size: 19
+            )
+            .frame(width: 40, height: 40)
+            .skillTile(cornerRadius: 40 * 0.32)
+        }
+    }
+
+    @ViewBuilder
+    private func actions(for dependency: SkillMaterial, index: Int, in all: [SkillMaterial]) -> some View {
+        Button {
+            open(dependency)
+        } label: {
+            Label("Open", systemImage: "arrow.up.forward.square")
+        }
+        Button {
+            reorder(all, from: index, to: index - 1)
+        } label: {
+            Label("Learn earlier", systemImage: "arrow.up")
+        }
+        .disabled(index == 0)
+        Button {
+            reorder(all, from: index, to: index + 1)
+        } label: {
+            Label("Learn later", systemImage: "arrow.down")
+        }
+        .disabled(index == all.count - 1)
+        Divider()
+        Button(role: .destructive) {
+            remove(dependency)
+        } label: {
+            Label("Remove from Learn first", systemImage: "minus.circle")
+        }
+    }
+
+    /// A page's own status; a group is done once every skill in it is, and in progress once any has started.
+    private func status(of dependency: SkillMaterial) -> SkillStatus {
+        guard dependency.isGroup else { return dependency.manifest.skillStatus ?? .notStarted }
+        let progress = store.skillProgress(of: dependency.id)
+        if progress.total > 0, progress.completed == progress.total { return .completed }
+        return progress.completed + progress.learning > 0 ? .learning : .notStarted
+    }
+
+    /// Where it lives: the titles above a page ("Guitar › Chords"), or the page a group sits on.
+    private func path(of dependency: SkillMaterial, library: SkillLibrary) -> String {
+        if let container = dependency.groupContainer { return container.title }
+        guard let page = dependency.page else { return "" }
+        return library.ancestors(of: page).reversed().map(\.title).joined(separator: " › ")
+    }
+
+    private func add(_ candidate: SkillMaterial) {
+        if SkillErrorCenter.shared.attempt("Add the prerequisite", { try store.addSkillDependency(candidate.id, to: materialID) }) {
+            EverHaptic.success()
+        }
+    }
+
+    private func remove(_ dependency: SkillMaterial) {
+        if SkillErrorCenter.shared.attempt("Remove the prerequisite", { try store.removeSkillDependency(dependency.id, from: materialID) }) {
+            EverHaptic.selection()
         }
     }
 
@@ -116,26 +213,24 @@ struct SkillPrerequisitesSection: View {
         guard items.indices.contains(to) else { return }
         var ids = items.map(\.id)
         ids.swapAt(from, to)
-        SkillErrorCenter.shared.attempt("Reorder prerequisites") {
-            try store.reorderSkillDependencies(in: materialID, ids: ids)
+        if SkillErrorCenter.shared.attempt("Reorder prerequisites", { try store.reorderSkillDependencies(in: materialID, ids: ids) }) {
+            EverHaptic.selection()
         }
     }
 
     private func open(_ material: SkillMaterial) {
-        if let owner = SkillGroupID.split(material.id) {
-            navigationState.path.append(DatabaseSkillGroupRoute(containerID: owner.containerID, sectionID: owner.sectionID))
-        } else {
-            navigationState.path.append(DatabasePageRoute(pageID: material.id))
-        }
+        navigationState.open(skillID: material.id)
     }
 }
 
 // MARK: - Notes
 
-/// Markdown notes that edit in place and autosave. Double-click the rendered note, or click an empty note.
+/// Markdown notes that edit in place and autosave, under Skillmax's heading with Write, Edit or Done at its end.
+/// Double-click (double-tap) the rendered note to edit it; an empty note is one big target that starts it.
 struct SkillNotesSection: View {
     @EnvironmentObject private var store: DatabaseStore
     let materialID: String
+    var title = "Notes"
 
     @State private var draft = ""
     @State private var loaded = false
@@ -146,43 +241,45 @@ struct SkillNotesSection: View {
     private var assets: MarkdownAssets? {
         store.skillMaterial(id: materialID).map { FolderMarkdownAssets(folder: $0.folderURL) }
     }
+    private var isBlank: Bool { draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                skillSectionHeader("Notes")
-                Spacer()
+        VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+            PageSectionHeader(symbol: "note.text", title: title) {
                 if editing {
-                    Button("Done") { finishEditing() }
-                        .foregroundStyle(Theme.toolbarOrange)
-                        .keyNavPlainButtonStyle()
+                    PageSectionTextButton(title: "Done", action: finishEditing)
+                } else {
+                    PageSectionTextButton(title: isBlank ? "Write" : "Edit") { editing = true }
                 }
             }
             if editing {
                 MarkdownEditorView(text: $draft, assets: assets, autofocus: true)
                     .frame(minHeight: 260, maxHeight: 420)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
+                    .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.fieldRadius, flat: true))
                     #if os(macOS)
                     .onExitCommand { finishEditing() }
                     #endif
-            } else {
-                Group {
-                    if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text("Write a note…")
-                            .font(TimeMasterFont.body(15))
-                            .foregroundStyle(Theme.textSecondary)
-                            .onTapGesture { editing = true }
-                    } else {
-                        MarkdownTextView(text: draft, assets: assets)
-                    }
+            } else if isBlank {
+                Button {
+                    editing = true
+                } label: {
+                    PageEmptyCard(symbol: "square.and.pencil", title: "Write a note", detail: "It saves as you type.")
+                        .contentShape(RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous))
                 }
-                .frame(maxWidth: .infinity, minHeight: 60, alignment: .topLeading)
-                .padding(12)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12))
-                .contentShape(RoundedRectangle(cornerRadius: 12))
-                .onTapGesture(count: 2) { editing = true }
-                .keyNavTarget(id: "notes-\(materialID)", shape: .roundedRectangle(cornerRadius: 12)) { editing = true }
-                .accessibilityAction(named: "Edit note") { editing = true }
+                .buttonStyle(SkillPressButtonStyle())
+                .accessibilityLabel("Write a note")
+            } else {
+                MarkdownTextView(text: draft, assets: assets)
+                    .padding(SkillMetrics.s4)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.fieldRadius, flat: true))
+                    .contentShape(RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous))
+                    .onTapGesture(count: 2) { editing = true }
+                    .keyNavTarget(id: "notes-\(materialID)", shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius)) {
+                        editing = true
+                    }
+                    .help("Double-click to edit")
+                    .accessibilityAction(named: "Edit note") { editing = true }
             }
         }
         .onAppear {
@@ -220,8 +317,8 @@ struct SkillNotesSection: View {
 
 // MARK: - Files
 
-/// The files of a skill or group: add, open with their comment, mark as a prerequisite, choose a cover or strip,
-/// and remove.
+/// The files of a skill or group under Skillmax's heading: add, open with their comment, mark as a prerequisite,
+/// choose a cover or strip, and remove.
 struct SkillFilesSection: View {
     @EnvironmentObject private var store: DatabaseStore
     let materialID: String
@@ -236,22 +333,18 @@ struct SkillFilesSection: View {
 
     var body: some View {
         let urls = material?.mediaURLs ?? []
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                skillSectionHeader("Files")
-                Spacer()
-                Button { showingImporter = true } label: {
-                    Label("Add", systemImage: "plus")
-                        .font(TimeMasterFont.rowTitle())
-                        .foregroundStyle(Theme.toolbarOrange)
-                }.keyNavPlainButtonStyle()
+        VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+            PageSectionHeader(symbol: "paperclip", title: "Files", count: urls.count) {
+                PageSectionAddButton(label: "Add files") { showingImporter = true }
             }
             if urls.isEmpty {
-                Text("No files yet.")
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
+                PageEmptyCard(
+                    symbol: "tray.and.arrow.down",
+                    title: "No files yet",
+                    detail: "Photos, videos, PDFs: whatever helps you learn this."
+                )
             } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120, maximum: 180), spacing: 10)], spacing: 10) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120, maximum: 180), spacing: SkillMetrics.s2)], spacing: SkillMetrics.s2) {
                     ForEach(Array(urls.enumerated()), id: \.element) { index, url in
                         tile(url, index: index)
                     }
@@ -305,6 +398,7 @@ struct SkillFilesSection: View {
         let filename = url.lastPathComponent
         let isPrerequisite = material?.manifest.dependencyMediaFilenames.contains(filename) ?? false
         let isStrip = material?.section?.imageFilename == filename
+        let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
         return Button {
             selectedIndex = index
             galleryPresented = true
@@ -333,8 +427,10 @@ struct SkillFilesSection: View {
                 .background(.black.opacity(0.55))
             }
             .frame(height: 96)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }.keyNavPlainButtonStyle()
+            .clipShape(shape)
+            .overlay(shape.strokeBorder(Theme.separator, lineWidth: 1))
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius))
         .contextMenu {
             Button {
                 commentText = material?.manifest.mediaComments[filename] ?? ""
@@ -374,11 +470,24 @@ struct SkillFilesSection: View {
 
 // MARK: - Links
 
-/// The links of a skill or group: add by address, open, comment, mark as a prerequisite, remove.
+/// Which links a links section lists.
+enum SkillLinkScope {
+    /// Every link of the page or group.
+    case all
+    /// The links that are the page's own attachments (not needed first).
+    case reference
+    /// The links to have first.
+    case dependencies
+}
+
+/// The links of a skill or group: add by address, open, comment, move between attachments and what to have first,
+/// remove. Under Skillmax's "Links" heading unless the host's own heading covers them.
 struct SkillLinksSection: View {
     @EnvironmentObject private var store: DatabaseStore
     @Environment(\.openURL) private var openURL
     let materialID: String
+    var scope = SkillLinkScope.all
+    var showsHeader = true
 
     @State private var address = ""
     @State private var commentTarget: String?
@@ -386,34 +495,26 @@ struct SkillLinksSection: View {
 
     private var manifest: ExercisePageManifest? { store.skillMaterial(id: materialID)?.manifest }
 
+    private var links: [String] {
+        guard let manifest else { return [] }
+        let flagged = Set(manifest.dependencyLinkURLs)
+        switch scope {
+        case .all: return manifest.linkURLs
+        case .reference: return manifest.linkURLs.filter { !flagged.contains($0) }
+        case .dependencies: return manifest.linkURLs.filter { flagged.contains($0) }
+        }
+    }
+
     var body: some View {
-        let links = manifest?.linkURLs ?? []
-        VStack(alignment: .leading, spacing: 8) {
-            skillSectionHeader("Links")
+        let links = self.links
+        VStack(alignment: .leading, spacing: SkillMetrics.s2) {
+            if showsHeader {
+                PageSectionHeader(symbol: "link", title: "Links", count: links.count)
+            }
             ForEach(links, id: \.self) { link in
                 row(link)
             }
-            HStack(spacing: 8) {
-                Image(systemName: "link")
-                    .foregroundStyle(Theme.textSecondary)
-                TextField("Paste an address", text: $address)
-                    .textFieldStyle(.plain)
-                    .font(TimeMasterFont.body(15))
-                    .foregroundStyle(Theme.textPrimary)
-                    #if os(iOS)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    #endif
-                    .autocorrectionDisabled()
-                    .submitLabel(.done)
-                    .onSubmit(add)
-            }
-            .padding(.horizontal, 12)
-            .frame(minHeight: 40)
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Theme.separator, style: StrokeStyle(lineWidth: 1, dash: [5]))
-            }
+            addField
         }
         .alert("Comment", isPresented: Binding(get: { commentTarget != nil }, set: { if !$0 { commentTarget = nil } })) {
             TextField("What is this link for?", text: $commentText)
@@ -429,6 +530,30 @@ struct SkillLinksSection: View {
         }
     }
 
+    private var addField: some View {
+        HStack(spacing: SkillMetrics.s2) {
+            Image(systemName: "link")
+                .foregroundStyle(Theme.textSecondary)
+            TextField(scope == .dependencies ? "Paste an address to have first" : "Paste an address", text: $address)
+                .textFieldStyle(.plain)
+                .font(TimeMasterFont.body(15))
+                .foregroundStyle(Theme.textPrimary)
+                #if os(iOS)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.URL)
+                #endif
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .onSubmit(add)
+        }
+        .padding(.horizontal, SkillMetrics.s3)
+        .frame(minHeight: SkillMetrics.touch)
+        .overlay {
+            RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
+                .strokeBorder(Theme.separator, style: StrokeStyle(lineWidth: 1, dash: [5]))
+        }
+    }
+
     private func row(_ link: String) -> some View {
         let title = manifest?.linkMetadata.first { $0.url == link }?.title
         let isPrerequisite = manifest?.dependencyLinkURLs.contains(link) ?? false
@@ -436,10 +561,12 @@ struct SkillLinksSection: View {
         return Button {
             if let url = URL(string: link) { openURL(url) }
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: SkillMetrics.s3) {
                 Image(systemName: isPrerequisite ? "arrow.turn.down.right" : "link")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.toolbarOrange)
-                    .frame(width: 22)
+                    .frame(width: 32, height: 32)
+                    .skillTile(cornerRadius: 32 * 0.32)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title ?? URL(string: link)?.host ?? link)
                         .font(TimeMasterFont.rowTitle())
@@ -450,25 +577,33 @@ struct SkillLinksSection: View {
                             .font(TimeMasterFont.caption())
                             .foregroundStyle(Theme.textSecondary)
                             .lineLimit(2)
+                    } else if title != nil, let host = URL(string: link)?.host {
+                        Text(host)
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(Theme.textSecondary)
+                            .lineLimit(1)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .contentShape(Rectangle())
-        }.keyNavPlainButtonStyle()
+            .padding(.horizontal, SkillMetrics.s3)
+            .padding(.vertical, SkillMetrics.s2)
+            .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.fieldRadius, flat: true))
+            .contentShape(RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous))
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius))
         .contextMenu {
             Button {
                 commentText = comment ?? ""
                 commentTarget = link
             } label: { Label("Comment…", systemImage: "text.bubble") }
             Button {
-                SkillErrorCenter.shared.attempt("Change the prerequisite flag") {
+                if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
                     try store.setSkillLinkIsDependency(link, in: materialID, !isPrerequisite)
+                }) {
+                    EverHaptic.selection()
                 }
-            } label: { Label(isPrerequisite ? "Not a prerequisite" : "Learn this first", systemImage: "arrow.turn.down.right") }
+            } label: { flagLabel(isPrerequisite: isPrerequisite) }
             Divider()
             Button(role: .destructive) {
                 SkillErrorCenter.shared.attempt("Remove the link") { try store.removeSkillLink(link, from: materialID) }
@@ -476,12 +611,26 @@ struct SkillLinksSection: View {
         }
     }
 
+    /// Where the flag sends the link: between Attachments and Dependencies on a page's tabs, on or off "Learn first"
+    /// elsewhere.
+    private func flagLabel(isPrerequisite: Bool) -> Label<Text, Image> {
+        switch scope {
+        case .all:
+            return Label(isPrerequisite ? "Not a prerequisite" : "Learn this first", systemImage: "arrow.turn.down.right")
+        case .reference, .dependencies:
+            return isPrerequisite
+                ? Label("Move to Attachments", systemImage: "paperclip")
+                : Label("Move to Dependencies", systemImage: "arrow.triangle.branch")
+        }
+    }
+
     private func add() {
         let clean = address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return }
         let full = clean.contains("://") ? clean : "https://\(clean)"
-        if SkillErrorCenter.shared.attempt("Add the link", { try store.addSkillLink(full, to: materialID) }) {
+        if SkillErrorCenter.shared.attempt("Add the link", { try store.addSkillLink(full, to: materialID, asDependency: scope == .dependencies) }) {
             address = ""
+            EverHaptic.success()
         }
     }
 }
