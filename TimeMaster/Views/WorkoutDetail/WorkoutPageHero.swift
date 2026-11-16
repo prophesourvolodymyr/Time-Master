@@ -206,6 +206,75 @@ struct WorkoutPageHero<Content: View>: View {
     }
 }
 
+/// A page the workout builder asks the Workouts page to open over itself.
+struct WorkoutPageHeroPresentation {
+    let request: WorkoutPageHeroRequest
+    /// The window title the page below keeps while the page is open, so the Mac's page travel does not run.
+    let windowTitle: String
+    let sources: WorkoutHeroSources
+    let cover: WorkoutHeroCover
+    let content: (_ close: @escaping () -> Void) -> AnyView
+    let onFinished: () -> Void
+}
+
+/// Holds the page a builder opened, so the Workouts page can draw it outside its navigation stack. A page browser
+/// has a navigation stack of its own, and one inside a pushed destination of another stack makes SwiftUI rebuild
+/// that destination and pop the builder.
+final class WorkoutPageHeroPresenter: ObservableObject {
+    @Published private(set) var presentation: WorkoutPageHeroPresentation?
+
+    func present(_ presentation: WorkoutPageHeroPresentation) {
+        guard self.presentation == nil else { return }
+        PerfLog.event("page hero opened")
+        self.presentation = presentation
+    }
+
+    func finish(_ requestID: UUID) {
+        guard let current = presentation, current.request.id == requestID else { return }
+        PerfLog.event("page hero closed")
+        presentation = nil
+        current.onFinished()
+    }
+}
+
+private struct WorkoutPageHeroPresenterKey: EnvironmentKey {
+    static let defaultValue: WorkoutPageHeroPresenter? = nil
+}
+
+extension EnvironmentValues {
+    var workoutPageHeroPresenter: WorkoutPageHeroPresenter? {
+        get { self[WorkoutPageHeroPresenterKey.self] }
+        set { self[WorkoutPageHeroPresenterKey.self] = newValue }
+    }
+}
+
+/// Draws the presenter's page over the Workouts page, above the room the navigation keeps for itself.
+struct WorkoutPageHeroHost: View {
+    @ObservedObject var presenter: WorkoutPageHeroPresenter
+    @Environment(\.slotNavigationContentBounds) private var navigationBounds
+
+    var body: some View {
+        GeometryReader { proxy in
+            if let presentation = presenter.presentation {
+                let visibleHeight = navigationBounds.map {
+                    min(proxy.size.height, max(0, $0.maxY - proxy.frame(in: .global).minY))
+                } ?? proxy.size.height
+                WorkoutPageHero(
+                    request: presentation.request,
+                    sources: presentation.sources,
+                    cover: presentation.cover,
+                    onFinished: { presenter.finish(presentation.request.id) },
+                    content: presentation.content
+                )
+                .macWindowTitle(presentation.windowTitle)
+                .id(presentation.request.id)
+                .frame(width: proxy.size.width, height: visibleHeight)
+            }
+        }
+        .slotNavigationInteractionDisabled(presenter.presentation != nil)
+    }
+}
+
 /// The cover the hero card shows while it travels, loaded at the size the row thumbnail already cached.
 private struct WorkoutHeroCoverImage: View {
     let cover: WorkoutHeroCover

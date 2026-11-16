@@ -562,6 +562,19 @@ struct SlotNavigationClearanceState {
         }
     }
 }
+
+/// Runs the clearance state outside SwiftUI state, so a measurement that changes nothing the bar reacts to re-renders
+/// nothing; the container only learns which context, if any, needs the inline bar.
+final class SlotNavigationClearanceTracker {
+    private var state = SlotNavigationClearanceState()
+
+    func observe(_ measurement: SlotNavigationContentClearance) -> SlotNavigationClearanceContext? {
+        state.observe(measurement)
+        guard let context = state.context, state.requiresInline(in: context) else { return nil }
+        return context
+    }
+}
+
 // MARK: - Destinations
 
 /// Every page the app can put on the bar. Raw values are the ids the component stores, so

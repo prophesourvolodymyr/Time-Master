@@ -220,7 +220,7 @@ struct SkillsRootView: View {
     // MARK: Content
 
     private func content(metrics: ScrollingChromeMetrics) -> some View {
-        let library = SkillLibrary(pages: store.allPagesFlat)
+        let library = store.skillLibrary
         let entries = sortOption.ordered(library.topLevelEntries())
         return VStack(alignment: .leading, spacing: 16) {
             if !trimmedQuery.isEmpty {
@@ -510,7 +510,7 @@ struct SkillsRootView: View {
     }
 
     private func deleteMessage(_ page: ExercisePage) -> String {
-        let count = SkillLibrary(pages: store.allPagesFlat).pages(below: page).count
+        let count = store.skillLibrary.pages(below: page).count
         guard count > 0 else { return "It moves to the trash." }
         return "It and the \(count) \(count == 1 ? "page" : "pages") inside it move to the trash."
     }

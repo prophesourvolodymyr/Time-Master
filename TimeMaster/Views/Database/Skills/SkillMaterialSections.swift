@@ -27,7 +27,7 @@ struct SkillPrerequisitesSection: View {
     var body: some View {
         let dependencies = store.skillDependencies(of: materialID)
         let candidates = self.candidates
-        let library = SkillLibrary(pages: store.allPagesFlat)
+        let library = store.skillLibrary
         VStack(alignment: .leading, spacing: SkillMetrics.s3) {
             PageSectionHeader(symbol: "list.number", title: "Learn first", count: dependencies.count) {
                 addMenu(candidates, shape: .circle) {

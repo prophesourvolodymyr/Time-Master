@@ -35,7 +35,8 @@ struct SlotCarouselNavigation<Content: View>: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var contentClearance = SlotNavigationClearanceState()
+    @State private var clearanceTracker = SlotNavigationClearanceTracker()
+    @State private var inlineClearanceContext: SlotNavigationClearanceContext?
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var requestedPresentation: SlotNavigationPresentation?
     @State private var contentDisablesInteraction = false
@@ -191,7 +192,8 @@ struct SlotCarouselNavigation<Content: View>: View {
             .keyNavYield(isEditing)
             .onPreferenceChange(SlotNavigationContentClearancePreferenceKey.self) { measurement in
                 guard measurement.context == clearanceContext else { return }
-                contentClearance.observe(measurement)
+                let inlineContext = clearanceTracker.observe(measurement)
+                if inlineContext != inlineClearanceContext { inlineClearanceContext = inlineContext }
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
                 lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
@@ -404,7 +406,7 @@ struct SlotCarouselNavigation<Content: View>: View {
             isInteracting: navigationIsInteracting,
             isEditing: isEditing,
             isOverlayVisible: hiddenNavigation.isVisible,
-            contentRequiresInline: contentClearance.requiresInline(in: context),
+            contentRequiresInline: inlineClearanceContext == context,
             contentPrefersInline: contentPrefersStrip
         )
     }

@@ -5,9 +5,14 @@ import WidgetKit
 import TimeMasterCore
 
 class WorkoutStore: ObservableObject {
-    @Published var workouts: [Workout] = []
+    let derived = WorkoutDerivedCache()
+
+    @Published var workouts: [Workout] = [] {
+        didSet { derived.workoutsDidChange() }
+    }
     @Published var historyEntries: [WorkoutHistoryEntry] = [] {
         didSet {
+            derived.historyDidChange()
             scheduleActivity = WeeklyWorkoutSchedule.Activity(sessions: historyEntries.filter { !$0.isPartial }.map {
                 WeeklyWorkoutSchedule.Session(id: $0.id, workoutID: $0.workoutId, date: $0.completedAt)
             })
@@ -197,7 +202,7 @@ class WorkoutStore: ObservableObject {
     }
 
     func workout(id: UUID) -> Workout? {
-        workouts.first { $0.id == id }
+        derived.workout(id: id, in: workouts)
     }
 
     func canNestWorkout(_ childID: UUID, in parentID: UUID) -> Bool {

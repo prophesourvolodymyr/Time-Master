@@ -21,7 +21,7 @@ struct WorkoutAttachmentBrowser: View {
     }
 
     private var currentWorkout: Workout {
-        workoutStore.workouts.first { $0.id == workout.id } ?? workout
+        workoutStore.workout(id: workout.id) ?? workout
     }
 
     var body: some View {

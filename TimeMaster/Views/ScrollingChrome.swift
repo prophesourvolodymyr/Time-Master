@@ -324,10 +324,37 @@ extension View {
     }
 }
 
+/// Whether the header shows its labelled controls. Held outside the page, so a toggle redraws the header and never
+/// the content below it.
+final class ScrollingChromeState: ObservableObject {
+    @Published private(set) var expanded = false
+
+    func setExpanded(_ expanded: Bool, reduceMotion: Bool) {
+        guard expanded != self.expanded else { return }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
+            self.expanded = expanded
+        }
+    }
+}
+
+private struct ScrollingChromeHeaderHost<Header: View>: View {
+    @ObservedObject var state: ScrollingChromeState
+    let metrics: ScrollingChromeMetrics
+    let header: (CGFloat, ScrollingChromeMetrics) -> Header
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        header(state.expanded ? 0 : 1, metrics)
+            .environment(\.scrollingChromeSetExpanded, { expanded in
+                state.setExpanded(expanded, reduceMotion: reduceMotion)
+            })
+    }
+}
+
 /// Scroll-driven chrome: the header collapses as the content scrolls, then stays pinned above it.
 struct ScrollingChrome<Content: View, Header: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var controlsExpanded = false
+    @State private var state = ScrollingChromeState()
     @Namespace private var viewport
 
     var onScrollOffset: ((CGFloat) -> Void)? = nil
@@ -340,24 +367,29 @@ struct ScrollingChrome<Content: View, Header: View>: View {
             let resolved = metrics(proxy.size.width)
 
             VStack(spacing: 0) {
-                header(controlsExpanded ? 0 : 1, resolved)
-                    .environment(\.scrollingChromeSetExpanded, setControlsExpanded)
+                ScrollingChromeHeaderHost(state: state, metrics: resolved, header: header)
                     .fixedSize(horizontal: false, vertical: true)
                     .zIndex(1)
-                GeometryReader { scrollProxy in
-                    scrollSurface(metrics: resolved, height: scrollProxy.size.height)
+                if #available(iOS 17.0, macOS 14.0, *) {
+                    scrollSurface(metrics: resolved, viewportHeight: nil)
                         .modifier(ScrollingChromeOverflow())
                         .coordinateSpace(name: viewport)
+                } else {
+                    GeometryReader { scrollProxy in
+                        scrollSurface(metrics: resolved, viewportHeight: scrollProxy.size.height)
+                            .modifier(ScrollingChromeOverflow())
+                            .coordinateSpace(name: viewport)
+                    }
                 }
             }
         }
     }
 
     @ViewBuilder
-    private func scrollSurface(metrics: ScrollingChromeMetrics, height: CGFloat) -> some View {
+    private func scrollSurface(metrics: ScrollingChromeMetrics, viewportHeight: CGFloat?) -> some View {
         if #available(iOS 18.0, macOS 15.0, *) {
             ScrollView {
-                scrollContent(metrics: metrics, height: height)
+                scrollContent(metrics: metrics, viewportHeight: viewportHeight)
             }
             .onScrollGeometryChange(for: CGFloat.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top
@@ -366,7 +398,7 @@ struct ScrollingChrome<Content: View, Header: View>: View {
             }
         } else {
             ScrollView {
-                scrollContent(metrics: metrics, height: height)
+                scrollContent(metrics: metrics, viewportHeight: viewportHeight)
                     .background(alignment: .top) {
                         GeometryReader { proxy in
                             Color.clear.preference(
@@ -382,9 +414,8 @@ struct ScrollingChrome<Content: View, Header: View>: View {
         }
     }
 
-    private func scrollContent(metrics: ScrollingChromeMetrics, height: CGFloat) -> some View {
-        content(metrics)
-            .frame(minHeight: height + 1, alignment: .top)
+    private func scrollContent(metrics: ScrollingChromeMetrics, viewportHeight: CGFloat?) -> some View {
+        pageContent(metrics: metrics, viewportHeight: viewportHeight)
             .background {
                 #if os(iOS)
                 if #unavailable(iOS 17.0) {
@@ -394,17 +425,31 @@ struct ScrollingChrome<Content: View, Header: View>: View {
             }
     }
 
-    private func updateControls(offset: CGFloat) {
-        onScrollOffset?(offset)
-        let expanded = ScrollingChromeReveal.expanded(current: controlsExpanded, offset: offset)
-        setControlsExpanded(expanded)
+    /// The content, at least one point taller than the scroll view so the header can always be pulled. Where the
+    /// scroll view's height can be read from the container, the content does not depend on it, so the header
+    /// collapsing never re-evaluates the page.
+    @ViewBuilder
+    private func pageContent(metrics: ScrollingChromeMetrics, viewportHeight: CGFloat?) -> some View {
+        if let viewportHeight {
+            content(metrics)
+                .frame(minHeight: viewportHeight + 1, alignment: .top)
+        } else if #available(iOS 17.0, macOS 14.0, *) {
+            ZStack(alignment: .top) {
+                Color.clear
+                    .containerRelativeFrame(.vertical, alignment: .top) { length, _ in length + 1 }
+                content(metrics)
+            }
+        } else {
+            content(metrics)
+        }
     }
 
-    private func setControlsExpanded(_ expanded: Bool) {
-        guard expanded != controlsExpanded else { return }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
-            controlsExpanded = expanded
-        }
+    private func updateControls(offset: CGFloat) {
+        onScrollOffset?(offset)
+        state.setExpanded(
+            ScrollingChromeReveal.expanded(current: state.expanded, offset: offset),
+            reduceMotion: reduceMotion
+        )
     }
 }
 

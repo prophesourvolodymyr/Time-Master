@@ -164,30 +164,26 @@ extension PhotoManager {
     static let fullPhotoPixelSize: CGFloat = 2048
     static let viewerPixelSize: CGFloat = 3072
     fileprivate static let loadGate = ImageLoadGate(limit: 3)
+    private static let pixelBuckets = [160, 240, 320, 480, 640, 960, 1280, 2048, 3072]
+
+    /// `size` rounded up to a shared step, so near-identical sizes reuse one decoded image.
+    static func pixelBucket(for size: CGFloat) -> Int {
+        let wanted = Int(size.rounded(.up))
+        return pixelBuckets.first { $0 >= wanted } ?? wanted
+    }
 
     func asyncLoadImage(from url: URL, maxPixelSize: CGFloat = PhotoManager.defaultPixelSize) async -> PhotoPlatformImage? {
-        let key = "\(url.absoluteString)#\(Int(maxPixelSize))" as NSString
+        let bucket = Self.pixelBucket(for: maxPixelSize)
+        let key = "\(url.absoluteString)#\(bucket)" as NSString
         if let cached = cache.object(forKey: key) {
             return cached
         }
 
-        await Self.loadGate.enter()
+        guard await Self.loadGate.enter() else { return nil }
         var image: PhotoPlatformImage?
         if !Task.isCancelled {
             image = await Task.detached(priority: .userInitiated, operation: { () -> PhotoPlatformImage? in
-                let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased())
-                guard isVideo else { return Self.downsampledImage(at: url, maxPixelSize: maxPixelSize) }
-                let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
-                generator.appliesPreferredTrackTransform = true
-                let side = min(maxPixelSize, 800)
-                generator.maximumSize = CGSize(width: side, height: side)
-                guard let cgImage = try? generator.copyCGImage(
-                    at: CMTime(seconds: 0, preferredTimescale: 600),
-                    actualTime: nil
-                ) else {
-                    return nil
-                }
-                return Self.platformImage(cgImage)
+                Self.decode(url: url, pixelSize: bucket)
             }).value
         }
         await Self.loadGate.leave()
@@ -196,6 +192,42 @@ extension PhotoManager {
             cache.setObject(image, forKey: key, cost: Int(image.size.width * image.size.height * 4))
         }
         return image
+    }
+
+    /// Reads the cover from the disk cache when it is there; otherwise decodes the photo or the video's first frame and
+    /// keeps the result for the next launch.
+    private static func decode(url: URL, pixelSize: Int) -> PhotoPlatformImage? {
+        let cacheKey = pixelSize <= 1280 ? ThumbnailDiskCache.shared.key(for: url, pixelSize: pixelSize) : nil
+        if let cacheKey, let cached = ThumbnailDiskCache.shared.image(for: cacheKey) {
+            return platformImage(cached)
+        }
+        let isVideo = ["mov", "mp4", "m4v", "avi", "mkv"].contains(url.pathExtension.lowercased())
+        let decoded: CGImage?
+        if isVideo {
+            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+            generator.appliesPreferredTrackTransform = true
+            let side = CGFloat(min(pixelSize, 800))
+            generator.maximumSize = CGSize(width: side, height: side)
+            decoded = try? generator.copyCGImage(at: CMTime(seconds: 0, preferredTimescale: 600), actualTime: nil)
+        } else {
+            decoded = downsampledCGImage(at: url, maxPixelSize: CGFloat(pixelSize))
+        }
+        guard let decoded else { return nil }
+        if let cacheKey { ThumbnailDiskCache.shared.store(decoded, for: cacheKey) }
+        return platformImage(decoded)
+    }
+
+    private static func downsampledCGImage(at url: URL, maxPixelSize: CGFloat) -> CGImage? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary) else {
+            return nil
+        }
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(1, Int(maxPixelSize.rounded(.up)))
+        ] as CFDictionary
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options)
     }
 
     static func downsampledImage(at url: URL, maxPixelSize: CGFloat) -> PhotoPlatformImage? {
@@ -239,28 +271,46 @@ extension PhotoManager {
     }
 }
 
+/// Lets a few image loads run at once. A request that is cancelled while it waits (its row scrolled away) leaves the
+/// queue at once, and the newest request goes first, because that is the row now on screen.
 fileprivate actor ImageLoadGate {
     private let limit: Int
     private var running = 0
-    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var nextID: UInt64 = 0
+    private var waiters: [(id: UInt64, continuation: CheckedContinuation<Bool, Never>)] = []
 
     init(limit: Int) {
         self.limit = limit
     }
 
-    func enter() async {
+    /// True when the caller holds a slot (and must `leave()`); false when it was cancelled while waiting.
+    func enter() async -> Bool {
+        if Task.isCancelled { return false }
         if running < limit {
             running += 1
-            return
+            return true
         }
-        await withCheckedContinuation { waiters.append($0) }
+        let id = nextID
+        nextID &+= 1
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                waiters.append((id, continuation))
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(id) }
+        }
+    }
+
+    private func cancelWaiter(_ id: UInt64) {
+        guard let index = waiters.firstIndex(where: { $0.id == id }) else { return }
+        waiters.remove(at: index).continuation.resume(returning: false)
     }
 
     func leave() {
-        if waiters.isEmpty {
-            running -= 1
+        if let waiter = waiters.popLast() {
+            waiter.continuation.resume(returning: true)
         } else {
-            waiters.removeFirst().resume()
+            running -= 1
         }
     }
 }

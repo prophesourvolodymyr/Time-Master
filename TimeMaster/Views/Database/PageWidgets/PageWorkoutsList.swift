@@ -11,7 +11,7 @@ struct PageWorkoutsList: View {
 
     var body: some View {
         let usage = store.page(id: pageID).map {
-            PageWorkoutUsage.of($0, library: SkillLibrary(pages: store.allPagesFlat), workoutStore: workoutStore)
+            PageWorkoutUsage.of($0, library: store.skillLibrary, workoutStore: workoutStore)
         }
         VStack(alignment: .leading, spacing: 10) {
             if let usage, !usage.isEmpty {

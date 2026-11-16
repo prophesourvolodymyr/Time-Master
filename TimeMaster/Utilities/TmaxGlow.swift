@@ -45,28 +45,48 @@ struct TmaxGlowBackground: View {
     @State private var settled = true
 
     var body: some View {
-        GeometryReader { proxy in
-            TimelineView(.animation(minimumInterval: settled ? 1.0 / 20 : 1.0 / 60, paused: reduceMotion || appearedAt == nil || scenePhase != .active)) { timeline in
-                TmaxGlowField(
+        glow
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .onAppear {
+                appearedAt = .now
+                settled = !rises || reduceMotion
+            }
+            .onDisappear { appearedAt = nil }
+            .task(id: appearedAt) {
+                guard !settled, appearedAt != nil else { return }
+                try? await Task.sleep(nanoseconds: 1_900_000_000)
+                if !Task.isCancelled { settled = true }
+            }
+    }
+
+    private var isPaused: Bool {
+        reduceMotion || appearedAt == nil || scenePhase != .active
+    }
+
+    /// One Metal pass fed with the animated values where the system has shaders; the layered gradients elsewhere.
+    @ViewBuilder
+    private var glow: some View {
+        if #available(iOS 17.0, macOS 14.0, *) {
+            TimelineView(.animation(minimumInterval: settled ? 1.0 / 20 : 1.0 / 30, paused: isPaused)) { timeline in
+                TmaxGlowShaderField(
                     intensity: intensity,
-                    size: proxy.size,
                     time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
                     rise: rise(at: timeline.date)
                 )
             }
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-        .onAppear {
-            appearedAt = .now
-            settled = !rises || reduceMotion
-        }
-        .onDisappear { appearedAt = nil }
-        .task(id: appearedAt) {
-            guard !settled, appearedAt != nil else { return }
-            try? await Task.sleep(nanoseconds: 1_900_000_000)
-            if !Task.isCancelled { settled = true }
+        } else {
+            GeometryReader { proxy in
+                TimelineView(.animation(minimumInterval: settled ? 1.0 / 20 : 1.0 / 60, paused: isPaused)) { timeline in
+                    TmaxGlowField(
+                        intensity: intensity,
+                        size: proxy.size,
+                        time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
+                        rise: rise(at: timeline.date)
+                    )
+                }
+            }
         }
     }
 
@@ -75,6 +95,41 @@ struct TmaxGlowBackground: View {
         guard let appearedAt else { return 0 }
         let progress = min(1, max(0, date.timeIntervalSince(appearedAt) / 1.8))
         return 1 - pow(1 - progress, 3)
+    }
+}
+
+/// The glow field as a color effect (`TmaxGlow.metal`): the layers of `TmaxGlowField` in one pass, so a tick changes
+/// a few numbers instead of laying out gradient layers.
+@available(iOS 17.0, macOS 14.0, *)
+private struct TmaxGlowShaderField: View {
+    let intensity: TmaxGlowBackground.Intensity
+    let time: TimeInterval
+    let rise: Double
+
+    var body: some View {
+        let hero = intensity == .hero
+        let background = hero ? Color.black : Theme.background
+        let drift = TmaxGlow.wave(time, period: 19)
+        let breathe = (TmaxGlow.wave(time, period: 11, phase: 0.8) + 1) / 2
+        let wander = TmaxGlow.wave(time, period: 27, phase: 1.7)
+        let reach = (hero ? 1.0 : 0.8) * (0.3 + 0.7 * rise)
+        var shader = ShaderLibrary.tmaxGlow(
+            .boundingRect,
+            .float3(drift, breathe, wander),
+            .float(reach),
+            .float(hero ? 1.0 : 0.62),
+            .color(background),
+            .color(TmaxGlow.umber),
+            .color(TmaxGlow.rust),
+            .color(TmaxGlow.ember),
+            .color(TmaxGlow.flame),
+            .color(TmaxGlow.blaze),
+            .color(TmaxGlow.peach)
+        )
+        shader.dithersColor = true
+        return Rectangle()
+            .fill(background)
+            .colorEffect(shader)
     }
 }
 

@@ -13,6 +13,7 @@ struct WorkoutDetailView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.workoutPageHeroPresenter) private var heroPresenter
     @State private var showingDeleteAlert = false
     @State private var sectionToDelete: Section?
     @State private var playerWorkout: Workout?
@@ -105,7 +106,7 @@ struct WorkoutDetailView: View {
     }
 
     private var workout: Workout {
-        store.workouts.first(where: { $0.id == workoutID }) ?? Workout(name: "")
+        store.workout(id: workoutID) ?? Workout(name: "")
     }
 
     init(workout: Workout, liveContext: WorkoutLiveContext? = nil, onClose: (() -> Void)? = nil) {
@@ -176,7 +177,7 @@ struct WorkoutDetailView: View {
                         .accessibilityHidden(true)
                 }
 
-                if let heroPage {
+                if let heroPage, heroPresenter == nil {
                     pageHero(heroPage)
                         .frame(width: proxy.size.width, height: visibleHeight)
                         .zIndex(3)
@@ -207,9 +208,11 @@ struct WorkoutDetailView: View {
             actions: musicConfigurationOpen || musicRevealDrag > 0 || heroPage != nil ? [] : oneHandedActions
         )
         .onAppear {
+            PerfLog.event("workout builder appeared")
             materializeImplicitSlots()
             sectionIDs = workout.sections.map(\.id)
         }
+        .onDisappear { PerfLog.event("workout builder disappeared") }
         .onChange(of: workout.sections.count) { _ in
             sectionIDs = workout.sections.map(\.id)
         }
@@ -362,37 +365,58 @@ struct WorkoutDetailView: View {
 
     // MARK: - Sub-views
 
-    private func pageHero(_ request: WorkoutPageHeroRequest) -> some View {
+    private func heroCover(for request: WorkoutPageHeroRequest) -> WorkoutHeroCover {
         let page = databaseStore.page(id: request.pageID)
-        return WorkoutPageHero(
+        return WorkoutHeroCover(
+            url: page?.coverImageURL,
+            fallbackIcon: page?.effectiveWorkoutType?.iconName ?? request.fallbackIcon,
+            fallbackColor: page?.effectiveWorkoutType.map { Color(hex: $0.colorHex) }
+        )
+    }
+
+    private func heroContent(for request: WorkoutPageHeroRequest, close: @escaping () -> Void) -> some View {
+        WorkoutAttachmentBrowser(workout: workout, pageID: request.pageID, liveContext: liveContext, onClose: close)
+            .environment(\.appToolbarInline, true)
+            .environmentObject(databaseStore)
+            .environmentObject(store)
+    }
+
+    /// The page over the builder where no Workouts page draws it (the player's own page).
+    private func pageHero(_ request: WorkoutPageHeroRequest) -> some View {
+        WorkoutPageHero(
             request: request,
             sources: heroSources,
-            cover: WorkoutHeroCover(
-                url: page?.coverImageURL,
-                fallbackIcon: page?.effectiveWorkoutType?.iconName ?? request.fallbackIcon,
-                fallbackColor: page?.effectiveWorkoutType.map { Color(hex: $0.colorHex) }
-            ),
+            cover: heroCover(for: request),
             onFinished: {
                 if heroPage?.id == request.id { heroPage = nil }
             }
         ) { close in
-            WorkoutAttachmentBrowser(workout: workout, pageID: request.pageID, liveContext: liveContext, onClose: close)
-                .environment(\.appToolbarInline, true)
-                .environmentObject(databaseStore)
-                .environmentObject(store)
+            heroContent(for: request, close: close)
         }
         .id(request.id)
     }
 
-    /// Opens a page over the builder, growing out of the cover registered under `key` when it is on screen.
+    /// Opens a page over the builder, growing out of the cover registered under `key` when it is on screen. Inside the
+    /// Workouts page it draws the page outside the navigation stack the builder was pushed on.
     private func openPage(_ pageID: UUID?, from key: String?, fallbackIcon: String) {
         guard let pageID, heroPage == nil else { return }
-        heroPage = WorkoutPageHeroRequest(
+        let request = WorkoutPageHeroRequest(
             pageID: pageID,
             sourceKey: key,
             sourceFrame: heroSources.frame(for: key),
             fallbackIcon: fallbackIcon
         )
+        heroPage = request
+        heroPresenter?.present(WorkoutPageHeroPresentation(
+            request: request,
+            windowTitle: workout.name,
+            sources: heroSources,
+            cover: heroCover(for: request),
+            content: { close in AnyView(heroContent(for: request, close: close)) },
+            onFinished: {
+                if heroPage?.id == request.id { heroPage = nil }
+            }
+        ))
     }
 
     private func openAction(_ pageID: UUID?, key: String, fallbackIcon: String) -> (() -> Void)? {

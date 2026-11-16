@@ -32,7 +32,7 @@ enum PageWidgetItem: Identifiable {
     /// use its pages when there are some. A note shows none.
     @MainActor
     static func items(for page: ExercisePage, store: DatabaseStore, workoutStore: WorkoutStore) -> [PageWidgetItem] {
-        let library = SkillLibrary(pages: store.allPagesFlat)
+        let library = store.skillLibrary
         let clips = PageWidgetClips(page: page)
         var items: [PageWidgetItem] = []
         switch page.pageType {

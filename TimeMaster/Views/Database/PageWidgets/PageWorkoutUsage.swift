@@ -19,11 +19,36 @@ struct PageWorkoutUsage {
     /// The last time any of them was finished.
     var lastTrained: Date? { entries.compactMap(\.lastTrained).max() }
 
-    /// The workouts that train `page` and, for a page that holds others, the pages inside it.
+    private final class Cache {
+        var library: ObjectIdentifier?
+        var store: ObjectIdentifier?
+        var workoutsRevision = -1
+        var historyRevision = -1
+        var results: [UUID: PageWorkoutUsage] = [:]
+    }
+
+    private static let cache = Cache()
+
+    /// The workouts that train `page` and, for a page that holds others, the pages inside it. Remembered until the
+    /// library, the workouts or the history change.
     static func of(_ page: ExercisePage, library: SkillLibrary, workoutStore: WorkoutStore) -> PageWorkoutUsage {
+        let token = library.snapshotToken
+        let storeToken = ObjectIdentifier(workoutStore)
+        if cache.library != token || cache.store != storeToken
+            || cache.workoutsRevision != workoutStore.workoutsRevision
+            || cache.historyRevision != workoutStore.historyRevision {
+            cache.results.removeAll(keepingCapacity: true)
+            cache.library = token
+            cache.store = storeToken
+            cache.workoutsRevision = workoutStore.workoutsRevision
+            cache.historyRevision = workoutStore.historyRevision
+        }
+        if let known = cache.results[page.id] { return known }
         var pageIDs: Set<UUID> = [page.id]
         if page.isContainer { pageIDs.formUnion(library.pages(below: page).map(\.id)) }
-        return resolve(pageIDs: pageIDs, workouts: workoutStore.workouts, history: workoutStore.historyEntries)
+        let usage = resolve(pageIDs: pageIDs, workouts: workoutStore.workouts, history: workoutStore.historyEntries)
+        cache.results[page.id] = usage
+        return usage
     }
 
     static func resolve(pageIDs: Set<UUID>, workouts: [Workout], history: [WorkoutHistoryEntry]) -> PageWorkoutUsage {

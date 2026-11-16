@@ -32,6 +32,7 @@ struct WorkoutListView: View {
     @State private var groupEditor: WorkoutGroupEditorRequest?
     @State private var groupPendingDeletion: WorkoutGroup?
     @State private var dropTargetID: String?
+    @State private var heroPresenter = WorkoutPageHeroPresenter()
     @AppStorage("workouts.collapsedSections") private var collapsedSectionsRaw = ""
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
@@ -108,9 +109,11 @@ struct WorkoutListView: View {
             }
             #endif
             .onAppear {
+                PerfLog.event("workouts list appeared, path \(navigationPath.count)")
                 openRequestedWorkout(requestedWorkoutID)
                 collapsedSections = Set(collapsedSectionsRaw.split(separator: ",").map(String.init))
             }
+            .onDisappear { PerfLog.event("workouts list disappeared") }
             .onChange(of: store.workoutGroups.map(\.id)) { ids in
                 if let selected = selectedGroupID, !ids.contains(selected) { selectedGroupID = nil }
             }
@@ -127,6 +130,8 @@ struct WorkoutListView: View {
                 showingAddWorkout = true
             }
         }
+        .environment(\.workoutPageHeroPresenter, heroPresenter)
+        .overlay { WorkoutPageHeroHost(presenter: heroPresenter) }
         .findCommand {
             guard navigationPath.isEmpty, playerWorkout == nil, !showingAddWorkout, groupEditor == nil, !store.workouts.isEmpty else { return false }
             if showingSearch {
@@ -144,40 +149,33 @@ struct WorkoutListView: View {
         guard let workoutID else { return }
         defer { requestedWorkoutID = nil }
 
-        guard let workout = store.workouts.first(where: { $0.id == workoutID }) else { return }
+        guard let workout = store.workout(id: workoutID) else { return }
         navigationPath = [workout]
     }
 
     @ViewBuilder
-    private func workoutCardLabel(for workout: Workout) -> some View {
-        let historyEntries = entries(for: workout)
-        let schedule = scheduleByWorkoutID[workout.id]
-
+    private func workoutCardLabel(for workout: Workout, schedule: ScheduledWorkout?) -> some View {
         WorkoutCard(
             workout: workout,
             schedule: schedule,
-            sessionsThisWeek: sessionsThisWeek(for: historyEntries),
-            lastCompletedAt: historyEntries.max(by: { $0.completedAt < $1.completedAt })?.completedAt,
             isResumable: resumeManager.resumeState?.workoutId == workout.id
         )
     }
-    private var todaySchedules: [ScheduledWorkout] {
-        store.scheduledWorkouts(for: Date())
-    }
 
-    private var scheduleByWorkoutID: [UUID: ScheduledWorkout] {
-        todaySchedules.reduce(into: [UUID: ScheduledWorkout]()) { result, item in
+    private func scheduleByWorkoutID() -> [UUID: ScheduledWorkout] {
+        store.scheduledWorkouts(for: Date()).reduce(into: [UUID: ScheduledWorkout]()) { result, item in
             result[item.workout.id] = item
         }
     }
 
-    private var visibleWorkouts: [Workout] {
+    private func visibleWorkouts(schedules: [UUID: ScheduledWorkout]) -> [Workout] {
         let sectionMembers = selectedGroupID.flatMap { id in store.workoutGroups.first { $0.id == id } }.map { Set($0.workoutIDs) }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return store.workouts.filter { workout in
-            let matchesToday = !showingTodayOnly || scheduleByWorkoutID[workout.id] != nil
+            let matchesToday = !showingTodayOnly || schedules[workout.id] != nil
             let matchesType = selectedTypeID == nil || workout.type.id == selectedTypeID
             let matchesSection = sectionMembers?.contains(workout.id) ?? true
-            let matchesSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let matchesSearch = query.isEmpty
                 || workout.name.localizedCaseInsensitiveContains(searchText)
                 || workout.type.name.localizedCaseInsensitiveContains(searchText)
             return matchesToday && matchesType && matchesSection && matchesSearch
@@ -206,17 +204,19 @@ struct WorkoutListView: View {
     }
 
     private func workoutsScrollContent(metrics: ScrollingChromeMetrics) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
+        let schedules = scheduleByWorkoutID()
+        let visible = visibleWorkouts(schedules: schedules)
+        return VStack(alignment: .leading, spacing: 18) {
             if showingSearch {
                 searchField
             }
 
             resumeBanner
 
-            if visibleWorkouts.isEmpty {
+            if visible.isEmpty {
                 filteredEmptyState
             } else {
-                groupedWorkouts
+                groupedWorkouts(visible: visible, schedules: schedules)
             }
         }
         .frame(maxWidth: Self.contentMaxWidth, alignment: .leading)
@@ -257,8 +257,7 @@ struct WorkoutListView: View {
         )
     }
 
-    private var groupedWorkouts: some View {
-        let visible = visibleWorkouts
+    private func groupedWorkouts(visible: [Workout], schedules: [UUID: ScheduledWorkout]) -> some View {
         let byID = Dictionary(visible.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let grouped = Set(store.workoutGroups.flatMap(\.workoutIDs))
         let loose = visible.filter { !grouped.contains($0.id) }
@@ -278,7 +277,7 @@ struct WorkoutListView: View {
                                     } isTargeted: { setDropTarget("zone:\(group.id)", $0) }
                             }
                             ForEach(members) { workout in
-                                workoutRow(workout, in: group)
+                                workoutRow(workout, in: group, schedule: schedules[workout.id])
                             }
                         }
                         .transition(sectionBodyTransition)
@@ -292,7 +291,7 @@ struct WorkoutListView: View {
                 if groups.isEmpty || !isCollapsed(Self.looseSectionKey) {
                     VStack(spacing: 12) {
                         ForEach(loose) { workout in
-                            workoutRow(workout, in: nil)
+                            workoutRow(workout, in: nil, schedule: schedules[workout.id])
                         }
                     }
                     .transition(sectionBodyTransition)
@@ -367,9 +366,9 @@ struct WorkoutListView: View {
         } isTargeted: { setDropTarget("group:\(Self.looseSectionKey)", $0) }
     }
 
-    private func workoutRow(_ workout: Workout, in group: WorkoutGroup?) -> some View {
+    private func workoutRow(_ workout: Workout, in group: WorkoutGroup?, schedule: ScheduledWorkout?) -> some View {
         NavigationLink(value: workout) {
-            workoutCardLabel(for: workout)
+            workoutCardLabel(for: workout, schedule: schedule)
         }
         .buttonStyle(TimeMasterCardButtonStyle())
         .contextMenu {
@@ -900,15 +899,6 @@ struct WorkoutListView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
-    }
-
-    private func entries(for workout: Workout) -> [WorkoutHistoryEntry] {
-        store.historyEntries.filter { $0.workoutId == workout.id }
-    }
-
-    private func sessionsThisWeek(for entries: [WorkoutHistoryEntry]) -> Int {
-        let start = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
-        return entries.filter { $0.completedAt >= start }.count
     }
 
     private func durationText(_ seconds: Int) -> String {

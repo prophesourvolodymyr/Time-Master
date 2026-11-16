@@ -534,7 +534,7 @@ struct ContainerBrowser: View {
 
     /// Each listed skill's sub-skill progress, from one index of the library.
     private func skillProgress() -> [String: SkillProgress] {
-        let library = SkillLibrary(pages: store.allPagesFlat)
+        let library = store.skillLibrary
         var result: [String: SkillProgress] = [:]
         for entry in entries {
             result[entry.id] = library.progress(of: entry.page)

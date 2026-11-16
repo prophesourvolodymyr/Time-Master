@@ -3,25 +3,19 @@ import SwiftUI
 struct WorkoutCard: View {
     let workout: Workout
     let schedule: ScheduledWorkout?
-    let sessionsThisWeek: Int
-    let lastCompletedAt: Date?
     let isResumable: Bool
 
-    init(
-        workout: Workout,
-        schedule: ScheduledWorkout? = nil,
-        sessionsThisWeek: Int = 0,
-        lastCompletedAt: Date? = nil,
-        isResumable: Bool = false
-    ) {
+    init(workout: Workout, schedule: ScheduledWorkout? = nil, isResumable: Bool = false) {
         self.workout = workout
         self.schedule = schedule
-        self.sessionsThisWeek = sessionsThisWeek
-        self.lastCompletedAt = lastCompletedAt
         self.isResumable = isResumable
     }
 
     var body: some View {
+        let stretches = isStretchWorkout
+        let exercises = exerciseCount
+        let sets = setCount
+        let seconds = workout.totalDuration
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 WorkoutCoverMosaic(workout: workout, size: 64)
@@ -31,16 +25,7 @@ struct WorkoutCard: View {
                         .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(2)
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 6) {
-                            categoryBadge
-                            durationBadge
-                        }
-                        VStack(alignment: .leading, spacing: 6) {
-                            categoryBadge
-                            durationBadge
-                        }
-                    }
+                    categoryBadge
                     if let schedule {
                         scheduleBadge(schedule)
                     } else if isResumable {
@@ -52,21 +37,18 @@ struct WorkoutCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 TimeMasterDisclosureIndicator()
             }
-            HStack(spacing: 8) {
-                if isStretchWorkout {
-                    metricBox(value: "\(exerciseCount)", label: "Stretches")
-                } else {
-                    metricBox(value: "\(setCount)", label: "Sets")
-                    metricBox(value: "\(exerciseCount)", label: "Exercises")
-                }
-            }
+            metricStrip(seconds: seconds, exercises: exercises, sets: sets, stretches: stretches)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(TimeMasterCardSurface(emphasized: isResumable, flat: true))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(workout.name), \(durationText(workout.totalDuration)), \(exerciseCount) \(isStretchWorkout ? "stretches" : "exercises")")
+        .accessibilityLabel(
+            stretches
+                ? "\(workout.name), \(durationText(seconds)), \(exercises) stretches"
+                : "\(workout.name), \(durationText(seconds)), \(exercises) exercises, \(sets) sets"
+        )
     }
 
     private var categoryBadge: some View {
@@ -82,26 +64,47 @@ struct WorkoutCard: View {
         .background(Theme.surface2, in: Capsule())
     }
 
-    private var durationBadge: some View {
-        Text(durationText(workout.totalDuration))
-            .font(TimeMasterFont.black(11, relativeTo: .caption2).monospacedDigit())
-            .foregroundStyle(Theme.textPrimary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Theme.surface2, in: Capsule())
+    private func metricStrip(seconds: Int, exercises: Int, sets: Int, stretches: Bool) -> some View {
+        HStack(spacing: 0) {
+            metricTile(icon: "clock.fill", value: clockText(seconds), label: "Time", prominent: true)
+            metricDivider
+            if stretches {
+                metricTile(icon: "figure.flexibility", value: "\(exercises)", label: "Stretches")
+            } else {
+                metricTile(icon: "figure.strengthtraining.traditional", value: "\(exercises)", label: "Exercises")
+                metricDivider
+                metricTile(icon: "repeat", value: "\(sets)", label: "Sets")
+            }
+        }
+        .padding(.vertical, 12)
+        .background(Theme.surface2.opacity(0.75), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    private func metricBox(value: String, label: String) -> some View {
-        HStack(spacing: 6) {
-            Text(value)
-                .font(TimeMasterFont.black(17, relativeTo: .headline).monospacedDigit())
-                .foregroundStyle(Theme.textPrimary)
+    private var metricDivider: some View {
+        Rectangle()
+            .fill(Theme.separator)
+            .frame(width: 1, height: 34)
+    }
+
+    private func metricTile(icon: String, value: String, label: String, prominent: Bool = false) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: prominent ? 17 : 14, weight: .bold))
+                    .foregroundStyle(Theme.toolbarOrange)
+                Text(value)
+                    .font(TimeMasterFont.black(prominent ? 24 : 20, relativeTo: .title3).monospacedDigit())
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
             Text(label)
                 .font(TimeMasterFont.caption())
                 .foregroundStyle(Theme.textSecondary)
-                .lineLimit(2)
+                .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 6)
     }
 
     private func scheduleBadge(_ schedule: ScheduledWorkout) -> some View {
@@ -136,6 +139,13 @@ struct WorkoutCard: View {
             return "\(minutes / 60)h \(minutes % 60)min"
         }
         return "\(minutes)min"
+    }
+
+    private func clockText(_ seconds: Int) -> String {
+        let minutes = max(0, seconds / 60)
+        if minutes == 0 { return "\(max(0, seconds))s" }
+        if minutes >= 60 { return "\(minutes / 60)h \(minutes % 60)m" }
+        return "\(minutes)m"
     }
 }
 
@@ -183,16 +193,18 @@ struct WorkoutCoverMosaic: View {
     private var exerciseMosaic: some View {
         let tileSize = max(1, (size - 2) / 2)
 
-        return LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: 2), GridItem(.flexible(), spacing: 2)],
-            spacing: 2
-        ) {
-            ForEach(0..<4, id: \.self) { index in
-                if let section = workout.sections[safe: index] {
-                    sectionCover(section, size: tileSize)
-                } else {
-                    Theme.surface2
-                        .frame(width: tileSize, height: tileSize)
+        return VStack(spacing: 2) {
+            ForEach(0..<2, id: \.self) { row in
+                HStack(spacing: 2) {
+                    ForEach(0..<2, id: \.self) { column in
+                        let index = row * 2 + column
+                        if let section = workout.sections[safe: index] {
+                            sectionCover(section, size: tileSize)
+                        } else {
+                            Theme.surface2
+                                .frame(width: tileSize, height: tileSize)
+                        }
+                    }
                 }
             }
         }

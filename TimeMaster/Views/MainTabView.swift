@@ -148,6 +148,7 @@ struct MainTabView: View {
             lastPageDestination = destination
         }
         .onAppear {
+            MainThreadStallMonitor.shared.start()
             musicLibraryStore.setCustomTypes(workoutStore.customWorkoutTypes)
             musicLibraryStore.setWorkouts(workoutStore.workouts)
             ensureSelection()

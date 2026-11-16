@@ -9,10 +9,12 @@ struct AsyncCoverImage: View {
     var overlayGradient: Bool = true
 
     @State private var loadedImage: PlatformImage?
+    @Environment(\.displayScale) private var displayScale
 
+    /// Twice the drawn size, so a wide poster filling a square tile still has enough pixels on its short side.
     private var pixelBudget: CGFloat {
-        if height < 160 { return PhotoManager.thumbnailPixelSize }
-        return height < 420 ? 1280 : PhotoManager.fullPhotoPixelSize
+        let ceiling: CGFloat = height < 420 ? 1280 : PhotoManager.fullPhotoPixelSize
+        return min(ceiling, max(160, height * displayScale * 2))
     }
 
     var body: some View {
@@ -35,9 +37,13 @@ struct AsyncCoverImage: View {
                 )
             }
         }
-        .task {
-            guard let url = url else { return }
-            loadedImage = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: pixelBudget)
+        .task(id: url) {
+            guard let url = url else {
+                loadedImage = nil
+                return
+            }
+            let image = await PhotoManager.shared.asyncLoadImage(from: url, maxPixelSize: pixelBudget)
+            if !Task.isCancelled { loadedImage = image }
         }
     }
 

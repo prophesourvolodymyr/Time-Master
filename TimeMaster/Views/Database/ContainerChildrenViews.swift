@@ -36,7 +36,7 @@ struct ContainerChildrenTabs: View {
     private var isSearching: Bool { !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
-        let model = ContainerBrowseModel(container: container, roots: store.rootPages, pages: store.allPagesFlat)
+        let model = store.containerBrowseModel(for: container)
         let lists = model.lists(query: query)
         VStack(alignment: .leading, spacing: 14) {
             tabTrack(lists)
@@ -166,7 +166,7 @@ struct ContainerCategoryPage: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     if let container {
-                        let model = ContainerBrowseModel(container: container, roots: store.rootPages, pages: store.allPagesFlat)
+                        let model = store.containerBrowseModel(for: container)
                         VStack(spacing: 2) {
                             TimeMasterPageTitle(destination.tab.title)
                                 .foregroundStyle(Theme.textPrimary)

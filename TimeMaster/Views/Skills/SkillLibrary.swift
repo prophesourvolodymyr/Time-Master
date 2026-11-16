@@ -54,12 +54,32 @@ struct SkillLibraryEntry: Identifiable {
 /// The library read for the skill screens: every page by id, so walking a skill tree or a page's parents never
 /// searches the whole library per step. Build one per pass over `DatabaseStore.allPagesFlat`.
 struct SkillLibrary {
+    /// Results of the walks below, shared by every copy: the library never changes, so they stay valid.
+    private final class Memo {
+        var topLevel: [SkillLibraryEntry]?
+        var subSkills: [String: [ExercisePage]] = [:]
+        var below: [String: [ExercisePage]] = [:]
+        var progress: [String: SkillProgress] = [:]
+    }
+
     private let pages: [ExercisePage]
     private let pagesByID: [String: ExercisePage]
+    private let memo = Memo()
+
+    /// Same library, same walks: whether `other` is a copy of this one.
+    func isSame(as other: SkillLibrary) -> Bool { memo === other.memo }
+
+    /// Names this snapshot of the library and every copy of it.
+    var snapshotToken: ObjectIdentifier { ObjectIdentifier(memo) }
 
     init(pages: [ExercisePage]) {
         self.pages = pages
         pagesByID = Dictionary(pages.map { ($0.manifest.id, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    init(index: PageIndex) {
+        pages = index.pages
+        pagesByID = index.byManifestID
     }
 
     func page(_ id: String) -> ExercisePage? { pagesByID[id] }
@@ -67,11 +87,14 @@ struct SkillLibrary {
     /// The skills of the Skills page: skill and tutorial pages with no skill or tutorial above them, wherever their
     /// folder is, in library order, each with its progress and last change.
     func topLevelEntries() -> [SkillLibraryEntry] {
-        pages.filter { $0.isSkillLike && !isInsideSkill($0) }.map { page in
+        if let known = memo.topLevel { return known }
+        let result = pages.filter { $0.isSkillLike && !isInsideSkill($0) }.map { page in
             let below = subSkills(below: page)
             let lastChange = below.reduce(page.manifest.updatedAt) { max($0, $1.manifest.updatedAt) }
             return SkillLibraryEntry(page: page, progress: SkillProgress(counting: below), lastChange: lastChange)
         }
+        memo.topLevel = result
+        return result
     }
 
     /// Plain folders a new top-level skill can go in (containers without a type, outside every skill), each with its
@@ -102,8 +125,11 @@ struct SkillLibrary {
     /// The sub-skills below `page`, depth first in child order: skill and tutorial pages, reached through skills,
     /// tutorials and plain folders.
     func subSkills(below page: ExercisePage) -> [ExercisePage] {
+        let id = page.manifest.id
+        let cacheable = pagesByID[id]?.manifest.childIDs == page.manifest.childIDs
+        if cacheable, let known = memo.subSkills[id] { return known }
         var result: [ExercisePage] = []
-        var visited: Set<String> = [page.manifest.id]
+        var visited: Set<String> = [id]
         func visit(_ parent: ExercisePage) {
             for id in parent.manifest.childIDs where visited.insert(id).inserted {
                 guard let child = pagesByID[id] else { continue }
@@ -116,13 +142,17 @@ struct SkillLibrary {
             }
         }
         visit(page)
+        if cacheable { memo.subSkills[id] = result }
         return result
     }
 
     /// Every page below `page`, whatever its kind, depth first in child order.
     func pages(below page: ExercisePage) -> [ExercisePage] {
+        let id = page.manifest.id
+        let cacheable = pagesByID[id]?.manifest.childIDs == page.manifest.childIDs
+        if cacheable, let known = memo.below[id] { return known }
         var result: [ExercisePage] = []
-        var visited: Set<String> = [page.manifest.id]
+        var visited: Set<String> = [id]
         func visit(_ parent: ExercisePage) {
             for id in parent.manifest.childIDs where visited.insert(id).inserted {
                 guard let child = pagesByID[id] else { continue }
@@ -131,12 +161,17 @@ struct SkillLibrary {
             }
         }
         visit(page)
+        if cacheable { memo.below[id] = result }
         return result
     }
 
     /// Progress of the sub-skills below `page`, read from the library's copy of it.
     func progress(of page: ExercisePage) -> SkillProgress {
-        SkillProgress(counting: subSkills(below: pagesByID[page.manifest.id] ?? page))
+        let id = page.manifest.id
+        if let known = memo.progress[id] { return known }
+        let result = SkillProgress(counting: subSkills(below: pagesByID[id] ?? page))
+        memo.progress[id] = result
+        return result
     }
 
     /// The titles from `root` down to the parent of `page` ("Guitar › Chords"); empty for `root` itself.
@@ -159,13 +194,13 @@ struct SkillLibrary {
 extension DatabaseStore {
     /// Progress of the sub-skills below a page: a skill, a tutorial or a plain folder.
     func skillProgress(of page: ExercisePage) -> SkillProgress {
-        SkillLibrary(pages: allPagesFlat).progress(of: page)
+        skillLibrary.progress(of: page)
     }
 
     /// Progress below a page (by manifest id) or a group (by group id, see `SkillGroupID`: the group's pages and
     /// everything below them).
     func skillProgress(of id: String) -> SkillProgress {
-        let library = SkillLibrary(pages: allPagesFlat)
+        let library = skillLibrary
         if let owner = SkillGroupID.split(id) {
             let members = skillPages(onBoard: owner.containerID, sectionID: owner.sectionID)
             return SkillProgress(counting: members.flatMap { [$0] + library.subSkills(below: $0) })

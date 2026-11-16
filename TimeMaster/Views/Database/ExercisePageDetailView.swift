@@ -246,7 +246,7 @@ struct ExercisePageDetailView: View {
     // MARK: Page
 
     private func scrollContent(_ page: ExercisePage) -> some View {
-        let library = SkillLibrary(pages: store.allPagesFlat)
+        let library = store.skillLibrary
         let usage = PageWorkoutUsage.of(page, library: library, workoutStore: workoutStore)
         let linked = linkedPages
         let model = PageTabModel(

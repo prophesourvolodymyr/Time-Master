@@ -9,8 +9,14 @@ import UIKit
 class DatabaseStore: ObservableObject {
     static let shared = DatabaseStore()
 
-    @Published var rootPages: [ExercisePage] = []
-    @Published var allPagesFlat: [ExercisePage] = []
+    @Published var rootPages: [ExercisePage] = [] {
+        didSet { derived.reset() }
+    }
+    @Published var allPagesFlat: [ExercisePage] = [] {
+        didSet { derived.reset() }
+    }
+    /// Not published: derived from the two lists above and cleared whenever either changes.
+    let derived = LibraryDerivedCache()
 
     private let foldersKey       = "exercise_database_v2"
     private let rootNotesKey     = "exercise_database_root_notes_v1"
@@ -59,8 +65,7 @@ class DatabaseStore: ObservableObject {
                     guard let snapshot = self.pageSnapshotIfReadable() else { return nil }
                     return {
                         guard self.reloadGeneration == generation else { return }
-                        self.allPagesFlat = snapshot.flat
-                        self.rootPages = snapshot.roots
+                        self.apply(snapshot)
                         self.libraryRevision &+= 1
                     }
                 }
@@ -94,9 +99,7 @@ class DatabaseStore: ObservableObject {
         reloadGeneration &+= 1
 
         if isV2PageMigrated {
-            let snapshot = pageSnapshotFromFileSystem()
-            allPagesFlat = snapshot.flat
-            rootPages = snapshot.roots
+            apply(pageSnapshotFromFileSystem())
             libraryRevision &+= 1
         } else if isV1Migrated {
             let snapshot = legacySnapshotFromFileSystem()
@@ -145,16 +148,34 @@ class DatabaseStore: ObservableObject {
     // MARK: - V2 Page Loading
 
     private func loadPagesFromFileSystem() {
-        let snapshot = pageSnapshotFromFileSystem()
+        apply(pageSnapshotFromFileSystem())
+    }
+
+    private struct PageSnapshot {
+        let flat: [ExercisePage]
+        let roots: [ExercisePage]
+        let index: PageIndex
+        let library: SkillLibrary
+    }
+
+    private func apply(_ snapshot: PageSnapshot) {
         allPagesFlat = snapshot.flat
         rootPages = snapshot.roots
+        derived.reset()
+        derived.index = snapshot.index
+        derived.skillLibrary = snapshot.library
     }
 
-    private func pageSnapshotFromFileSystem() -> (flat: [ExercisePage], roots: [ExercisePage]) {
-        pageSnapshotIfReadable() ?? ([], [])
+    private func pageSnapshotFromFileSystem() -> PageSnapshot {
+        pageSnapshotIfReadable() ?? Self.snapshot(flat: [], roots: [])
     }
 
-    private func pageSnapshotIfReadable() -> (flat: [ExercisePage], roots: [ExercisePage])? {
+    private static func snapshot(flat: [ExercisePage], roots: [ExercisePage]) -> PageSnapshot {
+        let index = PageIndex(pages: flat)
+        return PageSnapshot(flat: flat, roots: roots, index: index, library: SkillLibrary(index: index))
+    }
+
+    private func pageSnapshotIfReadable() -> PageSnapshot? {
         let db = DatabaseManager.shared
         let base = db.exercisesDatabaseURL
         let legacyMediaDirectory = db.dataRoot.appendingPathComponent("Media", isDirectory: true)
@@ -174,7 +195,7 @@ class DatabaseStore: ObservableObject {
                 inheritedWorkoutType: inheritedWorkoutType(for: page, lookup: lookup)
             )
         }
-        return (flat, PageTreeBuilder.build(from: flat))
+        return Self.snapshot(flat: flat, roots: PageTreeBuilder.build(from: flat))
     }
 
     private func inheritedWorkoutType(
@@ -192,11 +213,30 @@ class DatabaseStore: ObservableObject {
     }
 
     var pageTree: [ExercisePage] {
-        PageTreeBuilder.build(from: allPagesFlat)
+        if let known = derived.pageTree { return known }
+        let tree = PageTreeBuilder.build(from: allPagesFlat)
+        derived.pageTree = tree
+        return tree
+    }
+
+    /// Lookups over the current `allPagesFlat`; rebuilt on the first read after a change.
+    var index: PageIndex {
+        if let known = derived.index { return known }
+        let built = PageIndex(pages: allPagesFlat)
+        derived.index = built
+        return built
+    }
+
+    /// The skill screens' read of the current `allPagesFlat`; shared by every caller until the library changes.
+    var skillLibrary: SkillLibrary {
+        if let known = derived.skillLibrary { return known }
+        let built = SkillLibrary(index: index)
+        derived.skillLibrary = built
+        return built
     }
 
     func page(id: UUID) -> ExercisePage? {
-        allPagesFlat.first { $0.id == id }
+        index.byID[id]
     }
 
     func folderURL(for page: ExercisePage) -> URL {
@@ -204,15 +244,11 @@ class DatabaseStore: ObservableObject {
     }
 
     func children(of parentID: UUID) -> [ExercisePage] {
-        guard let parent = page(id: parentID) else { return [] }
-        return parent.manifest.childIDs.compactMap { childID in
-            guard let childUUID = UUID(uuidString: childID) else { return nil }
-            return page(id: childUUID)
-        }
+        index.childrenByParent[parentID] ?? []
     }
 
     func breadcrumbs(for pageID: UUID) -> [ExercisePage] {
-        PageTreeBuilder.breadcrumbs(for: pageID, in: allPagesFlat)
+        index.breadcrumbs(for: pageID)
     }
 
     // MARK: - Page CRUD (V2)
