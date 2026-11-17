@@ -12,6 +12,7 @@ struct ScheduleView: View {
     @State private var playerWorkout: Workout?
     @State private var now = Date()
     @State private var askedForChallenge = false
+    @AppStorage("schedule.challengeOffered") private var challengeOffered = false
     @State private var pullArmed = false
     @State private var pullFired = false
     @ScaledMetric(relativeTo: .largeTitle) private var flameSize = 56.0
@@ -80,10 +81,7 @@ struct ScheduleView: View {
             }
             .onAppear {
                 now = Date()
-                if !askedForChallenge && store.scheduleIsLoaded {
-                    askedForChallenge = true
-                    sheet = .challenge
-                }
+                offerChallengeIfNeeded()
             }
             .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { now = $0 }
             .onChange(of: scenePhase) { phase in if phase == .active { now = Date() } }
@@ -275,12 +273,19 @@ struct ScheduleView: View {
                 .foregroundStyle(.secondary).multilineTextAlignment(.center)
             Button("Try again") {
                 store.loadWeeklySchedule()
-                if store.scheduleIsLoaded && !askedForChallenge {
-                    askedForChallenge = true
-                    sheet = .challenge
-                }
+                offerChallengeIfNeeded()
             }.buttonStyle(TimeMasterToolbarWideButtonStyle())
         }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The streak sheet opens by itself only until a challenge is set (or once on a device that never set one), so
+    /// entering the page again never asks again; the Streak control still opens it.
+    private func offerChallengeIfNeeded() {
+        guard !askedForChallenge, !challengeOffered, store.scheduleIsLoaded,
+              store.weeklySchedule.challenge(for: currentWeek).weekdays.isEmpty else { return }
+        askedForChallenge = true
+        challengeOffered = true
+        sheet = .challenge
     }
 
     private func moveWeek(_ offset: Int) {

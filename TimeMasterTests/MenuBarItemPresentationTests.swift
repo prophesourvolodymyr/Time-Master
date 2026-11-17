@@ -52,6 +52,17 @@ final class MenuBarItemPresentationTests: XCTestCase {
         XCTAssertEqual(result.progress ?? 0, 0.2, accuracy: 0.001)
     }
 
+    func testAnUntimedSetShowsItsStopwatchInsteadOfATimeLeft() {
+        var live = state(remaining: 0, duration: 40)
+        live.untimedSeconds = 12
+        let result = make(state: live)
+        XCTAssertEqual(result.glyph, .exercise)
+        XCTAssertEqual(result.label, "Squat 0:12")
+        XCTAssertEqual(result.progress ?? -1, 0, accuracy: 0.001)
+        XCTAssertTrue(result.accessibilityLabel.contains("until done"))
+        XCTAssertFalse(result.tooltip.contains("left"))
+    }
+
     func testRestShowsTheRestClock() {
         let result = make(state: state(phase: .setRest, title: "Rest", remaining: 25, duration: 60))
         XCTAssertEqual(result.glyph, .rest)

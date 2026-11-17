@@ -31,6 +31,10 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         var nextKind: String?
         var artworkName: String?
         var nextArtworkName: String?
+        /// Set while an untimed set runs (it ends when the user taps Done): seconds spent in it at this update.
+        var untimedSeconds: Int?
+        /// An untimed set running unpaused: the moment it started, so the views count up from it.
+        var phaseStartDate: Date?
 
         init(
             phase: Phase,
@@ -49,7 +53,9 @@ struct WorkoutActivityAttributes: ActivityAttributes {
             isBundle: Bool = false,
             nextKind: String? = nil,
             artworkName: String? = nil,
-            nextArtworkName: String? = nil
+            nextArtworkName: String? = nil,
+            untimedSeconds: Int? = nil,
+            phaseStartDate: Date? = nil
         ) {
             self.phase = phase
             self.title = title
@@ -68,6 +74,8 @@ struct WorkoutActivityAttributes: ActivityAttributes {
             self.nextKind = nextKind
             self.artworkName = artworkName
             self.nextArtworkName = nextArtworkName
+            self.untimedSeconds = untimedSeconds
+            self.phaseStartDate = phaseStartDate
         }
 
         init(from decoder: Decoder) throws {
@@ -89,6 +97,8 @@ struct WorkoutActivityAttributes: ActivityAttributes {
             nextKind = try container.decodeIfPresent(String.self, forKey: .nextKind)
             artworkName = try container.decodeIfPresent(String.self, forKey: .artworkName)
             nextArtworkName = try container.decodeIfPresent(String.self, forKey: .nextArtworkName)
+            untimedSeconds = try container.decodeIfPresent(Int.self, forKey: .untimedSeconds)
+            phaseStartDate = try container.decodeIfPresent(Date.self, forKey: .phaseStartDate)
         }
     }
 

@@ -12,6 +12,9 @@ struct SkillProgress: Equatable {
     /// Done share of `total` (0…1); 0 when nothing counts.
     var fraction: Double { total == 0 ? 0 : Double(completed) / Double(total) }
 
+    /// No sub-skill counted at all, abandoned ones included (the summary then reads "No sub-skills yet").
+    var isEmpty: Bool { total == 0 && abandoned == 0 }
+
     /// "3 of 12 done"; only abandoned ones: "2 abandoned"; none: "No sub-skills yet".
     var summary: String {
         if total > 0 { return "\(completed) of \(total) done" }
@@ -84,11 +87,17 @@ struct SkillLibrary {
 
     func page(_ id: String) -> ExercisePage? { pagesByID[id] }
 
+    /// A skill or a tutorial that is a skill: a page flagged `noSkills` is none anywhere (no Skills page, no board, no
+    /// progress count), and the sub-skill walks never go below one.
+    static func isSkill(_ page: ExercisePage) -> Bool {
+        page.isSkillLike && !page.manifest.hidesSkills
+    }
+
     /// The skills of the Skills page: skill and tutorial pages with no skill or tutorial above them, wherever their
     /// folder is, in library order, each with its progress and last change.
     func topLevelEntries() -> [SkillLibraryEntry] {
         if let known = memo.topLevel { return known }
-        let result = pages.filter { $0.isSkillLike && !isInsideSkill($0) }.map { page in
+        let result = pages.filter { Self.isSkill($0) && !isInsideSkill($0) }.map { page in
             let below = subSkills(below: page)
             let lastChange = below.reduce(page.manifest.updatedAt) { max($0, $1.manifest.updatedAt) }
             return SkillLibraryEntry(page: page, progress: SkillProgress(counting: below), lastChange: lastChange)
@@ -105,9 +114,9 @@ struct SkillLibrary {
             .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
     }
 
-    /// Whether a skill or tutorial sits anywhere above `page`.
+    /// Whether a skill or tutorial (one that is a skill, see `isSkill`) sits anywhere above `page`.
     func isInsideSkill(_ page: ExercisePage) -> Bool {
-        ancestors(of: page).contains { $0.isSkillLike }
+        ancestors(of: page).contains { Self.isSkill($0) }
     }
 
     /// The pages above `page`, its parent first.
@@ -123,8 +132,10 @@ struct SkillLibrary {
     }
 
     /// The sub-skills below `page`, depth first in child order: skill and tutorial pages, reached through skills,
-    /// tutorials and plain folders.
+    /// tutorials and plain folders. A page that needs no skills has none, and the walk leaves out every page that needs
+    /// none together with everything below it.
     func subSkills(below page: ExercisePage) -> [ExercisePage] {
+        guard !page.manifest.hidesSkills else { return [] }
         let id = page.manifest.id
         let cacheable = pagesByID[id]?.manifest.childIDs == page.manifest.childIDs
         if cacheable, let known = memo.subSkills[id] { return known }
@@ -134,6 +145,7 @@ struct SkillLibrary {
             for id in parent.manifest.childIDs where visited.insert(id).inserted {
                 guard let child = pagesByID[id] else { continue }
                 if child.isSkillLike {
+                    guard Self.isSkill(child) else { continue }
                     result.append(child)
                     visit(child)
                 } else if child.isContainer, child.pageType == nil {
@@ -197,12 +209,12 @@ extension DatabaseStore {
         skillLibrary.progress(of: page)
     }
 
-    /// Progress below a page (by manifest id) or a group (by group id, see `SkillGroupID`: the group's pages and
-    /// everything below them).
+    /// Progress below a page (by manifest id) or a group (by group id, see `SkillGroupID`: the group's skills and
+    /// everything below them; its pages that need no skills are none).
     func skillProgress(of id: String) -> SkillProgress {
         let library = skillLibrary
         if let owner = SkillGroupID.split(id) {
-            let members = skillPages(onBoard: owner.containerID, sectionID: owner.sectionID)
+            let members = skillPages(onBoard: owner.containerID, sectionID: owner.sectionID).filter(SkillLibrary.isSkill)
             return SkillProgress(counting: members.flatMap { [$0] + library.subSkills(below: $0) })
         }
         guard let page = library.page(id) else { return SkillProgress() }

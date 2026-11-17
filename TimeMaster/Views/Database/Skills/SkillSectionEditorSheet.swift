@@ -64,7 +64,7 @@ struct SkillSectionEditorSheet: View {
 
     private var itemCount: Int {
         guard let section else { return 0 }
-        return store.skillPages(onBoard: boardID, sectionID: section.id).count
+        return store.skillPages(onBoard: boardID, sectionID: section.id).filter(SkillLibrary.isSkill).count
     }
 
     /// The picture inside the strip as it will be after saving.

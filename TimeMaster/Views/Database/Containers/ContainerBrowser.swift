@@ -33,9 +33,12 @@ struct ContainerBrowser: View {
     @State private var isNaming = false
     @State private var newName = ""
     @State private var stackDepth = 0
+    @State private var pageDrag: PageDragSource?
     @FocusState private var searchFocused: Bool
 
     private static let searchFieldID = "container-search"
+    private static let listSpacing: CGFloat = 10
+    private static let gridSpacing: CGFloat = 14
 
     private var container: ExercisePage { model.container }
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -56,6 +59,8 @@ struct ContainerBrowser: View {
     private var showsBoard: Bool { tab == .skills && layout == .board && !isSearching }
     private var showsStatusFilter: Bool { tab == .skills && !showsBoard && !entries.isEmpty }
     private var showsNewCell: Bool { !isSearching && (tab != .skills || statusFilter == nil) }
+    /// Cards take new places by dragging on the Exercises tab, in its manual order, while not searching.
+    private var reorders: Bool { tab == .exercises && sort == .manual && !isSearching }
 
     var body: some View {
         let progress = tab == .skills ? skillProgress() : [:]
@@ -279,16 +284,16 @@ struct ContainerBrowser: View {
         includesNewCell: Bool
     ) -> some View {
         if layout == .list {
-            LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(list) { entry in
-                    cell(entry, progress: progress[entry.id], actions: actions)
+            LazyVStack(alignment: .leading, spacing: Self.listSpacing) {
+                ForEach(Array(list.enumerated()), id: \.element.id) { index, entry in
+                    cell(entry, progress: progress[entry.id], actions: actions, neighbors: Self.neighbors(of: index, in: list))
                 }
                 if includesNewCell { newCell }
             }
         } else {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
-                ForEach(list) { entry in
-                    cell(entry, progress: progress[entry.id], actions: actions)
+            LazyVGrid(columns: columns, alignment: .leading, spacing: Self.gridSpacing) {
+                ForEach(Array(list.enumerated()), id: \.element.id) { index, entry in
+                    cell(entry, progress: progress[entry.id], actions: actions, neighbors: Self.neighbors(of: index, in: list))
                 }
                 if includesNewCell { newCell }
             }
@@ -296,13 +301,19 @@ struct ContainerBrowser: View {
     }
 
     @ViewBuilder
-    private func cell(_ entry: ContainerBrowseEntry, progress: SkillProgress?, actions: ContainerPageActions) -> some View {
-        if entry.page.isSkillLike {
+    private func cell(
+        _ entry: ContainerBrowseEntry,
+        progress: SkillProgress?,
+        actions: ContainerPageActions,
+        neighbors: PageNeighbors
+    ) -> some View {
+        if tab == .skills, SkillLibrary.isSkill(entry.page) {
             skillCell(entry, progress: progress, actions: actions)
         } else if layout == .list {
             ContainerPageListRow(page: entry.page, location: entry.pathText, match: entry.match, actions: actions)
+                .modifier(dragDrop(entry.page, cornerRadius: 16, actions: actions, neighbors: neighbors))
         } else {
-            pageTile(entry, actions: actions)
+            pageTile(entry, actions: actions, neighbors: neighbors)
         }
     }
 
@@ -312,9 +323,8 @@ struct ContainerBrowser: View {
         return VStack(alignment: .leading, spacing: 6) {
             summaryCard(entry.page, style: style, progress: progress)
                 .frame(maxWidth: .infinity)
-                .modifier(ContainerDropTarget(page: entry.page, cornerRadius: radius, onMoveInside: actions.moveInside))
                 .contextMenu { actions.menu(for: entry.page) }
-                .onDrag { NSItemProvider(object: entry.page.manifest.id as NSString) }
+                .modifier(dragDrop(entry.page, cornerRadius: radius, actions: actions))
             footnote(entry, showsPath: grouping != .folder)
         }
     }
@@ -328,18 +338,50 @@ struct ContainerBrowser: View {
         }
     }
 
-    private func pageTile(_ entry: ContainerBrowseEntry, actions: ContainerPageActions) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            NavigationLink(value: DatabasePageRoute(pageID: entry.page.manifest.id)) {
-                ContainerPageTile(entry: entry, stats: model.stats(of: entry.page))
+    /// A page's cover filling a card: a tap opens the page, playing its first clip.
+    private func pageTile(_ entry: ContainerBrowseEntry, actions: ContainerPageActions, neighbors: PageNeighbors) -> some View {
+        let page = entry.page
+        return VStack(alignment: .leading, spacing: 6) {
+            Button {
+                actions.openFromCover(page)
+            } label: {
+                ContainerPageTile(entry: entry, stats: model.stats(of: page))
             }
             .buttonStyle(ContainerTileButtonStyle(cornerRadius: ContainerPageTile.cornerRadius))
-            .modifier(ContainerDropTarget(page: entry.page, cornerRadius: ContainerPageTile.cornerRadius, onMoveInside: actions.moveInside))
-            .contextMenu { actions.menu(for: entry.page) }
-            .onDrag { NSItemProvider(object: entry.page.manifest.id as NSString) }
-            .accessibilityHint("Opens this page")
+            .pageCoverPointer()
+            .contextMenu { actions.menu(for: page) }
+            .modifier(dragDrop(page, cornerRadius: ContainerPageTile.cornerRadius, actions: actions, neighbors: neighbors))
+            .accessibilityHint(PageCoverOpening.firstClip(of: page) == nil ? "Opens this page" : "Opens this page and plays its first clip")
             footnote(entry, showsPath: false)
         }
+    }
+
+    /// The pages listed before and after one card, for Move Up and Move Down.
+    private typealias PageNeighbors = (previous: ExercisePage?, next: ExercisePage?)
+
+    private static func neighbors(of index: Int, in list: [ContainerBrowseEntry]) -> PageNeighbors {
+        (index > 0 ? list[index - 1].page : nil, index + 1 < list.count ? list[index + 1].page : nil)
+    }
+
+    /// Drags a card and takes drops on it: any page into a container's card, a sibling beside it in the manual order.
+    private func dragDrop(
+        _ page: ExercisePage,
+        cornerRadius: CGFloat,
+        actions: ContainerPageActions,
+        neighbors: PageNeighbors = (nil, nil)
+    ) -> PageCardDragDrop {
+        PageCardDragDrop(
+            page: page,
+            axis: layout == .list ? .vertical : .horizontal,
+            cornerRadius: cornerRadius,
+            gap: layout == .list ? Self.listSpacing : Self.gridSpacing,
+            reorders: reorders,
+            holds: page.isContainer,
+            source: $pageDrag,
+            onDrop: { id, placement in actions.drop(id, placement, on: page) },
+            onMoveUp: neighbors.previous.map { previous in { actions.place(page.manifest.id, previous, false) } },
+            onMoveDown: neighbors.next.map { next in { actions.place(page.manifest.id, next, true) } }
+        )
     }
 
     /// The place of a nested page and why a search showed it, under its card.
@@ -529,7 +571,8 @@ struct ContainerBrowser: View {
         if tab == .skills, let statusFilter {
             list = list.filter { $0.status == statusFilter }
         }
-        return model.sorted(list, by: sort, relevance: isSearching && sort == .manual, progress: progress)
+        let usage = sort == .used ? store.pageUsage(workoutStore) : .empty
+        return model.sorted(list, by: sort, relevance: isSearching && sort == .manual, progress: progress, usage: usage)
     }
 
     /// Each listed skill's sub-skill progress, from one index of the library.

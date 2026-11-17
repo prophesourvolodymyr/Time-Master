@@ -13,8 +13,10 @@ struct BundleSectionHeader: View {
     @Environment(\.workoutHeroSources) private var heroSources
 
     private var summary: String {
+        let sets = "\(section.bundleSets.count) sets"
+        guard section.isTimerEnabled else { return "\(sets) · Until Done" }
         let seconds = section.calculatedDuration
-        return "\(section.bundleSets.count) sets · \(seconds / 60):\(String(format: "%02d", seconds % 60))"
+        return "\(sets) · \(seconds / 60):\(String(format: "%02d", seconds % 60))"
     }
 
     var body: some View {
@@ -100,7 +102,7 @@ struct BundleSectionHeader: View {
                         }
                         .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
                         .disabled(slot.exercisePageID == nil)
-                        .accessibilityLabel("\(slot.displayName), \(slot.duration) seconds")
+                        .accessibilityLabel(section.isTimerEnabled ? "\(slot.displayName), \(slot.duration) seconds" : "\(slot.displayName), until done")
                     }
                 }
             }

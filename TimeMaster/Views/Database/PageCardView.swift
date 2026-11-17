@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct PageCardView: View {
     @EnvironmentObject private var navigationState: DatabaseNavigationState
@@ -11,42 +10,53 @@ struct PageCardView: View {
     var onDuplicate: (() -> Void)? = nil
     var onMove: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
-    var onMoveIntoContainer: ((String) -> Void)? = nil
+    /// Drags the page's id as plain text; false where the list around the card drags and drops cards itself
+    /// (`PageCardDragDrop`).
+    var isDraggable = true
+    /// A tap on the cover opens the page and plays its first clip (`PageCoverOpening`); nil leaves the cover to the card.
+    var onOpenCover: (() -> Void)? = nil
     /// Where the page sits below the list's container ("Footwork › Drills"); nil for a direct child.
     var location: String? = nil
     /// Why a search showed the page when its title did not match.
     var match: ContainerMatchReason? = nil
-    @State private var isDropTargeted = false
     @ScaledMetric(relativeTo: .body) private var listThumbnailSize: CGFloat = 56
 
     var body: some View {
-        Group {
-            if isGridMode {
-                gridCard
-            } else {
-                listRow
-            }
+        if isDraggable {
+            card.onDrag { NSItemProvider(object: page.manifest.id as NSString) }
+        } else {
+            card
         }
-        .onDrag {
-            NSItemProvider(object: page.manifest.id as NSString)
+    }
+
+    @ViewBuilder
+    private var card: some View {
+        if isGridMode {
+            gridCard
+        } else {
+            listRow
         }
-        .onDrop(of: [UTType.plainText], isTargeted: $isDropTargeted) { providers in
-            guard page.isContainer, let onMoveIntoContainer else { return false }
-            providers.first?.loadObject(ofClass: NSString.self) { object, _ in
-                guard let id = object as? String, id != page.manifest.id else { return }
-                DispatchQueue.main.async { onMoveIntoContainer(id) }
-            }
-            return true
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: isGridMode ? 14 : 10)
-                .stroke(isDropTargeted ? Theme.toolbarOrange : Color.clear, lineWidth: 2)
+    }
+
+    /// The card's cover, opening the page when tapped where the screen hands over `onOpenCover`.
+    @ViewBuilder
+    private func coverTarget<Cover: View>(
+        cornerRadius: CGFloat,
+        glyphSize: CGFloat,
+        @ViewBuilder cover: () -> Cover
+    ) -> some View {
+        if let onOpenCover {
+            cover().modifier(PageCoverTap(page: page, cornerRadius: cornerRadius, glyphSize: glyphSize, onOpen: onOpenCover))
+        } else {
+            cover()
         }
     }
 
     private var gridCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if page.isNote { noteHeroGrid } else { coverHeroGrid }
+            coverTarget(cornerRadius: 0, glyphSize: 34) {
+                if page.isNote { noteHeroGrid } else { coverHeroGrid }
+            }
             infoGrid
         }
         .modifier(TimeMasterCardSurface(flat: true))
@@ -56,8 +66,8 @@ struct PageCardView: View {
 
     private var listRow: some View {
         HStack(alignment: .center, spacing: 12) {
-            coverArea
-                .accessibilityHidden(true)
+            coverTarget(cornerRadius: 10, glyphSize: 22) { coverArea }
+                .accessibilityHidden(onOpenCover == nil)
             infoArea
         }
         .frame(minHeight: listThumbnailSize)
@@ -96,34 +106,41 @@ struct PageCardView: View {
                 endPoint: .bottom
             )
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    if page.isContainer {
-                        HStack(spacing: 2) {
-                            Image(systemName: "rectangle.stack")
-                                .font(.system(size: 7))
-                            Text("\(page.totalChildCount)")
-                                .font(TimeMasterFont.black(8, relativeTo: .caption2))
-                        }
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Color.black.opacity(0.3), in: RoundedRectangle(cornerRadius: 3))
-                    }
-                    if let type = page.effectiveWorkoutType {
-                        Text(type.name)
-                            .font(TimeMasterFont.black(8, relativeTo: .caption2))
-                            .foregroundStyle(Color(hex: type.colorHex))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Color(hex: type.colorHex).opacity(0.3), in: RoundedRectangle(cornerRadius: 3))
-                    }
+            HStack(spacing: 6) {
+                if page.isContainer {
+                    countPill
+                }
+                if let type = page.effectiveWorkoutType {
+                    typeChip(name: type.name, colorHex: type.colorHex)
                 }
             }
-            .padding(8)
+            .padding(10)
         }
         .frame(height: 120)
         .clipped()
+    }
+
+    /// How many pages a container holds: shown once, big enough to read over any cover.
+    private var countPill: some View {
+        let count = page.totalChildCount
+        return HStack(spacing: 5) {
+            Image(systemName: "rectangle.stack.fill")
+                .font(.system(size: 14, weight: .bold))
+            Text("\(count)")
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                .monospacedDigit()
+        }
+        .foregroundStyle(.white)
+        .modifier(ContainerTileChipSurface())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(count == 1 ? "1 page" : "\(count) pages")
+    }
+
+    private func typeChip(name: String, colorHex: String) -> some View {
+        Text(name)
+            .font(TimeMasterFont.black(13, relativeTo: .caption))
+            .foregroundStyle(Color(hex: colorHex))
+            .modifier(ContainerTileChipSurface(stroke: Color(hex: colorHex).opacity(0.6)))
     }
 
     private func noteGlyph(size: CGFloat) -> some View {
@@ -194,21 +211,12 @@ struct PageCardView: View {
                 }
             }
 
-            HStack(spacing: 5) {
-                if page.isContainer {
-                    Image(systemName: "rectangle.stack")
-                        .font(.system(size: 7))
-                    Text("\(page.totalChildCount)")
-                }
-                if page.hasWorkoutConfig {
-                    Text("\(page.manifest.duration ?? 0)s")
-                }
-                if page.hasMedia {
-                    Text("\(page.mediaURLs.count) media")
-                }
+            if let details = gridDetails {
+                Text(details)
+                    .font(TimeMasterFont.secondary())
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
             }
-            .font(TimeMasterFont.caption())
-            .foregroundStyle(Theme.textSecondary)
         }
         .padding(12)
     }
@@ -281,21 +289,33 @@ struct PageCardView: View {
         }
     }
 
-    private var listMetadata: String {
-        if page.isNote { return NotePreview.text(from: page.manifest.markdownBody) }
-        var text = page.effectiveWorkoutType?.name ?? pageTypeLabel ?? "Container"
+    /// What the page holds, in words: a container's pages, an exercise's length, the attachments.
+    private var contentParts: [String] {
+        var parts: [String] = []
         if page.isContainer {
             let count = page.totalChildCount
-            text += " · \(count) \(count == 1 ? "page" : "pages")"
+            parts.append("\(count) \(count == 1 ? "page" : "pages")")
         }
         if page.hasWorkoutConfig, let duration = page.manifest.duration {
-            text += " · \(duration)s"
+            parts.append("\(duration)s")
         }
         if page.hasMedia {
             let count = page.mediaURLs.count
-            text += " · \(count) \(count == 1 ? "attachment" : "attachments")"
+            parts.append("\(count) \(count == 1 ? "attachment" : "attachments")")
         }
-        return text
+        return parts
+    }
+
+    private var listMetadata: String {
+        if page.isNote { return NotePreview.text(from: page.manifest.markdownBody) }
+        let kind = page.effectiveWorkoutType?.name ?? pageTypeLabel ?? "Container"
+        return ([kind] + contentParts).joined(separator: " · ")
+    }
+
+    /// The line under a gallery card's title; its type is a chip on the cover and its size the pill beside it.
+    private var gridDetails: String? {
+        let parts = contentParts
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private var pageTypeLabel: String? {

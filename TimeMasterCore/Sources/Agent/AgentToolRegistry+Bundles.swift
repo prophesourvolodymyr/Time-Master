@@ -32,12 +32,13 @@ extension AgentToolRegistry {
             "exercise": AgentSchema.string("Exercise page for a timed section. \(pageRef) Give this or bundle."),
             "bundle": bundleSpec,
             "name": AgentSchema.string("Section label; defaults to the exercise title."),
-            "duration": AgentSchema.integer("Seconds per set (timed section); defaults to the exercise's duration.", minimum: 5),
+            "duration": AgentSchema.integer("Seconds per set (timed section); defaults to the exercise's duration. With untimed it is only the estimate used for totals.", minimum: 5),
             "sets": AgentSchema.integer("Number of sets (timed section); defaults to the exercise's sets.", minimum: 1),
             "repCount": AgentSchema.integer("Target reps per set (timed section).", minimum: 1),
             "restBetweenSets": AgentSchema.integer("Rest between sets in seconds (timed section).", minimum: 0),
             "prepareTime": AgentSchema.integer("Preparation seconds before the section (timed section).", minimum: 0, maximum: 30),
             "restAfter": AgentSchema.integer("Rest in seconds after this section, before the next one; defaults to the workout's rest between sections.", minimum: 0),
+            "untimed": AgentSchema.boolean("true: no countdown, every set (or bundle exercise) runs until the user taps Done; good for rep-based exercises. false (default): sets count down their duration."),
         ]
     }
 

@@ -14,6 +14,7 @@ extension AgentToolbox {
         let label = "sections[\(position)]"
         let rest = max(0, raw["restAfter"] as? Int ?? restAfter)
         let name = (raw["name"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let untimed = raw["untimed"] as? Bool ?? false
         if let spec = raw["bundle"] as? [String: Any] {
             guard raw["exercise"] == nil else {
                 throw AgentToolError("invalid_argument", "\(label): give either exercise or bundle, not both.")
@@ -26,7 +27,7 @@ extension AgentToolbox {
                 name: name, exercises: exercises, sets: spec["sets"] as? Int ?? 1,
                 restBetweenSets: spec["restBetweenSets"] as? Int ?? 30, prepareTime: spec["prepareTime"] as? Int ?? 4,
                 order: (spec["order"] as? String).flatMap(WorkoutBundleOrder.init(rawValue:)) ?? .ordered,
-                voice: spec["voice"] as? Bool ?? true, restAfter: rest
+                voice: spec["voice"] as? Bool ?? true, restAfter: rest, isTimerEnabled: !untimed
             )
         }
         guard raw["exercise"] != nil else {
@@ -42,6 +43,7 @@ extension AgentToolbox {
             restBetweenSets: raw["restBetweenSets"] as? Int ?? page.restBetweenSets ?? 10,
             prepareTime: raw["prepareTime"] as? Int ?? page.prepareTime ?? 4,
             customRestAfter: rest,
+            isTimerEnabled: !untimed,
             bigRestRow: WorkoutRestRowManifest(kind: .big, duration: rest)
         )
     }
@@ -64,14 +66,16 @@ extension AgentToolbox {
 
     func makeBundleSection(
         id: String = UUID().uuidString, name: String?, exercises: [WorkoutSetSlotManifest], sets: Int,
-        restBetweenSets: Int, prepareTime: Int, order: WorkoutBundleOrder, voice: Bool, restAfter: Int
+        restBetweenSets: Int, prepareTime: Int, order: WorkoutBundleOrder, voice: Bool, restAfter: Int,
+        isTimerEnabled: Bool = true
     ) -> WorkoutSectionManifest {
         let setSlots = Self.makeBundleSets(exercises: exercises, count: sets, rest: restBetweenSets, prepare: prepareTime)
         let names = exercises.map(\.name)
         let title = name ?? "Bundle: " + names.prefix(3).joined(separator: ", ") + (names.count > 3 ? " +\(names.count - 3)" : "")
         return WorkoutSectionManifest(
             id: id, exerciseID: exercises[0].exerciseID, name: title, duration: exercises[0].duration, sets: setSlots.count,
-            restBetweenSets: max(0, restBetweenSets), prepareTime: prepareTime, customRestAfter: restAfter, mode: .bundle,
+            restBetweenSets: max(0, restBetweenSets), prepareTime: prepareTime, customRestAfter: restAfter,
+            isTimerEnabled: isTimerEnabled, mode: .bundle,
             slots: setSlots, bigRestRow: WorkoutRestRowManifest(kind: .big, duration: restAfter),
             bundleOrder: order, bundleVoiceEnabled: voice
         )
@@ -193,6 +197,7 @@ extension AgentToolbox {
                     item["restBetweenSets"] = section.restBetweenSets
                 }
             }
+            if !section.isTimerEnabled { item["untimed"] = true }
             if entry.offset + 1 < workout.sections.count {
                 let rest = section.bigRestRow?.duration ?? (section.customRestAfter == 0 ? 0 : workout.restBetweenSections)
                 if rest != workout.restBetweenSections { item["restAfter"] = rest }

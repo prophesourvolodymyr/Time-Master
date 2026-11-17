@@ -51,7 +51,7 @@ struct PlayerUpNextCard: View {
         }
         .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 24))
         .disabled(!item.canPreview)
-        .accessibilityLabel("\(label), \(item.name), \(PlayerTime.spoken(item.duration))")
+        .accessibilityLabel("\(label), \(item.name), \(item.spokenLength)")
         .accessibilityHint(!item.canPreview ? "" : "Opens a preview")
     }
 }
@@ -94,7 +94,7 @@ struct PlayerNextTile: View {
         }
         .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
         .disabled(!item.canPreview)
-        .accessibilityLabel("Up next, \(item.name), \(PlayerTime.spoken(item.duration))")
+        .accessibilityLabel("Up next, \(item.name), \(item.spokenLength)")
         .accessibilityHint(!item.canPreview ? "" : "Opens a preview")
     }
 }
@@ -103,11 +103,18 @@ struct PlayerItemFacts: View {
     let item: PlayerQueueItem
 
     var showsDuration = true
+    var showsReps = true
 
     var body: some View {
         HStack(spacing: 8) {
-            if showsDuration { Label(PlayerTime.clock(item.duration), systemImage: "timer") }
-            if let reps = item.repCount {
+            if showsDuration {
+                if item.isUntimed {
+                    Label("Until Done", systemImage: "hand.tap")
+                } else {
+                    Label(PlayerTime.clock(item.duration), systemImage: "timer")
+                }
+            }
+            if showsReps, let reps = item.repCount {
                 Label("\(reps)", systemImage: "repeat")
             }
             if item.isDrop {

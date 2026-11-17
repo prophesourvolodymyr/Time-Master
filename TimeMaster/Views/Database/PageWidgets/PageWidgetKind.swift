@@ -1,12 +1,10 @@
 import SwiftUI
+import TimeMasterCore
 
-/// A widget the strip under a page's header can show. Which ones a page gets, and in what order, follows from what the
-/// page is and what it holds (`PageWidgetItem.items(for:store:workoutStore:)`).
-enum PageWidgetKind: String, CaseIterable, Identifiable {
-    case clips, folder, progress, todos, milestones, learnFirst, workouts
-
-    var id: String { rawValue }
-
+/// How a widget (`PageWidgetKind`, kept in the page's `widgets` setting) reads on the strip and in the page's settings.
+/// Which ones a page shows, and in what order, follows from that setting and what the page holds
+/// (`PageWidgetItem.items(for:store:workoutStore:)`).
+extension PageWidgetKind {
     var title: String {
         switch self {
         case .clips: "Clips"

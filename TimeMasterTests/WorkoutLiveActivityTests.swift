@@ -145,6 +145,30 @@ final class WorkoutLiveActivityTests: XCTestCase {
         XCTAssertEqual(decoded.sectionCount, 0)
         XCTAssertFalse(decoded.isBundle)
         XCTAssertEqual(decoded.nextKindValue, .exercise)
+        XCTAssertNil(decoded.untimedSeconds)
+        XCTAssertNil(decoded.phaseStartDate)
+        XCTAssertFalse(decoded.isUntimed)
+    }
+
+    func testAnUntimedSetCountsUpWithoutPhaseProgress() throws {
+        let start = Date().addingTimeInterval(-12)
+        var untimed = state(remaining: 0, duration: 40)
+        untimed.phaseEndDate = nil
+        untimed.untimedSeconds = 12
+        untimed.phaseStartDate = start
+
+        XCTAssertTrue(untimed.isUntimed)
+        XCTAssertNil(untimed.runningInterval)
+        XCTAssertEqual(untimed.elapsedFraction, 0)
+        XCTAssertEqual(untimed.countUpInterval?.lowerBound, start)
+        XCTAssertEqual(untimed.spokenSummary(workoutName: "Legs"), "Single Leg Takedown, until done")
+        var paused = untimed
+        paused.isPaused = true
+        XCTAssertNil(paused.countUpInterval)
+
+        let decoded = try JSONDecoder().decode(WorkoutActivityAttributes.ContentState.self, from: JSONEncoder().encode(untimed))
+        XCTAssertEqual(decoded.untimedSeconds, 12)
+        XCTAssertEqual(decoded.phaseStartDate?.timeIntervalSince1970 ?? 0, start.timeIntervalSince1970, accuracy: 0.001)
     }
 
     func testSnapshotNormalizationKeepsQueueFieldsConsistent() {

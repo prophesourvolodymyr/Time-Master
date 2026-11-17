@@ -92,7 +92,7 @@ struct PlayerNowCard: View {
         }
         .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 24))
         .disabled(!item.canPreview)
-        .accessibilityLabel("Now playing, \(item.name), \(PlayerTime.spoken(item.duration))")
+        .accessibilityLabel("Now playing, \(item.name), \(item.spokenLength)")
         .accessibilityHint(!item.canPreview ? "" : "Opens the exercise page")
     }
 }
@@ -169,7 +169,7 @@ struct PlayerQueueStrip: View {
                 Button("Preview", systemImage: "book.pages") { onOpen(item) }
             }
         }
-        .accessibilityLabel("\(item.name), \(PlayerTime.spoken(item.duration))")
+        .accessibilityLabel("\(item.name), \(item.spokenLength)")
         .accessibilityValue(isCurrent ? "Now" : isDone ? "Done" : "Upcoming")
         .accessibilityHint(isCurrent ? "Opens the exercise page" : "Jumps to this exercise")
     }

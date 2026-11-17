@@ -490,6 +490,9 @@ Find pages in the Tmax library.
                 links.contains($0.key) && !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
         }
+        // A cleared flag is no key at all, so pages that never used it keep identical manifests.
+        if !normalized.hidesSkills { normalized.noSkills = nil }
+        normalized.widgets = normalized.widgets?.uniqued()
         normalizedChecklists(&normalized)
         return normalized
     }
@@ -708,7 +711,7 @@ Find pages in the Tmax library.
         if manifest.parentID != nil {
             manifest.order = try pageIDs(parentID: manifest.parentID).count
         } else {
-            manifest.order = try pageIDs(parentID: nil).count
+            manifest.order = try nextSiblingOrder(parentID: nil)
         }
 
         let folder = try pageFolder(for: manifest.id, parentID: manifest.parentID)
@@ -877,6 +880,7 @@ Find pages in the Tmax library.
     public func walkPageTree(in directory: URL) throws -> [(ExercisePageManifest, path: String)] {
         var results: [(ExercisePageManifest, path: String)] = []
         try walkPageTreeRecursive(directory, relativePath: "", into: &results)
+        Self.orderChildIDs(&results)
         return results
     }
 
@@ -929,6 +933,7 @@ Find pages in the Tmax library.
         manifest.childIDs = childIDs
         manifest.updatedAt = Date()
         try writePageManifest(manifest, at: parentFolder)
+        try persistSiblingOrder(childIDs, parentID: parentID, siblings: try storedSiblings(parentID: parentID))
     }
 
     /// Saves a board page's groups and where its skill pages sit. Groups keep all their material; a page whose place

@@ -41,6 +41,8 @@ struct WorkoutNowPlayingSnapshot: Equatable {
     var elapsedInPhase: Int
     var isPaused: Bool
     var artworkURL: URL?
+    /// An untimed set: it ends when the user taps Done, so it plays like a live stream with no duration to scrub.
+    var isUntimed = false
 }
 
 @MainActor
@@ -99,6 +101,7 @@ final class WorkoutNowPlayingController {
 
     func update(_ snapshot: WorkoutNowPlayingSnapshot) {
         guard isActive else { return }
+        lastSnapshot = snapshot
         refreshCommands()
         if snapshot.isPaused {
             silence?.pause()
@@ -106,7 +109,6 @@ final class WorkoutNowPlayingController {
             silence?.play()
         }
         if snapshot.artworkURL != artworkURL { loadArtwork(snapshot.artworkURL) }
-        lastSnapshot = snapshot
         publish()
     }
 
@@ -116,12 +118,17 @@ final class WorkoutNowPlayingController {
             MPMediaItemPropertyTitle: snapshot.title,
             MPMediaItemPropertyArtist: snapshot.artist,
             MPMediaItemPropertyAlbumTitle: snapshot.album,
-            MPMediaItemPropertyPlaybackDuration: Double(max(1, snapshot.phaseDuration)),
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: Double(max(0, min(snapshot.elapsedInPhase, snapshot.phaseDuration))),
             MPNowPlayingInfoPropertyPlaybackRate: snapshot.isPaused ? 0.0 : 1.0,
             MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0,
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue,
         ]
+        if snapshot.isUntimed {
+            info[MPNowPlayingInfoPropertyIsLiveStream] = true
+            info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Double(max(0, snapshot.elapsedInPhase))
+        } else {
+            info[MPMediaItemPropertyPlaybackDuration] = Double(max(1, snapshot.phaseDuration))
+            info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = Double(max(0, min(snapshot.elapsedInPhase, snapshot.phaseDuration)))
+        }
         if let artwork { info[MPMediaItemPropertyArtwork] = artwork }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
@@ -196,12 +203,13 @@ final class WorkoutNowPlayingController {
         center.togglePlayPauseCommand.isEnabled = true
         center.nextTrackCommand.isEnabled = byExercise
         center.previousTrackCommand.isEnabled = byExercise
-        center.skipForwardCommand.isEnabled = !byExercise
-        center.skipBackwardCommand.isEnabled = !byExercise
+        let untimed = lastSnapshot?.isUntimed == true
+        center.skipForwardCommand.isEnabled = !byExercise && !untimed
+        center.skipBackwardCommand.isEnabled = !byExercise && !untimed
         let interval = NSNumber(value: WorkoutLockScreenSettings.skipSeconds)
         center.skipForwardCommand.preferredIntervals = [interval]
         center.skipBackwardCommand.preferredIntervals = [interval]
-        center.changePlaybackPositionCommand.isEnabled = WorkoutLockScreenSettings.scrubbingMovesWorkout
+        center.changePlaybackPositionCommand.isEnabled = WorkoutLockScreenSettings.scrubbingMovesWorkout && !untimed
     }
 
     private func observeSession() {

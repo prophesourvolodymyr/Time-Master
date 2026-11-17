@@ -379,9 +379,16 @@ struct ExercisePageDetailView: View {
         case .children:
             VStack(alignment: .leading, spacing: SkillMetrics.s3) {
                 PageSectionHeader(symbol: PageTab.children.symbol, title: PageTab.children.title, count: model.badge(for: .children))
-                ContainerChildrenTabs(container: page)
-                    .environmentObject(store)
-                    .environmentObject(workoutStore)
+                if page.isSkillLike {
+                    // A skill or a tutorial that needs no skills lists what sits inside it, with no board.
+                    ExerciseChildList(pages: store.children(of: page.id))
+                        .environmentObject(store)
+                        .environmentObject(workoutStore)
+                } else {
+                    ContainerChildrenTabs(container: page)
+                        .environmentObject(store)
+                        .environmentObject(workoutStore)
+                }
             }
         case .todos:
             SkillTodoSection(pageID: page.manifest.id)
@@ -423,7 +430,7 @@ struct ExercisePageDetailView: View {
         case .attachments(let index):
             let url = index.flatMap { page.mediaURLs.indices.contains($0) ? page.mediaURLs[$0] : nil }
             let isNeededFirst = url.map { page.manifest.dependencyMediaFilenames.contains($0.lastPathComponent) } ?? false
-            tab = page.isSkillLike && isNeededFirst ? .dependencies : .attachments
+            tab = page.isSkillLike && !page.manifest.hidesSkills && isNeededFirst ? .dependencies : .attachments
             if let url { openViewerSoon(for: url) }
         case .subSkills:
             tab = .skills
@@ -546,7 +553,7 @@ struct ExercisePageDetailView: View {
     }
 
     /// The menu of a media card: open it, trim and edit a video, make it the cover, on a skill or a tutorial move it
-    /// between Attachments and Dependencies or make a picture the icon, and remove it.
+    /// between Attachments and Dependencies (unless it needs no skills) or make a picture the icon, and remove it.
     private func cardActions(for url: URL, of page: ExercisePage) -> [MediaCardAction] {
         guard let index = page.mediaURLs.firstIndex(of: url) else { return [] }
         let filename = url.lastPathComponent
@@ -576,17 +583,19 @@ struct ExercisePageDetailView: View {
             })
         }
         if page.isSkillLike {
-            let isNeededFirst = page.manifest.dependencyMediaFilenames.contains(filename)
-            actions.append(MediaCardAction(
-                isNeededFirst ? "Move to Attachments" : "Move to Dependencies",
-                systemImage: isNeededFirst ? "paperclip" : "arrow.triangle.branch"
-            ) {
-                if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
-                    try store.setSkillMediaIsDependency(filename, in: pageID, !isNeededFirst)
-                }) {
-                    EverHaptic.selection()
-                }
-            })
+            if !page.manifest.hidesSkills {
+                let isNeededFirst = page.manifest.dependencyMediaFilenames.contains(filename)
+                actions.append(MediaCardAction(
+                    isNeededFirst ? "Move to Attachments" : "Move to Dependencies",
+                    systemImage: isNeededFirst ? "paperclip" : "arrow.triangle.branch"
+                ) {
+                    if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
+                        try store.setSkillMediaIsDependency(filename, in: pageID, !isNeededFirst)
+                    }) {
+                        EverHaptic.selection()
+                    }
+                })
+            }
             if isImage {
                 actions.append(MediaCardAction("Use as icon", systemImage: "person.crop.square") {
                     SkillErrorCenter.shared.attempt("Set the icon") {

@@ -1,9 +1,14 @@
 import Foundation
+import TimeMasterCore
 
+/// The page tree of the library: top-level pages and each page's children in their stored order (`PageOrder`; the
+/// library walk already lists every page's `childIDs` that way).
 enum PageTreeBuilder {
     static func build(from flatList: [ExercisePage]) -> [ExercisePage] {
         let lookup = Dictionary(flatList.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let roots = flatList.filter { $0.manifest.parentID == nil }
+        let roots = flatList
+            .filter { $0.manifest.parentID == nil }
+            .sorted { PageOrder.precedes($0.manifest, $1.manifest) }
         return roots.map { buildBranch(root: $0, lookup: lookup) }
     }
 

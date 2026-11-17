@@ -47,6 +47,7 @@ public final class AgentToolbox {
         default:
             if let output = try runBundleTool(name, args, dryRun: dryRun) { return output }
             if let output = try runWorkoutGroupTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runWorkoutTypeTool(name, args, dryRun: dryRun) { return output }
             if let output = try runMilestoneTool(name, args, dryRun: dryRun) { return output }
             if let output = try runNoteTool(name, args, dryRun: dryRun) { return output }
             if let output = try runSkillTool(name, args, dryRun: dryRun) { return output }
@@ -130,6 +131,7 @@ extension AgentToolbox {
             "workouts": (try? database.listWorkouts().count) ?? 0,
             "conventions": [
                 "Folders organize pages; exercise pages are workout-ready; note pages are Markdown documents (create_note_page); skill and tutorial pages (create_skill_page) are things to learn, with notes, many clips, links and sub-pages, sorted into groups on their parent's skill board.",
+                "A page that needs no sub-skills takes noSkills (no skill board, progress, to-dos, milestones or learn-first list). widgets picks the tiles above a page's tabs: [\"auto\"] (default) for those with something to show, [] for none, or the tiles in order. Set both when creating a page or with update_page.",
                 "Reference a page by title path ('Lower Body/Glutes') or id. Lists show paths.",
                 "Root folders own the workout type; nested pages inherit it.",
                 "Attach media by absolute path; the app copies it. The first item is the cover.",
@@ -243,6 +245,8 @@ extension AgentToolbox {
         }
         if !attachments.isEmpty { value["media"] = attachments }
         addChecklistCounts(of: page, to: &value)
+        if page.hidesSkills { value["noSkills"] = true }
+        if let widgets = page.widgets { value["widgets"] = widgets }
         let inside = index.children(of: page.id)
         if !inside.isEmpty {
             value["pages"] = inside.prefix(60).map { index.summary($0) }
@@ -282,7 +286,8 @@ extension AgentToolbox {
         guard attachments.count <= 20 else { throw AgentToolError("media_limit", "A page holds up to 20 attachments.") }
         let body = args.string("markdownBody") ?? ""
         let links = args.strings("linkURLs") ?? []
-        let manifest: ExercisePageManifest
+        let flags = try pageFlags(args, pageType: exercise ? .exercise : nil)
+        var manifest: ExercisePageManifest
         if exercise {
             manifest = ExercisePageManifest(
                 title: title, pageKind: .leaf, markdownBody: body, linkURLs: links, workoutType: appliedType,
@@ -292,6 +297,8 @@ extension AgentToolbox {
         } else {
             manifest = ExercisePageManifest(title: title, pageKind: .container, markdownBody: body, linkURLs: links, workoutType: appliedType, parentID: parent?.id)
         }
+        flags.apply(to: &manifest)
+        if !flags.isEmpty { warnings += pageFlagWarnings(manifest) }
         let path = (parent.map { index.titlePath($0.id) + "/" } ?? "") + title
         if dryRun {
             var preview: [String: Any] = ["dryRun": true, "wouldCreate": path]
@@ -377,12 +384,22 @@ extension AgentToolbox {
             try applyIcon(icon, to: &updated)
             changed.append("icon")
         }
+        let flags = try pageFlags(args, pageType: page.pageType)
+        flags.apply(to: &updated)
+        changed += flags.changed
         guard !changed.isEmpty else { throw AgentToolError("invalid_argument", "Nothing to change.", hint: "Pass at least one field besides page.") }
         let parentPrefix = page.parentID.flatMap { index.byID[$0] == nil ? nil : index.titlePath($0) + "/" } ?? ""
         let path = parentPrefix + updated.title
-        if dryRun { return AgentToolOutput(value: ["dryRun": true, "path": path, "wouldChange": changed]) }
+        let warnings = flags.isEmpty ? [] : pageFlagWarnings(updated)
+        if dryRun {
+            var preview: [String: Any] = ["dryRun": true, "path": path, "wouldChange": changed]
+            if !warnings.isEmpty { preview["warnings"] = warnings }
+            return AgentToolOutput(value: preview)
+        }
         try database.updatePage(id: page.id, manifest: updated, newParentID: page.parentID)
-        return AgentToolOutput(value: ["id": page.id, "path": path, "changed": changed])
+        var value: [String: Any] = ["id": page.id, "path": path, "changed": changed]
+        if !warnings.isEmpty { value["warnings"] = warnings }
+        return AgentToolOutput(value: value)
     }
 
     private func movePage(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {
@@ -400,7 +417,7 @@ extension AgentToolbox {
         let from = index.titlePath(page.id)
         let newPath = (destination.map { index.titlePath($0.id) + "/" } ?? "") + page.title
         if dryRun { return AgentToolOutput(value: ["dryRun": true, "wouldMove": from, "to": newPath]) }
-        try database.movePage(id: page.id, newParentID: destination?.id, newOrder: index.children(of: destination?.id).count)
+        try database.movePageToEnd(id: page.id, parentID: destination?.id)
         return AgentToolOutput(value: ["id": page.id, "path": newPath, "from": from])
     }
 
@@ -442,7 +459,75 @@ extension AgentToolbox {
     }
 
     private func listTypes() throws -> AgentToolOutput {
-        AgentToolOutput(value: ["types": workoutTypes().map(\.name)])
+        AgentToolOutput(value: ["types": workoutTypes().map(\.name), "details": workoutTypeDetails()])
+    }
+}
+
+/// A page's `noSkills` and `widgets` settings as a create or update call passes them; nil leaves one alone.
+struct AgentPageFlags {
+    var noSkills: Bool?
+    var widgets: PageWidgetSelection?
+
+    var isEmpty: Bool { noSkills == nil && widgets == nil }
+
+    /// The settings the call changes, as `update_page` lists them.
+    var changed: [String] { (noSkills == nil ? [] : ["noSkills"]) + (widgets == nil ? [] : ["widgets"]) }
+
+    func apply(to manifest: inout ExercisePageManifest) {
+        if let noSkills { manifest.noSkills = noSkills ? true : nil }
+        if let widgets { manifest.widgetSelection = widgets }
+    }
+}
+
+extension AgentToolbox {
+    /// Reads `noSkills` and `widgets` for a page of `pageType`. `widgets` lists tiles in order; ["auto"] goes back to
+    /// automatic and [] or ["none"] shows none. A tile the page cannot show is refused, naming the ones it can.
+    func pageFlags(_ args: AgentArguments, pageType: PageType?) throws -> AgentPageFlags {
+        let passed = ["noSkills", "widgets"].filter { args.has($0) }
+        if pageType == .note, !passed.isEmpty {
+            throw AgentToolError("invalid_page", "Notes show no widgets and no skills; '\(passed.joined(separator: "' and '"))' \(passed.count == 1 ? "does" : "do") not apply.")
+        }
+        var flags = AgentPageFlags(noSkills: args.bool("noSkills"))
+        if let names = args.strings("widgets") { flags.widgets = try widgetSelection(names, for: pageType) }
+        return flags
+    }
+
+    /// The chosen tiles a page that needs no skills keeps hidden, as a warning.
+    func pageFlagWarnings(_ manifest: ExercisePageManifest) -> [String] {
+        guard manifest.hidesSkills, case .chosen(let kinds) = manifest.widgetSelection else { return [] }
+        let hidden = kinds.filter(\.isSkillRelated).map(\.rawValue)
+        guard !hidden.isEmpty else { return [] }
+        return ["The \(hidden.joined(separator: ", ")) widget\(hidden.count == 1 ? " stays" : "s stay") hidden while noSkills is on."]
+    }
+
+    private func widgetSelection(_ names: [String], for pageType: PageType?) throws -> PageWidgetSelection {
+        if names.isEmpty || names == ["none"] { return .hidden }
+        if names == ["auto"] { return .automatic }
+        let available = PageWidgetKind.available(for: pageType)
+        var kinds: [PageWidgetKind] = []
+        for name in names {
+            guard let kind = PageWidgetKind(rawValue: name) else {
+                if name == "auto" || name == "none" {
+                    throw AgentToolError("invalid_argument", "'\(name)' must be the only entry of widgets.", hint: "Pass [\"auto\"] for automatic, [] or [\"none\"] for no widgets, or the tiles to show.")
+                }
+                let valid = PageWidgetKind.allCases.map(\.rawValue).joined(separator: ", ")
+                throw AgentToolError("invalid_argument", "Unknown widget '\(name)'.", hint: "Valid widgets: \(valid); or [\"auto\"] alone, or [] for none.")
+            }
+            guard available.contains(kind) else {
+                let page: String
+                switch pageType {
+                case .exercise?: page = "An exercise page"
+                case .skill?: page = "A skill page"
+                case .tutorial?: page = "A tutorial page"
+                case .note?: page = "A note"
+                case nil: page = "A folder"
+                }
+                let hint = available.isEmpty ? "It shows no widgets." : "It can show: \(available.map(\.rawValue).joined(separator: ", "))."
+                throw AgentToolError("invalid_argument", "\(page) cannot show the \(kind.rawValue) widget.", hint: hint)
+            }
+            if !kinds.contains(kind) { kinds.append(kind) }
+        }
+        return .chosen(kinds)
     }
 }
 

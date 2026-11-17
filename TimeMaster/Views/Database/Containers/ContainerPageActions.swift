@@ -1,6 +1,5 @@
 import SwiftUI
 import TimeMasterCore
-import UniformTypeIdentifiers
 
 /// The menu of a page card: open it, add it to a workout, set a skill's status, edit it, add a page inside it,
 /// duplicate, move or delete it. Each item shows only when the screen showing the card hands over its action.
@@ -26,7 +25,7 @@ struct PageCardMenu: View {
                 Label("Add to Workout", systemImage: "figure.strengthtraining.traditional")
             }
         }
-        if page.isSkillLike, let onSetStatus {
+        if SkillLibrary.isSkill(page), let onSetStatus {
             let current = page.manifest.skillStatus ?? .notStarted
             Menu {
                 ForEach(SkillStatus.boardOrder, id: \.self) { status in
@@ -72,6 +71,8 @@ struct PageCardMenu: View {
 /// What the cards of a page list can do with a page. `ContainerPageActionHost` builds it and shows what it asks for.
 struct ContainerPageActions {
     let open: (ExercisePage) -> Void
+    /// Opens the page playing its first clip: a tap on the page's cover.
+    let openFromCover: (ExercisePage) -> Void
     let addToWorkout: (ExercisePage) -> Void
     let setStatus: (ExercisePage, SkillStatus) -> Void
     let edit: (ExercisePage) -> Void
@@ -81,6 +82,17 @@ struct ContainerPageActions {
     let delete: (ExercisePage) -> Void
     /// Moves the page with this id (dropped on a container's card) inside that container.
     let moveInside: (String, ExercisePage) -> Void
+    /// Puts the page with this id right before the target page (right after it with `true`) in their parent's order;
+    /// a page from another place stays where it is.
+    let place: (String, ExercisePage, Bool) -> Void
+
+    /// What a page dropped on `target`'s card does (`PageCardDragDrop`).
+    func drop(_ id: String, _ placement: PageDropPlacement, on target: ExercisePage) {
+        switch placement {
+        case .inside: moveInside(id, target)
+        case .before, .after: place(id, target, placement == .after)
+        }
+    }
 
     /// The full menu of `page`.
     func menu(for page: ExercisePage) -> PageCardMenu {
@@ -104,6 +116,7 @@ struct ContainerPageActionHost<Content: View>: View {
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @ViewBuilder let content: (ContainerPageActions) -> Content
 
@@ -165,6 +178,9 @@ struct ContainerPageActionHost<Content: View>: View {
             open: { page in
                 navigationState.path.append(DatabasePageRoute(pageID: page.manifest.id))
             },
+            openFromCover: { page in
+                PageCoverOpening.open(page, in: navigationState)
+            },
             addToWorkout: { addingToWorkout = $0 },
             setStatus: { page, status in setStatus(status, of: page) },
             edit: { editing = $0 },
@@ -172,7 +188,8 @@ struct ContainerPageActionHost<Content: View>: View {
             duplicate: { page in duplicate(page) },
             move: { moving = $0 },
             delete: { deleting = $0 },
-            moveInside: { id, target in moveInside(id, target) }
+            moveInside: { id, target in moveInside(id, target) },
+            place: { id, target, after in place(id, nextTo: target, after: after) }
         )
     }
 
@@ -199,45 +216,22 @@ struct ContainerPageActionHost<Content: View>: View {
     }
 
     private func moveInside(_ id: String, _ target: ExercisePage) {
-        guard id != target.manifest.id, store.page(manifestID: id)?.manifest.parentID != target.manifest.id else { return }
+        guard id != target.manifest.id,
+              store.page(manifestID: id)?.manifest.parentID != target.manifest.id,
+              !store.breadcrumbs(for: target.id).contains(where: { $0.manifest.id == id }) else { return }
         let moved = SkillErrorCenter.shared.attempt("Move the page") {
-            try store.movePage(id: id, newParentID: target.manifest.id, newOrder: target.manifest.childIDs.count)
+            try store.movePageToEnd(id: id, parentID: target.manifest.id)
         }
         if moved { EverHaptic.success() }
     }
-}
 
-/// Lets pages dragged onto a container's card (a container, skill or tutorial) move inside it, outlined in orange
-/// while one hovers. Other cards take no drops.
-struct ContainerDropTarget: ViewModifier {
-    let page: ExercisePage
-    var cornerRadius: CGFloat = 20
-    let onMoveInside: (String, ExercisePage) -> Void
-
-    @State private var isTargeted = false
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if page.isContainer {
-            content
-                .onDrop(of: [UTType.plainText], isTargeted: $isTargeted) { providers in
-                    guard let provider = providers.first else { return false }
-                    let target = page
-                    let move = onMoveInside
-                    provider.loadObject(ofClass: NSString.self) { object, _ in
-                        guard let id = object as? String, id != target.manifest.id else { return }
-                        DispatchQueue.main.async { move(id, target) }
-                    }
-                    return true
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Theme.toolbarOrange, lineWidth: 2)
-                        .opacity(isTargeted ? 1 : 0)
-                        .allowsHitTesting(false)
-                }
-        } else {
-            content
+    private func place(_ id: String, nextTo target: ExercisePage, after: Bool) {
+        guard id != target.manifest.id, store.page(manifestID: id)?.manifest.parentID == target.manifest.parentID else { return }
+        let placed = SkillErrorCenter.shared.attempt("Move the page") {
+            try withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.86)) {
+                try store.placePage(id, nextTo: target.manifest.id, after: after)
+            }
         }
+        if placed { EverHaptic.selection() }
     }
 }

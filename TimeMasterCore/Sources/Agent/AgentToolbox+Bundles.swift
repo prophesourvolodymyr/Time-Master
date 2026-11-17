@@ -11,7 +11,7 @@ extension AgentToolbox {
         }
     }
 
-    private static let sectionKeys = ["exercise", "bundle", "name", "duration", "sets", "repCount", "restBetweenSets", "prepareTime", "restAfter"]
+    private static let sectionKeys = ["exercise", "bundle", "name", "duration", "sets", "repCount", "restBetweenSets", "prepareTime", "restAfter", "untimed"]
 
     private func sectionIndex(_ reference: String, in workout: WorkoutManifest) throws -> Int {
         let text = reference.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -123,6 +123,10 @@ extension AgentToolbox {
         if let value = args.int("restAfter") {
             setRest(value, on: &section)
             changed.append("restAfter")
+        }
+        if let untimed = args.bool("untimed") {
+            section.isTimerEnabled = !untimed
+            changed.append("untimed")
         }
         if section.mode == .bundle {
             for key in ["duration", "repCount"] where args.has(key) {

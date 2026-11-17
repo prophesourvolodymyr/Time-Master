@@ -199,8 +199,6 @@ struct SlotNavigationTheme {
     var textPrimary: Color
     /// Guide copy, picker message and the source-change glyph.
     var textSecondary: Color
-    /// "Add" glyphs, the catalog glyph and the catalog chip border.
-    var success: Color
     /// Removal glyph and notification badge fill.
     var destructive: Color
     /// Scrim shown over the content while the editor is open.
@@ -213,7 +211,7 @@ struct SlotNavigationTheme {
     var badgeText: Color
     /// Fill behind quiet buttons in the editor chrome.
     var controlSurface: Color
-    /// Fill of the prominent confirmation button in the guide.
+    /// Brand accent of the editor: the "+" slots, the catalog's add badges and the guide's step markers.
     var accent: Color
     /// Label color on top of `accent`.
     var onAccent: Color
@@ -224,7 +222,6 @@ struct SlotNavigationTheme {
         rim: Color,
         textPrimary: Color,
         textSecondary: Color,
-        success: Color,
         destructive: Color,
         scrim: Color,
         scrimOpacity: Double,
@@ -239,7 +236,6 @@ struct SlotNavigationTheme {
         self.rim = rim
         self.textPrimary = textPrimary
         self.textSecondary = textSecondary
-        self.success = success
         self.destructive = destructive
         self.scrim = scrim
         self.scrimOpacity = scrimOpacity
@@ -257,14 +253,13 @@ struct SlotNavigationTheme {
         rim: Color.white.opacity(0.12),
         textPrimary: Theme.textPrimary,
         textSecondary: Theme.textSecondary,
-        success: Color(hex: "32D74B"),
         destructive: Color(hex: "FF453A"),
         scrim: .black,
         scrimOpacity: 0.35,
         badgeText: .white,
         background: Theme.background,
         controlSurface: Theme.surface2,
-        accent: .white,
+        accent: Theme.toolbarOrange,
         onAccent: .black
     )
 }
@@ -272,6 +267,7 @@ struct SlotNavigationTheme {
 // MARK: - Copy
 
 struct SlotNavigationGuideStep {
+    /// SF Symbol drawn in the step's marker.
     var symbol: String
     var text: String
 
@@ -372,10 +368,10 @@ struct SlotNavigationStrings {
     static let timeMaster = SlotNavigationStrings(
         editorTitle: "Edit menu bar",
         guideSteps: [
-            SlotNavigationGuideStep(symbol: "\u{2795}", text: "Tap + to add one of the app's pages."),
-            SlotNavigationGuideStep(symbol: "\u{1F446}", text: "Hold an icon, then drag it to change its position."),
-            SlotNavigationGuideStep(symbol: "\u{2B06}\u{FE0F}", text: "Drag an icon upward to remove it from the menu."),
-            SlotNavigationGuideStep(symbol: "\u{2705}", text: "Tap the dimmed background to finish.")
+            SlotNavigationGuideStep(symbol: "plus", text: "Tap + to add one of the app's pages."),
+            SlotNavigationGuideStep(symbol: "hand.point.up.left", text: "Hold an icon, then drag it to change its position."),
+            SlotNavigationGuideStep(symbol: "arrow.up", text: "Drag an icon upward to remove it from the menu."),
+            SlotNavigationGuideStep(symbol: "checkmark", text: "Tap the dimmed background to finish.")
         ],
         guideDismissTitle: "Got it",
         guideAccessibilityLabel: "Menu editing guide",

@@ -33,6 +33,11 @@ extension WorkoutActivityAttributes.ContentState {
         phase == .setRest || phase == .sectionRest
     }
 
+    /// The small line under the title: the workout's name, led by "Until Done" while an untimed set runs.
+    func caption(workoutName: String) -> String {
+        isUntimed ? "Until Done · \(workoutName)" : workoutName
+    }
+
     var showsArtwork: Bool {
         phase == .active || phase == .prepare || phase == .warmUp
     }
@@ -77,7 +82,13 @@ struct TmaxLiveCountdown: View {
     var showsHours = true
 
     var body: some View {
-        if let endDate = state.phaseEndDate, !state.isPaused {
+        if let interval = state.countUpInterval {
+            Text(timerInterval: interval, countsDown: false, showsHours: showsHours)
+                .accessibilityLabel("Until done")
+        } else if let seconds = state.untimedSeconds {
+            Text(WorkoutActivityAttributes.ContentState.clock(seconds: seconds, showsHours: showsHours))
+                .accessibilityLabel("Until done, \(WorkoutActivityAttributes.ContentState.spokenDuration(seconds)) in")
+        } else if let endDate = state.phaseEndDate, !state.isPaused {
             let now = Date.now
             Text(timerInterval: now...max(now, endDate), countsDown: true, showsHours: showsHours)
         } else {

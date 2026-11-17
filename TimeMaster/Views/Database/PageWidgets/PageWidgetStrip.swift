@@ -1,9 +1,12 @@
 import SwiftUI
+import TimeMasterCore
 
 /// The widgets under a page's header: Skillmax's widget strip in Tmax's colours, for any page, and with nothing that
 /// starts a session. Each tile says one thing about the page (its clips, its progress, its to-dos and milestones, what
 /// to learn first, the workouts that train it, what a folder holds) and a tap hands `onOpen` the part of the page that
-/// says more. A to-do is ticked off right on its tile. A page with nothing to show (a note) draws no strip at all.
+/// says more. A to-do is ticked off right on its tile. The page's `widgets` setting picks the tiles
+/// (`PageWidgetItem.items(for:store:workoutStore:)`); with none to show (a note, a page that turned them off, or one
+/// with nothing to say yet) there is no strip at all.
 ///
 /// A tile's box is there from the first frame and its content fades in once the page has finished opening, so the
 /// strip costs the opening nothing. When the tiles fit the row they share it; narrower, on an iPhone they scroll

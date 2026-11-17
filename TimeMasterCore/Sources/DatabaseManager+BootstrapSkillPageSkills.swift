@@ -23,6 +23,8 @@ Build a skill tree: skills to learn, grouped on a board, each with notes, many v
 5. `tmax get_page --page "Wrestling/Arm Drag"` reads status, group, notes, every clip with its comment and the sub-pages. `tmax get_page --page "Wrestling"` lists the groups of the board. `tmax search_pages --query "<words>"` also looks inside notes and clip comments.
 
 Order skills from easy to hard: pages appear in the order they were created inside their group.
+
+A page that needs no sub-skills (a tutorial or a reel that is just clips and notes) takes `--no-skills` when it is created, or later `tmax update_page --page "<Skill/Path>" --no-skills`: it then shows no skill board, progress, to-dos, milestones or learn-first list (`--no-skills false` brings them back). `--widgets clips --widgets workouts` picks the widget tiles above a page's tabs, in that order; `--widgets auto` goes back to the tiles that have something to show and `--widgets none` shows none.
 """
     }
 }

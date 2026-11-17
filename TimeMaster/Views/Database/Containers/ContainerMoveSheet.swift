@@ -137,10 +137,8 @@ struct ContainerMoveSheet: View {
     }
 
     private func move(to place: Place) {
-        let parentID = place.target?.manifest.id
-        let order = place.target?.manifest.childIDs.count ?? store.rootPages.count
         let moved = SkillErrorCenter.shared.attempt("Move the page") {
-            try store.movePage(id: page.manifest.id, newParentID: parentID, newOrder: order)
+            try store.movePageToEnd(id: page.manifest.id, parentID: place.target?.manifest.id)
         }
         guard moved else { return }
         EverHaptic.success()

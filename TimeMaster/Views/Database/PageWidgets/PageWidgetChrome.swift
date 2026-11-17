@@ -1,4 +1,5 @@
 import SwiftUI
+import TimeMasterCore
 
 /// The sizes every page widget shares.
 enum PageWidgetMetrics {

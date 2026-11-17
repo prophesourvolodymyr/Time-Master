@@ -162,6 +162,10 @@ struct PageCreationSheet: View {
     @State private var draftSavedMessage: String?
     @State private var saveErrorMessage: String?
     @State private var autosaveTask: Task<Void, Never>?
+    @State private var noSkills: Bool
+    @State private var widgetSelection: PageWidgetSelection
+    /// The tiles last chosen in this form, so going to Automatic or None and back to Choose… keeps them.
+    @State private var chosenWidgets: [PageWidgetKind]?
     #if os(iOS)
     @State private var pendingMediaItems: [PhotosPickerItem] = []
     #endif
@@ -225,6 +229,14 @@ struct PageCreationSheet: View {
         _linkRows = State(initialValue: initialLinks.isEmpty ? [PageCreationLinkRow(url: "")] : initialLinks)
         _mediaFilenames = State(initialValue: initialMedia)
         _mediaComments = State(initialValue: page?.manifest.mediaComments ?? [:])
+        _noSkills = State(initialValue: page?.manifest.hidesSkills ?? false)
+        let widgets = page?.manifest.widgetSelection ?? .automatic
+        _widgetSelection = State(initialValue: widgets)
+        if case .chosen(let kinds) = widgets {
+            _chosenWidgets = State(initialValue: kinds)
+        } else {
+            _chosenWidgets = State(initialValue: nil)
+        }
         _draftID = State(initialValue: UUID())
     }
 
@@ -257,6 +269,9 @@ struct PageCreationSheet: View {
                         if isExercisePage {
                             timingCard
                             dropSetTemplatesCard
+                        }
+                        if existingPage != nil, !isNotePage {
+                            pageContentCard
                         }
                         if !isNotePage {
                             markdownCard
@@ -762,6 +777,145 @@ struct PageCreationSheet: View {
                 .foregroundStyle(Theme.textPrimary)
             }
         }
+    }
+
+    private var formPageType: PageType? { pageType ?? (pageKind == .leaf ? .exercise : nil) }
+
+    /// Skills, tutorials and folders can do without skills; an exercise never has any.
+    private var offersNoSkills: Bool { formPageType != .exercise && formPageType != .note }
+
+    private var choosesWidgets: Bool {
+        if case .chosen = widgetSelection { return true }
+        return false
+    }
+
+    private var chosenWidgetKinds: [PageWidgetKind] {
+        if case .chosen(let kinds) = widgetSelection { return kinds }
+        return []
+    }
+
+    /// The tiles the page can show with the switches as they are, in the strip's own order.
+    private var offeredWidgets: [PageWidgetKind] {
+        PageWidgetKind.available(for: formPageType, noSkills: noSkills)
+    }
+
+    /// The edit form's "On this page": whether the page needs skills at all, and which widgets sit above its tabs.
+    private var pageContentCard: some View {
+        formCard {
+            sectionHeading("On this page", tag: .optional)
+            if offersNoSkills {
+                Toggle(isOn: $noSkills.animation(reduceMotion ? nil : .easeOut(duration: 0.2))) {
+                    formRowLabel("No skills", detail: "No sub-skills, progress, to-dos, milestones or Learn first on this page. Nothing is deleted; switch it off to bring them back.")
+                }
+                .toggleStyle(.switch)
+                .tint(Theme.toolbarOrange)
+                .padding(12)
+                .modifier(PageFormFieldSurface())
+            }
+            formRowLabel("Widgets", detail: widgetModeDetail)
+            HStack(spacing: 8) {
+                widgetModeButton("Automatic", isSelected: widgetSelection == .automatic) { widgetSelection = .automatic }
+                widgetModeButton("None", isSelected: widgetSelection == .hidden) { widgetSelection = .hidden }
+                widgetModeButton("Choose…", isSelected: choosesWidgets) { chooseWidgets() }
+            }
+            if choosesWidgets {
+                VStack(spacing: 8) {
+                    ForEach(offeredWidgets) { kind in
+                        widgetToggle(kind)
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
+    }
+
+    private var widgetModeDetail: String {
+        switch widgetSelection {
+        case .automatic:
+            return "Only the tiles that have something to show."
+        case .hidden:
+            return "No widgets above the tabs."
+        case .chosen:
+            let held = noSkills ? PageWidgetKind.available(for: formPageType).filter(\.isSkillRelated) : []
+            let chosen = "Exactly the tiles switched on below, even when empty."
+            guard !held.isEmpty else { return chosen }
+            return chosen + " " + held.map(\.title).joined(separator: ", ") + " stay off while No skills is on."
+        }
+    }
+
+    private func formRowLabel(_ title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(TimeMasterFont.black(16, relativeTo: .callout))
+                .foregroundStyle(Theme.textPrimary)
+            Text(detail)
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func widgetModeButton(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { action() }
+        } label: {
+            Text(title)
+        }
+        .buttonStyle(PageFormSelectorStyle(isSelected: isSelected))
+        .accessibilityLabel("Widgets: \(title)")
+    }
+
+    private func widgetToggle(_ kind: PageWidgetKind) -> some View {
+        let isOn = Binding(
+            get: { chosenWidgetKinds.contains(kind) },
+            set: { shown in
+                let kinds = chosenWidgetKinds.settingWidget(kind, shown: shown)
+                chosenWidgets = kinds
+                widgetSelection = .chosen(kinds)
+            }
+        )
+        return Toggle(isOn: isOn) {
+            Label {
+                Text(kind.title)
+                    .font(TimeMasterFont.body(16))
+                    .foregroundStyle(Theme.textPrimary)
+            } icon: {
+                Image(systemName: kind.systemImage)
+                    .foregroundStyle(Theme.toolbarOrange)
+            }
+        }
+        .toggleStyle(.switch)
+        .tint(Theme.toolbarOrange)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .modifier(PageFormFieldSurface())
+    }
+
+    /// Choose… starts from the tiles chosen before in this form, else from what the page shows on its own right now.
+    private func chooseWidgets() {
+        guard !choosesWidgets else { return }
+        let kinds = chosenWidgets ?? automaticWidgets
+        chosenWidgets = kinds
+        widgetSelection = .chosen(kinds)
+    }
+
+    private var automaticWidgets: [PageWidgetKind] {
+        guard let existingPage else { return [] }
+        return PageWidgetItem.items(
+            for: existingPage,
+            selection: .automatic,
+            noSkills: noSkills,
+            store: databaseStore,
+            workoutStore: workoutStore
+        ).map(\.kind)
+    }
+
+    /// The widget setting to save: a chosen list keeps only the tiles a page of `pageType` can show.
+    private func savedWidgetSelection(for pageType: PageType?) -> PageWidgetSelection {
+        guard case .chosen(let kinds) = widgetSelection else { return widgetSelection }
+        let available = PageWidgetKind.available(for: pageType)
+        return .chosen(kinds.filter { available.contains($0) })
     }
 
     private var timingCard: some View {
@@ -1499,6 +1653,11 @@ struct PageCreationSheet: View {
             if isExercise {
                 manifest.linkedPageIDs = []
                 manifest.skillBoardSections = []
+            }
+            if resolvedPageType != .note {
+                manifest.noSkills = noSkills ? true : nil
+                let widgets = savedWidgetSelection(for: resolvedPageType)
+                if widgets != existingPage.manifest.widgetSelection { manifest.widgetSelection = widgets }
             }
             manifest.updatedAt = Date()
             return manifest

@@ -8,6 +8,8 @@ struct WorkoutSectionImportConfiguration {
     var restAfter: Int
     var restBetweenSets: Int
     var prepareTime: Int
+    /// false: every set runs until the user taps Done, and `duration` is only the estimate the totals use.
+    var isTimerEnabled: Bool
 
     init(
         duration: Int,
@@ -15,7 +17,8 @@ struct WorkoutSectionImportConfiguration {
         repCount: Int?,
         restAfter: Int,
         restBetweenSets: Int,
-        prepareTime: Int
+        prepareTime: Int,
+        isTimerEnabled: Bool = true
     ) {
         self.duration = max(5, duration)
         self.sets = max(1, sets)
@@ -23,6 +26,7 @@ struct WorkoutSectionImportConfiguration {
         self.restAfter = max(0, restAfter)
         self.restBetweenSets = max(0, restBetweenSets)
         self.prepareTime = min(30, max(0, prepareTime))
+        self.isTimerEnabled = isTimerEnabled
     }
 }
 
@@ -70,6 +74,7 @@ enum WorkoutSectionBuilder {
         return Section(
             name: page.title,
             duration: configuration.duration,
+            isTimerEnabled: configuration.isTimerEnabled,
             sets: configuration.sets,
             repCount: configuration.repCount,
             restBetweenSets: configuration.restBetweenSets,
@@ -142,6 +147,7 @@ enum WorkoutSectionBuilder {
         return Section(
             name: "Bundle: \(names)",
             duration: configuration.duration,
+            isTimerEnabled: configuration.isTimerEnabled,
             sets: configuration.sets,
             repCount: configuration.repCount,
             restBetweenSets: configuration.restBetweenSets,

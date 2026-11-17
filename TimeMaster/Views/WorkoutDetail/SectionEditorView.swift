@@ -146,7 +146,8 @@ struct SectionEditorView: View {
                         repCount: reps > 0 ? reps : nil,
                         restAfter: restAfter,
                         restBetweenSets: restBetween,
-                        prepareTime: preparation
+                        prepareTime: preparation,
+                        isTimerEnabled: isTimerEnabled
                     )
                     guard let imported = WorkoutSectionBuilder.makeSection(
                         page: page,
@@ -161,7 +162,8 @@ struct SectionEditorView: View {
                         repCount: reps > 0 ? reps : nil,
                         restAfter: restAfter,
                         restBetweenSets: restBetween,
-                        prepareTime: preparation
+                        prepareTime: preparation,
+                        isTimerEnabled: isTimerEnabled
                     )
                     guard let imported = WorkoutSectionBuilder.makeBundle(
                         sources: sources,
@@ -322,38 +324,33 @@ struct SectionEditorView: View {
 
     private var durationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Timer on/off toggle header
+            Text("Timer")
+                .font(TimeMasterFont.black(17, relativeTo: .headline))
+                .foregroundColor(Theme.textPrimary)
+            SectionTimingPicker(isTimerEnabled: $isTimerEnabled)
+            Text(isTimerEnabled
+                 ? "Each set counts down."
+                 : "Each set runs until you tap Done. The time below is only an estimate for the workout's total.")
+                .font(TimeMasterFont.caption())
+                .foregroundColor(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Timer")
-                        .font(TimeMasterFont.black(17, relativeTo: .headline))
-                        .foregroundColor(Theme.textPrimary)
-                    Text(isTimerEnabled ? "Countdown enabled" : "No countdown — sets only")
+                    Text(isTimerEnabled ? "Duration" : "Estimated time")
                         .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
-                }
-                Spacer()
-                Toggle("", isOn: $isTimerEnabled)
-                    .labelsHidden()
-                    .tint(.white)
-                    .keyNavTarget(shape: .roundedRectangle(cornerRadius: 4), action: { isTimerEnabled.toggle() })
-            }
-
-            // Duration stepper — only shown when timer is on
-            if isTimerEnabled {
-                HStack {
                     Text("\(duration)s")
                         .font(TimeMasterFont.black(22, relativeTo: .title2).monospacedDigit())
                         .foregroundColor(Theme.textPrimary)
-                    Spacer()
-                    Stepper("", value: $duration, in: 5...300, step: 5).labelsHidden()
-                        .keyNavStepperButtons(value: $duration, in: 5...300, step: 5)
                 }
-                .padding(16)
-                .background(Theme.surface)
-                .cornerRadius(12)
-                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
+                Spacer()
+                Stepper("", value: $duration, in: 5...300, step: 5).labelsHidden()
+                    .keyNavStepperButtons(value: $duration, in: 5...300, step: 5)
             }
+            .padding(16)
+            .background(Theme.surface)
+            .cornerRadius(12)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
         }
     }
 

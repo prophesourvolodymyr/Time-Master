@@ -199,6 +199,31 @@ final class MediaRevisions: ObservableObject {
     }
 }
 
+/// A clip to start in its card when the page holding it opens: a page's cover in a Database list opens the page and
+/// plays its first clip. Asked for just before the page is pushed; the first media strip with inline playback that
+/// shows the clip takes it, and a request nobody took within a few seconds lapses.
+@MainActor
+enum MediaAutoplayIntent {
+    private static var pending: (url: URL, requestedAt: TimeInterval)?
+    private static let lifetime: TimeInterval = 5
+
+    static func request(_ url: URL) {
+        pending = (url.standardizedFileURL, ProcessInfo.processInfo.systemUptime)
+    }
+
+    /// The index in `urls` of the clip asked for, taking the request; nil when none is waiting for these media.
+    static func take(from urls: [URL]) -> Int? {
+        guard let request = pending else { return nil }
+        guard ProcessInfo.processInfo.systemUptime - request.requestedAt <= lifetime else {
+            pending = nil
+            return nil
+        }
+        guard let index = urls.firstIndex(where: { $0.standardizedFileURL == request.url }) else { return nil }
+        pending = nil
+        return index
+    }
+}
+
 /// One entry of a media card's menu (its ellipsis button and context menu).
 struct MediaCardAction: Identifiable {
     let id: String

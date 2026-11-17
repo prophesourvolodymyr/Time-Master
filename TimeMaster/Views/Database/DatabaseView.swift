@@ -361,12 +361,14 @@ struct DatabaseView: View {
     @State private var noteCreationError: String?
     @State private var pageToMove: ExercisePage?
     @State private var isGridMode = false
-    @State private var sortOption: PageSortOption = .name
+    @AppStorage("tm.database.sort") private var sortOption: PageSortOption = .name
     @State private var selectedWorkoutTypeIDs: Set<String> = []
     @State private var showingDatabaseSearch = false
     @State private var expandedPageIDs: Set<String> = []
     @State private var pageToEdit: ExercisePage?
     @State private var pageToAddWorkout: ExercisePage?
+    @State private var pageDrag: PageDragSource?
+    @State private var pageWriteError: String?
 
     var body: some View {
         let isV2 = MigrationManager.isV2PageMigrationComplete
@@ -429,6 +431,14 @@ struct DatabaseView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(noteCreationError ?? "")
+            }
+            .alert("Couldn’t save", isPresented: Binding(
+                get: { pageWriteError != nil },
+                set: { if !$0 { pageWriteError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(pageWriteError ?? "")
             }
             .sheet(item: $creationRequest) { request in
                 PageCreationSheet(
@@ -1009,6 +1019,7 @@ struct DatabaseView: View {
                     openButton(page)
                         .padding(7)
                 }
+                .modifier(pageDragDrop(entry, axis: .horizontal, gap: 10))
                 .padding(.leading, CGFloat(entry.depth * 12))
             }
         }
@@ -1039,28 +1050,92 @@ struct DatabaseView: View {
         }
 
         switch sortOption {
+        case .manual:
+            break // `rootPages` come in their stored order
         case .name:
             pages.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
         case .dateCreated:
             pages.sort { $0.manifest.createdAt > $1.manifest.createdAt }
         case .workoutType:
             pages.sort { ($0.effectiveWorkoutType?.name ?? "zzz") < ($1.effectiveWorkoutType?.name ?? "zzz") }
+        case .used:
+            let usage = store.pageUsage(workoutStore)
+            pages.sort { usage.ranks($0, before: $1) }
         }
 
         return pages
     }
 
     private var visiblePageEntries: [DatabasePageEntry] {
-        filteredRootPages.flatMap { flattenedEntries(for: $0, depth: 0) }
+        Self.entries(for: filteredRootPages, depth: 0, expanded: expandedPageIDs)
     }
 
-    private func flattenedEntries(for page: ExercisePage, depth: Int) -> [DatabasePageEntry] {
-        var entries = [DatabasePageEntry(page: page, depth: depth)]
-        guard expandedPageIDs.contains(page.manifest.id) else { return entries }
-        for child in page.children {
-            entries.append(contentsOf: flattenedEntries(for: child, depth: depth + 1))
+    /// `pages` and, under each expanded one, its children, each with the siblings shown next to it.
+    private static func entries(for pages: [ExercisePage], depth: Int, expanded: Set<String>) -> [DatabasePageEntry] {
+        var entries: [DatabasePageEntry] = []
+        for (index, page) in pages.enumerated() {
+            entries.append(DatabasePageEntry(
+                page: page,
+                depth: depth,
+                previous: index > 0 ? pages[index - 1] : nil,
+                next: index + 1 < pages.count ? pages[index + 1] : nil
+            ))
+            if expanded.contains(page.manifest.id) {
+                entries.append(contentsOf: Self.entries(for: page.children, depth: depth + 1, expanded: expanded))
+            }
         }
         return entries
+    }
+
+    /// Drags a page's card or row and takes drops on it: any page into a container, a sibling beside it in the
+    /// Manual sort (VoiceOver gets Move Up and Move Down there).
+    private func pageDragDrop(_ entry: DatabasePageEntry, axis: Axis, gap: CGFloat) -> PageCardDragDrop {
+        let page = entry.page
+        return PageCardDragDrop(
+            page: page,
+            axis: axis,
+            cornerRadius: 20,
+            gap: gap,
+            reorders: sortOption == .manual,
+            holds: page.isContainer,
+            source: $pageDrag,
+            onDrop: { id, placement in dropPage(id, placement, on: page) },
+            onMoveUp: entry.previous.map { previous in { placePage(page.manifest.id, nextTo: previous, after: false) } },
+            onMoveDown: entry.next.map { next in { placePage(page.manifest.id, nextTo: next, after: true) } }
+        )
+    }
+
+    private func dropPage(_ id: String, _ placement: PageDropPlacement, on target: ExercisePage) {
+        switch placement {
+        case .inside:
+            guard id != target.manifest.id,
+                  store.page(manifestID: id)?.manifest.parentID != target.manifest.id,
+                  !store.breadcrumbs(for: target.id).contains(where: { $0.manifest.id == id }) else { return }
+            savePage("Move the page") {
+                try store.movePageToEnd(id: id, parentID: target.manifest.id)
+            }
+        case .before, .after:
+            placePage(id, nextTo: target, after: placement == .after)
+        }
+    }
+
+    /// Puts page `id` right before or after its sibling `target`, for good; a page from another place stays put.
+    private func placePage(_ id: String, nextTo target: ExercisePage, after: Bool) {
+        guard id != target.manifest.id, store.page(manifestID: id)?.manifest.parentID == target.manifest.parentID else { return }
+        savePage("Move the page") {
+            try withAnimation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.86)) {
+                try store.placePage(id, nextTo: target.manifest.id, after: after)
+            }
+        }
+    }
+
+    private func savePage(_ title: String, _ write: () throws -> Void) {
+        do {
+            try write()
+            EverHaptic.selection()
+        } catch {
+            pageWriteError = "\(title): \(error.localizedDescription)"
+        }
     }
 
     private func pageRow(_ entry: DatabasePageEntry) -> some View {
@@ -1076,6 +1151,7 @@ struct DatabaseView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .modifier(TimeMasterCardSurface(flat: true))
+        .modifier(pageDragDrop(entry, axis: .vertical, gap: 4))
         .padding(.leading, CGFloat(min(entry.depth, 4) * 12))
         .padding(.horizontal, 16)
     }
@@ -1089,13 +1165,8 @@ struct DatabaseView: View {
             onAddChild: { creationRequest = PageCreationRequest(pageType: .exercise, parentID: page.manifest.id) },
             onDuplicate: { try? store.duplicatePage(page) },
             onDelete: { try? store.deletePage(id: page.manifest.id) },
-            onMoveIntoContainer: { sourceID in
-                try? store.movePage(
-                    id: sourceID,
-                    newParentID: page.manifest.id,
-                    newOrder: page.children.count
-                )
-            }
+            isDraggable: false,
+            onOpenCover: { PageCoverOpening.open(page, in: navigationState) }
         )
     }
 
@@ -1125,6 +1196,7 @@ struct DatabaseView: View {
             }
             .accessibilityHint("Opens this page")
             .accessibilityIdentifier("database-row-\(page.manifest.id)")
+            .modifier(PageClipAccessibilityAction(page: page) { PageCoverOpening.open(page, in: navigationState) })
         } else {
             Group {
                 if isGridMode {
@@ -1138,6 +1210,7 @@ struct DatabaseView: View {
             .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
             .accessibilityHint(isExpanded ? "Collapses this group" : "Expands this group")
             .accessibilityIdentifier("database-row-\(page.manifest.id)")
+            .modifier(PageClipAccessibilityAction(page: page) { PageCoverOpening.open(page, in: navigationState) })
         }
     }
 
@@ -1201,6 +1274,9 @@ struct DatabaseView: View {
 private struct DatabasePageEntry: Identifiable {
     let page: ExercisePage
     let depth: Int
+    /// The siblings shown right before and after it, for Move Up and Move Down.
+    let previous: ExercisePage?
+    let next: ExercisePage?
 
     var id: String { page.manifest.id }
 }
@@ -2984,15 +3060,21 @@ private struct ExportSectionHeader: View {
 
 
 enum PageSortOption: String, CaseIterable {
+    /// The order the pages are kept in (`PageOrder`); drag a page onto another to change it.
+    case manual
     case name
     case dateCreated
     case workoutType
+    /// Most used in the saved workouts and their finished sessions first (`PageUsageIndex`); never used last.
+    case used
 
     var label: String {
         switch self {
+        case .manual: return "Manual"
         case .name: return "Name"
         case .dateCreated: return "Date Created"
         case .workoutType: return "Workout Type"
+        case .used: return "Most Used"
         }
     }
 }

@@ -65,18 +65,15 @@ struct DatabaseGroupCover: View {
             .id(coverURLs[index])
     }
 
+    /// Up to four covers from the pages inside `page`, depth first in their stored order (`page.children` keep it);
+    /// the page's own cover when nothing inside has one.
     static func descendantCoverURLs(in page: ExercisePage) -> [URL] {
         var urls: [URL] = []
         var seen = Set<URL>()
         urls.reserveCapacity(4)
 
         func collect(_ children: [ExercisePage]) {
-            for child in children.sorted(by: {
-                if $0.manifest.order != $1.manifest.order {
-                    return $0.manifest.order < $1.manifest.order
-                }
-                return $0.manifest.id < $1.manifest.id
-            }) {
+            for child in children {
                 if let url = child.coverImageURL, seen.insert(url).inserted {
                     urls.append(url)
                     if urls.count == 4 { return }

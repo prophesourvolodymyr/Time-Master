@@ -2,11 +2,12 @@ import SwiftUI
 import TimeMasterCore
 
 /// Search results of the Skills page: every page inside the listed skills whose title, notes, comments, links,
-/// groups, to-dos or milestones hold the query, grouped by skill, each with the line that matched.
+/// groups, to-dos or milestones hold the query, by skill under the page's category sections (a section with no match
+/// is left out), each hit with the line that matched.
 struct SkillsSearchResults: View {
     let query: String
-    /// The top-level skills, in the order the page shows them.
-    let roots: [ExercisePage]
+    /// The listed skills by section, in the order the page shows them.
+    let sections: [SkillCategorySection]
     let library: SkillLibrary
     let onOpen: (ExercisePage) -> Void
 
@@ -18,15 +19,25 @@ struct SkillsSearchResults: View {
         var id: String { root.manifest.id }
     }
 
-    private var groups: [ResultGroup] {
-        roots.compactMap { root in
-            let hits = ([root] + library.pages(below: root)).filter { SkillSearchSnippet.matches($0.manifest, query: query) }
-            return hits.isEmpty ? nil : ResultGroup(root: root, hits: Array(hits.prefix(Self.hitsPerSkill)))
+    private struct ResultSection: Identifiable {
+        let category: SkillCategory
+        let groups: [ResultGroup]
+        var id: SkillCategory { category }
+    }
+
+    private var resultSections: [ResultSection] {
+        sections.compactMap { section in
+            let groups = section.entries.compactMap { entry -> ResultGroup? in
+                let root = entry.page
+                let hits = ([root] + library.pages(below: root)).filter { SkillSearchSnippet.matches($0.manifest, query: query) }
+                return hits.isEmpty ? nil : ResultGroup(root: root, hits: Array(hits.prefix(Self.hitsPerSkill)))
+            }
+            return groups.isEmpty ? nil : ResultSection(category: section.category, groups: groups)
         }
     }
 
     var body: some View {
-        let results = groups
+        let results = resultSections
         if results.isEmpty {
             VStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
@@ -45,12 +56,17 @@ struct SkillsSearchResults: View {
             .padding(.top, 48)
             .accessibilityElement(children: .combine)
         } else {
-            LazyVStack(alignment: .leading, spacing: 20) {
-                ForEach(results) { group in
-                    VStack(alignment: .leading, spacing: 8) {
-                        header(group)
-                        ForEach(group.hits, id: \.manifest.id) { page in
-                            hitRow(page, root: group.root)
+            LazyVStack(alignment: .leading, spacing: 26) {
+                ForEach(results) { section in
+                    VStack(alignment: .leading, spacing: 16) {
+                        SkillCategoryHeader(category: section.category, count: section.groups.count)
+                        ForEach(section.groups) { group in
+                            VStack(alignment: .leading, spacing: 8) {
+                                header(group, category: section.category)
+                                ForEach(group.hits, id: \.manifest.id) { page in
+                                    hitRow(page, root: group.root, category: section.category)
+                                }
+                            }
                         }
                     }
                 }
@@ -58,9 +74,9 @@ struct SkillsSearchResults: View {
         }
     }
 
-    private func header(_ group: ResultGroup) -> some View {
+    private func header(_ group: ResultGroup, category: SkillCategory) -> some View {
         HStack(spacing: 8) {
-            SkillPageIconTile(page: group.root, size: 20)
+            SkillCardIcon(page: group.root, category: category, size: 22)
             Text(group.root.title)
                 .font(TimeMasterFont.black(12, relativeTo: .caption))
                 .tracking(1.0)
@@ -77,16 +93,14 @@ struct SkillsSearchResults: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    private func hitRow(_ page: ExercisePage, root: ExercisePage) -> some View {
+    private func hitRow(_ page: ExercisePage, root: ExercisePage, category: SkillCategory) -> some View {
         let snippet = SkillSearchSnippet.make(for: page.manifest, query: query)
         let path = library.pathText(of: page, below: root)
         return Button {
             onOpen(page)
         } label: {
             HStack(spacing: 12) {
-                SkillPageIconTile(page: page, size: 30)
-                    .frame(width: 40, height: 40)
-                    .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                SkillCardIcon(page: page, category: category, size: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(page.title)
                         .font(TimeMasterFont.rowTitle())
@@ -121,8 +135,7 @@ struct SkillsSearchResults: View {
             .modifier(TimeMasterCardSurface(cornerRadius: 14, flat: true))
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
-        .keyNavShape(.roundedRectangle(cornerRadius: 14))
+        .buttonStyle(SkillsPressStyle(cornerRadius: 14))
         .accessibilityLabel(page.title)
         .accessibilityValue(snippet?.text ?? (path.isEmpty ? kindLabel(page) : path))
     }

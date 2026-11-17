@@ -231,7 +231,7 @@ struct MenuBarLiveCard: View {
         switch state.phase {
         case .warmUp: return "Warm up"
         case .prepare: return "Get ready"
-        case .active: return "Work"
+        case .active: return state.isUntimed ? "Until Done" : "Work"
         case .setRest, .sectionRest: return "Rest"
         }
     }
@@ -248,7 +248,7 @@ struct MenuBarLiveCard: View {
                 }
                 MenuBarRing(progress: state.phaseProgress, lineWidth: 10, tint: tint) {
                     VStack(spacing: 2) {
-                        Text(MenuBarFormat.clock(state.remainingSeconds))
+                        Text(MenuBarFormat.clock(state.untimedSeconds ?? state.remainingSeconds))
                             .font(TimeMasterFont.black(42, relativeTo: .largeTitle))
                             .monospacedDigit()
                             .foregroundStyle(Theme.textPrimary)
@@ -259,7 +259,8 @@ struct MenuBarLiveCard: View {
                 }
                 .frame(width: 150, height: 150)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(phaseName), \(MenuBarFormat.clock(state.remainingSeconds)) left")
+                .accessibilityLabel(state.untimedSeconds.map { "\(phaseName), \(MenuBarFormat.clock($0)) in this set" }
+                    ?? "\(phaseName), \(MenuBarFormat.clock(state.remainingSeconds)) left")
                 VStack(spacing: 3) {
                     Text(state.title)
                         .font(TimeMasterFont.heading())

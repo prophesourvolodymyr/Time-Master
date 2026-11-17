@@ -683,10 +683,8 @@ struct SlotCarouselNavigation<Content: View>: View {
     }
 
     private func guideStep(_ step: SlotNavigationGuideStep) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(step.symbol)
-                .frame(width: 24)
-                .accessibilityHidden(true)
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            SlotNavigationGuideMarker(symbol: step.symbol, tint: theme.accent)
             Text(step.text)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -720,6 +718,24 @@ struct SlotCarouselNavigation<Content: View>: View {
             hiddenNavigation.interactionChanged(false, at: .now)
             scheduleHiddenNavigationDismissal()
         }
+    }
+}
+
+/// The orange ring that marks each step of the editing guide, drawn like the app's other count and status
+/// markers; its symbol sits on the first line of the step's text.
+private struct SlotNavigationGuideMarker: View {
+    let symbol: String
+    let tint: Color
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 28
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.46, weight: .bold))
+            .foregroundStyle(tint)
+            .frame(width: size, height: size)
+            .background(Circle().fill(tint.opacity(0.2)))
+            .overlay(Circle().strokeBorder(tint.opacity(0.65), lineWidth: 1.2))
+            .accessibilityHidden(true)
     }
 }
 

@@ -258,7 +258,7 @@ class DatabaseStore: ObservableObject {
         persistedManifest.parentID = parentID ?? manifest.parentID
         invalidatePendingReloads()
         try DatabaseManager.shared.createPage(manifest: persistedManifest, parentID: parentID)
-        publishCreatedPage(persistedManifest)
+        publishCreatedPage((try? DatabaseManager.shared.getPage(id: persistedManifest.id)) ?? persistedManifest)
     }
 
     func updatePage(id: String, manifest: ExercisePageManifest, newParentID: String?) throws {
@@ -379,11 +379,6 @@ class DatabaseStore: ObservableObject {
         )
     }
 
-    func reorderChildren(parentID: String, childIDs: [String]) throws {
-        try DatabaseManager.shared.reorderChildren(parentID: parentID, childIDs: childIDs)
-        reload()
-    }
-
     func persistSkillBoard(
         containerID: String,
         sections: [SkillBoardSection],
@@ -408,22 +403,6 @@ class DatabaseStore: ObservableObject {
             manifest: manifest,
             newParentID: manifest.parentID
         )
-        reload()
-    }
-
-    func persistRootPageOrder() {
-        for (index, page) in rootPages.enumerated() {
-            var updatedManifest = page.manifest
-            updatedManifest.order = index
-            do {
-                try DatabaseManager.shared.updatePage(id: updatedManifest.id, manifest: updatedManifest, newParentID: nil)
-            } catch {}
-        }
-        reload()
-    }
-
-    func movePage(id: String, newParentID: String?, newOrder: Int) throws {
-        try DatabaseManager.shared.movePage(id: id, newParentID: newParentID, newOrder: newOrder)
         reload()
     }
 

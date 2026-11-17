@@ -51,13 +51,16 @@ enum PageTab: String, Hashable, Identifiable {
 
 /// A page's tabs, the number beside each and the tab the page opens on, read from the stores once per pass.
 ///
-/// A skill or a tutorial shows All · Skills · Dependencies · Attachments · To-do · Milestones · Notes; an exercise
+/// A skill or a tutorial shows All · Skills · Dependencies · Attachments · To-do · Milestones · Notes; one that needs no
+/// skills (`noSkills`) All · Attachments · Notes, plus Exercises & Skills when pages sit inside it; an exercise
 /// All · Attachments · Notes, plus Workout (its timing and the workouts that train it) and Links when it has them; a
 /// container All · Exercises & Skills · Notes, plus Attachments and Links when it has them. All stacks the page's parts
 /// with the attachments first and the notes right after them, then the rest in Skillmax's order.
 struct PageTabModel {
     private enum Kind {
         case exercise, skill, container
+        /// A skill or a tutorial that needs no skills: its files and links, its notes, and the pages inside it.
+        case plainSkill
     }
 
     /// Tabs in display order.
@@ -81,14 +84,15 @@ struct PageTabModel {
     @MainActor
     init(page: ExercisePage, store: DatabaseStore, library: SkillLibrary, linkedPageCount: Int, hasWorkout: Bool) {
         let manifest = page.manifest
+        let showsSkills = !manifest.hidesSkills
         let children = store.children(of: page.id)
         childPages = children.count
-        subSkills = children.filter(\.isSkillLike).count
-        todos = manifest.todos.count
-        openTodos = manifest.todos.openCount
-        milestones = manifest.milestones.count
-        openMilestones = manifest.milestones.openCount
-        if page.isSkillLike {
+        subSkills = showsSkills ? children.filter(SkillLibrary.isSkill).count : 0
+        todos = showsSkills ? manifest.todos.count : 0
+        openTodos = showsSkills ? manifest.todos.openCount : 0
+        milestones = showsSkills ? manifest.milestones.count : 0
+        openMilestones = showsSkills ? manifest.milestones.openCount : 0
+        if page.isSkillLike && showsSkills {
             let flaggedFiles = Set(manifest.dependencyMediaFilenames)
             let flaggedLinks = Set(manifest.dependencyLinkURLs)
             kind = .skill
@@ -100,6 +104,20 @@ struct PageTabModel {
             links = 0
             tabs = [.all, .skills, .dependencies, .attachments, .todos, .milestones, .notes]
             allParts = [.attachments, .notes, .skills, .dependencies, .todos, .milestones]
+        } else if page.isSkillLike {
+            var plainTabs: [PageTab] = [.all, .attachments, .notes]
+            var parts: [PageTab] = [.attachments, .notes]
+            if childPages > 0 {
+                plainTabs.append(.children)
+                parts.append(.children)
+            }
+            kind = .plainSkill
+            isTopLevelSkill = false
+            dependencies = 0
+            attachments = page.mediaURLs.count + manifest.linkURLs.count + linkedPageCount
+            links = 0
+            tabs = plainTabs
+            allParts = parts
         } else if page.pageType == nil {
             var containerTabs: [PageTab] = [.all, .children]
             var parts: [PageTab] = []
@@ -136,7 +154,8 @@ struct PageTabModel {
 
     /// Where the page opens (Skillmax's rule): a page holding nothing countable opens on its To-do, else its
     /// Milestones, else All; a skill on its Skills when it has pages inside it (and always when no skill is above it),
-    /// else on what it has of Attachments and Dependencies; a container on its pages; an exercise on its Attachments.
+    /// else on what it has of Attachments and Dependencies; a skill that needs no skills on its Attachments, or its pages
+    /// when it has no attachments; a container on its pages; an exercise on its Attachments.
     var defaultTab: PageTab {
         if childPages == 0 && attachments == 0 && dependencies == 0 {
             if todos > 0 { return .todos }
@@ -147,6 +166,8 @@ struct PageTabModel {
         case .skill:
             if isTopLevelSkill || childPages > 0 { return .skills }
             return attachments == 0 ? .dependencies : .attachments
+        case .plainSkill:
+            return attachments == 0 && childPages > 0 ? .children : .attachments
         case .container:
             if childPages > 0 { return .children }
             return tabs.contains(.attachments) ? .attachments : .all

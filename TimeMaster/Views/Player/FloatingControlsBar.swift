@@ -8,9 +8,11 @@ struct WorkoutLiveProgress {
     let phaseDuration: Int
     let elapsed: Int
     let isPaused: Bool
+    /// Set while an untimed set runs: seconds spent in it. Such a set has no countdown, so it shows no phase progress.
+    var untimedElapsed: Int? = nil
 
     var fraction: Double {
-        guard phaseDuration > 0 else { return 0 }
+        guard untimedElapsed == nil, phaseDuration > 0 else { return 0 }
         return min(1, max(0, 1 - Double(remaining) / Double(phaseDuration)))
     }
 }
@@ -77,8 +79,14 @@ struct FloatingControlsBar: View {
             .accessibilityLabel("Stop workout")
             VStack(alignment: .leading, spacing: 2) {
                 Text(workoutName).font(TimeMasterFont.black(12, relativeTo: .caption)).lineLimit(1)
-                Text(musicTimestamp(Double(context.progress.remaining > 0 ? context.progress.remaining : context.progress.elapsed)))
-                    .font(TimeMasterFont.micro().monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                Group {
+                    if context.progress.untimedElapsed != nil {
+                        Text("Until Done")
+                    } else {
+                        Text(musicTimestamp(Double(context.progress.remaining > 0 ? context.progress.remaining : context.progress.elapsed)))
+                    }
+                }
+                .font(TimeMasterFont.micro().monospacedDigit()).foregroundStyle(Theme.textSecondary)
             }
             .frame(minWidth: controlSize, maxWidth: .infinity, alignment: .leading)
             Button(action: context.onPause) {

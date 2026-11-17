@@ -17,9 +17,14 @@ struct WorkoutLiveState: Equatable {
     var totalSeconds: Int
     var nextTitle: String?
     var startedAt: Date
+    /// Set while an untimed set runs: seconds spent in it so far. It ends when the user taps Done, so there is no
+    /// countdown (`remainingSeconds` is 0) and no phase progress.
+    var untimedSeconds: Int? = nil
+
+    var isUntimed: Bool { untimedSeconds != nil }
 
     var phaseProgress: Double {
-        guard phaseDuration > 0 else { return 0 }
+        guard !isUntimed, phaseDuration > 0 else { return 0 }
         return min(1, max(0, 1 - Double(remainingSeconds) / Double(phaseDuration)))
     }
 

@@ -579,6 +579,39 @@ struct Workout: Identifiable, Codable, Equatable {
     var sectionCount: Int { sections.count }
 }
 
+// MARK: - Untimed sets
+
+extension Workout {
+    /// Ids of the exercises (slots and their drops) inside workouts nested in this one whose own section has its timer
+    /// off: they run until the user taps Done even when the section nesting them is timed. The ids are the ones the
+    /// flattened workout plays (`WorkoutStore.flattenedWorkout`).
+    func nestedUntimedSlotIDs(resolve: (UUID) -> Workout?) -> Set<UUID> {
+        var ids: Set<UUID> = []
+        var path: Set<UUID> = [id]
+        func collect(_ slots: [SetSlot], untimed: Bool) {
+            for slot in slots {
+                if let nestedID = slot.nestedWorkoutID {
+                    guard !path.contains(nestedID), let nested = resolve(nestedID) else { continue }
+                    path.insert(nestedID)
+                    for section in nested.sections {
+                        collect(section.effectiveSlots, untimed: untimed || !section.isTimerEnabled)
+                    }
+                    path.remove(nestedID)
+                } else if !slot.children.isEmpty {
+                    collect(slot.children, untimed: untimed)
+                } else if untimed {
+                    ids.insert(slot.id)
+                    ids.formUnion(slot.drops.map(\.id))
+                }
+            }
+        }
+        for section in sections {
+            collect(section.mode == .bundle ? section.bundleSets : section.effectiveSlots, untimed: false)
+        }
+        return ids
+    }
+}
+
 
 
 // MARK: - Hashable (keyed by id — required for NavigationPath)

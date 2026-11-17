@@ -250,8 +250,9 @@ struct ContainerPageTile: View {
     }
 }
 
-/// The dark capsule behind the chips laid over a cover.
-private struct ContainerTileChipSurface: ViewModifier {
+/// The dark capsule behind the chips laid over a cover (the gallery tiles here and the Database's gallery cards), dark
+/// enough to read over any picture.
+struct ContainerTileChipSurface: ViewModifier {
     var stroke: Color = Color.white.opacity(0.18)
 
     func body(content: Content) -> some View {
@@ -259,13 +260,14 @@ private struct ContainerTileChipSurface: ViewModifier {
             .lineLimit(1)
             .padding(.horizontal, 7)
             .padding(.vertical, 4)
-            .background(Capsule(style: .continuous).fill(Color.black.opacity(0.5)))
+            .background(Capsule(style: .continuous).fill(Color.black.opacity(0.6)))
             .overlay(Capsule(style: .continuous).strokeBorder(stroke, lineWidth: 1))
     }
 }
 
 /// A page as a row of a container's list: the Database row (cover, title, type and counts) with its place below the
-/// container and why a search showed it. Opens the page on tap and carries the page menu and drops onto containers.
+/// container and why a search showed it. Opens the page on tap, its cover opens it playing its first clip, and it
+/// carries the page menu; the list around it drags and drops the rows (`PageCardDragDrop`).
 struct ContainerPageListRow: View {
     let page: ExercisePage
     var location: String? = nil
@@ -282,7 +284,8 @@ struct ContainerPageListRow: View {
                 onDuplicate: { actions.duplicate(page) },
                 onMove: { actions.move(page) },
                 onDelete: { actions.delete(page) },
-                onMoveIntoContainer: { actions.moveInside($0, page) },
+                isDraggable: false,
+                onOpenCover: { actions.openFromCover(page) },
                 location: location,
                 match: match
             )
@@ -291,5 +294,6 @@ struct ContainerPageListRow: View {
         }
         .buttonStyle(ContainerTileButtonStyle(cornerRadius: 16))
         .accessibilityHint("Opens this page")
+        .modifier(PageClipAccessibilityAction(page: page) { actions.openFromCover(page) })
     }
 }

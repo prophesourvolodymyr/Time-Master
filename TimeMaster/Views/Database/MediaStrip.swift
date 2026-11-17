@@ -68,6 +68,7 @@ struct MediaStrip: View {
                 .frame(height: cardHeight + 4)
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
+            .onAppear { startRequestedClip(proxy) }
         }
     }
 
@@ -104,6 +105,17 @@ struct MediaStrip: View {
                     .accessibilityLabel("Add files")
                 }
             }
+        }
+    }
+
+    /// Plays the clip a Database cover asked for when it opened this page (`MediaAutoplayIntent`), scrolled into view.
+    private func startRequestedClip(_ proxy: ScrollViewProxy) {
+        guard let playback, let index = MediaAutoplayIntent.take(from: urls) else { return }
+        focusedIndex = index
+        playback.play(urls[index])
+        guard index > 0 else { return }
+        DispatchQueue.main.async {
+            proxy.scrollTo(index, anchor: .leading)
         }
     }
 

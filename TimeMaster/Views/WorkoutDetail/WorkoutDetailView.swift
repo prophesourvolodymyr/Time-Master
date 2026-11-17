@@ -251,8 +251,9 @@ struct WorkoutDetailView: View {
             DurationEditorSheet(
                 title: target.title,
                 seconds: target.seconds,
-                onSave: { seconds in
-                    updateDuration(target, seconds: seconds)
+                isTimerEnabled: target.isTimerEnabled,
+                onSave: { seconds, isTimerEnabled in
+                    updateDuration(target, seconds: seconds, isTimerEnabled: isTimerEnabled)
                 }
             )
         }
@@ -508,13 +509,13 @@ struct WorkoutDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 0) {
-                detailMetric(value: "\(current.sectionCount)", label: "sections")
+                detailMetric(icon: "figure.strengthtraining.traditional", value: "\(current.sectionCount)", label: "sections")
                 metricDivider
-                detailMetric(value: "\(setCount)", label: "sets")
+                detailMetric(icon: "repeat", value: "\(setCount)", label: "sets")
                 metricDivider
-                detailMetric(value: duration, label: "duration")
+                detailMetric(icon: "clock.fill", value: duration, label: "duration")
                 metricDivider
-                detailMetric(value: "\(summaryCompletedSessionCount)", label: "completed")
+                detailMetric(icon: "checkmark.circle.fill", value: "\(summaryCompletedSessionCount)", label: "completed")
             }
         }
         .padding(14)
@@ -582,13 +583,19 @@ struct WorkoutDetailView: View {
             .padding(.horizontal, 10)
     }
 
-    private func detailMetric(value: String, label: String) -> some View {
+    private func detailMetric(icon: String, value: String, label: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(value)
-                .font(TimeMasterFont.black(15, relativeTo: .subheadline).monospacedDigit())
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.toolbarOrange)
+                    .accessibilityHidden(true)
+                Text(value)
+                    .font(TimeMasterFont.black(17, relativeTo: .headline).monospacedDigit())
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
             Text(label)
                 .font(TimeMasterFont.micro())
                 .foregroundStyle(Theme.textSecondary)
@@ -773,7 +780,7 @@ struct WorkoutDetailView: View {
                 editorRows(column: column)
             }
         }
-        .modifier(WorkoutEditorPullDetector { setControlsExpanded(true) })
+        .modifier(WorkoutEditorPullDetector(onPull: { setControlsExpanded(true) }, onScrolled: { setControlsExpanded(false) }))
         #else
         List {
             editorRows(column: column)
@@ -781,7 +788,7 @@ struct WorkoutDetailView: View {
         .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
-        .modifier(WorkoutEditorPullDetector { setControlsExpanded(true) })
+        .modifier(WorkoutEditorPullDetector(onPull: { setControlsExpanded(true) }, onScrolled: { setControlsExpanded(false) }))
         #endif
     }
 
@@ -791,7 +798,7 @@ struct WorkoutDetailView: View {
             .padding(.top, 8)
             .builderPageRow()
             .id(RowID.header)
-            .modifier(WorkoutEditorHeaderPullFallback { setControlsExpanded(true) })
+            .modifier(WorkoutEditorHeaderPullFallback(onPull: { setControlsExpanded(true) }, onScrolled: { setControlsExpanded(false) }))
 
         if !workout.sections.isEmpty {
             workoutSummary
@@ -1201,6 +1208,15 @@ struct WorkoutDetailView: View {
                 Label("Duplicate Section", systemImage: "plus.square.on.square")
             }
         }
+        Button {
+            setTimerEnabled(!section.isTimerEnabled, in: section.id)
+        } label: {
+            if section.isTimerEnabled {
+                Label("Switch to Until Done", systemImage: "hand.tap")
+            } else {
+                Label("Switch to Timer", systemImage: "timer")
+            }
+        }
         Divider()
         Button(role: .destructive) {
             sectionToDelete = section
@@ -1215,7 +1231,7 @@ struct WorkoutDetailView: View {
         if let reps = section.repCount {
             parts.append("\(reps) reps")
         }
-        parts.append(formatCompactDuration(section.calculatedDuration))
+        parts.append(section.isTimerEnabled ? formatCompactDuration(section.calculatedDuration) : "Until Done")
         return parts.joined(separator: " · ")
     }
 
@@ -1268,6 +1284,8 @@ struct WorkoutDetailView: View {
     private func setRow(section: Section, slot: SetSlot, index: Int, item: BuilderRowItem) -> some View {
         let key = "set-\(slot.id)"
         let title = "Set \(index + 1) duration"
+        let untimed = !section.isTimerEnabled
+        let reps = untimed ? slot.repCount ?? section.repCount : nil
         return BuilderTimelineRow(level: item.level) {
             pageNode(
                 pageID: slot.exercisePageID,
@@ -1278,11 +1296,11 @@ struct WorkoutDetailView: View {
             )
         } title: {
             rowTitleButton(pageID: slot.exercisePageID, heroKey: key, fallbackIcon: "figure.run") {
-                BuilderRowTitle(slot.displayName, subtitle: "Set \(index + 1)", level: item.level)
+                BuilderRowTitle(slot.displayName, subtitle: reps.map { "Set \(index + 1) · \($0) reps" } ?? "Set \(index + 1)", level: item.level)
             }
         } trailing: {
-            durationButton(text: formatCompactDuration(slot.duration), title: title, seconds: slot.duration) {
-                durationEdit = DurationEditTarget(title: title, seconds: slot.duration, kind: .slot(section.id, slot.id))
+            durationButton(text: untimed ? "Until Done" : formatCompactDuration(slot.duration), title: title, seconds: slot.duration, untimed: untimed) {
+                durationEdit = DurationEditTarget(title: title, seconds: slot.duration, kind: .slot(section.id, slot.id), isTimerEnabled: section.isTimerEnabled)
             }
             BuilderCluster {
                 Menu {
@@ -1370,10 +1388,15 @@ struct WorkoutDetailView: View {
             durationEdit = DurationEditTarget(
                 title: "Set \(index + 1) duration",
                 seconds: slot.duration,
-                kind: .slot(section.id, slot.id)
+                kind: .slot(section.id, slot.id),
+                isTimerEnabled: section.isTimerEnabled
             )
         } label: {
-            Label("Edit Duration", systemImage: "timer")
+            if section.isTimerEnabled {
+                Label("Edit Duration", systemImage: "timer")
+            } else {
+                Label("Edit Estimate", systemImage: "hand.tap")
+            }
         }
         if let pageID = slot.exercisePageID {
             Button {
@@ -1405,8 +1428,8 @@ struct WorkoutDetailView: View {
                 BuilderRowTitle(drop.displayName, subtitle: "Drop", level: item.level)
             }
         } trailing: {
-            durationButton(text: formatCompactDuration(drop.duration), title: title, seconds: drop.duration) {
-                durationEdit = DurationEditTarget(title: title, seconds: drop.duration, kind: .drop(section.id, slot.id, drop.id))
+            durationButton(text: section.isTimerEnabled ? formatCompactDuration(drop.duration) : "Until Done", title: title, seconds: drop.duration, untimed: !section.isTimerEnabled) {
+                durationEdit = DurationEditTarget(title: title, seconds: drop.duration, kind: .drop(section.id, slot.id, drop.id), isTimerEnabled: section.isTimerEnabled)
             }
             BuilderCluster {
                 EmptyView()
@@ -1450,10 +1473,15 @@ struct WorkoutDetailView: View {
             durationEdit = DurationEditTarget(
                 title: "\(drop.displayName) duration",
                 seconds: drop.duration,
-                kind: .drop(section.id, slot.id, drop.id)
+                kind: .drop(section.id, slot.id, drop.id),
+                isTimerEnabled: section.isTimerEnabled
             )
         } label: {
-            Label("Edit Duration", systemImage: "timer")
+            if section.isTimerEnabled {
+                Label("Edit Duration", systemImage: "timer")
+            } else {
+                Label("Edit Estimate", systemImage: "hand.tap")
+            }
         }
         if let pageID = drop.exercisePageID {
             Button {
@@ -1474,6 +1502,7 @@ struct WorkoutDetailView: View {
         text: String,
         title: String,
         seconds: Int,
+        untimed: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -1481,7 +1510,7 @@ struct WorkoutDetailView: View {
         }
         .buttonStyle(BuilderValueButtonStyle())
         .accessibilityLabel(title)
-        .accessibilityValue(formatCompactDuration(seconds))
+        .accessibilityValue(untimed ? "Until Done, estimated \(formatCompactDuration(seconds))" : formatCompactDuration(seconds))
     }
 
     /// A rail node for a page: its cover (it opens the page, growing out of it), or a glyph when there is no page.
@@ -1914,11 +1943,16 @@ struct WorkoutDetailView: View {
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(2)
 
+            SectionTimingPicker(isTimerEnabled: Binding(
+                get: { pending.isTimerEnabled },
+                set: { pendingSection?.isTimerEnabled = $0 }
+            ))
+
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 112), spacing: 8)],
                 spacing: 8
             ) {
-                inlineStepper(label: "Duration", value: Binding(
+                inlineStepper(label: pending.isTimerEnabled ? "Duration" : "Estimate", value: Binding(
                     get: { pending.duration },
                     set: { pendingSection?.duration = $0 }
                 ), range: 5...600, step: 5, unit: "s")
@@ -2027,7 +2061,8 @@ struct WorkoutDetailView: View {
             repCount: pending.repCount,
             restAfter: pending.restAfter,
             restBetweenSets: pending.restBetweenSets,
-            prepareTime: pending.prepareTime
+            prepareTime: pending.prepareTime,
+            isTimerEnabled: pending.isTimerEnabled
         )
 
         let section: Section?
@@ -2343,7 +2378,7 @@ struct WorkoutDetailView: View {
         return String(format: "%d:%02d", minutes, remainder)
     }
 
-    private func updateDuration(_ target: DurationEditTarget, seconds: Int) {
+    private func updateDuration(_ target: DurationEditTarget, seconds: Int, isTimerEnabled: Bool?) {
         switch target.kind {
         case .slot(let sectionID, let slotID):
             mutateSection(id: sectionID) { section in
@@ -2351,6 +2386,7 @@ struct WorkoutDetailView: View {
                 guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
                 slots[index].duration = max(5, seconds)
                 section.slots = slots
+                if let isTimerEnabled { section.isTimerEnabled = isTimerEnabled }
             }
         case .drop(let sectionID, let slotID, let dropID):
             mutateSection(id: sectionID) { section in
@@ -2359,11 +2395,18 @@ struct WorkoutDetailView: View {
                       let dropIndex = slots[slotIndex].drops.firstIndex(where: { $0.id == dropID }) else { return }
                 slots[slotIndex].drops[dropIndex].duration = max(5, seconds)
                 section.slots = slots
+                if let isTimerEnabled { section.isTimerEnabled = isTimerEnabled }
             }
         case .rest(let restTarget):
             mutateRestRow(restTarget) { row in
                 row.duration = max(0, seconds)
             }
+        }
+    }
+
+    private func setTimerEnabled(_ isTimerEnabled: Bool, in sectionID: UUID) {
+        animateEditor {
+            mutateSection(id: sectionID) { $0.isTimerEnabled = isTimerEnabled }
         }
     }
 
@@ -2593,18 +2636,21 @@ struct WorkoutDetailView: View {
 
 private let workoutDetailScrollSpace = "workout-detail-scroll"
 
-/// A pull past the top of the builder opens the header's labelled controls. It reads the scroll geometry where the
-/// system reports it, and only reports the crossing, so scrolling itself never changes the layout.
+/// A pull past the top of the builder opens the header's labelled controls and scrolling down closes them again. It
+/// reads the scroll geometry where the system reports it, and only reports the crossings, so scrolling itself never
+/// changes the layout.
 private struct WorkoutEditorPullDetector: ViewModifier {
     let onPull: () -> Void
+    let onScrolled: () -> Void
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 18.0, macOS 15.0, *) {
-            content.onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top < -24
-            } action: { _, pulled in
-                if pulled { onPull() }
+            content.onScrollGeometryChange(for: Int.self) { geometry in
+                let offset = geometry.contentOffset.y + geometry.contentInsets.top
+                return offset < -24 ? 1 : (offset > 24 ? -1 : 0)
+            } action: { _, state in
+                if state == 1 { onPull() } else if state == -1 { onScrolled() }
             }
         } else {
             content
@@ -2612,19 +2658,21 @@ private struct WorkoutEditorPullDetector: ViewModifier {
     }
 }
 
-/// The same pull on systems without scroll geometry, read from where the header row sits.
+/// The same on systems without scroll geometry, read from where the header row sits.
 private struct WorkoutEditorHeaderPullFallback: ViewModifier {
     let onPull: () -> Void
+    let onScrolled: () -> Void
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 18.0, macOS 15.0, *) {
             content
         } else {
-            content.onGeometryChange(for: Bool.self) { proxy in
-                proxy.frame(in: .named(workoutDetailScrollSpace)).minY > 24
-            } action: { pulled in
-                if pulled { onPull() }
+            content.onGeometryChange(for: Int.self) { proxy in
+                let top = proxy.frame(in: .named(workoutDetailScrollSpace)).minY
+                return top > 24 ? 1 : (top < -24 ? -1 : 0)
+            } action: { state in
+                if state == 1 { onPull() } else if state == -1 { onScrolled() }
             }
         }
     }
@@ -2667,6 +2715,8 @@ struct PendingSectionConfig {
     var restBetweenSets: Int
     var prepareTime: Int = 4
     var mode: SectionMode = .timed
+    /// false: the new section's sets run until the user taps Done; `duration` is then only their estimate.
+    var isTimerEnabled = true
 }
 private enum WorkoutAddContentType {
     case bundle
@@ -2919,6 +2969,8 @@ private struct DurationEditTarget: Identifiable {
     let title: String
     let seconds: Int
     let kind: DurationEditKind
+    /// The section's timing, for set and drop rows: the sheet then also offers Timer / Until Done. nil for rests.
+    var isTimerEnabled: Bool? = nil
 }
 
 private struct RestNoteTarget: Identifiable {
@@ -2933,23 +2985,42 @@ private struct DurationEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     let title: String
     let initialSeconds: Int
-    let onSave: (Int) -> Void
+    /// Saves the seconds, and the section's timing when the sheet offered it.
+    let onSave: (Int, Bool?) -> Void
+    private let offersTiming: Bool
     @State private var seconds: Int
+    @State private var isTimerEnabled: Bool
 
-    init(title: String, seconds: Int, onSave: @escaping (Int) -> Void) {
+    init(title: String, seconds: Int, isTimerEnabled: Bool? = nil, onSave: @escaping (Int, Bool?) -> Void) {
         self.title = title
         self.initialSeconds = seconds
         self.onSave = onSave
+        offersTiming = isTimerEnabled != nil
         _seconds = State(initialValue: seconds)
+        _isTimerEnabled = State(initialValue: isTimerEnabled ?? true)
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
+                if offersTiming {
+                    VStack(spacing: 8) {
+                        SectionTimingPicker(isTimerEnabled: $isTimerEnabled)
+                        Text(isTimerEnabled
+                             ? "Every set of this section counts down."
+                             : "Every set of this section runs until you tap Done.")
+                            .font(TimeMasterFont.caption())
+                            .foregroundColor(Theme.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
                 DurationPickerView(seconds: $seconds, range: 5...3600, step: 5)
-                Text("Changes apply to this row only.")
+                Text(offersTiming && !isTimerEnabled
+                     ? "Estimated time for this row, used for the workout's total."
+                     : "Changes apply to this row only.")
                     .font(TimeMasterFont.caption())
                     .foregroundColor(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
             }
             .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -2962,7 +3033,7 @@ private struct DurationEditorSheet: View {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }
                                  }
                 AppToolbar.item(placement: .confirmationAction) { Button("Save") {
-                    onSave(seconds)
+                    onSave(seconds, offersTiming ? isTimerEnabled : nil)
                     dismiss()
                 }
                                  }

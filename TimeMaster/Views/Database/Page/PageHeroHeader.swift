@@ -2,10 +2,12 @@ import SwiftUI
 import TimeMasterCore
 
 /// The head of a library page, the same for every kind: the icon tile (a skill's or a tutorial's opens the icon
-/// chooser, other pages show what they are), the title (double-click or double-tap renames it), the status row (a
-/// skill's done check and status, how many sub-skills are done, the skill type, the workout type) and a quiet line of
-/// numbers (what the page is, the workouts that train it and when, its clips). `onCover` draws it in white over a cover
-/// picture; `compact` is the smaller head of a page shown without its cover.
+/// chooser and, without an icon of its own, shows its category as its Skills card does; other pages show what they
+/// are), the title (double-click or double-tap renames it), the status row (a skill's done check and status, how many
+/// sub-skills are done, the skill type, the workout type; a page that needs no skills keeps only a type it already
+/// wears and the workout type) and a quiet line of numbers (what the page is, the workouts that train it and when, its
+/// clips). `onCover` draws it in white over a cover picture; `compact` is the smaller head of a page shown without its
+/// cover.
 struct PageHeroHeader: View {
     let page: ExercisePage
     let progress: SkillProgress
@@ -59,7 +61,7 @@ struct PageHeroHeader: View {
     private var iconTile: some View {
         if page.isSkillLike {
             Button(action: onChangeIcon) {
-                SkillPageIconTile(page: page, size: iconSide, tilesSymbols: true)
+                skillIcon
                     .overlay(alignment: .bottomTrailing) { pencilBadge }
             }
             .buttonStyle(SkillPressButtonStyle())
@@ -74,6 +76,17 @@ struct PageHeroHeader: View {
                 .frame(width: iconSide, height: iconSide)
                 .skillTile(cornerRadius: iconSide * 0.32)
                 .accessibilityHidden(true)
+        }
+    }
+
+    /// A skill's own picture, symbol or emoji; without one, the symbol of its category on a tile, as its card on the
+    /// Skills page shows it.
+    @ViewBuilder
+    private var skillIcon: some View {
+        if page.iconImageURL == nil, (page.manifest.iconName ?? "").isEmpty {
+            SkillCardIcon(page: page, category: SkillCategory.of(page, in: store.index), size: iconSide)
+        } else {
+            SkillPageIconTile(page: page, size: iconSide, tilesSymbols: true)
         }
     }
 
@@ -96,13 +109,19 @@ struct PageHeroHeader: View {
 
     private var status: SkillStatus { page.manifest.skillStatus ?? .notStarted }
 
-    private var showsProgress: Bool { !page.isExercise && progress.total > 0 }
+    /// A skill or a tutorial that keeps its sub-skills: its done check, its status and its type picker.
+    private var showsSkillChips: Bool { page.isSkillLike && !page.manifest.hidesSkills }
 
-    private var hasChips: Bool { page.isSkillLike || showsProgress || page.effectiveWorkoutType != nil }
+    private var showsProgress: Bool { !page.isExercise && !page.manifest.hidesSkills && progress.total > 0 }
+
+    /// A page that needs no skills shows the type it wears without inviting one.
+    private var showsTypeChip: Bool { showsSkillChips || (page.isSkillLike && store.skillType(of: page) != nil) }
+
+    private var hasChips: Bool { showsSkillChips || showsProgress || showsTypeChip || page.effectiveWorkoutType != nil }
 
     private var chips: some View {
         PageChipFlowLayout {
-            if page.isSkillLike {
+            if showsSkillChips {
                 SkillDoneButton(title: page.title, status: status, pageID: page.manifest.id, onSet: onSetStatus)
                 SkillStatusMenu(status: status, onChange: onSetStatus) {
                     SkillStatusChip(status)
@@ -116,7 +135,7 @@ struct PageHeroHeader: View {
             if showsProgress {
                 progressChip
             }
-            if page.isSkillLike {
+            if showsTypeChip {
                 SkillTypePicker(pageID: page.manifest.id) {
                     if let type = store.skillType(of: page) {
                         SkillTypeChip(type: type, showsChevron: true)

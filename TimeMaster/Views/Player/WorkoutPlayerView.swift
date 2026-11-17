@@ -96,11 +96,26 @@ struct WorkoutPlayerView: View {
     @State private var overlayPageName = ""
     @State private var showBundleReorder = false
 
+    // Untimed sets: they end when the user taps Done
+    @State private var untimedSlotIDs: Set<UUID> = []
+    @State private var setElapsed = 0
+    @State private var doneGuard = EarlyDoneGuard()
+    @State private var donePrompt: PlayerEarlyDonePopup.Kind?
+
     init(workout: Workout) {
         _workout = State(initialValue: workout)
     }
 
     // MARK: - Computed
+
+    private func isUntimed(_ slot: SetSlot?) -> Bool {
+        slot.map { untimedSlotIDs.contains($0.id) } ?? false
+    }
+
+    /// The current set has no countdown: it runs until the user taps Done.
+    private var isUntimedActive: Bool {
+        !showingWarmUpPicker && !workoutCompleted && livePhase == .active && isUntimed(currentSlot)
+    }
 
     private var currentSection: Section? {
         guard currentSectionIndex < workout.sections.count else { return nil }
@@ -205,7 +220,7 @@ struct WorkoutPlayerView: View {
             progress: WorkoutLiveProgress(
                 sectionID: currentSection?.id, slotID: (isSetRest ? restSlot : currentSlot)?.id,
                 phase: livePhase, remaining: timeRemaining, phaseDuration: phaseDuration,
-                elapsed: elapsedSeconds, isPaused: isPaused
+                elapsed: elapsedSeconds, isPaused: isPaused, untimedElapsed: isUntimedActive ? setElapsed : nil
             ),
             music: musicSession,
             onPause: { if isPaused { resumeTimer() } else { pauseTimer() } },
@@ -220,6 +235,7 @@ struct WorkoutPlayerView: View {
         let slotID = currentSlot?.id
         let restingSlotID = restSlot?.id
         let oldDuration = phaseDuration
+        let wasUntimed = isUntimedActive
         let oldPageID = currentSlot?.exercisePageID
         let musicChanged = updated.musicTimeline != workout.musicTimeline
         workout = updated
@@ -242,7 +258,13 @@ struct WorkoutPlayerView: View {
                 currentSetIndex = min(currentSetIndex, max(0, slots.count - 1))
                 if !isSectionRest { beginCurrentSet(); retainedPhase = false }
             }
-            if retainedPhase { timeRemaining = max(0, timeRemaining + phaseDuration - oldDuration) }
+            if retainedPhase {
+                if livePhase == .active, wasUntimed != isUntimedActive {
+                    convertActiveSet(toUntimed: isUntimedActive, oldDuration: oldDuration)
+                } else if !isUntimedActive {
+                    timeRemaining = max(0, timeRemaining + phaseDuration - oldDuration)
+                }
+            }
         } else {
             currentSectionIndex = min(currentSectionIndex, updated.sections.count - 1)
             currentSetIndex = 0
@@ -252,12 +274,24 @@ struct WorkoutPlayerView: View {
         saveResumeState()
     }
 
+    /// The section's timer was switched while its set runs: keep the time already spent in the set.
+    private func convertActiveSet(toUntimed: Bool, oldDuration: Int) {
+        if toUntimed {
+            setElapsed = max(0, oldDuration - timeRemaining)
+            timeRemaining = 0
+        } else {
+            timeRemaining = max(1, phaseDuration - setElapsed)
+        }
+        doneGuard = EarlyDoneGuard()
+        donePrompt = nil
+    }
+
     // MARK: - Body
 
     var body: some View {
         contentLayer
             .font(TimeMasterFont.body())
-            .accessibilityHidden(showWorkoutManagement || showPageOverlay)
+            .accessibilityHidden(showWorkoutManagement || showPageOverlay || donePrompt != nil)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { backgroundLayer }
             .overlay {
@@ -353,6 +387,22 @@ struct WorkoutPlayerView: View {
             }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: showWorkoutManagement)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: showPageOverlay)
+            .overlay {
+                if let prompt = donePrompt, isUntimedActive {
+                    PlayerEarlyDonePopup(
+                        kind: prompt,
+                        elapsed: setElapsed,
+                        onClose: { answerDonePrompt(confirmed: false) },
+                        onConfirm: { answerDonePrompt(confirmed: true) }
+                    )
+                    .id(prompt)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.94)))
+                }
+            }
+            .animation(reduceMotion ? EverMotion.opacityOnly : EverMotion.state, value: donePrompt)
+            .onChange(of: isUntimedActive) { untimed in
+                if !untimed { donePrompt = nil }
+            }
             .sheet(isPresented: $showBundleReorder) {
                 if let section = currentSection {
                     BundleEditorSheet(section: section) { updated in
@@ -669,8 +719,12 @@ struct WorkoutPlayerView: View {
                 topBar
                 mediaCarousel
                 titleBlock
-                PlayerCounter(seconds: timeRemaining, size: compact ? 56 : 68, phase: .active, isPaused: isPaused)
-                    .frame(maxWidth: .infinity)
+                if isUntimedActive {
+                    untimedPanel(compact: compact)
+                } else {
+                    PlayerCounter(seconds: timeRemaining, size: compact ? 56 : 68, phase: .active, isPaused: isPaused)
+                        .frame(maxWidth: .infinity)
+                }
                 controlsRow
                 nextPill
                     .frame(minHeight: 50)
@@ -717,7 +771,7 @@ struct WorkoutPlayerView: View {
                     PlayerSetDots(count: progress.count, current: progress.index)
                 }
                 if let item = currentItem {
-                    PlayerItemFacts(item: item, showsDuration: false)
+                    PlayerItemFacts(item: item, showsDuration: false, showsReps: !isUntimedActive)
                 }
             }
         }
@@ -758,8 +812,12 @@ struct WorkoutPlayerView: View {
                             }
                         }
                     }
-                    PlayerCounter(seconds: timeRemaining, size: 64, phase: .active, isPaused: isPaused)
-                        .frame(maxWidth: .infinity)
+                    if isUntimedActive {
+                        untimedPanel(compact: false)
+                    } else {
+                        PlayerCounter(seconds: timeRemaining, size: 64, phase: .active, isPaused: isPaused)
+                            .frame(maxWidth: .infinity)
+                    }
                     controlsRow
                 }
                 .frame(maxWidth: 560)
@@ -768,6 +826,17 @@ struct WorkoutPlayerView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func untimedPanel(compact: Bool) -> some View {
+        PlayerUntimedPanel(
+            repCount: currentItem?.repCount,
+            elapsed: setElapsed,
+            isPaused: isPaused,
+            compact: compact,
+            isEnabled: donePrompt == nil,
+            onDone: pressDone
+        )
     }
 
     // MARK: - Rest
@@ -947,7 +1016,8 @@ struct WorkoutPlayerView: View {
             symbol: page?.effectiveWorkoutType?.iconName ?? workout.type.iconName,
             duration: slot.duration,
             repCount: slot.repCount ?? section.repCount,
-            isDrop: dropIDs.contains(slot.id)
+            isDrop: dropIDs.contains(slot.id),
+            isUntimed: untimedSlotIDs.contains(slot.id)
         )
     }
 
@@ -1012,9 +1082,14 @@ struct WorkoutPlayerView: View {
                 drops.formUnion(section.effectiveSlots.flatMap(\.drops).map(\.id))
             }
         }
+        var untimed = workout.nestedUntimedSlotIDs(resolve: store.workout(id:))
+        for section in expanded.sections where !section.isTimerEnabled {
+            untimed.formUnion((sequences[section.id] ?? []).map(\.id))
+        }
         playbackBySection = sequences
         setStartsBySection = starts
         dropIDs = drops
+        untimedSlotIDs = untimed
     }
 
     private func sectionRestDuration(_ section: Section) -> Int {
@@ -1104,7 +1179,8 @@ struct WorkoutPlayerView: View {
         }
 
         isPreparation = false
-        timeRemaining = currentSlot?.duration ?? section.duration
+        resetUntimedSet()
+        timeRemaining = isUntimed(currentSlot) ? 0 : (currentSlot?.duration ?? section.duration)
         WorkoutHaptics.shared.play(.exerciseStart)
         speakPhase(currentSlot?.displayName ?? section.name)
         startTimer()
@@ -1115,32 +1191,72 @@ struct WorkoutPlayerView: View {
         finishPreparation()
     }
 
+    // MARK: - Untimed sets
+
+    /// Every set starts with a fresh stopwatch and a fresh early-Done guard.
+    private func resetUntimedSet() {
+        setElapsed = 0
+        doneGuard = EarlyDoneGuard()
+        donePrompt = nil
+    }
+
+    private func pressDone() {
+        guard isUntimedActive, donePrompt == nil else { return }
+        switch doneGuard.pressDone(elapsed: setElapsed) {
+        case .complete, .skip:
+            finishUntimedSet()
+        case .superhuman:
+            WorkoutHaptics.shared.play(.adjust)
+            donePrompt = .superhuman
+        case .confirm:
+            WorkoutHaptics.shared.play(.adjust)
+            donePrompt = .confirm
+        }
+    }
+
+    private func answerDonePrompt(confirmed: Bool) {
+        let prompt = donePrompt
+        donePrompt = nil
+        if confirmed, prompt == .confirm, isUntimedActive { finishUntimedSet() }
+    }
+
+    /// History records whole workouts, not sets, so an early finish the user confirmed advances like a completed set.
+    private func finishUntimedSet() {
+        donePrompt = nil
+        skipCurrentPhase()
+    }
+
     private func startTimer() {
         timer?.invalidate()
         timerGeneration = UUID()
         let generation = timerGeneration
         saveResumeState()
-        guard timeRemaining > 0 else { finishCurrentTimerPhase(); return }
+        guard timeRemaining > 0 || isUntimedActive else { finishCurrentTimerPhase(); return }
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             if generation == timerGeneration && !isPaused { tick() }
         }
     }
 
     private func tick() {
-        guard timeRemaining > 0 else {
+        let untimed = isUntimedActive
+        guard untimed || timeRemaining > 0 else {
             finishCurrentTimerPhase()
             return
         }
 
-        timeRemaining -= 1
         elapsedSeconds += 1
-        if timeRemaining <= 3 && timeRemaining >= 1 {
-            AudioManager.shared.playCountdownBeep()
-            WorkoutHaptics.shared.play(.countdownTick)
+        if untimed {
+            setElapsed += 1
+        } else {
+            timeRemaining -= 1
+            if timeRemaining <= 3 && timeRemaining >= 1 {
+                AudioManager.shared.playCountdownBeep()
+                WorkoutHaptics.shared.play(.countdownTick)
+            }
         }
         if !isSetRest && !isSectionRest && !isWarmUp && !isPreparation && !isBundleActive {
             tickMotivation()
-            checkTimeAnnouncement()
+            if !untimed { checkTimeAnnouncement() }
         }
         autoSaveCounter += 1
         if autoSaveCounter >= 5 {
@@ -1148,7 +1264,7 @@ struct WorkoutPlayerView: View {
             saveResumeState()
         }
         publishLiveState()
-        if timeRemaining == 0 {
+        if !untimed && timeRemaining == 0 {
             finishCurrentTimerPhase()
         }
     }
@@ -1183,7 +1299,8 @@ struct WorkoutPlayerView: View {
             phase: livePhase,
             isPaused: isPaused,
             musicCheckpoint: musicSession.checkpoint,
-            bundleOrders: bundleOrders
+            bundleOrders: bundleOrders,
+            untimedSetElapsed: isUntimedActive ? setElapsed : nil
         )
         publishLiveState()
         #if os(iOS)
@@ -1206,6 +1323,9 @@ struct WorkoutPlayerView: View {
     private func liveActivitySubtitle(for phase: WorkoutPhase) -> String {
         guard phase != .warmUp, let section = currentSection else { return "" }
         var parts: [String] = []
+        if phase == .active, isUntimedActive {
+            parts.append(currentItem?.repCount.map { "\($0) reps · Until Done" } ?? "Until Done")
+        }
         if phase != .sectionRest {
             if section.mode == .bundle {
                 let count = playbackSlots(for: section).count
@@ -1242,7 +1362,8 @@ struct WorkoutPlayerView: View {
                 elapsedSeconds: max(0, elapsedSeconds),
                 totalSeconds: workout.totalDuration,
                 nextTitle: titles.nextTitle.flatMap { $0.isEmpty ? nil : $0 },
-                startedAt: startTime
+                startedAt: startTime,
+                untimedSeconds: isUntimedActive ? setElapsed : nil
             )
         )
     }
@@ -1296,7 +1417,8 @@ struct WorkoutPlayerView: View {
                 isBundle: section.mode == .bundle,
                 nextKind: liveNextKind(for: phase, hasNext: next != nil),
                 artworkName: isRest ? nil : liveArtworkName(for: current?.coverURL),
-                nextArtworkName: liveArtworkName(for: next?.coverURL)
+                nextArtworkName: liveArtworkName(for: next?.coverURL),
+                untimedSeconds: isUntimedActive ? setElapsed : nil
             )
         )
     }
@@ -1350,9 +1472,10 @@ struct WorkoutPlayerView: View {
                 artist: workout.name,
                 album: album,
                 phaseDuration: max(1, phaseDuration),
-                elapsedInPhase: max(0, phaseDuration - timeRemaining),
+                elapsedInPhase: isUntimedActive ? setElapsed : max(0, phaseDuration - timeRemaining),
                 isPaused: isPaused,
-                artworkURL: artworkItem?.coverURL
+                artworkURL: artworkItem?.coverURL,
+                isUntimed: isUntimedActive
             )
         )
     }
@@ -1409,6 +1532,10 @@ struct WorkoutPlayerView: View {
     private func restore(from savedCheckpoint: ResumeState) {
         timer?.invalidate()
         AudioManager.shared.stopSpeaking()
+        // Coming back to the same untimed set keeps its early-Done answers and any question still open.
+        let interruptedSetID = isUntimedActive ? currentSlot?.id : nil
+        let interruptedGuard = doneGuard
+        let interruptedPrompt = donePrompt
         bundleOrders = savedCheckpoint.bundleOrders ?? [:]
         refreshPlaybackSequences()
         var checkpoint = savedCheckpoint
@@ -1447,6 +1574,15 @@ struct WorkoutPlayerView: View {
             completeWorkout()
             return
         }
+        resetUntimedSet()
+        if isUntimedActive {
+            setElapsed = state.untimedSetElapsed ?? max(0, (currentSlot?.duration ?? 0) - state.timeRemaining)
+            timeRemaining = 0
+            if let interruptedSetID, interruptedSetID == currentSlot?.id {
+                doneGuard = interruptedGuard
+                donePrompt = interruptedPrompt
+            }
+        }
         currentMediaIndex = 0
         resetMotivationTimer()
         if !musicStarted && !isWarmUp {
@@ -1473,6 +1609,11 @@ struct WorkoutPlayerView: View {
         guard elapsedToConsume > 0 else { return state }
 
         while elapsedToConsume > 0 {
+            if state.phase == .active, isUntimedSet(state) {
+                state.untimedSetElapsed = (state.untimedSetElapsed ?? 0) + elapsedToConsume
+                state.elapsedSeconds += elapsedToConsume
+                break
+            }
             if state.timeRemaining > elapsedToConsume {
                 state.timeRemaining -= elapsedToConsume
                 state.elapsedSeconds += elapsedToConsume
@@ -1492,6 +1633,19 @@ struct WorkoutPlayerView: View {
         return state
     }
 
+    /// Whether a checkpoint's current set runs until the user taps Done.
+    private func isUntimedSet(_ state: ResumeState) -> Bool {
+        guard let section = workout.sections[safe: state.currentSectionIndex] else { return false }
+        return isUntimed(playbackSlots(for: section)[safe: state.currentSetIndex])
+    }
+
+    private func startReconciledWork(on slot: SetSlot, _ state: inout ResumeState) {
+        state.phase = .active
+        let untimed = isUntimed(slot)
+        state.timeRemaining = untimed ? 0 : slot.duration
+        state.untimedSetElapsed = untimed ? 0 : nil
+    }
+
     private func configureReconciledCurrentSet(_ state: inout ResumeState) -> Bool {
         guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
         let section = workout.sections[state.currentSectionIndex]
@@ -1501,9 +1655,9 @@ struct WorkoutPlayerView: View {
         if preparationTime > 0 {
             state.phase = .prepare
             state.timeRemaining = preparationTime
+            state.untimedSetElapsed = nil
         } else {
-            state.phase = .active
-            state.timeRemaining = slot.duration
+            startReconciledWork(on: slot, &state)
         }
         return true
     }
@@ -1520,8 +1674,7 @@ struct WorkoutPlayerView: View {
             guard workout.sections.indices.contains(state.currentSectionIndex) else { return false }
             let section = workout.sections[state.currentSectionIndex]
             guard let slot = playbackSlots(for: section)[safe: state.currentSetIndex] else { return false }
-            state.phase = .active
-            state.timeRemaining = slot.duration
+            startReconciledWork(on: slot, &state)
             return true
         case .setRest:
             return configureReconciledCurrentSet(&state)
@@ -1641,7 +1794,7 @@ struct WorkoutPlayerView: View {
         let slots = playbackSlots(for: section)
         switch livePhase {
         case .active, .prepare:
-            let elapsedInPhase = phaseDuration - timeRemaining
+            let elapsedInPhase = isUntimedActive ? setElapsed : phaseDuration - timeRemaining
             if elapsedInPhase > 3 || currentSetIndex == 0 { restartCurrentExercise() } else { jump(to: currentSetIndex - 1) }
         case .setRest:
             jump(to: max(0, currentSetIndex - 1))
@@ -1652,8 +1805,9 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    /// Lock-screen skips and scrubbing move a countdown; an untimed set has none (it ends on Done), so they do nothing.
     private func moveTime(by seconds: Int) {
-        guard !showingWarmUpPicker, !workoutCompleted else { return }
+        guard !showingWarmUpPicker, !workoutCompleted, !isUntimedActive else { return }
         if seconds >= 0 {
             if seconds < timeRemaining {
                 timeRemaining -= seconds
@@ -1674,7 +1828,7 @@ struct WorkoutPlayerView: View {
     }
 
     private func seek(toElapsed position: Int) {
-        guard !showingWarmUpPicker, !workoutCompleted, phaseDuration > 0 else { return }
+        guard !showingWarmUpPicker, !workoutCompleted, !isUntimedActive, phaseDuration > 0 else { return }
         let target = max(1, min(phaseDuration, phaseDuration - position))
         guard target != timeRemaining else { return }
         elapsedSeconds += max(0, timeRemaining - target)
@@ -1801,7 +1955,7 @@ struct WorkoutPlayerView: View {
     /// Skips very short sections (< 8 s) and milestones that would clash with the
     /// 3-second countdown beep (milestone ≤ 3).
     private func checkTimeAnnouncement() {
-        guard let section = currentSection else { return }
+        guard let section = currentSection, !isUntimedActive else { return }
         let total = currentSlot?.duration ?? section.duration
         guard total >= 8 else { return }
         let quarter = total / 4
@@ -1863,15 +2017,22 @@ struct WorkoutPlayerView: View {
             VStack {
                 HStack {
                     Spacer()
-                    Text(PlayerTime.counter(timeRemaining))
-                        .font(TimeMasterFont.black(20, relativeTo: .title3).monospacedDigit())
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.5))
-                        .clipShape(Capsule())
-                        .padding(.top, 12)
-                        .padding(.trailing, 12)
+                    Group {
+                        if isUntimedActive {
+                            Label(PlayerTime.clock(setElapsed), systemImage: "stopwatch")
+                                .labelStyle(PlayerFactLabelStyle())
+                        } else {
+                            Text(PlayerTime.counter(timeRemaining))
+                        }
+                    }
+                    .font(TimeMasterFont.black(20, relativeTo: .title3).monospacedDigit())
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(Capsule())
+                    .padding(.top, 12)
+                    .padding(.trailing, 12)
                 }
                 Spacer()
             }

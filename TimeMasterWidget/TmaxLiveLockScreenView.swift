@@ -58,7 +58,7 @@ private struct TmaxLiveLockScreenContent: View {
                         .font(.system(size: 15, weight: .semibold))
                         .lineLimit(1)
                         .accessibilityLabel(state.spokenSummary(workoutName: workoutName))
-                    Text(workoutName)
+                    Text(state.caption(workoutName: workoutName))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(TmaxLiveStyle.secondary)
                         .lineLimit(1)

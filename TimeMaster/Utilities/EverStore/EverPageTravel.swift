@@ -31,11 +31,16 @@ enum EverViewSnapshot {
     static func image(of view: NSView, rect: CGRect? = nil, afterUpdates: Bool = false) -> CGImage? {
         let region = rect ?? view.bounds
         guard region.width > 0, region.height > 0 else { return nil }
+        let started = CACurrentMediaTime()
+        defer {
+            let milliseconds = Int((CACurrentMediaTime() - started) * 1000)
+            if milliseconds >= 60 { PerfLog.event("page snapshot took \(milliseconds) ms") }
+        }
         if afterUpdates {
             view.layoutSubtreeIfNeeded()
             view.displayIfNeeded()
         }
-        let scale = min(view.window?.backingScaleFactor ?? 2, 1.5)
+        let scale: CGFloat = 1
         guard let bitmap = NSBitmapImageRep(
             bitmapDataPlanes: nil, pixelsWide: Int(ceil(region.width * scale)),
             pixelsHigh: Int(ceil(region.height * scale)), bitsPerSample: 8,

@@ -44,6 +44,8 @@ enum ContainerBrowseSort: String, CaseIterable, Identifiable {
     case clips
     /// Most of its sub-skills done first.
     case progress
+    /// Most used in the saved workouts and their finished sessions first (`PageUsageIndex`); never used last.
+    case used
 
     var id: String { rawValue }
 
@@ -54,6 +56,7 @@ enum ContainerBrowseSort: String, CaseIterable, Identifiable {
         case .recent: "Recently changed"
         case .clips: "Most clips"
         case .progress: "Progress"
+        case .used: "Most used"
         }
     }
 
@@ -64,11 +67,12 @@ enum ContainerBrowseSort: String, CaseIterable, Identifiable {
         case .recent: "clock"
         case .clips: "film"
         case .progress: "chart.bar"
+        case .used: "flame"
         }
     }
 
     static func options(for tab: ContainerChildTab) -> [ContainerBrowseSort] {
-        tab == .skills ? [.manual, .name, .recent, .progress, .clips] : [.manual, .name, .recent, .clips]
+        tab == .skills ? [.manual, .name, .recent, .progress, .clips, .used] : [.manual, .name, .recent, .clips, .used]
     }
 }
 
@@ -252,15 +256,23 @@ struct ContainerBrowseModel {
         self.typeTitles = typeTitles
     }
 
+    /// Whether the container has a Skills tab: a folder flagged `noSkills` lists everything as ordinary pages.
+    var showsSkills: Bool { !container.manifest.hidesSkills }
+
     /// What each tab lists. With no query: the container's own exercises, notes and containers, and every skill or
-    /// tutorial in it or in the containers inside it. With one: every page anywhere inside that holds it.
+    /// tutorial in it or in the containers inside it (a page flagged `noSkills` is not a skill: it is listed with the
+    /// exercises). With one: every page anywhere inside that holds it.
     func lists(query: String) -> [ContainerChildTab: [ContainerBrowseEntry]] {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !needle.isEmpty else {
-            return [.exercises: ownPages(), .skills: skills()]
+            return [.exercises: ownPages(), .skills: showsSkills ? skills() : []]
         }
         let hits = search(needle)
-        return [.exercises: hits.filter { !$0.page.isSkillLike }, .skills: hits.filter { $0.page.isSkillLike }]
+        guard showsSkills else { return [.exercises: hits, .skills: []] }
+        return [
+            .exercises: hits.filter { !SkillLibrary.isSkill($0.page) },
+            .skills: hits.filter { SkillLibrary.isSkill($0.page) },
+        ]
     }
 
     /// A page's clips, stills, size and latest change (empty for a page outside the container).
@@ -268,12 +280,14 @@ struct ContainerBrowseModel {
         statsByID[page.manifest.id] ?? ContainerPageStats()
     }
 
-    /// `entries` in `sort` order, ties in the container's order; with `relevance`, title matches first.
+    /// `entries` in `sort` order, ties in the container's order; with `relevance`, title matches first. `usage` ranks
+    /// the Most used sort.
     func sorted(
         _ entries: [ContainerBrowseEntry],
         by sort: ContainerBrowseSort,
         relevance: Bool,
-        progress: [String: SkillProgress]
+        progress: [String: SkillProgress],
+        usage: PageUsageIndex = .empty
     ) -> [ContainerBrowseEntry] {
         entries.sorted { lhs, rhs in
             if relevance, lhs.titleMatches != rhs.titleMatches { return lhs.titleMatches }
@@ -296,6 +310,12 @@ struct ContainerBrowseModel {
                 let left = progress[lhs.id]?.fraction ?? 0
                 let right = progress[rhs.id]?.fraction ?? 0
                 if left != right { return left > right }
+            case .used:
+                let left = usage.score(of: lhs.page.id)
+                let right = usage.score(of: rhs.page.id)
+                if left != right { return left > right }
+                let order = lhs.page.title.localizedStandardCompare(rhs.page.title)
+                if order != .orderedSame { return order == .orderedAscending }
             }
             return lhs.position < rhs.position
         }
@@ -345,9 +365,10 @@ struct ContainerBrowseModel {
 
     // MARK: Lists
 
-    /// The container's own exercises, notes and containers, in its order.
+    /// The container's own exercises, notes and containers, in its order, with any page flagged `noSkills`; in a
+    /// folder flagged `noSkills` every child.
     private func ownPages() -> [ContainerBrowseEntry] {
-        container.children.filter { !$0.isSkillLike }.enumerated().map { index, page in
+        container.children.filter { !showsSkills || !SkillLibrary.isSkill($0) }.enumerated().map { index, page in
             ContainerBrowseEntry(page: page, path: [], parentID: container.manifest.id, boardSection: nil, position: index)
         }
     }
@@ -361,7 +382,7 @@ struct ContainerBrowseModel {
     }
 
     private func collectSkills(in folder: ExercisePage, path: [String], into result: inout [ContainerBrowseEntry]) {
-        let skills = folder.children.filter(\.isSkillLike)
+        let skills = folder.children.filter(SkillLibrary.isSkill)
         let sections = folder.manifest.orderedSkillBoardSections
         let known = Set(sections.map(\.id))
         let sectionID: (ExercisePage) -> String? = { page in

@@ -71,9 +71,15 @@ struct DatabasePageBrowserSheet: View {
             }
         }
         switch sortOption {
+        case .manual:
+            let ranks = store.libraryOrder
+            result.sort { (ranks[$0.manifest.id] ?? .max) < (ranks[$1.manifest.id] ?? .max) }
         case .name: result.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
         case .dateCreated: result.sort { $0.manifest.createdAt > $1.manifest.createdAt }
         case .workoutType: result.sort { ($0.effectiveWorkoutType?.name ?? "zzz") < ($1.effectiveWorkoutType?.name ?? "zzz") }
+        case .used:
+            let usage = store.pageUsage(workoutStore)
+            result.sort { usage.ranks($0, before: $1) }
         }
         return result
     }

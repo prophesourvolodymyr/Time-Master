@@ -4,9 +4,19 @@ import UniformTypeIdentifiers
 
 // MARK: - Prerequisites
 
+extension SkillMaterial {
+    /// A step its learn-first list counts as learned or not: a skill, or a group on a board that keeps its skills. A
+    /// page that needs no skills cannot be completed from its own page, so it stays out of the count (and so does a group
+    /// on one); it is still listed, without a status.
+    var isLearnable: Bool {
+        if let page { return SkillLibrary.isSkill(page) }
+        return groupContainer?.manifest.hidesSkills != true
+    }
+}
+
 /// "Learn first", in Skillmax's Dependencies layout: the pages and groups a page or group waits for, in the order to
 /// learn them, each as a card with its place, its icon, its status and where it lives. A page that already waits on
-/// this one is not offered (no loops).
+/// this one is not offered (no loops), and neither is a page that needs no skills.
 struct SkillPrerequisitesSection: View {
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
@@ -17,8 +27,8 @@ struct SkillPrerequisitesSection: View {
     private var candidates: [SkillMaterial] {
         let blocked = store.skillDependencyBlockedIDs(for: materialID)
         let pages = store.allPagesFlat
-        var ids = pages.filter(\.isSkillLike).map(\.manifest.id)
-        ids += pages.flatMap { page in
+        var ids = pages.filter(SkillLibrary.isSkill).map(\.manifest.id)
+        ids += pages.filter { !$0.manifest.hidesSkills }.flatMap { page in
             page.manifest.skillBoardSections.map { SkillGroupID.make(containerID: page.manifest.id, sectionID: $0.id) }
         }
         return ids.filter { !blocked.contains($0) }.compactMap(store.skillMaterial(id:))
@@ -89,7 +99,7 @@ struct SkillPrerequisitesSection: View {
                 rowLabel(dependency, status: status, path: path(of: dependency, library: library))
             }
             .buttonStyle(SkillPressButtonStyle())
-            .accessibilityLabel("\(index + 1). \(dependency.title), \(status.title)")
+            .accessibilityLabel("\(index + 1). \(dependency.title)" + (dependency.isLearnable ? ", \(status.title)" : ""))
             .accessibilityHint(dependency.isGroup ? "Opens this group" : "Opens this page")
             Menu {
                 actions(for: dependency, index: index, in: all)
@@ -113,18 +123,21 @@ struct SkillPrerequisitesSection: View {
     }
 
     private func rowLabel(_ dependency: SkillMaterial, status: SkillStatus, path: String) -> some View {
-        HStack(spacing: SkillMetrics.s3) {
+        let isLearnable = dependency.isLearnable
+        return HStack(spacing: SkillMetrics.s3) {
             icon(of: dependency)
             VStack(alignment: .leading, spacing: 4) {
                 Text(TimeMasterFont.initialCapitalizedTitle(dependency.title))
                     .font(TimeMasterFont.rowTitle())
                     .foregroundStyle(Theme.textPrimary)
-                    .opacity(status.titleOpacity)
+                    .opacity(isLearnable ? status.titleOpacity : 1)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 HStack(spacing: SkillMetrics.s2) {
-                    SkillStatusChip(status)
-                        .fixedSize()
+                    if isLearnable {
+                        SkillStatusChip(status)
+                            .fixedSize()
+                    }
                     if !path.isEmpty {
                         Text(path)
                             .font(TimeMasterFont.caption())
@@ -556,7 +569,9 @@ struct SkillLinksSection: View {
 
     private func row(_ link: String) -> some View {
         let title = manifest?.linkMetadata.first { $0.url == link }?.title
-        let isPrerequisite = manifest?.dependencyLinkURLs.contains(link) ?? false
+        // A page that needs no skills has nothing to learn first, so its links are plain links.
+        let keepsPrerequisites = manifest?.hidesSkills != true
+        let isPrerequisite = keepsPrerequisites && (manifest?.dependencyLinkURLs.contains(link) ?? false)
         let comment = manifest?.linkComments[link]
         return Button {
             if let url = URL(string: link) { openURL(url) }
@@ -597,13 +612,15 @@ struct SkillLinksSection: View {
                 commentText = comment ?? ""
                 commentTarget = link
             } label: { Label("Comment…", systemImage: "text.bubble") }
-            Button {
-                if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
-                    try store.setSkillLinkIsDependency(link, in: materialID, !isPrerequisite)
-                }) {
-                    EverHaptic.selection()
-                }
-            } label: { flagLabel(isPrerequisite: isPrerequisite) }
+            if keepsPrerequisites {
+                Button {
+                    if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
+                        try store.setSkillLinkIsDependency(link, in: materialID, !isPrerequisite)
+                    }) {
+                        EverHaptic.selection()
+                    }
+                } label: { flagLabel(isPrerequisite: isPrerequisite) }
+            }
             Divider()
             Button(role: .destructive) {
                 SkillErrorCenter.shared.attempt("Remove the link") { try store.removeSkillLink(link, from: materialID) }

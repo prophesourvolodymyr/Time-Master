@@ -53,11 +53,17 @@ struct PlayerQueueItem: Identifiable, Equatable {
     let mediaItem: MediaItem?
     let coverURL: URL?
     let symbol: String
+    /// Seconds of a timed exercise; for an untimed one only the estimate the totals use.
     let duration: Int
     let repCount: Int?
     var isDrop = false
+    /// Ends when the user taps Done instead of when a countdown runs out.
+    var isUntimed = false
 
     var canPreview: Bool { pageID != nil || mediaItem != nil }
+
+    /// How long it runs, for VoiceOver.
+    var spokenLength: String { isUntimed ? "until done" : PlayerTime.spoken(duration) }
 }
 
 struct PlayerGlassCircle: ViewModifier {

@@ -112,6 +112,15 @@ enum AgentSchema {
 public enum AgentToolRegistry {
     static let pageRef = "Page UUID or title path such as 'Lower Body/Glutes'."
     static let typeText = "Workout type name or id (Strength, Stretch, Cardio, HIIT, Yoga, Face, Other, or a custom type). Applies to root pages; nested pages inherit it."
+    static let noSkillsText = "True for a page that needs no sub-skills: it shows no skill board, progress, to-dos, milestones or learn-first list. False brings them back."
+
+    /// The `widgets` argument of the page tools.
+    static var pageWidgets: [String: Any] {
+        AgentSchema.array(
+            of: AgentSchema.string("A widget tile, or auto or none on its own.", values: ["auto", "none"] + PageWidgetKind.allCases.map(\.rawValue)),
+            "The widget tiles above the page's tabs, in this order, each shown even when empty. [\"auto\"] (the default) shows only the tiles that have something to show; [] or [\"none\"] shows none. Exercises can show clips and workouts; skills and tutorials clips, progress, todos, milestones, learnFirst and workouts; folders clips, folder, progress and workouts."
+        )
+    }
 
     private static let baseTools: [AgentTool] = [
         contextTool, listPages, searchPages, getPage,
@@ -123,7 +132,7 @@ public enum AgentToolRegistry {
         importVideo, batch, undo,
     ]
 
-    public static let tools: [AgentTool] = baseTools + bundleTools + workoutGroupTools + milestoneTools + noteTools + skillTools
+    public static let tools: [AgentTool] = baseTools + bundleTools + workoutGroupTools + workoutTypeTools + milestoneTools + noteTools + skillTools
 
     public static func tool(named name: String) -> AgentTool? {
         tools.first { $0.name == name }
@@ -164,6 +173,7 @@ public enum AgentToolRegistry {
     - Note pages are Markdown documents with pictures inside the text; they are never exercises and never go into workouts. Write them with create_note_page. A note can sit in a folder or inside a skill or tutorial page.
     - Skill and tutorial pages (create_skill_page) are things to learn: Markdown notes, many video clips with a comment each, links, and sub-pages (sub-skills, exercises, notes). They sit in groups (create_skill_group) on their parent's skill board. Read them with get_page; search_pages also finds words inside notes and clip comments.
     - A workout section is one timed exercise or a bundle: several exercises played back to back for N sets. Drills played every few seconds are a bundle with short durations; read it back with get_workout.
+    - Rep-based work (for example 12 push-ups) can be untimed: pass untimed true and each set runs until the user taps Done, with duration kept only as the estimate for totals.
     - Creating, editing and moving run immediately. Deleting asks the user to approve first; if the user declines, accept it and offer an alternative.
     - Keep arguments small and valid JSON. If a tool returns an error, read its hint and correct the call instead of repeating it.
     """
@@ -207,7 +217,7 @@ public enum AgentToolRegistry {
 
     private static var getPage: AgentTool {
         AgentTool(
-            name: "get_page", summary: "Read one page: notes, timing, links, media attachments and child pages. Long notes come back in pieces; pass bodyOffset to read on.",
+            name: "get_page", summary: "Read one page: notes, timing, links, media attachments, child pages, and its noSkills and widgets settings when set. Long notes come back in pieces; pass bodyOffset to read on.",
             risk: .read, executor: .core, coach: true,
             schema: AgentSchema.object([
                 "page": AgentSchema.string(pageRef),
@@ -234,6 +244,8 @@ public enum AgentToolRegistry {
                 "markdownBody": AgentSchema.string("Notes in Markdown."),
                 "linkURLs": AgentSchema.strings("Reference links."),
                 "media": AgentSchema.external(AgentSchema.array(of: mediaItem, "Local files to attach; the first is the cover.")),
+                "noSkills": AgentSchema.boolean(noSkillsText),
+                "widgets": pageWidgets,
                 "ifExists": AgentSchema.string("When a sibling with this title exists: error (default), reuse it unchanged, or duplicate.", values: ["error", "reuse", "duplicate"]),
             ], required: ["title"])
         )
@@ -255,6 +267,8 @@ public enum AgentToolRegistry {
                 "linkURLs": AgentSchema.strings("Reference links."),
                 "workoutType": AgentSchema.string(typeText),
                 "media": AgentSchema.external(AgentSchema.array(of: mediaItem, "Local files to attach; the first is the cover.")),
+                "noSkills": AgentSchema.boolean(noSkillsText),
+                "widgets": pageWidgets,
                 "ifExists": AgentSchema.string("When a sibling with this title exists: error (default), reuse it unchanged, or duplicate.", values: ["error", "reuse", "duplicate"]),
             ], required: ["title"])
         )
@@ -300,6 +314,8 @@ public enum AgentToolRegistry {
                 "prepareTime": AgentSchema.integer("Preparation seconds (0-30).", minimum: 0, maximum: 30),
                 "linkURLs": AgentSchema.strings("Replacement reference links."),
                 "workoutType": AgentSchema.string(typeText),
+                "noSkills": AgentSchema.boolean(noSkillsText),
+                "widgets": pageWidgets,
             ], required: ["page"])
         )
     }

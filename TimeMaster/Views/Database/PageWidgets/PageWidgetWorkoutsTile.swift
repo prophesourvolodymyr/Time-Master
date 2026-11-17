@@ -1,4 +1,5 @@
 import SwiftUI
+import TimeMasterCore
 
 /// Workouts: how many saved workouts train the page, the ones trained most lately, and when one was last finished. An
 /// exercise in none says so. A tap lists them (`PageWorkoutsList`).

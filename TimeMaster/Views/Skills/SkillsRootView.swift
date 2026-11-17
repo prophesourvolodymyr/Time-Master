@@ -2,22 +2,27 @@ import SwiftUI
 import TimeMasterCore
 
 /// The Skills page: every top-level skill and tutorial of the library (wherever its folder is) as a tile or a row,
-/// filtered by status, searched across everything inside them, a quick way to make a new skill, and its own
-/// navigation stack that opens them with the Database's page routes.
+/// in sections by the category its root Database folder names (Calisthenics, Boxing, Wrestling, Gymnastics, Other)
+/// that fold like the Workouts page's, filtered by status, searched across everything inside them, a quick way to make
+/// a new skill, and its own navigation stack that opens them with the Database's page routes.
 struct SkillsRootView: View {
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var tileHeight = SkillSummaryCard.tileMinimumHeight
+    @Environment(\.everPageTravelActive) private var pageTravelActive
 
     @StateObject private var navigationState = DatabaseNavigationState()
     @AppStorage("tm.skills.root.viewMode") private var viewMode: SkillsViewMode = .tiles
     @AppStorage("tm.skills.root.sort") private var sortOption: SkillSortOption = .status
+    /// Folded sections on this device, by `SkillCategory` raw value, comma separated.
+    @AppStorage("tm.skills.root.foldedSections") private var foldedSectionsRaw = ""
 
     @State private var query = ""
     @State private var searchPresented = false
     @State private var statusFilter: SkillStatus?
+    @State private var foldedCategories: Set<SkillCategory> = []
+    @State private var hasEntered = false
     @State private var showingCreate = false
     @State private var pageToEdit: ExercisePage?
     @State private var pageToDelete: ExercisePage?
@@ -27,6 +32,13 @@ struct SkillsRootView: View {
 
     private var listAnimation: Animation? {
         reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.86)
+    }
+
+    private var sectionBodyTransition: AnyTransition {
+        reduceMotion ? .opacity : .asymmetric(
+            insertion: .opacity.combined(with: .offset(y: -10)),
+            removal: .opacity.combined(with: .offset(y: -6))
+        )
     }
 
     var body: some View {
@@ -41,6 +53,10 @@ struct SkillsRootView: View {
                     chrome(progress: progress, metrics: metrics)
                 }
             }
+            .onAppear {
+                foldedCategories = Set(foldedSectionsRaw.split(separator: ",").compactMap { SkillCategory(rawValue: String($0)) })
+            }
+            .task { await enter() }
             .navigationTitle("")
             #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
@@ -107,6 +123,7 @@ struct SkillsRootView: View {
             openSearch()
             return true
         }
+        .macWindowTitleHidden()
         .font(TimeMasterFont.body())
     }
 
@@ -221,24 +238,30 @@ struct SkillsRootView: View {
 
     private func content(metrics: ScrollingChromeMetrics) -> some View {
         let library = store.skillLibrary
-        let entries = sortOption.ordered(library.topLevelEntries())
+        let index = store.index
+        let entries = sortOption.ordered(SkillShelf.listed(library.topLevelEntries()))
         return VStack(alignment: .leading, spacing: 16) {
             if !trimmedQuery.isEmpty {
-                SkillsSearchResults(query: trimmedQuery, roots: entries.map(\.page), library: library) { page in
+                SkillsSearchResults(query: trimmedQuery, sections: SkillShelf.sections(of: entries, index: index), library: library) { page in
                     open(page.manifest.id)
                 }
             } else if entries.isEmpty {
                 emptyView
+                    .skillsEntrance(hasEntered, section: 0)
             } else {
                 let counts = Dictionary(grouping: entries) { $0.status }.mapValues { $0.count }
                 if counts.count > 1 || statusFilter != nil {
                     statusFilterRow(counts: counts, total: entries.count, metrics: metrics)
+                        .skillsEntrance(hasEntered, section: 0)
                 }
                 let visible = statusFilter.map { filter in entries.filter { $0.status == filter } } ?? entries
                 if visible.isEmpty {
                     filteredEmptyView
                 } else {
-                    skillGrid(visible, metrics: metrics)
+                    let sections = SkillShelf.sections(of: visible, index: index)
+                    sectionList(sections)
+                    newSkillButton
+                        .skillsEntrance(hasEntered, section: sections.count)
                 }
             }
         }
@@ -248,42 +271,60 @@ struct SkillsRootView: View {
         .frame(maxWidth: .infinity, alignment: .top)
     }
 
+    /// Each section under its header, like the Workouts page's sections; a folded one keeps only its header.
+    private func sectionList(_ sections: [SkillCategorySection]) -> some View {
+        LazyVStack(alignment: .leading, spacing: 12) {
+            ForEach(Array(sections.enumerated()), id: \.element.id) { order, section in
+                let folded = isFolded(section.category)
+                SkillCategoryHeader(category: section.category, count: section.entries.count, isFolded: folded) {
+                    toggleFold(section.category)
+                }
+                .padding(.top, order == 0 ? 0 : 14)
+                .skillsEntrance(hasEntered, section: order)
+                if !folded {
+                    sectionBody(section, order: order)
+                        .transition(sectionBodyTransition)
+                }
+            }
+        }
+    }
+
     @ViewBuilder
-    private func skillGrid(_ entries: [SkillLibraryEntry], metrics: ScrollingChromeMetrics) -> some View {
+    private func sectionBody(_ section: SkillCategorySection, order: Int) -> some View {
+        let cards = Array(section.entries.enumerated())
         switch viewMode {
         case .tiles:
-            LazyVGrid(columns: gridColumns(metrics), spacing: 14) {
-                ForEach(entries) { entry in
-                    card(entry, style: .tile)
+            LazyVGrid(columns: gridColumns, spacing: 14) {
+                ForEach(cards, id: \.element.id) { position, entry in
+                    card(entry, category: section.category, style: .tile)
+                        .skillsEntrance(hasEntered, section: order, position: position + 1)
                 }
-                newSkillTile
             }
         case .list:
             LazyVStack(spacing: 10) {
-                ForEach(entries) { entry in
-                    card(entry, style: .row)
+                ForEach(cards, id: \.element.id) { position, entry in
+                    card(entry, category: section.category, style: .row)
+                        .skillsEntrance(hasEntered, section: order, position: position + 1)
                 }
-                newSkillRow
             }
         }
     }
 
-    private func gridColumns(_ metrics: ScrollingChromeMetrics) -> [GridItem] {
-        let spacing: CGFloat = 14
+    /// As many columns as fit the grid's own width at the minimum tile width, so nothing is measured; one column at
+    /// accessibility text sizes.
+    private var gridColumns: [GridItem] {
         if dynamicTypeSize.isAccessibilitySize {
-            return [GridItem(.flexible(), spacing: spacing)]
+            return [GridItem(.flexible(), spacing: 14)]
         }
         #if os(macOS)
-        let minimum: CGFloat = 210
+        return [GridItem(.adaptive(minimum: 210), spacing: 14)]
         #else
-        let minimum: CGFloat = 156
+        return [GridItem(.adaptive(minimum: 156), spacing: 14)]
         #endif
-        let fit = Int((max(1, metrics.contentWidth) + spacing) / (minimum + spacing))
-        return Array(repeating: GridItem(.flexible(), spacing: spacing), count: min(5, max(2, fit)))
     }
 
-    private func card(_ entry: SkillLibraryEntry, style: SkillSummaryCard.Style) -> some View {
-        SkillSummaryCard(page: entry.page, style: style, progress: entry.progress)
+    private func card(_ entry: SkillLibraryEntry, category: SkillCategory, style: SkillSummaryCard.Style) -> some View {
+        SkillSummaryCard(page: entry.page, style: style, progress: entry.progress, category: category)
             .contextMenu { cardMenu(entry.page) }
     }
 
@@ -361,50 +402,24 @@ struct SkillsRootView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private var newSkillTile: some View {
+    /// The dashed row under the sections that makes a new skill, like the Workouts page's "New Section" row.
+    private var newSkillButton: some View {
         Button {
             showingCreate = true
         } label: {
-            VStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .bold))
-                Text("New skill")
-                    .font(TimeMasterFont.rowTitle())
-            }
-            .foregroundStyle(Theme.textSecondary)
-            .frame(maxWidth: .infinity, minHeight: tileHeight)
-            .overlay {
-                RoundedRectangle(cornerRadius: SkillSummaryCard.tileCornerRadius, style: .continuous)
-                    .strokeBorder(Theme.textSecondary.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
-            }
-            .contentShape(RoundedRectangle(cornerRadius: SkillSummaryCard.tileCornerRadius, style: .continuous))
+            Label("New skill", systemImage: "plus")
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Theme.textSecondary.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [6, 5]))
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
-        .keyNavShape(.roundedRectangle(cornerRadius: SkillSummaryCard.tileCornerRadius))
-        .accessibilityLabel("New skill")
-    }
-
-    private var newSkillRow: some View {
-        Button {
-            showingCreate = true
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .bold))
-                Text("New skill")
-                    .font(TimeMasterFont.rowTitle())
-            }
-            .foregroundStyle(Theme.textSecondary)
-            .frame(maxWidth: .infinity, minHeight: 60)
-            .overlay {
-                RoundedRectangle(cornerRadius: SkillSummaryCard.rowCornerRadius, style: .continuous)
-                    .strokeBorder(Theme.textSecondary.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
-            }
-            .contentShape(RoundedRectangle(cornerRadius: SkillSummaryCard.rowCornerRadius, style: .continuous))
-        }
-        .buttonStyle(TimeMasterCardButtonStyle())
-        .keyNavShape(.roundedRectangle(cornerRadius: SkillSummaryCard.rowCornerRadius))
-        .accessibilityLabel("New skill")
+        .buttonStyle(SkillsPressStyle(cornerRadius: 16))
+        .accessibilityHint("Makes a new skill or tutorial")
+        .padding(.top, 6)
     }
 
     // MARK: States
@@ -415,8 +430,7 @@ struct SkillsRootView: View {
                 .font(.system(size: 40, weight: .bold))
                 .foregroundStyle(Theme.toolbarOrange)
                 .frame(width: 104, height: 104)
-                .background(SkillCardSurface(cornerRadius: 30))
-                .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                .modifier(TimeMasterCardSurface(cornerRadius: 30, flat: true))
                 .accessibilityHidden(true)
             VStack(spacing: 8) {
                 Text("What do you want to get good at?")
@@ -485,6 +499,29 @@ struct SkillsRootView: View {
         guard option != sortOption else { return }
         withAnimation(listAnimation) { sortOption = option }
         EverHaptic.selection()
+    }
+
+    /// While a status filter is on, every section is open, so no match hides behind a fold.
+    private func isFolded(_ category: SkillCategory) -> Bool {
+        statusFilter == nil && foldedCategories.contains(category)
+    }
+
+    private func toggleFold(_ category: SkillCategory) {
+        withAnimation(listAnimation) {
+            if foldedCategories.remove(category) == nil { foldedCategories.insert(category) }
+        }
+        foldedSectionsRaw = foldedCategories.map(\.rawValue).sorted().joined(separator: ",")
+    }
+
+    /// Plays the entrance once per visit of the page. On the Mac the page travel slides a picture of the page in, so
+    /// the entrance starts once it has landed instead of changing under it.
+    private func enter() async {
+        guard !hasEntered else { return }
+        if pageTravelActive {
+            try? await Task.sleep(nanoseconds: UInt64(EverPageMotion.duration * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+        }
+        hasEntered = true
     }
 
     private func setStatus(_ status: SkillStatus, of page: ExercisePage) {

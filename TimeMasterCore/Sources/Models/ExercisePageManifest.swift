@@ -249,6 +249,12 @@ public struct ExercisePageManifest: Codable {
     public var todos: [TodoItem]
     /// Skill and tutorial pages: the milestones, drawn as cards (see `Milestone`).
     public var milestones: [Milestone]
+    /// Pages that need no sub-skills, progress, to-dos, milestones or learn-first list set this. nil and false are the
+    /// same (the page type decides what the page shows).
+    public var noSkills: Bool?
+    /// The widget tiles the page shows above its tabs, by `PageWidgetKind` raw value. nil = automatic (the tiles that
+    /// have something to show), an empty list = none, otherwise exactly these.
+    public var widgets: [String]?
     public var duration: Int?
     public var restAfter: Int?
     public var prepareTime: Int?
@@ -271,6 +277,7 @@ public struct ExercisePageManifest: Codable {
         case childIDs, parentID, order, createdAt, updatedAt
         case iconType, iconImage, coverMediaFilename, linkComments
         case dependencyPageIDs, dependencyMediaFilenames, dependencyLinkURLs, typePresets, typeID, todos, milestones
+        case noSkills, widgets
     }
 
     public init(
@@ -297,6 +304,8 @@ public struct ExercisePageManifest: Codable {
         typeID: String? = nil,
         todos: [TodoItem] = [],
         milestones: [Milestone] = [],
+        noSkills: Bool? = nil,
+        widgets: [String]? = nil,
         workoutType: WorkoutType? = nil,
         skillStatus: SkillStatus? = nil,
         skillBoardSectionID: String? = nil,
@@ -345,6 +354,8 @@ public struct ExercisePageManifest: Codable {
         self.typeID = isSkillPage ? typeID : nil
         self.todos = isSkillPage ? todos : []
         self.milestones = isSkillPage ? milestones : []
+        self.noSkills = noSkills == true ? true : nil
+        self.widgets = widgets
         self.workoutType = isNote ? nil : workoutType
         self.skillStatus = isSkillPage ? skillStatus ?? .notStarted : nil
         self.skillBoardSectionID = isSkillPage ? skillBoardSectionID : nil
@@ -399,6 +410,8 @@ public struct ExercisePageManifest: Codable {
             typeID: values.lenient(String.self, .typeID),
             todos: values.lenientList(TodoItem.self, .todos),
             milestones: values.lenientList(Milestone.self, .milestones),
+            noSkills: values.lenient(Bool.self, .noSkills),
+            widgets: values.lenient([String].self, .widgets),
             workoutType: try values.decodeIfPresent(WorkoutType.self, forKey: .workoutType),
             skillStatus: values.lenient(String.self, .skillStatus).map { SkillStatus(rawValue: $0) ?? .notStarted },
             skillBoardSectionID: try values.decodeIfPresent(String.self, forKey: .skillBoardSectionID),
@@ -462,6 +475,8 @@ public struct ExercisePageManifest: Codable {
         try values.encodeIfPresent(typeID, forKey: .typeID)
         try values.encodeUnlessEmpty(todos, forKey: .todos)
         try values.encodeUnlessEmpty(milestones, forKey: .milestones)
+        try values.encodeIfPresent(noSkills, forKey: .noSkills)
+        try values.encodeIfPresent(widgets, forKey: .widgets)
     }
 
     /// The skill board groups this page owns, sorted by `order`.

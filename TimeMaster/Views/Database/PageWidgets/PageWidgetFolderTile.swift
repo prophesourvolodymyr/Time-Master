@@ -1,4 +1,5 @@
 import SwiftUI
+import TimeMasterCore
 
 /// In this folder: what a folder holds all the way down (exercises, skills, clips, and its folders and notes when it has
 /// any), under the covers of its first pages. An empty folder says so. A tap opens its pages.

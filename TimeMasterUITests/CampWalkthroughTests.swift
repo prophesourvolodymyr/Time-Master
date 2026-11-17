@@ -15,6 +15,7 @@ final class CampWalkthroughTests: XCTestCase {
         continueAfterFailure = false
         app.launchEnvironment["TIMEMASTER_DATA_ROOT"] = Self.dataRoot
         app.launch()
+        app.discardSavedWorkoutIfOffered()
     }
 
     override func tearDownWithError() throws {

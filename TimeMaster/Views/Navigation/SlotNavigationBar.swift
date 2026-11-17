@@ -103,6 +103,15 @@ struct SlotCarouselNavigationBar: View, Animatable {
     @GestureState private var itemGestureActive = false
     @GestureState private var touchIsActive = false
     @State private var notificationDismissalToken = 0
+    #if os(macOS)
+    /// Moves the strip outside the editor on the Mac: two-finger scrolls, drags, clicks and selections made elsewhere.
+    @StateObject private var reel: SlotReel
+    @State private var reelDragTranslation: CGFloat = 0
+    /// Keeps the editor's scroll position on screen until the reel takes the strip over after editing ends.
+    @State private var editorHoldsStrip = false
+    /// How far above the arc line a scroll still counts as the bar's: the selected icon rises past the line.
+    private static let scrollReach: CGFloat = 16
+    #endif
 
     private static let coordinateSpace = "navigation-arc-editor"
     private enum SlotRole { case page, catalog, prepend, append }
@@ -163,6 +172,9 @@ struct SlotCarouselNavigationBar: View, Animatable {
         self.onPageDrag = onPageDrag
         self.onPageDragEnded = onPageDragEnded
         self.onInteractionChanged = onInteractionChanged
+        #if os(macOS)
+        _reel = StateObject(wrappedValue: SlotReel(count: items.count, slot: selection.wrappedValue))
+        #endif
     }
 
     var animatableData: AnimatablePair<CGFloat, CGFloat> {
@@ -194,6 +206,14 @@ struct SlotCarouselNavigationBar: View, Animatable {
         reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.84)
     }
     private var curveOffset: CGFloat { Self.platformCurveOffset }
+    /// A press on the bar or, on the Mac, a scroll or drag that holds the strip.
+    private var isInteracting: Bool {
+        #if os(macOS)
+        touchIsActive || reel.isTracking
+        #else
+        touchIsActive
+        #endif
+    }
 
     private func placedY(_ y: CGFloat, height: CGFloat) -> CGFloat {
         placement == .bottom ? y : height - y
@@ -223,7 +243,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             DragGesture(minimumDistance: 0)
                 .updating($touchIsActive) { _, active, _ in active = true }
         )
-        .onChange(of: touchIsActive, perform: onInteractionChanged)
+        .onChange(of: isInteracting, perform: onInteractionChanged)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("carousel-navigation")
         .accessibilityValue(isEditing ? strings.editingValue : (expandedAmount < 0.5 ? strings.compactValue : strings.expandedValue))
@@ -255,7 +275,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
             let slotWidth = slotWidth(for: size.width)
             let arcRect = CGRect(x: 0, y: inwardClearance, width: size.width, height: surfaceHeight)
             let centeredOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
-            let displayOffset = hasMeasured ? reelOffset : centeredOffset
+            let displayOffset = stripOffset(viewportWidth: size.width, slotWidth: slotWidth, centeredOffset: centeredOffset)
             let arcScaleX = 1 + effectiveDragIntensity * 0.15 + editProgress * 0.12
             let arcScaleY = 1 + effectiveDragIntensity * 0.35 + editProgress * 0.25
 
@@ -294,12 +314,28 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 }
             }
             .contentShape(Rectangle())
+            #if os(macOS)
+            .background {
+                SlotReelScroll(
+                    reel: reel,
+                    isEnabled: !isEditing && !editorHoldsStrip && !items.isEmpty,
+                    pitch: slotWidth,
+                    contains: { point, bounds in scrollReaches(point, in: bounds) },
+                    onLand: reelLandingHandler
+                )
+            }
+            #endif
             .gesture(dragGesture(size: size, slotWidth: slotWidth, fallbackOffset: centeredOffset))
             .onAppear {
                 if !hasMeasured {
                     reelOffset = centeredOffset
                     hasMeasured = true
                 }
+                #if os(macOS)
+                reel.reduceMotion = reduceMotion
+                reel.resize(count: items.count)
+                if !reel.isTracking, reel.landing != selection { reel.place(at: selection) }
+                #endif
             }
             .onChange(of: size.width) { _ in
                 let nextOffset = isEditing ? editorBoundedOffset(reelOffset, size: size)
@@ -315,6 +351,10 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 if items.indices.contains(newSelection), items[newSelection].badgeCount > 0 {
                     notificationDismissalToken &+= 1
                 }
+                #if os(macOS)
+                reel.resize(count: items.count)
+                reel.show(newSelection)
+                #endif
                 let nextOffset = offset(for: newSelection, viewportWidth: size.width, slotWidth: slotWidth)
                 guard abs(reelOffset - nextOffset) > 0.5 else { return }
                 withAnimation(selectionAnimation) { reelOffset = nextOffset }
@@ -323,16 +363,45 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 cancelLift()
                 isDragging = false
                 dragIntensity = 0
+                #if os(macOS)
+                if editing {
+                    editorHoldsStrip = true
+                    reel.place(at: selection)
+                } else {
+                    handStripToReel(viewportWidth: size.width, slotWidth: slotWidth)
+                }
+                #else
                 if !editing {
                     withAnimation(selectionAnimation) {
                         reelOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
                     }
                 }
+                #endif
             }
             .onChange(of: items.count) { _ in
+                #if os(macOS)
+                if !isEditing {
+                    reel.resize(count: items.count)
+                    reel.show(selection)
+                }
+                #endif
                 guard isEditing, liftedItem == nil else { return }
                 withAnimation(editorAnimation) { reelOffset = editorBoundedOffset(reelOffset, size: size) }
             }
+            #if os(macOS)
+            .onChange(of: reel.isTracking) { tracking in
+                withAnimation(tracking ? dragExpansionAnimation : dragWindDownAnimation) {
+                    dragIntensity = tracking && !reduceMotion ? 1 : 0
+                }
+                if !tracking { onPageDragEnded() }
+            }
+            .onChange(of: reel.position) { position in
+                if reel.isTracking { onPageDrag(position) }
+            }
+            .onChange(of: reduceMotion) { reduce in
+                reel.reduceMotion = reduce
+            }
+            #endif
         }
     }
 
@@ -409,23 +478,19 @@ struct SlotCarouselNavigationBar: View, Animatable {
         #if os(macOS)
         let edgeProgress = min(1, distance / max(1, size.width / 2))
         let viewportFade = catalog || isEditing ? 1 : 1 - edgeProgress * edgeProgress * (3 - 2 * edgeProgress)
-        let slope = catalog
-            ? SlotArcGeometry.slope(at: itemX, in: arcRect, expansion: 1)
-            : transformedArcSlope(at: itemX, in: arcRect)
-        let tilt = Angle.radians(Double(atan(slope) * (placement == .bottom ? 1 : -1) * (1 - styleEdit)))
         #endif
 
         return VStack(spacing: labelSpacing) {
             iconImage(add ? .system("plus.circle") : item.icon, size: 31)
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(add ? theme.success : theme.textPrimary)
+                .foregroundStyle(add ? theme.accent : theme.textPrimary)
                 .scaleEffect(iconSize / 31)
                 .frame(height: iconFrameHeight)
                 .overlay(alignment: .topTrailing) {
                     if catalog {
                         Image(systemName: item.isPending ? "checkmark.circle.fill" : "plus.circle.fill")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(item.isPending ? theme.textSecondary : theme.success)
+                            .foregroundStyle(item.isPending ? theme.textSecondary : theme.accent)
                             .background(Circle().fill(theme.surface))
                             .offset(x: 9, y: -2)
                     } else if isEditing, item.isConfigurable {
@@ -458,9 +523,6 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 .opacity(labelOpacity)
                 .accessibilityHidden(true)
         }
-        #if os(macOS)
-        .rotationEffect(tilt)
-        #endif
         .frame(width: slotWidth, height: itemHeight)
         .contentShape(Rectangle())
         .scaleEffect(itemScale, anchor: scaleAnchor)
@@ -788,12 +850,45 @@ struct SlotCarouselNavigationBar: View, Animatable {
         return rect.maxY - (rect.maxY - unscaledY) * scaleY - 24 * editProgress
     }
 
+    private func stripOffset(viewportWidth: CGFloat, slotWidth: CGFloat, centeredOffset: CGFloat) -> CGFloat {
+        #if os(macOS)
+        if !isEditing && !editorHoldsStrip {
+            return offset(for: 0, viewportWidth: viewportWidth, slotWidth: slotWidth) - reel.position * slotWidth
+        }
+        #endif
+        return hasMeasured ? reelOffset : centeredOffset
+    }
+
     #if os(macOS)
-    private func transformedArcSlope(at x: CGFloat, in rect: CGRect) -> CGFloat {
-        let scaleX = 1 + effectiveDragIntensity * 0.15 + editProgress * 0.12
-        let scaleY = 1 + effectiveDragIntensity * 0.35 + editProgress * 0.25
-        let arcSampleX = rect.midX + (x - rect.midX) / scaleX
-        return SlotArcGeometry.slope(at: arcSampleX, in: rect, expansion: expandedAmount) * scaleY / scaleX
+    /// After editing, the reel picks the strip up where the editor left it and glides to the selection.
+    private func handStripToReel(viewportWidth: CGFloat, slotWidth: CGFloat) {
+        reel.resize(count: items.count)
+        reel.hold(at: (offset(for: 0, viewportWidth: viewportWidth, slotWidth: slotWidth) - reelOffset) / slotWidth)
+        reel.select(selection)
+        editorHoldsStrip = false
+    }
+
+    /// Selects the page the reel lands on. Captures the bindings rather than the bar: the bar owns the reel, so a
+    /// callback holding the bar would keep both alive after the bar goes away.
+    private var reelLandingHandler: (Int) -> Void {
+        let pages = items
+        let editing = $isEditing
+        let current = $selection
+        let changed = onSelectionChanged
+        return { index in
+            guard !editing.wrappedValue, pages.indices.contains(index), index != current.wrappedValue else { return }
+            changed(index)
+            current.wrappedValue = index
+        }
+    }
+
+    /// Scrolls belong to the bar when they start over its surface or just above the arc line; the open space
+    /// higher up keeps scrolling the page.
+    private func scrollReaches(_ point: CGPoint, in bounds: CGSize) -> Bool {
+        let surface = CGRect(x: 0, y: placement == .bottom ? bounds.height - surfaceHeight : 0,
+                             width: bounds.width, height: surfaceHeight)
+        return SlotArcGeometry.surfaceContains(point, in: surface, curveOffset: curveOffset, expansion: expandedAmount,
+                                               placement: placement, reach: Self.scrollReach)
     }
     #endif
 
@@ -819,11 +914,19 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 if !isDragging {
                     guard abs(value.translation.width) > abs(value.translation.height) * 1.3 else { return }
                     isDragging = true
+                    #if os(macOS)
+                    reelDragTranslation = 0
+                    #else
                     dragStartOffset = hasMeasured ? reelOffset : fallbackOffset
                     withAnimation(dragExpansionAnimation) {
                         dragIntensity = reduceMotion ? 0 : 1
                     }
+                    #endif
                 }
+                #if os(macOS)
+                reel.track((reelDragTranslation - value.translation.width) / slotWidth)
+                reelDragTranslation = value.translation.width
+                #else
                 let rawOffset = dragStartOffset + value.translation.width
                 let boundedOffset = rubberBand(
                     rawOffset,
@@ -834,6 +937,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                 transaction.animation = nil
                 withTransaction(transaction) { reelOffset = boundedOffset }
                 onPageDrag((offset(for: 0, viewportWidth: size.width, slotWidth: slotWidth) - boundedOffset) / slotWidth)
+                #endif
             }
             .onEnded { value in
                 if isEditing {
@@ -841,6 +945,10 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     return
                 }
                 guard isDragging else { return }
+                #if os(macOS)
+                isDragging = false
+                reel.release()
+                #else
                 let projectedOffset = dragStartOffset + value.predictedEndTranslation.width
                 let targetIndex = index(
                     for: projectedOffset,
@@ -856,6 +964,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
                     projectedTranslation: value.predictedEndTranslation.width - value.translation.width
                 )
                 onPageDragEnded()
+                #endif
             }
     }
 
@@ -866,6 +975,12 @@ struct SlotCarouselNavigationBar: View, Animatable {
         projectedTranslation: CGFloat
     ) {
         guard items.indices.contains(index) else { return }
+        #if os(macOS)
+        if !isEditing {
+            reel.select(index)
+            return
+        }
+        #endif
         let targetOffset = offset(for: index, viewportWidth: viewportWidth, slotWidth: slotWidth)
         let currentOffset = hasMeasured ? reelOffset : targetOffset
         let remainingDistance = max(abs(targetOffset - currentOffset), 1)

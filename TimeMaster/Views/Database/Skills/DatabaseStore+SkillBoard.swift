@@ -52,10 +52,9 @@ extension DatabaseStore {
         }
         let status = moved.manifest.skillStatus ?? .notStarted
         let sections = target.manifest.orderedSkillBoardSections
-        let position = target.manifest.childIDs.count
         try skillWrite { database in
             let order = try database.nextSkillBoardOrder(containerID: targetID, sectionID: nil)
-            try database.movePage(id: pageID, newParentID: targetID, newOrder: position)
+            try database.movePageToEnd(id: pageID, parentID: targetID)
             if moved.isSkillLike {
                 try database.updateSkillBoard(
                     containerID: targetID,

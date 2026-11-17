@@ -25,39 +25,70 @@ enum PageWidgetItem: Identifiable {
 
     var id: PageWidgetKind { kind }
 
-    /// The tiles of `page`, in strip order. A page leads with its clips when it has any. An exercise always shows its
-    /// clips (inviting the first) and the workouts that train it. A skill or a tutorial shows its progress, to-dos and
-    /// milestones (each inviting the first when it has none), then what to learn first and the workouts that train it
-    /// when there are some. A folder sums up what it holds, then the progress of the skills in it and the workouts that
-    /// use its pages when there are some. A note shows none.
+    /// The tile has something to say. Automatic leaves out the tiles that would only invite a first item.
+    var hasContent: Bool {
+        switch self {
+        case .clips(let clips): return clips.total > 0
+        case .folder(let folder): return folder.pageCount > 0
+        case .progress(let progress, _): return progress.total + progress.abandoned > 0
+        case .todos(let todos): return todos.openCount > 0
+        case .milestones(_, let list): return list.progressTotal > 0
+        case .learnFirst(let learnFirst): return learnFirst.total > 0
+        case .workouts(let usage): return !usage.isEmpty
+        }
+    }
+
+    /// The tiles of `page`, in strip order, as its `widgets` setting asks. Left to itself a page shows the tiles that
+    /// have something to say: an exercise its clips and the workouts that train it; a skill or a tutorial its clips, its
+    /// progress, open to-dos and milestones, what to learn first and the workouts that train it; a folder its clips,
+    /// what it holds, the progress of the skills in it and the workouts that use its pages; a note none. A chosen list
+    /// shows exactly its tiles, an empty one inviting its first item. A page that needs no skills (`noSkills`) never
+    /// shows the tiles about sub-skills.
     @MainActor
     static func items(for page: ExercisePage, store: DatabaseStore, workoutStore: WorkoutStore) -> [PageWidgetItem] {
+        items(for: page, selection: page.manifest.widgetSelection, noSkills: page.manifest.hidesSkills, store: store, workoutStore: workoutStore)
+    }
+
+    /// The tiles `page` shows with `selection` and `noSkills` in place of its own settings (the edit form asks what
+    /// Automatic shows, to start a chosen list from it). Each tile reads the stores once, and only when asked for.
+    @MainActor
+    static func items(
+        for page: ExercisePage,
+        selection: PageWidgetSelection,
+        noSkills: Bool,
+        store: DatabaseStore,
+        workoutStore: WorkoutStore
+    ) -> [PageWidgetItem] {
         let library = store.skillLibrary
-        let clips = PageWidgetClips(page: page)
-        var items: [PageWidgetItem] = []
-        switch page.pageType {
-        case .note?:
-            break
-        case .exercise?:
-            items.append(.clips(clips))
-            items.append(.workouts(PageWorkoutUsage.of(page, library: library, workoutStore: workoutStore)))
-        case .skill?, .tutorial?:
-            if clips.total > 0 { items.append(.clips(clips)) }
-            items.append(.progress(library.progress(of: page), target: .subSkills))
-            items.append(.todos(PageWidgetTodos(page: page, library: library)))
-            items.append(.milestones(pageID: page.manifest.id, list: page.manifest.milestones))
-            if let learnFirst = PageWidgetLearnFirst(page: page, store: store) { items.append(.learnFirst(learnFirst)) }
-            let usage = PageWorkoutUsage.of(page, library: library, workoutStore: workoutStore)
-            if !usage.isEmpty { items.append(.workouts(usage)) }
-        case nil:
-            if clips.total > 0 { items.append(.clips(clips)) }
-            items.append(.folder(PageWidgetFolder(page: page, library: library)))
-            let progress = library.progress(of: page)
-            if progress.total + progress.abandoned > 0 { items.append(.progress(progress, target: .children)) }
-            let usage = PageWorkoutUsage.of(page, library: library, workoutStore: workoutStore)
-            if !usage.isEmpty { items.append(.workouts(usage)) }
+        var made: [PageWidgetKind: PageWidgetItem?] = [:]
+        func tile(_ kind: PageWidgetKind) -> PageWidgetItem? {
+            if let known = made[kind] { return known }
+            let built = make(kind, of: page, library: library, store: store, workoutStore: workoutStore)
+            made[kind] = built
+            return built
         }
-        return items
+        return selection
+            .resolved(for: page.pageType, noSkills: noSkills) { tile($0)?.hasContent == true }
+            .compactMap(tile)
+    }
+
+    @MainActor
+    private static func make(
+        _ kind: PageWidgetKind,
+        of page: ExercisePage,
+        library: SkillLibrary,
+        store: DatabaseStore,
+        workoutStore: WorkoutStore
+    ) -> PageWidgetItem? {
+        switch kind {
+        case .clips: return .clips(PageWidgetClips(page: page))
+        case .folder: return .folder(PageWidgetFolder(page: page, library: library))
+        case .progress: return .progress(library.progress(of: page), target: page.isSkillLike ? .subSkills : .children)
+        case .todos: return .todos(PageWidgetTodos(page: page, library: library))
+        case .milestones: return .milestones(pageID: page.manifest.id, list: page.manifest.milestones)
+        case .learnFirst: return PageWidgetLearnFirst(page: page, store: store).map(PageWidgetItem.learnFirst)
+        case .workouts: return .workouts(PageWorkoutUsage.of(page, library: library, workoutStore: workoutStore))
+        }
     }
 }
 
@@ -164,7 +195,8 @@ struct PageWidgetTodos {
 }
 
 /// What a skill or a tutorial waits for: its pages and groups to learn first (how many are learned, and the next one),
-/// and the files and links to have first.
+/// and the files and links to have first. A page there that needs no skills cannot be learned from its own page, so it
+/// is no step (`SkillMaterial.isLearnable`).
 struct PageWidgetLearnFirst {
     /// A page or a group to learn first.
     struct Step {
@@ -194,12 +226,12 @@ struct PageWidgetLearnFirst {
             .joined(separator: " · ")
     }
 
-    /// Nil for a page that is no skill or tutorial, or waits for nothing.
+    /// Nil for a page that is no skill or tutorial; one that waits for nothing has a `total` of 0.
     @MainActor
     init?(page: ExercisePage, store: DatabaseStore) {
         let id = page.manifest.id
         guard page.isSkillLike, let material = store.skillMaterial(id: id) else { return nil }
-        let dependencies = store.skillDependencies(of: id)
+        let dependencies = store.skillDependencies(of: id).filter(\.isLearnable)
         var next: Step?
         var done = 0
         for dependency in dependencies {
@@ -221,7 +253,6 @@ struct PageWidgetLearnFirst {
         stepsDone = done
         files = material.dependencyMediaURLs.count
         links = material.dependencyLinkURLs.count
-        guard total > 0 else { return nil }
     }
 }
 
@@ -257,7 +288,8 @@ struct PageWidgetFolder {
         for item in below {
             switch item.pageType {
             case .exercise?: exercises += 1
-            case .skill?, .tutorial?: skills += 1
+            case .skill?, .tutorial?:
+                if item.manifest.hidesSkills { exercises += 1 } else { skills += 1 }
             case .note?: notes += 1
             case nil: folders += 1
             }

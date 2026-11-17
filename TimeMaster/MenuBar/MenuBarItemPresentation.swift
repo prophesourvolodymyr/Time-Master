@@ -84,8 +84,10 @@ struct MenuBarItemPresentation: Equatable {
     }
 
     private static func live(_ state: WorkoutLiveState) -> MenuBarItemPresentation {
-        let clock = MenuBarFormat.clock(state.remainingSeconds)
-        let tooltip = "\(state.workoutName) · \(state.title) · \(clock) left"
+        let clock = MenuBarFormat.clock(state.untimedSeconds ?? state.remainingSeconds)
+        let tooltip = state.isUntimed
+            ? "\(state.workoutName) · \(state.title) · until done"
+            : "\(state.workoutName) · \(state.title) · \(clock) left"
 
         if state.isPaused {
             return MenuBarItemPresentation(
@@ -133,7 +135,8 @@ struct MenuBarItemPresentation: Equatable {
                 glyph: .exercise,
                 label: truncated(state.title, suffix: " \(clock)"),
                 progress: state.phaseProgress,
-                accessibilityLabel: "\(state.title), \(clock) left",
+                accessibilityLabel: state.untimedSeconds.map { "\(state.title), until done, \(MenuBarFormat.minutes($0)) in" }
+                    ?? "\(state.title), \(clock) left",
                 tooltip: tooltip
             )
         case .setRest, .sectionRest:

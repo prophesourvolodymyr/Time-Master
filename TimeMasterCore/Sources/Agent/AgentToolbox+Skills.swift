@@ -46,16 +46,26 @@ extension AgentToolbox {
             }
         }
         let pageType: PageType = args.string("pageType") == "tutorial" ? .tutorial : .skill
+        let flags = try pageFlags(args, pageType: pageType)
         let attachments = try args.objects("media").map { item -> (url: URL, comment: String?) in
             (try AgentMedia.validate(path: item["path"] as? String ?? ""), (item["comment"] as? String).flatMap { $0.isEmpty ? nil : $0 })
         }
         let limit = DatabaseManager.mediaLimit(for: ExercisePageManifest(title: title, pageType: pageType))
         guard attachments.count <= limit else { throw AgentToolError("media_limit", "A skill page holds up to \(limit) attachments.") }
+        let status = SkillStatus(rawValue: args.string("status") ?? "") ?? .notStarted
+        var manifest = ExercisePageManifest(
+            title: title, pageType: pageType, markdownBody: args.string("markdownBody") ?? "",
+            linkURLs: args.strings("linkURLs") ?? [], skillStatus: status, parentID: parent?.id
+        )
+        if let icon = args.string("icon") { try applyIcon(icon, to: &manifest) }
+        flags.apply(to: &manifest)
+        let warnings = flags.isEmpty ? [] : pageFlagWarnings(manifest)
         let path = (parent.map { index.titlePath($0.id) + "/" } ?? "") + title
         if dryRun {
             var preview: [String: Any] = ["dryRun": true, "wouldCreate": path]
             if let groupTitle { preview["group"] = groupTitle }
             if !attachments.isEmpty { preview["media"] = attachments.count }
+            if !warnings.isEmpty { preview["warnings"] = warnings }
             return AgentToolOutput(value: preview)
         }
 
@@ -63,12 +73,6 @@ extension AgentToolbox {
         if let groupTitle, let parent {
             sectionID = try groupMatching(groupTitle, on: parent)?.id ?? database.addSkillGroup(to: parent.id, title: groupTitle).id
         }
-        let status = SkillStatus(rawValue: args.string("status") ?? "") ?? .notStarted
-        var manifest = ExercisePageManifest(
-            title: title, pageType: pageType, markdownBody: args.string("markdownBody") ?? "",
-            linkURLs: args.strings("linkURLs") ?? [], skillStatus: status, parentID: parent?.id
-        )
-        if let icon = args.string("icon") { try applyIcon(icon, to: &manifest) }
         let placement = parent.map { parent in sectionID.map { SkillGroupID.make(containerID: parent.id, sectionID: $0) } ?? parent.id }
         try database.createPage(manifest: manifest, parentID: placement)
         var saved = 0
@@ -85,6 +89,7 @@ extension AgentToolbox {
         var value: [String: Any] = ["id": manifest.id, "path": path]
         if let groupTitle { value["group"] = groupTitle }
         if saved > 0 { value["media"] = saved }
+        if !warnings.isEmpty { value["warnings"] = warnings }
         return AgentToolOutput(value: value, effects: [.createdPage(id: manifest.id)])
     }
 

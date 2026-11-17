@@ -122,7 +122,8 @@ struct SkillBoardItem: Identifiable {
 }
 
 /// Everything one render of a board needs, read from the library once: pages are found through one index instead of
-/// a scan of the library per row.
+/// a scan of the library per row. A page that needs no skills is no sub-skill (`SkillLibrary.isSkill`): it stays off
+/// the board, its counts and its tallies, and lists with the parent's exercises and notes instead.
 struct SkillBoardSnapshot {
     let scope: SkillBoardScope
     let container: ExercisePage?
@@ -164,8 +165,11 @@ struct SkillBoardSnapshot {
             var pending = children(of: page)
             while let next = pending.popLast() {
                 guard visited.insert(next.manifest.id).inserted else { continue }
-                if next.isSkillLike { result.count(next.manifest.skillStatus ?? .notStarted) }
-                if next.isSkillLike || (next.pageType == nil && next.isContainer) {
+                if next.isSkillLike {
+                    guard SkillLibrary.isSkill(next) else { continue }
+                    result.count(next.manifest.skillStatus ?? .notStarted)
+                    pending.append(contentsOf: children(of: next))
+                } else if next.pageType == nil && next.isContainer {
                     pending.append(contentsOf: children(of: next))
                 }
             }
@@ -221,7 +225,7 @@ struct SkillBoardSnapshot {
                 path: path.joined(separator: " › "),
                 isDirect: isDirect,
                 type: wornType(page),
-                children: DatabaseStore.boardOrdered(inside.filter(\.isSkillLike)),
+                children: DatabaseStore.boardOrdered(inside.filter(SkillLibrary.isSkill)),
                 progress: tally(below: page),
                 noteCount: inside.filter(\.isNote).count + (page.hasMarkdown ? 1 : 0),
                 dependencyCount: dependencyCount(of: page),
@@ -240,13 +244,13 @@ struct SkillBoardSnapshot {
             ))
         }
 
-        let skillChildren = container.map { children(of: $0).filter(\.isSkillLike) } ?? []
+        let skillChildren = container.map { children(of: $0).filter(SkillLibrary.isSkill) } ?? []
         var directItems: [String: [SkillBoardItem]] = [:]
         var items: [SkillBoardItem] = []
         var placed: Set<String> = [scope.containerID]
 
         func appendNested(below page: ExercisePage, lane: SkillBoardLane, path: [String]) {
-            for child in DatabaseStore.boardOrdered(children(of: page).filter(\.isSkillLike))
+            for child in DatabaseStore.boardOrdered(children(of: page).filter(SkillLibrary.isSkill))
             where placed.insert(child.manifest.id).inserted {
                 items.append(makeItem(child, lane: lane, path: path, isDirect: false))
                 appendNested(below: child, lane: lane, path: path + [child.title])

@@ -34,6 +34,16 @@ struct BundleSectionEditor: View {
                 .buttonStyle(BuilderChipButtonStyle())
                 .accessibilityLabel("Spoken callouts")
                 .accessibilityValue(section.bundleVoiceEnabled ? "On" : "Off")
+                Button {
+                    section.isTimerEnabled.toggle()
+                } label: {
+                    Image(systemName: section.isTimerEnabled ? "timer" : "hand.tap")
+                }
+                .buttonStyle(BuilderChipButtonStyle())
+                .help(section.isTimerEnabled ? "Timer: each exercise counts down" : "Until Done: each exercise ends when you tap Done")
+                .accessibilityLabel("Timing")
+                .accessibilityValue(section.isTimerEnabled ? "Timer" : "Until Done")
+                .accessibilityHint("Switches between a countdown and Until Done, where each exercise ends when you tap Done.")
             }
             ForEach(Array(section.slots.enumerated()), id: \.element.id) { index, set in
                 setCard(set, index: index)
@@ -250,7 +260,18 @@ struct BundleSectionEditor: View {
                     .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                DurationPickerView(seconds: slotValue(setID: setID, exerciseID: exercise.id, rest: false), range: 1...600, step: 1, compact: true)
+                if section.isTimerEnabled {
+                    DurationPickerView(seconds: slotValue(setID: setID, exerciseID: exercise.id, rest: false), range: 1...600, step: 1, compact: true)
+                } else {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Label(exercise.repCount.map { "\($0) reps · Until Done" } ?? "Until Done", systemImage: "hand.tap")
+                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                            .foregroundStyle(Theme.toolbarOrange)
+                            .lineLimit(1)
+                        DurationPickerView(seconds: slotValue(setID: setID, exerciseID: exercise.id, rest: false), range: 1...600, step: 1, compact: true)
+                            .help("Estimated time, used for the workout's total")
+                    }
+                }
                 Menu {
                     Button("Repeat", systemImage: "plus.square.on.square") {
                         mutateSet(setID) { $0.children.insert(exercise.duplicated(), at: index + 1) }

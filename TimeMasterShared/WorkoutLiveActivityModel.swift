@@ -37,13 +37,22 @@ extension WorkoutActivityAttributes.ContentState {
         max(phaseDuration, remainingSeconds)
     }
 
+    /// An untimed set: it ends when the user taps Done, so it has no countdown and no phase progress.
+    var isUntimed: Bool { untimedSeconds != nil }
+
     var runningInterval: ClosedRange<Date>? {
-        guard !isPaused, let end = phaseEndDate, progressLength > 0 else { return nil }
+        guard !isUntimed, !isPaused, let end = phaseEndDate, progressLength > 0 else { return nil }
         return end.addingTimeInterval(-TimeInterval(progressLength))...end
     }
 
+    /// The span an untimed set counts up over while it runs (capped at a day).
+    var countUpInterval: ClosedRange<Date>? {
+        guard isUntimed, !isPaused, let start = phaseStartDate else { return nil }
+        return start...start.addingTimeInterval(24 * 3600)
+    }
+
     var elapsedFraction: Double {
-        guard progressLength > 0 else { return 0 }
+        guard !isUntimed, progressLength > 0 else { return 0 }
         return min(1, max(0, 1 - Double(remainingSeconds) / Double(progressLength)))
     }
 
@@ -86,7 +95,9 @@ extension WorkoutActivityAttributes.ContentState {
         switch phase {
         case .warmUp: parts.append("Warm up")
         case .prepare: parts.append("Get ready")
-        case .active: parts.append(title.isEmpty ? workoutName : title)
+        case .active:
+            parts.append(title.isEmpty ? workoutName : title)
+            if isUntimed { parts.append("until done") }
         case .setRest, .sectionRest: parts.append("Rest")
         case .completed: break
         }

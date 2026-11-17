@@ -54,11 +54,16 @@ enum SlotArcGeometry {
             + t * t * t * edgeY
     }
 
-    static func slope(at x: CGFloat, in rect: CGRect, expansion: CGFloat) -> CGFloat {
-        guard rect.width > 0 else { return 0 }
-        let t = parameter(at: x, in: rect)
-        let dy = 3 * rect.height * (controlHeightRatio - edgeHeightRatio) * (1 - 2 * t) * expansion
-        return dy / (rect.width * horizontalDerivative(at: t))
+    /// Whether `point` lies on the surface side of the arc line — below it at the bottom of the window, above it
+    /// at the top — or within `reach` points of the line on the open side, inside the horizontal span of `rect`.
+    static func surfaceContains(
+        _ point: CGPoint, in rect: CGRect, curveOffset: CGFloat, expansion: CGFloat,
+        placement: SlotNavigationPlacement = .bottom, reach: CGFloat = 0
+    ) -> Bool {
+        guard rect.width > 0, rect.height > 0, point.x >= rect.minX, point.x <= rect.maxX else { return false }
+        let lineY = placedY(curveY(at: point.x, in: rect, curveOffset: curveOffset, expansion: expansion),
+                            in: rect, placement: placement)
+        return placement == .bottom ? point.y >= lineY - reach : point.y <= lineY + reach
     }
 
     private static func horizontalPosition(at t: CGFloat) -> CGFloat {

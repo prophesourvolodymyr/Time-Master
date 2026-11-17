@@ -31,19 +31,20 @@ struct ContainerChildrenTabs: View {
     @State private var choseFirstTab = false
     @Namespace private var tabNamespace
 
-    private static let tabs: [ContainerChildTab] = [.exercises, .skills]
+    private var tabs: [ContainerChildTab] { container.manifest.hidesSkills ? [.exercises] : [.exercises, .skills] }
 
     private var isSearching: Bool { !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
         let model = store.containerBrowseModel(for: container)
         let lists = model.lists(query: query)
+        let shownTab = tabs.contains(selectedTab) ? selectedTab : .exercises
         VStack(alignment: .leading, spacing: 14) {
-            tabTrack(lists)
+            if tabs.count > 1 { tabTrack(lists) }
             ContainerBrowser(
                 model: model,
-                tab: selectedTab,
-                entries: lists[selectedTab] ?? [],
+                tab: shownTab,
+                entries: lists[shownTab] ?? [],
                 query: $query,
                 otherTab: otherTabHits(lists)
             )
@@ -53,7 +54,7 @@ struct ContainerChildrenTabs: View {
 
     private func tabTrack(_ lists: [ContainerChildTab: [ContainerBrowseEntry]]) -> some View {
         HStack(spacing: 0) {
-            ForEach(Self.tabs) { tab in
+            ForEach(tabs) { tab in
                 let count = lists[tab]?.count ?? 0
                 Button {
                     select(tab)
@@ -107,22 +108,25 @@ struct ContainerChildrenTabs: View {
     private func chooseFirstTab(_ lists: [ContainerChildTab: [ContainerBrowseEntry]]) {
         guard !choseFirstTab else { return }
         choseFirstTab = true
-        if lists[.exercises]?.isEmpty ?? true, !(lists[.skills]?.isEmpty ?? true) {
+        if tabs.count > 1, lists[.exercises]?.isEmpty ?? true, !(lists[.skills]?.isEmpty ?? true) {
             selectedTab = .skills
         }
     }
 
     private func otherTabHits(_ lists: [ContainerChildTab: [ContainerBrowseEntry]]) -> ContainerOtherTabHits? {
-        guard isSearching else { return nil }
+        guard isSearching, tabs.count > 1 else { return nil }
         let other: ContainerChildTab = selectedTab == .exercises ? .skills : .exercises
         return ContainerOtherTabHits(tab: other, count: lists[other]?.count ?? 0) { select(other) }
     }
 }
 
-/// Pages as Database rows that open on tap, with the page menu (edit, move, duplicate, delete…) and drops onto
-/// containers: the exercises and notes inside a skill.
+/// Pages as Database rows in their stored order that open on tap, with the page menu (edit, move, duplicate, delete…):
+/// the exercises and notes inside a skill. Drag a row onto another to put it before or after it, or onto a container's
+/// row to move it inside.
 struct ExerciseChildList: View {
     let pages: [ExercisePage]
+
+    @State private var pageDrag: PageDragSource?
 
     var body: some View {
         ContainerPageActionHost { actions in
@@ -140,8 +144,20 @@ struct ExerciseChildList: View {
                     .padding(20)
                     .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
                 } else {
-                    ForEach(pages) { page in
+                    ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
                         ContainerPageListRow(page: page, actions: actions)
+                            .modifier(PageCardDragDrop(
+                                page: page,
+                                axis: .vertical,
+                                cornerRadius: 16,
+                                gap: 8,
+                                reorders: true,
+                                holds: page.isContainer,
+                                source: $pageDrag,
+                                onDrop: { id, placement in actions.drop(id, placement, on: page) },
+                                onMoveUp: index > 0 ? { actions.place(page.manifest.id, pages[index - 1], false) } : nil,
+                                onMoveDown: index + 1 < pages.count ? { actions.place(page.manifest.id, pages[index + 1], true) } : nil
+                            ))
                     }
                 }
             }

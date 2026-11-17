@@ -27,7 +27,8 @@ struct PageMediaActions {
 /// A page's attachments, first wherever the page stacks its parts: its clips and files as Tmax's media strip (a video
 /// plays in its card, a double click grows the viewer out of it, the card's menu trims it, makes it the cover and so
 /// on), then on a skill or a tutorial its links, and the pages attached to it. With `.dependencies` it is the "Files &
-/// links" part of a skill's Dependencies: the files and links to have first.
+/// links" part of a skill's Dependencies: the files and links to have first. A skill or a tutorial that needs no skills
+/// has no Dependencies, so its attachments hold every file and link it has.
 struct PageAttachmentsSection: View {
     let page: ExercisePage
     let role: PageAttachmentRole
@@ -65,7 +66,7 @@ struct PageAttachmentsSection: View {
             if page.isSkillLike {
                 SkillLinksSection(
                     materialID: page.manifest.id,
-                    scope: role == .attachments ? .reference : .dependencies,
+                    scope: splitsDependencies ? (role == .attachments ? .reference : .dependencies) : .all,
                     showsHeader: false
                 )
             }
@@ -75,9 +76,13 @@ struct PageAttachmentsSection: View {
         }
     }
 
+    /// A skill or a tutorial that keeps what to learn first: its files and links split between Attachments and
+    /// Dependencies.
+    private var splitsDependencies: Bool { page.isSkillLike && !page.manifest.hidesSkills }
+
     /// The files this part shows: on a skill or a tutorial they split between its attachments and what it needs first.
     private var mediaURLs: [URL] {
-        guard page.isSkillLike else { return role == .attachments ? page.mediaURLs : [] }
+        guard splitsDependencies else { return role == .attachments ? page.mediaURLs : [] }
         let flagged = Set(page.manifest.dependencyMediaFilenames)
         return page.mediaURLs.filter { flagged.contains($0.lastPathComponent) == (role == .dependencies) }
     }
@@ -85,6 +90,7 @@ struct PageAttachmentsSection: View {
     /// The links listed under the files (a skill's or a tutorial's; other pages have a Links part of their own).
     private var linkCount: Int {
         guard page.isSkillLike else { return 0 }
+        guard splitsDependencies else { return role == .attachments ? page.manifest.linkURLs.count : 0 }
         let flagged = Set(page.manifest.dependencyLinkURLs)
         return page.manifest.linkURLs.filter { flagged.contains($0) == (role == .dependencies) }.count
     }

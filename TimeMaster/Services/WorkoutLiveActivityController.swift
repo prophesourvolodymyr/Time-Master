@@ -23,6 +23,8 @@ struct WorkoutLiveActivitySnapshot {
     var nextKind: String? = nil
     var artworkName: String? = nil
     var nextArtworkName: String? = nil
+    /// Set while an untimed set runs: seconds spent in it. The set ends on Done, so it has no end date.
+    var untimedSeconds: Int? = nil
 }
 
 private func liveActivityText(_ text: String, limit: Int = 60) -> String {
@@ -57,7 +59,8 @@ extension WorkoutLiveActivitySnapshot {
             isBundle: isBundle,
             nextKind: nextKind.flatMap { WorkoutLiveNext(rawValue: $0) == nil ? nil : $0 },
             artworkName: artworkName.flatMap { Self.artworkFileName($0) },
-            nextArtworkName: nextArtworkName.flatMap { Self.artworkFileName($0) }
+            nextArtworkName: nextArtworkName.flatMap { Self.artworkFileName($0) },
+            untimedSeconds: untimedSeconds.map { max(0, $0) }
         )
     }
 
@@ -71,12 +74,13 @@ final class WorkoutLiveActivityController {
     static let shared = WorkoutLiveActivityController()
 
     private static let staleGrace: TimeInterval = 15
-    private static let endDateTolerance: TimeInterval = 2
+    private static let anchorTolerance: TimeInterval = 2
     private static let completionLinger: TimeInterval = 120
 
     private var activity: AnyObject?
     private var pushed: WorkoutLiveActivitySnapshot?
-    private var pushedEndDate: Date?
+    /// The phase clock's pivot last pushed: when a countdown ends, or when an untimed set started (it counts up).
+    private var pushedAnchor: Date?
     private var dismissedWorkoutID: UUID?
     private var reconciledStrays = false
     private var pending: Task<Void, Never>?
@@ -103,12 +107,12 @@ final class WorkoutLiveActivityController {
         }
     }
 
-    private func record(_ snapshot: WorkoutLiveActivitySnapshot, endDate: Date?) {
+    private func record(_ snapshot: WorkoutLiveActivitySnapshot, anchor: Date?) {
         pushed = snapshot
-        pushedEndDate = endDate
+        pushedAnchor = anchor
     }
 
-    private func needsUpdate(for snapshot: WorkoutLiveActivitySnapshot, endDate: Date?) -> Bool {
+    private func needsUpdate(for snapshot: WorkoutLiveActivitySnapshot, anchor: Date?) -> Bool {
         guard let last = pushed else { return true }
         guard last.phase == snapshot.phase,
               last.title == snapshot.title,
@@ -123,12 +127,13 @@ final class WorkoutLiveActivityController {
               last.isBundle == snapshot.isBundle,
               last.nextKind == snapshot.nextKind,
               last.artworkName == snapshot.artworkName,
-              last.nextArtworkName == snapshot.nextArtworkName
+              last.nextArtworkName == snapshot.nextArtworkName,
+              (last.untimedSeconds == nil) == (snapshot.untimedSeconds == nil)
         else { return true }
-        guard let endDate, let lastEndDate = pushedEndDate else {
-            return last.remainingSeconds != snapshot.remainingSeconds
+        guard let anchor, let lastAnchor = pushedAnchor else {
+            return last.remainingSeconds != snapshot.remainingSeconds || last.untimedSeconds != snapshot.untimedSeconds
         }
-        return abs(endDate.timeIntervalSince(lastEndDate)) > Self.endDateTolerance
+        return abs(anchor.timeIntervalSince(lastAnchor)) > Self.anchorTolerance
     }
 
     @available(iOS 17.0, *)
@@ -155,16 +160,17 @@ final class WorkoutLiveActivityController {
     @available(iOS 17.0, *)
     private static func state(
         from snapshot: WorkoutLiveActivitySnapshot,
-        endDate: Date?
+        anchor: Date?
     ) -> WorkoutActivityAttributes.ContentState {
-        WorkoutActivityAttributes.ContentState(
+        let isUntimed = snapshot.untimedSeconds != nil
+        return WorkoutActivityAttributes.ContentState(
             phase: phase(for: snapshot.phase),
             title: snapshot.title,
             subtitle: snapshot.subtitle,
             isPaused: snapshot.isPaused,
             remainingSeconds: snapshot.remainingSeconds,
             phaseDuration: snapshot.phaseDuration,
-            phaseEndDate: endDate,
+            phaseEndDate: isUntimed ? nil : anchor,
             nextTitle: snapshot.nextTitle,
             elapsedSeconds: snapshot.elapsedSeconds,
             itemIndex: snapshot.itemIndex,
@@ -174,7 +180,9 @@ final class WorkoutLiveActivityController {
             isBundle: snapshot.isBundle,
             nextKind: snapshot.nextKind,
             artworkName: snapshot.artworkName,
-            nextArtworkName: snapshot.nextArtworkName
+            nextArtworkName: snapshot.nextArtworkName,
+            untimedSeconds: snapshot.untimedSeconds,
+            phaseStartDate: isUntimed ? anchor : nil
         )
     }
 
@@ -216,23 +224,27 @@ final class WorkoutLiveActivityController {
         if let existing = current, !Self.isLive(existing) {
             activity = nil
             pushed = nil
-            pushedEndDate = nil
+            pushedAnchor = nil
             dismissedWorkoutID = snapshot.workoutID
             current = nil
         }
         guard dismissedWorkoutID != snapshot.workoutID else { return }
 
-        let endDate: Date? = snapshot.isPaused
+        let now = Date()
+        let anchor: Date? = snapshot.isPaused
             ? nil
-            : Date().addingTimeInterval(TimeInterval(snapshot.remainingSeconds))
+            : snapshot.untimedSeconds.map { now.addingTimeInterval(-TimeInterval($0)) }
+                ?? now.addingTimeInterval(TimeInterval(snapshot.remainingSeconds))
+        // An untimed set has no deadline, so its content never goes stale on its own.
+        let staleDate = snapshot.untimedSeconds == nil ? anchor?.addingTimeInterval(Self.staleGrace) : nil
 
         if let current {
-            guard needsUpdate(for: snapshot, endDate: endDate) || current.activityState == .stale else { return }
+            guard needsUpdate(for: snapshot, anchor: anchor) || current.activityState == .stale else { return }
             let content = ActivityContent(
-                state: Self.state(from: snapshot, endDate: endDate),
-                staleDate: endDate?.addingTimeInterval(Self.staleGrace)
+                state: Self.state(from: snapshot, anchor: anchor),
+                staleDate: staleDate
             )
-            record(snapshot, endDate: endDate)
+            record(snapshot, anchor: anchor)
             enqueue { await current.update(content) }
         } else {
             guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
@@ -243,8 +255,8 @@ final class WorkoutLiveActivityController {
                 startedAt: snapshot.startedAt
             )
             let content = ActivityContent(
-                state: Self.state(from: snapshot, endDate: endDate),
-                staleDate: endDate?.addingTimeInterval(Self.staleGrace)
+                state: Self.state(from: snapshot, anchor: anchor),
+                staleDate: staleDate
             )
             do {
                 activity = try Activity<WorkoutActivityAttributes>.request(
@@ -252,7 +264,7 @@ final class WorkoutLiveActivityController {
                     content: content,
                     pushType: nil
                 )
-                record(snapshot, endDate: endDate)
+                record(snapshot, anchor: anchor)
             } catch {
                 return
             }
@@ -264,7 +276,7 @@ final class WorkoutLiveActivityController {
         let tracked = trackedActivity
         activity = nil
         pushed = nil
-        pushedEndDate = nil
+        pushedAnchor = nil
         dismissedWorkoutID = nil
         reconciledStrays = true
 
