@@ -77,10 +77,18 @@ final class MainThreadStallMonitor: @unchecked Sendable {
         }
     }
 
+    /// A stall where the main thread sits in `mach_msg` under Core Animation's `send_message` is the system's window
+    /// server being slow to take a frame, not the app's own work: it is logged as one line. Any other stall logs the
+    /// first frames and every deeper frame from the app's own image (view bodies sit below SwiftUI's graph update).
     private func logMainThreadStack() {
-        let addresses = MainThreadStack.capture(of: mainThread)
-        for (index, address) in addresses.prefix(26).enumerated() {
-            logger.notice("  #\(index) \(MainThreadStack.describe(address), privacy: .public)")
+        let lines = MainThreadStack.capture(of: mainThread).map(MainThreadStack.describe)
+        guard let first = lines.first else { return }
+        if first.contains("mach_msg"), lines.prefix(8).contains(where: { $0.contains("send_message") }) {
+            logger.notice("  waiting for the window server to take a frame (Core Animation commit), not busy in the app's own code")
+            return
+        }
+        for (index, line) in lines.enumerated() where index < 14 || line.hasPrefix("Tmax ") {
+            logger.notice("  #\(index) \(line, privacy: .public)")
         }
     }
 }
