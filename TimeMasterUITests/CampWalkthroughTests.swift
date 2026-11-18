@@ -65,6 +65,10 @@ final class CampWalkthroughTests: XCTestCase {
         card.tap()
         XCTAssertTrue(app.buttons["Back to workouts"].firstMatch.waitForExistence(timeout: 15), "builder opened")
         let cover = app.buttons["Open page preview"].firstMatch
+        // A camp can open with bundles whose rows have no page cover: scroll down to a row that has one.
+        for _ in 0..<8 where !(cover.exists && cover.isHittable) {
+            app.swipeUp()
+        }
         XCTAssertTrue(cover.waitForExistence(timeout: 10), "a cover to tap")
         cover.tap()
         XCTAssertTrue(app.buttons["Close page"].waitForExistence(timeout: 5), "the page opened")

@@ -2,6 +2,22 @@ import SwiftUI
 import TimeMasterCore
 import UniformTypeIdentifiers
 
+/// The drags of a board carry what they move as text ("card:<id>", "page:<id>", "section:<id>") while the board's own
+/// drag state says what moves. A drag that ends outside every target leaves that state behind, so a drop only moves
+/// something once its text turns out to be the payload the board's own drag handed over: text dragged in from elsewhere
+/// moves nothing.
+enum SkillDropPayload {
+    /// Runs `apply` on the main queue once the dropped text is `expected`; false when the drop holds no text.
+    static func whenDropped(_ info: DropInfo, is expected: String, apply: @escaping () -> Void) -> Bool {
+        guard let provider = info.itemProviders(for: [UTType.plainText]).first else { return false }
+        _ = provider.loadObject(ofClass: NSString.self) { object, _ in
+            guard let text = object as? NSString, text as String == expected else { return }
+            DispatchQueue.main.async(execute: apply)
+        }
+        return true
+    }
+}
+
 // MARK: - List (sections)
 
 /// What is being dragged on the sections list.
@@ -111,12 +127,13 @@ struct SkillRowDropDelegate: DropDelegate {
         let zone = SkillDropZone.zone(y: info.location.y, height: height.value)
         state.reset()
         guard let moving else { return false }
+        let placement: SkillBoardDropPlacement
         switch zone {
-        case .before: onDrop(.page(moving), .beside(rowID, after: false))
-        case .after: onDrop(.page(moving), .beside(rowID, after: true))
-        case .into: onDrop(.page(moving), .into(rowID))
+        case .before: placement = .beside(rowID, after: false)
+        case .after: placement = .beside(rowID, after: true)
+        case .into: placement = .into(rowID)
         }
-        return true
+        return SkillDropPayload.whenDropped(info, is: "page:\(moving)") { onDrop(.page(moving), placement) }
     }
 
     private func track(_ info: DropInfo) {
@@ -163,13 +180,11 @@ struct SkillGroupDropDelegate: DropDelegate {
         let item = state.drag
         state.reset()
         switch item {
-        case .page?:
-            if let item { onDrop(item, .endOfGroup(sectionID)) }
-            return true
-        case .section?:
-            guard acceptsSections, let sectionID, let item else { return false }
-            onDrop(item, .beforeSection(sectionID))
-            return true
+        case .page(let id)?:
+            return SkillDropPayload.whenDropped(info, is: "page:\(id)") { onDrop(.page(id), .endOfGroup(sectionID)) }
+        case .section(let id)?:
+            guard acceptsSections, let sectionID else { return false }
+            return SkillDropPayload.whenDropped(info, is: "section:\(id)") { onDrop(.section(id), .beforeSection(sectionID)) }
         case nil:
             return false
         }
@@ -240,6 +255,6 @@ struct SkillCardDropDelegate: DropDelegate {
         onTargeted(false)
         guard let id = dragging.pageID else { return false }
         dragging.clear()
-        return onDrop(id, status, lane)
+        return SkillDropPayload.whenDropped(info, is: "card:\(id)") { _ = onDrop(id, status, lane) }
     }
 }

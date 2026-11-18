@@ -1,6 +1,10 @@
 import SwiftUI
 import TimeMasterCore
 import UniformTypeIdentifiers
+#if os(iOS)
+import UIKit
+import UIKit.UIGestureRecognizerSubclass
+#endif
 
 // MARK: - Grouping
 
@@ -215,9 +219,10 @@ enum PageTypeNewPage {
 // MARK: - Board
 
 /// The Board view grouped by type: one column per type of the owner's presets (Untagged first while it holds pages or
-/// while there is no type yet), each with the type's pill and count, its tint, the per-column limit with Expand all and
+/// while there is no type yet), each with the type's pill and count, its tint, the per-column limit with Show next and
 /// a New row; a dashed column at the end makes a new type. A card dragged to another column takes that type (Untagged
-/// clears it); every drag has a menu twin. Scrolls sideways when the columns do not fit.
+/// clears it); every drag has a menu twin. Scrolls sideways when the columns do not fit. On a phone a drag also opens a
+/// drop tray with a chip per column and holds the columns still while it lasts.
 struct PageTypeBoardView: View {
     let snapshot: PageTypeBoardSnapshot
     let actions: PageTypeBoardActions
@@ -229,17 +234,20 @@ struct PageTypeBoardView: View {
     #endif
 
     @AppStorage(SkillSettings.perGroupKey) private var groupLimit = SkillGroupLimit.standard
-    /// Columns whose Expand all was pressed, until the page closes.
-    @State private var expandedColumns: Set<String> = []
+    /// Cards each column shows past the per-column limit, until the page closes. A long column opens a page at a time,
+    /// so one tap never builds a hundred cards and starts a hundred cover loads at once.
+    @State private var revealed: [String: Int] = [:]
     @State private var hoveredColumn: String?
     @State private var availableWidth: CGFloat = 0
     /// The width has been read once, so the board no longer waits for it.
     @State private var hasMeasuredWidth = false
     @State private var cardDrag = SkillCardDragState()
+    @StateObject private var dragSession = PageTypeDragSession()
     @State private var typeEditor: SkillTypeEditorRoute?
     @State private var showingTypeManager = false
 
     private static let gap = SkillMetrics.s3
+    static let revealStep = 25
 
     var body: some View {
         Group {
@@ -252,6 +260,16 @@ struct PageTypeBoardView: View {
             }
         }
         .pageTypeSheets(ownerID: snapshot.ownerID, editor: $typeEditor, showingManager: $showingTypeManager)
+        #if os(iOS)
+        .modifier(PageTypePhoneDrag(
+            isEnabled: isCompact,
+            session: dragSession,
+            dragging: cardDrag,
+            columns: snapshot.columns,
+            hoveredKey: hoveredColumn,
+            delegate: { delegate(for: $0, key: PageTypeDropTray.key(for: $0)) }
+        ))
+        #endif
     }
 
     private var board: some View {
@@ -266,10 +284,11 @@ struct PageTypeBoardView: View {
                         width: width,
                         isTargeted: hoveredColumn == column.id,
                         limit: groupLimit,
-                        isExpanded: expandedColumns.contains(column.id),
-                        onToggleExpanded: { toggleExpanded(column.id) },
+                        extra: revealed[column.id] ?? 0,
+                        onShowMore: { revealed[column.id, default: 0] += Self.revealStep },
+                        onShowFewer: { revealed[column.id] = nil },
                         actions: actions,
-                        dragging: cardDrag,
+                        makeProvider: dragProvider(for:),
                         newPage: newPage,
                         delegate: delegate(for: column)
                     )
@@ -281,9 +300,13 @@ struct PageTypeBoardView: View {
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.vertical, 2)
+            .padding(.top, 2)
+            // A phone's navigation bar reaches up over the foot of the page: the last rows of a column (Show next, New)
+            // must be able to scroll clear of it.
+            .padding(.bottom, isCompact ? 100 : 2)
             .animation(reduceMotion ? nil : EverMotion.state, value: snapshot.signature)
         }
+        .scrollDisabled(locksColumns)
         .background(widthReader)
     }
 
@@ -295,6 +318,21 @@ struct PageTypeBoardView: View {
         #else
         return sizeClass == .regular
         #endif
+    }
+
+    /// A phone-width board: its drags open the drop tray and hold the columns still.
+    private var isCompact: Bool {
+        #if os(iOS)
+        return sizeClass == .compact
+        #else
+        return false
+        #endif
+    }
+
+    /// While a card is dragged on a phone the columns hold still: the drag's auto-scroll would otherwise slide the next
+    /// column on under a finger waiting over the edge of the one it means.
+    private var locksColumns: Bool {
+        isCompact && dragSession.pageID != nil
     }
 
     /// Mac and wide windows: the columns share the width (250…400 each) and scroll once they no longer fit. Phones:
@@ -319,24 +357,35 @@ struct PageTypeBoardView: View {
 
     // MARK: Actions
 
-    private func toggleExpanded(_ id: String) {
-        withAnimation(reduceMotion ? nil : EverMotion.disclosure) {
-            if expandedColumns.contains(id) {
-                expandedColumns.remove(id)
-            } else {
-                expandedColumns.insert(id)
-            }
-        }
+    private func delegate(for column: PageTypeColumn, key: String? = nil) -> PageTypeDropDelegate {
+        let key = key ?? column.id
+        return PageTypeDropDelegate(
+            column: column,
+            dragging: cardDrag,
+            onDrop: drop,
+            onTargeted: { isTargeted in
+                if isTargeted {
+                    hoveredColumn = key
+                } else if hoveredColumn == key {
+                    hoveredColumn = nil
+                }
+            },
+            onFelt: { dragSession.confirm() },
+            onEnded: { dragSession.end() }
+        )
     }
 
-    private func delegate(for column: PageTypeColumn) -> PageTypeDropDelegate {
-        PageTypeDropDelegate(column: column, dragging: cardDrag, onDrop: drop) { isTargeted in
-            if isTargeted {
-                hoveredColumn = column.id
-            } else if hoveredColumn == column.id {
-                hoveredColumn = nil
-            }
+    /// What a card hands the drag it starts: its `card:<id>` payload, checked again on drop. Asking for it is not yet a
+    /// drag (accessibility asks too); on a phone the board's own drop targets tell the session when one is real, and it
+    /// then opens the drop tray and holds the columns still until the drag ends.
+    private func dragProvider(for id: String) -> NSItemProvider {
+        cardDrag.pickUp(id)
+        #if os(iOS)
+        if isCompact {
+            dragSession.begin(id)
         }
+        #endif
+        return NSItemProvider(object: "card:\(id)" as NSString)
     }
 
     /// A card dropped on a column takes the column's type (Untagged clears it).
@@ -358,16 +407,19 @@ private struct PageTypeBoardColumnView: View {
     let width: CGFloat
     let isTargeted: Bool
     let limit: Int
-    let isExpanded: Bool
-    let onToggleExpanded: () -> Void
+    /// Cards shown past the per-column limit.
+    let extra: Int
+    let onShowMore: () -> Void
+    let onShowFewer: () -> Void
     let actions: PageTypeBoardActions
-    let dragging: SkillCardDragState
+    let makeProvider: (String) -> NSItemProvider
     let newPage: PageTypeNewPage
     let delegate: PageTypeDropDelegate
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: SkillMetrics.cardRadius, style: .continuous)
-        let visible = SkillGroupLimit.split(items, limit: limit, expanded: isExpanded)
+        let shownCount = limit > 0 ? min(items.count, limit + extra) : items.count
+        let hidden = items.count - shownCount
         VStack(alignment: .leading, spacing: SkillMetrics.s2) {
             header
             if items.isEmpty {
@@ -376,18 +428,28 @@ private struct PageTypeBoardColumnView: View {
                     .frame(height: 64)
                     .accessibilityHidden(true)
             } else {
-                ForEach(visible.shown) { item in
+                ForEach(items.prefix(shownCount)) { item in
                     PageTypeBoardCard(
                         item: item,
                         columnID: column.id,
                         moveTargets: snapshot.moveTargets,
                         presets: snapshot.presets,
                         actions: actions,
-                        dragging: dragging
+                        makeProvider: makeProvider
                     )
                 }
-                if SkillGroupLimit.isCapped(count: items.count, limit: limit) {
-                    SkillGroupMoreButton(hidden: visible.hidden, isExpanded: isExpanded, tintHex: column.tintHex, action: onToggleExpanded)
+                if hidden > 0 {
+                    SkillGroupMoreButton(
+                        hidden: hidden,
+                        isExpanded: false,
+                        tintHex: column.tintHex,
+                        moreTitle: "Show next \(min(PageTypeBoardView.revealStep, hidden))",
+                        action: onShowMore
+                    )
+                    .accessibilityIdentifier("type-board-more-\(column.id)")
+                } else if SkillGroupLimit.isCapped(count: items.count, limit: limit) {
+                    SkillGroupMoreButton(hidden: 0, isExpanded: true, tintHex: column.tintHex, action: onShowFewer)
+                        .accessibilityIdentifier("type-board-fewer-\(column.id)")
                 }
             }
             newRow
@@ -404,6 +466,7 @@ private struct PageTypeBoardColumnView: View {
         .contentShape(shape)
         .onDrop(of: [UTType.plainText], delegate: delegate)
         .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("type-board-column-\(column.id)")
     }
 
     private var header: some View {
@@ -546,7 +609,8 @@ struct PageTypeBoardCard: View {
     let moveTargets: [PageTypeColumn]
     let presets: [SkillTypePreset]
     let actions: PageTypeBoardActions
-    let dragging: SkillCardDragState
+    /// Hands the drag this card starts its payload (the board keeps what the drag is about).
+    let makeProvider: (String) -> NSItemProvider
 
     @State private var isHovering = false
     @State private var typeEditor: SkillTypeEditorRoute?
@@ -601,9 +665,8 @@ struct PageTypeBoardCard: View {
         .onHover { isHovering = $0 }
         .onTapGesture(perform: open)
         .onDrag {
-            dragging.pickUp(item.id)
             EverHaptic.selection()
-            return NSItemProvider(object: "card:\(item.id)" as NSString)
+            return makeProvider(item.id)
         } preview: {
             dragPreview
         }
@@ -869,13 +932,17 @@ private struct PageTypeBoardGlyph: View {
 
 // MARK: - Drop
 
-/// One column of a type board as a drop target: lights up while a card hovers, gives the card the column's type on
-/// drop.
+/// One column (or a chip of the phone's drop tray) of a type board as a drop target: lights up while a card hovers,
+/// gives the card the column's type on drop.
 struct PageTypeDropDelegate: DropDelegate {
     let column: PageTypeColumn
     let dragging: SkillCardDragState
     let onDrop: (String, PageTypeColumn) -> Bool
     let onTargeted: (Bool) -> Void
+    /// Hears that a drag is over this target: it is a real one.
+    var onFelt: () -> Void = {}
+    /// Hears that the drag ended here, whatever it carried.
+    var onEnded: () -> Void = {}
 
     func validateDrop(info: DropInfo) -> Bool {
         dragging.pageID != nil
@@ -883,12 +950,14 @@ struct PageTypeDropDelegate: DropDelegate {
 
     func dropEntered(info: DropInfo) {
         guard dragging.pageID != nil else { return }
+        onFelt()
         onTargeted(true)
         EverHaptic.selection()
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
+        onFelt()
+        return DropProposal(operation: .move)
     }
 
     func dropExited(info: DropInfo) {
@@ -897,11 +966,262 @@ struct PageTypeDropDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         onTargeted(false)
+        onEnded()
         guard let id = dragging.pageID else { return false }
         dragging.clear()
-        return onDrop(id, column)
+        return SkillDropPayload.whenDropped(info, is: "card:\(id)") { _ = onDrop(id, column) }
     }
 }
+
+/// The card drag in flight on a phone-width board. Once a drop target of the board feels a drag, the board shows its drop
+/// tray and holds its columns still, so the drag's auto-scroll cannot slide another column under a finger waiting over a
+/// column's edge. Whatever ends the drag clears it: a drop on a column, a chip or anywhere else on the board, the next
+/// touch, the app going inactive, or a timeout. A drag cancelled over nothing gives no other sign, so its tray and the
+/// held columns last until the next touch or the timeout.
+final class PageTypeDragSession: ObservableObject {
+    static let timeout: TimeInterval = 12
+
+    /// The card being dragged, once a drop target has felt the drag. Asking for a card's drag item is not a drag
+    /// (accessibility asks for it too), so it alone never shows the tray or holds the columns.
+    @Published private(set) var pageID: String?
+    private var asked: String?
+    private var generation = 0
+
+    /// Whether a card's drag item was asked for or a drag is in flight.
+    var hasDrag: Bool { asked != nil || pageID != nil }
+
+    /// A card's drag item was asked for.
+    func begin(_ pageID: String) {
+        asked = pageID
+    }
+
+    /// A drop target of the board feels the drag: it is a real one.
+    func confirm() {
+        guard pageID == nil, let card = asked else { return }
+        pageID = card
+        generation += 1
+        let current = generation
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.timeout) { [weak self] in
+            guard let self, self.generation == current, self.pageID != nil else { return }
+            self.end()
+        }
+    }
+
+    func end() {
+        asked = nil
+        generation += 1
+        if pageID != nil { pageID = nil }
+    }
+}
+
+#if os(iOS)
+/// What a phone-width board adds for its drags: the drop tray over the bottom of the screen while a card is dragged, a
+/// catch-all that ends a drag dropped anywhere else on the board, and the watchers that end one the system leaves
+/// hanging (the next touch, the app going inactive).
+private struct PageTypePhoneDrag: ViewModifier {
+    let isEnabled: Bool
+    @ObservedObject var session: PageTypeDragSession
+    let dragging: SkillCardDragState
+    let columns: [PageTypeColumn]
+    let hoveredKey: String?
+    let delegate: (PageTypeColumn) -> PageTypeDropDelegate
+
+    @Environment(\.slotNavigationContentBounds) private var contentBounds
+    @Environment(\.scenePhase) private var scenePhase
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .onDrop(of: [UTType.plainText], delegate: catchAll)
+                .overlay(alignment: .topLeading) {
+                    if session.pageID != nil || PageTypeDropTray.isPinnedForTesting {
+                        tray
+                    }
+                }
+                .background(PageTypeTouchWatch(isActive: session.pageID != nil) {
+                    session.end()
+                })
+                .onChange(of: scenePhase) { phase in
+                    if phase != .active { session.end() }
+                }
+        } else {
+            content
+        }
+    }
+
+    private var catchAll: PageTypeCatchAllDropDelegate {
+        PageTypeCatchAllDropDelegate(session: session, dragging: dragging)
+    }
+
+    /// Pinned to the bottom of the screen's content area (above the navigation bar) whatever part of the board shows.
+    private var tray: some View {
+        GeometryReader { proxy in
+            let board = proxy.frame(in: .global)
+            let bounds = contentBounds ?? board
+            PageTypeDropTray(columns: columns, hoveredKey: hoveredKey, delegate: delegate, catchAll: catchAll)
+                .padding(.horizontal, PageTypeDropTray.edgeMargin)
+                .padding(.bottom, SkillMetrics.s4)
+                .frame(width: bounds.width, height: bounds.height, alignment: .bottom)
+                .offset(x: bounds.minX - board.minX, y: bounds.minY - board.minY)
+        }
+    }
+}
+
+/// Takes a card dropped on a phone-width board anywhere but a column or a chip, and does nothing with it: the drag ends
+/// there instead of hanging on.
+private struct PageTypeCatchAllDropDelegate: DropDelegate {
+    let session: PageTypeDragSession
+    let dragging: SkillCardDragState
+
+    func validateDrop(info: DropInfo) -> Bool {
+        session.hasDrag
+    }
+
+    func dropEntered(info: DropInfo) {
+        session.confirm()
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        session.confirm()
+        return DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        dragging.clear()
+        session.end()
+        return true
+    }
+}
+
+/// The drop tray of a phone-width board while a card is dragged: one chip per column, wrapped in rows and kept well off
+/// the sides of the screen, where the drag's auto-scroll does not reach. A chip takes a drop the way its column does.
+private struct PageTypeDropTray: View {
+    static let edgeMargin: CGFloat = 60
+    #if DEBUG
+    /// UI tests read where the chips sit before dragging onto one: a drag cannot pause for them to look.
+    static let isPinnedForTesting = ProcessInfo.processInfo.environment["TIMEMASTER_UITEST_PIN_DROP_TRAY"] == "1"
+    #else
+    static let isPinnedForTesting = false
+    #endif
+
+    let columns: [PageTypeColumn]
+    let hoveredKey: String?
+    let delegate: (PageTypeColumn) -> PageTypeDropDelegate
+    let catchAll: PageTypeCatchAllDropDelegate
+
+    static func key(for column: PageTypeColumn) -> String { "tray-\(column.id)" }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: SkillMetrics.cardRadius, style: .continuous)
+        PageChipFlowLayout(spacing: SkillMetrics.s2, rowSpacing: SkillMetrics.s2) {
+            ForEach(columns) { column in
+                PageTypeTrayChip(column: column, isTargeted: hoveredKey == Self.key(for: column))
+                    .onDrop(of: [UTType.plainText], delegate: delegate(column))
+            }
+        }
+        .padding(SkillMetrics.s3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(shape.fill(Theme.surface2))
+        .overlay {
+            shape
+                .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .shadow(color: Color.black.opacity(0.45), radius: 18, y: 6)
+        .contentShape(shape)
+        .onDrop(of: [UTType.plainText], delegate: catchAll)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Drop on a type")
+        .accessibilityIdentifier("type-board-tray")
+    }
+}
+
+/// One chip of the drop tray: the column's pill on a tile at least 44 pt high that lights up while a card hovers it.
+private struct PageTypeTrayChip: View {
+    let column: PageTypeColumn
+    let isTargeted: Bool
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
+        PageTypeColumnPill(column: column)
+            .padding(.horizontal, SkillMetrics.s2)
+            .frame(minWidth: SkillMetrics.touch, minHeight: 52)
+            .background(shape.fill(column.color.opacity(isTargeted ? 0.3 : 0.08)))
+            .overlay {
+                shape
+                    .strokeBorder(column.color.opacity(isTargeted ? 0.9 : 0.3), lineWidth: isTargeted ? 2 : 1)
+                    .allowsHitTesting(false)
+            }
+            .contentShape(shape)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(column.title)
+            .accessibilityIdentifier("type-board-tray-\(column.id)")
+    }
+}
+
+/// Ends a card drag at the window's next touch: a drag owns the touch that started it, so a new one means the drag is
+/// over even when the system never said so. It never claims a touch.
+private struct PageTypeTouchWatch: UIViewRepresentable {
+    let isActive: Bool
+    let onTouch: () -> Void
+
+    func makeUIView(context: Context) -> Host {
+        let host = Host()
+        host.isUserInteractionEnabled = false
+        return host
+    }
+
+    func updateUIView(_ host: Host, context: Context) {
+        host.recognizer.onTouch = onTouch
+        host.isWatching = isActive
+    }
+
+    final class Host: UIView {
+        let recognizer = Recognizer()
+        var isWatching = false {
+            didSet { attach() }
+        }
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            attach()
+        }
+
+        private func attach() {
+            if isWatching, let window {
+                if recognizer.view !== window { window.addGestureRecognizer(recognizer) }
+            } else if let view = recognizer.view {
+                view.removeGestureRecognizer(recognizer)
+            }
+        }
+    }
+
+    final class Recognizer: UIGestureRecognizer, UIGestureRecognizerDelegate {
+        var onTouch: (() -> Void)?
+
+        init() {
+            super.init(target: nil, action: nil)
+            cancelsTouchesInView = false
+            delaysTouchesBegan = false
+            delaysTouchesEnded = false
+            delegate = self
+        }
+
+        override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+            onTouch?()
+            state = .failed
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            true
+        }
+    }
+}
+#endif
 
 // MARK: - Header controls and sheets
 

@@ -650,6 +650,8 @@ struct SkillGroupMoreButton: View {
     let hidden: Int
     let isExpanded: Bool
     var tintHex: String?
+    /// The words of the collapsed button; a board that reveals a page at a time names the step instead.
+    var moreTitle = "Expand all"
     let action: () -> Void
 
     var body: some View {
@@ -661,7 +663,7 @@ struct SkillGroupMoreButton: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)
-                Text(isExpanded ? "Show fewer" : "Expand all")
+                Text(isExpanded ? "Show fewer" : moreTitle)
                     .font(TimeMasterFont.rowTitle())
                     .foregroundStyle(Theme.textPrimary)
                 if !isExpanded {
@@ -678,7 +680,7 @@ struct SkillGroupMoreButton: View {
             .contentShape(shape)
         }
         .buttonStyle(SkillPressButtonStyle())
-        .accessibilityLabel(isExpanded ? "Show fewer" : "Expand all, \(hidden) more")
+        .accessibilityLabel(isExpanded ? "Show fewer" : "\(moreTitle), \(hidden) more")
     }
 }
 

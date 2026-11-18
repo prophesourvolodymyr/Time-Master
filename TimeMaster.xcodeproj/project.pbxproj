@@ -446,6 +446,7 @@
 		5902B0938D643B7D53F169A6 /* ThumbnailDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1E71D2427B45B4E9EDCA30 /* ThumbnailDiskCache.swift */; };
 		590B8592B37A4DE9FA42FD83 /* MilestoneRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233A8BDB809F4AB26079A1FA /* MilestoneRowView.swift */; };
 		590DC71BE8C0231A275DCEEE /* PageCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147E3BD8DE078C3FE350F602 /* PageCardView.swift */; };
+		5991A9D012A553D3B516D111 /* TypeBoardDragTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A7F511B1E55EEB167AA45C9 /* TypeBoardDragTests.swift */; };
 		5999A44E862C87CAC90EDD40 /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED9DF2FD706E1FCDC8B9E7C /* ScheduleView.swift */; };
 		5A2087E8B4A192A09660F92B /* PhysiqueMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C46D2F11C6F0DF24087A409 /* PhysiqueMetric.swift */; };
 		5AF36F895EDF5D7D202A33F4 /* CollectibleDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767C6D214D0B7BEC785C4D7E /* CollectibleDetailView.swift */; };
@@ -1577,6 +1578,7 @@
 		78554D84E1852EC6ED20DC3A /* ContainerChildrenViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContainerChildrenViews.swift; sourceTree = "<group>"; };
 		78E4AF9F1EA9AB5825133D87 /* MenuBarSettingsPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPage.swift; sourceTree = "<group>"; };
 		799F10EC4C3F0CEDB0523530 /* LocalProfileReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalProfileReportView.swift; sourceTree = "<group>"; };
+		7A7F511B1E55EEB167AA45C9 /* TypeBoardDragTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeBoardDragTests.swift; sourceTree = "<group>"; };
 		7AB320CC1772F9D622DDC5BB /* OutdoorMapRouteSnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdoorMapRouteSnapshotService.swift; sourceTree = "<group>"; };
 		7CB3B5982608D43A5B22CF48 /* LocalPostsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalPostsView.swift; sourceTree = "<group>"; };
 		7CBBEEEA6BEF10708E8508BA /* MilestoneActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MilestoneActions.swift; sourceTree = "<group>"; };
@@ -1967,6 +1969,7 @@
 				0B8829C8089C12BEC8EFEA6C /* OutdoorRideEndToEndTests.swift */,
 				1C43508BAD6948505C29F8E4 /* OutdoorRouteRecordingUITests.swift */,
 				4CA3309BB574878A0B0DEA03 /* PhysiquePoseGuideAccessibilityTests.swift */,
+				7A7F511B1E55EEB167AA45C9 /* TypeBoardDragTests.swift */,
 				DC2CD271A1A3B94DA68F4D85 /* UITestSupport.swift */,
 				B8D617A7096DE43FA7AFC210 /* UntimedDoneFlowTests.swift */,
 			);
@@ -4448,6 +4451,7 @@
 				33B91A2434A40488D46D3D2F /* OutdoorRideEndToEndTests.swift in Sources */,
 				212C12128B809802961F0EFF /* OutdoorRouteRecordingUITests.swift in Sources */,
 				36F7D74DCF5AA3817E1C1870 /* PhysiquePoseGuideAccessibilityTests.swift in Sources */,
+				5991A9D012A553D3B516D111 /* TypeBoardDragTests.swift in Sources */,
 				3660F907B58320A55927E8CA /* UITestSupport.swift in Sources */,
 				0CB13FA6D7EB8521F7D6FB1F /* UntimedDoneFlowTests.swift in Sources */,
 			);
