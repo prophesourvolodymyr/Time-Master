@@ -33,6 +33,7 @@ struct NotePageView: View {
     @State private var viewerIndex = 0
     @State private var viewerPresented = false
     @State private var scrollEdge = PageScrollEdge()
+    @State private var siblings = PageSiblingNavigator()
     @FocusState private var titleFocused: Bool
 
     private var page: ExercisePage? { store.page(id: pageID) }
@@ -41,10 +42,14 @@ struct NotePageView: View {
         ZStack {
             Theme.background.ignoresSafeArea()
             if let page {
-                content(page)
-                if !isEditing {
-                    PageTopChrome(edge: scrollEdge)
+                ZStack {
+                    content(page)
+                    if !isEditing {
+                        PageTopChrome(edge: scrollEdge, siblings: siblings)
+                    }
                 }
+                .pageSiblingNavigation(siblings, pageID: page.manifest.id, swipes: true,
+                                       isEnabled: !isEditing && !titleFocused)
             } else {
                 missingView
             }
@@ -134,6 +139,8 @@ struct NotePageView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    // Room for the row of Previous and Next pinned over the top, once it shows.
+                    PageSiblingClearance(navigator: siblings, height: PageTopChrome.pathRowHeight - 20)
                     titleRow(page)
                     if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         invitation

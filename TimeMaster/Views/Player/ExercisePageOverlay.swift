@@ -9,7 +9,8 @@ struct WorkoutAttachmentBrowser: View {
     @EnvironmentObject private var workoutStore: WorkoutStore
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var library = MusicLibraryStore.shared
-    @StateObject private var navigationState = DatabaseNavigationState()
+    /// Its pages show no Previous and Next: the workout decides what comes next here.
+    @StateObject private var navigationState = DatabaseNavigationState(siblingNavigation: false)
     let pageID: UUID
     @State private var showMusic = false
 

@@ -34,6 +34,8 @@ enum SkillSettings {
     static let autoIconStyleKey = "tm.skills.autoIcon"
     /// Prefix of the remembered List · Board · Table choice per board (`<prefix><board id>`).
     static let viewModeKeyPrefix = "tm.skills.viewMode."
+    /// Prefix of the remembered Status · Type grouping of a board's Board view (`<prefix><board id>`).
+    static let groupByKeyPrefix = "tm.skills.groupBy."
     /// Int, default `SkillGroupLimit.standard`: how many sub-skills a section or a column shows before its
     /// "Expand all" (0 = every one).
     static let perGroupKey = "tm.skills.perGroup"

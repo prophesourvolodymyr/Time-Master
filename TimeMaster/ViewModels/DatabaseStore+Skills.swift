@@ -164,9 +164,13 @@ extension DatabaseStore {
 
     // MARK: Types
 
-    /// The highest skill in this page's chain. Sibling skills inside an untyped container do not share presets.
+    /// The page that keeps the types `id` can wear (the rule of `DatabaseManager.skillTypeOwner(of:)`): for a skill or a
+    /// tutorial the highest skill in its chain (sibling skills inside an untyped container do not share presets); for an
+    /// exercise, a note, a folder or a folder's group the top page of its tree. nil for a loose exercise or note.
     func skillTypeOwner(of id: String) -> ExercisePage? {
-        var current = page(manifestID: SkillGroupID.split(id)?.containerID ?? id)
+        guard let start = page(manifestID: SkillGroupID.split(id)?.containerID ?? id) else { return nil }
+        guard start.isSkillLike else { return tagRoot(of: start) }
+        var current: ExercisePage? = start
         var root: ExercisePage?
         var hops = 0
         while let candidate = current, hops < 10_000 {
@@ -180,6 +184,18 @@ extension DatabaseStore {
             hops += 1
         }
         return nil
+    }
+
+    /// The top page of `page`'s tree when it can keep presets (a folder, a skill or a tutorial): the page that keeps the
+    /// tags of every exercise and note below it. nil for an exercise or a note at the top of the library.
+    func tagRoot(of page: ExercisePage) -> ExercisePage? {
+        var current = page
+        var hops = 0
+        while let parentID = current.manifest.parentID, let parent = self.page(manifestID: parentID), hops < 10_000 {
+            current = parent
+            hops += 1
+        }
+        return current.isContainer ? current : nil
     }
 
     /// The presets offered below a page's type owner, by order, each with its types by order.

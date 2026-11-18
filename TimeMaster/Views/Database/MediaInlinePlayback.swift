@@ -199,9 +199,10 @@ final class MediaRevisions: ObservableObject {
     }
 }
 
-/// A clip to start in its card when the page holding it opens: a page's cover in a Database list opens the page and
-/// plays its first clip. Asked for just before the page is pushed; the first media strip with inline playback that
-/// shows the clip takes it, and a request nobody took within a few seconds lapses.
+/// A clip to start in its card when the page holding it opens: "Open Page" in the viewer a Database cover opens goes on
+/// to the page playing the clip on screen (a cover in a stack without that viewer opens the page playing its first
+/// clip). Asked for just before the page is pushed; the first media strip with inline playback that shows the clip
+/// takes it, and a request nobody took within a few seconds lapses.
 @MainActor
 enum MediaAutoplayIntent {
     private static var pending: (url: URL, requestedAt: TimeInterval)?

@@ -88,6 +88,16 @@ enum EverPageTravel {
         EverPageGlide.current?.prepare(direction: stackDirection(from: depth, to: next))
 #endif
     }
+
+    /// A navigation stack of the main window is about to swap the page on top for a neighbour of it (Previous and
+    /// Next): its depth stays, so the step gives the direction, +1 to the next page (in from the trailing side) and -1
+    /// to the previous one. One announcement for the one change of the path, so the swap never glides twice.
+    @MainActor
+    static func willSwap(direction: CGFloat) {
+#if os(macOS)
+        EverPageGlide.current?.prepare(direction: direction)
+#endif
+    }
 }
 
 /// What the page travel follows inside one navigation bar page from one pass to the next: the depth of the navigation

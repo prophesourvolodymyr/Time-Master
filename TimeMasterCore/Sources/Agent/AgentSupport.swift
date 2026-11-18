@@ -54,6 +54,12 @@ public enum AgentEffect: Codable, Equatable {
     case changedMarkdown(pageID: String, previous: String)
     case addedChecklistEntry(pageID: String, list: String, id: String)
     case createdWorkoutGroup(id: String)
+    /// A tag made on `ownerID` (the page that keeps it).
+    case createdTag(ownerID: String, tagID: String)
+    /// A preset made on `ownerID` to hold a new tag.
+    case createdTagPreset(ownerID: String, presetID: String)
+    /// A page's tag changed; `previous` is the one it wore before (nil = none).
+    case changedTag(pageID: String, previous: String?)
 }
 
 public struct AgentToolOutput {

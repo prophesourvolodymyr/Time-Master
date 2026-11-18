@@ -32,6 +32,10 @@ public enum OnDeviceActivityLabel {
         case "check_todo": return (milestones(arguments) ? "Marking a milestone" : "Checking off a to-do", text(arguments["item"]))
         case "move_todo": return (milestones(arguments) ? "Moving a milestone" : "Moving a to-do", text(arguments["item"]))
         case "remove_todo": return (milestones(arguments) ? "Deleting a milestone" : "Deleting a to-do", text(arguments["item"]))
+        case "list_page_tags": return ("Listing tags", text(arguments["container"]))
+        case "create_page_tag": return ("Creating a tag", text(arguments["title"]))
+        case "update_page_tag": return ("Changing a tag", text(arguments["tag"]))
+        case "delete_page_tag": return ("Deleting a tag", text(arguments["tag"]))
         default: return (sentence(tool), nil)
         }
     }

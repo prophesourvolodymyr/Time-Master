@@ -118,6 +118,7 @@ struct SkillsRootView: View {
                 Text(errorMessage ?? "")
             }
         }
+        .pageCoverViewerHost(navigationState)
         .environmentObject(navigationState)
         .everPageStack(depth: navigationState.path.count) { if !navigationState.path.isEmpty { navigationState.path.removeLast() } }
         .findCommand {

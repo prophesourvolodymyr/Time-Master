@@ -104,11 +104,14 @@ struct ContainerChildrenTabs: View {
 
 /// Pages as Database rows in their stored order that open on tap, with the page menu (edit, move, duplicate, delete…):
 /// the exercises and notes inside a skill. Drag a row onto another to put it before or after it, or onto a container's
-/// row to move it inside.
+/// row to move it inside. Tells the navigation the rows' order, so Previous and Next on an opened page walk it.
 struct ExerciseChildList: View {
     let pages: [ExercisePage]
 
+    @EnvironmentObject private var navigationState: DatabaseNavigationState
     @State private var pageDrag: PageDragSource?
+    /// `path.count` of the screen the list sits on, read when it appears.
+    @State private var depth = 0
 
     var body: some View {
         ContainerPageActionHost { actions in
@@ -144,6 +147,16 @@ struct ExerciseChildList: View {
                 }
             }
         }
+        .onAppear {
+            depth = navigationState.path.count
+            offerSiblings(pages.map(\.manifest.id))
+        }
+        .onChange(of: pages.map(\.manifest.id)) { offerSiblings($0) }
+    }
+
+    private func offerSiblings(_ ids: [String]) {
+        guard let containerID = pages.first?.manifest.parentID else { return }
+        navigationState.offerSiblings(ids, containerID: containerID, surface: "children", depth: depth)
     }
 }
 

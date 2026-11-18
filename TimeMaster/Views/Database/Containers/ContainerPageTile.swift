@@ -266,8 +266,9 @@ struct ContainerTileChipSurface: ViewModifier {
 }
 
 /// A page as a row of a container's list: the Database row (cover, title, type and counts) with its place below the
-/// container and why a search showed it. Opens the page on tap, its cover opens it playing its first clip, and it
-/// carries the page menu; the list around it drags and drops the rows (`PageCardDragDrop`).
+/// container and why a search showed it. Opens the page on a click, its cover shows the page's clips in the viewer
+/// (`PageCoverOpening`), and it carries the page menu; the list around it drags and drops the rows
+/// (`PageCardDragDrop`).
 struct ContainerPageListRow: View {
     let page: ExercisePage
     var location: String? = nil

@@ -5,6 +5,8 @@ import Foundation
 // A board page is a container (an untyped container, or a skill page with skill children). Its groups live in its
 // manifest (`skillBoardSections`); a group's media live in `<board page>/Sections/<section id>/media/`. Types live in
 // each skill's own presets (`typePresets`); sub-skills share their top skill's types, not those of sibling skills.
+// Exercises and notes wear tags from the same kind of presets, kept by the top page of their tree and shared by
+// everything nested below it (the way a top folder's workout type is).
 extension DatabaseManager {
     // MARK: - Groups
 
@@ -150,8 +152,8 @@ extension DatabaseManager {
 
     // MARK: - Types
 
-    /// The highest skill in the page's skill chain, even when it lives inside an untyped container. An untyped board
-    /// with no skill ancestor can keep its own presets; a group answers for its board page.
+    /// The page that keeps the types `pageID` can wear (see `skillTypeOwner(of:)`): for a skill or a tutorial its
+    /// highest skill, for an exercise, a note or a folder the top page of its tree.
     public func skillTypeOwnerID(of pageID: String) throws -> String {
         try skillTypeOwner(of: pageID).manifest.id
     }
@@ -303,15 +305,16 @@ extension DatabaseManager {
         _ = try savePresets(presets, owner: owner)
     }
 
-    /// Gives a skill page a type (nil clears it). The type must be one of its owner's; a group has no type.
+    /// Gives a page a type (nil clears it): a skill or a tutorial one of its skill's types, an exercise or a note one of
+    /// the tags of the top page of its tree. Folders and groups wear none.
     public func setSkillType(_ typeID: String?, for pageID: String) throws {
         guard SkillGroupID.split(pageID) == nil else {
             throw FileSystemHelper.Error.invalidPageKind("a group has no type")
         }
         let folder = try resolvePageFolder(id: pageID)
         var page = try readPageManifest(at: folder)
-        guard page.pageType == .skill || page.pageType == .tutorial else {
-            throw FileSystemHelper.Error.invalidPageKind("only skills and tutorials wear a type")
+        guard Self.wearsType(page) else {
+            throw FileSystemHelper.Error.invalidPageKind("a folder wears no type; its skills, exercises and notes do")
         }
         if let typeID {
             guard try skillTypeOwner(of: pageID).manifest.skillType(typeID) != nil else {
@@ -324,26 +327,41 @@ extension DatabaseManager {
         try writePageManifest(page, at: folder)
     }
 
+    /// Skills, tutorials, exercises and notes wear a type; folders do not.
+    static func wearsType(_ page: ExercisePageManifest) -> Bool {
+        page.pageType != nil
+    }
+
+    /// The page that keeps the types `pageID` can wear. A skill or a tutorial: the highest skill in its chain, even
+    /// inside a plain folder (its sub-skills share it; sibling skills inside a folder keep their own). Any other page
+    /// (an exercise, a note, a folder, a group of a folder's board): the top page of its tree, so every exercise and note
+    /// below one top folder shares its tags. A page at the top of the library that holds no pages has none.
     func skillTypeOwner(of pageID: String) throws -> (folder: URL, manifest: ExercisePageManifest) {
-        var id = SkillGroupID.split(pageID)?.containerID ?? pageID
-        var hops = 0
+        let startID = SkillGroupID.split(pageID)?.containerID ?? pageID
+        let startFolder = try resolvePageFolder(id: startID)
+        var current = (folder: startFolder, manifest: try readPageManifest(at: startFolder))
+        let followsSkills = current.manifest.pageType == .skill || current.manifest.pageType == .tutorial
         var skillRoot: (folder: URL, manifest: ExercisePageManifest)?
+        var hops = 0
         while true {
-            let folder = try resolvePageFolder(id: id)
-            let manifest = try readPageManifest(at: folder)
-            if manifest.pageType == .skill || manifest.pageType == .tutorial {
-                skillRoot = (folder, manifest)
-            } else if manifest.pageKind == .container, manifest.pageType == nil {
-                return skillRoot ?? (folder, manifest)
+            if followsSkills {
+                if current.manifest.pageType == .skill || current.manifest.pageType == .tutorial {
+                    skillRoot = current
+                } else if current.manifest.pageKind == .container, current.manifest.pageType == nil {
+                    return skillRoot ?? current
+                }
             }
-            guard let parentID = manifest.parentID else {
-                if let skillRoot { return skillRoot }
-                throw FileSystemHelper.Error.invalidPageKind("this page has no skill board above it to keep types")
-            }
+            guard let parentID = current.manifest.parentID else { break }
             hops += 1
             guard hops < 10_000 else { throw FileSystemHelper.Error.invalidPageKind("the page sits too deep to find its board") }
-            id = parentID
+            let folder = try resolvePageFolder(id: parentID)
+            current = (folder, try readPageManifest(at: folder))
         }
+        if let skillRoot { return skillRoot }
+        guard current.manifest.pageKind == .container else {
+            throw FileSystemHelper.Error.invalidPageKind("a page at the top of the library has no folder above it to keep tags")
+        }
+        return current
     }
 
     private func savePresets(_ presets: [SkillTypePreset], owner: (folder: URL, manifest: ExercisePageManifest)) throws -> [SkillTypePreset] {

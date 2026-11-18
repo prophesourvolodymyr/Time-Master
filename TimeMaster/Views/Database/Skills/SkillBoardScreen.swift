@@ -46,8 +46,9 @@ enum SkillBoardMode: String, CaseIterable, Identifiable {
 
 /// The Skills section of a skill page, a container page or a group opened as a page: the "Skills" heading, one slim
 /// row with the List · Board · Table switch (remembered per board) and "New section", the status chips with their
-/// counts (List and Table), then the sections list, the status board or the table. Opening a sub-skill or a group
-/// pushes it onto the navigation stack the screen sits in (`DatabaseNavigationState` of the Database tab, a search
+/// counts (List and Table), then the sections list, the status board or the table. The board of a skill or a tutorial
+/// can also group its columns by type (Group by, remembered per board; Status by default). Opening a sub-skill or a
+/// group pushes it onto the navigation stack the screen sits in (`DatabaseNavigationState` of the Database tab, a search
 /// sheet or the workout popup).
 struct SkillBoardScreen: View {
     /// Tmax orange as `RRGGBB`: the tint of rows, cards and progress.
@@ -66,6 +67,7 @@ struct SkillBoardScreen: View {
     let scrollTo: (String) -> Void
 
     @AppStorage private var modeRaw: String
+    @AppStorage private var groupingRaw: String
     @State private var filter: SkillStatus?
     @State private var groupOverride: Bool?
     @State private var addingSection = false
@@ -76,12 +78,15 @@ struct SkillBoardScreen: View {
     @State private var pageToMove: SkillPageTarget?
     @State private var pageToDelete: ExercisePage?
     @State private var showingDetailedCreation = false
+    /// `path.count` of the screen the board sits on, read when it appears.
+    @State private var stackDepth = 0
 
     init(boardID: String, showsHeading: Bool = true, scrollTo: @escaping (String) -> Void = { _ in }) {
         self.boardID = boardID
         self.showsHeading = showsHeading
         self.scrollTo = scrollTo
         _modeRaw = AppStorage(wrappedValue: SkillBoardMode.list.rawValue, SkillSettings.viewModeKeyPrefix + boardID)
+        _groupingRaw = AppStorage(wrappedValue: SkillBoardGrouping.status.rawValue, SkillSettings.groupByKeyPrefix + boardID)
     }
 
     private var mode: SkillBoardMode { SkillBoardMode(rawValue: modeRaw) ?? .list }
@@ -90,9 +95,17 @@ struct SkillBoardScreen: View {
         Binding(get: { mode }, set: { modeRaw = $0.rawValue })
     }
 
+    private var grouping: SkillBoardGrouping { SkillBoardGrouping(rawValue: groupingRaw) ?? .status }
+
+    private var groupingBinding: Binding<SkillBoardGrouping> {
+        Binding(get: { grouping }, set: { groupingRaw = $0.rawValue })
+    }
+
     var body: some View {
         let mode = self.mode
         let snapshot = SkillBoardSnapshot(store: store, boardID: boardID, includesNested: mode != .list)
+        let typeSnapshot = showsTypes(snapshot) ? PageTypeBoardSnapshot(skills: snapshot, store: store) : nil
+        let shownIDs = siblingIDs(snapshot, types: typeSnapshot)
         VStack(alignment: .leading, spacing: SkillMetrics.s2) {
             if showsHeading {
                 SkillSectionHeading(symbol: "square.grid.2x2", title: "Skills", count: snapshot.direct.count)
@@ -110,12 +123,25 @@ struct SkillBoardScreen: View {
                         scrollTo: scrollTo
                     )
                 case .board:
-                    SkillStatusBoardView(snapshot: snapshot, groupBySection: groupBinding(snapshot), actions: actions(snapshot))
+                    if let typeSnapshot {
+                        PageTypeBoardView(
+                            snapshot: typeSnapshot,
+                            actions: typeActions(snapshot),
+                            newPage: .named(placeholder: "New", create: { title, type in addTyped(title, type, scope: snapshot.scope) })
+                        )
+                    } else {
+                        SkillStatusBoardView(snapshot: snapshot, groupBySection: groupBinding(snapshot), actions: actions(snapshot))
+                    }
                 case .table:
                     SkillTableView(snapshot: snapshot, items: filtered(snapshot.items), statusFilter: filter, actions: actions(snapshot))
                 }
             }
         }
+        .onAppear {
+            stackDepth = navigationState.path.count
+            offerSiblings(shownIDs, scope: snapshot.scope)
+        }
+        .onChange(of: shownIDs) { offerSiblings($0, scope: snapshot.scope) }
         .sheet(isPresented: $addingSection) {
             SkillSectionEditorSheet(
                 boardID: snapshot.scope.containerID,
@@ -192,7 +218,14 @@ struct SkillBoardScreen: View {
     private func header(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
         switch mode {
         case .board:
-            switcherRow(snapshot, mode: mode)
+            if supportsTypeGrouping(snapshot) {
+                VStack(alignment: .leading, spacing: SkillMetrics.s2) {
+                    switcherRow(snapshot, mode: mode)
+                    groupingRow(snapshot)
+                }
+            } else {
+                switcherRow(snapshot, mode: mode)
+            }
         case .list, .table:
             VStack(alignment: .leading, spacing: SkillMetrics.s2) {
                 switcherRow(snapshot, mode: mode)
@@ -201,12 +234,28 @@ struct SkillBoardScreen: View {
         }
     }
 
+    /// Group by Status · Type under the switch (the board of a skill or a tutorial), and with Type the menu that makes and
+    /// manages the types.
+    private func groupingRow(_ snapshot: SkillBoardSnapshot) -> some View {
+        HStack(spacing: SkillMetrics.s2) {
+            Text("Group by")
+                .font(TimeMasterFont.caption())
+                .foregroundStyle(Theme.textSecondary)
+                .accessibilityHidden(true)
+            SkillBoardGroupingPicker(selection: groupingBinding)
+            if grouping == .type, let owner = store.skillTypeOwner(of: snapshot.scope.boardID) {
+                PageTypesMenuButton(ownerID: owner.manifest.id, presets: store.skillTypePresets(for: owner.manifest.id))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
     /// List · Board · Table, the group toggle (Board) and New section: whatever the view, the section controls sit
     /// beside the view switch. The menu at the end makes a sub-skill with every detail (type, cover, media).
     private func switcherRow(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
         HStack(spacing: SkillMetrics.s2) {
             SkillViewModePicker(selection: modeBinding)
-            if mode == .board && snapshot.hasSections {
+            if mode == .board && snapshot.hasSections && !showsTypes(snapshot) {
                 groupToggle(snapshot)
             }
             if !snapshot.scope.isGroup {
@@ -277,6 +326,42 @@ struct SkillBoardScreen: View {
         if mode == .board { groupOverride = true }
     }
 
+    /// Type grouping needs one pool of types: the board of a skill or a tutorial (or of one of its groups). On a plain
+    /// folder every skill keeps its own types, so its board stays by status.
+    private func supportsTypeGrouping(_ snapshot: SkillBoardSnapshot) -> Bool {
+        snapshot.container?.isSkillLike == true
+    }
+
+    /// The Board view shows its columns by type.
+    private func showsTypes(_ snapshot: SkillBoardSnapshot) -> Bool {
+        mode == .board && grouping == .type && supportsTypeGrouping(snapshot)
+    }
+
+    // MARK: Previous and Next
+
+    /// The sub-skills in the order this view shows them, what Previous and Next walk on a page opened from here: the
+    /// list's own sub-skills lane by lane and the table's rows (the status filter applied), the status board column by
+    /// column (lane by lane in swimlanes), the type board in its reading order.
+    private func siblingIDs(_ snapshot: SkillBoardSnapshot, types: PageTypeBoardSnapshot?) -> [String] {
+        switch mode {
+        case .list:
+            return filtered(snapshot.direct).map(\.id)
+        case .table:
+            return filtered(snapshot.items).map(\.id)
+        case .board:
+            if let types { return types.readingOrder }
+            let laneKeys: [String?] = isGrouped(snapshot) && snapshot.hasSections ? snapshot.boardLanes.map { Optional($0.key) } : [nil]
+            return laneKeys.flatMap { key in
+                let items = snapshot.items(inLane: key)
+                return SkillStatus.boardOrder.flatMap { status in items.filter { $0.status == status }.map(\.id) }
+            }
+        }
+    }
+
+    private func offerSiblings(_ ids: [String], scope: SkillBoardScope) {
+        navigationState.offerSiblings(ids, containerID: scope.containerID, surface: "skill-board", depth: stackDepth)
+    }
+
     // MARK: Actions
 
     private func actions(_ snapshot: SkillBoardSnapshot) -> SkillBoardActions {
@@ -290,6 +375,41 @@ struct SkillBoardScreen: View {
             requestDelete: { pageToDelete = $0 },
             openLink: { openURL($0) }
         )
+    }
+
+    /// The type board's cards: the same writes and sheets as the status board, plus the type a drop or the menu gives and
+    /// the cover a gallery card opens.
+    private func typeActions(_ snapshot: SkillBoardSnapshot) -> PageTypeBoardActions {
+        let base = actions(snapshot)
+        return PageTypeBoardActions(
+            open: base.open,
+            openFromCover: { page in PageCoverOpening.open(page, in: navigationState) },
+            setType: { page, type in setType(page, type) },
+            setStatus: base.setStatus,
+            changeIcon: base.changeIcon,
+            addToWorkout: nil,
+            edit: base.edit,
+            moveTo: base.moveTo,
+            requestDelete: base.requestDelete,
+            openLink: base.openLink
+        )
+    }
+
+    private func setType(_ page: ExercisePage, _ type: SkillType?) {
+        guard page.manifest.typeID != type?.id else { return }
+        if SkillErrorCenter.shared.attempt("Change the type", { try store.setSkillType(type?.id, for: page.manifest.id) }) {
+            EverHaptic.selection()
+        }
+    }
+
+    /// "New" at the foot of a type column: the sub-skill starts outside every group, wearing the column's type.
+    private func addTyped(_ title: String, _ type: SkillType?, scope: SkillBoardScope) -> Bool {
+        let added = SkillErrorCenter.shared.attempt("Add the sub-skill") {
+            let id = try store.createBoardSkill(title: title, on: scope.boardID, sectionID: nil, status: .notStarted)
+            if let type { try store.setSkillType(type.id, for: id) }
+        }
+        if added { EverHaptic.selection() }
+        return added
     }
 
     private func setStatus(_ page: ExercisePage, _ status: SkillStatus) {

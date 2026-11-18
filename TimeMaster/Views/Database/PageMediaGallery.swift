@@ -26,6 +26,7 @@ struct PageMediaGallery: View {
     let presentation: PageMediaGalleryPresentation
     let playback: MediaInlinePlayback?
     let mediaOwnerID: ((URL) -> String?)?
+    let onOpenPage: (() -> Void)?
 
     @State private var drawer: CGFloat
     @State private var notesRevealed: Bool
@@ -54,6 +55,8 @@ struct PageMediaGallery: View {
     /// - Parameters:
     ///   - playback: the page's inline playback; the viewer continues its video instead of loading it again.
     ///   - mediaOwnerID: the page that holds a file, so a trim can be saved as a new clip on it.
+    ///   - onOpenPage: "Open Page" in the top bar, where the viewer shows a page's clips outside the page (its cover in
+    ///     a Database list).
     init(
         urls: [URL],
         selectedIndex: Binding<Int>,
@@ -67,7 +70,8 @@ struct PageMediaGallery: View {
         databasePageID: ((URL) -> UUID?)? = nil,
         presentation: PageMediaGalleryPresentation = .modal,
         playback: MediaInlinePlayback? = nil,
-        mediaOwnerID: ((URL) -> String?)? = nil
+        mediaOwnerID: ((URL) -> String?)? = nil,
+        onOpenPage: (() -> Void)? = nil
     ) {
         self.urls = urls
         _selectedIndex = selectedIndex
@@ -81,6 +85,7 @@ struct PageMediaGallery: View {
         self.presentation = presentation
         self.playback = playback
         self.mediaOwnerID = mediaOwnerID
+        self.onOpenPage = onOpenPage
         let opens = opensEditor && onSaveComment != nil
         _drawer = State(initialValue: opens ? 1 : 0)
         _notesRevealed = State(initialValue: opens)
@@ -244,9 +249,12 @@ struct PageMediaGallery: View {
                 #if os(macOS)
                 .keyboardShortcut(.cancelAction)
                 #endif
-                .help(presentation == .inPlace ? "Shrink back into the page" : "Close")
+                .help(presentation == .inPlace ? (onOpenPage == nil ? "Shrink back into the page" : "Shrink back into the list") : "Close")
                 .accessibilityLabel("Close media viewer")
                 Spacer()
+                if let onOpenPage {
+                    openPageButton(onOpenPage)
+                }
                 if workout != nil, currentDatabasePageID != nil {
                     Button {
                         showDatabase = true
@@ -272,6 +280,32 @@ struct PageMediaGallery: View {
             }
         }
         .padding(.horizontal, 12)
+    }
+
+    /// "Open Page": the page these clips belong to. A text button on the Mac; on iPhone and iPad an icon, so the
+    /// position counter in the middle of the bar keeps its room.
+    private func openPageButton(_ open: @escaping () -> Void) -> some View {
+        Button(action: open) {
+            #if os(macOS)
+            Label("Open Page", systemImage: "arrow.up.right")
+                .font(TimeMasterFont.black(14, relativeTo: .subheadline))
+            #else
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 16, weight: .bold))
+            #endif
+        }
+        .buttonStyle(TimeMasterActionButtonStyle(circular: Self.opensPageWithIcon, minimumSize: 44, horizontalPadding: 12))
+        .help("Open the page")
+        .accessibilityLabel("Open Page")
+        .accessibilityHint("Closes the viewer and opens the page these clips belong to")
+    }
+
+    private static var opensPageWithIcon: Bool {
+        #if os(macOS)
+        return false
+        #else
+        return true
+        #endif
     }
 
     private func trimButton(_ url: URL) -> some View {

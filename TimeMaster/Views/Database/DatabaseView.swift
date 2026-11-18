@@ -11,15 +11,97 @@ import AVKit
 final class DatabaseNavigationState: ObservableObject {
     @Published var path = NavigationPath() {
         willSet {
+            if newValue.count > path.count { ClickThroughGuard.noteOpening() }
             guard pageTravel, newValue != path else { return }
-            EverPageTravel.willNavigate(from: path.count, to: newValue.count)
+            if let siblingSwap {
+                EverPageTravel.willSwap(direction: siblingSwap)
+            } else {
+                EverPageTravel.willNavigate(from: path.count, to: newValue.count)
+            }
+        }
+        didSet {
+            if siblingSwap == nil { siblingArrival = nil }
+            if path.count < oldValue.count { siblings.pop(toDepth: path.count) }
         }
     }
     /// A stack of the main window, whose pushes and pops travel like pages on the Mac.
     private let pageTravel: Bool
+    /// Whether the pages of this stack step to their siblings with Previous and Next (off in the workout player's
+    /// page popup).
+    let offersSiblingNavigation: Bool
+    /// What container surfaces offered and what page screens froze (`PageSiblingBook`); never published, so surfaces
+    /// offer from `onAppear` and `onChange`.
+    private var siblings = PageSiblingBook()
+    /// The way the swap to a sibling being made travels, while `path` changes for it.
+    private var siblingSwap: CGFloat?
+    /// A swap to a sibling whose page has not shown yet and plays its own arrival (no Mac page travel here): the
+    /// sibling's id and the way it travels, +1 forward.
+    private var siblingArrival: (pageID: String, direction: CGFloat)?
+    /// The viewer the page covers of this stack open (`pageCoverViewerHost`); nil where the stack hosts none, and a
+    /// cover then opens its page.
+    weak var coverViewer: PageCoverViewer?
 
-    init(pageTravel: Bool = false) {
+    init(pageTravel: Bool = false, siblingNavigation: Bool = true) {
         self.pageTravel = pageTravel
+        self.offersSiblingNavigation = siblingNavigation
+    }
+
+    /// A container surface says which pages it shows, in display order: the gallery, list or search hits of a container
+    /// tab, a board (reading order: column by column, top to bottom), the pages inside a skill. `depth` is `path.count`
+    /// of the screen the surface sits on; `surface` tells several lists on one screen apart ("browser", "board", "children").
+    func offerSiblings(_ pageIDs: [String], containerID: String, surface: String, depth: Int) {
+        siblings.offer(pageIDs, containerID: containerID, surface: surface, depth: depth)
+    }
+
+    /// The pages Previous and Next step through on the page `pageID` whose screen sits at `depth` (`path.count` as it
+    /// appears): the sequence its screen froze, else the newest offer of the screen below that lists it, else
+    /// `fallback`, its container's own order. Frozen the first time it is asked; never published. Nil where the stack
+    /// offers no sibling navigation or nothing holds the page.
+    func siblingSequence(for pageID: String, depth: Int,
+                         fallback: () -> PageSiblingSequence?) -> PageSiblingSequence? {
+        guard offersSiblingNavigation else { return nil }
+        return siblings.sequence(for: pageID, depth: depth, fallback: fallback)
+    }
+
+    /// Swaps the page on top for its sibling `pageID`, `direction` +1 for the next page and -1 for the previous one:
+    /// one change of `path` (the last page out, the sibling in), so Back still returns to the container in one step.
+    /// On the Mac's main window stacks the page travels that way; elsewhere the sibling's page plays its own arrival
+    /// (`pageSiblingNavigation`), as the stack's own push motion is off for the swap.
+    func goToSibling(_ pageID: String, direction: Int) {
+        guard !path.isEmpty else { return }
+        let travel: CGFloat = direction < 0 ? -1 : 1
+        siblings.swapTop(atDepth: path.count)
+        var next = path
+        next.removeLast()
+        next.append(DatabasePageRoute(pageID: pageID))
+        siblingArrival = glides ? nil : (pageID: pageID, direction: travel)
+        siblingSwap = travel
+        defer { siblingSwap = nil }
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { path = next }
+    }
+
+    /// The way the swap that brought `pageID` travels, while its page has not taken it up.
+    func pendingSiblingArrival(for pageID: String) -> CGFloat? {
+        guard let siblingArrival, siblingArrival.pageID == pageID else { return nil }
+        return siblingArrival.direction
+    }
+
+    /// Takes up the swap that brought `pageID`, once.
+    func takeSiblingArrival(for pageID: String) -> CGFloat? {
+        guard let direction = pendingSiblingArrival(for: pageID) else { return nil }
+        siblingArrival = nil
+        return direction
+    }
+
+    /// Whether the Mac's page travel moves this stack's pages.
+    private var glides: Bool {
+        #if os(macOS)
+        return pageTravel
+        #else
+        return false
+        #endif
     }
 }
 
@@ -524,6 +606,7 @@ struct DatabaseView: View {
                 handleDatabaseImport(result)
             }
         }
+        .pageCoverViewerHost(navigationState)
         .everPageStack(depth: navigationState.path.count) { if !navigationState.path.isEmpty { navigationState.path.removeLast() } }
         .findCommand {
             if !showingDatabaseSearch { showingDatabaseSearch = true }
@@ -1196,6 +1279,15 @@ struct DatabaseView: View {
         }
     }
 
+    /// A click on a group's card folds it open or shut. On the Mac the second click of a double-click opens the group
+    /// instead: it folds back the way the first click found it and the group's page opens.
+    private func activateGroup(_ page: ExercisePage) {
+        toggleExpansion(page)
+        if ClickThroughGuard.isDoubleClick {
+            navigationState.path.append(DatabasePageRoute(pageID: page.manifest.id))
+        }
+    }
+
     @ViewBuilder
     private func pageBase(_ page: ExercisePage, isGridMode: Bool) -> some View {
         let isExpanded = expandedPageIDs.contains(page.manifest.id)
@@ -1216,15 +1308,18 @@ struct DatabaseView: View {
         } else {
             Group {
                 if isGridMode {
-                    Button { toggleExpansion(page) } label: { label }
+                    Button { activateGroup(page) } label: { label }
                         .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
                 } else {
-                    Button { toggleExpansion(page) } label: { label }
+                    Button { activateGroup(page) } label: { label }
                         .buttonStyle(TimeMasterCardButtonStyle())
                 }
             }
             .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
             .accessibilityHint(isExpanded ? "Collapses this group" : "Expands this group")
+            #if os(macOS)
+            .help(isExpanded ? "Click to fold, double-click to open" : "Click to unfold, double-click to open")
+            #endif
             .accessibilityIdentifier("database-row-\(page.manifest.id)")
             .modifier(PageClipAccessibilityAction(page: page) { PageCoverOpening.open(page, in: navigationState) })
         }
@@ -1433,6 +1528,7 @@ private struct DatabaseSearchSheet: View {
                 }
             }
         }
+        .pageCoverViewerHost(navigationState)
         .environmentObject(navigationState)
         .onAppear { searchFocused = true }
         .findCommand {

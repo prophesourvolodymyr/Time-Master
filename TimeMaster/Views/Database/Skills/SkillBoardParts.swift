@@ -82,8 +82,8 @@ struct SkillBoardTally: Equatable {
     }
 }
 
-/// One sub-skill as the board, the table and the list draw it, resolved once per render: its lane, place, type,
-/// counts and links.
+/// One sub-skill as the board, the table and the list draw it (or, on a folder's type board, one exercise or note; see
+/// `PageTypeBoardSnapshot`), resolved once per render: its lane, place, type, counts and links.
 struct SkillBoardItem: Identifiable {
     let page: ExercisePage
     let laneKey: String

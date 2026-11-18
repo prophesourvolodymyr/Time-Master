@@ -4,25 +4,41 @@ import TimeMasterCore
 import AppKit
 #endif
 
-/// Opening a page from its cover in a Database list: the page opens on the part that shows its first clip and plays it
-/// there (`MediaAutoplayIntent`); a page without a clip just opens.
+/// A click on a page's cover in a Database list (a gallery tile, a card's or a row's cover): the page's clips in the
+/// viewer over the navigation stack (`PageCoverViewer`, grown out of the cover, the first clip playing, "Open Page" to
+/// go on). A page without a clip, a container (its cover opens it) and a stack that hosts no viewer open the page
+/// instead, on the part that shows its first clip, playing it there (`MediaAutoplayIntent`).
 @MainActor
 enum PageCoverOpening {
-    /// The page's first video, nil when it has none.
-    nonisolated static func firstClip(of page: ExercisePage) -> URL? {
-        page.mediaURLs.first(where: PageMediaKind.isVideo)
+    /// The clips the viewer shows for `page`: its videos, in the page's order. A container's cover opens the container,
+    /// so it has none here.
+    nonisolated static func clips(of page: ExercisePage) -> [URL] {
+        guard page.isContentPage else { return [] }
+        return page.mediaURLs.filter(PageMediaKind.isVideo)
     }
 
-    /// Opens `page`, playing its first clip.
+    /// The first of `clips(of:)`, nil when there is none.
+    nonisolated static func firstClip(of page: ExercisePage) -> URL? {
+        guard page.isContentPage else { return nil }
+        return page.mediaURLs.first(where: PageMediaKind.isVideo)
+    }
+
+    /// What a click on `page`'s cover does: its clips in the stack's viewer, else the page, playing its first clip.
     static func open(_ page: ExercisePage, in navigationState: DatabaseNavigationState) {
-        prepare(page)
+        if let viewer = navigationState.coverViewer, viewer.show(page) { return }
+        openPage(page, playing: firstClip(of: page), in: navigationState)
+    }
+
+    /// Opens `page` on the part that shows `clip`, playing it there; without a clip the page just opens.
+    static func openPage(_ page: ExercisePage, playing clip: URL?, in navigationState: DatabaseNavigationState) {
+        if let clip { prepare(page, playing: clip) }
         navigationState.path.append(DatabasePageRoute(pageID: page.manifest.id))
     }
 
-    /// Asks the page about to open to start its first clip, on a tab that shows it (the attachments, or a skill's
-    /// dependencies when the clip is one of the things to have first; All shows both).
-    static func prepare(_ page: ExercisePage) {
-        guard let clip = firstClip(of: page) else { return }
+    /// Asks the page about to open to start `clip` (its first clip when nil), on a tab that shows it (the attachments,
+    /// or a skill's dependencies when the clip is one of the things to have first; All shows both).
+    static func prepare(_ page: ExercisePage, playing clip: URL? = nil) {
+        guard let clip = clip ?? firstClip(of: page) else { return }
         MediaAutoplayIntent.request(clip)
         let isNeededFirst = page.isSkillLike && page.manifest.dependencyMediaFilenames.contains(clip.lastPathComponent)
         let tab: PageTab = isNeededFirst ? .dependencies : .attachments
@@ -34,7 +50,7 @@ enum PageCoverOpening {
 }
 
 /// "Play Clip" for VoiceOver on a card whose page has a clip: the cover inside the card's own button cannot be reached
-/// on its own, so the card offers what a tap on the cover does.
+/// on its own, so the card offers what a click on the cover does (the clip viewer).
 struct PageClipAccessibilityAction: ViewModifier {
     let page: ExercisePage
     let open: () -> Void
@@ -49,9 +65,9 @@ struct PageClipAccessibilityAction: ViewModifier {
     }
 }
 
-/// Makes a page card's cover open the page and play its first clip: a tap or click on it, the pointing hand and a
-/// light-up while the pointer is over it on the Mac, a play glyph on a page with a clip, and "Open <title>" for
-/// VoiceOver.
+/// Makes a page card's cover show the page's clips in the viewer (`PageCoverOpening`; a page without a clip opens): a
+/// tap or click on it, the pointing hand and a light-up while the pointer is over it on the Mac, a play glyph on a page
+/// with a clip, "Open <title>" for VoiceOver, and its place on screen so the viewer grows out of it.
 struct PageCoverTap: ViewModifier {
     let page: ExercisePage
     var cornerRadius: CGFloat = 10
@@ -80,12 +96,13 @@ struct PageCoverTap: ViewModifier {
                 .allowsHitTesting(false)
             }
             .contentShape(shape)
+            .pageCoverFrame(page)
             .onTapGesture(perform: onOpen)
             .pageCoverPointer($isHovering)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isHovering)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Open \(page.title)")
-            .accessibilityHint(hasClip ? "Opens the page and plays its first clip" : "Opens the page")
+            .accessibilityHint(hasClip ? "Shows its clips in a viewer" : "Opens the page")
             .accessibilityAddTraits(.isButton)
             .accessibilityAction { onOpen() }
     }

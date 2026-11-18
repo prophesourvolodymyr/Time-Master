@@ -428,7 +428,7 @@ Find pages in the Tmax library.
             normalized.dependencyMediaFilenames = []
             normalized.dependencyLinkURLs = []
             normalized.typePresets = []
-            normalized.typeID = nil
+            // A note keeps its tag: one of the presets of the top page of its tree.
             let icon = normalized.iconName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             normalized.iconName = icon.isEmpty ? nil : icon
             if normalized.iconName == nil { normalized.iconType = nil }
@@ -449,7 +449,7 @@ Find pages in the Tmax library.
             normalized.dependencyMediaFilenames = []
             normalized.dependencyLinkURLs = []
             normalized.typePresets = []
-            normalized.typeID = nil
+            // An exercise keeps its tag: one of the presets of the top page of its tree.
         } else {
             normalized.pageKind = .container
             normalized.pageType = nil

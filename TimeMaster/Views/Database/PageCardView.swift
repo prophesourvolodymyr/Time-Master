@@ -13,7 +13,8 @@ struct PageCardView: View {
     /// Drags the page's id as plain text; false where the list around the card drags and drops cards itself
     /// (`PageCardDragDrop`).
     var isDraggable = true
-    /// A tap on the cover opens the page and plays its first clip (`PageCoverOpening`); nil leaves the cover to the card.
+    /// A click on the cover shows the page's clips in the viewer, or opens a page without a clip (`PageCoverOpening`);
+    /// nil leaves the cover to the card.
     var onOpenCover: (() -> Void)? = nil
     /// Where the page sits below the list's container ("Footwork › Drills"); nil for a direct child.
     var location: String? = nil
@@ -38,7 +39,7 @@ struct PageCardView: View {
         }
     }
 
-    /// The card's cover, opening the page when tapped where the screen hands over `onOpenCover`.
+    /// The card's cover, showing the page's clips when clicked where the screen hands over `onOpenCover`.
     @ViewBuilder
     private func coverTarget<Cover: View>(
         cornerRadius: CGFloat,

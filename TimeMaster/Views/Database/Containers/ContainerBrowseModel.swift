@@ -7,7 +7,8 @@ import TimeMasterCore
 enum ContainerBrowseLayout: String, CaseIterable, Identifiable {
     case gallery
     case list
-    /// The container's own skill board (groups, statuses, quick add); Skills tab only.
+    /// Skills tab: the container's own skill board (groups, statuses, quick add). Exercises tab of a folder that holds
+    /// exercises: its exercises and notes at every depth in one column per tag of its top folder.
     case board
 
     var id: String { rawValue }
@@ -28,8 +29,9 @@ enum ContainerBrowseLayout: String, CaseIterable, Identifiable {
         }
     }
 
-    static func options(for tab: ContainerChildTab) -> [ContainerBrowseLayout] {
-        tab == .skills ? [.gallery, .list, .board] : [.gallery, .list]
+    /// The Board is offered on the Skills tab, and on the Exercises tab of a folder that holds exercises.
+    static func options(for tab: ContainerChildTab, holdsExercises: Bool = false) -> [ContainerBrowseLayout] {
+        tab == .skills || holdsExercises ? [.gallery, .list, .board] : [.gallery, .list]
     }
 }
 
@@ -243,17 +245,26 @@ struct ContainerBrowseModel {
     /// The container, with the whole page tree below it.
     let container: ExercisePage
     private let statsByID: [String: ContainerPageStats]
-    /// Titles of the skill types defined inside the container, by type id (type ids are unique).
+    /// Titles of the types defined inside the container, and of the tags its top folder keeps for the exercises and notes
+    /// below it, by type id (type ids are unique).
     private let typeTitles: [String: String]
+    /// Whether an exercise sits anywhere below the container: its Exercises tab then offers the Board.
+    let holdsExercises: Bool
 
     init(container: ExercisePage, roots: [ExercisePage], pages: [ExercisePage]) {
         let tree = Self.node(id: container.manifest.id, in: roots) ?? Self.tree(of: container, in: pages)
         var stats: [String: ContainerPageStats] = [:]
         var typeTitles: [String: String] = [:]
         Self.collect(tree, stats: &stats, typeTitles: &typeTitles)
+        if let top = roots.first(where: { Self.node(id: container.manifest.id, in: [$0]) != nil }), top.manifest.id != tree.manifest.id {
+            for type in top.manifest.typePresets.flatMap(\.types) {
+                typeTitles[type.id] = type.title
+            }
+        }
         self.container = tree
         self.statsByID = stats
         self.typeTitles = typeTitles
+        self.holdsExercises = Self.containsExercise(tree)
     }
 
     /// Whether the container has a Skills tab: a folder flagged `noSkills` lists everything as ordinary pages.
@@ -528,6 +539,16 @@ struct ContainerBrowseModel {
             stack.append(contentsOf: page.children)
         }
         return nil
+    }
+
+    /// Whether an exercise page sits anywhere below `page`; stops at the first one.
+    private static func containsExercise(_ page: ExercisePage) -> Bool {
+        var stack = page.children
+        while let next = stack.popLast() {
+            if next.isExercise { return true }
+            stack.append(contentsOf: next.children)
+        }
+        return false
     }
 
     /// `page` with its tree rebuilt from the flat page list, for a page the tree has not caught up with yet.

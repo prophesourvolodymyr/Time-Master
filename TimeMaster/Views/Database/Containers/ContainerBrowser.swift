@@ -47,7 +47,11 @@ struct ContainerBrowser: View {
 
     private var layout: ContainerBrowseLayout {
         let stored = tab == .skills ? skillsLayout : exercisesLayout
-        return ContainerBrowseLayout.options(for: tab).contains(stored) ? stored : .gallery
+        return layoutOptions.contains(stored) ? stored : .gallery
+    }
+
+    private var layoutOptions: [ContainerBrowseLayout] {
+        ContainerBrowseLayout.options(for: tab, holdsExercises: model.holdsExercises)
     }
 
     private var sort: ContainerBrowseSort {
@@ -55,8 +59,9 @@ struct ContainerBrowser: View {
         return ContainerBrowseSort.options(for: tab).contains(stored) ? stored : .manual
     }
 
-    /// The container's skill board stands in for the cards (a search still shows cards).
-    private var showsBoard: Bool { tab == .skills && layout == .board && !isSearching }
+    /// A board stands in for the cards (a search still shows cards): the container's skill board on the Skills tab, its
+    /// exercises and notes by tag on the Exercises tab.
+    private var showsBoard: Bool { layout == .board && !isSearching }
     private var showsStatusFilter: Bool { tab == .skills && !showsBoard && !entries.isEmpty }
     private var showsNewCell: Bool { !isSearching && (tab != .skills || statusFilter == nil) }
     /// Cards take new places by dragging on the Exercises tab, in its manual order, while not searching.
@@ -86,7 +91,11 @@ struct ContainerBrowser: View {
                 return true
             }
         }
-        .onAppear { stackDepth = navigationState.path.count }
+        .onAppear {
+            stackDepth = navigationState.path.count
+            offerSiblings(showsBoard ? [] : siblingIDs(shown))
+        }
+        .onChange(of: showsBoard ? [] : siblingIDs(shown)) { offerSiblings($0) }
         .sheet(item: $creation) { request in
             PageCreationSheet(parentID: request.parentID, initialPageType: request.pageType) { manifest, parentID in
                 try store.createPage(manifest: manifest, parentID: parentID)
@@ -117,9 +126,12 @@ struct ContainerBrowser: View {
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(1)
             Spacer(minLength: 8)
-            ContainerLayoutPicker(selection: layoutBinding, options: ContainerBrowseLayout.options(for: tab))
+            ContainerLayoutPicker(selection: layoutBinding, options: layoutOptions)
             if !showsBoard {
                 sortMenu
+                addMenu
+            } else if tab == .exercises {
+                typesMenu
                 addMenu
             }
         }
@@ -215,6 +227,28 @@ struct ContainerBrowser: View {
         .help(tab == .skills ? "Add a skill" : "Add a page")
     }
 
+    /// The Exercises board's type menu: make a tag (a preset first while there is none) or manage the tags of the folder's
+    /// top page.
+    @ViewBuilder
+    private var typesMenu: some View {
+        if let owner = store.tagRoot(of: container) {
+            PageTypesMenuButton(ownerID: owner.manifest.id, presets: store.skillTypePresets(for: owner.manifest.id))
+        }
+    }
+
+    // MARK: Previous and Next
+
+    /// The pages this tab shows, in the order they show (sections in their order on the grouped Skills tab): what
+    /// Previous and Next walk on a page opened from here.
+    private func siblingIDs(_ shown: [ContainerBrowseEntry]) -> [String] {
+        guard tab == .skills, grouping != .flat else { return shown.map(\.id) }
+        return model.sections(of: shown, by: grouping).flatMap(\.entries).map(\.id)
+    }
+
+    private func offerSiblings(_ ids: [String]) {
+        navigationState.offerSiblings(ids, containerID: container.manifest.id, surface: "browser", depth: stackDepth)
+    }
+
     // MARK: Content
 
     @ViewBuilder
@@ -225,8 +259,12 @@ struct ContainerBrowser: View {
         proxy: ScrollViewProxy
     ) -> some View {
         if showsBoard {
-            SkillBoardScreen(boardID: container.manifest.id, showsHeading: false) { id in
-                withAnimation(motion) { proxy.scrollTo(id) }
+            if tab == .skills {
+                SkillBoardScreen(boardID: container.manifest.id, showsHeading: false) { id in
+                    withAnimation(motion) { proxy.scrollTo(id) }
+                }
+            } else {
+                ContainerTypeBoard(folder: container, actions: actions)
             }
         } else if isSearching && entries.isEmpty {
             searchEmptyState
@@ -338,7 +376,8 @@ struct ContainerBrowser: View {
         }
     }
 
-    /// A page's cover filling a card: a tap opens the page, playing its first clip.
+    /// A page's cover filling a card: a click shows its clips in the viewer, grown out of the card; a page without a
+    /// clip (a container, a note) opens.
     private func pageTile(_ entry: ContainerBrowseEntry, actions: ContainerPageActions, neighbors: PageNeighbors) -> some View {
         let page = entry.page
         return VStack(alignment: .leading, spacing: 6) {
@@ -349,9 +388,15 @@ struct ContainerBrowser: View {
             }
             .buttonStyle(ContainerTileButtonStyle(cornerRadius: ContainerPageTile.cornerRadius))
             .pageCoverPointer()
+            .pageCoverFrame(page)
             .contextMenu { actions.menu(for: page) }
             .modifier(dragDrop(page, cornerRadius: ContainerPageTile.cornerRadius, actions: actions, neighbors: neighbors))
-            .accessibilityHint(PageCoverOpening.firstClip(of: page) == nil ? "Opens this page" : "Opens this page and plays its first clip")
+            .accessibilityHint(PageCoverOpening.firstClip(of: page) == nil ? "Opens this page" : "Shows its clips in a viewer")
+            .accessibilityActions {
+                if PageCoverOpening.firstClip(of: page) != nil {
+                    Button("Open Page") { actions.open(page) }
+                }
+            }
             footnote(entry, showsPath: false)
         }
     }

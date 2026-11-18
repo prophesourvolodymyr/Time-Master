@@ -161,6 +161,10 @@ public enum AgentApproval {
             case "move_todo": return "Move \(item) on \(quoted("page"))"
             default: return "Delete \(item) and everything inside it from \(quoted("page"))"
             }
+        case "create_page_tag": return "Create tag \(quoted("title"))" + (text("container").map { " in \($0)" } ?? "")
+        case "update_page_tag": return "Change tag \(text("tag").map { "“\($0)”" } ?? "")" + (text("container").map { " in \($0)" } ?? "")
+        case "delete_page_tag":
+            return "Delete tag \(text("tag").map { "“\($0)”" } ?? "")" + (text("container").map { " from \($0)" } ?? "") + "; the pages wearing it become untagged"
         case "undo": return "Undo the last agent changes"
         default: return "\(tool): \(arguments.keys.sorted().joined(separator: ", "))"
         }

@@ -40,16 +40,18 @@ extension View {
 
 /// A page's top chrome over its scroll view: the soft fade its content scrolls under (solid from the window's top edge
 /// behind the toolbar, thinning out below it), shown once the page has moved, and with `breadcrumbs` the path to the
-/// page on its own glass capsule, pinned just below the back button.
+/// page on its own glass capsule, pinned just below the back button. With `siblings` the row also holds the page's
+/// Previous and Next once it knows its siblings (`pageSiblingNavigation`).
 struct PageTopChrome: View {
     @ObservedObject var edge: PageScrollEdge
     var page: ExercisePage?
     var breadcrumbs: [ExercisePage] = []
+    var siblings: PageSiblingNavigator?
 
     /// Height of the row the path sits in.
     static let pathRowHeight: CGFloat = SkillMetrics.s1 + SkillMetrics.touch
     /// Room kept free at the end of the path row for the cover's own chip.
-    private static let trailingReserve: CGFloat = 104
+    fileprivate static let trailingReserve: CGFloat = 104
 
     /// How far below the page's top a part revealed by a scroll lands, clear of the pinned path and most of the fade.
     static func revealInset(showsPath: Bool) -> CGFloat {
@@ -60,13 +62,11 @@ struct PageTopChrome: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let page, Self.showsPath(breadcrumbs) {
+            if let siblings {
+                PageTopRow(page: page, breadcrumbs: breadcrumbs, siblings: siblings)
+            } else if let page, Self.showsPath(breadcrumbs) {
                 PageBreadcrumbBar(page: page, breadcrumbs: breadcrumbs)
-                    .frame(minHeight: SkillMetrics.touch)
-                    .padding(.trailing, Self.trailingReserve)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .skillsContained()
-                    .padding(.top, SkillMetrics.s1)
+                    .pageTopRowFrame()
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -82,6 +82,40 @@ struct PageTopChrome: View {
             .animation(.easeOut(duration: 0.2), value: edge.isScrolled)
         }
         .frame(maxHeight: .infinity, alignment: .top)
+    }
+}
+
+/// The row under the back button: the path to the page, then the page's Previous and Next once it knows its siblings.
+/// Only this row follows the siblings, so they never redraw the page.
+private struct PageTopRow: View {
+    let page: ExercisePage?
+    let breadcrumbs: [ExercisePage]
+    @ObservedObject var siblings: PageSiblingNavigator
+
+    var body: some View {
+        let path = PageTopChrome.showsPath(breadcrumbs) ? page : nil
+        if path != nil || siblings.isShown {
+            HStack(spacing: SkillMetrics.s1) {
+                if let path {
+                    PageBreadcrumbBar(page: path, breadcrumbs: breadcrumbs)
+                }
+                PageSiblingBar(navigator: siblings)
+                    .fixedSize()
+                    .layoutPriority(1)
+            }
+            .pageTopRowFrame()
+        }
+    }
+}
+
+private extension View {
+    /// Where the row under the back button sits: a touch tall, clear of the cover's chip, on the page's width.
+    func pageTopRowFrame() -> some View {
+        frame(minHeight: SkillMetrics.touch)
+            .padding(.trailing, PageTopChrome.trailingReserve)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .skillsContained()
+            .padding(.top, SkillMetrics.s1)
     }
 }
 

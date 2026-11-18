@@ -240,10 +240,11 @@ public struct ExercisePageManifest: Codable {
     public var dependencyMediaFilenames: [String]
     /// Skill and tutorial pages: links that are prerequisites rather than reference material.
     public var dependencyLinkURLs: [String]
-    /// Presets shared by one skill tree, owned by its highest skill even inside a container. An untyped board
-    /// with no skill ancestor can also keep presets.
+    /// Presets shared by one skill tree, owned by its highest skill even inside a container. A page at the top of the
+    /// library (a folder, or a skill) also keeps the tags of every exercise and note nested below it, at any depth.
     public var typePresets: [SkillTypePreset]
-    /// Skill and tutorial pages: a type from their highest skill's presets (see `DatabaseManager.skillTypeOwnerID`).
+    /// Skill and tutorial pages: a type from their highest skill's presets. Exercise and note pages: a tag from the
+    /// presets of the top page of their tree (see `DatabaseManager.skillTypeOwnerID`). Written only when set.
     public var typeID: String?
     /// Skill and tutorial pages: the to-do list, a tree with optional section dividers (see `TodoItem`).
     public var todos: [TodoItem]
@@ -351,7 +352,7 @@ public struct ExercisePageManifest: Codable {
         self.dependencyMediaFilenames = isSkillPage ? dependencyMediaFilenames : []
         self.dependencyLinkURLs = isSkillPage ? dependencyLinkURLs : []
         self.typePresets = resolvedPageKind == .container && (resolvedPageType == nil || isSkillPage) ? typePresets : []
-        self.typeID = isSkillPage ? typeID : nil
+        self.typeID = isSkillPage || isNote || resolvedPageType == .exercise ? typeID : nil
         self.todos = isSkillPage ? todos : []
         self.milestones = isSkillPage ? milestones : []
         self.noSkills = noSkills == true ? true : nil

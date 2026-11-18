@@ -108,7 +108,8 @@ struct MediaStrip: View {
         }
     }
 
-    /// Plays the clip a Database cover asked for when it opened this page (`MediaAutoplayIntent`), scrolled into view.
+    /// Plays the clip a Database cover's viewer asked for when it opened this page (`MediaAutoplayIntent`), scrolled
+    /// into view.
     private func startRequestedClip(_ proxy: ScrollViewProxy) {
         guard let playback, let index = MediaAutoplayIntent.take(from: urls) else { return }
         focusedIndex = index

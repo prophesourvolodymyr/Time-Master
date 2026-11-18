@@ -48,6 +48,7 @@ struct ExercisePageDetailView: View {
     @State private var mediaToRemove: URL?
     @State private var viewportHeight: CGFloat = 0
     @State private var scrollEdge = PageScrollEdge()
+    @State private var siblings = PageSiblingNavigator()
     #if os(iOS)
     @State private var pendingMediaItems: [PhotosPickerItem] = []
     @State private var picksCover = false
@@ -80,8 +81,18 @@ struct ExercisePageDetailView: View {
             Theme.background.ignoresSafeArea()
 
             if let page {
-                scrollContent(page)
-                PageTopChrome(edge: scrollEdge, page: page, breadcrumbs: showsHero ? breadcrumbs : [])
+                ZStack {
+                    scrollContent(page)
+                    PageTopChrome(
+                        edge: scrollEdge,
+                        page: page,
+                        breadcrumbs: showsHero ? breadcrumbs : [],
+                        siblings: showsHero ? siblings : nil
+                    )
+                }
+                // Folders keep the buttons and keys; their own boards and strips scroll sideways.
+                .pageSiblingNavigation(siblings, pageID: page.manifest.id, swipes: page.pageType != nil,
+                                       isEnabled: viewer == nil)
             } else {
                 emptyPageView
             }

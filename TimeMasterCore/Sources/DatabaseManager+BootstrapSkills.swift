@@ -6,5 +6,6 @@ extension DatabaseManager {
         try bootstrapMilestoneSkills()
         try bootstrapNoteSkills()
         try bootstrapSkillPageSkills()
+        try bootstrapPageTagSkills()
     }
 }

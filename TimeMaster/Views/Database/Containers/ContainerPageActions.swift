@@ -71,7 +71,7 @@ struct PageCardMenu: View {
 /// What the cards of a page list can do with a page. `ContainerPageActionHost` builds it and shows what it asks for.
 struct ContainerPageActions {
     let open: (ExercisePage) -> Void
-    /// Opens the page playing its first clip: a tap on the page's cover.
+    /// A click on the page's cover: its clips in the stack's viewer (`PageCoverOpening`); a page without a clip opens.
     let openFromCover: (ExercisePage) -> Void
     let addToWorkout: (ExercisePage) -> Void
     let setStatus: (ExercisePage, SkillStatus) -> Void

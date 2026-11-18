@@ -5,9 +5,10 @@ import TimeMasterCore
 /// skill's or a tutorial's without an icon of its own shows its category as its Skills card does, any other page shows
 /// its own icon or what it is), the title (double-click or double-tap renames it), then one row of pills that wraps
 /// below the title: the status chips (a skill's done check and status, how many sub-skills are done, the skill type,
-/// the workout type; a page that needs no skills keeps only a type it already wears and the workout type) and a pill
-/// for each fact (what the page is, the workouts that train it and when, its pages, its clips). `onCover` draws it in
-/// white over a cover picture; `compact` is the smaller head of a page shown without its cover.
+/// the workout type; a page that needs no skills keeps only a type it already wears and the workout type), the type (tag)
+/// of an exercise or a note inside a folder, and a pill for each fact (what the page is, the workouts that train it and
+/// when, its pages, its clips). `onCover` draws it in white over a cover picture; `compact` is the smaller head of a page
+/// shown without its cover.
 struct PageHeroHeader: View {
     let page: ExercisePage
     let progress: SkillProgress
@@ -113,8 +114,12 @@ struct PageHeroHeader: View {
 
     private var showsProgress: Bool { !page.isExercise && !page.manifest.hidesSkills && progress.total > 0 }
 
-    /// A page that needs no skills shows the type it wears without inviting one.
-    private var showsTypeChip: Bool { showsSkillChips || (page.isSkillLike && store.skillType(of: page) != nil) }
+    /// A page that needs no skills shows the type it wears without inviting one. An exercise or a note inside a folder
+    /// picks a tag of the folder's top page (one at the top of the library has nowhere to keep one).
+    private var showsTypeChip: Bool {
+        if page.isExercise || page.isNote { return store.tagRoot(of: page) != nil }
+        return showsSkillChips || (page.isSkillLike && store.skillType(of: page) != nil)
+    }
 
     /// The status chips first, then the fact pills; together they wrap below the title.
     private var pills: some View {

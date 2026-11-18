@@ -25,6 +25,7 @@ extension AgentToolRegistry {
                 "linkURLs": AgentSchema.strings("Reference links (videos, articles)."),
                 "media": AgentSchema.external(AgentSchema.array(of: skillMediaItem, "Local files to attach (up to 100); the first is the cover. Each can carry a Markdown comment.")),
                 "icon": AgentSchema.string("An SF Symbol name or an emoji; without one the app picks an icon from the title."),
+                "tag": AgentSchema.string("A type of the parent skill's tree, by title or id (see list_page_tags with the parent as container). A skill straight inside a folder starts its own types: create the page first, then create_page_tag with it as container."),
                 "noSkills": AgentSchema.boolean(noSkillsText),
                 "widgets": pageWidgets,
                 "ifExists": AgentSchema.string("When a sibling with this title exists: error (default), reuse it unchanged, or duplicate.", values: ["error", "reuse", "duplicate"]),

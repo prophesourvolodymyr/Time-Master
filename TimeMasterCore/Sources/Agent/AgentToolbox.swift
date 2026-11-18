@@ -51,6 +51,7 @@ public final class AgentToolbox {
             if let output = try runMilestoneTool(name, args, dryRun: dryRun) { return output }
             if let output = try runNoteTool(name, args, dryRun: dryRun) { return output }
             if let output = try runSkillTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runPageTagTool(name, args, dryRun: dryRun) { return output }
             throw AgentToolError("unknown_tool", "Unknown tool '\(name)'.")
         }
     }
@@ -97,6 +98,15 @@ public final class AgentToolbox {
                 case .addedChecklistEntry(let pageID, let list, let id):
                     try revertChecklistEntry(pageID: pageID, list: list, id: id)
                     notes.append("Removed the \(list) \(id) from \(pageID).")
+                case .createdTag(let ownerID, let tagID):
+                    try database.deleteSkillType(tagID, in: ownerID)
+                    notes.append("Removed tag \(tagID); its pages became untagged.")
+                case .createdTagPreset(let ownerID, let presetID):
+                    try database.deleteSkillTypePreset(presetID, in: ownerID)
+                    notes.append("Removed tag preset \(presetID).")
+                case .changedTag(let pageID, let previous):
+                    try database.setSkillType(previous, for: pageID)
+                    notes.append(previous == nil ? "Took the tag off \(pageID)." : "Put the earlier tag back on \(pageID).")
                 }
             } catch {
                 notes.append("Could not reverse \(effect): \(AgentToolError.translating(error).message)")
@@ -134,6 +144,7 @@ extension AgentToolbox {
                 "A page that needs no sub-skills takes noSkills (no skill board, progress, to-dos, milestones or learn-first list). widgets picks the tiles above a page's tabs: [\"auto\"] (default) for those with something to show, [] for none, or the tiles in order. Set both when creating a page or with update_page.",
                 "Reference a page by title path ('Lower Body/Glutes') or id. Lists show paths.",
                 "Root folders own the workout type; nested pages inherit it.",
+                "Tags are like the options of a Notion Select property: they sort exercise and note pages into the columns of a folder's board (for example Morning flow, Between sets, Evening stretch, Reference). The top folder of a tree keeps them and every page below it shares them: list_page_tags, create_page_tag (ifExists reuse), update_page_tag, delete_page_tag; put one on a page with the tag argument of update_page or the create tools, and find tagged pages with search_pages tag. A tag is not the workout type and not a completion status; a page wears at most one.",
                 "Attach media by absolute path; the app copies it. The first item is the cover.",
                 "Deletes go to the trash. dryRun previews a write.",
                 "A workout section is one timed exercise or a bundle: several exercises played back to back (each with its own seconds and rest) for N sets, in order or shuffled. Build with build_workout, change with add_workout_section, update_workout_section and remove_workout_section.",
@@ -181,14 +192,27 @@ extension AgentToolbox {
 
     private func searchPages(_ args: AgentArguments) throws -> AgentToolOutput {
         let index = try AgentPageIndex(database: database)
-        let query = AgentValue.fold(try args.requiredString("query"))
         let type = try resolveType(args.string("type"))
+        let tagFilter = (args.string("tag")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap { $0.isEmpty ? nil : AgentValue.fold($0) }
+        let rawQuery = (args.string("query") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawQuery.isEmpty || tagFilter != nil else {
+            throw AgentToolError("invalid_argument", "'query' must not be empty.", hint: "Pass words to find, or an empty query with tag to list the pages wearing a tag.")
+        }
+        let query = AgentValue.fold(rawQuery)
         let kind = args.string("kind")
         let limit = args.int("limit") ?? 20
         var ranked: [(Int, ExercisePageManifest)] = []
         for page in index.pages {
             if let kind, !index.matches(page, kind: kind) { continue }
             if let type, index.effectiveType(page.id)?.id != type.id { continue }
+            if let tagFilter {
+                guard let tag = index.tag(of: page),
+                      tag.id.caseInsensitiveCompare(tagFilter) == .orderedSame || AgentValue.fold(tag.title) == tagFilter else { continue }
+                if query.isEmpty {
+                    ranked.append((1, page))
+                    continue
+                }
+            }
             let title = AgentValue.fold(page.title)
             let path = AgentValue.fold(index.titlePath(page.id))
             var score = 0
@@ -299,6 +323,8 @@ extension AgentToolbox {
         }
         flags.apply(to: &manifest)
         if !flags.isEmpty { warnings += pageFlagWarnings(manifest) }
+        let tag = try exercise ? requestedTag(args, forNew: .exercise, in: parent, index: index) : nil
+        manifest.typeID = tag?.id
         let path = (parent.map { index.titlePath($0.id) + "/" } ?? "") + title
         if dryRun {
             var preview: [String: Any] = ["dryRun": true, "wouldCreate": path]
@@ -320,6 +346,7 @@ extension AgentToolbox {
         }
         var value: [String: Any] = ["id": manifest.id, "path": path]
         if !saved.isEmpty { value["media"] = saved.count }
+        if let tag { value["tag"] = tag.title }
         if !warnings.isEmpty { value["warnings"] = warnings }
         return AgentToolOutput(value: value, effects: [.createdPage(id: manifest.id)])
     }
@@ -384,6 +411,13 @@ extension AgentToolbox {
             try applyIcon(icon, to: &updated)
             changed.append("icon")
         }
+        var tagChange: (previous: String?, next: SkillType?)?
+        if args.has("tag") {
+            let next = try requestedTag(args, on: page, index: index)
+            updated.typeID = next?.id
+            tagChange = (page.typeID, next)
+            changed.append("tag")
+        }
         let flags = try pageFlags(args, pageType: page.pageType)
         flags.apply(to: &updated)
         changed += flags.changed
@@ -398,8 +432,13 @@ extension AgentToolbox {
         }
         try database.updatePage(id: page.id, manifest: updated, newParentID: page.parentID)
         var value: [String: Any] = ["id": page.id, "path": path, "changed": changed]
+        var effects: [AgentEffect] = []
+        if let tagChange {
+            if let next = tagChange.next { value["tag"] = next.title } else { value["untagged"] = true }
+            if tagChange.previous != tagChange.next?.id { effects.append(.changedTag(pageID: page.id, previous: tagChange.previous)) }
+        }
         if !warnings.isEmpty { value["warnings"] = warnings }
-        return AgentToolOutput(value: value)
+        return AgentToolOutput(value: value, effects: effects)
     }
 
     private func movePage(_ args: AgentArguments, dryRun: Bool) throws -> AgentToolOutput {

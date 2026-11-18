@@ -13,6 +13,7 @@ extension AgentToolRegistry {
                 "markdownBody": AgentSchema.string("The document in Markdown: headings, lists, - [ ] to-dos, quotes, code, links."),
                 "images": AgentSchema.external(AgentSchema.array(of: AgentSchema.path("Absolute path to a local picture (jpg, png, heic, gif, webp)."), "Pictures the app copies into the note and shows after the body, in this order.")),
                 "icon": AgentSchema.string("An SF Symbol name or an emoji shown on the note's row."),
+                "tag": AgentSchema.string(tagText),
                 "ifExists": AgentSchema.string("When a sibling with this title exists: error (default), reuse it unchanged, or duplicate.", values: ["error", "reuse", "duplicate"]),
             ], required: ["title"])
         )

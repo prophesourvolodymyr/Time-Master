@@ -1,8 +1,9 @@
 import SwiftUI
 import TimeMasterCore
 
-/// Every preset of a skill with the types in it. Open one to rename it, change its icon or edit its types; make a new one.
-/// A preset is like a Notion "Select" property: a page wears one type of one of them.
+/// Every preset of a skill, or of the top folder whose exercises and notes share its tags, with the types in it. Open one
+/// to rename it, change its icon or edit its types; make a new one. A preset is like a Notion "Select" property: a page
+/// wears one type of one of them.
 struct SkillTypesManagerSheet: View {
     let rootID: String
 
@@ -17,7 +18,7 @@ struct SkillTypesManagerSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    Text("A preset holds the types you pick for your pages, like a Notion Select property. A page wears one type of one preset. Every skill keeps its own presets; each type has its own colour, icon and effect.")
+                    Text("A preset holds the types you pick for your pages, like a Notion Select property. A page wears one type of one preset. Every skill keeps its own presets; the exercises and notes of a folder share the presets of its top folder. Each type has its own colour, icon and effect.")
                         .font(TimeMasterFont.secondary())
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

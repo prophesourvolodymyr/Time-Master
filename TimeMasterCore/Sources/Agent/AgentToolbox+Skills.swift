@@ -59,6 +59,8 @@ extension AgentToolbox {
         )
         if let icon = args.string("icon") { try applyIcon(icon, to: &manifest) }
         flags.apply(to: &manifest)
+        let tag = try requestedTag(args, forNew: pageType, in: parent, index: index)
+        manifest.typeID = tag?.id
         let warnings = flags.isEmpty ? [] : pageFlagWarnings(manifest)
         let path = (parent.map { index.titlePath($0.id) + "/" } ?? "") + title
         if dryRun {
@@ -88,6 +90,7 @@ extension AgentToolbox {
         }
         var value: [String: Any] = ["id": manifest.id, "path": path]
         if let groupTitle { value["group"] = groupTitle }
+        if let tag { value["tag"] = tag.title }
         if saved > 0 { value["media"] = saved }
         if !warnings.isEmpty { value["warnings"] = warnings }
         return AgentToolOutput(value: value, effects: [.createdPage(id: manifest.id)])

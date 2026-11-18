@@ -132,7 +132,7 @@ public enum AgentToolRegistry {
         importVideo, batch, undo,
     ]
 
-    public static let tools: [AgentTool] = baseTools + bundleTools + workoutGroupTools + workoutTypeTools + milestoneTools + noteTools + skillTools
+    public static let tools: [AgentTool] = baseTools + bundleTools + workoutGroupTools + workoutTypeTools + milestoneTools + noteTools + skillTools + pageTagTools
 
     public static func tool(named name: String) -> AgentTool? {
         tools.first { $0.name == name }
@@ -172,6 +172,7 @@ public enum AgentToolRegistry {
     - Exercise pages are workout-ready leaves; containers only organize. Put exercises inside the right container.
     - Note pages are Markdown documents with pictures inside the text; they are never exercises and never go into workouts. Write them with create_note_page. A note can sit in a folder or inside a skill or tutorial page.
     - Skill and tutorial pages (create_skill_page) are things to learn: Markdown notes, many video clips with a comment each, links, and sub-pages (sub-skills, exercises, notes). They sit in groups (create_skill_group) on their parent's skill board. Read them with get_page; search_pages also finds words inside notes and clip comments.
+    - Tags sort pages into the columns of a folder's board, like the options of a Notion Select property (Morning flow, Evening stretch, Reference). The top folder of a tree keeps them (list_page_tags, create_page_tag) and every exercise and note below it shares them; put one on a page with the tag argument of update_page or the create tools. A tag is neither the workout type nor a completion status.
     - A workout section is one timed exercise or a bundle: several exercises played back to back for N sets. Drills played every few seconds are a bundle with short durations; read it back with get_workout.
     - Rep-based work (for example 12 push-ups) can be untimed: pass untimed true and each set runs until the user taps Done, with duration kept only as the estimate for totals.
     - Creating, editing and moving run immediately. Deleting asks the user to approve first; if the user declines, accept it and offer an alternative.
@@ -204,12 +205,13 @@ public enum AgentToolRegistry {
 
     private static var searchPages: AgentTool {
         AgentTool(
-            name: "search_pages", summary: "Search exercises and folders by title, notes or path. Returns ids to use in other tools.",
+            name: "search_pages", summary: "Search exercises and folders by title, notes or path, or list the pages wearing a tag. Returns ids to use in other tools.",
             risk: .read, executor: .core, coach: true,
             schema: AgentSchema.object([
-                "query": AgentSchema.string("Words to find in the title, notes or path."),
+                "query": AgentSchema.string("Words to find in the title, notes or path. Pass an empty query together with tag to list every page wearing that tag."),
                 "type": AgentSchema.string("Only pages with this workout type."),
                 "kind": AgentSchema.string("Only this kind of page.", values: ["exercise", "container", "skill", "tutorial", "note"]),
+                "tag": AgentSchema.string("Only pages wearing this tag (title or id, see list_page_tags)."),
                 "limit": AgentSchema.integer("Maximum results (1-100, default 20). The reply says how many more matched.", minimum: 1, maximum: 100),
             ], required: ["query"])
         )
@@ -217,7 +219,7 @@ public enum AgentToolRegistry {
 
     private static var getPage: AgentTool {
         AgentTool(
-            name: "get_page", summary: "Read one page: notes, timing, links, media attachments, child pages, and its noSkills and widgets settings when set. Long notes come back in pieces; pass bodyOffset to read on.",
+            name: "get_page", summary: "Read one page: notes, timing, links, media attachments, its tag, child pages, and its noSkills and widgets settings when set. Long notes come back in pieces; pass bodyOffset to read on.",
             risk: .read, executor: .core, coach: true,
             schema: AgentSchema.object([
                 "page": AgentSchema.string(pageRef),
@@ -268,6 +270,7 @@ public enum AgentToolRegistry {
                 "workoutType": AgentSchema.string(typeText),
                 "media": AgentSchema.external(AgentSchema.array(of: mediaItem, "Local files to attach; the first is the cover.")),
                 "noSkills": AgentSchema.boolean(noSkillsText),
+                "tag": AgentSchema.string(tagText),
                 "widgets": pageWidgets,
                 "ifExists": AgentSchema.string("When a sibling with this title exists: error (default), reuse it unchanged, or duplicate.", values: ["error", "reuse", "duplicate"]),
             ], required: ["title"])
@@ -314,6 +317,7 @@ public enum AgentToolRegistry {
                 "prepareTime": AgentSchema.integer("Preparation seconds (0-30).", minimum: 0, maximum: 30),
                 "linkURLs": AgentSchema.strings("Replacement reference links."),
                 "workoutType": AgentSchema.string(typeText),
+                "tag": AgentSchema.string(tagText),
                 "noSkills": AgentSchema.boolean(noSkillsText),
                 "widgets": pageWidgets,
             ], required: ["page"])
@@ -424,7 +428,7 @@ public enum AgentToolRegistry {
 
     private static var batch: AgentTool {
         AgentTool(
-            name: "batch", summary: "Run several library tools in order. Later operations can use earlier results as \"$0.id\" (index) or \"$last.id\". If one fails, everything it created is rolled back.",
+            name: "batch", summary: "Run several library tools in order, for example update_page with tag for many pages. Later operations can use earlier results as \"$0.id\" (index) or \"$last.id\". If one fails, everything it created is rolled back, and tags it put on pages go back to what they were.",
             risk: .write, executor: .core, coach: false,
             schema: AgentSchema.object([
                 "operations": AgentSchema.array(of: AgentSchema.object([

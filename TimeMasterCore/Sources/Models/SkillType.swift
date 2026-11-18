@@ -22,9 +22,10 @@ public enum SkillTypeSortRule: String, Codable, CaseIterable, Sendable {
     case bottom
 }
 
-/// A custom tag a skill page can wear: a title with its own colour (the chip and text highlight), an icon, an effect
-/// on the card and a sort rule. Types live in the highest skill's `ExercisePageManifest.typePresets`; its nested
-/// sub-skills share them, while sibling skills inside an untyped container keep separate presets.
+/// A custom tag a page can wear: a title with its own colour (the chip and text highlight), an icon, an effect on the
+/// card and a sort rule. A skill's types live in its highest skill's `ExercisePageManifest.typePresets` (nested
+/// sub-skills share them, sibling skills inside an untyped container keep separate presets); the tags of exercise and
+/// note pages live in the presets of the top page of their tree and are shared by every page below it.
 public struct SkillType: Codable, Equatable, Hashable, Identifiable, Sendable {
     public var id: String
     public var title: String

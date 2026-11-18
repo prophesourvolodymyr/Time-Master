@@ -100,6 +100,7 @@ extension AgentToolbox {
         guard images.count <= Self.noteImageLimit else {
             throw AgentToolError("media_limit", "A note takes up to \(Self.noteImageLimit) pictures per call.")
         }
+        let tag = try requestedTag(args, forNew: .note, in: parent, index: index)
         let path = (parent.map { index.titlePath($0.id) + "/" } ?? "") + title
         if dryRun {
             var preview: [String: Any] = ["dryRun": true, "wouldCreate": path]
@@ -107,6 +108,7 @@ extension AgentToolbox {
             return AgentToolOutput(value: preview)
         }
         var manifest = ExercisePageManifest(title: title, pageType: .note, markdownBody: args.string("markdownBody") ?? "", parentID: parent?.id)
+        manifest.typeID = tag?.id
         if let icon = args.string("icon") { try applyIcon(icon, to: &manifest) }
         try database.createPage(manifest: manifest, parentID: parent?.id)
         do {
@@ -126,6 +128,7 @@ extension AgentToolbox {
         }
         var value: [String: Any] = ["id": manifest.id, "path": path]
         if !images.isEmpty { value["images"] = images.count }
+        if let tag { value["tag"] = tag.title }
         return AgentToolOutput(value: value, effects: [.createdPage(id: manifest.id)])
     }
 }

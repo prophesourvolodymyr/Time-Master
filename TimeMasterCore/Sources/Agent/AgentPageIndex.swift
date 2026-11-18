@@ -76,6 +76,46 @@ struct AgentPageIndex {
         return nil
     }
 
+    /// The top page of `id`'s tree: the page itself when it sits at the top of the library.
+    func topPage(of id: String) -> ExercisePageManifest? {
+        var current = byID[id]
+        var guardCount = 0
+        while let page = current, let parentID = page.parentID, let parent = byID[parentID], guardCount < 64 {
+            current = parent
+            guardCount += 1
+        }
+        return current
+    }
+
+    /// The id of the page that keeps the tags `page` can wear, by the rule of `DatabaseManager.skillTypeOwner(of:)`: for
+    /// a skill or a tutorial its highest skill below the first plain folder above it, for any other page the top page of
+    /// its tree when that can hold pages. nil for an exercise or a note at the top of the library.
+    func tagOwnerID(of page: ExercisePageManifest) -> String? {
+        if page.pageType == .skill || page.pageType == .tutorial {
+            var skillRoot = page
+            var current = page.parentID.flatMap { byID[$0] }
+            var guardCount = 0
+            while let node = current, guardCount < 64 {
+                if node.pageType == .skill || node.pageType == .tutorial {
+                    skillRoot = node
+                } else if node.pageKind == .container, node.pageType == nil {
+                    break
+                }
+                current = node.parentID.flatMap { byID[$0] }
+                guardCount += 1
+            }
+            return skillRoot.id
+        }
+        guard let top = topPage(of: page.id), top.pageKind == .container else { return nil }
+        return top.id
+    }
+
+    /// The tag `page` wears, from the presets of the page that keeps its tags; nil without one, or when it is gone.
+    func tag(of page: ExercisePageManifest) -> SkillType? {
+        guard let typeID = page.typeID, let ownerID = tagOwnerID(of: page) else { return nil }
+        return byID[ownerID]?.skillType(typeID)
+    }
+
     func kind(_ page: ExercisePageManifest) -> String {
         switch page.pageType {
         case .exercise: "exercise"
@@ -111,6 +151,7 @@ struct AgentPageIndex {
         if let sets = page.sets, sets > 1 { out["sets"] = sets }
         if !page.mediaFilenames.isEmpty { out["media"] = page.mediaFilenames.count }
         if page.parentID.flatMap({ byID[$0] }) == nil, let type = effectiveType(page.id) { out["type"] = type.name }
+        if let worn = tag(of: page) { out["tag"] = worn.title }
         if page.pageKind == .container {
             let inside = children(of: page.id).count
             if inside > 0 { out["children"] = inside }
