@@ -17,9 +17,9 @@ struct ContainerCategoryDestination: Identifiable, Hashable {
     var id: String { "\(containerID.uuidString)-\(tab.rawValue)" }
 }
 
-/// A container's pages under two tabs on one slim track: Exercises (its exercises, notes and containers) and Skills,
-/// each with its count (its search hits while searching). One search runs across both tabs. Double-click a tab, or
-/// use its menu, to open it as a page of its own.
+/// A container's pages under two tabs (a `TmaxTabBar` across the width): Exercises (its exercises, notes and
+/// containers) and Skills, each with its count (its search hits while searching). One search runs across both tabs.
+/// Double-click a tab, or use its menu, to open it as a page of its own.
 struct ContainerChildrenTabs: View {
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
@@ -29,7 +29,6 @@ struct ContainerChildrenTabs: View {
     @State private var selectedTab: ContainerChildTab = .exercises
     @State private var query = ""
     @State private var choseFirstTab = false
-    @Namespace private var tabNamespace
 
     private var tabs: [ContainerChildTab] { container.manifest.hidesSkills ? [.exercises] : [.exercises, .skills] }
 
@@ -53,43 +52,26 @@ struct ContainerChildrenTabs: View {
     }
 
     private func tabTrack(_ lists: [ContainerChildTab: [ContainerBrowseEntry]]) -> some View {
-        HStack(spacing: 0) {
-            ForEach(tabs) { tab in
+        TmaxTabBar(
+            tabs.map { tab -> TmaxTab<ContainerChildTab> in
                 let count = lists[tab]?.count ?? 0
-                Button {
-                    select(tab)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: tab.symbolName)
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(tab.title)
-                            .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                        Text("\(count)")
-                            .font(TimeMasterFont.technical())
-                            .opacity(0.7)
-                    }
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                }
-                .buttonStyle(ContainerSegmentButtonStyle(isSelected: selectedTab == tab, namespace: tabNamespace))
-                .simultaneousGesture(
-                    TapGesture(count: 2).onEnded { openAsPage(tab) }
-                )
-                .contextMenu {
-                    Button {
+                return TmaxTab(
+                    tab,
+                    title: tab.title,
+                    symbol: tab.symbolName,
+                    count: count,
+                    help: "Double-click to open \(tab.title.lowercased()) as a page",
+                    accessibilityValue: isSearching ? "\(count) matches" : "\(count)",
+                    alternate: TmaxTabAlternate(title: "Open as a Page", systemImage: "arrow.up.left.and.arrow.down.right") {
                         openAsPage(tab)
-                    } label: {
-                        Label("Open as a Page", systemImage: "arrow.up.left.and.arrow.down.right")
                     }
-                }
-                .accessibilityLabel(tab.title)
-                .accessibilityValue(isSearching ? "\(count) matches" : "\(count)")
-                .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
-                .accessibilityAction(named: "Open as a page") { openAsPage(tab) }
-                .help("Double-click to open \(tab.title.lowercased()) as a page")
-            }
+                )
+            },
+            selection: selectedTab,
+            fillsWidth: true
+        ) { tab in
+            select(tab)
         }
-        .containerSegmentTrack()
     }
 
     private func select(_ tab: ContainerChildTab) {
@@ -171,6 +153,7 @@ struct ContainerCategoryPage: View {
 
     let destination: ContainerCategoryDestination
     @State private var query = ""
+    @State private var scrollEdge = PageScrollEdge()
 
     private var container: ExercisePage? {
         store.page(id: destination.containerID)
@@ -202,8 +185,11 @@ struct ContainerCategoryPage: View {
                 }
                 .padding(.vertical, 16)
                 .skillsContained()
+                .pageScrollEdgeProbe(scrollEdge)
             }
+            PageTopChrome(edge: scrollEdge)
         }
+        .pageScrollSpace()
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

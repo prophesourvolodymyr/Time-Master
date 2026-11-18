@@ -9,7 +9,18 @@ import AVKit
 
 @MainActor
 final class DatabaseNavigationState: ObservableObject {
-    @Published var path = NavigationPath()
+    @Published var path = NavigationPath() {
+        willSet {
+            guard pageTravel, newValue != path else { return }
+            EverPageTravel.willNavigate(from: path.count, to: newValue.count)
+        }
+    }
+    /// A stack of the main window, whose pushes and pops travel like pages on the Mac.
+    private let pageTravel: Bool
+
+    init(pageTravel: Bool = false) {
+        self.pageTravel = pageTravel
+    }
 }
 
 struct DatabasePageRoute: Hashable {
@@ -369,6 +380,7 @@ struct DatabaseView: View {
     @State private var pageToAddWorkout: ExercisePage?
     @State private var pageDrag: PageDragSource?
     @State private var pageWriteError: String?
+    @Namespace private var filterNamespace
 
     var body: some View {
         let isV2 = MigrationManager.isV2PageMigrationComplete
@@ -512,6 +524,7 @@ struct DatabaseView: View {
                 handleDatabaseImport(result)
             }
         }
+        .everPageStack(depth: navigationState.path.count) { if !navigationState.path.isEmpty { navigationState.path.removeLast() } }
         .findCommand {
             if !showingDatabaseSearch { showingDatabaseSearch = true }
             return true
@@ -960,8 +973,11 @@ struct DatabaseView: View {
         }
     }
 
+    /// A workout-type filter; several types can be on together. While at most one is on, the chips share one pill that
+    /// slides to the chip tapped (All to a type and back); once types combine, each fills and empties in place.
     private func filterChip(_ typeID: String?, label: String) -> some View {
         let isActive = typeID.map { selectedWorkoutTypeIDs.contains($0) } ?? selectedWorkoutTypeIDs.isEmpty
+        let matchID = selectedWorkoutTypeIDs.count <= 1 ? "single" : (typeID ?? "all")
         return Button {
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
                 if let typeID {
@@ -975,7 +991,7 @@ struct DatabaseView: View {
         } label: {
             Text(label).lineLimit(1).fixedSize()
         }
-        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isActive))
+        .buttonStyle(TmaxChipButtonStyle(isSelected: isActive, namespace: filterNamespace, matchID: matchID))
         .accessibilityAddTraits(isActive ? .isSelected : [])
         .accessibilityHint(typeID == nil ? "Resets workout-type filters" : "Select more than one workout type")
         .accessibilityIdentifier(typeID.map { "database-filter-\($0)" } ?? "database-filter-all")

@@ -344,7 +344,7 @@ struct CloudAccountLoginView: View {
             Label("No account needed for your library", systemImage: "internaldrive")
                 .font(TimeMasterFont.caption())
                 .foregroundStyle(EverColor.textTertiary)
-            NavigationLink { BackupView() } label: {
+            NavigationLink { BackupView().everPushedPage() } label: {
                 Label("Backup & Transfer", systemImage: "archivebox")
                     .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                     .foregroundStyle(TmaxGlow.blaze)

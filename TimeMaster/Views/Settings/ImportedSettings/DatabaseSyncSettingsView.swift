@@ -75,7 +75,7 @@ struct DatabaseSyncSettingsView: View {
             }
 
             EverSettingsSection(title: "Account", detail: "Sign-in does not enable sync. With sync enabled, each account has an isolated exercise library.") {
-                NavigationLink { CloudAccountSettingsView() } label: {
+                NavigationLink { CloudAccountSettingsView().everPushedPage() } label: {
                     SettingsActionRow(title: account.session == nil ? "Optional: sign in to sync" : "Tmax account", detail: account.email, symbol: "person.crop.circle") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }
@@ -83,7 +83,7 @@ struct DatabaseSyncSettingsView: View {
             }
 
             EverSettingsSection(title: "Always available locally", detail: "You can edit the exercise library and import or export ZIP files without an account. Turning sync off does not delete local or cloud files.") {
-                NavigationLink { BackupView() } label: {
+                NavigationLink { BackupView().everPushedPage() } label: {
                     SettingsActionRow(title: "Backup & Transfer", symbol: "archivebox") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }

@@ -98,7 +98,7 @@ struct SettingsRootContent: View {
                 .accessibilityIdentifier("settings-root")
             }
         }
-        .navigationDestination(for: SettingsDestination.self) { destination in
+        .everNavigationDestination(for: SettingsDestination.self) { destination in
             SettingsDestinationContent(destination: destination)
         }
         .oneHandedActions(id: "settings", actions: [

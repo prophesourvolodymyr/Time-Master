@@ -65,7 +65,126 @@ extension EnvironmentValues {
     }
 }
 
+/// Which way a page travels, and the hook navigation stacks use to announce a change before it happens.
+enum EverPageTravel {
+    /// +1 when the page that comes in sits deeper in its stack than the one it replaces (a push, or one page swapped
+    /// for another), -1 when it sits higher (a pop).
+    static func stackDirection(from depth: Int, to next: Int) -> CGFloat {
+        next < depth ? -1 : 1
+    }
+
+    /// +1 when the page that comes in sits later on the navigation bar, -1 when earlier, 0 when in the same place.
+    static func barDirection(from order: Int, to next: Int) -> CGFloat {
+        next == order ? 0 : (next > order ? 1 : -1)
+    }
+
+    /// A navigation stack of the main window is about to go from `depth` pages to `next` while the page that leaves is
+    /// still on screen: on the Mac the page travel takes a picture of it now, and the page that comes glides in over
+    /// it from the side the direction gives. Links, back buttons, Escape and code all move the stacks through here, so
+    /// a pop travels exactly like a push, mirrored.
+    @MainActor
+    static func willNavigate(from depth: Int, to next: Int) {
+#if os(macOS)
+        EverPageGlide.current?.prepare(direction: stackDirection(from: depth, to: next))
+#endif
+    }
+}
+
+/// What the page travel follows inside one navigation bar page from one pass to the next: the depth of the navigation
+/// stack on screen when one reports it (`everPageStack`, `everPushedPage`), and the window title.
+struct EverPageRoute: Equatable {
+    var depth: Int?
+    var title: String
+}
+
+/// The titles visited inside one navigation bar page, newest last, for content that reports no stack: going to one of
+/// them again is a step back.
+struct EverPageTrail: Equatable {
+    private(set) var titles: [String] = []
+
+    init() {}
+
+    init(_ route: EverPageRoute) {
+        titles = [route.title]
+    }
+
+    /// The direction a change from `route` to `next` travels in, or nil when the page stays: a stack that keeps its
+    /// depth (a renamed page, a title that arrives late), or a stack that starts or stops reporting.
+    func direction(from route: EverPageRoute, to next: EverPageRoute) -> CGFloat? {
+        if let depth = route.depth, let nextDepth = next.depth {
+            return depth == nextDepth ? nil : EverPageTravel.stackDirection(from: depth, to: nextDepth)
+        }
+        guard route.depth == nil, next.depth == nil, route.title != next.title else { return nil }
+        return titles.contains(next.title) ? -1 : 1
+    }
+
+    /// Records arriving at `route`: back to a title already visited drops everything after it.
+    mutating func visit(_ route: EverPageRoute) {
+        if let index = titles.firstIndex(of: route.title) {
+            titles.removeSubrange((index + 1)...)
+        } else {
+            titles.append(route.title)
+        }
+    }
+}
+
+extension Binding where Value == NavigationPath {
+    /// This path of a main-window stack, announcing every change made through it (a link, the stack's own back,
+    /// `dismiss`) to the page travel just before it happens (Mac).
+    @MainActor
+    func everPageTravel() -> Binding<NavigationPath> {
+#if os(macOS)
+        announcingPageTravel { $0.count }
+#else
+        self
+#endif
+    }
+}
+
+extension Binding where Value: RandomAccessCollection & Equatable {
+    /// This path of a main-window stack, announcing every change made through it to the page travel (Mac).
+    @MainActor
+    func everPageTravel() -> Binding<Value> {
+#if os(macOS)
+        announcingPageTravel { $0.count }
+#else
+        self
+#endif
+    }
+}
+
+extension Binding where Value == Bool {
+    /// This `navigationDestination(isPresented:)` flag of a main-window stack, announcing the push or pop it makes to
+    /// the page travel (Mac).
+    @MainActor
+    func everPageTravel() -> Binding<Bool> {
+#if os(macOS)
+        announcingPageTravel { $0 ? 1 : 0 }
+#else
+        self
+#endif
+    }
+}
+
+#if os(macOS)
+private extension Binding where Value: Equatable {
+    @MainActor
+    func announcingPageTravel(depth: @escaping @Sendable (Value) -> Int) -> Binding<Value> {
+        Binding(get: { wrappedValue }, set: { newValue, transaction in
+            let current = wrappedValue
+            if newValue != current { EverPageTravel.willNavigate(from: depth(current), to: depth(newValue)) }
+            self.transaction(transaction).wrappedValue = newValue
+        })
+    }
+}
+#endif
+
 extension View {
+    /// The page travel of a navigation bar page's content (`scope`, the page at `order` on the bar). On the Mac a page
+    /// pushed or popped in a stack glides in from the side over a still picture of the page it replaces, smeared
+    /// sideways like a fast swipe (a pop comes from the leading side, a push from the trailing one); another bar page,
+    /// or a change no stack announced, glides in from a short way off. Reduce Motion fades instead. On iPhone the
+    /// content rises in when the bar page changes.
     func everPageTravel(scope: String, order: Int) -> some View {
         modifier(EverPageTravelModifier(scope: scope, order: order))
     }
@@ -75,142 +194,297 @@ private struct EverPageTravelModifier: ViewModifier {
     let scope: String
     let order: Int
 #if os(macOS)
-    @State private var title = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @StateObject private var glide = EverPageGlide()
+    @State private var title = ""
+    @State private var depth: Int?
+    @State private var settledScope: String
+    @State private var settledOrder: Int
+    @State private var settledRoute: EverPageRoute?
+    @State private var trail = EverPageTrail()
+
+    init(scope: String, order: Int) {
+        self.scope = scope
+        self.order = order
+        _settledScope = State(initialValue: scope)
+        _settledOrder = State(initialValue: order)
+    }
 #endif
 
     func body(content: Content) -> some View {
 #if os(macOS)
-        content
+        // A change the glide has not taken up yet already draws at its start in this pass, never a frame at rest first.
+        let route = EverPageRoute(depth: depth, title: title)
+        let switching = scope != settledScope && !glide.absorbsScope
+        let moving = scope == settledScope && !glide.absorbsRoute
+            ? settledRoute.flatMap { trail.direction(from: $0, to: route) } : nil
+        let pending = switching || moving != nil
+        let reach: EverPageGlideReach = pending ? (reduceMotion ? .fade : .nudge) : glide.reach
+        let direction = switching ? EverPageTravel.barDirection(from: settledOrder, to: order) : (moving ?? glide.direction)
+        let progress = pending ? 0 : glide.progress
+        return content
             .environment(\.everPageTravelActive, true)
-            .overlay {
-                EverMacPageTravelAnchor(scope: scope, route: title, order: order, reduceMotion: reduceMotion)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+            .modifier(EverPageGlideEffect(
+                progress: progress, direction: direction, travel: reach.travel(width: glide.width),
+                startOpacity: reach.startOpacity, blurred: reach.blurs
+            ))
+            .background {
+                if reach == .page, let picture = glide.picture {
+                    Image(decorative: picture, scale: 1)
+                        .resizable()
+                        .opacity(1 - 0.5 * progress)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
             }
+            .background(EverPageGlideAnchor(glide: glide).allowsHitTesting(false).accessibilityHidden(true))
             .onPreferenceChange(MacWindowTitlePreferenceKey.self) { title = $0 ?? "" }
+            .onPreferenceChange(EverPageBackStackKey.self) { depth = $0?.depth }
+            .onChange(of: scope) { follow() }
+            .onChange(of: order) { if scope == settledScope { settledOrder = order } }
+            .onChange(of: route) { follow() }
+            .onChange(of: glide.serial) { glide.begin() }
 #else
         content.everPageOpening(when: scope)
 #endif
     }
+
+#if os(macOS)
+    /// Settles on the bar page and route on screen, and glides when they changed without an announcement.
+    private func follow() {
+        let route = EverPageRoute(depth: depth, title: title)
+        if scope != settledScope {
+            let direction = EverPageTravel.barDirection(from: settledOrder, to: order)
+            settledScope = scope
+            settledOrder = order
+            settledRoute = route
+            trail = EverPageTrail(route)
+            if glide.absorbsScope {
+                glide.takeScope()
+            } else {
+                glide.travel(direction: direction, switching: true, reduceMotion: reduceMotion)
+            }
+            return
+        }
+        guard route != settledRoute else { return }
+        glide.takeScope()
+        guard let previous = settledRoute, !glide.isSwitching else {
+            settledRoute = route
+            trail = EverPageTrail(route)
+            return
+        }
+        settledRoute = route
+        let direction = glide.absorbsRoute ? nil : trail.direction(from: previous, to: route)
+        trail.visit(route)
+        if let direction { glide.travel(direction: direction, switching: false, reduceMotion: reduceMotion) }
+    }
+#endif
 }
 
 #if os(macOS)
-private struct EverMacPageTravelAnchor: NSViewRepresentable {
-    let scope: String
-    let route: String
-    let order: Int
-    let reduceMotion: Bool
+/// How far a gliding page travels and what it travels over.
+enum EverPageGlideReach: Equatable {
+    /// Across the whole width, over a picture of the page it replaces.
+    case page
+    /// A short way, fading in: there is no picture of the page before (another bar page, an unannounced change).
+    case nudge
+    /// In place, fading in (Reduce Motion).
+    case fade
 
-    func makeCoordinator() -> EverMacPageTravelMotion { EverMacPageTravelMotion() }
-    func makeNSView(context: Context) -> EverMacPageTravelView { EverMacPageTravelView() }
-
-    func updateNSView(_ view: EverMacPageTravelView, context: Context) {
-        view.changed = { [weak view, weak motion = context.coordinator] in
-            guard let view else { return }
-            motion?.observe(anchor: view, scope: scope, route: route, order: order, reduceMotion: reduceMotion)
+    func travel(width: CGFloat) -> CGFloat {
+        switch self {
+        case .page: width
+        case .nudge: EverPageMotion.nudge
+        case .fade: 0
         }
-        view.changed?()
     }
 
-    static func dismantleNSView(_ view: EverMacPageTravelView, coordinator: EverMacPageTravelMotion) {
-        view.changed = nil
-        coordinator.stop()
+    var startOpacity: CGFloat {
+        switch self {
+        case .page: 1
+        case .nudge: 0.35
+        case .fade: 0
+        }
     }
+
+    var blurs: Bool { self != .fade }
 }
 
-private final class EverMacPageTravelView: NSView {
-    var changed: (() -> Void)?
-    override var isFlipped: Bool { true }
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); changed?() }
-    override func layout() { super.layout(); changed?() }
-}
-
+/// Runs the page travel of the main window's pages: `prepare` before a stack changes (it takes the picture of the page
+/// that leaves), `travel` for a change nothing announced, `begin` once the new page has been laid out at its start.
 @MainActor
-private final class EverMacPageTravelMotion {
-    private var scope: String?
-    private var route = ""
-    private var order = 0
-    private var history: [String] = []
-    private var image: CGImage?
-    private var size = CGSize.zero
-    private var canvas: EverSpacetimeCanvas?
-    private var captureTask: Task<Void, Never>?
-    private var generation = 0
+final class EverPageGlide: ObservableObject {
+    enum Phase {
+        case idle
+        /// A stack announced the change: the route change that follows belongs to this glide.
+        case prepared
+        /// Another bar page came in; its stack and title report in a pass later.
+        case switching
+        case travelling
+    }
 
-    func observe(anchor: NSView, scope: String, route: String, order: Int, reduceMotion: Bool) {
-        guard anchor.window != nil, !anchor.bounds.isEmpty else { return }
-        guard self.scope != scope || self.route != route || size != anchor.bounds.size || image == nil else { return }
-        captureTask?.cancel()
-        captureTask = Task { @MainActor [weak self, weak anchor] in
-            await Task.yield()
-            guard !Task.isCancelled, let self, let anchor, let host = anchor.window?.contentView else { return }
-            let previous = self.canvas?.snapshot() ?? self.image
-            let changed = self.scope != nil && (self.scope != scope || self.route != route)
-            let direction: Float
-            if self.scope != scope {
-                direction = order < self.order ? -1 : 1
-                self.history = [route]
-            } else if let index = self.history.firstIndex(of: route) {
-                direction = -1
-                self.history.removeSubrange((index + 1)...)
-            } else {
-                direction = 1
-                self.history.append(route)
+    /// The glide of the window the stacks live in.
+    private(set) static weak var current: EverPageGlide?
+
+    @Published private(set) var picture: CGImage?
+    @Published private(set) var progress: CGFloat = 1
+    @Published private(set) var direction: CGFloat = 0
+    @Published private(set) var reach = EverPageGlideReach.nudge
+    @Published private(set) var width: CGFloat = 0
+    /// Counts glides: the page starts the animation when it changes, after laying the new page out at its start.
+    @Published private(set) var serial = 0
+    @Published private(set) var phase = Phase.idle
+    /// A prepared glide takes up the bar page change that comes with it (a link to a page of another bar page), once.
+    @Published private(set) var awaitsScope = false
+
+    var absorbsScope: Bool { phase == .prepared && awaitsScope }
+    var absorbsRoute: Bool { phase == .prepared || phase == .switching }
+    var isSwitching: Bool { phase == .switching }
+
+    weak var anchor: NSView? {
+        didSet {
+            if anchor != nil {
+                Self.current = self
+            } else if Self.current === self {
+                Self.current = nil
             }
-            anchor.isHidden = true
-            let nextImage = EverViewSnapshot.image(of: host, rect: anchor.convert(anchor.bounds, to: host), afterUpdates: true)
-            anchor.isHidden = false
-            self.scope = scope
-            self.route = route
-            self.order = order
-            self.size = anchor.bounds.size
-            self.image = nextImage
-            self.stopAnimation()
-            guard changed, let previous, let nextImage,
-                  let canvas = EverSpacetimeCanvas(size: anchor.bounds.size),
-                  let oldTexture = canvas.gpu.texture(previous),
-                  let newTexture = canvas.gpu.texture(nextImage) else { return }
-            self.canvas = canvas
-            anchor.addSubview(canvas)
-            let start = CACurrentMediaTime()
-            let duration = reduceMotion ? 0.12 : EverPageMotion.duration
-            let token = self.generation
-            canvas.onFrame = { [weak self, weak canvas, weak anchor] time in
-                guard let self, let canvas, let anchor, token == self.generation else { return }
-                guard anchor.window != nil, anchor.bounds.size == self.size else { self.stopAnimation(); return }
-                let progress = min(1, max(0, (time - start) / duration))
-                let remaining = Float(pow(1 - progress, 3))
-                let outgoing = Float(pow(progress, 3))
-                let blur = reduceMotion ? Float(0) : Float(sin(progress * .pi) * 0.018)
-                canvas.layers.removeAll(keepingCapacity: true)
-                canvas.layers.append(EverWarpLayer(
-                    texture: oldTexture, rect: anchor.bounds, travel: reduceMotion ? 0 : -direction * outgoing,
-                    opacity: Float(1 - progress), flat: true, blur: blur, direction: direction
-                ))
-                canvas.layers.append(EverWarpLayer(
-                    texture: newTexture, rect: anchor.bounds.offsetBy(dx: 0, dy: reduceMotion ? 0 : CGFloat(remaining) * 28),
-                    travel: reduceMotion ? 0 : direction * remaining,
-                    opacity: reduceMotion ? Float(progress) : 1, flat: true, blur: blur, direction: direction
-                ))
-                if progress >= 1 { self.stopAnimation() }
-            }
-            canvas.isPaused = false
         }
     }
 
-    private func stopAnimation() {
-        generation += 1
-        canvas?.stop()
-        canvas = nil
+    private var preparedAt: CFTimeInterval = 0
+    private var settling: Task<Void, Never>?
+
+    /// Call just before a stack changes, while the page that leaves is still on screen. Escape and the stack's own
+    /// hook can both report one change; the second report is the same glide.
+    func prepare(direction: CGFloat) {
+        let now = CACurrentMediaTime()
+        guard now - preparedAt > 0.05 else { return }
+        preparedAt = now
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let picture = reduceMotion ? nil : snapshot()
+        start(direction: direction, reach: reduceMotion ? .fade : (picture == nil ? .nudge : .page),
+              picture: picture, phase: .prepared)
     }
 
-    func stop() {
-        captureTask?.cancel()
-        captureTask = nil
-        stopAnimation()
-        image = nil
+    func travel(direction: CGFloat, switching: Bool, reduceMotion: Bool) {
+        start(direction: direction, reach: reduceMotion ? .fade : .nudge, picture: nil,
+              phase: switching ? .switching : .travelling)
+    }
+
+    func begin() {
+        withAnimation(reach == .fade ? .easeOut(duration: 0.15) : EverPageMotion.curve) { progress = 1 }
+    }
+
+    /// The prepared change has reached the page: a bar page change after it is the user's own.
+    func takeScope() {
+        if awaitsScope { awaitsScope = false }
+    }
+
+    private func start(direction: CGFloat, reach: EverPageGlideReach, picture: CGImage?, phase: Phase) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            self.picture = picture
+            self.reach = reach
+            self.direction = direction
+            self.phase = phase
+            awaitsScope = phase == .prepared
+            if let anchor { width = anchor.bounds.width }
+            progress = 0
+            serial &+= 1
+        }
+        settling?.cancel()
+        settling = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64((EverPageMotion.duration + 0.12) * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            self?.settle()
+        }
+    }
+
+    /// Drops the picture once the page has landed (and lands a page whose glide never began).
+    private func settle() {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            picture = nil
+            phase = .idle
+            awaitsScope = false
+            progress = 1
+        }
+    }
+
+    private func snapshot() -> CGImage? {
+        guard let anchor, let window = anchor.window, window.isVisible, let host = window.contentView,
+              anchor.bounds.width > 1, anchor.bounds.height > 1 else { return nil }
+        return EverViewSnapshot.image(of: host, rect: anchor.convert(anchor.bounds, to: host))
+    }
+}
+
+/// A page in flight: slid in from one side and smeared sideways like the motion blur of a fast swipe, clearing as it
+/// settles. The smear is a plain blur between two opposite horizontal stretches, so it is `smear` times wider along the
+/// way the page travels than across it; both stretches come from the one animated `progress`.
+private struct EverPageGlideEffect: ViewModifier, Animatable {
+    var progress: CGFloat
+    var direction: CGFloat
+    var travel: CGFloat
+    var startOpacity: CGFloat
+    var blurred: Bool
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let rest = 1 - progress
+        let stretch = 1 + (blurred ? EverPageMotion.smear : 0) * rest
+        content
+            .scaleEffect(x: 1 / stretch, y: 1)
+            .blur(radius: blurred ? EverPageMotion.blur * rest : 0)
+            .scaleEffect(x: stretch, y: 1)
+            .offset(x: direction * travel * rest)
+            .opacity(startOpacity + (1 - startOpacity) * progress)
+    }
+}
+
+/// An empty view with the frame of the bar page's content, so the picture is cut from exactly that part of the window.
+private struct EverPageGlideAnchor: NSViewRepresentable {
+    let glide: EverPageGlide
+
+    func makeNSView(context: Context) -> AnchorView {
+        AnchorView()
+    }
+
+    func updateNSView(_ view: AnchorView, context: Context) {
+        view.glide = glide
+    }
+
+    static func dismantleNSView(_ view: AnchorView, coordinator: ()) {
+        view.glide = nil
+    }
+
+    final class AnchorView: NSView {
+        weak var glide: EverPageGlide? {
+            willSet { if newValue !== glide, glide?.anchor === self { glide?.anchor = nil } }
+            didSet { attach() }
+        }
+
+        override var isFlipped: Bool { true }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            attach()
+        }
+
+        private func attach() {
+            guard let glide else { return }
+            if window != nil {
+                if glide.anchor !== self { glide.anchor = self }
+            } else if glide.anchor === self {
+                glide.anchor = nil
+            }
+        }
     }
 }
 #endif

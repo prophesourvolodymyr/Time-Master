@@ -84,14 +84,22 @@ enum SkillSegmentMetrics {
 }
 
 /// A segment of a slim debossed track: a quiet glyph when idle, a raised orange pill when selected. Segments that
-/// share one `namespace` slide the pill between them.
+/// share one `namespace` and `matchID` slide the pill between them; without a namespace the pill fills and empties in
+/// place.
 struct SkillSegmentButtonStyle: ButtonStyle {
     var isSelected: Bool
     var namespace: Namespace.ID? = nil
     var fillsWidth = true
+    var matchID: AnyHashable = "selection"
 
     func makeBody(configuration: Configuration) -> some View {
-        SkillSegmentButtonBody(configuration: configuration, isSelected: isSelected, namespace: namespace, fillsWidth: fillsWidth)
+        SkillSegmentButtonBody(
+            configuration: configuration,
+            isSelected: isSelected,
+            namespace: namespace,
+            fillsWidth: fillsWidth,
+            matchID: matchID
+        )
     }
 }
 
@@ -100,6 +108,7 @@ private struct SkillSegmentButtonBody: View {
     let isSelected: Bool
     let namespace: Namespace.ID?
     let fillsWidth: Bool
+    let matchID: AnyHashable
 
     @Environment(\.isFocused) private var isFocused
     @State private var isHovering = false
@@ -141,9 +150,10 @@ private struct SkillSegmentButtonBody: View {
         if isSelected {
             if let namespace {
                 SkillRaisedBackground(cornerRadius: radius, isLit: configuration.isPressed)
-                    .matchedGeometryEffect(id: "selection", in: namespace)
+                    .matchedGeometryEffect(id: matchID, in: namespace)
             } else {
                 SkillRaisedBackground(cornerRadius: radius, isLit: configuration.isPressed)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
     }
@@ -153,49 +163,5 @@ extension View {
     /// The debossed track under a row of `SkillSegmentButtonStyle` segments.
     func skillSegmentTrack() -> some View {
         background { SkillDebossedBackground(cornerRadius: SkillSegmentMetrics.trackHeight / 2) }
-    }
-}
-
-// MARK: - Choice chips
-
-/// A filter chip: a debossed pill, or the raised orange one when it is the chosen filter.
-struct SkillSelectionButtonStyle: ButtonStyle {
-    var isSelected = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        SkillSelectionButtonBody(configuration: configuration, isSelected: isSelected)
-    }
-}
-
-private struct SkillSelectionButtonBody: View {
-    let configuration: ButtonStyleConfiguration
-    let isSelected: Bool
-
-    @Environment(\.isFocused) private var isFocused
-
-    var body: some View {
-        let radius = Theme.controlCornerRadius
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        configuration.label
-            .font(TimeMasterFont.rowTitle())
-            .foregroundStyle(isSelected ? Theme.background : Theme.textPrimary)
-            .padding(.horizontal, 14)
-            .frame(minWidth: SkillMetrics.touch, minHeight: SkillMetrics.touch)
-            .background {
-                if isSelected {
-                    SkillRaisedBackground(cornerRadius: radius, isLit: configuration.isPressed)
-                } else {
-                    SkillDebossedBackground(cornerRadius: radius, isLit: configuration.isPressed)
-                }
-            }
-            .overlay {
-                if isFocused {
-                    shape.strokeBorder(Color.white.opacity(0.75), lineWidth: 2)
-                        .allowsHitTesting(false)
-                }
-            }
-            .contentShape(shape)
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
-            .keyNavButtonSurface(.roundedRectangle(cornerRadius: radius))
     }
 }

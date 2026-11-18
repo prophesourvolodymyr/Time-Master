@@ -18,6 +18,7 @@ extension ProfileView {
         RankedIconAction(symbol: "chevron.left", label: "Back", id: "profile-back", showsLabel: false) {
             if let onPreviewClose { onPreviewClose() } else { dismiss() }
         }
+        .keyboardShortcut(.cancelAction)
         .frame(width: size, height: size)
     }
 
@@ -62,6 +63,7 @@ extension ProfileView {
             .toolbar {
                 AppToolbar.iconItem(placement: .confirmationAction) {
                     RankedIconAction(symbol: "xmark", label: "Close Profile actions", id: "profile-actions-close", showsLabel: false) { sheet = nil }
+                        .keyboardShortcut(.cancelAction)
                 }
             }
         }

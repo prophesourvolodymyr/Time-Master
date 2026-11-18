@@ -4,11 +4,11 @@ import UniformTypeIdentifiers
 
 /// The top of a library page in its full view (Tmax's cover hero): the page's cover across the width (its chosen
 /// picture, else its first photo or the first frame of its first video, or a warm wash when it has none) fading into the
-/// page, the path to the page, and the page's head over it. A glass chip in the corner picks another cover among the
-/// page's photos and videos, adds a new picture, or goes back to the first file.
+/// page, with the page's head over it. The cover drifts at half speed while the page scrolls and stretches when it is
+/// pulled down. A glass chip in the corner picks another cover among the page's photos and videos, adds a new picture,
+/// or goes back to the first file. The path to the page is pinned above it by `PageTopChrome`.
 struct PageCoverHero<Header: View>: View {
     let page: ExercisePage
-    let breadcrumbs: [ExercisePage]
     let isImportingCover: Bool
     /// One of the page's media file names, or nil for its first file.
     let onChooseCover: (String?) -> Void
@@ -21,14 +21,12 @@ struct PageCoverHero<Header: View>: View {
 
     init(
         page: ExercisePage,
-        breadcrumbs: [ExercisePage],
         isImportingCover: Bool,
         onChooseCover: @escaping (String?) -> Void,
         onImportCover: @escaping () -> Void,
         @ViewBuilder header: () -> Header
     ) {
         self.page = page
-        self.breadcrumbs = breadcrumbs
         self.isImportingCover = isImportingCover
         self.onChooseCover = onChooseCover
         self.onImportCover = onImportCover
@@ -38,9 +36,6 @@ struct PageCoverHero<Header: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: SkillMetrics.s2) {
             Spacer(minLength: minimumHeight * 0.35)
-            if breadcrumbs.count > 1 {
-                breadcrumbRow
-            }
             header
         }
         .skillsContained()
@@ -55,7 +50,7 @@ struct PageCoverHero<Header: View>: View {
             .skillsContained()
             .padding(.top, SkillMetrics.s1)
         }
-        .clipped()
+        .clipShape(PageCoverClip())
     }
 
     // MARK: Backdrop
@@ -63,14 +58,17 @@ struct PageCoverHero<Header: View>: View {
     private var backdrop: some View {
         GeometryReader { proxy in
             ZStack {
-                if let url = page.coverImageURL {
-                    AsyncCoverImage(url: url, height: proxy.size.height, overlayGradient: false)
-                        .frame(width: proxy.size.width, height: proxy.size.height)
-                        .clipped()
-                        .id("\(url.absoluteString)#\(revisions.revision(of: url))")
-                } else {
-                    wash
+                Group {
+                    if let url = page.coverImageURL {
+                        AsyncCoverImage(url: url, height: proxy.size.height, overlayGradient: false)
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                            .clipped()
+                            .id("\(url.absoluteString)#\(revisions.revision(of: url))")
+                    } else {
+                        wash
+                    }
                 }
+                .modifier(PageCoverParallax(height: proxy.size.height))
                 LinearGradient(
                     stops: [
                         .init(color: .black.opacity(0.35), location: 0),
@@ -100,37 +98,6 @@ struct PageCoverHero<Header: View>: View {
                 .foregroundStyle(Color.white.opacity(0.05))
                 .padding(.top, SkillMetrics.s4)
                 .padding(.trailing, SkillMetrics.s6)
-        }
-    }
-
-    // MARK: Path
-
-    private var breadcrumbRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                ForEach(Array(breadcrumbs.enumerated()), id: \.offset) { index, crumb in
-                    if index > 0 {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(Color.white.opacity(0.5))
-                    }
-                    if crumb.id != page.id {
-                        NavigationLink(value: DatabasePageRoute(pageID: crumb.manifest.id)) {
-                            Text(crumb.title)
-                                .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                                .foregroundStyle(Color.white.opacity(0.8))
-                                .lineLimit(1)
-                        }
-                        .keyNavPlainButtonStyle()
-                    } else {
-                        Text(crumb.title)
-                            .font(TimeMasterFont.black(11, relativeTo: .caption2))
-                            .foregroundStyle(Color.white.opacity(0.6))
-                            .lineLimit(1)
-                    }
-                }
-            }
-            .padding(.bottom, 2)
         }
     }
 
@@ -243,5 +210,39 @@ struct PageCoverHero<Header: View>: View {
 
     private var glass: AnyShapeStyle {
         reduceTransparency ? AnyShapeStyle(Theme.surface2) : AnyShapeStyle(.ultraThinMaterial)
+    }
+}
+
+/// The cover drifting at half the page's speed while the page scrolls up and growing from its bottom edge while the
+/// page is pulled down, read from the page's scroll space as it renders, so scrolling never updates a view. Still with
+/// Reduce Motion and before iOS 17.
+private struct PageCoverParallax: ViewModifier {
+    let height: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else if #available(iOS 17.0, macOS 14.0, *) {
+            let height = self.height
+            content.visualEffect { effect, proxy in
+                let top = proxy.frame(in: .named(PageScrollEdge.space)).minY
+                return effect
+                    .offset(y: max(0, -top) * 0.5)
+                    .scaleEffect(height > 0 ? 1 + max(0, top) / height : 1, anchor: .bottom)
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// The hero's bounds, open above it by its own height, so the stretched cover can fill the room a pulled page leaves
+/// at its top.
+private struct PageCoverClip: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path(CGRect(x: rect.minX, y: rect.minY - rect.height, width: rect.width, height: rect.height * 2))
     }
 }

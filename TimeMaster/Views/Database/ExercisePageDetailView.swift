@@ -47,6 +47,7 @@ struct ExercisePageDetailView: View {
     @State private var selectedTab: PageTab?
     @State private var mediaToRemove: URL?
     @State private var viewportHeight: CGFloat = 0
+    @State private var scrollEdge = PageScrollEdge()
     #if os(iOS)
     @State private var pendingMediaItems: [PhotosPickerItem] = []
     @State private var picksCover = false
@@ -80,6 +81,7 @@ struct ExercisePageDetailView: View {
 
             if let page {
                 scrollContent(page)
+                PageTopChrome(edge: scrollEdge, page: page, breadcrumbs: showsHero ? breadcrumbs : [])
             } else {
                 emptyPageView
             }
@@ -90,6 +92,7 @@ struct ExercisePageDetailView: View {
                     .zIndex(1)
             }
         }
+        .pageScrollSpace()
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
             inlinePlayback.setContainerFrame(frame)
             if viewportHeight != frame.height { viewportHeight = frame.height }
@@ -264,7 +267,6 @@ struct ExercisePageDetailView: View {
                     if showsHero {
                         PageCoverHero(
                             page: page,
-                            breadcrumbs: breadcrumbs,
                             isImportingCover: isImportingCover,
                             onChooseCover: { setCover($0, of: page) },
                             onImportCover: importCover
@@ -276,6 +278,7 @@ struct ExercisePageDetailView: View {
                     tabContent(tab, page: page, model: model, linked: linked, proxy: proxy)
                 }
                 .padding(.bottom, 40)
+                .pageScrollEdgeProbe(scrollEdge)
             }
             #if os(iOS)
             .scrollDismissesKeyboard(.interactively)
@@ -311,10 +314,13 @@ struct ExercisePageDetailView: View {
             PageWidgetStrip(pageID: pageID) { target in
                 open(target, page: page, model: model, current: tab, proxy: proxy)
             }
-            PageTabBar(tabs: model.tabs, selection: tab, badge: model.badge(for:)) { selected in
+            TmaxTabBar(
+                model.tabs.map { TmaxTab($0, title: $0.title, count: model.badge(for: $0)) },
+                selection: tab
+            ) { selected in
                 select(selected, page: page, current: tab, proxy: proxy, reveal: false)
             }
-            .id(Self.tabBarID)
+            .overlay(alignment: .top) { revealAnchor }
             #if os(macOS)
             .background {
                 PageTabStepKeys(tabs: model.tabs, selection: tab, isEnabled: viewer == nil) { selected in
@@ -326,6 +332,18 @@ struct ExercisePageDetailView: View {
         .skillsContained()
         .padding(.top, showsHero ? SkillMetrics.s4 : SkillMetrics.s5)
         .padding(.bottom, SkillMetrics.s4)
+    }
+
+    /// What a reveal scrolls to the top: a point far enough above the tabs that they land below the pinned path and
+    /// the fade.
+    private var revealAnchor: some View {
+        let inset = PageTopChrome.revealInset(showsPath: showsHero && PageTopChrome.showsPath(breadcrumbs))
+        return Color.clear
+            .frame(width: 1, height: 1)
+            .alignmentGuide(.top) { $0[.top] + inset }
+            .id(Self.tabBarID)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     /// The selected tab's parts, cross-fading in place when the tab changes. At least as tall as the page, so a short
@@ -552,8 +570,8 @@ struct ExercisePageDetailView: View {
         EverHaptic.success()
     }
 
-    /// The menu of a media card: open it, trim and edit a video, make it the cover, on a skill or a tutorial move it
-    /// between Attachments and Dependencies (unless it needs no skills) or make a picture the icon, and remove it.
+    /// The menu of a media card: open it, trim and edit a video, make it the cover, make a picture the icon, on a skill or
+    /// a tutorial move it between Attachments and Dependencies (unless it needs no skills), and remove it.
     private func cardActions(for url: URL, of page: ExercisePage) -> [MediaCardAction] {
         guard let index = page.mediaURLs.firstIndex(of: url) else { return [] }
         let filename = url.lastPathComponent
@@ -582,27 +600,25 @@ struct ExercisePageDetailView: View {
                 setCover(isCover ? nil : filename, of: page)
             })
         }
-        if page.isSkillLike {
-            if !page.manifest.hidesSkills {
-                let isNeededFirst = page.manifest.dependencyMediaFilenames.contains(filename)
-                actions.append(MediaCardAction(
-                    isNeededFirst ? "Move to Attachments" : "Move to Dependencies",
-                    systemImage: isNeededFirst ? "paperclip" : "arrow.triangle.branch"
-                ) {
-                    if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
-                        try store.setSkillMediaIsDependency(filename, in: pageID, !isNeededFirst)
-                    }) {
-                        EverHaptic.selection()
-                    }
-                })
-            }
-            if isImage {
-                actions.append(MediaCardAction("Use as icon", systemImage: "person.crop.square") {
-                    SkillErrorCenter.shared.attempt("Set the icon") {
-                        try store.setSkillIcon(pageID, name: nil, type: nil, image: filename)
-                    }
-                })
-            }
+        if page.isSkillLike, !page.manifest.hidesSkills {
+            let isNeededFirst = page.manifest.dependencyMediaFilenames.contains(filename)
+            actions.append(MediaCardAction(
+                isNeededFirst ? "Move to Attachments" : "Move to Dependencies",
+                systemImage: isNeededFirst ? "paperclip" : "arrow.triangle.branch"
+            ) {
+                if SkillErrorCenter.shared.attempt("Change the prerequisite flag", {
+                    try store.setSkillMediaIsDependency(filename, in: pageID, !isNeededFirst)
+                }) {
+                    EverHaptic.selection()
+                }
+            })
+        }
+        if isImage {
+            actions.append(MediaCardAction("Use as icon", systemImage: "person.crop.square") {
+                SkillErrorCenter.shared.attempt("Set the icon") {
+                    try store.setSkillIcon(pageID, name: nil, type: nil, image: filename)
+                }
+            })
         }
         actions.append(MediaCardAction("Remove", systemImage: "trash", role: .destructive) {
             mediaToRemove = url

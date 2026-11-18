@@ -37,7 +37,7 @@ struct ProfileAchievementIndicator: View {
         }
         Button { showsAchievements = true } label: {
             ProfileAchievementShield(
-                title: "Later", value: "◇",
+                title: "Later", symbol: "rosette",
                 detail: placeholderCount > 1 ? "+\(placeholderCount - 1) more" : nil,
                 palette: palette, compactProgress: compactProgress,
                 collectible: collectible, artworkActive: artworkActive

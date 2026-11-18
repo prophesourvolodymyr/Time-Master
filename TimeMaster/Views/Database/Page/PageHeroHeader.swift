@@ -1,13 +1,13 @@
 import SwiftUI
 import TimeMasterCore
 
-/// The head of a library page, the same for every kind: the icon tile (a skill's or a tutorial's opens the icon
-/// chooser and, without an icon of its own, shows its category as its Skills card does; other pages show what they
-/// are), the title (double-click or double-tap renames it), the status row (a skill's done check and status, how many
-/// sub-skills are done, the skill type, the workout type; a page that needs no skills keeps only a type it already
-/// wears and the workout type) and a quiet line of numbers (what the page is, the workouts that train it and when, its
-/// clips). `onCover` draws it in white over a cover picture; `compact` is the smaller head of a page shown without its
-/// cover.
+/// The head of a library page, the same for every kind: the icon tile (on every page it opens the icon chooser; a
+/// skill's or a tutorial's without an icon of its own shows its category as its Skills card does, any other page shows
+/// its own icon or what it is), the title (double-click or double-tap renames it), then one row of pills that wraps
+/// below the title: the status chips (a skill's done check and status, how many sub-skills are done, the skill type,
+/// the workout type; a page that needs no skills keeps only a type it already wears and the workout type) and a pill
+/// for each fact (what the page is, the workouts that train it and when, its pages, its clips). `onCover` draws it in
+/// white over a cover picture; `compact` is the smaller head of a page shown without its cover.
 struct PageHeroHeader: View {
     let page: ExercisePage
     let progress: SkillProgress
@@ -24,10 +24,7 @@ struct PageHeroHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: SkillMetrics.s2) {
             titleRow
-            if hasChips {
-                chips
-            }
-            statsLine
+            pills
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -57,36 +54,38 @@ struct PageHeroHeader: View {
         .shadow(color: .black.opacity(onCover ? 0.4 : 0), radius: 3)
     }
 
-    @ViewBuilder
+    /// Opens the icon chooser on every kind of page; the pencil on its corner says so, and on the Mac the pointer turns
+    /// into a hand over it.
     private var iconTile: some View {
-        if page.isSkillLike {
-            Button(action: onChangeIcon) {
-                skillIcon
-                    .overlay(alignment: .bottomTrailing) { pencilBadge }
-            }
-            .buttonStyle(SkillPressButtonStyle())
-            .onHover { isHoveringIcon = $0 }
-            .help("Change the icon")
-            .accessibilityLabel("Change the icon")
-            .accessibilityHint("Opens the icon chooser")
+        Button(action: onChangeIcon) {
+            icon
+                .overlay(alignment: .bottomTrailing) { pencilBadge }
+        }
+        .buttonStyle(SkillPressButtonStyle())
+        #if os(macOS)
+        .pageCoverPointer($isHoveringIcon)
+        #else
+        .onHover { isHoveringIcon = $0 }
+        #endif
+        .help("Edit the icon")
+        .accessibilityLabel("Edit icon")
+        .accessibilityHint("Opens the icon chooser")
+    }
+
+    /// The page's own picture, symbol or emoji; without one, a skill's or a tutorial's category symbol on a tile, as its
+    /// card on the Skills page shows it, and for any other page the symbol of what it is.
+    @ViewBuilder
+    private var icon: some View {
+        if page.iconImageURL != nil || !(page.manifest.iconName ?? "").isEmpty {
+            SkillPageIconTile(page: page, size: iconSide, tilesSymbols: true)
+        } else if page.isSkillLike {
+            SkillCardIcon(page: page, category: SkillCategory.of(page, in: store.index), size: iconSide)
         } else {
             Image(systemName: PageKindStyle.symbol(page))
                 .font(.system(size: iconSide * 0.42, weight: .semibold))
                 .foregroundStyle(Theme.toolbarOrange)
                 .frame(width: iconSide, height: iconSide)
                 .skillTile(cornerRadius: iconSide * 0.32)
-                .accessibilityHidden(true)
-        }
-    }
-
-    /// A skill's own picture, symbol or emoji; without one, the symbol of its category on a tile, as its card on the
-    /// Skills page shows it.
-    @ViewBuilder
-    private var skillIcon: some View {
-        if page.iconImageURL == nil, (page.manifest.iconName ?? "").isEmpty {
-            SkillCardIcon(page: page, category: SkillCategory.of(page, in: store.index), size: iconSide)
-        } else {
-            SkillPageIconTile(page: page, size: iconSide, tilesSymbols: true)
         }
     }
 
@@ -105,7 +104,7 @@ struct PageHeroHeader: View {
             .accessibilityHidden(true)
     }
 
-    // MARK: Status row
+    // MARK: Pills
 
     private var status: SkillStatus { page.manifest.skillStatus ?? .notStarted }
 
@@ -117,9 +116,8 @@ struct PageHeroHeader: View {
     /// A page that needs no skills shows the type it wears without inviting one.
     private var showsTypeChip: Bool { showsSkillChips || (page.isSkillLike && store.skillType(of: page) != nil) }
 
-    private var hasChips: Bool { showsSkillChips || showsProgress || showsTypeChip || page.effectiveWorkoutType != nil }
-
-    private var chips: some View {
+    /// The status chips first, then the fact pills; together they wrap below the title.
+    private var pills: some View {
         PageChipFlowLayout {
             if showsSkillChips {
                 SkillDoneButton(title: page.title, status: status, pageID: page.manifest.id, onSet: onSetStatus)
@@ -145,7 +143,12 @@ struct PageHeroHeader: View {
                 }
             }
             if let type = page.effectiveWorkoutType {
-                workoutTypeChip(type)
+                pill(symbol: type.iconName, Text(type.name).font(labelFont).fontWeight(.semibold).foregroundColor(valueColor))
+                    .accessibilityLabel("Workout type: \(type.name)")
+            }
+            ForEach(facts) { fact in
+                pill(symbol: fact.symbol, text(of: fact))
+                    .accessibilityLabel(fact.spoken)
             }
         }
     }
@@ -163,77 +166,68 @@ struct PageHeroHeader: View {
         .accessibilityLabel("\(progress.completed) of \(progress.total) sub-skills done")
     }
 
-    private func workoutTypeChip(_ type: TimeMasterCore.WorkoutType) -> some View {
+    /// A fact or the workout type in its own quiet capsule.
+    private func pill(symbol: String, _ text: Text) -> some View {
         HStack(spacing: 5) {
-            Image(systemName: type.iconName)
+            Image(systemName: symbol)
                 .font(.system(size: 11, weight: .semibold))
-            Text(type.name)
-                .font(TimeMasterFont.caption())
-                .fontWeight(.semibold)
+                .foregroundStyle(valueColor)
+            text
                 .lineLimit(1)
         }
-        .foregroundStyle(onCover ? Color.white : Theme.textPrimary)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(Capsule(style: .continuous).fill(Color.white.opacity(onCover ? 0.16 : 0.07)))
         .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Workout type: \(type.name)")
     }
 
-    // MARK: Numbers
+    // MARK: Facts
 
-    private struct Stat {
+    private struct Fact: Identifiable {
+        let id: String
+        let symbol: String
         var value: String?
-        var label: String
+        var label = ""
+
+        var spoken: String { [value ?? "", label].filter { !$0.isEmpty }.joined(separator: " ") }
     }
 
-    /// "Exercise · 3 workouts · Trained yesterday · 5 clips": plain text with no hit area, so it takes no taps.
-    private var statsLine: some View {
-        let stats = self.stats
-        let line = stats.indices.reduce(Text("")) { partial, index in
-            var next = index > 0 ? partial + Text("  ·  ").font(labelFont).foregroundColor(labelColor) : partial
-            if let value = stats[index].value {
-                next = next + Text(value).font(valueFont).foregroundColor(valueColor)
-            }
-            if !stats[index].label.isEmpty {
-                next = next + Text(stats[index].label).font(labelFont).foregroundColor(labelColor)
-            }
-            return next
-        }
-        return line
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
-            .allowsHitTesting(false)
-            .accessibilityLabel(stats.map { ($0.value ?? "") + $0.label }.joined(separator: ", "))
-    }
-
-    private var stats: [Stat] {
-        var stats = [Stat(value: PageKindStyle.title(page), label: "")]
+    /// What the page is, the workouts that train it and when, the pages in a container, the clips.
+    private var facts: [Fact] {
+        var facts = [Fact(id: "kind", symbol: PageKindStyle.symbol(page), value: PageKindStyle.title(page))]
         let workouts = usage.entries.count
         if workouts > 0 {
-            stats.append(Stat(value: "\(workouts)", label: workouts == 1 ? " workout" : " workouts"))
+            facts.append(Fact(id: "workouts", symbol: "figure.strengthtraining.traditional", value: "\(workouts)", label: workouts == 1 ? "workout" : "workouts"))
             if let last = usage.lastTrained {
-                stats.append(Stat(value: nil, label: PageWidgetFormat.trained(last)))
+                facts.append(Fact(id: "trained", symbol: "clock.arrow.circlepath", label: PageWidgetFormat.trained(last)))
             }
         } else if page.isExercise {
-            stats.append(Stat(value: nil, label: "Not in a workout yet"))
+            facts.append(Fact(id: "workouts", symbol: "figure.strengthtraining.traditional", label: "Not in a workout yet"))
         }
         let pages = page.manifest.childIDs.count
         if page.pageType == nil, pages > 0 {
-            stats.append(Stat(value: "\(pages)", label: pages == 1 ? " page" : " pages"))
+            facts.append(Fact(id: "pages", symbol: "doc.on.doc", value: "\(pages)", label: pages == 1 ? "page" : "pages"))
         }
         let clips = page.mediaURLs.count
         if clips > 0 {
-            stats.append(Stat(value: "\(clips)", label: clips == 1 ? " clip" : " clips"))
+            facts.append(Fact(id: "clips", symbol: "play.rectangle", value: "\(clips)", label: clips == 1 ? "clip" : "clips"))
         }
-        return stats
+        return facts
     }
 
-    private var valueFont: Font { TimeMasterFont.black(13, relativeTo: .footnote) }
-    private var labelFont: Font { TimeMasterFont.body(13, relativeTo: .footnote) }
+    /// The number in black, the words in the caption face.
+    private func text(of fact: Fact) -> Text {
+        let words = Text(fact.label).font(labelFont).foregroundColor(labelColor)
+        guard let value = fact.value else { return words }
+        let number = Text(value).font(valueFont).foregroundColor(valueColor)
+        return fact.label.isEmpty ? number : number + Text(" ").font(labelFont) + words
+    }
+
+    private var valueFont: Font { TimeMasterFont.black(12, relativeTo: .caption) }
+    private var labelFont: Font { TimeMasterFont.caption() }
     private var valueColor: Color { onCover ? .white : Theme.textPrimary }
-    private var labelColor: Color { onCover ? Color.white.opacity(0.72) : Theme.textSecondary }
+    private var labelColor: Color { onCover ? Color.white.opacity(0.78) : Theme.textSecondary }
 }
 
 /// A page title in Tmax's title face that renames where it stands: double-click it (Mac) or double-tap it (iPhone)

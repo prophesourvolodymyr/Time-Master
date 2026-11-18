@@ -32,6 +32,7 @@ struct NotePageView: View {
     @State private var viewerURLs: [URL] = []
     @State private var viewerIndex = 0
     @State private var viewerPresented = false
+    @State private var scrollEdge = PageScrollEdge()
     @FocusState private var titleFocused: Bool
 
     private var page: ExercisePage? { store.page(id: pageID) }
@@ -41,10 +42,14 @@ struct NotePageView: View {
             Theme.background.ignoresSafeArea()
             if let page {
                 content(page)
+                if !isEditing {
+                    PageTopChrome(edge: scrollEdge)
+                }
             } else {
                 missingView
             }
         }
+        .pageScrollSpace()
         .timeMasterNavigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -142,6 +147,7 @@ struct NotePageView: View {
                 .padding(.bottom, bottomClearance)
                 .frame(maxWidth: readableWidth, alignment: .leading)
                 .frame(maxWidth: .infinity)
+                .pageScrollEdgeProbe(scrollEdge)
             }
         }
     }
@@ -162,8 +168,10 @@ struct NotePageView: View {
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: glyphSize * 0.28, style: .continuous))
             }
             .keyNavPlainButtonStyle()
-            .accessibilityLabel("Change the icon")
-            .help("Change the icon")
+            .pageCoverPointer()
+            .accessibilityLabel("Edit icon")
+            .accessibilityHint("Opens the icon chooser")
+            .help("Edit the icon")
             TextField("Untitled", text: $title)
                 .textFieldStyle(.plain)
                 .font(TimeMasterFont.pageTitle(32, relativeTo: .largeTitle))

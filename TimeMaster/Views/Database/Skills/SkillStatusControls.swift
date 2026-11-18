@@ -86,11 +86,13 @@ struct SkillStatusQuickActions: View {
 
 // MARK: - Filter bar
 
-/// All plus the four statuses as chips, each with its glyph and count, in a row that scrolls sideways. Tapping the
-/// chosen one again goes back to All.
+/// All plus the four statuses as chips, each with its glyph and count, in a row that scrolls sideways; one pill
+/// swooshes to the chosen one. Tapping the chosen one again goes back to All.
 struct SkillStatusFilterBar: View {
     @Binding var selection: SkillStatus?
     let counts: [SkillStatus: Int]
+
+    @Namespace private var namespace
 
     private var allCount: Int { SkillStatus.boardOrder.reduce(0) { $0 + (counts[$1] ?? 0) } }
 
@@ -145,7 +147,7 @@ struct SkillStatusFilterBar: View {
                     .opacity(isSelected ? 0.7 : 0.6)
             }
         }
-        .buttonStyle(SkillSelectionButtonStyle(isSelected: isSelected))
+        .buttonStyle(TmaxChipButtonStyle(isSelected: isSelected, namespace: namespace))
         .accessibilityLabel("\(title), \(count)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

@@ -190,6 +190,7 @@ struct SlotCarouselNavigation<Content: View>: View {
                 }
             }
             .keyNavYield(isEditing)
+            .everEscapeClaim("navigation-editing", isActive: isEditing, perform: finishEditing)
             .onPreferenceChange(SlotNavigationContentClearancePreferenceKey.self) { measurement in
                 guard measurement.context == clearanceContext else { return }
                 let inlineContext = clearanceTracker.observe(measurement)

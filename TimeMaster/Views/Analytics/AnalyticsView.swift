@@ -130,44 +130,22 @@ struct AnalyticsView: View {
 
     // MARK: Type picker
 
+    /// All and every workout type as tabs, a `TmaxTabBar` that scrolls sideways when they do not fit.
     private var typePicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                typeChip(label: "All", icon: "square.grid.2x2", selected: selectedType == nil) {
-                    selectType(nil)
-                }
-                ForEach(WorkoutType.all(custom: store.customWorkoutTypes), id: \.id) { type in
-                    typeChip(
-                        label: type.name,
-                        icon: type.icon,
-                        selected: selectedType == type
-                    ) {
-                        selectType(type)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+        let types = WorkoutType.all(custom: store.customWorkoutTypes)
+        let all = TmaxTab("", title: "All", symbol: "square.grid.2x2", accessibilityIdentifier: "analytics.filter.All")
+        return TmaxTabBar(
+            [all] + types.map { TmaxTab($0.id, title: $0.name, symbol: $0.icon, accessibilityIdentifier: "analytics.filter.\($0.name)") },
+            selection: selectedType?.id ?? all.id,
+            accessibilityLabel: "Workout type"
+        ) { id in
+            let type = types.first { $0.id == id }
+            guard type != selectedType else { return }
+            EverHaptic.selection()
+            selectType(type)
         }
-    }
-
-    private func typeChip(
-        label: String,
-        icon: String,
-        selected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
-                Text(label)
-                    .font(TimeMasterFont.black(13, relativeTo: .subheadline))
-            }
-        }
-        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: selected))
-        .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityIdentifier("analytics.filter.\(label)")
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 
     // MARK: Scroll content

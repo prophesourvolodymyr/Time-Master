@@ -67,168 +67,34 @@ struct ContainerSearchField: View {
     }
 }
 
-// MARK: - Segmented track
+// MARK: - Layout
 
-/// Sizes of the slim segmented tracks of a container (its tabs, the layout switch). The Mac track is taller and its
-/// segments roomier; the phone keeps a 44 pt touch area above and below a slimmer track.
-enum ContainerSegmentMetrics {
-    #if os(macOS)
-    static let trackHeight: CGFloat = 40
-    static let labelInset: CGFloat = 16
-    static let touchOutset: CGFloat = 0
-    #else
-    static let trackHeight: CGFloat = 36
-    static let labelInset: CGFloat = 8
-    static let touchOutset: CGFloat = 4
-    #endif
-    /// Gap between the track's rim and the raised selection.
-    static let inset: CGFloat = 3
-    static let pillHeight: CGFloat = trackHeight - inset * 2
-}
-
-/// A segment of a slim track pressed into the page: a quiet label when idle, a raised orange pill when selected.
-/// Give every segment of one track the same namespace and the pill slides between them.
-struct ContainerSegmentButtonStyle: ButtonStyle {
-    var isSelected: Bool
-    var namespace: Namespace.ID? = nil
-    var fillsWidth = true
-
-    func makeBody(configuration: Configuration) -> some View {
-        ContainerSegmentButtonBody(
-            configuration: configuration,
-            isSelected: isSelected,
-            namespace: namespace,
-            fillsWidth: fillsWidth
-        )
-    }
-}
-
-private struct ContainerSegmentButtonBody: View {
-    let configuration: ButtonStyleConfiguration
-    let isSelected: Bool
-    let namespace: Namespace.ID?
-    let fillsWidth: Bool
-
-    @Environment(\.isFocused) private var isFocused
-    @State private var isHovering = false
-
-    var body: some View {
-        let shape = Capsule(style: .continuous)
-        configuration.label
-            .foregroundStyle(foreground)
-            .padding(.horizontal, ContainerSegmentMetrics.labelInset)
-            .frame(
-                minWidth: 44 - ContainerSegmentMetrics.inset * 2,
-                maxWidth: fillsWidth ? .infinity : nil,
-                minHeight: ContainerSegmentMetrics.pillHeight
-            )
-            .background { selection }
-            .keyNavButtonSurface(.capsule)
-            .overlay {
-                if isFocused {
-                    shape.strokeBorder(Theme.textPrimary.opacity(0.75), lineWidth: 2)
-                        .allowsHitTesting(false)
-                }
-            }
-            .padding(ContainerSegmentMetrics.inset)
-            .padding(.vertical, ContainerSegmentMetrics.touchOutset)
-            .contentShape(Rectangle())
-            .padding(.vertical, -ContainerSegmentMetrics.touchOutset)
-            .background(SlotNavigationContentClearanceReader())
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
-            .onHover { isHovering = $0 }
-    }
-
-    private var foreground: Color {
-        if isSelected { return EverColor.onAccent }
-        return isHovering || configuration.isPressed ? Theme.textPrimary : EverColor.textSecondary
-    }
-
-    @ViewBuilder
-    private var selection: some View {
-        if isSelected {
-            if let namespace {
-                pill.matchedGeometryEffect(id: "selection", in: namespace)
-            } else {
-                pill
-            }
-        }
-    }
-
-    private var pill: some View {
-        let shape = Capsule(style: .continuous)
-        return shape
-            .fill(
-                LinearGradient(
-                    colors: [Theme.toolbarOrange.opacity(0.88), Theme.toolbarOrange],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .overlay { shape.strokeBorder(Color.white.opacity(0.3), lineWidth: 1) }
-            .shadow(color: Theme.toolbarOrange.opacity(configuration.isPressed ? 0.42 : 0.26), radius: 10, y: 3)
-    }
-}
-
-extension View {
-    /// The track pressed into the page under a row of `ContainerSegmentButtonStyle` segments.
-    func containerSegmentTrack() -> some View {
-        background { ContainerTrackSurface() }
-    }
-}
-
-/// A capsule pressed into the page: the card surface with a shade inside its top-left rim and a hairline edge.
-private struct ContainerTrackSurface: View {
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    var body: some View {
-        let shape = Capsule(style: .continuous)
-        ZStack {
-            shape.fill(Theme.surface)
-            shape.stroke(Color.black.opacity(0.6), lineWidth: 6)
-                .blur(radius: 4)
-                .offset(x: 2, y: 2)
-                .clipShape(shape)
-            shape.strokeBorder(contrast == .increased ? Color.white.opacity(0.45) : Color.white.opacity(0.08), lineWidth: 1)
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
-/// Gallery · List (· Board) as a slim track of glyphs; the names show as tooltips and are read by VoiceOver.
+/// Gallery · List (· Board) as a slim track of glyphs, a `TmaxTabBar`; the names show as tooltips and are read by
+/// VoiceOver.
 struct ContainerLayoutPicker: View {
     @Binding var selection: ContainerBrowseLayout
     let options: [ContainerBrowseLayout]
 
-    @Namespace private var namespace
-
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(options) { option in
-                Button {
-                    selection = option
-                } label: {
-                    Image(systemName: option.symbolName)
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .buttonStyle(ContainerSegmentButtonStyle(isSelected: selection == option, namespace: namespace, fillsWidth: false))
-                .accessibilityLabel(option.title)
-                .accessibilityAddTraits(selection == option ? .isSelected : [])
-                .help(option.title)
-            }
-        }
-        .containerSegmentTrack()
+        TmaxTabBar(
+            options.map { TmaxTab($0, title: $0.title, symbol: $0.symbolName, showsTitle: false) },
+            selection: $selection,
+            fillsWidth: false,
+            accessibilityLabel: "Layout"
+        )
         .fixedSize()
     }
 }
 
 // MARK: - Status filter
 
-/// All plus the four statuses as scrolling capsules, each with its count. Tapping the active one shows everything again.
+/// All plus the four statuses as scrolling chips, each with its count; one pill swooshes to the chosen one. Tapping the
+/// chosen status again shows everything.
 struct ContainerStatusFilterBar: View {
     @Binding var selection: SkillStatus?
     let counts: [SkillStatus: Int]
+
+    @Namespace private var namespace
 
     private var total: Int { SkillStatus.boardOrder.reduce(0) { $0 + (counts[$1] ?? 0) } }
 
@@ -268,7 +134,7 @@ struct ContainerStatusFilterBar: View {
                 if let symbol {
                     Image(systemName: symbol)
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(isSelected ? Theme.textPrimary : tint)
+                        .foregroundStyle(isSelected ? Theme.background : tint)
                 }
                 Text(title)
                     .lineLimit(1)
@@ -278,7 +144,7 @@ struct ContainerStatusFilterBar: View {
             }
             .fixedSize()
         }
-        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
+        .buttonStyle(TmaxChipButtonStyle(isSelected: isSelected, namespace: namespace))
         .accessibilityLabel("\(title), \(count)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

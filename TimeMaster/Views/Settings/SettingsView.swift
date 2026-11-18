@@ -4,6 +4,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.slotNavigationContentBounds) private var navigationBounds
     private let isPresentedModally: Bool
+    @State private var path = NavigationPath()
 
     init(isPresentedModally: Bool = false) {
         self.isPresentedModally = isPresentedModally
@@ -18,7 +19,7 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: isPresentedModally ? $path : $path.everPageTravel()) {
             SettingsRootContent(initialDestination: initialDestination)
                 .toolbar {
                     if isPresentedModally {

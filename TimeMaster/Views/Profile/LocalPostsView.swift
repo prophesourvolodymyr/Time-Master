@@ -27,7 +27,7 @@ struct LocalPostsView: View {
                     .frame(minHeight: ProfileStyle.touchTarget)
                     .modifier(TimeMasterCardSurface(flat: true))
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
                 .disabled(profileStore.isReadOnly)
                 .accessibilityLabel("Create a local post")
             }
@@ -141,6 +141,7 @@ struct LocalPostCard: View {
                                     .frame(width: ProfileStyle.touchTarget, height: ProfileStyle.touchTarget)
                                     .contentShape(Rectangle())
                             }
+                            .keyNavTarget(shape: .circle)
                             .disabled(profileStore.isReadOnly)
                             .accessibilityLabel("Post options")
                         }
@@ -160,7 +161,7 @@ struct LocalPostCard: View {
                                     .frame(maxWidth: .infinity, maxHeight: 320)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
-                            .buttonStyle(.plain)
+                            .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
                             .accessibilityLabel("Open post photo")
                         } else {
                             Label("Photo unavailable on this device", systemImage: "photo")
@@ -235,14 +236,14 @@ struct LocalPostCard: View {
             Button { sheet = .reactions(postID) } label: {
                 EverPillTabLabel(title: "React", symbol: "face.smiling", isSelected: false)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .capsule)
             .disabled(profileStore.isReadOnly)
         }
         if showsThreadButton {
             Button { sheet = .thread(postID) } label: {
                 EverPillTabLabel(title: "\(post.replies.count) \(post.replies.count == 1 ? "reply" : "replies")", symbol: "bubble.left", isSelected: false)
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .capsule)
         }
         if !asVisitor {
             Button(action: toggleRepost) {
@@ -252,7 +253,7 @@ struct LocalPostCard: View {
                     isSelected: profileStore.snapshot.repostedIDs.contains(postID)
                 )
             }
-            .buttonStyle(.plain)
+            .keyNavPlainButtonStyle(shape: .capsule)
             .disabled(profileStore.isReadOnly)
             .accessibilityHint("Adds or removes this post in your local Reposted feed")
         }

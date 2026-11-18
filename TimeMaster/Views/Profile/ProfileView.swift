@@ -87,10 +87,14 @@ struct ProfileView: View {
 
     func profileCoverHeight(width: CGFloat) -> CGFloat {
         #if os(macOS)
-        min(width / 3, expandedAvatarSize + EverSpacing.x4)
+        min(max(min(width / 3, expandedAvatarSize + EverSpacing.x4), width / 6), expandedAvatarSize * 2)
         #else
         width / 2
         #endif
+    }
+
+    func profileColumnWidth(_ width: CGFloat) -> CGFloat {
+        min(width, SkillsLayout.pageWidth)
     }
 
     func profileIdentityTop(width: CGFloat) -> CGFloat {
@@ -125,21 +129,31 @@ struct ProfileView: View {
         showingHistory = true
     }
 
+    func selectTab(_ tab: LocalProfileTab) {
+        guard tab != activeTab else { return }
+        EverHaptic.selection()
+        withAnimation(TmaxTabBarStyle.animation(reduceMotion: reduceMotion)) { selectedTab = tab }
+    }
+
     var body: some View {
         NavigationStack {
             EverProfileScaffold(
                 compactHeight: compactHeight,
                 expandedHeaderHeight: { width in
-                    expandedProfileCore(width: width) + detailsHeight
+                    expandedProfileCore(width: profileColumnWidth(width)) + detailsHeight
                 },
                 tabHeight: tabHeight
             ) { width, progress in
-                let expandedCore = expandedProfileCore(width: width)
+                let column = profileColumnWidth(width)
+                let expandedCore = expandedProfileCore(width: column)
                 collapsingChrome(
-                    width: width, coverHeight: profileCoverHeight(width: width),
+                    width: column, coverHeight: profileCoverHeight(width: column),
                     expandedCore: expandedCore, expandedHeight: expandedCore + detailsHeight,
                     progress: progress
                 )
+                .frame(width: column)
+                .frame(maxWidth: .infinity)
+                .scrollingChromeFadeBelow(isVisible: progress >= 1)
             } content: {
                 VStack(alignment: .leading, spacing: EverSpacing.x4) {
                     if asVisitor { visitorNotice }
@@ -149,22 +163,20 @@ struct ProfileView: View {
                     } else if tabs.isEmpty {
                         ProfileEmptyState(symbol: "eye.slash", title: "No visible tabs", detail: "This profile has hidden all of its content tabs from the visitor preview.")
                     } else {
-                        tabContent
+                        ZStack(alignment: .topLeading) {
+                            tabContent
+                                .id(activeTab)
+                                .transition(.opacity)
+                        }
                     }
                     Text("Local profile · Nothing is published online")
                         .font(TimeMasterFont.caption()).foregroundStyle(ProfileStyle.secondary)
                 }
-                .padding(EverLayout.phoneInset)
-                .frame(maxWidth: EverLayout.maximumReadableWidth)
-                .frame(maxWidth: .infinity, alignment: .top)
+                .padding(.vertical, EverLayout.phoneInset)
+                .skillsContained()
                 .allowsHitTesting(!previewOnly)
             }
-            #if os(macOS)
-            .frame(maxWidth: EverLayout.maximumReadableWidth)
-            .frame(maxWidth: .infinity)
-            #endif
-            .background(palette.background)
-            .background(EverColor.background.ignoresSafeArea())
+            .background { TmaxGlowBackground() }
             .foregroundStyle(palette.foreground)
             .environment(\.storeProfilePalette, palette)
             .tint(palette.foreground)
@@ -186,7 +198,7 @@ struct ProfileView: View {
                 if rankedAccount.identity != nil { await rankedAccount.refresh() }
             }
             .oneHandedActions(id: "profile", actions: ownerActions)
-            .navigationDestination(isPresented: $showingHistory) {
+            .everNavigationDestination(isPresented: $showingHistory) {
                 HistoryView().environmentObject(outdoorStore)
             }
             .sheet(item: $sheet) { destination in
@@ -267,7 +279,7 @@ struct ProfileView: View {
             .frame(minHeight: ProfileStyle.touchTarget)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .keyNavPlainButtonStyle()
         .disabled(asVisitor && profile.biography.isEmpty)
         .accessibilityLabel(profile.biography.isEmpty ? "Add biography" : biographyExpanded ? "Collapse biography" : "Expand biography")
         .accessibilityIdentifier("profile-biography")
@@ -285,6 +297,7 @@ struct ProfileView: View {
                                 .background(Theme.surface2, in: Circle()).padding(2)
                         }
                         .accessibilityLabel("Open \(link.title)")
+                        .keyNavTarget(shape: .circle)
                     }
                 }
             }
@@ -319,7 +332,7 @@ struct ProfileView: View {
                     EverActionRow(title: "All Activity History", detail: "Your workouts and outdoor sessions", symbol: "clock.arrow.circlepath")
                         .modifier(TimeMasterCardSurface(flat: true))
                 }
-                .buttonStyle(.plain)
+                .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
                 if !workoutStore.historyEntries.isEmpty {
                     Text("Recent workouts").font(TimeMasterFont.heading())
                     ForEach(workoutStore.historyEntries.sorted { $0.completedAt > $1.completedAt }.prefix(10)) { entry in
@@ -327,7 +340,7 @@ struct ProfileView: View {
                             EverActionRow(title: entry.workoutName, detail: "\(entry.completedAt.formatted(date: .abbreviated, time: .omitted)) · \(entry.isPartial ? "Partial workout" : "Completed workout")", symbol: entry.isPartial ? "clock.badge.exclamationmark" : "checkmark.circle")
                                 .modifier(TimeMasterCardSurface(flat: true))
                         }
-                        .buttonStyle(.plain)
+                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 20))
                     }
                 }
             }

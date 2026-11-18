@@ -12,6 +12,7 @@ struct SkillGroupPageView: View {
     @State private var editing: SkillBoardSection?
     @State private var choosingIcon = false
     @StateObject private var strip = SkillStripImageModel()
+    @State private var scrollEdge = PageScrollEdge()
 
     private var container: ExercisePage? { store.page(manifestID: route.containerID) }
     private var section: SkillBoardSection? { container?.manifest.skillBoardSection(route.sectionID) }
@@ -36,7 +37,9 @@ struct SkillGroupPageView: View {
                         .skillsContained()
                     }
                     .padding(.bottom, 40)
+                    .pageScrollEdgeProbe(scrollEdge)
                 }
+                PageTopChrome(edge: scrollEdge)
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "exclamationmark.triangle")
@@ -48,6 +51,7 @@ struct SkillGroupPageView: View {
                 }
             }
         }
+        .pageScrollSpace()
         .navigationTitle("")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -123,8 +127,10 @@ struct SkillGroupPageView: View {
                         .skillTile(cornerRadius: SkillGroupHeroMetrics.iconSide * 0.32)
                     }
                     .buttonStyle(SkillPressButtonStyle())
-                    .help("Change the icon")
-                    .accessibilityLabel("Change the icon")
+                    .pageCoverPointer()
+                    .help("Edit the icon")
+                    .accessibilityLabel("Edit icon")
+                    .accessibilityHint("Opens the icon chooser")
                     SkillEditableTitle(
                         pageID: route.groupID,
                         title: section.title,

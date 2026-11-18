@@ -71,7 +71,7 @@ struct ProfileSettingsView: View {
                 detail: "Choose what appears in visitor preview. Individual posts keep their own audience and reply settings."
             ) {
                 NavigationLink {
-                    ProfilePrivacySettingsView()
+                    ProfilePrivacySettingsView().everPushedPage()
                 } label: {
                     SettingsActionRow(title: "Profile Privacy", symbol: "hand.raised") {
                         Image(systemName: "chevron.right")

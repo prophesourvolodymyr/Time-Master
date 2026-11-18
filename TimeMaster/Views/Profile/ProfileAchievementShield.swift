@@ -2,18 +2,19 @@ import SwiftUI
 
 struct ProfileAchievementShield: View {
     let title: String
-    let value: String
+    let symbol: String
     var detail: String? = nil
     let palette: StoreProfilePalette
     let compactProgress: CGFloat
     let collectible: CollectibleItem?
     let artworkActive: Bool
     var body: some View {
+        let shape = ProfileAchievementShieldShape()
         ZStack {
             if let collectible {
                 CollectibleBadgeSkin(item: collectible, active: artworkActive)
                     .opacity(0.28)
-                    .clipShape(ProfileAchievementShieldShape())
+                    .clipShape(shape)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
             }
@@ -23,11 +24,9 @@ struct ProfileAchievementShield: View {
                     .foregroundStyle(palette.secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text(value)
-                    .font(TimeMasterFont.title())
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                Image(systemName: symbol)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Theme.toolbarOrange)
                 if let detail {
                     Text(detail)
                         .font(TimeMasterFont.caption())
@@ -38,11 +37,9 @@ struct ProfileAchievementShield: View {
             }
             .opacity(1 - compactProgress)
 
-            Text(value)
-                .font(TimeMasterFont.heading())
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.toolbarOrange)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .offset(y: -EverSpacing.x1 * compactProgress)
                 .opacity(compactProgress)
@@ -52,15 +49,16 @@ struct ProfileAchievementShield: View {
         .padding(.vertical, EverSpacing.x2)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            ProfileAchievementShieldShape()
-                .fill(palette.surface)
+            shape.fill(LinearGradient(colors: [Theme.surface2, palette.surface], startPoint: .topLeading, endPoint: .bottomTrailing))
         }
         .overlay {
-            ProfileAchievementShieldShape()
-                .stroke(palette.foreground.opacity(0.26), lineWidth: 1)
+            shape.stroke(
+                LinearGradient(colors: [Color.white.opacity(0.2), Color.white.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                lineWidth: 1
+            )
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title), \(value). Achievement placeholder, coming later.")
+        .accessibilityLabel("\(title). Achievement placeholder, coming later.")
     }
 }
 

@@ -15,7 +15,7 @@ struct WorkoutListView: View {
     @ScaledMetric(relativeTo: .caption) private var statsTileHeight: CGFloat = 72
     @Binding var requestedWorkoutID: UUID?
     let onOpenAnalytics: (AnalyticsTracker) -> Void
-    @State private var navigationPath: [Workout] = []
+    @State private var navigationPath: [Workout] = [] { willSet { if newValue != navigationPath { EverPageTravel.willNavigate(from: navigationPath.count, to: newValue.count) } } }
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
@@ -33,6 +33,7 @@ struct WorkoutListView: View {
     @State private var groupPendingDeletion: WorkoutGroup?
     @State private var dropTargetID: String?
     @State private var heroPresenter = WorkoutPageHeroPresenter()
+    @Namespace private var filterNamespace
     @AppStorage("workouts.collapsedSections") private var collapsedSectionsRaw = ""
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
@@ -47,7 +48,7 @@ struct WorkoutListView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationStack(path: $navigationPath.everPageTravel()) {
             ZStack {
                 TmaxGlowBackground()
 
@@ -130,6 +131,7 @@ struct WorkoutListView: View {
                 showingAddWorkout = true
             }
         }
+        .everPageStack(depth: navigationPath.count) { if !navigationPath.isEmpty { navigationPath.removeLast() } }
         .environment(\.workoutPageHeroPresenter, heroPresenter)
         .overlay { WorkoutPageHeroHost(presenter: heroPresenter) }
         .findCommand {
@@ -745,7 +747,8 @@ struct WorkoutListView: View {
                 HStack(spacing: 8) {
                     filterChip(
                         label: "All",
-                        isSelected: !showingTodayOnly && selectedTypeID == nil && selectedGroupID == nil
+                        isSelected: !showingTodayOnly && selectedTypeID == nil && selectedGroupID == nil,
+                        matchID: filterMatchID("all")
                     ) {
                         withAnimation(listAnimation) {
                             showingTodayOnly = false
@@ -756,7 +759,8 @@ struct WorkoutListView: View {
 
                     filterChip(
                         label: "Today",
-                        isSelected: showingTodayOnly
+                        isSelected: showingTodayOnly,
+                        matchID: filterMatchID("today")
                     ) {
                         withAnimation(listAnimation) { showingTodayOnly.toggle() }
                     }
@@ -772,7 +776,8 @@ struct WorkoutListView: View {
                     ForEach(WorkoutType.all(custom: store.customWorkoutTypes)) { type in
                         filterChip(
                             label: type.name,
-                            isSelected: selectedTypeID == type.id
+                            isSelected: selectedTypeID == type.id,
+                            matchID: filterMatchID("type")
                         ) {
                             withAnimation(listAnimation) {
                                 selectedTypeID = selectedTypeID == type.id ? nil : type.id
@@ -781,7 +786,7 @@ struct WorkoutListView: View {
                     }
                 }
                 .padding(.leading, 20)
-                .padding(.trailing, 10)
+                .padding(.trailing, 18)
                 .padding(.vertical, 6)
             }
             .mask {
@@ -815,6 +820,13 @@ struct WorkoutListView: View {
             .accessibilityHidden(true)
     }
 
+    /// Today, a section and a type can be on together. While at most one is on, every chip shares one pill that slides
+    /// to the chip tapped; once they combine, each group's chip keeps a pill of its own that fills and empties in place.
+    private func filterMatchID(_ group: String) -> String {
+        let active = (showingTodayOnly ? 1 : 0) + (selectedTypeID == nil ? 0 : 1) + (selectedGroupID == nil ? 0 : 1)
+        return active <= 1 ? "single" : group
+    }
+
     private func sectionChip(_ group: WorkoutGroup) -> some View {
         let isSelected = selectedGroupID == group.id
         return Button {
@@ -834,10 +846,10 @@ struct WorkoutListView: View {
                 Text(group.title).lineLimit(1).fixedSize()
             }
         }
-        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
+        .buttonStyle(TmaxChipButtonStyle(isSelected: isSelected, namespace: filterNamespace, matchID: filterMatchID("section")))
         .overlay {
             if dropTargetID == "chip:\(group.id)" {
-                RoundedRectangle(cornerRadius: Theme.controlCornerRadius, style: .continuous)
+                Capsule(style: .continuous)
                     .stroke(Theme.toolbarOrange, lineWidth: 2)
                     .allowsHitTesting(false)
             }
@@ -864,12 +876,13 @@ struct WorkoutListView: View {
     private func filterChip(
         label: String,
         isSelected: Bool,
+        matchID: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Text(label).lineLimit(1).fixedSize()
         }
-        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
+        .buttonStyle(TmaxChipButtonStyle(isSelected: isSelected, namespace: filterNamespace, matchID: matchID))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("workouts.filter.\(label)")
     }

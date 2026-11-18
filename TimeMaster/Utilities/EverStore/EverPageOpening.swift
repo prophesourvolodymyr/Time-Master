@@ -2,6 +2,14 @@ import SwiftUI
 
 enum EverPageMotion {
     static let duration = 0.24
+    /// Fast off the edge, a long settle: page openings and page travel.
+    static let curve = Animation.timingCurve(0.16, 0.8, 0.24, 1, duration: duration)
+    /// Blur radius (points) of a travelling page across its direction of travel; along it the blur is `smear` times
+    /// wider. It clears as the page settles.
+    static let blur: CGFloat = 3
+    static let smear: CGFloat = 7
+    /// How far a page that comes in without a picture of the one before (another bar page) starts from its place.
+    static let nudge: CGFloat = 96
 
     static func sample(_ fraction: Double, duration: Double = EverPageMotion.duration,
                        emergence: Bool = false) -> (travel: Float, depth: Float, blur: Float) {
@@ -60,14 +68,18 @@ extension View {
 #endif
     }
 
+    /// Pushed pages for values of `type`, each reported as a page of its stack (`everPushedPage`): on the Mac, Escape
+    /// steps back from the top one and the page travel follows their depth.
     func everNavigationDestination<Item: Hashable, Content: View>(for type: Item.Type,
                                                                   @ViewBuilder destination: @escaping (Item) -> Content) -> some View {
-        navigationDestination(for: type) { destination($0).everPageOpening() }
+        navigationDestination(for: type) { destination($0).everPushedPage() }
     }
 
+    /// A page pushed while `isPresented` is true: its push and pop travel like pages and Escape steps back from it on
+    /// the Mac.
     func everNavigationDestination<Content: View>(isPresented: Binding<Bool>,
                                                   @ViewBuilder destination: @escaping () -> Content) -> some View {
-        navigationDestination(isPresented: isPresented) { destination().everPageOpening() }
+        navigationDestination(isPresented: isPresented.everPageTravel()) { destination().everPushedPage() }
     }
 }
 
@@ -102,8 +114,7 @@ private struct EverPageOpeningModifier: ViewModifier {
                 }
                 await Task.yield()
                 guard !Task.isCancelled else { return }
-                withAnimation(reduceMotion ? .easeOut(duration: 0.12)
-                              : .timingCurve(0.16, 0.8, 0.24, 1, duration: EverPageMotion.duration)) {
+                withAnimation(reduceMotion ? .easeOut(duration: 0.12) : EverPageMotion.curve) {
                     progress = 1
                 }
                 try? await Task.sleep(nanoseconds: UInt64(EverPageMotion.duration * 1_000_000_000))

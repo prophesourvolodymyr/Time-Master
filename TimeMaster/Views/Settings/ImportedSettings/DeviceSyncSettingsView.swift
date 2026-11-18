@@ -67,7 +67,7 @@ struct DeviceSyncSettingsView: View {
                 title: "Cloud sync",
                 detail: "Device Sync is separate from cloud sync of the exercise database. They can both be on: a change one brings in counts as an ordinary edit for the other."
             ) {
-                NavigationLink { DatabaseSyncSettingsView() } label: {
+                NavigationLink { DatabaseSyncSettingsView().everPushedPage() } label: {
                     SettingsActionRow(title: "Database Sync", symbol: "arrow.triangle.2.circlepath.icloud") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }

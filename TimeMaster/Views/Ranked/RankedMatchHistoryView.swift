@@ -87,19 +87,14 @@ struct RankedMatchHistoryView: View {
     }
 
     private var historyModePicker: some View {
-        HStack(spacing: ProfileStyle.spacing) {
-            ForEach(RankedMode.allCases) { option in
-                Button { mode = option } label: {
-                    Label(option.title, systemImage: option.symbol)
-                        .font(TimeMasterFont.rowTitle())
-                        .frame(maxWidth: .infinity, minHeight: ProfileStyle.touchTarget)
-                }
-                .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: mode == option))
-                .accessibilityLabel(option.title)
-                .accessibilityAddTraits(mode == option ? .isSelected : [])
-                .accessibilityIdentifier("ranked-history-mode-\(option.rawValue)")
-            }
-        }
+        TmaxTabBar(
+            RankedMode.allCases.map {
+                TmaxTab($0, title: $0.title, symbol: $0.symbol, accessibilityIdentifier: "ranked-history-mode-\($0.rawValue)")
+            },
+            selection: $mode,
+            fillsWidth: true,
+            accessibilityLabel: "History"
+        )
     }
 
     private var practiceHistory: some View {

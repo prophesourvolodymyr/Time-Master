@@ -324,6 +324,49 @@ extension View {
     }
 }
 
+/// The soft edge where content scrolls under pinned chrome: the page background thinning out downward over `height`,
+/// so the content dissolves under a header or a toolbar instead of meeting a hard line; `solidHeight` keeps the
+/// background whole above the fade (behind a toolbar). It takes no hits and VoiceOver skips it.
+struct ScrollingChromeFade: View {
+    static let defaultHeight: CGFloat = 28
+
+    var height: CGFloat = ScrollingChromeFade.defaultHeight
+    var solidHeight: CGFloat = 0
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Theme.background
+                .frame(height: max(0, solidHeight))
+            LinearGradient(
+                stops: [
+                    .init(color: Theme.background, location: 0),
+                    .init(color: Theme.background.opacity(0.82), location: 0.3),
+                    .init(color: Theme.background.opacity(0.38), location: 0.66),
+                    .init(color: Theme.background.opacity(0), location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: height)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+extension View {
+    /// Hangs a `ScrollingChromeFade` under this pinned view, over the content scrolling beneath it (the view needs a
+    /// higher `zIndex` than that content). `isVisible` fades it in and out, e.g. only once the content has scrolled.
+    func scrollingChromeFadeBelow(height: CGFloat = ScrollingChromeFade.defaultHeight, isVisible: Bool = true) -> some View {
+        overlay(alignment: .bottom) {
+            ScrollingChromeFade(height: height)
+                .offset(y: height)
+                .opacity(isVisible ? 1 : 0)
+                .animation(.easeOut(duration: 0.18), value: isVisible)
+        }
+    }
+}
+
 /// Whether the header shows its labelled controls. Held outside the page, so a toggle redraws the header and never
 /// the content below it.
 final class ScrollingChromeState: ObservableObject {

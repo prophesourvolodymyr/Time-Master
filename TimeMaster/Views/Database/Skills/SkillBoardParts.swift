@@ -706,29 +706,22 @@ struct SkillNewSectionButton: View {
     }
 }
 
-/// List · Board · Table as a slim track of glyphs; the names show as tooltips and are read by VoiceOver.
+/// List · Board · Table as a slim track of glyphs, a `TmaxTabBar`; the names show as tooltips and are read by
+/// VoiceOver.
 struct SkillViewModePicker: View {
     @Binding var selection: SkillBoardMode
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Namespace private var namespace
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(SkillBoardMode.allCases) { mode in
-                Button {
-                    select(mode)
-                } label: {
-                    Image(systemName: mode.symbolName)
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .buttonStyle(SkillSegmentButtonStyle(isSelected: selection == mode, namespace: namespace, fillsWidth: false))
-                .accessibilityLabel(mode.title)
-                .accessibilityAddTraits(selection == mode ? .isSelected : [])
-                .help(mode.helpText)
-            }
+        TmaxTabBar(
+            SkillBoardMode.allCases.map { TmaxTab($0, title: $0.title, symbol: $0.symbolName, showsTitle: false, help: $0.helpText) },
+            selection: selection,
+            fillsWidth: false,
+            accessibilityLabel: "View"
+        ) { mode in
+            select(mode)
         }
-        .skillSegmentTrack()
         .fixedSize()
         #if os(macOS)
         .background(shortcuts)

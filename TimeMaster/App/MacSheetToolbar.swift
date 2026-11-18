@@ -113,7 +113,7 @@ private struct MacWindowToolbarItems: ToolbarContent {
             group(placement: .navigation, items: entries.filter { $0.placement.isLeading })
         }
         if entries.contains(where: { !$0.placement.isLeading }) {
-            group(placement: .primaryAction, items: entries.filter { !$0.placement.isLeading })
+            group(placement: .automatic, items: entries.filter { !$0.placement.isLeading })
         }
     }
 

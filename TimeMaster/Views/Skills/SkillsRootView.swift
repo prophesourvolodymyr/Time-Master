@@ -12,7 +12,7 @@ struct SkillsRootView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.everPageTravelActive) private var pageTravelActive
 
-    @StateObject private var navigationState = DatabaseNavigationState()
+    @StateObject private var navigationState = DatabaseNavigationState(pageTravel: true)
     @AppStorage("tm.skills.root.viewMode") private var viewMode: SkillsViewMode = .tiles
     @AppStorage("tm.skills.root.sort") private var sortOption: SkillSortOption = .status
     /// Folded sections on this device, by `SkillCategory` raw value, comma separated.
@@ -27,6 +27,7 @@ struct SkillsRootView: View {
     @State private var pageToEdit: ExercisePage?
     @State private var pageToDelete: ExercisePage?
     @State private var errorMessage: String?
+    @Namespace private var statusNamespace
 
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -118,6 +119,7 @@ struct SkillsRootView: View {
             }
         }
         .environmentObject(navigationState)
+        .everPageStack(depth: navigationState.path.count) { if !navigationState.path.isEmpty { navigationState.path.removeLast() } }
         .findCommand {
             guard navigationState.path.isEmpty, !showingCreate, pageToEdit == nil else { return false }
             openSearch()
@@ -386,17 +388,17 @@ struct SkillsRootView: View {
                 if let status {
                     Image(systemName: status.symbolName)
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(isSelected ? Theme.textPrimary : status.color)
+                        .foregroundStyle(isSelected ? Theme.background : status.color)
                 }
                 Text(title)
                     .lineLimit(1)
                 Text("\(count)")
                     .monospacedDigit()
-                    .foregroundStyle(isSelected ? Theme.textPrimary.opacity(0.8) : Theme.textSecondary)
+                    .opacity(isSelected ? 0.8 : 0.6)
             }
             .fixedSize()
         }
-        .buttonStyle(TimeMasterSelectionButtonStyle(isSelected: isSelected))
+        .buttonStyle(TmaxChipButtonStyle(isSelected: isSelected, namespace: statusNamespace))
         .accessibilityLabel(title)
         .accessibilityValue("\(count)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])

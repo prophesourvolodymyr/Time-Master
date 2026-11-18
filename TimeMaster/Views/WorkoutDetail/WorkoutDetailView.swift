@@ -198,6 +198,7 @@ struct WorkoutDetailView: View {
         .slotNavigationPresentation(.visible)
         .slotNavigationPrefersStrip()
         .slotNavigationInteractionDisabled(musicConfigurationOpen || musicRevealDrag > 0.02 || heroPage != nil)
+        .everEscapeClaim("workout-music", isActive: musicConfigurationOpen) { setMusicConfigurationOpen(false) }
         .preference(key: SlotNavigationEditingPreferenceKey.self, value: true)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

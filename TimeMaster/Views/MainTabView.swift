@@ -11,7 +11,7 @@ import AppKit
 struct MainTabView: View {
     @EnvironmentObject var workoutStore: WorkoutStore
     @StateObject private var databaseStore = DatabaseStore.shared
-    @StateObject private var databaseNavigationState = DatabaseNavigationState()
+    @StateObject private var databaseNavigationState = DatabaseNavigationState(pageTravel: true)
     @StateObject private var aiStore = AIStore.shared
     @StateObject private var outdoorStore = OutdoorActivityStore()
     @StateObject private var musicLibraryStore = MusicLibraryStore.shared
@@ -127,6 +127,7 @@ struct MainTabView: View {
         .focused($keyboardFocused)
         .onKeyPress(phases: [.down, .repeat], action: handleKeyPress)
         .keyNavHost(onPageStep: { moveSelection(by: $0) })
+        .everEscapeStepsBack(quietAtRoot: selectedPage != .physique)
 #endif
         .onReceive(NotificationCenter.default.publisher(for: .openWorkoutDetail)) { notification in
             routeToWorkoutDetail(notification)

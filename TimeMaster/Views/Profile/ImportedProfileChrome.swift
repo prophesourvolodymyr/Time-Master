@@ -100,28 +100,6 @@ extension ProfileView {
         return ZStack(alignment: .topLeading) {
             profileBanner(width: width, coverHeight: coverHeight, progress: layoutProgress)
 
-            if !previewOnly && !asVisitor {
-                HStack(spacing: EverSpacing.x1) {
-                    membershipButton
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, EverLayout.phoneInset)
-                .frame(minHeight: topControl, alignment: .center)
-                .opacity(chromeEntranceOpacity * (1 - layoutProgress))
-                .offset(y: chromeEntranceOffset(8))
-                .animation(chromeEntranceAnimation.delay(0.06), value: isChromeVisible)
-                .allowsHitTesting(layoutProgress < 0.5)
-                .accessibilityHidden(layoutProgress >= 0.5)
-                marketplaceButton
-                    .position(
-                        x: EverLayout.phoneInset + control / 2,
-                        y: topControl + EverSpacing.x2 + control / 2
-                    )
-                    .opacity(chromeEntranceOpacity * (1 - layoutProgress))
-                    .allowsHitTesting(layoutProgress < 0.5)
-                    .accessibilityHidden(layoutProgress >= 0.5)
-            }
-
             profileAvatar(size: avatarSize)
                 .position(
                     x: interpolate(width / 2, compactAvatarX, avatarProgress),
@@ -218,6 +196,7 @@ extension ProfileView {
                     .offset(y: chromeEntranceOffset(10))
                     .animation(chromeEntranceAnimation.delay(0.1), value: isChromeVisible)
                     .allowsHitTesting(isCollapsingStat || secondaryShieldExit < 1)
+                    .disabled(!isCollapsingStat && secondaryShieldExit >= 1)
                     .accessibilityHidden(!isCollapsingStat && secondaryShieldExit >= 1)
                     .accessibilityIdentifier(stat == .trailing && showsRankedIndicator ? "profile-earned-elo" : "profile-stat-\(stat.rawValue)")
                 }
@@ -251,6 +230,8 @@ extension ProfileView {
                     .animation(chromeEntranceAnimation.delay(0.04), value: isChromeVisible)
             }
             if activeProfile {
+                fadingTopControl(membershipButton, x: width - inset - topControl * 4.5, y: controlY, size: topControlSize, progress: progress)
+                fadingTopControl(marketplaceButton, x: width - inset - topControl * 3.5, y: controlY, size: topControlSize, progress: progress)
                 Button {
                     sheet = .compose
                 } label: {
@@ -274,6 +255,7 @@ extension ProfileView {
                 .animation(chromeEntranceAnimation.delay(0.04), value: isChromeVisible)
                 .allowsHitTesting(compact.accessoryCount > 2 || progress < 0.2)
                 .accessibilityHidden(compact.accessoryCount < 3 && progress >= 0.2)
+                .disabled(compact.accessoryCount < 3 && progress * 3 >= 1)
 
                 Button {
                     sheet = .settings
@@ -304,6 +286,7 @@ extension ProfileView {
                     .animation(chromeEntranceAnimation.delay(0.08), value: isChromeVisible)
                     .allowsHitTesting(compact.accessoryCount > 0 || progress < 0.2)
                     .accessibilityHidden(compact.accessoryCount == 0 && progress >= 0.2)
+                    .disabled(compact.accessoryCount == 0 && progress * 3 >= 1)
             }
         }
         .clipped()
@@ -344,6 +327,19 @@ extension ProfileView {
     }
     private func interpolate(_ start: CGFloat, _ end: CGFloat, _ progress: CGFloat) -> CGFloat {
         start + (end - start) * progress
+    }
+
+    private func fadingTopControl<Control: View>(_ control: Control, x: CGFloat, y: CGFloat, size: CGFloat, progress: CGFloat) -> some View {
+        control
+            .frame(width: size, height: size)
+            .position(x: x, y: y)
+            .opacity(max(0, 1 - progress * 3))
+            .opacity(chromeEntranceOpacity)
+            .offset(y: chromeEntranceOffset(8))
+            .animation(chromeEntranceAnimation.delay(0.04), value: isChromeVisible)
+            .disabled(progress * 3 >= 1)
+            .allowsHitTesting(progress < 0.2)
+            .accessibilityHidden(progress >= 0.2)
     }
 
 
@@ -399,6 +395,7 @@ extension ProfileView {
             .frame(height: progress == 0 ? nil : detailsHeight * (1 - progress), alignment: .top)
             .clipped()
             .allowsHitTesting(progress < 0.1)
+            .disabled(progress > 0.5)
             .accessibilityHidden(progress > 0.5)
             profileTabHeader
                 .frame(height: tabHeight)
@@ -409,49 +406,22 @@ extension ProfileView {
         .background(palette.background)
         .clipped()
     }
+    @ViewBuilder
     private var profileTabHeader: some View {
-        VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: EverSpacing.x1) {
-                        ForEach(tabs) { tab in
-                            Button {
-                                selectedTab = tab
-                                withAnimation(reduceMotion ? nil : EverMotion.state) {
-                                    proxy.scrollTo(tab.id, anchor: .center)
-                                }
-                            } label: {
-                                EverPillTabLabel(
-                                    title: tab.title,
-                                    symbol: tab.symbol,
-                                    isSelected: activeTab == tab
-                                )
-                            }
-                            .buttonStyle(EverPillTabButtonStyle(isSelected: activeTab == tab))
-                            .frame(minHeight: EverLayout.minimumTouchTarget)
-                            .id(tab.id)
-                            .accessibilityAddTraits(activeTab == tab ? .isSelected : [])
-                            .accessibilityIdentifier("profile-tab-\(tab.rawValue)")
-                        }
-                    }
-                    .padding(.horizontal, EverLayout.phoneInset)
-                }
-                .padding(.top, EverSpacing.x1)
-                .onAppear {
-                    if let activeTab {
-                        proxy.scrollTo(activeTab.id, anchor: .center)
-                    }
-                }
-            }
+        if let activeTab {
+            TmaxTabBar(
+                tabs.map { tab in
+                    TmaxTab(tab, title: tab.title, symbol: tab.symbol, accessibilityIdentifier: "profile-tab-\(tab.rawValue)")
+                },
+                selection: activeTab,
+                accessibilityLabel: "Profile tabs",
+                onSelect: selectTab
+            )
+            .padding(.horizontal, EverLayout.phoneInset)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .opacity(chromeEntranceOpacity)
+            .offset(y: chromeEntranceOffset(6))
+            .animation(chromeEntranceAnimation.delay(0.2), value: isChromeVisible)
         }
-        .frame(maxWidth: .infinity)
-        .background {
-            ProfileTabsSurface()
-                .fill(palette.surface)
-                .shadow(color: .black.opacity(0.28), radius: EverSpacing.x2, y: -EverSpacing.x1)
-        }
-        .opacity(chromeEntranceOpacity)
-        .offset(y: chromeEntranceOffset(6))
-        .animation(chromeEntranceAnimation.delay(0.2), value: isChromeVisible)
     }
 }

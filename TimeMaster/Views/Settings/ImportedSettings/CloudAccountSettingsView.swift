@@ -54,7 +54,7 @@ struct CloudAccountSettingsView: View {
                 if let session = account.session {
                     SettingsActionRow(title: session.email ?? "Signed in", detail: "Tmax account", symbol: "person.crop.circle.badge.checkmark")
                     NavigationLink {
-                        DatabaseSyncSettingsView()
+                        DatabaseSyncSettingsView().everPushedPage()
                     } label: {
                         SettingsActionRow(title: "Database Sync", symbol: "arrow.triangle.2.circlepath.icloud") {
                             Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
@@ -78,7 +78,7 @@ struct CloudAccountSettingsView: View {
                 }.accessibilityElement(children: .combine)
             }
             EverSettingsSection(title: "Local backup", detail: "ZIP export is always available, signed in or out and with sync turned off.") {
-                NavigationLink { BackupView() } label: {
+                NavigationLink { BackupView().everPushedPage() } label: {
                     SettingsActionRow(title: "Backup & Transfer", symbol: "archivebox") {
                         Image(systemName: "chevron.right").foregroundStyle(EverColor.textTertiary)
                     }
