@@ -264,7 +264,7 @@ struct BundleSectionEditor: View {
                     DurationPickerView(seconds: slotValue(setID: setID, exerciseID: exercise.id, rest: false), range: 1...600, step: 1, compact: true)
                 } else {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Label(exercise.repCount.map { "\($0) reps · Until Done" } ?? "Until Done", systemImage: "hand.tap")
+                        Label(exercise.repCount.map { "\($0) reps" } ?? "Estimated time", systemImage: "hand.tap")
                             .font(TimeMasterFont.black(11, relativeTo: .caption2))
                             .foregroundStyle(Theme.toolbarOrange)
                             .lineLimit(1)

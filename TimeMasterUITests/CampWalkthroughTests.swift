@@ -58,19 +58,21 @@ final class CampWalkthroughTests: XCTestCase {
         }
     }
 
-    func testTappingACoverOpensThePageAndKeepsTheWorkout() throws {
+    func testTappingACoverPreviewsTheClipAndOpenPageKeepsTheWorkout() throws {
         openWorkouts()
         let card = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "W1 Mon AM")).firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10), "first workout card")
         card.tap()
         XCTAssertTrue(app.buttons["Back to workouts"].firstMatch.waitForExistence(timeout: 15), "builder opened")
-        let cover = app.buttons["Open page preview"].firstMatch
+        let cover = app.buttons["Preview exercise"].firstMatch
         // A camp can open with bundles whose rows have no page cover: scroll down to a row that has one.
         for _ in 0..<8 where !(cover.exists && cover.isHittable) {
             app.swipeUp()
         }
         XCTAssertTrue(cover.waitForExistence(timeout: 10), "a cover to tap")
         cover.tap()
+        XCTAssertTrue(app.buttons["Close preview"].waitForExistence(timeout: 5), "the quick preview opened")
+        app.buttons["Open Page"].firstMatch.tap()
         XCTAssertTrue(app.buttons["Close page"].waitForExistence(timeout: 5), "the page opened")
         for _ in 0..<12 {
             usleep(250_000)

@@ -155,6 +155,8 @@ extension AgentToolbox {
                 "Deletes go to the trash. dryRun previews a write.",
                 "A workout section is one timed exercise or a bundle: several exercises played back to back (each with its own seconds and rest) for N sets, in order or shuffled. Build with build_workout, change with add_workout_section, update_workout_section and remove_workout_section.",
                 "Workout groups are the titled sections on the Workouts page that hold whole workouts in the user's order (create_workout_group, update_workout_group, list_workout_groups). They are not the sections inside a workout.",
+                "A rest between sets (restExercise) or after a section (restAfterExercise) can hold a rest exercise, so a single exercise with a move between its sets is a timed section, never a bundle. Not every rest can hold one: it needs more than one set, a rest above 0 and a rest at least as long as the exercise.",
+                "A skill lists the exercises that train it on tiers from S (the best way to train it) down to D: set_skill_training fills a whole skill in one call, get_skill_training reads it. The skill's Tiers view shows them.",
             ],
         ])
     }

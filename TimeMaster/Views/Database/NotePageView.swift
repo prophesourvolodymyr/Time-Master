@@ -36,6 +36,13 @@ struct NotePageView: View {
     @State private var siblings = PageSiblingNavigator()
     @FocusState private var titleFocused: Bool
 
+    init(pageID: UUID) {
+        self.pageID = pageID
+        let stored = DatabaseStore.shared.page(id: pageID)?.manifest
+        _title = State(initialValue: stored?.title ?? "")
+        _text = State(initialValue: stored?.markdownBody ?? "")
+    }
+
     private var page: ExercisePage? { store.page(id: pageID) }
 
     var body: some View {

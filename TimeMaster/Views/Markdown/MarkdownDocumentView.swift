@@ -1,11 +1,35 @@
 import SwiftUI
 
+private enum MarkdownDocumentCache {
+    private final class Box {
+        let document: MarkdownDocument
+
+        init(_ document: MarkdownDocument) {
+            self.document = document
+        }
+    }
+
+    private static let cache: NSCache<NSString, Box> = {
+        let cache = NSCache<NSString, Box>()
+        cache.countLimit = 64
+        return cache
+    }()
+
+    static func document(for markdown: String) -> MarkdownDocument {
+        let key = markdown as NSString
+        if let hit = cache.object(forKey: key) { return hit.document }
+        let document = MarkdownDocument(markdown: markdown)
+        cache.setObject(Box(document), forKey: key)
+        return document
+    }
+}
+
 struct MarkdownDocumentView: View {
     let markdown: String
     var assets: MarkdownAssets? = nil
 
     var body: some View {
-        let document = MarkdownDocument(markdown: markdown)
+        let document = MarkdownDocumentCache.document(for: markdown)
         VStack(alignment: .leading, spacing: 10) {
             ForEach(Array(document.blocks.enumerated()), id: \.offset) { index, block in
                 blockView(block, index: index, document: document)

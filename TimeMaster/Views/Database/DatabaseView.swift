@@ -1110,12 +1110,19 @@ struct DatabaseView: View {
             }
         }
         .padding(.vertical, 8)
+        .onAppear { offerListed(entries.map(\.id)) }
+        .onChange(of: entries.map(\.id)) { ids in offerListed(ids) }
+    }
+
+    private func offerListed(_ ids: [String]) {
+        navigationState.offerSiblings(ids, containerID: "library", surface: "root-list", depth: navigationState.path.count)
     }
 
     private let gridColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
     private var gridContentView: some View {
-        LazyVGrid(columns: gridColumns, spacing: 10) {
+        let ids = visiblePageEntries.map(\.id)
+        return LazyVGrid(columns: gridColumns, spacing: 10) {
             ForEach(visiblePageEntries) { entry in
                 let page = entry.page
                 ZStack(alignment: .topTrailing) {
@@ -1134,6 +1141,8 @@ struct DatabaseView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
+        .onAppear { offerListed(ids) }
+        .onChange(of: ids) { offerListed($0) }
     }
 
     private var uniqueWorkoutTypes: [FilterTypeChip] {
