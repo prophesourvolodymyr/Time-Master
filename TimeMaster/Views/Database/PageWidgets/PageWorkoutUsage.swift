@@ -128,7 +128,7 @@ private struct PageWorkoutScanner {
     }
 
     private func uses(_ rest: RestRow) -> Bool {
-        rest.contents.contains { points(at: $0.pageID) }
+        points(at: rest.exercisePageID) || rest.contents.contains { points(at: $0.pageID) }
     }
 
     private func points(at pageID: UUID?) -> Bool {

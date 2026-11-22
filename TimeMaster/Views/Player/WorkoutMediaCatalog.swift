@@ -123,6 +123,7 @@ struct WorkoutMediaCatalog {
         for section in workout.sections {
             append(section.pageID)
             for slot in section.effectiveSlots { appendSlot(slot) }
+            append(section.bigRestRow?.exercisePageID)
             for content in section.bigRestRow?.contents ?? [] { append(content.pageID) }
         }
         return result

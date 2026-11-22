@@ -24,7 +24,7 @@ extension AgentToolRegistry {
             "order": AgentSchema.string("ordered (default), or random to reshuffle the exercises each time the workout starts.", values: ["ordered", "random"]),
             "voice": AgentSchema.boolean("Speak each exercise name aloud (default true)."),
             "prepareTime": AgentSchema.integer("Get-ready seconds before each set (0-30, default 4).", minimum: 0, maximum: 30),
-        ], "A bundle: several exercises played back to back for a number of sets, for example wrestling drills.")
+        ], "A bundle: several exercises played back to back for a number of sets, for example wrestling drills. Never a bundle for one exercise: use a timed section and its restExercise for a move between sets.")
     }
 
     static var sectionProperties: [String: [String: Any]] {
@@ -39,6 +39,8 @@ extension AgentToolRegistry {
             "prepareTime": AgentSchema.integer("Preparation seconds before the section (timed section).", minimum: 0, maximum: 30),
             "restAfter": AgentSchema.integer("Rest in seconds after this section, before the next one; defaults to the workout's rest between sections.", minimum: 0),
             "untimed": AgentSchema.boolean("true: no countdown, every set (or bundle exercise) runs until the user taps Done; good for rep-based exercises. false (default): sets count down their duration."),
+            "restExercise": AgentSchema.string("Exercise played during every rest between sets (timed section only). It needs sets above 1 and restBetweenSets at least as long as the exercise's duration, so not every section can have one. \(pageRef) Pass \"\" to remove."),
+            "restAfterExercise": AgentSchema.string("Exercise played during the rest after this section (any section). It needs restAfter at least as long as the exercise's duration; the last section has no rest after it. \(pageRef) Pass \"\" to remove."),
         ]
     }
 
@@ -47,7 +49,7 @@ extension AgentToolRegistry {
     static var buildWorkout: AgentTool {
         AgentTool(
             name: "build_workout",
-            summary: "Create a workout from existing exercise pages, in order. A section is one timed exercise, or a bundle: several exercises played back to back for a number of sets.",
+            summary: "Create a workout from existing exercise pages, in order. A section is one timed exercise (its rests can hold a rest exercise), or a bundle: several exercises played back to back for a number of sets.",
             risk: .write, executor: .core, coach: true,
             schema: AgentSchema.object([
                 "name": AgentSchema.string("Workout name."),

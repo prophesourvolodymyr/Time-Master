@@ -11,7 +11,7 @@ extension AgentToolbox {
         }
     }
 
-    private static let sectionKeys = ["exercise", "bundle", "name", "duration", "sets", "repCount", "restBetweenSets", "prepareTime", "restAfter", "untimed"]
+    private static let sectionKeys = ["exercise", "bundle", "name", "duration", "sets", "repCount", "restBetweenSets", "prepareTime", "restAfter", "untimed", "restExercise", "restAfterExercise"]
 
     private func sectionIndex(_ reference: String, in workout: WorkoutManifest) throws -> Int {
         let text = reference.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -33,7 +33,8 @@ extension AgentToolbox {
         let value = max(0, seconds)
         section.customRestAfter = value
         section.bigRestRow = WorkoutRestRowManifest(
-            id: section.bigRestRow?.id ?? UUID().uuidString, kind: .big, duration: value, contents: section.bigRestRow?.contents ?? []
+            id: section.bigRestRow?.id ?? UUID().uuidString, kind: .big, duration: value, contents: section.bigRestRow?.contents ?? [],
+            exerciseID: value > 0 ? section.bigRestRow?.exerciseID : nil
         )
     }
 
@@ -46,6 +47,7 @@ extension AgentToolbox {
             slot.restRow = row
         } else {
             slot.restRow = nil
+            slot.restExerciseID = nil
         }
     }
 
@@ -143,6 +145,10 @@ extension AgentToolbox {
             }
             changed += applyTimed(args, to: &section)
         }
+        changed += try applyRestExercises(args.values, to: &section, restFallback: workout.restBetweenSections, index: index, label: "section \(position + 1)")
+        if !Set(changed).isDisjoint(with: ["sets", "restBetweenSets", "restAfter"]) {
+            try validateRestExercises(section, index: index, label: "section \(position + 1)")
+        }
         workout.sections[position] = section
         var finalPosition = position
         if let target = args.int("position") {
@@ -229,10 +235,12 @@ extension AgentToolbox {
         if let value = args.int("sets") {
             let count = max(1, value)
             if !section.slots.isEmpty {
+                let exercise = section.restExerciseID ?? section.slots.dropLast().compactMap(\.restExerciseID).first
                 while section.slots.count < count, let last = section.slots.last {
                     if last.playbackRest == 0 {
                         var previous = section.slots[section.slots.count - 1]
                         setRest(section.restBetweenSets, onSlot: &previous)
+                        previous.restExerciseID = exercise
                         section.slots[section.slots.count - 1] = previous
                     }
                     var copy = Self.freshCopy(last)
@@ -245,15 +253,103 @@ extension AgentToolbox {
                 }
             }
             section.sets = count
+            if count == 1 { section.restExerciseID = nil }
             changed.append("sets")
         }
         if let value = args.int("restBetweenSets") {
             section.restBetweenSets = max(0, value)
+            if value <= 0 { section.restExerciseID = nil }
             for position in section.slots.indices {
                 setRest(position + 1 < section.slots.count ? value : 0, onSlot: &section.slots[position])
             }
             changed.append("restBetweenSets")
         }
         return changed
+    }
+
+    func applyRestExercises(
+        _ raw: [String: Any], to section: inout WorkoutSectionManifest, restFallback: Int, index pages: AgentPageIndex, label: String
+    ) throws -> [String] {
+        var changed: [String] = []
+        if let reference = raw["restExercise"] as? String {
+            try applyBetweenSetsExercise(reference, to: &section, index: pages, label: label)
+            changed.append("restExercise")
+        }
+        if let reference = raw["restAfterExercise"] as? String {
+            try applyAfterSectionExercise(reference, to: &section, restFallback: restFallback, index: pages, label: label)
+            changed.append("restAfterExercise")
+        }
+        return changed
+    }
+
+    private func betweenSetsRestSeconds(_ section: WorkoutSectionManifest) -> Int {
+        guard !section.slots.isEmpty else { return section.sets > 1 ? section.restBetweenSets : 0 }
+        return section.slots.dropLast().map(\.playbackRest).min() ?? 0
+    }
+
+    private func applyBetweenSetsExercise(_ reference: String, to section: inout WorkoutSectionManifest, index pages: AgentPageIndex, label: String) throws {
+        guard section.mode == .timed else {
+            throw AgentToolError("invalid_argument", "\(label): restExercise applies to a timed section. A bundle is for several exercises.", hint: "Use restAfterExercise for the rest after the bundle.")
+        }
+        if reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            section.restExerciseID = nil
+            for position in section.slots.indices { section.slots[position].restExerciseID = nil }
+            return
+        }
+        let setCount = section.slots.isEmpty ? section.sets : section.slots.count
+        let seconds = betweenSetsRestSeconds(section)
+        guard setCount > 1, seconds > 0 else {
+            let reason = setCount > 1 ? "has no rest between sets" : "has only one set"
+            throw AgentToolError("invalid_argument", "\(label): '\(section.name)' \(reason), so no exercise fits in a rest.", hint: "Use sets above 1 and restBetweenSets above 0, or give the exercise its own section.")
+        }
+        let page = try workoutExercisePage(reference, index: pages, label: "\(label).restExercise")
+        guard WorkoutRestRowManifest.canHold(exerciseSeconds: page.duration, restSeconds: seconds) else {
+            throw restTooShort(page, seconds: seconds, label: label, key: "restBetweenSets")
+        }
+        section.restExerciseID = page.id
+        for position in section.slots.indices {
+            section.slots[position].restExerciseID = position + 1 < section.slots.count ? page.id : nil
+        }
+    }
+
+    private func applyAfterSectionExercise(
+        _ reference: String, to section: inout WorkoutSectionManifest, restFallback: Int, index pages: AgentPageIndex, label: String
+    ) throws {
+        if reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            section.bigRestRow?.exerciseID = nil
+            return
+        }
+        let seconds = section.bigRestRow?.duration ?? section.customRestAfter ?? restFallback
+        guard seconds > 0 else {
+            throw AgentToolError("invalid_argument", "\(label): '\(section.name)' has no rest after it, so no exercise fits in a rest.", hint: "Give it restAfter above 0. The last section of a workout has no rest after it.")
+        }
+        let page = try workoutExercisePage(reference, index: pages, label: "\(label).restAfterExercise")
+        guard WorkoutRestRowManifest.canHold(exerciseSeconds: page.duration, restSeconds: seconds) else {
+            throw restTooShort(page, seconds: seconds, label: label, key: "restAfter")
+        }
+        var row = section.bigRestRow ?? WorkoutRestRowManifest(kind: .big, duration: seconds)
+        row.exerciseID = page.id
+        section.bigRestRow = row
+    }
+
+    private func validateRestExercises(_ section: WorkoutSectionManifest, index pages: AgentPageIndex, label: String) throws {
+        if section.mode == .timed {
+            let seconds = betweenSetsRestSeconds(section)
+            let ids = section.slots.isEmpty ? [section.restExerciseID].compactMap { $0 } : section.slots.dropLast().compactMap(\.restExerciseID)
+            for id in Set(ids) {
+                guard let page = try? pages.resolve(id),
+                      !WorkoutRestRowManifest.canHold(exerciseSeconds: page.duration, restSeconds: seconds) else { continue }
+                throw restTooShort(page, seconds: seconds, label: label, key: "restBetweenSets")
+            }
+        }
+        if let row = section.bigRestRow, let id = row.exerciseID, let page = try? pages.resolve(id),
+           !WorkoutRestRowManifest.canHold(exerciseSeconds: page.duration, restSeconds: row.duration) {
+            throw restTooShort(page, seconds: row.duration, label: label, key: "restAfter")
+        }
+    }
+
+    private func restTooShort(_ page: ExercisePageManifest, seconds: Int, label: String, key: String) -> AgentToolError {
+        let needed = page.duration ?? 0
+        return AgentToolError("invalid_argument", "\(label): '\(page.title)' takes \(needed) s but the rest is \(seconds) s.", hint: "Make \(key) at least \(needed) s, or pick a shorter exercise.")
     }
 }

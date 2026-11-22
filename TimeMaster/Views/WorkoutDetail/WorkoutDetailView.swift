@@ -323,7 +323,8 @@ struct WorkoutDetailView: View {
                     }
                 },
                 onNewExercise: nil,
-                initialBundleMode: browserStartsInBundleMode
+                initialBundleMode: browserStartsInBundleMode,
+                maxExerciseSeconds: restExerciseLimit(for: browserTarget)
             )
             .environmentObject(databaseStore)
             .environmentObject(store)
@@ -1376,10 +1377,12 @@ struct WorkoutDetailView: View {
         } label: {
             Label("Add Drop Set", systemImage: "arrow.down.right")
         }
-        Button {
-            openBrowser(.setRestExercise(section.id, slot.id))
-        } label: {
-            Label("Set Rest Exercise", systemImage: "figure.cooldown")
+        if slot.playbackRest > 0 {
+            Button {
+                openBrowser(.setRestExercise(section.id, slot.id))
+            } label: {
+                Label("Set Rest Exercise", systemImage: "figure.cooldown")
+            }
         }
     }
 
@@ -1703,9 +1706,15 @@ struct WorkoutDetailView: View {
         Button("Add Stretch", systemImage: "figure.cooldown") {
             openBrowser(.restStretch(target))
         }
-        if !target.isBig, target.dropID == nil, let slotID = target.slotID {
-            Button("Add Rest Exercise", systemImage: "figure.cooldown") {
-                openBrowser(.setRestExercise(target.sectionID, slotID))
+        if target.dropID == nil, restSeconds(for: target) > 0 {
+            if target.isBig {
+                Button("Add Rest Exercise", systemImage: "figure.cooldown") {
+                    openBrowser(.bigRestExercise(target.sectionID))
+                }
+            } else if let slotID = target.slotID {
+                Button("Add Rest Exercise", systemImage: "figure.cooldown") {
+                    openBrowser(.setRestExercise(target.sectionID, slotID))
+                }
             }
         }
     }
@@ -1718,7 +1727,7 @@ struct WorkoutDetailView: View {
             rowTitleButton(pageID: pageID, heroKey: key, fallbackIcon: "figure.cooldown") {
                 BuilderRowTitle(
                     databaseStore.page(id: pageID)?.title ?? "Rest exercise",
-                    subtitle: "Rest exercise",
+                    subtitle: restExerciseSubtitle(target: target, pageID: pageID),
                     level: item.level
                 )
             }
@@ -1749,7 +1758,7 @@ struct WorkoutDetailView: View {
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                clearRestExercise(sectionID: target.sectionID, slotID: target.slotID)
+                clearRestExercise(target: target)
             } label: {
                 Label("Delete", systemImage: "trash")
             }
@@ -1768,7 +1777,7 @@ struct WorkoutDetailView: View {
         }
         Divider()
         Button(role: .destructive) {
-            clearRestExercise(sectionID: target.sectionID, slotID: target.slotID)
+            clearRestExercise(target: target)
         } label: {
             Label("Remove Rest Exercise", systemImage: "trash")
         }
@@ -2232,7 +2241,8 @@ struct WorkoutDetailView: View {
             animateEditor {
                 mutateSection(id: sectionID) { section in
                     var slots = section.effectiveSlots
-                    if let index = slots.firstIndex(where: { $0.id == slotID }) {
+                    if let index = slots.firstIndex(where: { $0.id == slotID }),
+                       RestExercise.fits(page, restSeconds: slots[index].playbackRest) {
                         slots[index].restExercisePageID = page.id
                         section.slots = slots
                         didSet = true
@@ -2241,6 +2251,17 @@ struct WorkoutDetailView: View {
                 if didSet {
                     expandedSectionIDs.insert(sectionID)
                     if let restID = restRowID(for: RestTarget(sectionID: sectionID, slotID: slotID, isBig: false)) {
+                        expandedRestRowIDs.insert(restID)
+                    }
+                }
+            }
+        case .bigRestExercise(let sectionID):
+            let target = RestTarget(sectionID: sectionID, slotID: nil, isBig: true)
+            if RestExercise.fits(page, restSeconds: restSeconds(for: target)) {
+                animateEditor {
+                    mutateRestRow(target) { $0.exercisePageID = page.id }
+                    expandedSectionIDs.insert(sectionID)
+                    if let restID = restRowID(for: target) {
                         expandedRestRowIDs.insert(restID)
                     }
                 }
@@ -2565,6 +2586,7 @@ struct WorkoutDetailView: View {
                     )
                     row.duration = 0
                     row.contents.removeAll()
+                    row.exercisePageID = nil
                     section.bigRestRow = row
                     section.customRestAfter = 0
                     return
@@ -2612,10 +2634,14 @@ struct WorkoutDetailView: View {
         }
     }
 
-    private func clearRestExercise(sectionID: UUID, slotID: UUID?) {
-        guard let slotID else { return }
+    private func clearRestExercise(target: RestTarget) {
         animateEditor {
-            mutateSection(id: sectionID) { section in
+            if target.isBig {
+                mutateRestRow(target) { $0.exercisePageID = nil }
+                return
+            }
+            guard let slotID = target.slotID else { return }
+            mutateSection(id: target.sectionID) { section in
                 var slots = section.effectiveSlots
                 guard let index = slots.firstIndex(where: { $0.id == slotID }) else { return }
                 slots[index].restExercisePageID = nil
@@ -2625,12 +2651,40 @@ struct WorkoutDetailView: View {
     }
 
     private func restExercisePageID(for target: RestTarget) -> UUID? {
-        guard !target.isBig, target.dropID == nil, let slotID = target.slotID else { return nil }
-        return workout.sections
-            .first(where: { $0.id == target.sectionID })?
-            .effectiveSlots
-            .first(where: { $0.id == slotID })?
-            .restExercisePageID
+        guard target.dropID == nil,
+              let section = workout.sections.first(where: { $0.id == target.sectionID }) else { return nil }
+        if target.isBig { return section.bigRestRow?.exercisePageID }
+        guard let slotID = target.slotID else { return nil }
+        return section.effectiveSlots.first(where: { $0.id == slotID })?.restExercisePageID
+    }
+
+    private func restSeconds(for target: RestTarget) -> Int {
+        guard let section = workout.sections.first(where: { $0.id == target.sectionID }) else { return 0 }
+        if target.isBig {
+            return section.bigRestRow?.duration ?? section.customRestAfter ?? workout.restBetweenSections
+        }
+        let slots = section.effectiveSlots
+        if let dropID = target.dropID {
+            return slots.flatMap(\.drops).first(where: { $0.id == dropID })?.restAfter ?? 0
+        }
+        return slots.first(where: { $0.id == target.slotID })?.playbackRest ?? 0
+    }
+
+    private func restExerciseLimit(for target: BuilderBrowserTarget) -> Int? {
+        switch target {
+        case .setRestExercise(let sectionID, let slotID):
+            return restSeconds(for: RestTarget(sectionID: sectionID, slotID: slotID, isBig: false))
+        case .bigRestExercise(let sectionID):
+            return restSeconds(for: RestTarget(sectionID: sectionID, slotID: nil, isBig: true))
+        default:
+            return nil
+        }
+    }
+
+    private func restExerciseSubtitle(target: RestTarget, pageID: UUID) -> String {
+        guard let page = databaseStore.page(id: pageID),
+              !RestExercise.fits(page, restSeconds: restSeconds(for: target)) else { return "Rest exercise" }
+        return "Rest exercise · longer than this rest"
     }
 
 }
@@ -2942,6 +2996,7 @@ private enum BuilderBrowserTarget {
     case newSection
     case addDrop(UUID, UUID)
     case setRestExercise(UUID, UUID)
+    case bigRestExercise(UUID)
     case restStretch(RestTarget)
 }
 

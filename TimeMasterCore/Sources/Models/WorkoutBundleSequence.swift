@@ -70,9 +70,11 @@ extension WorkoutSectionManifest {
 
     private var generatedSlots: [WorkoutSetSlotManifest] {
         (0..<sets).map { index in
-            WorkoutSetSlotManifest(
+            let hasRest = index + 1 < sets
+            return WorkoutSetSlotManifest(
                 id: generatedSlotID(index), exerciseID: exerciseID, name: name,
-                duration: duration, restAfter: index + 1 < sets ? restBetweenSets : 0
+                duration: duration, restAfter: hasRest ? restBetweenSets : 0,
+                restExerciseID: hasRest && restBetweenSets > 0 ? restExerciseID : nil
             )
         }
     }

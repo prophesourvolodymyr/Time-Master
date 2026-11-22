@@ -98,17 +98,26 @@ struct RestRow: Identifiable, Codable, Equatable {
     var kind: RestRowKind
     var duration: Int
     var contents: [RestContent]
+    var exercisePageID: UUID?
 
     init(
         id: UUID = UUID(),
         kind: RestRowKind = .normal,
         duration: Int = 30,
-        contents: [RestContent] = []
+        contents: [RestContent] = [],
+        exercisePageID: UUID? = nil
     ) {
         self.id = id
         self.kind = kind
         self.duration = max(0, duration)
         self.contents = contents
+        self.exercisePageID = exercisePageID
+    }
+}
+
+enum RestExercise {
+    static func fits(_ page: ExercisePage, restSeconds: Int) -> Bool {
+        WorkoutRestRowManifest.canHold(exerciseSeconds: page.manifest.duration, restSeconds: restSeconds)
     }
 }
 
@@ -302,7 +311,8 @@ struct Section: Identifiable, Codable, Equatable {
         slots: [SetSlot] = [],
         bigRestRow: RestRow? = nil,
         bundleOrder: BundleOrder = .ordered,
-        bundleVoiceEnabled: Bool = true
+        bundleVoiceEnabled: Bool = true,
+        restExercisePageID: UUID? = nil
     ) {
         self.id = id
         self.name = name
@@ -331,7 +341,8 @@ struct Section: Identifiable, Codable, Equatable {
                     name: name,
                     duration: duration,
                     repCount: repCount,
-                    restAfter: index < slotCount - 1 ? max(0, restBetweenSets) : 0
+                    restAfter: index < slotCount - 1 ? max(0, restBetweenSets) : 0,
+                    restExercisePageID: index < slotCount - 1 && restBetweenSets > 0 ? restExercisePageID : nil
                 )
             }
         }
@@ -434,6 +445,10 @@ struct Section: Identifiable, Codable, Equatable {
     }
 
     var slotCount: Int { max(1, effectiveSlots.count) }
+
+    var betweenSetsRestExercisePageID: UUID? {
+        effectiveSlots.dropLast().compactMap(\.restExercisePageID).first
+    }
 
 
 

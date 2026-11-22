@@ -44,17 +44,24 @@ public struct WorkoutRestRowManifest: Codable, Equatable, Identifiable {
     public var kind: WorkoutRestRowKind
     public var duration: Int
     public var contents: [WorkoutRestContentManifest]
+    public var exerciseID: String?
 
     public init(
         id: String = UUID().uuidString,
         kind: WorkoutRestRowKind = .normal,
         duration: Int = 30,
-        contents: [WorkoutRestContentManifest] = []
+        contents: [WorkoutRestContentManifest] = [],
+        exerciseID: String? = nil
     ) {
         self.id = id
         self.kind = kind
         self.duration = max(0, duration)
         self.contents = contents
+        self.exerciseID = exerciseID
+    }
+
+    public static func canHold(exerciseSeconds: Int?, restSeconds: Int) -> Bool {
+        restSeconds > 0 && restSeconds >= (exerciseSeconds ?? 0)
     }
 }
 
@@ -189,11 +196,12 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
     public var bigRestRow: WorkoutRestRowManifest?
     public var bundleOrder: WorkoutBundleOrder
     public var bundleVoiceEnabled: Bool
+    public var restExerciseID: String?
 
     enum CodingKeys: String, CodingKey {
         case id, exerciseID, name, alias, duration, sets, repCount, restBetweenSets
         case prepareTime, customRestAfter, isTimerEnabled, mediaFilenames, mode, slots
-        case bigRestRow, bundleOrder, bundleVoiceEnabled
+        case bigRestRow, bundleOrder, bundleVoiceEnabled, restExerciseID
     }
 
     public init(
@@ -213,7 +221,8 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         slots: [WorkoutSetSlotManifest] = [],
         bigRestRow: WorkoutRestRowManifest? = nil,
         bundleOrder: WorkoutBundleOrder = .ordered,
-        bundleVoiceEnabled: Bool = true
+        bundleVoiceEnabled: Bool = true,
+        restExerciseID: String? = nil
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -232,6 +241,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         self.bigRestRow = bigRestRow
         self.bundleOrder = bundleOrder
         self.bundleVoiceEnabled = bundleVoiceEnabled
+        self.restExerciseID = restExerciseID
     }
 
     public init(from decoder: Decoder) throws {
@@ -253,6 +263,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         bigRestRow = try c.decodeIfPresent(WorkoutRestRowManifest.self, forKey: .bigRestRow)
         bundleOrder = try c.decodeIfPresent(WorkoutBundleOrder.self, forKey: .bundleOrder) ?? .ordered
         bundleVoiceEnabled = try c.decodeIfPresent(Bool.self, forKey: .bundleVoiceEnabled) ?? true
+        restExerciseID = try c.decodeIfPresent(String.self, forKey: .restExerciseID)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -274,6 +285,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         try c.encodeIfPresent(bigRestRow, forKey: .bigRestRow)
         try c.encode(bundleOrder, forKey: .bundleOrder)
         try c.encode(bundleVoiceEnabled, forKey: .bundleVoiceEnabled)
+        try c.encodeIfPresent(restExerciseID, forKey: .restExerciseID)
     }
 }
 

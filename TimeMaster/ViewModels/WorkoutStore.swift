@@ -960,7 +960,8 @@ extension WorkoutSectionManifest {
             slots: slots.map { $0.toAppSlot() },
             bigRestRow: bigRestRow.map { $0.toAppRestRow() },
             bundleOrder: bundleOrder,
-            bundleVoiceEnabled: bundleVoiceEnabled
+            bundleVoiceEnabled: bundleVoiceEnabled,
+            restExercisePageID: UUID(uuidString: restExerciseID ?? "")
         )
     }
 }
@@ -971,7 +972,8 @@ extension WorkoutRestRowManifest {
             id: UUID(uuidString: id) ?? UUID(),
             kind: kind == .big ? .big : .normal,
             duration: duration,
-            contents: contents.map { $0.toAppRestContent() }
+            contents: contents.map { $0.toAppRestContent() },
+            exercisePageID: UUID(uuidString: exerciseID ?? "")
         )
     }
 }
@@ -1068,7 +1070,8 @@ extension RestRow {
             id: id.uuidString,
             kind: kind == .big ? .big : .normal,
             duration: duration,
-            contents: contents.map(\.coreManifest)
+            contents: contents.map(\.coreManifest),
+            exerciseID: exercisePageID?.uuidString
         )
     }
 }

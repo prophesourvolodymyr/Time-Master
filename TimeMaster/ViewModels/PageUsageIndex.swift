@@ -91,6 +91,7 @@ struct PageUsageIndex {
             if let id { references.pages.insert(id) }
         }
         func addRest(_ rest: RestRow?) {
+            add(rest?.exercisePageID)
             for content in rest?.contents ?? [] { add(content.pageID) }
         }
         func addSlot(_ slot: SetSlot) {

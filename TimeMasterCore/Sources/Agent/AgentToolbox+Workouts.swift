@@ -23,18 +23,20 @@ extension AgentToolbox {
             guard !exercises.isEmpty else {
                 throw AgentToolError("invalid_argument", "\(label).bundle: a bundle needs at least one exercise.", hint: "Pass bundle.exercises as a list of {exercise, duration, restAfter}.")
             }
-            return makeBundleSection(
+            var section = makeBundleSection(
                 name: name, exercises: exercises, sets: spec["sets"] as? Int ?? 1,
                 restBetweenSets: spec["restBetweenSets"] as? Int ?? 30, prepareTime: spec["prepareTime"] as? Int ?? 4,
                 order: (spec["order"] as? String).flatMap(WorkoutBundleOrder.init(rawValue:)) ?? .ordered,
                 voice: spec["voice"] as? Bool ?? true, restAfter: rest, isTimerEnabled: !untimed
             )
+            _ = try applyRestExercises(raw, to: &section, restFallback: rest, index: pages, label: label)
+            return section
         }
         guard raw["exercise"] != nil else {
             throw AgentToolError("invalid_argument", "\(label): give an exercise for a timed section, or a bundle.")
         }
         let page = try workoutExercisePage(raw["exercise"], index: pages, label: label)
-        return WorkoutSectionManifest(
+        var section = WorkoutSectionManifest(
             exerciseID: page.id,
             name: name ?? page.title,
             duration: raw["duration"] as? Int ?? page.duration ?? 30,
@@ -46,6 +48,8 @@ extension AgentToolbox {
             isTimerEnabled: !untimed,
             bigRestRow: WorkoutRestRowManifest(kind: .big, duration: rest)
         )
+        _ = try applyRestExercises(raw, to: &section, restFallback: rest, index: pages, label: label)
+        return section
     }
 
     func bundleExercises(_ value: Any?, index pages: AgentPageIndex, label: String) throws -> [WorkoutSetSlotManifest] {
@@ -195,6 +199,9 @@ extension AgentToolbox {
                 if section.sets > 1 {
                     item["sets"] = section.sets
                     item["restBetweenSets"] = section.restBetweenSets
+                    if let id = section.restExerciseID ?? section.slots.dropLast().compactMap(\.restExerciseID).first {
+                        item["restExercise"] = label(id, "rest exercise")
+                    }
                 }
             }
             if !section.isTimerEnabled { item["untimed"] = true }
@@ -202,6 +209,7 @@ extension AgentToolbox {
                 let rest = section.bigRestRow?.duration ?? (section.customRestAfter == 0 ? 0 : workout.restBetweenSections)
                 if rest != workout.restBetweenSections { item["restAfter"] = rest }
             }
+            if let id = section.bigRestRow?.exerciseID { item["restAfterExercise"] = label(id, "rest exercise") }
             return item
         }
         return AgentToolOutput(value: [

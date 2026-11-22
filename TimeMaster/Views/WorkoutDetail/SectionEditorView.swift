@@ -26,6 +26,11 @@ struct SectionEditorView: View {
     @State private var mode: SectionMode
     @State private var draftSlots: [SetSlot]
     @State private var bundleDraft: Section?
+    @State private var restExercisePageID: UUID?
+    @State private var showingRestExercisePicker = false
+    @State private var slotsReplaced = false
+    private let initialRestExercisePageID: UUID?
+    private let initialRestBetweenSets: Int
     @State private var mediaItems: [MediaItem]
     #if os(iOS)
     @State private var pendingItems: [PhotosPickerItem] = []
@@ -54,6 +59,10 @@ struct SectionEditorView: View {
         _bundleDraft      = State(initialValue: section?.mode == .bundle ? section : nil)
         _prepareTime      = State(initialValue: section?.prepareTime ?? 4)
         _mediaItems       = State(initialValue: section?.mediaItems ?? [])
+        let existingRestExercise = section?.betweenSetsRestExercisePageID
+        _restExercisePageID = State(initialValue: existingRestExercise)
+        initialRestExercisePageID = existingRestExercise
+        initialRestBetweenSets = section?.restBetweenSets ?? 10
     }
 
     var body: some View {
@@ -90,16 +99,16 @@ struct SectionEditorView: View {
                 leading: Button("Cancel") { dismiss() }
                     .foregroundColor(.white),
                 trailing: Button("Save") { saveSection() }
-                    .disabled(name.isEmpty)
-                    .foregroundColor(name.isEmpty ? Color.white.opacity(0.3) : .white)
+                    .disabled(!canSave)
+                    .foregroundColor(canSave ? .white : Color.white.opacity(0.3))
             )
             #elseif os(macOS)
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() }.foregroundColor(.white)
                                  }
                 AppToolbar.item(placement: .confirmationAction) { Button("Save") { saveSection() }
-                    .disabled(name.isEmpty)
-                    .foregroundColor(name.isEmpty ? Color.white.opacity(0.3) : .white)
+                    .disabled(!canSave)
+                    .foregroundColor(canSave ? .white : Color.white.opacity(0.3))
                                  }
             }
             #endif
@@ -171,6 +180,20 @@ struct SectionEditorView: View {
                     ) else { return }
                     applyImportedSection(imported)
                 }
+            )
+            .environmentObject(databaseStore)
+            .environmentObject(workoutStore)
+            .keyNavHost()
+        }
+        .sheet(isPresented: $showingRestExercisePicker) {
+            DatabasePageBrowserSheet(
+                workout: Workout(name: "Rest exercise"),
+                onAdd: { page, _, _, _, _, _, _ in
+                    restExercisePageID = page.id
+                    showingRestExercisePicker = false
+                },
+                onAddBundle: { _, _, _, _, _, _, _ in },
+                maxExerciseSeconds: formRestSeconds
             )
             .environmentObject(databaseStore)
             .environmentObject(workoutStore)
@@ -420,6 +443,79 @@ struct SectionEditorView: View {
             .background(Theme.surface)
             .cornerRadius(12)
             .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12))
+            restExerciseControl
+        }
+    }
+
+    private var formRestSeconds: Int {
+        guard restBetweenSets == initialRestBetweenSets, draftSlots.count > 1 else { return restBetweenSets }
+        return draftSlots.dropLast().map(\.playbackRest).min() ?? restBetweenSets
+    }
+
+    private var restExercisePage: ExercisePage? {
+        restExercisePageID.flatMap { databaseStore.page(id: $0) }
+    }
+
+    private var restExerciseFits: Bool {
+        restExercisePage.map { RestExercise.fits($0, restSeconds: formRestSeconds) } ?? true
+    }
+
+    private var canSave: Bool {
+        guard !name.isEmpty else { return false }
+        guard mode == .timed, sets > 1 else { return true }
+        return restExerciseFits
+    }
+
+    private var restExerciseCaption: String {
+        guard let page = restExercisePage else {
+            return "Played in every rest between sets. Only exercises up to \(formRestSeconds) s fit."
+        }
+        if restExerciseFits { return "Played in every rest between sets." }
+        return "\(page.title) takes \(page.manifest.duration ?? 0) s but the rest is \(formRestSeconds) s. Lengthen the rest or pick a shorter exercise."
+    }
+
+    private var restExerciseControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Button {
+                    showingRestExercisePicker = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "figure.cooldown")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(restExercisePage?.title ?? "Add Rest Exercise")
+                                .font(TimeMasterFont.black(17, relativeTo: .headline))
+                                .lineLimit(1)
+                            if let seconds = restExercisePage?.manifest.duration {
+                                Text("\(seconds) s")
+                                    .font(TimeMasterFont.caption())
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundColor(Theme.textPrimary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if restExercisePageID != nil {
+                    Button {
+                        restExercisePageID = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Remove rest exercise")
+                }
+            }
+            .padding(16)
+            .background(Theme.surface)
+            .cornerRadius(12)
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12), action: { showingRestExercisePicker = true })
+            Text(restExerciseCaption)
+                .font(TimeMasterFont.caption())
+                .foregroundColor(restExerciseFits ? Theme.textSecondary : Theme.toolbarOrange)
         }
     }
 
@@ -544,6 +640,7 @@ struct SectionEditorView: View {
         mediaItems = imported.mediaItems
         mode = imported.mode
         draftSlots = imported.slots
+        slotsReplaced = true
         bundleDraft = imported.mode == .bundle ? imported : nil
         showingDatabasePicker = false
     }
@@ -602,9 +699,29 @@ struct SectionEditorView: View {
                         name: name,
                         duration: configuration.duration,
                         repCount: configuration.repCount,
-                        restAfter: 0
+                        restAfter: configuration.restBetweenSets
                     )
                 )
+            }
+        }
+
+        if slots.count > 1 {
+            for index in slots.indices.dropLast() {
+                if restBetweenSets != initialRestBetweenSets {
+                    var row = slots[index].restRow ?? RestRow(id: slots[index].id, kind: .normal, duration: restBetweenSets)
+                    row.duration = restBetweenSets
+                    slots[index].restRow = row
+                    slots[index].restAfter = restBetweenSets
+                }
+                if restExercisePageID != initialRestExercisePageID || slotsReplaced {
+                    if let restExercisePage {
+                        if RestExercise.fits(restExercisePage, restSeconds: slots[index].playbackRest) {
+                            slots[index].restExercisePageID = restExercisePage.id
+                        }
+                    } else {
+                        slots[index].restExercisePageID = nil
+                    }
+                }
             }
         }
 

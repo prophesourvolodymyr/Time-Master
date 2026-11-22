@@ -138,6 +138,12 @@ struct WorkoutPlayerView: View {
         return playbackSlots(for: section)[safe: max(0, currentSetIndex - 1)]
     }
 
+    private var restExercisePageID: UUID? {
+        if isSetRest { return restSlot?.restExercisePageID }
+        if isSectionRest { return currentSection?.bigRestRow?.exercisePageID }
+        return nil
+    }
+
     private var livePhase: WorkoutPhase {
         isWarmUp ? .warmUp : isPreparation ? .prepare : isSetRest ? .setRest : isSectionRest ? .sectionRest : .active
     }
@@ -853,11 +859,11 @@ struct WorkoutPlayerView: View {
                         PlayerSetDots(count: progress.count, current: min(progress.count - 1, progress.index))
                             .padding(.vertical, 4)
                     }
-                    if isSetRest, let slot = restSlot, let pageID = slot.restExercisePageID, let page = databaseStore.page(id: pageID) {
+                    if let pageID = restExercisePageID, let page = databaseStore.page(id: pageID) {
                         Button {
                             openPageOverlay(id: pageID, name: page.title)
                         } label: {
-                            Label("Rest exercise: \(page.title)", systemImage: "figure.cooldown")
+                            Label(page.manifest.duration.map { "Rest exercise: \(page.title) · \($0) s" } ?? "Rest exercise: \(page.title)", systemImage: "figure.cooldown")
                                 .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                 .lineLimit(1)
                         }

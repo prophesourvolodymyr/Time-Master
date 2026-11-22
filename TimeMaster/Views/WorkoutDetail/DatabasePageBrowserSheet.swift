@@ -11,6 +11,7 @@ struct DatabasePageBrowserSheet: View {
     let onAdd: (ExercisePage, Int, Int, Int, Int, Int, Int) -> Void
     let onAddBundle: ([WorkoutBundleSource], Int, Int, Int, Int, Int, Int) -> Void
     let onNewExercise: (() -> Void)?
+    let maxExerciseSeconds: Int?
 
     @State private var isGridMode = false
     @State private var sortOption: PageSortOption = .name
@@ -35,17 +36,23 @@ struct DatabasePageBrowserSheet: View {
         onAdd: @escaping (ExercisePage, Int, Int, Int, Int, Int, Int) -> Void,
         onAddBundle: @escaping ([WorkoutBundleSource], Int, Int, Int, Int, Int, Int) -> Void,
         onNewExercise: (() -> Void)? = nil,
-        initialBundleMode: Bool = false
+        initialBundleMode: Bool = false,
+        maxExerciseSeconds: Int? = nil
     ) {
         self.workout = workout
         self.onAdd = onAdd
         self.onAddBundle = onAddBundle
         self.onNewExercise = onNewExercise
+        self.maxExerciseSeconds = maxExerciseSeconds
         _isBundleMode = State(initialValue: initialBundleMode)
     }
 
     private var pages: [ExercisePage] {
-        store.allPagesFlat.filter { !$0.isNote }
+        store.allPagesFlat.filter { page in
+            guard !page.isNote else { return false }
+            guard let maxExerciseSeconds else { return true }
+            return page.isContainer || (page.manifest.duration ?? 0) <= maxExerciseSeconds
+        }
     }
 
     private var filteredPages: [ExercisePage] {
@@ -127,6 +134,14 @@ struct DatabasePageBrowserSheet: View {
                 VStack(spacing: 0) {
                     searchBarView
                     filterChipsRow
+                    if let maxExerciseSeconds {
+                        Text("Only exercises up to \(maxExerciseSeconds) s fit this rest")
+                            .font(TimeMasterFont.caption())
+                            .foregroundStyle(Theme.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 6)
+                    }
 
                     if filteredPages.isEmpty {
                         noResultsView
