@@ -132,7 +132,7 @@ public enum AgentToolRegistry {
         importVideo, batch, undo,
     ]
 
-    public static let tools: [AgentTool] = baseTools + bundleTools + workoutGroupTools + workoutTypeTools + milestoneTools + noteTools + skillTools + pageTagTools
+    public static let tools: [AgentTool] = baseTools + bundleTools + workoutGroupTools + workoutTypeTools + milestoneTools + noteTools + skillTools + pageTagTools + skillTrainingTools
 
     public static func tool(named name: String) -> AgentTool? {
         tools.first { $0.name == name }

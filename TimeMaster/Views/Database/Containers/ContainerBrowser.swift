@@ -388,10 +388,9 @@ struct ContainerBrowser: View {
             }
             .buttonStyle(ContainerTileButtonStyle(cornerRadius: ContainerPageTile.cornerRadius))
             .pageCoverPointer()
-            .pageCoverFrame(page)
             .contextMenu { actions.menu(for: page) }
             .modifier(dragDrop(page, cornerRadius: ContainerPageTile.cornerRadius, actions: actions, neighbors: neighbors))
-            .accessibilityHint(PageCoverOpening.firstClip(of: page) == nil ? "Opens this page" : "Shows its clips in a viewer")
+            .accessibilityHint(PageCoverOpening.firstClip(of: page) == nil ? "Opens this page" : "Previews its clip")
             .accessibilityActions {
                 if PageCoverOpening.firstClip(of: page) != nil {
                     Button("Open Page") { actions.open(page) }

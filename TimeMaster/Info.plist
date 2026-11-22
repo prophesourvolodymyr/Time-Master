@@ -135,6 +135,10 @@
 		<string>TmaxLaunchBackground</string>
 	</dict>
 
+	<!-- ProMotion: lets iPhone Pro models run animations at 120 fps -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+
 	<!-- Scene manifest -->
 	<key>UIApplicationSceneManifest</key>
 	<dict>

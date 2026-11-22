@@ -246,6 +246,9 @@ public struct ExercisePageManifest: Codable {
     /// Skill and tutorial pages: a type from their highest skill's presets. Exercise and note pages: a tag from the
     /// presets of the top page of their tree (see `DatabaseManager.skillTypeOwnerID`). Written only when set.
     public var typeID: String?
+    /// Exercise, skill and tutorial pages: the skills this page trains, each with a tier from S (the best way to train
+    /// it) down to D. A skill's tier board lists every page that names it. Written only when set.
+    public var trains: [SkillTraining]
     /// Skill and tutorial pages: the to-do list, a tree with optional section dividers (see `TodoItem`).
     public var todos: [TodoItem]
     /// Skill and tutorial pages: the milestones, drawn as cards (see `Milestone`).
@@ -278,7 +281,7 @@ public struct ExercisePageManifest: Codable {
         case childIDs, parentID, order, createdAt, updatedAt
         case iconType, iconImage, coverMediaFilename, linkComments
         case dependencyPageIDs, dependencyMediaFilenames, dependencyLinkURLs, typePresets, typeID, todos, milestones
-        case noSkills, widgets
+        case noSkills, widgets, trains
     }
 
     public init(
@@ -303,6 +306,7 @@ public struct ExercisePageManifest: Codable {
         dependencyLinkURLs: [String] = [],
         typePresets: [SkillTypePreset] = [],
         typeID: String? = nil,
+        trains: [SkillTraining] = [],
         todos: [TodoItem] = [],
         milestones: [Milestone] = [],
         noSkills: Bool? = nil,
@@ -353,6 +357,7 @@ public struct ExercisePageManifest: Codable {
         self.dependencyLinkURLs = isSkillPage ? dependencyLinkURLs : []
         self.typePresets = resolvedPageKind == .container && (resolvedPageType == nil || isSkillPage) ? typePresets : []
         self.typeID = isSkillPage || isNote || resolvedPageType == .exercise ? typeID : nil
+        self.trains = resolvedPageType == nil || isNote ? [] : trains
         self.todos = isSkillPage ? todos : []
         self.milestones = isSkillPage ? milestones : []
         self.noSkills = noSkills == true ? true : nil
@@ -409,6 +414,7 @@ public struct ExercisePageManifest: Codable {
             dependencyLinkURLs: values.lenient([String].self, .dependencyLinkURLs) ?? [],
             typePresets: values.lenient([SkillTypePreset].self, .typePresets) ?? [],
             typeID: values.lenient(String.self, .typeID),
+            trains: values.lenientList(SkillTraining.self, .trains),
             todos: values.lenientList(TodoItem.self, .todos),
             milestones: values.lenientList(Milestone.self, .milestones),
             noSkills: values.lenient(Bool.self, .noSkills),
@@ -474,6 +480,7 @@ public struct ExercisePageManifest: Codable {
         try values.encodeUnlessEmpty(dependencyLinkURLs, forKey: .dependencyLinkURLs)
         try values.encodeUnlessEmpty(typePresets, forKey: .typePresets)
         try values.encodeIfPresent(typeID, forKey: .typeID)
+        try values.encodeUnlessEmpty(trains, forKey: .trains)
         try values.encodeUnlessEmpty(todos, forKey: .todos)
         try values.encodeUnlessEmpty(milestones, forKey: .milestones)
         try values.encodeIfPresent(noSkills, forKey: .noSkills)

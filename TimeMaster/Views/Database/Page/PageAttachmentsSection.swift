@@ -139,7 +139,7 @@ struct PageAttachmentsSection: View {
     // MARK: Attached pages
 
     private var attachedPages: some View {
-        VStack(alignment: .leading, spacing: SkillMetrics.s2) {
+        LazyVStack(alignment: .leading, spacing: SkillMetrics.s2) {
             PageSectionHeader(symbol: "rectangle.stack", title: "Attached pages", count: linkedPages.count) {
                 PageSectionTextButton(title: "Attach", action: actions.attachPage)
                     .help("Attach pages")

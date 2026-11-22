@@ -17,9 +17,14 @@ struct AsyncCoverImage: View {
         return min(ceiling, max(160, height * displayScale * 2))
     }
 
+    private var displayedImage: PlatformImage? {
+        if let url, let cached = PhotoManager.shared.cachedImage(from: url, maxPixelSize: pixelBudget) { return cached }
+        return loadedImage
+    }
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            if loadedImage != nil, let img = loadedImage {
+            if let img = displayedImage {
                 Image(platform: img)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)

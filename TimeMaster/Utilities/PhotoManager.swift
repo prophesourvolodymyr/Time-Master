@@ -172,6 +172,11 @@ extension PhotoManager {
         return pixelBuckets.first { $0 >= wanted } ?? wanted
     }
 
+    func cachedImage(from url: URL, maxPixelSize: CGFloat) -> PhotoPlatformImage? {
+        let bucket = Self.pixelBucket(for: maxPixelSize)
+        return cache.object(forKey: "\(url.absoluteString)#\(bucket)" as NSString)
+    }
+
     func asyncLoadImage(from url: URL, maxPixelSize: CGFloat = PhotoManager.defaultPixelSize) async -> PhotoPlatformImage? {
         let bucket = Self.pixelBucket(for: maxPixelSize)
         let key = "\(url.absoluteString)#\(bucket)" as NSString

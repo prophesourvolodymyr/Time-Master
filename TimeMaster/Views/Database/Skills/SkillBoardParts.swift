@@ -540,8 +540,9 @@ struct SkillPageMenuItems: View {
 
 // MARK: - Quick add
 
-/// "Add a sub-skill…": Return adds and keeps the field focused, so ten sub-skills take ten seconds. The same row adds
-/// sections ("Add a section…", with a strip in the colour the new section will wear).
+/// "Sub-skill" and "Section" as small buttons in the corner that open into the quick-add field: Return adds and keeps the
+/// field focused, so ten sub-skills take ten seconds, and the field closes again once it is left empty. The same row
+/// adds sections (with a strip in the colour the new section will wear).
 struct SkillQuickAddRow: View {
     let placeholder: String
     /// Leading glyph: a plus unless the row adds something other than a sub-skill.
@@ -555,11 +556,67 @@ struct SkillQuickAddRow: View {
     let onAdd: (String) -> Bool
 
     @State private var text = ""
+    @State private var isOpen = false
     @FocusState private var focused: Bool
 
     private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    private var shortTitle: String {
+        let name = placeholder.replacingOccurrences(of: "Add a ", with: "").replacingOccurrences(of: "…", with: "")
+        return name.prefix(1).uppercased() + name.dropFirst()
+    }
+
     var body: some View {
+        Group {
+            if isOpen || focused || !trimmed.isEmpty {
+                field
+            } else {
+                cornerButton
+            }
+        }
+        .onChange(of: focused) { isFocused in
+            if !isFocused && trimmed.isEmpty { isOpen = false }
+        }
+    }
+
+    private func open() {
+        isOpen = true
+        DispatchQueue.main.async { focused = true }
+    }
+
+    private var cornerButton: some View {
+        let tint = tintHex.map { Color(hex: $0) } ?? Theme.toolbarOrange
+        return HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            Button(action: open) {
+                HStack(spacing: SkillMetrics.s2) {
+                    Image(systemName: symbol)
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(shortTitle)
+                        .font(TimeMasterFont.rowTitle())
+                }
+                .foregroundStyle(isDropTarget ? tint : tint.opacity(0.9))
+                .padding(.horizontal, SkillMetrics.s4)
+                .frame(minHeight: SkillMetrics.touch)
+                .background(Capsule(style: .continuous).fill(tint.opacity(isDropTarget ? 0.2 : 0.08)))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(
+                            tint.opacity(isDropTarget ? 0.9 : 0.45),
+                            style: StrokeStyle(lineWidth: 1.5, dash: isDropTarget ? [] : [5, 4])
+                        )
+                        .allowsHitTesting(false)
+                }
+                .contentShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(SkillPressButtonStyle())
+            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: SkillMetrics.touch / 2), action: open)
+            .accessibilityLabel(placeholder)
+        }
+    }
+
+    @ViewBuilder
+    private var field: some View {
         let tint = tintHex.map { Color(hex: $0) } ?? Theme.toolbarOrange
         let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
         let isActive = focused || isDropTarget
@@ -686,6 +743,41 @@ struct SkillGroupMoreButton: View {
 
 // MARK: - Header controls
 
+/// The corner button of a board: it holds the view switch, the filter chips and "New section", and opens them in place.
+/// A dot on it says a status filter is on while the chips are folded away.
+struct SkillBoardControlsToggle: View {
+    @Binding var isOpen: Bool
+    let modeSymbol: String
+    let isFiltered: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Button {
+            withAnimation(reduceMotion ? nil : EverMotion.state) { isOpen.toggle() }
+            EverHaptic.selection()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: modeSymbol)
+                Image(systemName: isOpen ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .overlay(alignment: .topTrailing) {
+                if isFiltered {
+                    Circle()
+                        .fill(Theme.toolbarOrange)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 8, y: -8)
+                }
+            }
+        }
+        .buttonStyle(TimeMasterToolbarIconButtonStyle())
+        .accessibilityLabel(isOpen ? "Hide board controls" : "Show board controls")
+        .accessibilityValue(isFiltered ? "A status filter is on" : "")
+        .help(isOpen ? "Hide board controls" : "Show board controls")
+    }
+}
+
 /// The "New section" call to action: a plus and the words on an orange pill, at least 44 pt tall.
 struct SkillNewSectionButton: View {
     let action: () -> Void
@@ -708,16 +800,17 @@ struct SkillNewSectionButton: View {
     }
 }
 
-/// List · Board · Table as a slim track of glyphs, a `TmaxTabBar`; the names show as tooltips and are read by
-/// VoiceOver.
+/// List · Board · Table (and Tiers on a skill) as a slim track of glyphs, a `TmaxTabBar`; the names show as tooltips and
+/// are read by VoiceOver.
 struct SkillViewModePicker: View {
     @Binding var selection: SkillBoardMode
+    var modes: [SkillBoardMode] = SkillBoardMode.allCases
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TmaxTabBar(
-            SkillBoardMode.allCases.map { TmaxTab($0, title: $0.title, symbol: $0.symbolName, showsTitle: false, help: $0.helpText) },
+            modes.map { TmaxTab($0, title: $0.title, symbol: $0.symbolName, showsTitle: false, help: $0.helpText) },
             selection: selection,
             fillsWidth: false,
             accessibilityLabel: "View"
@@ -741,7 +834,7 @@ struct SkillViewModePicker: View {
     #if os(macOS)
     private var shortcuts: some View {
         ZStack {
-            ForEach(SkillBoardMode.allCases) { mode in
+            ForEach(modes) { mode in
                 Button("") { select(mode) }
                     .keyboardShortcut(mode.shortcutKey, modifiers: .command)
             }

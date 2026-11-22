@@ -357,8 +357,8 @@ struct ExercisePageDetailView: View {
             .accessibilityHidden(true)
     }
 
-    /// The selected tab's parts, cross-fading in place when the tab changes. At least as tall as the page, so a short
-    /// tab never pulls the tabs away from under the finger.
+    /// The selected tab's parts, switching in place. At least as tall as the page, so a short tab never pulls the tabs
+    /// away from under the finger.
     private func tabContent(_ tab: PageTab, page: ExercisePage, model: PageTabModel, linked: [ExercisePage], proxy: ScrollViewProxy) -> some View {
         ZStack(alignment: .top) {
             Group {
@@ -376,7 +376,6 @@ struct ExercisePageDetailView: View {
                 }
             }
             .id(tab)
-            .transition(.opacity)
         }
         .skillsContained()
         .frame(minHeight: viewportHeight, alignment: .top)
@@ -435,14 +434,8 @@ struct ExercisePageDetailView: View {
     /// Selects a tab (remembered for the page); `reveal` brings the tabs to the top so the new tab reads from its start.
     private func select(_ tab: PageTab, page: ExercisePage, current: PageTab, proxy: ScrollViewProxy, reveal: Bool) {
         PageTabMemory.remember(tab, for: page.manifest.id)
-        if tab == current {
-            selectedTab = tab
-        } else {
-            withAnimation(reduceMotion ? nil : EverMotion.state) {
-                selectedTab = tab
-            }
-            EverHaptic.selection()
-        }
+        selectedTab = tab
+        if tab != current { EverHaptic.selection() }
         guard reveal else { return }
         DispatchQueue.main.async {
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {

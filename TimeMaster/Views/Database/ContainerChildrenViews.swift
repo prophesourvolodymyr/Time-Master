@@ -115,7 +115,7 @@ struct ExerciseChildList: View {
 
     var body: some View {
         ContainerPageActionHost { actions in
-            VStack(alignment: .leading, spacing: 8) {
+            LazyVStack(alignment: .leading, spacing: 8) {
                 if pages.isEmpty {
                     VStack(spacing: 6) {
                         Text("No exercises")

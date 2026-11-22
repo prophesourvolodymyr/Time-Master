@@ -60,6 +60,8 @@ public enum AgentEffect: Codable, Equatable {
     case createdTagPreset(ownerID: String, presetID: String)
     /// A page's tag changed; `previous` is the one it wore before (nil = none).
     case changedTag(pageID: String, previous: String?)
+    /// A page's training links changed; `previous` is the list it held before.
+    case changedTraining(pageID: String, previous: [SkillTraining])
 }
 
 public struct AgentToolOutput {

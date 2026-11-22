@@ -1,11 +1,13 @@
 import SwiftUI
 import TimeMasterCore
 
-/// How a board shows its sub-skills: the sections list, a status board, or a sortable table.
+/// How a board shows its sub-skills: the sections list, a status board, a sortable table, or (on a skill) the tiers of the
+/// exercises that train it.
 enum SkillBoardMode: String, CaseIterable, Identifiable {
     case list
     case board
     case table
+    case tiers
 
     var id: String { rawValue }
 
@@ -14,6 +16,7 @@ enum SkillBoardMode: String, CaseIterable, Identifiable {
         case .list: "List"
         case .board: "Board"
         case .table: "Table"
+        case .tiers: "Tiers"
         }
     }
 
@@ -22,15 +25,17 @@ enum SkillBoardMode: String, CaseIterable, Identifiable {
         case .list: "list.bullet"
         case .board: "rectangle.split.3x1"
         case .table: "tablecells"
+        case .tiers: "rosette"
         }
     }
 
-    /// ⌘1 / ⌘2 / ⌘3 on the Mac.
+    /// ⌘1 / ⌘2 / ⌘3 / ⌘4 on the Mac.
     var shortcutKey: KeyEquivalent {
         switch self {
         case .list: "1"
         case .board: "2"
         case .table: "3"
+        case .tiers: "4"
         }
     }
 
@@ -68,6 +73,7 @@ struct SkillBoardScreen: View {
 
     @AppStorage private var modeRaw: String
     @AppStorage private var groupingRaw: String
+    @AppStorage private var controlsOpen: Bool
     @State private var filter: SkillStatus?
     @State private var groupOverride: Bool?
     @State private var addingSection = false
@@ -85,11 +91,12 @@ struct SkillBoardScreen: View {
         self.boardID = boardID
         self.showsHeading = showsHeading
         self.scrollTo = scrollTo
-        _modeRaw = AppStorage(wrappedValue: SkillBoardMode.list.rawValue, SkillSettings.viewModeKeyPrefix + boardID)
+        _modeRaw = AppStorage(wrappedValue: SkillBoardMode.board.rawValue, SkillSettings.viewModeKeyPrefix + boardID)
         _groupingRaw = AppStorage(wrappedValue: SkillBoardGrouping.status.rawValue, SkillSettings.groupByKeyPrefix + boardID)
+        _controlsOpen = AppStorage(wrappedValue: false, "tm.skills.controlsOpen." + boardID)
     }
 
-    private var mode: SkillBoardMode { SkillBoardMode(rawValue: modeRaw) ?? .list }
+    private var mode: SkillBoardMode { SkillBoardMode(rawValue: modeRaw) ?? .board }
 
     private var modeBinding: Binding<SkillBoardMode> {
         Binding(get: { mode }, set: { modeRaw = $0.rawValue })
@@ -134,6 +141,8 @@ struct SkillBoardScreen: View {
                     }
                 case .table:
                     SkillTableView(snapshot: snapshot, items: filtered(snapshot.items), statusFilter: filter, actions: actions(snapshot))
+                case .tiers:
+                    SkillTierBoardView(skillID: snapshot.scope.boardID)
                 }
             }
         }
@@ -214,8 +223,21 @@ struct SkillBoardScreen: View {
 
     // MARK: Header
 
-    @ViewBuilder
     private func header(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
+        VStack(alignment: .leading, spacing: SkillMetrics.s2) {
+            HStack(spacing: SkillMetrics.s2) {
+                Spacer(minLength: 0)
+                SkillBoardControlsToggle(isOpen: $controlsOpen, modeSymbol: mode.symbolName, isFiltered: filter != nil && mode != .board)
+            }
+            if controlsOpen {
+                controls(snapshot, mode: mode)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func controls(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
         switch mode {
         case .board:
             if supportsTypeGrouping(snapshot) {
@@ -226,6 +248,8 @@ struct SkillBoardScreen: View {
             } else {
                 switcherRow(snapshot, mode: mode)
             }
+        case .tiers:
+            switcherRow(snapshot, mode: mode)
         case .list, .table:
             VStack(alignment: .leading, spacing: SkillMetrics.s2) {
                 switcherRow(snapshot, mode: mode)
@@ -254,7 +278,7 @@ struct SkillBoardScreen: View {
     /// beside the view switch. The menu at the end makes a sub-skill with every detail (type, cover, media).
     private func switcherRow(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
         HStack(spacing: SkillMetrics.s2) {
-            SkillViewModePicker(selection: modeBinding)
+            SkillViewModePicker(selection: modeBinding, modes: availableModes(snapshot))
             if mode == .board && snapshot.hasSections && !showsTypes(snapshot) {
                 groupToggle(snapshot)
             }
@@ -280,6 +304,11 @@ struct SkillBoardScreen: View {
                 .help("More ways to add")
             }
         }
+    }
+
+    private func availableModes(_ snapshot: SkillBoardSnapshot) -> [SkillBoardMode] {
+        let tiers = snapshot.container?.isSkillLike == true && !snapshot.scope.isGroup
+        return SkillBoardMode.allCases.filter { tiers || $0 != .tiers }
     }
 
     private func groupToggle(_ snapshot: SkillBoardSnapshot) -> some View {
@@ -348,6 +377,8 @@ struct SkillBoardScreen: View {
             return filtered(snapshot.direct).map(\.id)
         case .table:
             return filtered(snapshot.items).map(\.id)
+        case .tiers:
+            return store.trainers(of: snapshot.scope.boardID).map(\.id)
         case .board:
             if let types { return types.readingOrder }
             let laneKeys: [String?] = isGrouped(snapshot) && snapshot.hasSections ? snapshot.boardLanes.map { Optional($0.key) } : [nil]

@@ -428,6 +428,7 @@ Find pages in the Tmax library.
             normalized.dependencyMediaFilenames = []
             normalized.dependencyLinkURLs = []
             normalized.typePresets = []
+            normalized.trains = []
             // A note keeps its tag: one of the presets of the top page of its tree.
             let icon = normalized.iconName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             normalized.iconName = icon.isEmpty ? nil : icon
@@ -470,6 +471,7 @@ Find pages in the Tmax library.
             normalized.dependencyMediaFilenames = []
             normalized.dependencyLinkURLs = []
             normalized.typeID = nil
+            normalized.trains = []
             normalized.skillBoardSections = Self.renumberedSections(normalized.skillBoardSections)
             normalized.typePresets = Self.renumberedTypePresets(normalized.typePresets)
             if parentID == nil {

@@ -654,7 +654,8 @@ struct SkillLinksSection: View {
 
 // MARK: - Icon chooser
 
-/// Picks the icon of a page (or group): a symbol or an emoji, or "Automatic" to take one from the title.
+/// Picks the icon of a page (or group): a symbol, an emoji or a picture (one already on the page, or a new one from
+/// Photos or Files), or "Automatic" to take one from the title. A group keeps only a symbol or an emoji.
 struct SkillIconChooserSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: DatabaseStore
@@ -664,20 +665,46 @@ struct SkillIconChooserSheet: View {
 
     @State private var iconName = ""
     @State private var iconType: SkillBoardIconType = .emoji
+    @State private var iconImage: String?
+    @State private var pictureSource: ChecklistPictureImporter.Source?
     @State private var loaded = false
+
+    private var allowsPictures: Bool { SkillGroupID.split(pageID) == nil }
+
+    private var pictures: [URL] {
+        guard allowsPictures else { return [] }
+        return (store.skillMaterial(id: pageID)?.mediaURLs ?? []).filter { ChecklistMedia.isPicture($0.lastPathComponent) }
+    }
+
+    private var canUse: Bool { !iconName.isEmpty || iconImage != nil }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Button {
-                        apply(name: nil, type: nil)
+                        apply(name: nil, type: nil, image: nil)
                     } label: {
                         Label("Automatic: from the title", systemImage: "wand.and.stars")
                             .font(TimeMasterFont.rowTitle())
                             .foregroundStyle(Theme.toolbarOrange)
                     }.keyNavPlainButtonStyle()
-                    SkillIconPicker(iconName: $iconName, iconType: $iconType)
+                    if allowsPictures {
+                        Menu {
+                            Button { pictureSource = .photos } label: { Label("Photos", systemImage: "photo.on.rectangle") }
+                            Button { pictureSource = .files } label: { Label("Files", systemImage: "folder") }
+                        } label: {
+                            Label("Use a picture as the icon", systemImage: "photo.badge.plus")
+                                .font(TimeMasterFont.rowTitle())
+                                .foregroundStyle(Theme.toolbarOrange)
+                        }
+                        .menuStyle(.button)
+                        .buttonStyle(.plain)
+                    }
+                    ChecklistIconEditor(
+                        iconName: $iconName, iconType: $iconType, iconImage: $iconImage,
+                        pictures: pictures, showsNone: false
+                    )
                 }
                 .padding(20)
                 .frame(maxWidth: 640)
@@ -691,27 +718,44 @@ struct SkillIconChooserSheet: View {
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 AppToolbar.item(placement: .confirmationAction) {
-                    Button("Use icon") { apply(name: iconName, type: iconType) }.disabled(iconName.isEmpty)
+                    Button("Use icon") {
+                        apply(name: iconName.isEmpty ? nil : iconName, type: iconName.isEmpty ? nil : iconType, image: iconImage)
+                    }
+                    .disabled(!canUse)
                 }
             }
         }
         .keyNavHost()
         .skillErrorAlert()
+        .checklistPictureImporter(source: $pictureSource) { url in addPicture(url) }
         #if os(macOS)
         .frame(minWidth: 480, minHeight: 460)
         #endif
         .onAppear {
             guard !loaded else { return }
             loaded = true
-            if let manifest = store.skillMaterial(id: pageID)?.manifest, let name = manifest.iconName {
+            guard let manifest = store.skillMaterial(id: pageID)?.manifest else { return }
+            if let image = manifest.iconImage {
+                iconImage = image
+            } else if let name = manifest.iconName {
                 iconName = name
                 iconType = manifest.iconType ?? .emoji
             }
         }
     }
 
-    private func apply(name: String?, type: SkillBoardIconType?) {
-        if SkillErrorCenter.shared.attempt("Set the icon", { try store.setSkillIcon(pageID, name: name, type: type) }) {
+    private func addPicture(_ url: URL) {
+        var filename: String?
+        let added = SkillErrorCenter.shared.attempt("Add the picture") {
+            filename = try store.uploadSkillMedia(url, to: pageID)
+        }
+        guard added, let filename else { return }
+        iconName = ""
+        iconImage = filename
+    }
+
+    private func apply(name: String?, type: SkillBoardIconType?, image: String?) {
+        if SkillErrorCenter.shared.attempt("Set the icon", { try store.setSkillIcon(pageID, name: name, type: type, image: image) }) {
             dismiss()
         }
     }

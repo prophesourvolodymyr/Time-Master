@@ -13,10 +13,9 @@ struct BundleSectionHeader: View {
     @Environment(\.workoutHeroSources) private var heroSources
 
     private var summary: String {
-        let sets = "\(section.bundleSets.count) sets"
-        guard section.isTimerEnabled else { return "\(sets) · Until Done" }
         let seconds = section.calculatedDuration
-        return "\(sets) · \(seconds / 60):\(String(format: "%02d", seconds % 60))"
+        let time = "\(seconds / 60):\(String(format: "%02d", seconds % 60))"
+        return "\(section.bundleSets.count) sets · \(section.isTimerEnabled ? time : "~\(time)")"
     }
 
     var body: some View {

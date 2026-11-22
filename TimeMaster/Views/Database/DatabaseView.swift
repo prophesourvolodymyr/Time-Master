@@ -37,9 +37,9 @@ final class DatabaseNavigationState: ObservableObject {
     /// A swap to a sibling whose page has not shown yet and plays its own arrival (no Mac page travel here): the
     /// sibling's id and the way it travels, +1 forward.
     private var siblingArrival: (pageID: String, direction: CGFloat)?
-    /// The viewer the page covers of this stack open (`pageCoverViewerHost`); nil where the stack hosts none, and a
+    /// The quick preview the page covers of this stack open (`quickPreviewHost`); nil where the stack hosts none, and a
     /// cover then opens its page.
-    weak var coverViewer: PageCoverViewer?
+    weak var quickPreview: QuickPreviewController?
 
     init(pageTravel: Bool = false, siblingNavigation: Bool = true) {
         self.pageTravel = pageTravel
@@ -51,6 +51,11 @@ final class DatabaseNavigationState: ObservableObject {
     /// of the screen the surface sits on; `surface` tells several lists on one screen apart ("browser", "board", "children").
     func offerSiblings(_ pageIDs: [String], containerID: String, surface: String, depth: Int) {
         siblings.offer(pageIDs, containerID: containerID, surface: surface, depth: depth)
+    }
+
+    /// The pages the list a cover was clicked in shows, in display order, when that list offered them.
+    func listedSequence(containing pageID: String) -> PageSiblingSequence? {
+        siblings.offer(containing: pageID, at: path.count)
     }
 
     /// The pages Previous and Next step through on the page `pageID` whose screen sits at `depth` (`path.count` as it
@@ -606,7 +611,7 @@ struct DatabaseView: View {
                 handleDatabaseImport(result)
             }
         }
-        .pageCoverViewerHost(navigationState)
+        .quickPreviewHost(navigationState)
         .everPageStack(depth: navigationState.path.count) { if !navigationState.path.isEmpty { navigationState.path.removeLast() } }
         .findCommand {
             if !showingDatabaseSearch { showingDatabaseSearch = true }
@@ -1094,9 +1099,14 @@ struct DatabaseView: View {
     }
 
     private var listContentView: some View {
-        LazyVStack(spacing: 4) {
-            ForEach(visiblePageEntries) { entry in
-                pageRow(entry)
+        let entries = visiblePageEntries
+        var nextDepths: [String: Int] = [:]
+        for (offset, entry) in entries.enumerated() {
+            nextDepths[entry.id] = entries.indices.contains(offset + 1) ? entries[offset + 1].depth : 0
+        }
+        return LazyVStack(spacing: 4) {
+            ForEach(entries) { entry in
+                pageRow(entry, nextDepth: nextDepths[entry.id] ?? 0)
             }
         }
         .padding(.vertical, 8)
@@ -1237,7 +1247,7 @@ struct DatabaseView: View {
         }
     }
 
-    private func pageRow(_ entry: DatabasePageEntry) -> some View {
+    private func pageRow(_ entry: DatabasePageEntry, nextDepth: Int) -> some View {
         let page = entry.page
         return HStack(spacing: 8) {
             pageBase(page, isGridMode: false)
@@ -1253,6 +1263,11 @@ struct DatabaseView: View {
         .modifier(pageDragDrop(entry, axis: .vertical, gap: 4))
         .padding(.leading, CGFloat(min(entry.depth, 4) * 12))
         .padding(.horizontal, 16)
+        .overlay(alignment: .leading) {
+            if entry.depth > 0 {
+                DatabaseThreadRail(depth: min(entry.depth, 4), nextDepth: nextDepth)
+            }
+        }
     }
 
     private func pageCard(_ page: ExercisePage, isGridMode: Bool) -> some View {
@@ -1392,6 +1407,51 @@ private struct DatabasePageEntry: Identifiable {
     var id: String { page.manifest.id }
 }
 
+private struct DatabaseThreadRail: View {
+    let depth: Int
+    let nextDepth: Int
+
+    private static let levelColors: [Color] = [
+        Theme.toolbarOrange, Color(hex: "5AA9FF"), Color(hex: "5FD38D"), Color(hex: "B58CFF"),
+    ]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Color.clear.frame(width: 16)
+            ForEach(1...depth, id: \.self) { level in
+                thread(level: level)
+                    .frame(width: 12)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, -2)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func thread(level: Int) -> some View {
+        let color = Self.levelColors[(level - 1) % Self.levelColors.count].opacity(0.55)
+        let isOwn = level == depth
+        let continues = nextDepth >= level
+        return ZStack(alignment: .trailing) {
+            VStack(spacing: 0) {
+                Rectangle().fill(color)
+                if continues {
+                    Rectangle().fill(color)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(width: 2)
+            .frame(maxWidth: .infinity)
+            if isOwn {
+                Rectangle().fill(color)
+                    .frame(width: 6, height: 2)
+            }
+        }
+    }
+}
+
 private struct DatabaseSearchSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: DatabaseStore
@@ -1528,7 +1588,7 @@ private struct DatabaseSearchSheet: View {
                 }
             }
         }
-        .pageCoverViewerHost(navigationState)
+        .quickPreviewHost(navigationState)
         .environmentObject(navigationState)
         .onAppear { searchFocused = true }
         .findCommand {

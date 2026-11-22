@@ -8,16 +8,19 @@ struct ChecklistIconEditor: View {
     @Binding var iconImage: String?
     /// The page's pictures, offered as picture icons.
     let pictures: [URL]
+    var showsNone = true
 
     @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 44
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SkillChoicePill(title: "None", isSelected: iconName.isEmpty && iconImage == nil) {
-                iconName = ""
-                iconImage = nil
+            if showsNone {
+                SkillChoicePill(title: "None", isSelected: iconName.isEmpty && iconImage == nil) {
+                    iconName = ""
+                    iconImage = nil
+                }
+                .frame(maxWidth: 160)
             }
-            .frame(maxWidth: 160)
             SkillIconPicker(iconName: $iconName, iconType: $iconType)
             if !pictures.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {

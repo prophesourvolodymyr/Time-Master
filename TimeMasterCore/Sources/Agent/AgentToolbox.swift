@@ -52,6 +52,7 @@ public final class AgentToolbox {
             if let output = try runNoteTool(name, args, dryRun: dryRun) { return output }
             if let output = try runSkillTool(name, args, dryRun: dryRun) { return output }
             if let output = try runPageTagTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runSkillTrainingTool(name, args, dryRun: dryRun) { return output }
             throw AgentToolError("unknown_tool", "Unknown tool '\(name)'.")
         }
     }
@@ -107,6 +108,11 @@ public final class AgentToolbox {
                 case .changedTag(let pageID, let previous):
                     try database.setSkillType(previous, for: pageID)
                     notes.append(previous == nil ? "Took the tag off \(pageID)." : "Put the earlier tag back on \(pageID).")
+                case .changedTraining(let pageID, let previous):
+                    var page = try database.getPage(id: pageID)
+                    page.trains = previous
+                    try database.updatePage(id: pageID, manifest: page, newParentID: page.parentID)
+                    notes.append("Restored the skills \(pageID) trains.")
                 }
             } catch {
                 notes.append("Could not reverse \(effect): \(AgentToolError.translating(error).message)")

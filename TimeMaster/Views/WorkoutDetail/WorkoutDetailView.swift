@@ -20,6 +20,7 @@ struct WorkoutDetailView: View {
     @State private var showingWorkoutSettings = false
     @State private var mediaPreviewSection: Section? = nil
     @State private var heroPage: WorkoutPageHeroRequest?
+    @State private var quickPreview = QuickPreviewController()
     @State private var heroSources = WorkoutHeroSources()
     @State private var chrome = WorkoutEditorChromeState()
     @State private var durationEdit: DurationEditTarget?
@@ -188,6 +189,7 @@ struct WorkoutDetailView: View {
         }
         .font(TimeMasterFont.body())
         .background(Theme.background.ignoresSafeArea())
+        .quickPreviewHost(quickPreview) { openPreviewed($0) }
         .modifier(WorkoutFloatingControlsOverlay(
             workoutName: workout.name,
             context: heroPage == nil ? liveContext : nil,
@@ -425,6 +427,25 @@ struct WorkoutDetailView: View {
     private func openAction(_ pageID: UUID?, key: String, fallbackIcon: String) -> (() -> Void)? {
         guard let pageID else { return nil }
         return { openPage(pageID, from: key, fallbackIcon: fallbackIcon) }
+    }
+
+    private func previewPage(_ pageID: UUID?, key: String?, sectionID: UUID? = nil, fallbackIcon: String) {
+        guard let pageID else { return }
+        let steps = QuickPreviewSteps.steps(for: workout) { databaseStore.page(id: $0) }
+        guard let index = QuickPreviewSteps.index(of: key, pageID: pageID, blockID: sectionID?.uuidString, in: steps) else {
+            openPage(pageID, from: key, fallbackIcon: fallbackIcon)
+            return
+        }
+        quickPreview.present(steps, at: index)
+    }
+
+    private func openPreviewed(_ request: QuickPreviewOpen) {
+        if let tab = request.tab {
+            PageTabMemory.remember(tab, for: request.pageID.uuidString)
+        } else if let clip = request.clip, let page = databaseStore.page(id: request.pageID) {
+            PageCoverOpening.prepare(page, playing: clip)
+        }
+        openPage(request.pageID, from: nil, fallbackIcon: "figure.run")
     }
 
     private var emptySectionsView: some View {
@@ -1078,7 +1099,7 @@ struct WorkoutDetailView: View {
                     onAddSet: { addSlot(in: section.id) },
                     onEdit: { bundleToEdit = section },
                     onOpenPage: { pageID in
-                        openPage(pageID, from: heroSources.takeTapped(), fallbackIcon: "figure.boxing")
+                        previewPage(pageID, key: nil, sectionID: section.id, fallbackIcon: "figure.boxing")
                     }
                 )
             } else {
@@ -1233,7 +1254,8 @@ struct WorkoutDetailView: View {
         if let reps = section.repCount {
             parts.append("\(reps) reps")
         }
-        parts.append(section.isTimerEnabled ? formatCompactDuration(section.calculatedDuration) : "Until Done")
+        let time = formatCompactDuration(section.calculatedDuration)
+        parts.append(section.isTimerEnabled ? time : (section.mode == .bundle ? "~\(time)" : "Until Done"))
         return parts.joined(separator: " · ")
     }
 
@@ -1528,7 +1550,7 @@ struct WorkoutDetailView: View {
     ) -> some View {
         if let pageID {
             Button {
-                openPage(pageID, from: heroKey, fallbackIcon: fallbackIcon)
+                previewPage(pageID, key: heroKey, fallbackIcon: fallbackIcon)
             } label: {
                 pageThumbnail(pageID: pageID, size: size, fallbackIcon: fallbackIcon)
                     .workoutHeroSource(heroKey)
@@ -1539,7 +1561,7 @@ struct WorkoutDetailView: View {
                     }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Open page preview")
+            .accessibilityLabel("Preview exercise")
         } else {
             BuilderGlyphNode(
                 systemImage: fallbackIcon,
@@ -1908,7 +1930,7 @@ struct WorkoutDetailView: View {
             get: { workout.sections.first(where: { $0.id == section.id }) ?? section },
             set: { store.updateSection(in: workout, section: $0) }
         )) { pageID in
-            openPage(pageID, from: heroSources.takeTapped(), fallbackIcon: "figure.boxing")
+            previewPage(pageID, key: nil, sectionID: section.id, fallbackIcon: "figure.boxing")
         }
         .modifier(BuilderRowChrome(rail: item.rail, slice: rowSlice(item.slice), vertical: 10))
         .builderGroupedRow()

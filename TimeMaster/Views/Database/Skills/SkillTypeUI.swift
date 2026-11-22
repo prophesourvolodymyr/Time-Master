@@ -127,20 +127,16 @@ struct SkillTypeChip: View {
     }
 }
 
-/// The "no type yet" chip: a dashed tag that says a type can go here.
+/// The "no type yet" button: a single plus beside the type chips that says a type can go here.
 struct SkillAddTypeChip: View {
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "tag")
-                .font(.system(size: 10, weight: .semibold))
-            Text("Type")
-                .font(TimeMasterFont.caption())
-        }
-        .foregroundStyle(Theme.textSecondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .overlay(Capsule(style: .continuous).strokeBorder(Theme.separator, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
-        .accessibilityLabel("Add a type")
+        Image(systemName: "plus")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Theme.textSecondary)
+            .frame(width: 24, height: 24)
+            .overlay(Circle().strokeBorder(Theme.separator, lineWidth: 1))
+            .contentShape(Circle().inset(by: -8))
+            .accessibilityLabel("Add a type")
     }
 }
 

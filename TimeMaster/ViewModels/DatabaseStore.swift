@@ -28,6 +28,7 @@ class DatabaseStore: ObservableObject {
     ]
     private var reloadWorkItem: DispatchWorkItem?
     private var reloadGeneration = 0
+    private var appliedSignature: Int?
 
     @Published var rootFolders: [ExerciseFolder] = []
     @Published var rootNotes: [DatabaseNote] = []
@@ -65,8 +66,7 @@ class DatabaseStore: ObservableObject {
                     guard let snapshot = self.pageSnapshotIfReadable() else { return nil }
                     return {
                         guard self.reloadGeneration == generation else { return }
-                        self.apply(snapshot)
-                        self.libraryRevision &+= 1
+                        if self.apply(snapshot) { self.libraryRevision &+= 1 }
                     }
                 }
 
@@ -99,8 +99,7 @@ class DatabaseStore: ObservableObject {
         reloadGeneration &+= 1
 
         if isV2PageMigrated {
-            apply(pageSnapshotFromFileSystem())
-            libraryRevision &+= 1
+            if apply(pageSnapshotFromFileSystem()) { libraryRevision &+= 1 }
         } else if isV1Migrated {
             let snapshot = legacySnapshotFromFileSystem()
             rootFolders = snapshot.folders
@@ -156,14 +155,19 @@ class DatabaseStore: ObservableObject {
         let roots: [ExercisePage]
         let index: PageIndex
         let library: SkillLibrary
+        let signature: Int
     }
 
-    private func apply(_ snapshot: PageSnapshot) {
+    @discardableResult
+    private func apply(_ snapshot: PageSnapshot) -> Bool {
+        guard snapshot.signature != appliedSignature else { return false }
+        appliedSignature = snapshot.signature
         allPagesFlat = snapshot.flat
         rootPages = snapshot.roots
         derived.reset()
         derived.index = snapshot.index
         derived.skillLibrary = snapshot.library
+        return true
     }
 
     private func pageSnapshotFromFileSystem() -> PageSnapshot {
@@ -172,7 +176,21 @@ class DatabaseStore: ObservableObject {
 
     private static func snapshot(flat: [ExercisePage], roots: [ExercisePage]) -> PageSnapshot {
         let index = PageIndex(pages: flat)
-        return PageSnapshot(flat: flat, roots: roots, index: index, library: SkillLibrary(index: index))
+        return PageSnapshot(flat: flat, roots: roots, index: index, library: SkillLibrary(index: index), signature: signature(of: flat))
+    }
+
+    private static func signature(of pages: [ExercisePage]) -> Int {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        var hasher = Hasher()
+        for page in pages {
+            hasher.combine(page.path)
+            hasher.combine(page.mediaURLs)
+            hasher.combine(page.coverImageURL)
+            hasher.combine(page.inheritedWorkoutType?.id)
+            if let data = try? encoder.encode(page.manifest) { hasher.combine(data) }
+        }
+        return hasher.finalize()
     }
 
     private func pageSnapshotIfReadable() -> PageSnapshot? {

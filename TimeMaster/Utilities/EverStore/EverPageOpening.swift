@@ -4,11 +4,7 @@ enum EverPageMotion {
     static let duration = 0.24
     /// Fast off the edge, a long settle: page openings and page travel.
     static let curve = Animation.timingCurve(0.16, 0.8, 0.24, 1, duration: duration)
-    /// Blur radius (points) of a travelling page across its direction of travel; along it the blur is `smear` times
-    /// wider. It clears as the page settles.
-    static let blur: CGFloat = 3
-    static let smear: CGFloat = 7
-    /// How far a page that comes in without a picture of the one before (another bar page) starts from its place.
+    /// How far a page that comes in (another bar page, a push or a pop) starts from its place.
     static let nudge: CGFloat = 96
 
     static func sample(_ fraction: Double, duration: Double = EverPageMotion.duration,

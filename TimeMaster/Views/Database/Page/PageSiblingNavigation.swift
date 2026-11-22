@@ -252,7 +252,7 @@ private struct PageSiblingNavigationModifier: ViewModifier {
                 #endif
             }
             .offset(x: slide + navigator.rubberBand)
-            .opacity(reduceMotion ? Double(progress) : 0.35 + 0.65 * Double(progress))
+            .opacity(reduceMotion ? Double(progress) : 1)
             .onAppear { appear(pageID) }
             // The action is the one of the view before the change: it must take the new id from its argument.
             .onChange(of: pageID) { appear($0) }

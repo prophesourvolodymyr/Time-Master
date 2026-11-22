@@ -402,6 +402,28 @@ extension DatabaseStore {
         }
     }
 
+    func trainers(of skillID: String) -> [SkillTrainer] {
+        allPagesFlat
+            .compactMap { page -> SkillTrainer? in
+                guard let link = page.manifest.trains.first(where: { $0.skillID == skillID }) else { return nil }
+                return SkillTrainer(page: page, tier: link.tier)
+            }
+            .sorted { left, right in
+                left.tier.rank != right.tier.rank
+                    ? left.tier.rank < right.tier.rank
+                    : left.page.title.localizedCaseInsensitiveCompare(right.page.title) == .orderedAscending
+            }
+    }
+
+    func setTraining(_ pageID: String, skill skillID: String, tier: SkillTier?) throws {
+        try skillWrite { database in
+            var manifest = try database.getPage(id: pageID)
+            manifest.trains.removeAll { $0.skillID == skillID }
+            if let tier { manifest.trains.append(SkillTraining(skillID: skillID, tier: tier)) }
+            try database.updatePage(id: pageID, manifest: manifest, newParentID: manifest.parentID)
+        }
+    }
+
     func removeSkillMedia(_ filename: String, from id: String) throws {
         try skillWrite { try $0.removeMediaFromPage(pageID: id, filename: filename) }
     }
