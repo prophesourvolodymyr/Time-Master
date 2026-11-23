@@ -9,7 +9,7 @@ struct ExercisePage: Identifiable {
     let path: String
     let inheritedWorkoutType: TimeMasterCore.WorkoutType?
 
-    var id: UUID { UUID(uuidString: manifest.id) ?? UUID() }
+    let id: UUID
     var title: String { manifest.title }
     var pageType: PageType? { manifest.pageType }
     var isContainer: Bool { manifest.pageKind == .container }
@@ -49,6 +49,7 @@ struct ExercisePage: Identifiable {
         inheritedWorkoutType: TimeMasterCore.WorkoutType? = nil
     ) {
         self.manifest = manifest
+        self.id = UUID(uuidString: manifest.id) ?? UUID()
         self.children = children
         self.coverImageURL = coverImageURL
         self.mediaURLs = mediaURLs
@@ -58,6 +59,7 @@ struct ExercisePage: Identifiable {
 
     init(from manifest: ExercisePageManifest, baseURL: URL, legacyMediaDirectory: URL, path: String = "") {
         self.manifest = manifest
+        self.id = UUID(uuidString: manifest.id) ?? UUID()
         self.children = []
         self.path = path
         self.inheritedWorkoutType = nil

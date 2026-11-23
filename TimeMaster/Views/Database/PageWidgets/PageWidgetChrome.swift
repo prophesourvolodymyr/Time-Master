@@ -155,6 +155,7 @@ struct PageWidgetSurface: View {
                 .offset(x: -2.2, y: -2.2)
                 .clipShape(shape)
         }
+        .drawingGroup()
         .accessibilityHidden(true)
     }
 }
