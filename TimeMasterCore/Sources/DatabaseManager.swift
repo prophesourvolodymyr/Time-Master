@@ -391,12 +391,7 @@ Find pages in the Tmax library.
             normalized.typePresets = parentIsSkill == true ? [] : Self.renumberedTypePresets(normalized.typePresets)
             let media = Set(normalized.mediaFilenames)
             let links = Set(normalized.linkURLs)
-            let icon = normalized.iconName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            normalized.iconName = icon.isEmpty ? nil : icon
-            if normalized.iconName == nil { normalized.iconType = nil }
-            if let picture = normalized.iconImage, !media.contains(picture), !Self.isWebImageReference(picture) {
-                normalized.iconImage = nil
-            }
+            Self.normalizeIcon(&normalized)
             normalized.dependencyPageIDs = normalized.dependencyPageIDs.uniqued().filter { $0 != normalized.id }
             normalized.dependencyMediaFilenames = normalized.dependencyMediaFilenames.uniqued().filter(media.contains)
             normalized.dependencyLinkURLs = normalized.dependencyLinkURLs.uniqued().filter(links.contains)
@@ -443,9 +438,7 @@ Find pages in the Tmax library.
             normalized.skillBoardOrder = nil
             normalized.skillBoardSections = []
             normalized.linkedPageIDs = []
-            normalized.iconName = nil
-            normalized.iconType = nil
-            normalized.iconImage = nil
+            Self.normalizeIcon(&normalized)
             normalized.dependencyPageIDs = []
             normalized.dependencyMediaFilenames = []
             normalized.dependencyLinkURLs = []
@@ -464,9 +457,7 @@ Find pages in the Tmax library.
             normalized.skillBoardSectionID = nil
             normalized.skillBoardOrder = nil
             normalized.linkedPageIDs = []
-            normalized.iconName = nil
-            normalized.iconType = nil
-            normalized.iconImage = nil
+            Self.normalizeIcon(&normalized)
             normalized.dependencyPageIDs = []
             normalized.dependencyMediaFilenames = []
             normalized.dependencyLinkURLs = []
@@ -515,6 +506,15 @@ Find pages in the Tmax library.
     static func isWebImageReference(_ value: String) -> Bool {
         guard let url = URL(string: value), let scheme = url.scheme?.lowercased() else { return false }
         return (scheme == "https" || scheme == "http") && url.host != nil
+    }
+
+    static func normalizeIcon(_ page: inout ExercisePageManifest) {
+        let icon = page.iconName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        page.iconName = icon.isEmpty ? nil : icon
+        if page.iconName == nil { page.iconType = nil }
+        if let picture = page.iconImage, !page.mediaFilenames.contains(picture), !isWebImageReference(picture) {
+            page.iconImage = nil
+        }
     }
 
     /// Writes a page's `manifest.json` and its `guide.md` mirror. A group's content folder (see `SkillGroupID`) has

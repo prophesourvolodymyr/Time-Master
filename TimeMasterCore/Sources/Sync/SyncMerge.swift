@@ -181,7 +181,7 @@ struct SyncJSONMerge {
     var remoteLabel = "Other device"
     private(set) var textConflicts = 0
 
-    private static let identityKeys = ["id", "week", "url"]
+    private static let identityKeys = ["id", "week", "url", "skillID"]
     private static let textKeys: Set<String> = ["markdownBody", "markdown", "notes", "text", "publicDescription"]
 
     init(preferRemote: Bool, localLabel: String = "This device", remoteLabel: String = "Other device") {

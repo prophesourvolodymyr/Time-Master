@@ -342,8 +342,8 @@ public struct ExercisePageManifest: Codable {
         self.pageType = resolvedPageType
         self.coverImageFilename = isNote ? nil : coverImageFilename
         self.iconName = iconName
-        self.iconType = isSkillPage || isNote ? iconType : nil
-        self.iconImage = isSkillPage ? iconImage : nil
+        self.iconType = iconType
+        self.iconImage = isNote ? nil : iconImage
         self.coverMediaFilename = isNote ? nil : coverMediaFilename
         self.markdownBody = markdownBody
         self.mediaFilenames = isNote ? [] : mediaFilenames
