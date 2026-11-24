@@ -50,8 +50,8 @@ final class AgentRestExerciseTests: XCTestCase {
     func testSectionToolsOfferBothRestExerciseArguments() throws {
         for name in ["add_workout_section", "update_workout_section"] {
             let tool = try XCTUnwrap(AgentToolRegistry.tool(named: name))
-            XCTAssertEqual(tool.properties["restExercise"]?["type"] as? String, "string", name)
-            XCTAssertEqual(tool.properties["restAfterExercise"]?["type"] as? String, "string", name)
+            XCTAssertEqual(tool.properties["restExercise"]?["type"] as? String, "array", name)
+            XCTAssertEqual(tool.properties["restAfterExercise"]?["type"] as? String, "array", name)
         }
         let build = try XCTUnwrap(AgentToolRegistry.tool(named: "build_workout"))
         let item = try XCTUnwrap(build.properties["sections"]?["items"] as? [String: Any])
@@ -125,12 +125,13 @@ final class AgentRestExerciseTests: XCTestCase {
         XCTAssertTrue(error?.message.contains("no rest after it") == true, error?.message ?? "")
     }
 
-    func testABundleCannotTakeARestBetweenSetsExercise() {
+    func testABundleTakesARestBetweenSetsExerciseInEveryRestButTheLast() throws {
         let bundle: [String: Any] = ["exercises": [["exercise": "Calisthenics/Dips"], ["exercise": "Calisthenics/Rows"]], "sets": 3, "restBetweenSets": 60]
-        let error = failure {
-            try self.call("build_workout", ["name": "Bundle", "sections": [["bundle": bundle, "restExercise": "Calisthenics/Wrist Circles"], ["exercise": "Calisthenics/Rows"]]])
-        }
-        XCTAssertEqual(error?.code, "invalid_argument")
+        try call("build_workout", ["name": "Bundle", "sections": [["bundle": bundle, "restExercise": "Calisthenics/Wrist Circles"], ["exercise": "Calisthenics/Rows"]]])
+
+        let section = try stored("Bundle").sections[0]
+        XCTAssertEqual(section.slots.map(\.restExerciseID), [wristID, wristID, nil])
+        XCTAssertEqual(section.playbackSlots().filter { $0.restExerciseID != nil }.count, 2)
     }
 
     func testABundleCanTakeAnExerciseInItsBigRest() throws {

@@ -1,7 +1,7 @@
 import Foundation
 
 extension AgentToolRegistry {
-    static var bundleTools: [AgentTool] { [addWorkoutSection, updateWorkoutSection, removeWorkoutSection, updateWorkout] }
+    static var bundleTools: [AgentTool] { [addWorkoutSection, updateWorkoutSection, removeWorkoutSection, updateWorkout, foldRestFillers] }
 
     private static let workoutRef = "Workout id or exact name."
     private static let sectionRef = "Section position in the workout (1 is the first) or its exact name."
@@ -12,6 +12,7 @@ extension AgentToolRegistry {
             "name": AgentSchema.string("Label shown in the player; defaults to the exercise title."),
             "duration": AgentSchema.integer("Seconds this exercise runs, 1 or more; defaults to the exercise's duration.", minimum: 1),
             "restAfter": AgentSchema.integer("Rest in seconds after this exercise; 0 switches straight to the next one.", minimum: 0),
+            "restExercise": AgentSchema.strings("Exercise played during the rest after this exercise; pass several to let the user choose, the first is the default. restAfter must be at least as long as each exercise's duration. \(pageRef) Pass \"\" to remove."),
             "repCount": AgentSchema.integer("Target reps.", minimum: 1),
         ], required: ["exercise"])
     }
@@ -39,8 +40,8 @@ extension AgentToolRegistry {
             "prepareTime": AgentSchema.integer("Preparation seconds before the section (timed section).", minimum: 0, maximum: 30),
             "restAfter": AgentSchema.integer("Rest in seconds after this section, before the next one; defaults to the workout's rest between sections.", minimum: 0),
             "untimed": AgentSchema.boolean("true: no countdown, every set (or bundle exercise) runs until the user taps Done; good for rep-based exercises. false (default): sets count down their duration."),
-            "restExercise": AgentSchema.string("Exercise played during every rest between sets (timed section only). It needs sets above 1 and restBetweenSets at least as long as the exercise's duration, so not every section can have one. \(pageRef) Pass \"\" to remove."),
-            "restAfterExercise": AgentSchema.string("Exercise played during the rest after this section (any section). It needs restAfter at least as long as the exercise's duration; the last section has no rest after it. \(pageRef) Pass \"\" to remove."),
+            "restExercise": AgentSchema.strings("Exercise played during every rest between sets, timed section or bundle; pass several to let the user choose, the first is the default. It needs sets above 1 and restBetweenSets at least as long as each exercise's duration. \(pageRef) Pass \"\" to remove."),
+            "restAfterExercise": AgentSchema.strings("Exercise played during the rest after this section (any section); pass several to let the user choose, the first is the default. It needs restAfter at least as long as each exercise's duration; the last section has no rest after it. \(pageRef) Pass \"\" to remove."),
         ]
     }
 
@@ -137,6 +138,19 @@ extension AgentToolRegistry {
                 "type": AgentSchema.string("Workout type name or id."),
                 "restBetweenSections": AgentSchema.integer("Rest between sections in seconds.", minimum: 0),
             ], required: ["workout"])
+        )
+    }
+
+    static var foldRestFillers: AgentTool {
+        AgentTool(
+            name: "fold_rest_fillers",
+            summary: "Turn filler exercises inside bundles (children named like 'Between sets: Leg Swings') into rest exercises. Each filler moves into the rest after the exercise before it; a bundle left with one exercise per set becomes a timed section.",
+            risk: .write, executor: .core, coach: false,
+            schema: AgentSchema.object([
+                "workout": AgentSchema.string("Workout id or exact name; omit to go through every workout."),
+                "prefix": AgentSchema.string("Filler children start with this text (default \"Between sets\")."),
+                "keepNames": AgentSchema.boolean("true: keep section names as they are. false (default): drop a note like '(leg swings between, 60 s)' from the name once the rest holds the exercise."),
+            ])
         )
     }
 }

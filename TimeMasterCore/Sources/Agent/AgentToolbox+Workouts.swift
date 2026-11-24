@@ -56,15 +56,23 @@ extension AgentToolbox {
         let items = value as? [[String: Any]] ?? []
         return try items.enumerated().map { entry in
             let item = entry.element
-            let page = try workoutExercisePage(item["exercise"], index: pages, label: "\(label).bundle.exercises[\(entry.offset)]")
-            return WorkoutSetSlotManifest(
+            let place = "\(label).bundle.exercises[\(entry.offset)]"
+            let page = try workoutExercisePage(item["exercise"], index: pages, label: place)
+            let rest = item["restAfter"] as? Int ?? page.restAfter ?? 5
+            var slot = WorkoutSetSlotManifest(
                 exerciseID: page.id,
                 name: (item["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? page.title,
                 duration: item["duration"] as? Int ?? page.duration ?? 30,
                 repCount: item["repCount"] as? Int,
-                restAfter: item["restAfter"] as? Int ?? page.restAfter ?? 5,
+                restAfter: rest,
                 prepareTime: 0
             )
+            if let references = Self.references(item["restExercise"]), !references.isEmpty {
+                let chosen = try restExercisePages(references, seconds: rest, index: pages, label: "\(place).restExercise", key: "restAfter")
+                slot.restExerciseID = chosen[0].id
+                slot.restExerciseAlternativeIDs = chosen.dropFirst().map(\.id)
+            }
+            return slot
         }
     }
 
@@ -169,6 +177,10 @@ extension AgentToolbox {
             if let pages, pages.byID[id] != nil { return pages.titlePath(id) }
             return fallback
         }
+        func restLabel(_ ids: [String]) -> Any? {
+            let labels = ids.map { label($0, "rest exercise") }
+            return labels.count > 1 ? labels : labels.first
+        }
         let sections = workout.sections.enumerated().map { entry -> [String: Any] in
             let section = entry.element
             var item: [String: Any] = ["position": entry.offset + 1, "seconds": section.calculatedDuration]
@@ -180,13 +192,18 @@ extension AgentToolbox {
                 let setSlots = bundleSetSlots(of: section)
                 item["sets"] = setSlots.count
                 item["prepareTime"] = section.prepareTime
-                if setSlots.count > 1 { item["restBetweenSets"] = setSlots[0].playbackRest }
+                if setSlots.count > 1 {
+                    item["restBetweenSets"] = setSlots[0].playbackRest
+                    if let rest = restLabel(setSlots[0].restExerciseChoices) { item["restExercise"] = rest }
+                }
                 let rounds = setSlots.map { set in
                     set.children.map { exercise -> [String: Any] in
-                        ["exercise": label(exercise.exerciseID, exercise.alias.flatMap { $0.isEmpty ? nil : $0 } ?? exercise.name), "duration": exercise.duration, "restAfter": exercise.playbackRest]
+                        var entry: [String: Any] = ["exercise": label(exercise.exerciseID, exercise.alias.flatMap { $0.isEmpty ? nil : $0 } ?? exercise.name), "duration": exercise.duration, "restAfter": exercise.playbackRest]
+                        if let rest = restLabel(exercise.restExerciseChoices) { entry["restExercise"] = rest }
+                        return entry
                     }
                 }
-                let signature = { (round: [[String: Any]]) in round.map { "\($0["exercise"] ?? "")|\($0["duration"] ?? 0)|\($0["restAfter"] ?? 0)" } }
+                let signature = { (round: [[String: Any]]) in round.map { "\($0["exercise"] ?? "")|\($0["duration"] ?? 0)|\($0["restAfter"] ?? 0)|\($0["restExercise"] ?? "")" } }
                 if let first = rounds.first, rounds.allSatisfy({ signature($0) == signature(first) }) {
                     item["exercises"] = first
                 } else {
@@ -199,9 +216,9 @@ extension AgentToolbox {
                 if section.sets > 1 {
                     item["sets"] = section.sets
                     item["restBetweenSets"] = section.restBetweenSets
-                    if let id = section.restExerciseID ?? section.slots.dropLast().compactMap(\.restExerciseID).first {
-                        item["restExercise"] = label(id, "rest exercise")
-                    }
+                    let source = section.slots.dropLast().first { !$0.restExerciseChoices.isEmpty }
+                    let choices = section.restExerciseChoices.isEmpty ? (source?.restExerciseChoices ?? []) : section.restExerciseChoices
+                    if let rest = restLabel(choices) { item["restExercise"] = rest }
                 }
             }
             if !section.isTimerEnabled { item["untimed"] = true }
@@ -209,7 +226,7 @@ extension AgentToolbox {
                 let rest = section.bigRestRow?.duration ?? (section.customRestAfter == 0 ? 0 : workout.restBetweenSections)
                 if rest != workout.restBetweenSections { item["restAfter"] = rest }
             }
-            if let id = section.bigRestRow?.exerciseID { item["restAfterExercise"] = label(id, "rest exercise") }
+            if let row = section.bigRestRow, let rest = restLabel(row.exerciseChoices) { item["restAfterExercise"] = rest }
             return item
         }
         return AgentToolOutput(value: [

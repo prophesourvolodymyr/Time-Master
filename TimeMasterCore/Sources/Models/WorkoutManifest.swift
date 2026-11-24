@@ -45,19 +45,50 @@ public struct WorkoutRestRowManifest: Codable, Equatable, Identifiable {
     public var duration: Int
     public var contents: [WorkoutRestContentManifest]
     public var exerciseID: String?
+    public var alternativeExerciseIDs: [String]
 
     public init(
         id: String = UUID().uuidString,
         kind: WorkoutRestRowKind = .normal,
         duration: Int = 30,
         contents: [WorkoutRestContentManifest] = [],
-        exerciseID: String? = nil
+        exerciseID: String? = nil,
+        alternativeExerciseIDs: [String] = []
     ) {
         self.id = id
         self.kind = kind
         self.duration = max(0, duration)
         self.contents = contents
         self.exerciseID = exerciseID
+        self.alternativeExerciseIDs = alternativeExerciseIDs
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, kind, duration, contents, exerciseID, alternativeExerciseIDs
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        kind = try c.decodeIfPresent(WorkoutRestRowKind.self, forKey: .kind) ?? .normal
+        duration = max(0, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
+        contents = try c.decodeIfPresent([WorkoutRestContentManifest].self, forKey: .contents) ?? []
+        exerciseID = try c.decodeIfPresent(String.self, forKey: .exerciseID)
+        alternativeExerciseIDs = try c.decodeIfPresent([String].self, forKey: .alternativeExerciseIDs) ?? []
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(duration, forKey: .duration)
+        try c.encode(contents, forKey: .contents)
+        try c.encodeIfPresent(exerciseID, forKey: .exerciseID)
+        if !alternativeExerciseIDs.isEmpty { try c.encode(alternativeExerciseIDs, forKey: .alternativeExerciseIDs) }
+    }
+
+    public var exerciseChoices: [String] {
+        ([exerciseID].compactMap { $0 } + alternativeExerciseIDs).uniqued()
     }
 
     public static func canHold(exerciseSeconds: Int?, restSeconds: Int) -> Bool {
@@ -100,6 +131,7 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
     public var repCount: Int?
     public var restAfter: Int
     public var restExerciseID: String?
+    public var restExerciseAlternativeIDs: [String]
     public var prepareTime: Int?
     public var drops: [WorkoutDropSetManifest]
     public var children: [WorkoutSetSlotManifest]
@@ -118,7 +150,8 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
         restExerciseID: String? = nil,
         drops: [WorkoutDropSetManifest] = [],
         children: [WorkoutSetSlotManifest] = [],
-        restRow: WorkoutRestRowManifest? = nil
+        restRow: WorkoutRestRowManifest? = nil,
+        restExerciseAlternativeIDs: [String] = []
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -130,6 +163,7 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
         self.restAfter = max(0, restAfter)
         self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
         self.restExerciseID = restExerciseID
+        self.restExerciseAlternativeIDs = restExerciseAlternativeIDs
         self.drops = drops
         self.children = children
         self.restRow = restRow ?? (restAfter > 0 ? WorkoutRestRowManifest(duration: restAfter) : nil)
@@ -137,7 +171,7 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id, exerciseID, nestedWorkoutID, name, alias, duration, repCount, restAfter, prepareTime
-        case restExerciseID, drops, children, restRow
+        case restExerciseID, restExerciseAlternativeIDs, drops, children, restRow
     }
 
     public init(from decoder: Decoder) throws {
@@ -152,6 +186,7 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
         restAfter = max(0, try c.decodeIfPresent(Int.self, forKey: .restAfter) ?? 10)
         prepareTime = try c.decodeIfPresent(Int.self, forKey: .prepareTime).map { min(30, max(0, $0)) }
         restExerciseID = try c.decodeIfPresent(String.self, forKey: .restExerciseID)
+        restExerciseAlternativeIDs = try c.decodeIfPresent([String].self, forKey: .restExerciseAlternativeIDs) ?? []
         drops = try c.decodeIfPresent([WorkoutDropSetManifest].self, forKey: .drops) ?? []
         children = try c.decodeIfPresent([WorkoutSetSlotManifest].self, forKey: .children) ?? []
         restRow = try c.decodeIfPresent(WorkoutRestRowManifest.self, forKey: .restRow)
@@ -172,9 +207,14 @@ public struct WorkoutSetSlotManifest: Codable, Equatable, Identifiable {
         try c.encode(restAfter, forKey: .restAfter)
         try c.encodeIfPresent(prepareTime, forKey: .prepareTime)
         try c.encodeIfPresent(restExerciseID, forKey: .restExerciseID)
+        if !restExerciseAlternativeIDs.isEmpty { try c.encode(restExerciseAlternativeIDs, forKey: .restExerciseAlternativeIDs) }
         try c.encode(drops, forKey: .drops)
         try c.encode(children, forKey: .children)
         try c.encodeIfPresent(restRow, forKey: .restRow)
+    }
+
+    public var restExerciseChoices: [String] {
+        ([restExerciseID].compactMap { $0 } + restExerciseAlternativeIDs).uniqued()
     }
 }
 
@@ -197,11 +237,12 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
     public var bundleOrder: WorkoutBundleOrder
     public var bundleVoiceEnabled: Bool
     public var restExerciseID: String?
+    public var restExerciseAlternativeIDs: [String]
 
     enum CodingKeys: String, CodingKey {
         case id, exerciseID, name, alias, duration, sets, repCount, restBetweenSets
         case prepareTime, customRestAfter, isTimerEnabled, mediaFilenames, mode, slots
-        case bigRestRow, bundleOrder, bundleVoiceEnabled, restExerciseID
+        case bigRestRow, bundleOrder, bundleVoiceEnabled, restExerciseID, restExerciseAlternativeIDs
     }
 
     public init(
@@ -222,7 +263,8 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         bigRestRow: WorkoutRestRowManifest? = nil,
         bundleOrder: WorkoutBundleOrder = .ordered,
         bundleVoiceEnabled: Bool = true,
-        restExerciseID: String? = nil
+        restExerciseID: String? = nil,
+        restExerciseAlternativeIDs: [String] = []
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -242,6 +284,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         self.bundleOrder = bundleOrder
         self.bundleVoiceEnabled = bundleVoiceEnabled
         self.restExerciseID = restExerciseID
+        self.restExerciseAlternativeIDs = restExerciseAlternativeIDs
     }
 
     public init(from decoder: Decoder) throws {
@@ -264,6 +307,7 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         bundleOrder = try c.decodeIfPresent(WorkoutBundleOrder.self, forKey: .bundleOrder) ?? .ordered
         bundleVoiceEnabled = try c.decodeIfPresent(Bool.self, forKey: .bundleVoiceEnabled) ?? true
         restExerciseID = try c.decodeIfPresent(String.self, forKey: .restExerciseID)
+        restExerciseAlternativeIDs = try c.decodeIfPresent([String].self, forKey: .restExerciseAlternativeIDs) ?? []
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -286,6 +330,11 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         try c.encode(bundleOrder, forKey: .bundleOrder)
         try c.encode(bundleVoiceEnabled, forKey: .bundleVoiceEnabled)
         try c.encodeIfPresent(restExerciseID, forKey: .restExerciseID)
+        if !restExerciseAlternativeIDs.isEmpty { try c.encode(restExerciseAlternativeIDs, forKey: .restExerciseAlternativeIDs) }
+    }
+
+    public var restExerciseChoices: [String] {
+        ([restExerciseID].compactMap { $0 } + restExerciseAlternativeIDs).uniqued()
     }
 }
 

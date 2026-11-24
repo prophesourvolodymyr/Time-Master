@@ -113,6 +113,10 @@ public final class AgentToolbox {
                     page.trains = previous
                     try database.updatePage(id: pageID, manifest: page, newParentID: page.parentID)
                     notes.append("Restored the skills \(pageID) trains.")
+                case .changedWorkout(let id, let previous):
+                    let manifest = try JSONDecoder().decode(WorkoutManifest.self, from: Data(previous.utf8))
+                    try database.updateWorkout(id: id, manifest: manifest)
+                    notes.append("Restored workout \(id) to how it was.")
                 }
             } catch {
                 notes.append("Could not reverse \(effect): \(AgentToolError.translating(error).message)")

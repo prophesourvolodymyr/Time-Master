@@ -58,9 +58,11 @@ extension WorkoutSectionManifest {
                     row.duration = rest
                     exercises[last].restRow = row
                     exercises[last].restExerciseID = set.restExerciseID
+                    exercises[last].restExerciseAlternativeIDs = set.restExerciseAlternativeIDs
                 } else {
                     exercises[last].restRow = nil
                     exercises[last].restExerciseID = nil
+                    exercises[last].restExerciseAlternativeIDs = []
                 }
             }
             result.append(contentsOf: exercises)
@@ -74,7 +76,8 @@ extension WorkoutSectionManifest {
             return WorkoutSetSlotManifest(
                 id: generatedSlotID(index), exerciseID: exerciseID, name: name,
                 duration: duration, restAfter: hasRest ? restBetweenSets : 0,
-                restExerciseID: hasRest && restBetweenSets > 0 ? restExerciseID : nil
+                restExerciseID: hasRest && restBetweenSets > 0 ? restExerciseID : nil,
+                restExerciseAlternativeIDs: hasRest && restBetweenSets > 0 ? restExerciseAlternativeIDs : []
             )
         }
     }
@@ -104,6 +107,7 @@ extension WorkoutSectionManifest {
         main.restAfter = 0
         main.restRow = nil
         main.restExerciseID = nil
+        main.restExerciseAlternativeIDs = []
         var result = [main]
         for (index, drop) in slot.drops.enumerated() {
             let isLast = index + 1 == slot.drops.count
@@ -113,6 +117,7 @@ extension WorkoutSectionManifest {
             )
             if isLast {
                 item.restExerciseID = slot.restExerciseID
+                item.restExerciseAlternativeIDs = slot.restExerciseAlternativeIDs
                 if var row = slot.restRow {
                     row.duration = item.restAfter
                     item.restRow = row

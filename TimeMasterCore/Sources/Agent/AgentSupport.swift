@@ -62,6 +62,8 @@ public enum AgentEffect: Codable, Equatable {
     case changedTag(pageID: String, previous: String?)
     /// A page's training links changed; `previous` is the list it held before.
     case changedTraining(pageID: String, previous: [SkillTraining])
+    /// A workout was edited; `previous` is its manifest as JSON before the edit.
+    case changedWorkout(id: String, previous: String)
 }
 
 public struct AgentToolOutput {
