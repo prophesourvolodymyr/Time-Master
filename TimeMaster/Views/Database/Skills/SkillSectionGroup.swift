@@ -65,11 +65,11 @@ extension EnvironmentValues {
 
 // MARK: - Group surface
 
-/// A section drawn as a group: one rounded card with a colour strip down its leading edge, tinted with that colour.
-/// While a sub-skill is dragged over it, or right after the section was made, the whole card lights up. A section with
-/// a picture shows it inside a wider strip, and the strip, card and header take the picture's colours.
+/// A section drawn as a group: no card, only a thin line of its colour down the leading edge. While a sub-skill is
+/// dragged over it, or right after the section was made, a faint wash and ring of that colour light it up. A section
+/// with a picture shows it inside a slightly wider line, and the line and header take the picture's colours.
 struct SkillSectionGroupSurface: ViewModifier {
-    /// Strip colour (`RRGGBB`); nil draws the neutral grey of the skills outside every group.
+    /// Line colour (`RRGGBB`); nil draws the neutral grey of the skills outside every group.
     let colorHex: String?
     var stripImageURL: URL? = nil
     var isDropTarget = false
@@ -77,14 +77,14 @@ struct SkillSectionGroupSurface: ViewModifier {
     var verticalPadding: CGFloat = SkillMetrics.s2
 
     static let cornerRadius: CGFloat = SkillMetrics.cardRadius
-    static let stripWidth: CGFloat = 5
-    static let pictureStripWidth: CGFloat = 12
-    static let stripInset: CGFloat = 9
-    static let pictureStripInset: CGFloat = 6
-    static let stripEndInset: CGFloat = 11
-    /// Where the content starts: past the strip, with room to breathe.
+    static let stripWidth: CGFloat = 3
+    static let pictureStripWidth: CGFloat = 8
+    static let stripInset: CGFloat = 2
+    static let pictureStripInset: CGFloat = 0
+    static let stripEndInset: CGFloat = 6
+    /// Where the content starts: past the line, with room to breathe.
     static let contentLeading: CGFloat = stripInset + stripWidth + SkillMetrics.s3
-    static let contentTrailing: CGFloat = SkillMetrics.s3
+    static let contentTrailing: CGFloat = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var picture = SkillStripImageModel()
@@ -105,16 +105,9 @@ struct SkillSectionGroupSurface: ViewModifier {
             .padding(.vertical, verticalPadding)
             .background {
                 shape
-                    .fill(
-                        LinearGradient(
-                            colors: [color.opacity(lit ? 0.24 : 0.10), color.opacity(lit ? 0.12 : 0.03)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .fill(color.opacity(lit ? 0.1 : 0))
                     .animation(animation, value: lit)
             }
-            .modifier(TimeMasterCardSurface(cornerRadius: Self.cornerRadius, accent: color, flat: true))
             .overlay(alignment: .leading) {
                 strip(color: color)
                     .padding(.vertical, Self.stripEndInset)
@@ -124,7 +117,7 @@ struct SkillSectionGroupSurface: ViewModifier {
             }
             .overlay {
                 shape
-                    .strokeBorder(color.opacity(isDropTarget ? 0.95 : 0.7), lineWidth: 2)
+                    .strokeBorder(color.opacity(isDropTarget ? 0.9 : 0.6), lineWidth: 1.5)
                     .opacity(lit ? 1 : 0)
                     .animation(animation, value: lit)
                     .allowsHitTesting(false)
@@ -147,19 +140,16 @@ struct SkillSectionGroupSurface: ViewModifier {
             }
             .frame(width: Self.pictureStripWidth)
             .clipShape(Capsule(style: .continuous))
-            .overlay(Capsule(style: .continuous).strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
-            .shadow(color: color.opacity(0.4), radius: 4)
         } else {
             Capsule(style: .continuous)
                 .fill(color)
                 .frame(width: Self.stripWidth)
-                .shadow(color: color.opacity(0.4), radius: 4)
         }
     }
 }
 
 extension View {
-    /// Draws this stack as one section group: rounded card, colour strip on the leading edge, drop-target glow.
+    /// Draws this stack as one section group: a thin line of the section's colour on the leading edge, drop-target glow.
     func skillSectionGroup(
         colorHex: String?,
         stripImageURL: URL? = nil,
@@ -181,14 +171,15 @@ extension View {
 
 // MARK: - Section header
 
-/// Header of a section group: collapse chevron, icon in the section colour, name, count pill and a menu. With
-/// `onOpen` the chevron collapses the group and the rest of the row opens it as a page; without it the whole row
-/// collapses, as it does for the skills outside every group.
+/// Header of a section group, bare: a small chevron, the section's own symbol or emoji when it has one, the name and a
+/// quiet count, then a menu. With `onOpen` the chevron collapses the group and the rest of the row opens it as a page;
+/// without it the whole row collapses, as it does for the skills outside every group. The colour lives in the line the
+/// group surface draws beside it.
 struct SkillBoardSectionHeader<MenuContent: View>: View {
     let title: String
     let iconName: String?
     let iconType: SkillBoardIconType?
-    /// Section colour (`RRGGBB`) for the icon and the count; nil = the neutral grey.
+    /// Section colour (`RRGGBB`) for the symbol; nil = the neutral grey.
     let colorHex: String?
     let count: Int
     let isCollapsed: Bool
@@ -207,19 +198,18 @@ struct SkillBoardSectionHeader<MenuContent: View>: View {
             if let onOpen {
                 Button(action: onToggle) {
                     chevron
-                        .frame(width: 28, height: SkillMetrics.row)
+                        .frame(width: 24, height: SkillMetrics.touch)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(SkillPressButtonStyle())
                 .accessibilityLabel(isCollapsed ? "Expand \(title)" : "Collapse \(title)")
                 .help(isCollapsed ? "Expand" : "Collapse")
                 Button(action: onOpen) {
-                    HStack(spacing: SkillMetrics.s3) {
-                        iconAndTitle
+                    HStack(spacing: SkillMetrics.s2) {
+                        iconTitleAndCount
                         Spacer(minLength: SkillMetrics.s2)
-                        countPill
                     }
-                    .frame(minHeight: SkillMetrics.row)
+                    .frame(minHeight: SkillMetrics.touch)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(SkillPressButtonStyle())
@@ -228,14 +218,13 @@ struct SkillBoardSectionHeader<MenuContent: View>: View {
                 .help("Open \(title) as a page")
             } else {
                 Button(action: onToggle) {
-                    HStack(spacing: SkillMetrics.s3) {
+                    HStack(spacing: SkillMetrics.s2) {
                         chevron
                             .frame(width: 16)
-                        iconAndTitle
+                        iconTitleAndCount
                         Spacer(minLength: SkillMetrics.s2)
-                        countPill
                     }
-                    .frame(minHeight: SkillMetrics.row)
+                    .frame(minHeight: SkillMetrics.touch)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(SkillPressButtonStyle())
@@ -269,97 +258,26 @@ struct SkillBoardSectionHeader<MenuContent: View>: View {
 
     private var chevron: some View {
         Image(systemName: "chevron.right")
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(size: 10, weight: .bold))
             .foregroundStyle(Theme.textSecondary)
             .rotationEffect(.degrees(isCollapsed ? 0 : 90))
             .animation(reduceMotion ? nil : EverMotion.disclosure, value: isCollapsed)
     }
 
-    private var iconAndTitle: some View {
-        HStack(spacing: SkillMetrics.s3) {
-            SkillIconView(
-                iconName: iconName ?? "square.grid.2x2",
-                iconType: iconName == nil ? SkillBoardIconType.system : iconType,
-                colorHex: tintHex,
-                size: 20
-            )
-            .frame(width: 28)
+    private var iconTitleAndCount: some View {
+        HStack(spacing: SkillMetrics.s2) {
+            if let iconName, !iconName.isEmpty {
+                SkillIconView(iconName: iconName, iconType: iconType, colorHex: tintHex, size: 15)
+            }
             Text(title)
                 .font(TimeMasterFont.heading())
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
+            Text("\(count)")
+                .font(TimeMasterFont.body(15, relativeTo: .subheadline).monospacedDigit())
+                .foregroundStyle(Theme.textSecondary)
+                .accessibilityHidden(true)
         }
-    }
-
-    private var countPill: some View {
-        let tint = Color(hex: tintHex)
-        return Text("\(count)")
-            .font(TimeMasterFont.black(13, relativeTo: .footnote).monospacedDigit())
-            .foregroundStyle(Theme.textPrimary)
-            .padding(.horizontal, SkillMetrics.s2)
-            .frame(minWidth: 28, minHeight: 26)
-            .background(Capsule(style: .continuous).fill(tint.opacity(0.18)))
-            .overlay(Capsule(style: .continuous).strokeBorder(tint.opacity(0.4), lineWidth: 1))
-            .accessibilityHidden(true)
-    }
-}
-
-// MARK: - Page section heading
-
-/// The title row of one section of a skill page (Skills, Exercises & notes, …): a debossed tile with the section's
-/// glyph, the title and, when there is something to count, the count.
-struct SkillSectionHeading: View {
-    let symbol: String
-    let title: String
-    var count: Int?
-
-    var body: some View {
-        HStack(spacing: SkillMetrics.s2) {
-            SkillSectionIcon(symbol: symbol)
-            Text(title)
-                .font(TimeMasterFont.sectionTitle())
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
-            if let count, count > 0 {
-                Text("\(count)")
-                    .font(TimeMasterFont.technical())
-                    .foregroundStyle(Theme.textSecondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(minHeight: SkillMetrics.touch)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-}
-
-/// The small debossed tile with an orange glyph that opens a section heading. Decorative.
-struct SkillSectionIcon: View {
-    let symbol: String
-
-    var body: some View {
-        Image(systemName: symbol)
-            .font(.system(size: Self.glyphSize, weight: .semibold))
-            .foregroundStyle(Theme.toolbarOrange)
-            .frame(width: Self.side, height: Self.side)
-            .skillTile(cornerRadius: Self.side * 0.32)
-            .accessibilityHidden(true)
-    }
-
-    private static var side: CGFloat {
-        #if os(macOS)
-        return 32
-        #else
-        return 30
-        #endif
-    }
-
-    private static var glyphSize: CGFloat {
-        #if os(macOS)
-        return 16
-        #else
-        return 15
-        #endif
     }
 }

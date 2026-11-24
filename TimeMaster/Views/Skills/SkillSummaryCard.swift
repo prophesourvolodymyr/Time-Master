@@ -12,9 +12,12 @@ struct SkillSummaryCard: View {
 
     static let tileCornerRadius: CGFloat = 22
     static let rowCornerRadius: CGFloat = 20
-    /// Height of a tile at the default text size: the icon, two title lines (always kept, so every tile in a grid row
-    /// is as tall as the others), the status chip and the progress strip.
-    static let tileMinimumHeight: CGFloat = 200
+    /// Height of a tile at the default text size: the cover, the icon over its corner, two title lines (always kept, so
+    /// every tile in a grid row is as tall as the others), the status chip and the progress strip.
+    static let tileMinimumHeight: CGFloat = 220
+    static let coverAspect: CGFloat = 1.75
+    static let tileIconSize: CGFloat = 56
+    static let rowIconSize: CGFloat = 48
     static let rowMinimumHeight: CGFloat = 72
 
     let page: ExercisePage
@@ -63,25 +66,82 @@ struct SkillSummaryCard: View {
 
     private func tile(_ progress: SkillProgress, category: SkillCategory) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            SkillCardIcon(page: page, category: category, size: 44)
-            Spacer(minLength: 12)
-            title(font: TimeMasterFont.black(17, relativeTo: .headline), reservesSpace: true)
-            if status != .notStarted {
-                statusChip
-                    .padding(.top, 7)
+            tileCover(category: category)
+                .overlay(alignment: .bottomLeading) {
+                    tileIcon(category: category)
+                        .padding(.leading, 12)
+                        .offset(y: Self.tileIconSize / 2)
+                }
+            VStack(alignment: .leading, spacing: 0) {
+                title(font: TimeMasterFont.black(17, relativeTo: .headline), reservesSpace: true)
+                if status != .notStarted {
+                    statusChip
+                        .padding(.top, 7)
+                }
+                if !progress.isEmpty {
+                    Spacer(minLength: 10)
+                    progressStrip(progress)
+                }
             }
-            if !progress.isEmpty {
-                progressStrip(progress)
-                    .padding(.top, 12)
+            .padding(.horizontal, 14)
+            .padding(.top, Self.tileIconSize / 2 + 12)
+            .padding(.bottom, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, minHeight: tileHeight, alignment: .topLeading)
+        .clipShape(RoundedRectangle(cornerRadius: Self.tileCornerRadius, style: .continuous))
+    }
+
+    private func tileCover(category: SkillCategory) -> some View {
+        Color.clear
+            .aspectRatio(Self.coverAspect, contentMode: .fit)
+            .overlay { coverArt(category: category) }
+            .clipped()
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func coverArt(category: SkillCategory) -> some View {
+        if let url = page.galleryCoverURL {
+            GeometryReader { proxy in
+                AsyncCoverImage(url: url, height: proxy.size.height, contentMode: .fill, overlayGradient: false)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
+            }
+        } else {
+            ZStack {
+                LinearGradient(
+                    colors: [Theme.toolbarOrange.opacity(0.2), Theme.surface2],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                placeholderGlyph(category: category)
+                    .opacity(0.3)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: tileHeight, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func placeholderGlyph(category: SkillCategory) -> some View {
+        if let name = page.manifest.iconName, !name.isEmpty {
+            SkillIconView(iconName: name, iconType: page.manifest.iconType ?? .emoji, size: 44)
+        } else {
+            Image(systemName: category.systemImage)
+                .font(.system(size: 40, weight: .semibold))
+                .foregroundStyle(Theme.toolbarOrange)
+        }
+    }
+
+    private func tileIcon(category: SkillCategory) -> some View {
+        let size = Self.tileIconSize
+        return SkillCardIcon(page: page, category: category, size: size)
+            .padding(3)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: size * 0.28 + 3, style: .continuous))
     }
 
     private func row(_ progress: SkillProgress, category: SkillCategory) -> some View {
         HStack(spacing: 12) {
-            SkillCardIcon(page: page, category: category, size: 44)
+            SkillCardIcon(page: page, category: category, size: Self.rowIconSize)
             VStack(alignment: .leading, spacing: 5) {
                 title(font: TimeMasterFont.label(), reservesSpace: false)
                 if !progress.isEmpty || status != .notStarted {

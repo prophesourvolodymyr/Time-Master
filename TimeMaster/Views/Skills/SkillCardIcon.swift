@@ -2,9 +2,9 @@ import SwiftUI
 import TimeMasterCore
 
 /// A page's icon on the Skills page, on a small raised tile: its own picture, symbol or emoji; a page without one
-/// shows the symbol of its category instead of a stand-in.
+/// (or no page at all) shows the symbol of its category instead of a stand-in.
 struct SkillCardIcon: View {
-    let page: ExercisePage
+    let page: ExercisePage?
     let category: SkillCategory
     let size: CGFloat
 
@@ -20,9 +20,9 @@ struct SkillCardIcon: View {
 
     @ViewBuilder
     private var glyph: some View {
-        if let url = page.iconImageURL {
+        if let url = page?.iconImageURL {
             SkillCardPicture(url: url, maxPixel: Int(size * 3))
-        } else if let name = page.manifest.iconName, !name.isEmpty {
+        } else if let page, let name = page.manifest.iconName, !name.isEmpty {
             SkillIconView(iconName: name, iconType: page.manifest.iconType ?? .emoji, size: size * 0.5)
         } else {
             Image(systemName: category.systemImage)

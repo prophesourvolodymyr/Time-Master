@@ -25,6 +25,7 @@ struct SkillsRootView: View {
     @State private var hasEntered = false
     @State private var showingCreate = false
     @State private var pageToEdit: ExercisePage?
+    @State private var categoryToChangePicture: SkillPageTarget?
     @State private var pageToDelete: ExercisePage?
     @State private var errorMessage: String?
     @Namespace private var statusNamespace
@@ -97,6 +98,10 @@ struct SkillsRootView: View {
                 .environmentObject(workoutStore)
                 .environmentObject(store)
                 .keyNavHost()
+            }
+            .sheet(item: $categoryToChangePicture) { target in
+                SkillIconChooserSheet(pageID: target.id)
+                    .environmentObject(store)
             }
             .confirmationDialog(
                 pageToDelete?.isTutorial == true ? "Delete this tutorial?" : "Delete this skill?",
@@ -245,7 +250,12 @@ struct SkillsRootView: View {
         let entries = sortOption.ordered(SkillShelf.listed(library.topLevelEntries()))
         return VStack(alignment: .leading, spacing: 16) {
             if !trimmedQuery.isEmpty {
-                SkillsSearchResults(query: trimmedQuery, sections: SkillShelf.sections(of: entries, index: index), library: library) { page in
+                SkillsSearchResults(
+                    query: trimmedQuery,
+                    sections: SkillShelf.sections(of: entries, index: index),
+                    library: library,
+                    anchors: SkillCategory.anchorPages(in: index)
+                ) { page in
                     open(page.manifest.id)
                 }
             } else if entries.isEmpty {
@@ -276,12 +286,19 @@ struct SkillsRootView: View {
 
     /// Each section under its header, like the Workouts page's sections; a folded one keeps only its header.
     private func sectionList(_ sections: [SkillCategorySection]) -> some View {
-        LazyVStack(alignment: .leading, spacing: 12) {
+        let anchors = SkillCategory.anchorPages(in: store.index)
+        return LazyVStack(alignment: .leading, spacing: 12) {
             ForEach(Array(sections.enumerated()), id: \.element.id) { order, section in
                 let folded = isFolded(section.category)
-                SkillCategoryHeader(category: section.category, count: section.entries.count, isFolded: folded) {
-                    toggleFold(section.category)
-                }
+                let anchor = anchors[section.category]
+                SkillCategoryHeader(
+                    category: section.category,
+                    count: section.entries.count,
+                    page: anchor,
+                    isFolded: folded,
+                    onToggle: { toggleFold(section.category) },
+                    onChangePicture: changePictureAction(for: anchor)
+                )
                 .padding(.top, order == 0 ? 0 : 14)
                 .skillsEntrance(hasEntered, section: order)
                 if !folded {
@@ -290,6 +307,11 @@ struct SkillsRootView: View {
                 }
             }
         }
+    }
+
+    private func changePictureAction(for anchor: ExercisePage?) -> (() -> Void)? {
+        guard let anchor else { return nil }
+        return { categoryToChangePicture = SkillPageTarget(id: anchor.manifest.id) }
     }
 
     @ViewBuilder

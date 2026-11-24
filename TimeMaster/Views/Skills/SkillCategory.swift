@@ -59,6 +59,23 @@ enum SkillCategory: String, CaseIterable, Identifiable {
         }
         return root
     }
+
+    /// The top-level folder that holds each category's picture: the one whose title names the category, the one titled
+    /// exactly like the category when several do. Other has none (any folder may land there), so it has no entry.
+    static func anchorPages(in index: PageIndex) -> [SkillCategory: ExercisePage] {
+        var anchors: [SkillCategory: ExercisePage] = [:]
+        var exact: Set<SkillCategory> = []
+        for page in index.pages where page.manifest.parentID == nil && page.isContainer {
+            let category = SkillCategory(rootTitle: page.title)
+            guard category != .other else { continue }
+            let isExact = page.title.compare(category.title, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+            if anchors[category] == nil || (isExact && !exact.contains(category)) {
+                anchors[category] = page
+                if isExact { exact.insert(category) }
+            }
+        }
+        return anchors
+    }
 }
 
 /// One section of the Skills page: a category and its skills, in the order the page shows them.

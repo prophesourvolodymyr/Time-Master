@@ -9,6 +9,8 @@ struct SkillsSearchResults: View {
     /// The listed skills by section, in the order the page shows them.
     let sections: [SkillCategorySection]
     let library: SkillLibrary
+    /// The folder that holds each category's picture, so a section's heading wears it here too.
+    var anchors: [SkillCategory: ExercisePage] = [:]
     let onOpen: (ExercisePage) -> Void
 
     private static let hitsPerSkill = 40
@@ -59,7 +61,7 @@ struct SkillsSearchResults: View {
             LazyVStack(alignment: .leading, spacing: 26) {
                 ForEach(results) { section in
                     VStack(alignment: .leading, spacing: 16) {
-                        SkillCategoryHeader(category: section.category, count: section.groups.count)
+                        SkillCategoryHeader(category: section.category, count: section.groups.count, page: anchors[section.category])
                         ForEach(section.groups) { group in
                             VStack(alignment: .leading, spacing: 8) {
                                 header(group, category: section.category)

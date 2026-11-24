@@ -33,30 +33,6 @@ enum SkillBoardGrouping: String, CaseIterable, Identifiable {
     var helpText: String { "Group by \(title.lowercased())" }
 }
 
-/// Status · Type as a slim track of glyphs beside the view switch (Board only); the names show as tooltips and are
-/// read by VoiceOver ("Group by").
-struct SkillBoardGroupingPicker: View {
-    @Binding var selection: SkillBoardGrouping
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        TmaxTabBar(
-            SkillBoardGrouping.allCases.map { TmaxTab($0, title: $0.title, symbol: $0.symbolName, showsTitle: false, help: $0.helpText) },
-            selection: selection,
-            fillsWidth: false,
-            accessibilityLabel: "Group by"
-        ) { grouping in
-            guard grouping != selection else { return }
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) {
-                selection = grouping
-            }
-            EverHaptic.selection()
-        }
-        .fixedSize()
-    }
-}
-
 // MARK: - Columns
 
 /// One column of a type board: the pages that wear no type ("Untagged"), or one type of the owner's presets.

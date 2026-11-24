@@ -2,8 +2,8 @@ import SwiftUI
 import TimeMasterCore
 import UniformTypeIdentifiers
 
-/// Makes a section or edits one: its name, colour, icon and the picture inside its strip, with a live preview of the
-/// group it draws. `init(boardID:suggestedColorHex:onCreated:)` adds a section; `init(boardID:section:)` edits one.
+/// Makes a section or edits one: its name, colour, icon and an optional picture, with one button to save it.
+/// `init(boardID:suggestedColorHex:onCreated:)` adds a section; `init(boardID:section:)` edits one.
 struct SkillSectionEditorSheet: View {
     /// The board page that holds the sections.
     let boardID: String
@@ -62,11 +62,6 @@ struct SkillSectionEditorSheet: View {
         return sections.firstIndex { $0.id == section.id } ?? sections.count
     }
 
-    private var itemCount: Int {
-        guard let section else { return 0 }
-        return store.skillPages(onBoard: boardID, sectionID: section.id).filter(SkillLibrary.isSkill).count
-    }
-
     /// The picture inside the strip as it will be after saving.
     private var currentPictureURL: URL? {
         if removesPicture { return nil }
@@ -80,7 +75,6 @@ struct SkillSectionEditorSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: SkillMetrics.s6) {
-                    preview
                     labeled("Name") { nameField }
                     labeled("Colour") {
                         SkillSectionColorPicker(selection: $colorHex, automaticHex: SkillSectionPalette.hex(forIndex: position))
@@ -88,13 +82,14 @@ struct SkillSectionEditorSheet: View {
                     labeled("Icon") {
                         SkillIconPicker(iconName: $iconName, iconType: $iconType)
                     }
-                    labeled("Picture") { pictureRow }
+                    labeled("Picture (optional)") { pictureRow }
                 }
                 .padding(SkillMetrics.s5)
                 .frame(maxWidth: 640)
                 .frame(maxWidth: .infinity)
             }
             .background(Theme.background.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom, spacing: 0) { saveBar }
             .timeMasterNavigationTitle(isNew ? "New section" : "Edit section")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -102,10 +97,6 @@ struct SkillSectionEditorSheet: View {
             .toolbar {
                 AppToolbar.item(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                }
-                AppToolbar.item(placement: .confirmationAction) {
-                    Button(isNew ? "Add section" : "Save", action: save)
-                        .disabled(trimmedTitle.isEmpty)
                 }
             }
         }
@@ -128,26 +119,6 @@ struct SkillSectionEditorSheet: View {
 
     // MARK: Pieces
 
-    /// The group header as it will look on the board.
-    private var preview: some View {
-        let hex = SkillSectionPalette.resolvedHex(explicit: colorHex, index: position)
-        return SkillBoardSectionHeader(
-            title: trimmedTitle.isEmpty ? "Section name" : trimmedTitle,
-            iconName: iconName.isEmpty ? nil : iconName,
-            iconType: iconType,
-            colorHex: hex,
-            count: itemCount,
-            isCollapsed: false,
-            showsMenu: false,
-            onToggle: {},
-            menu: { EmptyView() }
-        )
-        .opacity(trimmedTitle.isEmpty ? 0.55 : 1)
-        .skillSectionGroup(colorHex: hex, stripImageURL: currentPictureURL)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
     private var nameField: some View {
         let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
         return TextField("Name, for example Chords", text: $title)
@@ -168,36 +139,42 @@ struct SkillSectionEditorSheet: View {
             .accessibilityLabel("Section name")
     }
 
-    /// A picture inside the strip: the strip and the group take its colours.
     private var pictureRow: some View {
-        VStack(alignment: .leading, spacing: SkillMetrics.s2) {
-            HStack(spacing: SkillMetrics.s2) {
+        HStack(spacing: SkillMetrics.s2) {
+            Button {
+                showingPicturePicker = true
+            } label: {
+                Label(currentPictureURL == nil ? "Add picture" : "Change picture", systemImage: "photo")
+                    .font(TimeMasterFont.black(14, relativeTo: .subheadline))
+            }
+            .buttonStyle(TimeMasterActionButtonStyle(minimumSize: SkillMetrics.touch))
+            if currentPictureURL != nil {
                 Button {
-                    showingPicturePicker = true
+                    pictureURL = nil
+                    removesPicture = true
+                    EverHaptic.selection()
                 } label: {
-                    Label(currentPictureURL == nil ? "Choose picture…" : "Change picture…", systemImage: "photo")
+                    Label("Remove", systemImage: "rectangle.slash")
                         .font(TimeMasterFont.black(14, relativeTo: .subheadline))
                 }
                 .buttonStyle(TimeMasterActionButtonStyle(minimumSize: SkillMetrics.touch))
-                if currentPictureURL != nil {
-                    Button {
-                        pictureURL = nil
-                        removesPicture = true
-                        EverHaptic.selection()
-                    } label: {
-                        Label("Remove", systemImage: "rectangle.slash")
-                            .font(TimeMasterFont.black(14, relativeTo: .subheadline))
-                    }
-                    .buttonStyle(TimeMasterActionButtonStyle(minimumSize: SkillMetrics.touch))
-                }
             }
-            Text(currentPictureURL == nil
-                 ? "The picture goes inside the strip, and the group takes its colours."
-                 : "Removing it keeps the picture among the group's files.")
-                .font(TimeMasterFont.secondary())
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var saveBar: some View {
+        Button(action: save) {
+            Text(isNew ? "Add section" : "Save")
+                .font(TimeMasterFont.label())
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, minimumSize: 52, fillsWidth: true))
+        .disabled(trimmedTitle.isEmpty)
+        .keyboardShortcut(.defaultAction)
+        .padding(.horizontal, SkillMetrics.s5)
+        .padding(.vertical, SkillMetrics.s3)
+        .frame(maxWidth: .infinity)
+        .background(Theme.background)
     }
 
     private func labeled<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
@@ -285,26 +262,15 @@ struct SkillSectionColorPicker: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SkillMetrics.s2) {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: SkillMetrics.s1) {
-                defaultSwatch
-                if let customHex {
-                    swatch(hex: customHex, name: "Custom colour")
-                }
-                ForEach(SkillSectionPalette.swatches) { entry in
-                    swatch(hex: entry.hex, name: entry.name)
-                }
+        LazyVGrid(columns: columns, alignment: .leading, spacing: SkillMetrics.s1) {
+            defaultSwatch
+            if let customHex {
+                swatch(hex: customHex, name: "Custom colour")
             }
-            Text(caption)
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            ForEach(SkillSectionPalette.swatches) { entry in
+                swatch(hex: entry.hex, name: entry.name)
+            }
         }
-    }
-
-    private var caption: String {
-        guard let chosen else { return "Default colour: picked for you, so neighbouring sections never match." }
-        return SkillSectionPalette.name(of: chosen) ?? "Custom colour"
     }
 
     private var defaultSwatch: some View {

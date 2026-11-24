@@ -49,12 +49,11 @@ enum SkillBoardMode: String, CaseIterable, Identifiable {
     }
 }
 
-/// The Skills section of a skill page, a container page or a group opened as a page: the "Skills" heading, one slim
-/// row with the List · Board · Table switch (remembered per board) and "New section", the status chips with their
-/// counts (List and Table), then the sections list, the status board or the table. The board of a skill or a tutorial
-/// can also group its columns by type (Group by, remembered per board; Status by default). Opening a sub-skill or a
-/// group pushes it onto the navigation stack the screen sits in (`DatabaseNavigationState` of the Database tab, a search
-/// sheet or the workout popup).
+/// The Skills section of a skill page, a container page or a group opened as a page: the "Skills" heading, one row of
+/// round corner buttons (View, Group by, Filter, New section, more ways to add; each opens its own menu), then the
+/// sections list, the status board or the table. The board of a skill or a tutorial can also group its columns by type
+/// (Group by, remembered per board; Status by default). Opening a sub-skill or a group pushes it onto the navigation
+/// stack the screen sits in (`DatabaseNavigationState` of the Database tab, a search sheet or the workout popup).
 struct SkillBoardScreen: View {
     /// Tmax orange as `RRGGBB`: the tint of rows, cards and progress.
     static let accentHex = "FF6A00"
@@ -63,6 +62,7 @@ struct SkillBoardScreen: View {
     @EnvironmentObject private var workoutStore: WorkoutStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// A board page's id, or a group id.
     let boardID: String
@@ -73,7 +73,7 @@ struct SkillBoardScreen: View {
 
     @AppStorage private var modeRaw: String
     @AppStorage private var groupingRaw: String
-    @AppStorage private var controlsOpen: Bool
+
     @State private var filter: SkillStatus?
     @State private var groupOverride: Bool?
     @State private var addingSection = false
@@ -93,20 +93,11 @@ struct SkillBoardScreen: View {
         self.scrollTo = scrollTo
         _modeRaw = AppStorage(wrappedValue: SkillBoardMode.board.rawValue, SkillSettings.viewModeKeyPrefix + boardID)
         _groupingRaw = AppStorage(wrappedValue: SkillBoardGrouping.status.rawValue, SkillSettings.groupByKeyPrefix + boardID)
-        _controlsOpen = AppStorage(wrappedValue: false, "tm.skills.controlsOpen." + boardID)
     }
 
     private var mode: SkillBoardMode { SkillBoardMode(rawValue: modeRaw) ?? .board }
 
-    private var modeBinding: Binding<SkillBoardMode> {
-        Binding(get: { mode }, set: { modeRaw = $0.rawValue })
-    }
-
     private var grouping: SkillBoardGrouping { SkillBoardGrouping(rawValue: groupingRaw) ?? .status }
-
-    private var groupingBinding: Binding<SkillBoardGrouping> {
-        Binding(get: { grouping }, set: { groupingRaw = $0.rawValue })
-    }
 
     var body: some View {
         let mode = self.mode
@@ -226,92 +217,99 @@ struct SkillBoardScreen: View {
 
     // MARK: Header
 
+    /// One row of round corner buttons, always in view, each with its own dropdown where it fits: View, Group by (Board),
+    /// Filter (List and Table), the type controls (Board by type), New section and the extra ways to add a sub-skill.
     private func header(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
-        VStack(alignment: .leading, spacing: SkillMetrics.s2) {
-            HStack(spacing: SkillMetrics.s2) {
-                Spacer(minLength: 0)
-                SkillBoardControlsToggle(isOpen: $controlsOpen, modeSymbol: mode.symbolName, isFiltered: filter != nil && mode != .board)
-            }
-            if controlsOpen {
-                controls(snapshot, mode: mode)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func controls(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
-        switch mode {
-        case .board:
-            if supportsTypeGrouping(snapshot) {
-                VStack(alignment: .leading, spacing: SkillMetrics.s2) {
-                    switcherRow(snapshot, mode: mode)
-                    groupingRow(snapshot)
+        let modes = availableModes(snapshot)
+        return HStack(spacing: SkillMetrics.s2) {
+            Spacer(minLength: 0)
+            viewMenu(modes: modes, mode: mode)
+            if mode == .board {
+                if showsGroupMenu(snapshot) {
+                    groupMenu(snapshot)
                 }
-            } else {
-                switcherRow(snapshot, mode: mode)
+                if grouping == .type, supportsTypeGrouping(snapshot), let owner = store.skillTypeOwner(of: snapshot.scope.boardID) {
+                    PageTypesMenuButton(ownerID: owner.manifest.id, presets: store.skillTypePresets(for: owner.manifest.id))
+                }
             }
-        case .tiers:
-            switcherRow(snapshot, mode: mode)
-        case .list, .table:
-            VStack(alignment: .leading, spacing: SkillMetrics.s2) {
-                switcherRow(snapshot, mode: mode)
-                SkillStatusFilterBar(selection: $filter, counts: counts(snapshot, mode: mode))
-            }
-        }
-    }
-
-    /// Group by Status · Type under the switch (the board of a skill or a tutorial), and with Type the menu that makes and
-    /// manages the types.
-    private func groupingRow(_ snapshot: SkillBoardSnapshot) -> some View {
-        HStack(spacing: SkillMetrics.s2) {
-            Text("Group by")
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(Theme.textSecondary)
-                .accessibilityHidden(true)
-            SkillBoardGroupingPicker(selection: groupingBinding)
-            if grouping == .type, let owner = store.skillTypeOwner(of: snapshot.scope.boardID) {
-                PageTypesMenuButton(ownerID: owner.manifest.id, presets: store.skillTypePresets(for: owner.manifest.id))
-            }
-            Spacer(minLength: 0)
-        }
-    }
-
-    /// List · Board · Table, the group toggle (Board) and New section: whatever the view, the section controls sit
-    /// beside the view switch. The menu at the end makes a sub-skill with every detail (type, cover, media).
-    private func switcherRow(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
-        ViewThatFits(in: .horizontal) {
-            switcherContent(snapshot, mode: mode, showsTitle: true)
-            switcherContent(snapshot, mode: mode, showsTitle: false)
-        }
-    }
-
-    private func switcherContent(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode, showsTitle: Bool) -> some View {
-        HStack(spacing: SkillMetrics.s2) {
-            SkillViewModePicker(selection: modeBinding, modes: availableModes(snapshot))
-            if mode == .board && snapshot.hasSections && !showsTypes(snapshot) {
-                groupToggle(snapshot)
+            if mode == .list || mode == .table {
+                filterMenu(snapshot, mode: mode)
             }
             if !snapshot.scope.isGroup {
-                SkillNewSectionButton(showsTitle: showsTitle) { addingSection = true }
+                SkillCornerButton(
+                    symbol: "plus",
+                    title: "New section",
+                    hint: "Adds a coloured group for your sub-skills",
+                    prominent: true
+                ) { addingSection = true }
+                moreMenu
             }
-            Spacer(minLength: 0)
-            if !snapshot.scope.isGroup {
-                Menu {
-                    Button {
-                        showingDetailedCreation = true
-                    } label: {
-                        Label("New sub-skill with details…", systemImage: "square.and.pencil")
-                    }
+        }
+        .skillViewShortcuts(modes: modes) { select($0) }
+    }
+
+    private func viewMenu(modes: [SkillBoardMode], mode: SkillBoardMode) -> some View {
+        SkillCornerMenu(symbol: mode.symbolName, title: "View", value: mode.title) {
+            ForEach(modes) { option in
+                Button {
+                    select(option)
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 15, weight: .semibold))
+                    Label(option.title, systemImage: option == mode ? "checkmark" : option.symbolName)
                 }
-                .menuStyle(.button)
-                .buttonStyle(TimeMasterToolbarIconButtonStyle())
-                .menuIndicator(.hidden)
-                .accessibilityLabel("More ways to add")
-                .help("More ways to add")
+            }
+        }
+    }
+
+    private func groupMenu(_ snapshot: SkillBoardSnapshot) -> some View {
+        let grouped = isGrouped(snapshot)
+        return SkillCornerMenu(symbol: "rectangle.3.group", title: "Group by", value: grouping.title) {
+            if supportsTypeGrouping(snapshot) {
+                SwiftUI.Section("Group by") {
+                    ForEach(SkillBoardGrouping.allCases) { option in
+                        Button {
+                            setGrouping(option)
+                        } label: {
+                            Label(option.title, systemImage: option == grouping ? "checkmark" : option.symbolName)
+                        }
+                    }
+                }
+            }
+            if snapshot.hasSections && !showsTypes(snapshot) {
+                Button {
+                    groupOverride = !grouped
+                    EverHaptic.selection()
+                } label: {
+                    Label("By section", systemImage: grouped ? "checkmark" : "rectangle.grid.1x2")
+                }
+            }
+        }
+    }
+
+    private func filterMenu(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
+        let tally = counts(snapshot, mode: mode)
+        let total = SkillStatus.boardOrder.reduce(0) { $0 + (tally[$1] ?? 0) }
+        return SkillCornerMenu(symbol: "line.3.horizontal.decrease.circle", title: "Filter", value: filter?.title ?? "All", isActive: filter != nil) {
+            Button {
+                setFilter(nil)
+            } label: {
+                Label("All (\(total))", systemImage: filter == nil ? "checkmark" : "tray.full")
+            }
+            ForEach(SkillStatus.boardOrder, id: \.self) { status in
+                Button {
+                    setFilter(status)
+                } label: {
+                    Label("\(status.title) (\(tally[status] ?? 0))", systemImage: filter == status ? "checkmark" : status.symbolName)
+                }
+            }
+        }
+    }
+
+    private var moreMenu: some View {
+        SkillCornerMenu(symbol: "ellipsis", title: "More ways to add") {
+            Button {
+                showingDetailedCreation = true
+            } label: {
+                Label("New sub-skill with details…", systemImage: "square.and.pencil")
             }
         }
     }
@@ -321,21 +319,26 @@ struct SkillBoardScreen: View {
         return SkillBoardMode.allCases.filter { tiers || $0 != .tiers }
     }
 
-    private func groupToggle(_ snapshot: SkillBoardSnapshot) -> some View {
-        let grouped = isGrouped(snapshot)
-        return Button {
-            groupOverride = !grouped
-            EverHaptic.selection()
-        } label: {
-            Image(systemName: "rectangle.grid.1x2")
-                .font(.system(size: 14, weight: .semibold))
-        }
-        .buttonStyle(SkillSegmentButtonStyle(isSelected: grouped, fillsWidth: false))
-        .skillSegmentTrack()
-        .fixedSize()
-        .accessibilityLabel("Group by section")
-        .accessibilityAddTraits(grouped ? .isSelected : [])
-        .help("Group by section")
+    private func showsGroupMenu(_ snapshot: SkillBoardSnapshot) -> Bool {
+        supportsTypeGrouping(snapshot) || (snapshot.hasSections && !showsTypes(snapshot))
+    }
+
+    private func select(_ mode: SkillBoardMode) {
+        guard mode != self.mode else { return }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { modeRaw = mode.rawValue }
+        EverHaptic.selection()
+    }
+
+    private func setGrouping(_ option: SkillBoardGrouping) {
+        guard option != grouping else { return }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { groupingRaw = option.rawValue }
+        EverHaptic.selection()
+    }
+
+    private func setFilter(_ status: SkillStatus?) {
+        guard filter != status else { return }
+        filter = status
+        EverHaptic.selection()
     }
 
     // MARK: Data
