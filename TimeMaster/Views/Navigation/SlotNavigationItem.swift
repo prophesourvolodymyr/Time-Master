@@ -398,7 +398,7 @@ struct SlotNavigationStrings {
 
 enum SlotNavigationIcon: Hashable {
     case system(String)
-    case asset(String)
+    case art(lit: String, unlit: String)
 }
 
 struct SlotNavigationItem: Identifiable, Hashable {
@@ -609,20 +609,7 @@ enum SlotNavigationDestination: String, CaseIterable, Identifiable {
     }
 
     var icon: SlotNavigationIcon {
-        switch self {
-        case .home: .system("house.fill")
-        case .workouts: .system("dumbbell.fill")
-        case .database: .system("books.vertical.fill")
-        case .skills: .system("square.stack.3d.up.fill")
-        case .analytics: .system("chart.bar.fill")
-        case .coach: .system("brain.head.profile")
-        case .profile: .system("person.crop.circle")
-        case .ranked: .asset("RankedMenuIcon")
-        case .physique: .system("figure.strengthtraining.traditional")
-        case .map: .system("map.fill")
-        case .schedule: .system("calendar")
-        case .settings: .system("gearshape.fill")
-        }
+        .art(lit: "tab_\(rawValue)_lit", unlit: "tab_\(rawValue)_unlit")
     }
 
     var accessibilityHint: String {

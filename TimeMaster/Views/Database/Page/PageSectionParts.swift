@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The title row of one part of a page: Skillmax's section heading (a small icon tile, the title and its count) with
-/// the part's own actions at the end.
+/// The title row of one part of a page: the section heading (a brand icon tile, the title and its count) with the
+/// part's own actions at the end.
 struct PageSectionHeader<Actions: View>: View {
     let symbol: String
     let title: String

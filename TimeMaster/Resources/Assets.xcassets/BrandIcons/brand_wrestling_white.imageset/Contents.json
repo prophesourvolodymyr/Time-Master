@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "brand_wrestling_white.jpg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

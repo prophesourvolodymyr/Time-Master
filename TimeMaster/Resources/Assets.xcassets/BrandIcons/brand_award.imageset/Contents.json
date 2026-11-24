@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "brand_award.jpg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

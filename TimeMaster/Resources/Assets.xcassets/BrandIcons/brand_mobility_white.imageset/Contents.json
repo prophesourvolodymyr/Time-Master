@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "brand_mobility_white.jpg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

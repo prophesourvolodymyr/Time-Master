@@ -28,8 +28,13 @@ struct SlotNavigationEditorHeader: View {
 struct SlotCarouselNavigationBar: View, Animatable {
     static let inlineHeight: CGFloat = 60
     static let fullHeight: CGFloat = 96
+    static let switchArchWidth: CGFloat = 2.4
     private static let configurationHeight: CGFloat = 156
     private static let accessorySpacing: CGFloat = 12
+    private static let originalArchWidth: CGFloat = 40.0 / 34.0
+    private static let restingScale: CGFloat = 0.88
+    private static let restingOpacity: CGFloat = 0.28
+    private static let artScale: CGFloat = 1.15
 
     static func accessoryHeight(barHeight: CGFloat, showsCatalog: Bool, hasConfiguration: Bool) -> CGFloat {
         (showsCatalog ? max(fullHeight, barHeight) + accessorySpacing : 0)
@@ -45,13 +50,30 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private static func inwardClearance(for height: CGFloat) -> CGFloat {
         let rect = CGRect(x: 0, y: 0, width: 1, height: height)
         let curveY = SlotArcGeometry.curveY(at: 0.5, in: rect, curveOffset: platformCurveOffset, expansion: 1)
-        let dragCurveY = height - (height - curveY) * 1.35
-        let dragCenterY = dragCurveY + 56 - (42 + 15 + 4) / 2 - 40
-        let dragOverflow = 114 * (1.2 - 0.5) - dragCenterY
+        let dragCurveY = height - (height - curveY) * (1 + switchSurfaceRise)
+        let dragCenterY = dragCurveY + 56 - (42 + 15 + 4) / 2 - switchLift(at: 0)
+        let dragOverflow = 114 * (switchScale(at: 0) - 0.5) - dragCenterY
         let editCurveY = height - (height - curveY) * 1.25 - 24
         let editCenterY = editCurveY + 56 - (42 + 15 + 4) / 2
         let editOverflow = 90 * (1.06 * 1.12 - 0.5) - editCenterY
         return ceil(max(0, max(dragOverflow, editOverflow)))
+    }
+
+    private static var archFlattening: CGFloat { originalArchWidth / switchArchWidth }
+    private static var switchSurfaceStretch: CGFloat { 0.15 / archFlattening }
+    private static var switchSurfaceRise: CGFloat { 0.35 * archFlattening }
+
+    private static func switchLift(at slots: CGFloat) -> CGFloat {
+        let reach = min(slots / switchArchWidth, 1)
+        return 40 * archFlattening * (1 + cos(.pi * reach)) / 2
+    }
+
+    private static func switchScale(at slots: CGFloat) -> CGFloat {
+        max(restingScale, 1.2 - slots * 0.35 * archFlattening)
+    }
+
+    private static func switchOpacity(at slots: CGFloat) -> CGFloat {
+        max(restingOpacity, 1 - slots * 0.55 * archFlattening)
     }
 
     private static var platformCurveOffset: CGFloat {
@@ -185,6 +207,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
     private var expandedAmount: CGFloat { min(max(expansion, 0), 1) }
     private var effectiveDragIntensity: CGFloat { reduceMotion ? 0 : dragIntensity * expandedAmount * (1 - editProgress) }
     private var editProgress: CGFloat { reduceMotion ? 0 : min(max(editingAmount, 0), 1) }
+    private var arcScaleX: CGFloat { 1 + effectiveDragIntensity * Self.switchSurfaceStretch + editProgress * 0.12 }
+    private var arcScaleY: CGFloat { 1 + effectiveDragIntensity * Self.switchSurfaceRise + editProgress * 0.25 }
     private var surfaceHeight: CGFloat { Self.inlineHeight + (barHeight - Self.inlineHeight) * expandedAmount }
     private var inwardClearance: CGFloat { Self.inwardClearance(for: barHeight) * expandedAmount }
     private var mainHeight: CGFloat { surfaceHeight + inwardClearance }
@@ -276,8 +300,6 @@ struct SlotCarouselNavigationBar: View, Animatable {
             let arcRect = CGRect(x: 0, y: inwardClearance, width: size.width, height: surfaceHeight)
             let centeredOffset = offset(for: selection, viewportWidth: size.width, slotWidth: slotWidth)
             let displayOffset = stripOffset(viewportWidth: size.width, slotWidth: slotWidth, centeredOffset: centeredOffset)
-            let arcScaleX = 1 + effectiveDragIntensity * 0.15 + editProgress * 0.12
-            let arcScaleY = 1 + effectiveDragIntensity * 0.35 + editProgress * 0.25
 
             ZStack {
                 SlotArcSurface(theme: theme, edgeSafeArea: (edgeSafeArea + 24 * editProgress) / arcScaleY, placement: placement,
@@ -446,18 +468,18 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let selectionBoost: CGFloat = 0
         #endif
         let iconSize = baseIconSize + intensity * (expandedIconSize - baseIconSize) + (add ? 8 : 0) + selectionBoost
-        let baseScale = 0.88 + 0.18 * focus
-        let expandedScale = max(0.4, 1.2 - norm * 0.35)
+        let baseScale = Self.restingScale + 0.18 * focus
+        let expandedScale = Self.switchScale(at: norm)
         let itemScale = (baseScale + intensity * (expandedScale - baseScale)) * (1 + (catalog ? 0 : editProgress) * 0.12)
-        let baseOpacity = 0.28 + 0.72 * proximity
-        let expandedOpacity = max(0.1, 1 - norm * 0.55)
+        let baseOpacity = Self.restingOpacity + (1 - Self.restingOpacity) * proximity
+        let expandedOpacity = Self.switchOpacity(at: norm)
         let normalOpacity = baseOpacity + intensity * (expandedOpacity - baseOpacity)
         let itemOpacity = normalOpacity + styleEdit * (max(normalOpacity, 0.72) - normalOpacity)
         let baseLabelOpacity = focus * focus
         let expandedLabelOpacity = max(0, bubbleFactor * 2 - 0.6)
         let normalLabelOpacity = baseLabelOpacity + intensity * (expandedLabelOpacity - baseLabelOpacity)
         let labelOpacity = (normalLabelOpacity + styleEdit * (1 - normalLabelOpacity)) * amount
-        let verticalOffset = intensity * max(-40, -40 + norm * 34)
+        let verticalOffset = -intensity * Self.switchLift(at: norm)
         let arcY = catalog
             ? SlotArcGeometry.curveY(at: itemX, in: arcRect, curveOffset: curveOffset, expansion: 1)
             : transformedArcY(at: itemX, in: arcRect)
@@ -474,6 +496,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         let itemY = placedY(boundedY, height: size.height)
         let rootY = (catalog ? catalogOriginY : mainOriginY) + itemY
         let selected = role == .page && selection == index
+        let lit: CGFloat = role == .page ? (isEditing ? (selected ? 1 : 0) : focus) : 0
         let manipulable = isEditing && configuration == nil && !item.isPending && !add
         #if os(macOS)
         let edgeProgress = min(1, distance / max(1, size.width / 2))
@@ -481,7 +504,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
         #endif
 
         return VStack(spacing: labelSpacing) {
-            iconImage(add ? .system("plus.circle") : item.icon, size: 31)
+            iconImage(add ? .system("plus.circle") : item.icon, size: 31, lit: lit)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(add ? theme.accent : theme.textPrimary)
                 .scaleEffect(iconSize / 31)
@@ -598,17 +621,27 @@ struct SlotCarouselNavigationBar: View, Animatable {
     }
 
     @ViewBuilder
-    private func iconImage(_ icon: SlotNavigationIcon, size: CGFloat) -> some View {
+    private func iconImage(_ icon: SlotNavigationIcon, size: CGFloat, lit: CGFloat) -> some View {
         switch icon {
         case let .system(name):
             Image(systemName: name)
                 .font(.system(size: size, weight: .semibold))
-        case let .asset(name):
-            Image(name)
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: size, height: size)
+        case let .art(litName, unlitName):
+            ZStack {
+                Image(unlitName)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .opacity(1 - lit)
+                Image(litName)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .opacity(lit)
+                    .blendMode(.plusLighter)
+            }
+            .compositingGroup()
+            .frame(width: size * Self.artScale, height: size * Self.artScale)
         }
     }
 
@@ -773,7 +806,7 @@ struct SlotCarouselNavigationBar: View, Animatable {
 
     private func liftedIcon(_ lifted: LiftedItem) -> some View {
         VStack(spacing: 4) {
-            iconImage(lifted.item.icon, size: 33)
+            iconImage(lifted.item.icon, size: 33, lit: 1)
                 .frame(height: 42)
                 .overlay(alignment: .topTrailing) {
                     if lifted.removes {
@@ -821,8 +854,8 @@ struct SlotCarouselNavigationBar: View, Animatable {
                                 switch choice.icon {
                                 case let .system(name):
                                     Image(systemName: name)
-                                case .asset:
-                                    iconImage(choice.icon, size: 17)
+                                case .art:
+                                    iconImage(choice.icon, size: 17, lit: 1)
                                 }
                             }
                                 .font(theme.typography.buttonLabel)
@@ -842,12 +875,10 @@ struct SlotCarouselNavigationBar: View, Animatable {
     }
 
     private func transformedArcY(at x: CGFloat, in rect: CGRect) -> CGFloat {
-        let scaleX = 1 + effectiveDragIntensity * 0.15 + editProgress * 0.12
-        let scaleY = 1 + effectiveDragIntensity * 0.35 + editProgress * 0.25
         let centerX = rect.midX
-        let arcSampleX = centerX + (x - centerX) / scaleX
+        let arcSampleX = centerX + (x - centerX) / arcScaleX
         let unscaledY = SlotArcGeometry.curveY(at: arcSampleX, in: rect, curveOffset: curveOffset, expansion: expandedAmount)
-        return rect.maxY - (rect.maxY - unscaledY) * scaleY - 24 * editProgress
+        return rect.maxY - (rect.maxY - unscaledY) * arcScaleY - 24 * editProgress
     }
 
     private func stripOffset(viewportWidth: CGFloat, slotWidth: CGFloat, centeredOffset: CGFloat) -> CGFloat {

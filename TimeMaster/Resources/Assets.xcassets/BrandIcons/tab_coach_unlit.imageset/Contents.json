@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "tab_coach_unlit.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
