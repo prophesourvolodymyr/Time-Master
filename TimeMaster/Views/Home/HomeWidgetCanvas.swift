@@ -21,6 +21,9 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
+    let insights: HomeInsights
+    let onPlanWorkout: (Date, UUID?) -> Void
+    let onAddSkill: () -> Void
     @ViewBuilder let chromeHeader: (CGFloat, ScrollingChromeMetrics) -> ChromeHeader
 
     @State private var interaction: HomeWidgetInteraction?
@@ -81,7 +84,10 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                                     onBrowseWorkouts: onBrowseWorkouts,
                                     onBrowseDatabase: onBrowseDatabase,
                                     onCreateWorkout: onCreateWorkout,
-                                    onStartOutdoor: onStartOutdoor
+                                    onStartOutdoor: onStartOutdoor,
+                                    insights: insights,
+                                    onPlanWorkout: onPlanWorkout,
+                                    onAddSkill: onAddSkill
                                 )
                                 .frame(width: frame.width, height: frame.height)
                                 .overlay {
@@ -172,6 +178,8 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
         .clipped()
         #endif
         .onChange(of: isEditing) { _ in cancelInteraction() }
+        .onAppear { widgetStore.settleFirstSteps(isComplete: insights.steps.isComplete) }
+        .onChange(of: insights.steps) { steps in widgetStore.settleFirstSteps(isComplete: steps.isComplete) }
         .onChange(of: scenePhase) { phase in
             if phase != .active { cancelInteraction() }
         }
@@ -373,6 +381,9 @@ private struct HomeWidgetTile: View {
     let onBrowseDatabase: () -> Void
     let onCreateWorkout: () -> Void
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
+    let insights: HomeInsights
+    let onPlanWorkout: (Date, UUID?) -> Void
+    let onAddSkill: () -> Void
 
     var body: some View {
         HomeWidgetContent(
@@ -387,7 +398,11 @@ private struct HomeWidgetTile: View {
             onBrowseDatabase: onBrowseDatabase,
             onCreateWorkout: onCreateWorkout,
             onStartOutdoor: onStartOutdoor,
-            onSkipScheduledWorkout: { widgetStore.skipScheduledInstance(id: $0.id) }
+            onSkipScheduledWorkout: { widgetStore.skipScheduledInstance(id: $0.id) },
+            insights: insights,
+            onPlanWorkout: onPlanWorkout,
+            onAddSkill: onAddSkill,
+            onRemoveWidget: { widgetStore.remove(id: widget.id) }
         )
         .padding(.leading, isEditing && widget.kind == .greeting ? 28 : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -499,7 +514,7 @@ private struct HomeWidgetOptions: View {
                     )
                 }
             }
-        case .quickStart, .selectedWorkout:
+        case .quickStart, .selectedWorkout, .todaysPick:
             Button {
                 var configuration = widget.configuration
                 configuration.showDetails.toggle()

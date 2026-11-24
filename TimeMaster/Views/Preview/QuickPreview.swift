@@ -229,6 +229,8 @@ struct QuickPreviewPopup: View {
     @EnvironmentObject private var store: DatabaseStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var clipIndex = 0
+    @State private var clipAspect: CGFloat = 16.0 / 9.0
+    private static let pictureHeightCap: CGFloat = 480
 
     var body: some View {
         ZStack {
@@ -363,10 +365,13 @@ struct QuickPreviewPopup: View {
         ZStack {
             Color.black
             if let clip {
-                PlayerOverlayVideo(url: clip)
+                QuickPreviewVideo(url: clip, aspect: $clipAspect)
                     .id(clip)
             } else if let cover = page?.coverImageURL {
-                AsyncCoverImage(url: cover, height: 360, contentMode: .fit, overlayGradient: false)
+                GeometryReader { proxy in
+                    AsyncCoverImage(url: cover, height: proxy.size.height, contentMode: .fit, overlayGradient: false)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                }
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: step.isRest ? "pause.circle" : "video.slash")
@@ -380,9 +385,12 @@ struct QuickPreviewPopup: View {
                 }
             }
         }
-        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+        .aspectRatio(clip == nil ? 16.0 / 9.0 : min(max(clipAspect, 1.0), 16.0 / 9.0), contentMode: .fit)
+        .frame(maxHeight: Self.pictureHeightCap)
         .frame(maxWidth: .infinity)
+        .background(Color.black)
         .clipped()
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: clipAspect)
         .overlay(alignment: .top) { crossingBanner }
     }
 

@@ -617,42 +617,40 @@ struct PageTypeBoardCard: View {
     @State private var showingTypeManager = false
     @AppStorage(SkillSettings.showsCardCoversKey) private var showsCovers = true
 
-    private static let coverHeight: CGFloat = 112
     private static let inlineMenuLinks = 3
 
     private var page: ExercisePage { item.page }
 
-    /// An exercise shows its first picture or clip, as its gallery card does; a skill only a cover it chose.
-    private var coverURL: URL? {
-        guard showsCovers else { return nil }
-        return page.isSkillLike ? page.cardCoverURL : page.coverImageURL
-    }
+    private var hasCover: Bool { showsCovers && page.galleryCoverURL != nil }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
         VStack(alignment: .leading, spacing: 0) {
-            if let coverURL {
-                cover(coverURL)
+            if showsCovers {
+                SkillGalleryCover(page: page) { actions.openFromCover(page) }
             }
-            header
-            if !item.path.isEmpty {
-                ContainerPathLabel(path: item.path)
-                    .padding(.top, SkillMetrics.s2)
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                if !item.path.isEmpty {
+                    ContainerPathLabel(path: item.path)
+                        .padding(.top, SkillMetrics.s2)
+                }
+                if !item.links.isEmpty {
+                    SkillCardLinkRow(links: item.links, tint: Theme.toolbarOrange) { actions.openLink($0.url) }
+                }
+                if !item.children.isEmpty {
+                    SkillCardChildRow(children: item.children) { actions.open($0) }
+                }
+                if hasMeta {
+                    metaRow
+                        .padding(.top, item.links.isEmpty && item.children.isEmpty ? SkillMetrics.s2 : 0)
+                }
             }
-            if !item.links.isEmpty {
-                SkillCardLinkRow(links: item.links, tint: Theme.toolbarOrange) { actions.openLink($0.url) }
-            }
-            if !item.children.isEmpty {
-                SkillCardChildRow(children: item.children) { actions.open($0) }
-            }
-            if hasMeta {
-                metaRow
-                    .padding(.top, item.links.isEmpty && item.children.isEmpty ? SkillMetrics.s2 : 0)
-            }
+            .padding(.leading, SkillMetrics.s3)
+            .padding(.trailing, SkillMetrics.s2)
+            .padding(.vertical, SkillMetrics.s3)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.leading, SkillMetrics.s3)
-        .padding(.trailing, SkillMetrics.s2)
-        .padding(.vertical, SkillMetrics.s3)
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.fieldRadius, accent: Theme.toolbarOrange, flat: true))
         .overlay {
@@ -696,31 +694,10 @@ struct PageTypeBoardCard: View {
 
     // MARK: Pieces
 
-    /// The cover filling the card's width: a tap opens it as a gallery cover does, with a play glyph on a clip.
-    private func cover(_ url: URL) -> some View {
-        let radius = SkillMetrics.fieldRadius - 4
-        return Color.clear
-            .frame(height: Self.coverHeight)
-            .overlay {
-                AsyncCoverImage(
-                    url: url,
-                    fallbackIcon: page.effectiveWorkoutType?.iconName ?? ContainerPageKind(page).symbolName,
-                    fallbackColor: page.effectiveWorkoutType.map { Color(hex: $0.colorHex) },
-                    height: Self.coverHeight,
-                    contentMode: .fill,
-                    overlayGradient: false
-                )
-            }
-            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .modifier(PageCoverTap(page: page, cornerRadius: radius, glyphSize: 26) { actions.openFromCover(page) })
-            .padding(.bottom, SkillMetrics.s2)
-            .padding(.trailing, SkillMetrics.s1)
-    }
-
     /// The icon (when there is no cover) and the title on one line.
     private var header: some View {
         HStack(spacing: SkillMetrics.s2) {
-            if coverURL == nil {
+            if !hasCover {
                 icon
             }
             SkillEditableTitle(

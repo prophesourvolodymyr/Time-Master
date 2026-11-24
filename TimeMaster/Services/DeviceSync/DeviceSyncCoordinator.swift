@@ -114,7 +114,7 @@ final class DeviceSyncCoordinator: ObservableObject {
             }
             .store(in: &cloudObservers)
         refreshNetwork()
-        #if DEBUG && os(macOS)
+        #if DEBUG
         DeviceSyncQAControl.shared.startIfRequested()
         #endif
     }

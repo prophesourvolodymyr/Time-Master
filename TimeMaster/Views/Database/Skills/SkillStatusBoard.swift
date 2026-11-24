@@ -432,36 +432,34 @@ struct SkillStatusBoardCard: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
         VStack(alignment: .leading, spacing: 0) {
-            if showsCovers, let cover = page.cardCoverURL {
-                SkillLocalImage(url: cover, maxPixel: 640)
-                    .frame(height: 112)
-                    .clipShape(RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius - 4, style: .continuous))
-                    .padding(.bottom, SkillMetrics.s2)
-                    .padding(.trailing, SkillMetrics.s1)
-                    .accessibilityHidden(true)
+            if showsCovers {
+                SkillGalleryCover(page: page) { actions.openFromCover(page) }
             }
-            header
-            if !item.path.isEmpty {
-                Text(item.path)
-                    .font(TimeMasterFont.caption())
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-                    .padding(.top, SkillMetrics.s2)
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                if !item.path.isEmpty {
+                    Text(item.path)
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                        .padding(.top, SkillMetrics.s2)
+                }
+                if !item.links.isEmpty {
+                    SkillCardLinkRow(links: item.links, tint: Theme.toolbarOrange) { actions.openLink($0.url) }
+                }
+                if !item.children.isEmpty {
+                    SkillCardChildRow(children: item.children) { actions.open($0) }
+                }
+                if hasMeta {
+                    metaRow
+                        .padding(.top, item.links.isEmpty && item.children.isEmpty ? SkillMetrics.s2 : 0)
+                }
             }
-            if !item.links.isEmpty {
-                SkillCardLinkRow(links: item.links, tint: Theme.toolbarOrange) { actions.openLink($0.url) }
-            }
-            if !item.children.isEmpty {
-                SkillCardChildRow(children: item.children) { actions.open($0) }
-            }
-            if hasMeta {
-                metaRow
-                    .padding(.top, item.links.isEmpty && item.children.isEmpty ? SkillMetrics.s2 : 0)
-            }
+            .padding(.leading, SkillMetrics.s3)
+            .padding(.trailing, SkillMetrics.s2)
+            .padding(.vertical, SkillMetrics.s3)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.leading, SkillMetrics.s3)
-        .padding(.trailing, SkillMetrics.s2)
-        .padding(.vertical, SkillMetrics.s3)
         .frame(maxWidth: .infinity, alignment: .leading)
         .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.fieldRadius, accent: Theme.toolbarOrange, flat: true))
         .skillTypeBase(item.type, cornerRadius: SkillMetrics.fieldRadius)
@@ -504,6 +502,7 @@ struct SkillStatusBoardCard: View {
         .accessibilityLabel(item.spokenSummary)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { open() }
+        .modifier(PageClipAccessibilityAction(page: page) { actions.openFromCover(page) })
         .accessibilityAction(named: "Change icon") { actions.changeIcon(page) }
         .accessibilityActions {
             ForEach(SkillStatus.boardOrder.filter { $0 != item.status }, id: \.self) { option in

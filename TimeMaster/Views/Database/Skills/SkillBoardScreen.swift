@@ -144,6 +144,9 @@ struct SkillBoardScreen: View {
                 case .tiers:
                     SkillTierBoardView(skillID: snapshot.scope.boardID)
                 }
+                if mode == .board, snapshot.container?.isSkillLike == true, !snapshot.scope.isGroup {
+                    SkillTierBoardView(skillID: snapshot.scope.boardID, embedded: true)
+                }
             }
         }
         .onAppear {
@@ -277,13 +280,20 @@ struct SkillBoardScreen: View {
     /// List · Board · Table, the group toggle (Board) and New section: whatever the view, the section controls sit
     /// beside the view switch. The menu at the end makes a sub-skill with every detail (type, cover, media).
     private func switcherRow(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode) -> some View {
+        ViewThatFits(in: .horizontal) {
+            switcherContent(snapshot, mode: mode, showsTitle: true)
+            switcherContent(snapshot, mode: mode, showsTitle: false)
+        }
+    }
+
+    private func switcherContent(_ snapshot: SkillBoardSnapshot, mode: SkillBoardMode, showsTitle: Bool) -> some View {
         HStack(spacing: SkillMetrics.s2) {
             SkillViewModePicker(selection: modeBinding, modes: availableModes(snapshot))
             if mode == .board && snapshot.hasSections && !showsTypes(snapshot) {
                 groupToggle(snapshot)
             }
             if !snapshot.scope.isGroup {
-                SkillNewSectionButton { addingSection = true }
+                SkillNewSectionButton(showsTitle: showsTitle) { addingSection = true }
             }
             Spacer(minLength: 0)
             if !snapshot.scope.isGroup {
@@ -398,6 +408,7 @@ struct SkillBoardScreen: View {
     private func actions(_ snapshot: SkillBoardSnapshot) -> SkillBoardActions {
         SkillBoardActions(
             open: { page in navigationState.open(skillID: page.manifest.id) },
+            openFromCover: { page in PageCoverOpening.open(page, in: navigationState) },
             setStatus: { page, status in setStatus(page, status) },
             changeIcon: { pageToChangeIcon = SkillPageTarget(id: $0.manifest.id) },
             edit: { pageToEdit = SkillPageTarget(id: $0.manifest.id) },

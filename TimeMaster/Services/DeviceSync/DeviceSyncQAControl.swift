@@ -1,5 +1,7 @@
-#if DEBUG && os(macOS)
+#if DEBUG
+#if os(macOS)
 import AppKit
+#endif
 import SwiftUI
 
 @MainActor
@@ -65,6 +67,8 @@ final class DeviceSyncQAControl {
             sync.isEnabled = argument != "off"
         case "open-settings":
             NotificationCenter.default.post(name: .openSettingsCommand, object: nil)
+        case "open-page":
+            NotificationCenter.default.post(name: .openAppPage, object: nil, userInfo: ["destination": argument])
         case "open-pairing-sheet":
             NotificationCenter.default.post(name: .qaOpenDeviceSyncPairing, object: nil)
         case "snapshot":
@@ -76,6 +80,7 @@ final class DeviceSyncQAControl {
     }
 
     private func snapshot(to path: String) -> [String: Any] {
+        #if os(macOS)
         let candidates = NSApp.windows.filter { $0.isVisible && $0.contentView != nil && $0.frame.width > 300 }
         guard let window = candidates.first(where: { $0.isSheet }) ?? candidates.first,
               let view = window.contentView,
@@ -90,6 +95,9 @@ final class DeviceSyncQAControl {
         } catch {
             return ["ok": false, "error": error.localizedDescription]
         }
+        #else
+        return ["ok": false, "error": "window snapshots are only available on the Mac"]
+        #endif
     }
 
     private func writeStatus(_ sync: DeviceSyncCoordinator, to url: URL) {

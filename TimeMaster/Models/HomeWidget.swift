@@ -125,11 +125,14 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
     case exerciseDatabase
     case databaseOverview
     case buildFromDatabase
+    case todaysPick
+    case weekAhead
+    case firstSteps
     var id: String { rawValue }
 
     var category: HomeWidgetCategory {
         switch self {
-        case .greeting, .today, .quickStart: .today
+        case .greeting, .today, .quickStart, .todaysPick, .weekAhead, .firstSteps: .today
         case .activityShortcuts, .recentWorkouts, .resumeWorkout, .selectedWorkout: .workouts
         case .metrics, .streak, .weeklyRhythm, .activityHeatmap, .lifetimeStats, .typeBreakdown: .analytics
         case .outdoorSummary, .recoverActivity, .savedRoutes, .outdoorMap: .outdoor
@@ -159,6 +162,9 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         case .exerciseDatabase: "Exercise Database"
         case .databaseOverview: "Database Overview"
         case .buildFromDatabase: "Build from Database"
+        case .todaysPick: "Today's Pick"
+        case .weekAhead: "Week Ahead"
+        case .firstSteps: "First Steps"
         }
     }
 
@@ -184,6 +190,9 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         case .exerciseDatabase: "cylinder.split.1x2.fill"
         case .databaseOverview: "square.stack.3d.up.fill"
         case .buildFromDatabase: "plus.rectangle.on.rectangle"
+        case .todaysPick: "sparkles"
+        case .weekAhead: "calendar.badge.clock"
+        case .firstSteps: "checklist"
         }
     }
 
@@ -200,7 +209,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
 
     var supportsOptions: Bool {
         switch self {
-        case .greeting, .streak, .lifetimeStats, .databaseOverview, .buildFromDatabase, .recoverActivity, .outdoorMap: false
+        case .greeting, .streak, .lifetimeStats, .databaseOverview, .buildFromDatabase, .recoverActivity, .outdoorMap, .weekAhead, .firstSteps: false
         default: true
         }
     }
@@ -209,6 +218,7 @@ enum HomeWidgetKind: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .greeting: [.wide]
         case .activityHeatmap, .activityShortcuts: [.wide, .square]
+        case .weekAhead, .firstSteps: [.wide, .square]
         default: [.compact, .wide, .square]
         }
     }
@@ -269,6 +279,28 @@ struct HomeWidgetConfiguration: Codable, Equatable {
     var activityShortcuts: [HomeActivityShortcut] = [.workout, .runWalk, .walk, .bike]
     var metricFields: [HomeMetricField] = [.sessions, .streak, .activeMinutes]
 
+    init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case showTypeIcon, showDetails, showStatus, showScheduledTime, visibleCount
+        case selectedTypeID, selectedWorkoutID, activityShortcuts, metricFields
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        showTypeIcon = try values.decodeIfPresent(Bool.self, forKey: .showTypeIcon) ?? true
+        showDetails = try values.decodeIfPresent(Bool.self, forKey: .showDetails) ?? true
+        showStatus = try values.decodeIfPresent(Bool.self, forKey: .showStatus) ?? true
+        showScheduledTime = try values.decodeIfPresent(Bool.self, forKey: .showScheduledTime) ?? true
+        visibleCount = try values.decodeIfPresent(Int.self, forKey: .visibleCount) ?? 3
+        selectedTypeID = try values.decodeIfPresent(String.self, forKey: .selectedTypeID)
+        selectedWorkoutID = try values.decodeIfPresent(UUID.self, forKey: .selectedWorkoutID)
+        activityShortcuts = try values.decodeIfPresent([HomeActivityShortcut].self, forKey: .activityShortcuts)
+            ?? [.workout, .runWalk, .walk, .bike]
+        metricFields = try values.decodeIfPresent([HomeMetricField].self, forKey: .metricFields)
+            ?? [.sessions, .streak, .activeMinutes]
+    }
+
     static func defaults(for kind: HomeWidgetKind) -> HomeWidgetConfiguration {
         var configuration = HomeWidgetConfiguration()
         switch kind {
@@ -311,14 +343,36 @@ struct HomeWidgetInstance: Identifiable, Codable, Equatable {
     }
 }
 
+struct HomeWidgetLayout: Decodable {
+    let widgets: [HomeWidgetInstance]
+
+    private struct Skipped: Decodable {}
+
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        var widgets: [HomeWidgetInstance] = []
+        while !container.isAtEnd {
+            let before = container.currentIndex
+            if let widget = try? container.decode(HomeWidgetInstance.self) {
+                widgets.append(widget)
+            } else {
+                _ = try? container.decode(Skipped.self)
+            }
+            if container.currentIndex == before { break }
+        }
+        self.widgets = widgets
+    }
+}
+
 enum HomeWidgetCatalog {
     static let initialLayout: [HomeWidgetInstance] = [
         HomeWidgetInstance(kind: .greeting),
-        HomeWidgetInstance(kind: .today),
-        HomeWidgetInstance(kind: .quickStart),
+        HomeWidgetInstance(kind: .todaysPick),
+        HomeWidgetInstance(kind: .firstSteps),
+        HomeWidgetInstance(kind: .weekAhead),
+        HomeWidgetInstance(kind: .metrics),
         HomeWidgetInstance(kind: .activityShortcuts),
         HomeWidgetInstance(kind: .outdoorMap),
-        HomeWidgetInstance(kind: .metrics),
     ]
 
     static func options(for kind: HomeWidgetKind) -> [HomeWidgetKind] {

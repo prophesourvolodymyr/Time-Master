@@ -18,6 +18,10 @@ struct HomeWidgetContent: View {
     let onStartOutdoor: (OutdoorActivityKind, PlannedRoute?, UUID?) -> Void
     @ObservedObject private var resumeManager = WorkoutResumeManager.shared
     let onSkipScheduledWorkout: (ScheduledWorkout) -> Void
+    let insights: HomeInsights
+    let onPlanWorkout: (Date, UUID?) -> Void
+    let onAddSkill: () -> Void
+    let onRemoveWidget: () -> Void
 
     var body: some View {
         content
@@ -67,6 +71,12 @@ struct HomeWidgetContent: View {
             databaseOverview
         case .buildFromDatabase:
             buildFromDatabase
+        case .todaysPick:
+            todaysPick
+        case .weekAhead:
+            weekAhead
+        case .firstSteps:
+            firstSteps
         }
     }
 
@@ -84,16 +94,42 @@ struct HomeWidgetContent: View {
 
     }
 
+    @ViewBuilder
     private var today: some View {
         let items = visibleTodayItems
-        return HomeWidgetChrome(title: items.isEmpty ? nil : "Today") {
-            if items.isEmpty {
-                quietEmpty("Nothing planned\ntoday.")
-            } else {
+        if items.isEmpty {
+            todayEmpty
+        } else {
+            HomeWidgetChrome(title: "Today") {
                 VStack(spacing: 8) {
                     ForEach(items) { item in todayRow(item) }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var todayEmpty: some View {
+        let options = picks
+        if options.isEmpty {
+            HomeWidgetChrome(title: nil) {
+                HomeInvite(
+                    footprint: widget.footprint,
+                    systemImage: "calendar.badge.plus",
+                    headline: "Nothing planned today",
+                    detail: "Build a workout and Tmax will suggest one for you every day.",
+                    action: HomeInviteAction(title: "Create", run: onCreateWorkout)
+                )
+            }
+        } else {
+            HomeTodaysPickCard(
+                options: options,
+                footprint: widget.footprint,
+                showsDetails: widget.configuration.showDetails,
+                planDate: now,
+                kickerOverride: "Nothing planned today",
+                actions: actions
+            )
         }
     }
 
@@ -137,20 +173,30 @@ struct HomeWidgetContent: View {
 
     private var activityShortcuts: some View {
         let shortcuts = supportedShortcuts
+        let caption = shortcuts.contains(.workout) && widget.footprint == .square ? workoutShortcutTarget?.name : nil
         return HomeWidgetChrome(title: "Start") {
-            GeometryReader { proxy in
-                let count = widget.footprint == .square ? 2 : max(1, shortcuts.count)
-                let rows = max(1, Int(ceil(Double(shortcuts.count) / Double(count))))
-                let diameter = max(44, min(
-                    (proxy.size.width - CGFloat(count - 1) * 12) / CGFloat(count),
-                    (proxy.size.height - CGFloat(rows - 1) * 12) / CGFloat(rows)
-                ))
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: count), spacing: 12) {
-                    ForEach(shortcuts) { shortcut in
-                        HomeActivityShortcutCircle(shortcut: shortcut, diameter: diameter, action: { start(shortcut) })
+            VStack(spacing: 8) {
+                GeometryReader { proxy in
+                    let count = widget.footprint == .square ? 2 : max(1, shortcuts.count)
+                    let rows = max(1, Int(ceil(Double(shortcuts.count) / Double(count))))
+                    let diameter = max(44, min(
+                        (proxy.size.width - CGFloat(count - 1) * 12) / CGFloat(count),
+                        (proxy.size.height - CGFloat(rows - 1) * 12) / CGFloat(rows)
+                    ))
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: count), spacing: 12) {
+                        ForEach(shortcuts) { shortcut in
+                            HomeActivityShortcutCircle(shortcut: shortcut, diameter: diameter, action: { start(shortcut) })
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if let caption {
+                    Text("Workout starts \(caption)")
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
             }
         }
     }
@@ -257,13 +303,19 @@ struct HomeWidgetContent: View {
         }
     }
 
+    @ViewBuilder
     private var metrics: some View {
-        return HomeWidgetChrome(title: "Progress", surface: true) {
-            metricLayout {
-                ForEach(widget.configuration.metricFields) { field in
-                    metricCell(field)
+        let progress = insights.progress
+        if progress.hasHistory {
+            HomeWidgetChrome(title: "Progress", surface: true) {
+                metricLayout {
+                    ForEach(widget.configuration.metricFields) { field in
+                        metricCell(field)
+                    }
                 }
             }
+        } else {
+            HomeWidgetChrome(title: nil) { progressInvite(progress) }
         }
     }
 
@@ -382,19 +434,26 @@ struct HomeWidgetContent: View {
             Button {
                 onStartOutdoor(.run, nil, nil)
             } label: {
-                VStack(spacing: 10) {
+                VStack(spacing: 8) {
                     Image(systemName: "map.fill")
                         .font(.largeTitle)
                         .foregroundStyle(.cyan)
                     Text("Explore")
                         .font(TimeMasterFont.heading())
                         .foregroundStyle(Theme.textPrimary)
+                    Text(exploreLine)
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(Theme.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
             }
             .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
             .accessibilityLabel("Open live map")
+            .accessibilityHint(exploreLine)
         }
     }
 
@@ -514,6 +573,157 @@ struct HomeWidgetContent: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var actions: HomeWidgetActions {
+        HomeWidgetActions(
+            startWorkout: { id in
+                if let workout = workoutStore.workout(id: id) { onStartWorkout(workout) }
+            },
+            planWorkout: onPlanWorkout,
+            createWorkout: onCreateWorkout,
+            browseWorkouts: onBrowseWorkouts,
+            browseDatabase: onBrowseDatabase,
+            addSkill: onAddSkill,
+            removeWidget: onRemoveWidget
+        )
+    }
+
+    private var pinnedOption: HomeWorkoutOption? {
+        guard let id = widget.configuration.selectedWorkoutID else { return nil }
+        if let known = insights.ranked.first(where: { $0.id == id }) { return known }
+        return readyWorkouts.first(where: { $0.id == id }).map { HomeInsights.option(for: $0, lastCompletedAt: nil) }
+    }
+
+    private var picks: [HomePickOption] {
+        HomePickResolver.options(
+            planned: insights.today,
+            skipped: skippedScheduledInstanceIDs,
+            ranked: insights.ranked,
+            pinned: widget.kind == .todaysPick ? pinnedOption : nil,
+            now: now
+        )
+    }
+
+    private var workoutShortcutTarget: Workout? {
+        picks.first.flatMap { workoutStore.workout(id: $0.workout.id) } ?? readyWorkouts.first
+    }
+
+    private var todaysPick: some View {
+        HomeTodaysPickCard(
+            options: picks,
+            footprint: widget.footprint,
+            showsDetails: widget.configuration.showDetails,
+            planDate: now,
+            actions: actions
+        )
+    }
+
+    private var weekAhead: some View {
+        HomeWeekAheadCard(
+            days: insights.week,
+            footprint: widget.footprint,
+            suggestion: insights.ranked.first,
+            actions: actions
+        )
+    }
+
+    private var firstSteps: some View {
+        HomeFirstStepsCard(
+            progress: insights.steps,
+            footprint: widget.footprint,
+            pick: picks.first,
+            planDate: now,
+            actions: actions
+        )
+    }
+
+    private var exploreLine: String {
+        let outdoor = insights.outdoor
+        if outdoor.sessions > 0 {
+            let outings = HomeText.count(outdoor.sessions, "outing", "outings")
+            return outdoor.distanceKilometers >= 0.1
+                ? "\(outings) · \(String(format: "%.1f", outdoor.distanceKilometers)) km"
+                : outings
+        }
+        if outdoor.routes > 0 { return HomeText.count(outdoor.routes, "saved route", "saved routes") }
+        return HomeWidgetPlatform.canRecordOutdoor ? "Walk, run or ride. Your first route starts here." : "Open the live map"
+    }
+
+    @ViewBuilder
+    private func progressInvite(_ progress: HomeProgressSnapshot) -> some View {
+        let message = HomeProgressCopy.message(for: progress)
+        let pick = picks.first
+        let ring = HomeRingBadge(
+            fraction: progress.goalFraction,
+            label: HomeProgressCopy.ringLabel(for: progress),
+            diameter: widget.footprint == .compact ? 56 : (widget.footprint == .square ? 96 : 64),
+            lineWidth: widget.footprint == .square ? 9 : 6
+        )
+        switch widget.footprint {
+        case .compact:
+            VStack(spacing: 8) {
+                ring
+                Text(message.headline)
+                    .font(TimeMasterFont.rowTitle())
+                    .foregroundStyle(Theme.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.75)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .wide:
+            HStack(spacing: 14) {
+                ring
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(message.headline)
+                        .font(TimeMasterFont.heading())
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                    Text(message.detail)
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if let pick {
+                    HomePillButton(title: "Start", systemImage: "play.fill", hint: "Starts \(pick.workout.name)") {
+                        actions.startWorkout(pick.workout.id)
+                    }
+                    .fixedSize()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .square:
+            VStack(spacing: 12) {
+                Spacer(minLength: 0)
+                ring
+                Text(message.headline)
+                    .font(TimeMasterFont.black(22, relativeTo: .title3))
+                    .foregroundStyle(Theme.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                Text(message.detail)
+                    .font(TimeMasterFont.secondary())
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                if let pick {
+                    HomePillButton(
+                        title: "Start \(pick.workout.name)",
+                        systemImage: "play.fill",
+                        fillsWidth: true,
+                        hint: "Starts \(pick.workout.name)"
+                    ) {
+                        actions.startWorkout(pick.workout.id)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
     private var visibleTodayItems: [ScheduledWorkout] {
         workoutStore.scheduledWorkouts(for: now)
             .filter { !skippedScheduledInstanceIDs.contains($0.id) }
@@ -527,7 +737,8 @@ struct HomeWidgetContent: View {
         if let pending = scheduled.first(where: { $0.status == .pending }) {
             return pending.workout
         }
-        return readyWorkouts.first
+        let leading = insights.ranked.first?.id
+        return readyWorkouts.first { $0.id != leading } ?? readyWorkouts.first
     }
 
     private var readyWorkouts: [Workout] {
@@ -668,7 +879,7 @@ struct HomeWidgetContent: View {
     private func start(_ shortcut: HomeActivityShortcut) {
         switch shortcut {
         case .workout:
-            if let workout = readyWorkouts.first { onStartWorkout(workout) } else { onCreateWorkout() }
+            if let workout = workoutShortcutTarget { onStartWorkout(workout) } else { onCreateWorkout() }
         case .runWalk:
             onStartOutdoor(.run, nil, nil)
         case .walk:
@@ -765,15 +976,18 @@ private struct HomeActivityShortcutCircle: View {
 struct HomeWidgetChrome<Content: View>: View {
     let title: String?
     let surface: Bool
+    let accent: Color?
     let content: Content
 
     init(
         title: String?,
         surface: Bool = true,
+        accent: Color? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.surface = surface
+        self.accent = accent
         self.content = content()
     }
 
@@ -793,9 +1007,19 @@ struct HomeWidgetChrome<Content: View>: View {
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            if surface {
-                RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)
-                    .fill(Theme.surface)
+            ZStack {
+                if surface {
+                    RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)
+                        .fill(Theme.surface)
+                }
+                if let accent {
+                    RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)
+                        .fill(LinearGradient(
+                            colors: [accent.opacity(0.22), accent.opacity(0.02)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                }
             }
         }
     }

@@ -324,6 +324,7 @@ struct SkillBoardSnapshot {
 /// What rows, cards and table rows ask the board screen to do; the screen owns the store calls, sheets and dialogs.
 struct SkillBoardActions {
     var open: (ExercisePage) -> Void
+    var openFromCover: (ExercisePage) -> Void
     var setStatus: (ExercisePage, SkillStatus) -> Void
     var changeIcon: (ExercisePage) -> Void
     var edit: (ExercisePage) -> Void
@@ -780,6 +781,7 @@ struct SkillBoardControlsToggle: View {
 
 /// The "New section" call to action: a plus and the words on an orange pill, at least 44 pt tall.
 struct SkillNewSectionButton: View {
+    var showsTitle = true
     let action: () -> Void
 
     var body: some View {
@@ -787,13 +789,15 @@ struct SkillNewSectionButton: View {
             HStack(spacing: SkillMetrics.s2) {
                 Image(systemName: "plus")
                     .font(.system(size: 14, weight: .semibold))
-                Text("New section")
-                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                if showsTitle {
+                    Text("New section")
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                }
             }
             .lineLimit(1)
             .fixedSize()
         }
-        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, horizontalPadding: SkillMetrics.s4))
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, horizontalPadding: showsTitle ? SkillMetrics.s4 : SkillMetrics.s3))
         .accessibilityLabel("New section")
         .accessibilityHint("Adds a coloured group for your sub-skills")
         .help("New section")

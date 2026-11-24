@@ -1,5 +1,12 @@
 import SwiftUI
 import Combine
+import TimeMasterCore
+
+private struct HomePlanRequest: Identifiable {
+    let id = UUID()
+    let date: Date
+    let seed: WeeklyWorkoutSchedule.Entry?
+}
 
 struct HomeDashboardView: View {
     @EnvironmentObject private var store: WorkoutStore
@@ -19,8 +26,15 @@ struct HomeDashboardView: View {
     @State private var pendingWidget: HomeWidgetInstance?
     @State private var insertedWidgetID: UUID?
     @State private var now = Date()
+    @State private var planRequest: HomePlanRequest?
 
     var body: some View {
+        HomeInsightsHost(workouts: store, library: databaseStore, outdoor: outdoorStore, now: now) { insights in
+            dashboard(insights)
+        }
+    }
+
+    private func dashboard(_ insights: HomeInsights) -> some View {
         NavigationStack {
             ZStack {
                 Theme.background.ignoresSafeArea()
@@ -38,6 +52,9 @@ struct HomeDashboardView: View {
                     onBrowseDatabase: onBrowseDatabase,
                     onCreateWorkout: onCreateWorkout,
                     onStartOutdoor: onStartOutdoor,
+                    insights: insights,
+                    onPlanWorkout: planWorkout,
+                    onAddSkill: { HomeNavigation.open(.skills) },
                     chromeHeader: homeHeader
                 )
             }
@@ -64,9 +81,15 @@ struct HomeDashboardView: View {
                     .environmentObject(databaseStore)
             }
             .sheet(isPresented: $showingWidgetPicker, onDismiss: insertPendingWidget) {
-                HomeWidgetPicker(widgetStore: widgetStore) { kind, footprint in
+                HomeWidgetPicker(widgetStore: widgetStore, insights: insights) { kind, footprint in
                     pendingWidget = HomeWidgetInstance(kind: kind, footprint: footprint)
                     showingWidgetPicker = false
+                }
+                .keyNavHost()
+            }
+            .sheet(item: $planRequest) { request in
+                ScheduleEntryEditor(date: request.date, entry: request.seed, showsRepeat: true) { entry, repeats in
+                    store.saveScheduleEntry(entry, on: request.date, repeats: repeats, completed: false)
                 }
                 .keyNavHost()
             }
@@ -176,6 +199,23 @@ struct HomeDashboardView: View {
     private func startWorkout(_ workout: Workout) {
         isEditing = false
         playerWorkout = workout
+    }
+
+    private func planWorkout(_ date: Date, _ workoutID: UUID?) {
+        var seed: WeeklyWorkoutSchedule.Entry?
+        if let workoutID, let workout = store.workout(id: workoutID) {
+            seed = WeeklyWorkoutSchedule.Entry(
+                workoutID: workout.id,
+                title: workout.name,
+                weekday: WeeklyWorkoutSchedule.weekday(date),
+                durationSeconds: workout.totalDuration,
+                exerciseCount: workout.sections.count,
+                icon: workout.type.iconName,
+                colorHex: workout.type.colorHex
+            )
+        }
+        isEditing = false
+        planRequest = HomePlanRequest(date: date, seed: seed)
     }
 }
 

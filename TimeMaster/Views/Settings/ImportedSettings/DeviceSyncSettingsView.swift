@@ -77,7 +77,7 @@ struct DeviceSyncSettingsView: View {
         }
         .tint(Theme.toolbarOrange)
         .accessibilityIdentifier("device-sync-settings")
-        #if DEBUG && os(macOS)
+        #if DEBUG
         .onReceive(NotificationCenter.default.publisher(for: .qaOpenDeviceSyncPairing)) { _ in showsPairing = true }
         #endif
         .sheet(isPresented: $showsPairing, onDismiss: { sync.endPairing() }) {

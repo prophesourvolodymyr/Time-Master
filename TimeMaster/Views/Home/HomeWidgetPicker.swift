@@ -6,6 +6,7 @@ struct HomeWidgetPicker: View {
     @EnvironmentObject private var databaseStore: DatabaseStore
     @EnvironmentObject private var outdoorStore: OutdoorActivityStore
     @ObservedObject var widgetStore: HomeWidgetStore
+    let insights: HomeInsights
     let onAdd: (HomeWidgetKind, HomeWidgetFootprint) -> Void
 
     #if os(macOS)
@@ -88,7 +89,8 @@ struct HomeWidgetPicker: View {
                 widgetStore: widgetStore,
                 workoutStore: workoutStore,
                 databaseStore: databaseStore,
-                outdoorStore: outdoorStore
+                outdoorStore: outdoorStore,
+                insights: insights
             )
             .padding(14)
 
@@ -144,6 +146,7 @@ private struct HomeWidgetPreview: View {
     @ObservedObject var workoutStore: WorkoutStore
     @ObservedObject var databaseStore: DatabaseStore
     @ObservedObject var outdoorStore: OutdoorActivityStore
+    let insights: HomeInsights
     @State private var previewDate = Date()
 
     var body: some View {
@@ -175,7 +178,11 @@ private struct HomeWidgetPreview: View {
             onStartOutdoor: { _, _, _ in },
             onSkipScheduledWorkout: { scheduled in
                 widgetStore.skipScheduledInstance(id: scheduled.id)
-            }
+            },
+            insights: insights,
+            onPlanWorkout: { _, _ in },
+            onAddSkill: {},
+            onRemoveWidget: {}
         )
     }
 }

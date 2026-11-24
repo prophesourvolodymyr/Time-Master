@@ -10,14 +10,17 @@ final class HomeWidgetStore: ObservableObject {
     private let skippedScheduleKey = "home_skipped_schedule_instances_v1"
     private let greetingStripMigrationKey = "home_greeting_strip_migration_v1"
     private let mapOpenerMigrationKey = "home_map_opener_migration_v1"
+    private let dayOneMigrationKey = "home_day_one_migration_v1"
+    private let firstStepsCelebratedKey = "home_first_steps_celebrated_v1"
+    private static let launchToken = UUID().uuidString
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let loadedWidgets: [HomeWidgetInstance]
         if let data = defaults.data(forKey: layoutKey),
-           let decoded = try? JSONDecoder().decode([HomeWidgetInstance].self, from: data) {
-            loadedWidgets = decoded
+           let decoded = try? JSONDecoder().decode(HomeWidgetLayout.self, from: data) {
+            loadedWidgets = decoded.widgets
         } else {
             loadedWidgets = HomeWidgetCatalog.initialLayout
         }
@@ -45,16 +48,26 @@ final class HomeWidgetStore: ObservableObject {
             mapOpenerWidgets = outdoorShortcutWidgets
         }
         let addedMapOpener = mapOpenerWidgets != outdoorShortcutWidgets
+        let dayOneMigrationNeeded = defaults.bool(forKey: dayOneMigrationKey) == false
+        var dayOneWidgets = mapOpenerWidgets
+        if dayOneMigrationNeeded {
+            var index = dayOneWidgets.firstIndex(where: { $0.kind == .quickStart }).map { $0 + 1 } ?? min(2, dayOneWidgets.count)
+            for kind in [HomeWidgetKind.firstSteps, .weekAhead] where !dayOneWidgets.contains(where: { $0.kind == kind }) {
+                dayOneWidgets.insert(HomeWidgetInstance(kind: kind), at: min(index, dayOneWidgets.count))
+                index += 1
+            }
+        }
+        let addedDayOne = dayOneWidgets != mapOpenerWidgets
         let needsGreetingStripMigration = defaults.bool(forKey: greetingStripMigrationKey) == false
         widgets = needsGreetingStripMigration
-            ? mapOpenerWidgets.map { widget in
+            ? dayOneWidgets.map { widget in
                 var widget = widget
                 if widget.kind == .greeting {
                     widget.footprint = .wide
                 }
                 return widget
             }
-            : mapOpenerWidgets
+            : dayOneWidgets
 
         if let data = defaults.data(forKey: skippedScheduleKey),
            let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
@@ -63,7 +76,10 @@ final class HomeWidgetStore: ObservableObject {
             skippedScheduledInstanceIDs = []
         }
 
-        if needsGreetingStripMigration || addedWalkShortcut || addedMapOpener {
+        if dayOneMigrationNeeded {
+            defaults.set(true, forKey: dayOneMigrationKey)
+        }
+        if needsGreetingStripMigration || addedWalkShortcut || addedMapOpener || addedDayOne {
             defaults.set(true, forKey: greetingStripMigrationKey)
             defaults.set(true, forKey: mapOpenerMigrationKey)
             save()
@@ -83,6 +99,7 @@ final class HomeWidgetStore: ObservableObject {
         configuration: HomeWidgetConfiguration? = nil
     ) -> UUID? {
         guard canAdd(kind) else { return nil }
+        if kind == .firstSteps { defaults.removeObject(forKey: firstStepsCelebratedKey) }
         let size = footprint.flatMap { kind.supportedFootprints.contains($0) ? $0 : nil }
         let widget = HomeWidgetInstance(kind: kind, footprint: size, configuration: configuration)
         widgets.insert(widget, at: 0)
@@ -92,6 +109,22 @@ final class HomeWidgetStore: ObservableObject {
 
     func remove(id: UUID) {
         widgets.removeAll { $0.id == id }
+        save()
+    }
+
+    func settleFirstSteps(isComplete: Bool) {
+        guard widgets.contains(where: { $0.kind == .firstSteps }) else { return }
+        guard isComplete else {
+            defaults.removeObject(forKey: firstStepsCelebratedKey)
+            return
+        }
+        guard let celebrated = defaults.string(forKey: firstStepsCelebratedKey) else {
+            defaults.set(Self.launchToken, forKey: firstStepsCelebratedKey)
+            return
+        }
+        guard celebrated != Self.launchToken else { return }
+        defaults.removeObject(forKey: firstStepsCelebratedKey)
+        widgets.removeAll { $0.kind == .firstSteps }
         save()
     }
 

@@ -115,6 +115,10 @@ struct ExercisePage: Identifiable {
         manifest.coverMediaFilename.flatMap(mediaURL(for:))
     }
 
+    var galleryCoverURL: URL? {
+        cardCoverURL ?? coverImageURL
+    }
+
     /// The picture icon: one of the page's media, or an http(s) image address.
     var iconImageURL: URL? {
         guard let reference = manifest.iconImage else { return nil }

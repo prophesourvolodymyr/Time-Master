@@ -20,54 +20,81 @@ enum SkillTierStyle {
     }
 }
 
-/// The Tiers view of a skill: every page in the library that trains it, in rows from S (the best way to train it) down to
-/// D. A cover opens the clip in the quick preview with the other exercises of the view to step through; a page's menu
-/// moves it to another tier, opens it or takes it off the skill. "Add exercise" and the plus of a row link any page of
-/// the library at that tier.
 struct SkillTierBoardView: View {
     let skillID: String
+    var embedded = false
 
     @EnvironmentObject private var store: DatabaseStore
     @EnvironmentObject private var workoutStore: WorkoutStore
     @EnvironmentObject private var navigationState: DatabaseNavigationState
     @State private var pickerTier: SkillTier?
+    @State private var expanded: Set<SkillTier> = []
+
+    private static let columnWidth: CGFloat = 264
+    private static let collapsedCount = 6
 
     var body: some View {
         let trainers = store.trainers(of: skillID)
-        VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+        Group {
+            if embedded && trainers.isEmpty {
+                EmptyView()
+            } else {
+                VStack(alignment: .leading, spacing: SkillMetrics.s3) {
+                    header(trainers.count)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .top, spacing: SkillMetrics.s3) {
+                            ForEach(SkillTier.allCases, id: \.self) { tier in
+                                column(tier, trainers.filter { $0.tier == tier })
+                            }
+                        }
+                    }
+                }
+                .sheet(isPresented: Binding(get: { pickerTier != nil }, set: { if !$0 { pickerTier = nil } })) {
+                    DatabasePageBrowserSheet(
+                        workout: Workout(name: "Tiers"),
+                        onAdd: { page, _, _, _, _, _, _ in
+                            guard page.manifest.id != skillID else { return }
+                            let tier = pickerTier ?? .c
+                            SkillErrorCenter.shared.attempt("Add the exercise") {
+                                try store.setTraining(page.manifest.id, skill: skillID, tier: tier)
+                            }
+                            pickerTier = nil
+                        },
+                        onAddBundle: { _, _, _, _, _, _, _ in }
+                    )
+                    .environmentObject(store)
+                    .environmentObject(workoutStore)
+                    .keyNavHost()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func header(_ count: Int) -> some View {
+        if embedded {
             HStack(spacing: SkillMetrics.s2) {
-                Text(summary(trainers.count))
+                SkillSectionHeading(symbol: "rosette", title: "Trained by", count: count)
+                addButton
+            }
+        } else {
+            HStack(spacing: SkillMetrics.s2) {
+                Text(summary(count))
                     .font(TimeMasterFont.caption())
                     .foregroundStyle(Theme.textSecondary)
                 Spacer(minLength: 0)
-                Button { pickerTier = .c } label: {
-                    Label("Add exercise", systemImage: "plus")
-                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                        .lineLimit(1)
-                }
-                .buttonStyle(TimeMasterActionButtonStyle(prominent: true, horizontalPadding: SkillMetrics.s4))
-            }
-            ForEach(SkillTier.allCases, id: \.self) { tier in
-                row(tier, trainers.filter { $0.tier == tier })
+                addButton
             }
         }
-        .sheet(isPresented: Binding(get: { pickerTier != nil }, set: { if !$0 { pickerTier = nil } })) {
-            DatabasePageBrowserSheet(
-                workout: Workout(name: "Tiers"),
-                onAdd: { page, _, _, _, _, _, _ in
-                    guard page.manifest.id != skillID else { return }
-                    let tier = pickerTier ?? .c
-                    SkillErrorCenter.shared.attempt("Add the exercise") {
-                        try store.setTraining(page.manifest.id, skill: skillID, tier: tier)
-                    }
-                    pickerTier = nil
-                },
-                onAddBundle: { _, _, _, _, _, _, _ in }
-            )
-            .environmentObject(store)
-            .environmentObject(workoutStore)
-            .keyNavHost()
+    }
+
+    private var addButton: some View {
+        Button { pickerTier = .c } label: {
+            Label("Add exercise", systemImage: "plus")
+                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                .lineLimit(1)
         }
+        .buttonStyle(TimeMasterActionButtonStyle(prominent: true, horizontalPadding: SkillMetrics.s4))
     }
 
     private func summary(_ count: Int) -> String {
@@ -78,84 +105,90 @@ struct SkillTierBoardView: View {
         }
     }
 
-    private func row(_ tier: SkillTier, _ items: [SkillTrainer]) -> some View {
+    private func column(_ tier: SkillTier, _ items: [SkillTrainer]) -> some View {
         let color = SkillTierStyle.color(tier)
-        let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous)
-        return HStack(alignment: .top, spacing: SkillMetrics.s3) {
-            Text(tier.title)
-                .font(TimeMasterFont.black(24, relativeTo: .title2))
-                .foregroundStyle(Color.black.opacity(0.85))
-                .frame(width: 52, height: 52)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color))
-                .accessibilityLabel("Tier \(tier.title)")
-            Group {
-                if items.isEmpty {
-                    Text("Nothing here yet")
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                        .frame(minHeight: 52, alignment: .center)
-                } else {
-                    LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 112, maximum: 168), spacing: 10, alignment: .top)],
-                        alignment: .leading,
-                        spacing: 12
-                    ) {
-                        ForEach(items) { tile($0) }
-                    }
+        let shape = RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius + 4, style: .continuous)
+        let isExpanded = expanded.contains(tier)
+        let shown = isExpanded ? items : Array(items.prefix(Self.collapsedCount))
+        return VStack(alignment: .leading, spacing: SkillMetrics.s2) {
+            HStack(spacing: SkillMetrics.s2) {
+                Text(tier.title)
+                    .font(TimeMasterFont.black(18, relativeTo: .title3))
+                    .foregroundStyle(Color.black.opacity(0.85))
+                    .frame(width: 36, height: 36)
+                    .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(color))
+                    .accessibilityLabel("Tier \(tier.title)")
+                Text("\(items.count)")
+                    .font(TimeMasterFont.technical())
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer(minLength: 0)
+                Button { pickerTier = tier } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(color)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(color.opacity(0.14)))
+                        .contentShape(Circle().inset(by: -6))
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add an exercise to tier \(tier.title)")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Button { pickerTier = tier } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(color)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(color.opacity(0.14)))
-                    .contentShape(Circle().inset(by: -6))
+            if items.isEmpty {
+                Text("Nothing here yet")
+                    .font(TimeMasterFont.caption())
+                    .foregroundStyle(Theme.textSecondary)
+                    .padding(.vertical, SkillMetrics.s2)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Add an exercise to tier \(tier.title)")
+            LazyVStack(spacing: SkillMetrics.s2) {
+                ForEach(shown) { card($0) }
+            }
+            if items.count > Self.collapsedCount {
+                Button {
+                    if isExpanded { expanded.remove(tier) } else { expanded.insert(tier) }
+                } label: {
+                    Text(isExpanded ? "Show less" : "Show \(items.count - Self.collapsedCount) more")
+                        .font(TimeMasterFont.caption())
+                        .fontWeight(.semibold)
+                        .foregroundStyle(color)
+                        .frame(maxWidth: .infinity, minHeight: SkillMetrics.touch)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .padding(SkillMetrics.s3)
+        .padding(SkillMetrics.s2)
+        .frame(width: Self.columnWidth, alignment: .topLeading)
         .background(shape.fill(color.opacity(0.07)))
         .overlay { shape.strokeBorder(color.opacity(0.25), lineWidth: 1).allowsHitTesting(false) }
     }
 
-    private func tile(_ item: SkillTrainer) -> some View {
+    private func card(_ item: SkillTrainer) -> some View {
         let page = item.page
-        return VStack(alignment: .leading, spacing: 6) {
-            AsyncCoverImage(
-                url: page.coverImageURL,
-                fallbackIcon: PageKindStyle.symbol(page),
-                height: 84,
-                contentMode: .fill,
-                overlayGradient: false
-            )
-            .frame(height: 84)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .modifier(PageCoverTap(page: page, cornerRadius: 12, glyphSize: 26) {
-                PageCoverOpening.open(page, in: navigationState)
-            })
-            .overlay(alignment: .topTrailing) {
+        return VStack(alignment: .leading, spacing: 0) {
+            SkillGalleryCover(page: page) { PageCoverOpening.open(page, in: navigationState) }
+            HStack(alignment: .top, spacing: SkillMetrics.s2) {
+                Text(page.title)
+                    .font(TimeMasterFont.rowTitle())
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onTapGesture { PageCoverOpening.openPage(page, playing: nil, in: navigationState) }
                 Menu { tileMenu(item) } label: {
                     Image(systemName: "ellipsis.circle.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(.white, Color.black.opacity(0.55))
-                        .padding(4)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 .menuStyle(.button)
                 .buttonStyle(.plain)
                 .menuIndicator(.hidden)
                 .accessibilityLabel("Actions for \(page.title)")
             }
-            Text(page.title)
-                .font(TimeMasterFont.caption())
-                .fontWeight(.semibold)
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
+            .padding(SkillMetrics.s3)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .modifier(TimeMasterCardSurface(cornerRadius: SkillMetrics.fieldRadius, accent: Theme.toolbarOrange, flat: true))
         .contextMenu { tileMenu(item) }
     }
 
