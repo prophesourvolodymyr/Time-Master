@@ -115,7 +115,7 @@ struct WorkoutMediaCatalog {
         }
         func appendSlot(_ slot: SetSlot) {
             append(slot.exercisePageID)
-            append(slot.restExercisePageID)
+            for id in slot.restExercisePageIDs { append(id) }
             for drop in slot.drops { append(drop.exercisePageID) }
             for content in slot.restRow?.contents ?? [] { append(content.pageID) }
             for child in slot.children { appendSlot(child) }
@@ -123,7 +123,7 @@ struct WorkoutMediaCatalog {
         for section in workout.sections {
             append(section.pageID)
             for slot in section.effectiveSlots { appendSlot(slot) }
-            append(section.bigRestRow?.exercisePageID)
+            for id in section.bigRestRow?.exercisePageIDs ?? [] { append(id) }
             for content in section.bigRestRow?.contents ?? [] { append(content.pageID) }
         }
         return result

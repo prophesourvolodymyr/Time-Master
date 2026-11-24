@@ -11,6 +11,7 @@ struct BundleSectionEditor: View {
     @State private var draggedID: UUID?
     @State private var addingToSetID: UUID?
     @State private var showingPages = false
+    @State private var restPicker: RestExercisePicker?
     @State private var showingPhrase = false
     @State private var phrase = ""
     @State private var phraseDuration = 5
@@ -99,6 +100,22 @@ struct BundleSectionEditor: View {
                     showingPages = false
                 },
                 initialBundleMode: true
+            )
+            .environmentObject(databaseStore)
+            .environmentObject(workoutStore)
+            .keyNavHost()
+        }
+        .sheet(item: $restPicker) { target in
+            DatabasePageBrowserSheet(
+                workout: Workout(name: section.name),
+                onAdd: { page, _, _, _, _, _, _ in
+                    if RestExercise.fits(page, restSeconds: target.seconds) {
+                        updateRest(target.setID, target.exerciseID) { RestExercise.adding(page.id, to: $0) }
+                    }
+                    restPicker = nil
+                },
+                onAddBundle: { _, _, _, _, _, _, _ in },
+                maxExerciseSeconds: target.seconds
             )
             .environmentObject(databaseStore)
             .environmentObject(workoutStore)
@@ -222,8 +239,13 @@ struct BundleSectionEditor: View {
                     DurationPickerView(seconds: slotValue(setID: set.id, exerciseID: nil, rest: true), range: 0...120, step: 1, compact: true)
                 }
                 .font(TimeMasterFont.caption())
-                .padding(12)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
                 .transition(.opacity)
+                restExercises(setID: set.id, exerciseID: nil, allowsAdding: index < section.slots.count - 1)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 12)
+                    .transition(.opacity)
             }
         }
         .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -297,6 +319,9 @@ struct BundleSectionEditor: View {
             }
             .font(TimeMasterFont.caption())
             .foregroundStyle(Theme.textSecondary)
+            if section.slots.first(where: { $0.id == setID })?.children.last?.id != exercise.id {
+                restExercises(setID: setID, exerciseID: exercise.id, allowsAdding: true)
+            }
         }
         .padding(10)
         .background(Theme.toolbarOrange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
@@ -329,12 +354,14 @@ struct BundleSectionEditor: View {
                     if rest {
                         set.children[index].restAfter = value
                         set.children[index].restRow?.duration = value
+                        set.children[index].restExercisePageIDs = fitting(set.children[index].restExercisePageIDs, seconds: value)
                     } else {
                         set.children[index].duration = value
                     }
                 } else if rest {
                     set.restAfter = value
                     set.restRow?.duration = value
+                    set.restExercisePageIDs = fitting(set.restExercisePageIDs, seconds: value)
                 }
             }
         }
@@ -343,6 +370,107 @@ struct BundleSectionEditor: View {
     private func mutateSet(_ id: UUID, _ change: (inout SetSlot) -> Void) {
         guard let index = section.slots.firstIndex(where: { $0.id == id }) else { return }
         change(&section.slots[index])
+    }
+
+    private func restSlot(setID: UUID, exerciseID: UUID?) -> SetSlot? {
+        guard let set = section.slots.first(where: { $0.id == setID }) else { return nil }
+        guard let exerciseID else { return set }
+        return set.children.first { $0.id == exerciseID }
+    }
+
+    private func restSeconds(setID: UUID, exerciseID: UUID?) -> Int {
+        restSlot(setID: setID, exerciseID: exerciseID)?.playbackRest ?? 0
+    }
+
+    private func updateRest(_ setID: UUID, _ exerciseID: UUID?, _ change: ([UUID]) -> [UUID]) {
+        mutateSet(setID) { set in
+            if let exerciseID {
+                guard let index = set.children.firstIndex(where: { $0.id == exerciseID }) else { return }
+                set.children[index].restExercisePageIDs = change(set.children[index].restExercisePageIDs)
+            } else {
+                set.restExercisePageIDs = change(set.restExercisePageIDs)
+            }
+        }
+    }
+
+    private func fitting(_ ids: [UUID], seconds: Int) -> [UUID] {
+        guard seconds > 0 else { return [] }
+        return ids.filter { id in
+            databaseStore.page(id: id).map { RestExercise.fits($0, restSeconds: seconds) } ?? true
+        }
+    }
+
+    @ViewBuilder
+    private func restExercises(setID: UUID, exerciseID: UUID?, allowsAdding: Bool) -> some View {
+        let ids = restSlot(setID: setID, exerciseID: exerciseID)?.restExercisePageIDs ?? []
+        let seconds = restSeconds(setID: setID, exerciseID: exerciseID)
+        let canAdd = allowsAdding && seconds > 0
+        if !ids.isEmpty || canAdd {
+            VStack(alignment: .leading, spacing: 6) {
+                if !ids.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(ids, id: \.self) { pageID in
+                                restChip(pageID, isDefault: ids.first == pageID, hasChoices: ids.count > 1, setID: setID, exerciseID: exerciseID)
+                            }
+                        }
+                    }
+                }
+                if canAdd {
+                    Button {
+                        restPicker = RestExercisePicker(setID: setID, exerciseID: exerciseID, seconds: seconds)
+                    } label: {
+                        Label("Rest exercise", systemImage: "plus")
+                            .font(TimeMasterFont.black(12, relativeTo: .caption))
+                            .foregroundStyle(Theme.toolbarOrange)
+                            .frame(minHeight: 28)
+                    }
+                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
+                    .accessibilityLabel(ids.isEmpty ? "Add rest exercise" : "Add another rest exercise")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func restChip(_ pageID: UUID, isDefault: Bool, hasChoices: Bool, setID: UUID, exerciseID: UUID?) -> some View {
+        let title = databaseStore.page(id: pageID)?.title ?? "Rest exercise"
+        return Menu {
+            if let onOpenPage {
+                Button("Open", systemImage: "book.pages") { onOpenPage(pageID) }
+            }
+            if !isDefault {
+                Button("Make Default", systemImage: "star") {
+                    updateRest(setID, exerciseID) { RestExercise.making(pageID, defaultIn: $0) }
+                }
+            }
+            Divider()
+            Button("Remove", systemImage: "trash", role: .destructive) {
+                updateRest(setID, exerciseID) { RestExercise.removing(pageID, from: $0) }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                BundlePageThumbnail(pageID: pageID, size: 24, fallbackIcon: "figure.cooldown")
+                Text(title)
+                    .font(TimeMasterFont.black(12, relativeTo: .caption))
+                    .lineLimit(1)
+                if isDefault && hasChoices {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Theme.toolbarOrange)
+                }
+            }
+            .padding(.leading, 3)
+            .padding(.trailing, 9)
+            .padding(.vertical, 3)
+            .background(Theme.surface, in: Capsule())
+            .overlay(Capsule().strokeBorder(Theme.separator, lineWidth: 1))
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .accessibilityLabel(isDefault && hasChoices ? "\(title), default rest exercise" : "\(title), rest exercise")
+        .accessibilityHint("Opens, makes default or removes this rest exercise")
     }
 
     private func appendExercise(_ exercise: SetSlot) {
@@ -375,6 +503,13 @@ struct BundleSectionEditor: View {
             set.children.insert(exercise, at: index + offset)
         }
     }
+}
+
+private struct RestExercisePicker: Identifiable {
+    let id = UUID()
+    let setID: UUID
+    let exerciseID: UUID?
+    let seconds: Int
 }
 
 struct BundleItemDropDelegate: DropDelegate {

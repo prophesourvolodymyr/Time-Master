@@ -18,6 +18,61 @@ struct BundleSectionHeader: View {
         return "\(section.bundleSets.count) sets · \(section.isTimerEnabled ? time : "~\(time)")"
     }
 
+    private enum StripEntry: Identifiable {
+        case exercise(SetSlot)
+        case rest(ownerID: UUID, pageIDs: [UUID], seconds: Int)
+
+        var id: String {
+            switch self {
+            case .exercise(let slot): "exercise-\(slot.id)"
+            case .rest(let ownerID, _, _): "rest-\(ownerID)"
+            }
+        }
+    }
+
+    private var stripEntries: [StripEntry] {
+        let sets = section.bundleSets
+        var entries: [StripEntry] = []
+        for (setIndex, set) in sets.enumerated() {
+            if set.children.isEmpty {
+                entries.append(.exercise(set))
+            } else {
+                for (childIndex, child) in set.children.enumerated() {
+                    entries.append(contentsOf: child.leafExercises.map { StripEntry.exercise($0) })
+                    if childIndex < set.children.count - 1, !child.restExercisePageIDs.isEmpty {
+                        entries.append(.rest(ownerID: child.id, pageIDs: child.restExercisePageIDs, seconds: child.playbackRest))
+                    }
+                }
+            }
+            if setIndex < sets.count - 1, !set.restExercisePageIDs.isEmpty {
+                entries.append(.rest(ownerID: set.id, pageIDs: set.restExercisePageIDs, seconds: set.playbackRest))
+            }
+        }
+        return entries
+    }
+
+    private func exerciseTile(_ slot: SetSlot) -> some View {
+        let key = "bundle-strip-\(slot.id)"
+        return Button {
+            guard let id = slot.exercisePageID else { return }
+            heroSources?.markTapped(key)
+            onOpenPage(id)
+        } label: {
+            VStack(spacing: 5) {
+                BundleExerciseThumbnail(slot: slot, size: 52)
+                    .workoutHeroSource(key)
+                Text(slot.displayName)
+                    .font(TimeMasterFont.body(11, relativeTo: .caption2))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(width: 60)
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
+        .disabled(slot.exercisePageID == nil)
+        .accessibilityLabel(section.isTimerEnabled ? "\(slot.displayName), \(slot.duration) seconds" : "\(slot.displayName), until done")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 0) {
@@ -82,26 +137,13 @@ struct BundleSectionHeader: View {
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 10) {
-                    ForEach(section.bundleSets.flatMap(\.leafExercises)) { slot in
-                        let key = "bundle-strip-\(slot.id)"
-                        Button {
-                            guard let id = slot.exercisePageID else { return }
-                            heroSources?.markTapped(key)
-                            onOpenPage(id)
-                        } label: {
-                            VStack(spacing: 5) {
-                                BundleExerciseThumbnail(slot: slot, size: 52)
-                                    .workoutHeroSource(key)
-                                Text(slot.displayName)
-                                    .font(TimeMasterFont.body(11, relativeTo: .caption2))
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(width: 60)
+                    ForEach(stripEntries) { entry in
+                        switch entry {
+                        case .exercise(let slot):
+                            exerciseTile(slot)
+                        case .rest(let ownerID, let pageIDs, let seconds):
+                            BundleRestChip(ownerID: ownerID, pageIDs: pageIDs, seconds: seconds, onOpenPage: onOpenPage)
                         }
-                        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
-                        .disabled(slot.exercisePageID == nil)
-                        .accessibilityLabel(section.isTimerEnabled ? "\(slot.displayName), \(slot.duration) seconds" : "\(slot.displayName), until done")
                     }
                 }
             }
@@ -109,5 +151,71 @@ struct BundleSectionHeader: View {
         }
         .foregroundStyle(.black)
         .modifier(BuilderRowChrome(rail: rail, slice: slice, tone: .light, vertical: BuilderMetrics.headerVertical))
+    }
+}
+
+private struct BundleRestChip: View {
+    @EnvironmentObject private var databaseStore: DatabaseStore
+    @Environment(\.workoutHeroSources) private var heroSources
+
+    let ownerID: UUID
+    let pageIDs: [UUID]
+    let seconds: Int
+    let onOpenPage: (UUID) -> Void
+
+    private var title: String {
+        pageIDs.first.flatMap { databaseStore.page(id: $0)?.title } ?? "Rest exercise"
+    }
+
+    private var accessibilityText: String {
+        var text = "Rest, \(seconds) seconds: \(title)"
+        let more = pageIDs.count - 1
+        if more > 0 { text += ", \(more) more \(more == 1 ? "choice" : "choices")" }
+        return text
+    }
+
+    var body: some View {
+        let key = "bundle-strip-rest-\(ownerID)"
+        Button {
+            guard let id = pageIDs.first else { return }
+            heroSources?.markTapped(key)
+            onOpenPage(id)
+        } label: {
+            VStack(spacing: 4) {
+                BundlePageThumbnail(pageID: pageIDs.first, size: 44, fallbackIcon: "figure.cooldown")
+                    .workoutHeroSource(key)
+                    .overlay(alignment: .bottomLeading) {
+                        Image(systemName: "pause.fill")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 14, height: 14)
+                            .background(Circle().fill(Theme.toolbarOrange))
+                            .offset(x: -3, y: 3)
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        if pageIDs.count > 1 {
+                            Text("+\(pageIDs.count - 1)")
+                                .font(TimeMasterFont.black(9, relativeTo: .caption2))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 4)
+                                .frame(minWidth: 16, minHeight: 14)
+                                .background(Capsule().fill(Color.black.opacity(0.75)))
+                                .offset(x: 4, y: -4)
+                        }
+                    }
+                Text("\(seconds) s")
+                    .font(TimeMasterFont.black(10, relativeTo: .caption2).monospacedDigit())
+                    .lineLimit(1)
+                Text(title)
+                    .font(TimeMasterFont.body(10, relativeTo: .caption2))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+            }
+            .opacity(0.65)
+            .frame(width: 52)
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
+        .disabled(pageIDs.isEmpty)
+        .accessibilityLabel(accessibilityText)
     }
 }

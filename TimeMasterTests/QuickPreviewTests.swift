@@ -106,6 +106,19 @@ final class QuickPreviewTests: XCTestCase {
         XCTAssertEqual(steps.count, 1)
     }
 
+    func testEveryRestExerciseChoiceGetsAStepWithTheDefaultFirst() {
+        var first = SetSlot(exercisePageID: squat, name: "Squat", duration: 40, restAfter: 60)
+        first.restExercisePageIDs = [wrist, stretch]
+        let section = Section(name: "Squats", slots: [first, SetSlot(exercisePageID: squat, name: "Squat", duration: 40, restAfter: 0)])
+
+        let steps = QuickPreviewSteps.steps(for: Workout(name: "Legs", sections: [section]), page: lookup(pages))
+
+        XCTAssertEqual(steps.map(\.title), ["Squat", "Rest exercise: Wrist circles", "Rest option: Hamstring stretch", "Squat"])
+        XCTAssertEqual(steps.filter(\.isRest).map(\.pageID), [wrist, stretch])
+        XCTAssertEqual(steps[1].id, "rest-exercise-\(first.id.uuidString)")
+        XCTAssertEqual(Set(steps.map(\.id)).count, steps.count)
+    }
+
     func testATapFindsItsStepByRowKeySectionOrPage() {
         let f = fixture()
         let steps = QuickPreviewSteps.steps(for: f.workout, page: lookup(pages))

@@ -26,10 +26,10 @@ struct SectionEditorView: View {
     @State private var mode: SectionMode
     @State private var draftSlots: [SetSlot]
     @State private var bundleDraft: Section?
-    @State private var restExercisePageID: UUID?
+    @State private var restExercisePageIDs: [UUID]
     @State private var showingRestExercisePicker = false
     @State private var slotsReplaced = false
-    private let initialRestExercisePageID: UUID?
+    private let initialRestExercisePageIDs: [UUID]
     private let initialRestBetweenSets: Int
     @State private var mediaItems: [MediaItem]
     #if os(iOS)
@@ -59,9 +59,9 @@ struct SectionEditorView: View {
         _bundleDraft      = State(initialValue: section?.mode == .bundle ? section : nil)
         _prepareTime      = State(initialValue: section?.prepareTime ?? 4)
         _mediaItems       = State(initialValue: section?.mediaItems ?? [])
-        let existingRestExercise = section?.betweenSetsRestExercisePageID
-        _restExercisePageID = State(initialValue: existingRestExercise)
-        initialRestExercisePageID = existingRestExercise
+        let existingRestExercises = section?.betweenSetsRestExercisePageIDs ?? []
+        _restExercisePageIDs = State(initialValue: existingRestExercises)
+        initialRestExercisePageIDs = existingRestExercises
         initialRestBetweenSets = section?.restBetweenSets ?? 10
     }
 
@@ -189,7 +189,9 @@ struct SectionEditorView: View {
             DatabasePageBrowserSheet(
                 workout: Workout(name: "Rest exercise"),
                 onAdd: { page, _, _, _, _, _, _ in
-                    restExercisePageID = page.id
+                    if RestExercise.fits(page, restSeconds: formRestSeconds) {
+                        restExercisePageIDs = RestExercise.adding(page.id, to: restExercisePageIDs)
+                    }
                     showingRestExercisePicker = false
                 },
                 onAddBundle: { _, _, _, _, _, _, _ in },
@@ -452,13 +454,15 @@ struct SectionEditorView: View {
         return draftSlots.dropLast().map(\.playbackRest).min() ?? restBetweenSets
     }
 
-    private var restExercisePage: ExercisePage? {
-        restExercisePageID.flatMap { databaseStore.page(id: $0) }
+    private var restExercisePages: [ExercisePage] {
+        restExercisePageIDs.compactMap { databaseStore.page(id: $0) }
     }
 
-    private var restExerciseFits: Bool {
-        restExercisePage.map { RestExercise.fits($0, restSeconds: formRestSeconds) } ?? true
+    private var misfitRestExercise: ExercisePage? {
+        restExercisePages.first { !RestExercise.fits($0, restSeconds: formRestSeconds) }
     }
+
+    private var restExerciseFits: Bool { misfitRestExercise == nil }
 
     private var canSave: Bool {
         guard !name.isEmpty else { return false }
@@ -467,56 +471,88 @@ struct SectionEditorView: View {
     }
 
     private var restExerciseCaption: String {
-        guard let page = restExercisePage else {
+        if let page = misfitRestExercise {
+            return "\(page.title) takes \(page.manifest.duration ?? 0) s but the rest is \(formRestSeconds) s. Lengthen the rest or remove it."
+        }
+        if restExercisePageIDs.isEmpty {
             return "Played in every rest between sets. Only exercises up to \(formRestSeconds) s fit."
         }
-        if restExerciseFits { return "Played in every rest between sets." }
-        return "\(page.title) takes \(page.manifest.duration ?? 0) s but the rest is \(formRestSeconds) s. Lengthen the rest or pick a shorter exercise."
+        return "First one plays by default; you can switch in the player."
     }
 
     private var restExerciseControl: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
+            VStack(spacing: 0) {
+                ForEach(Array(restExercisePageIDs.enumerated()), id: \.element) { offset, pageID in
+                    restExerciseRow(pageID, isDefault: offset == 0)
+                }
                 Button {
                     showingRestExercisePicker = true
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "figure.cooldown")
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(restExercisePage?.title ?? "Add Rest Exercise")
-                                .font(TimeMasterFont.black(17, relativeTo: .headline))
-                                .lineLimit(1)
-                            if let seconds = restExercisePage?.manifest.duration {
-                                Text("\(seconds) s")
-                                    .font(TimeMasterFont.caption())
-                                    .foregroundColor(Theme.textSecondary)
-                            }
-                        }
+                        Image(systemName: "plus")
+                        Text(restExercisePageIDs.isEmpty ? "Add Rest Exercise" : "Add Another Rest Exercise")
+                            .font(TimeMasterFont.black(17, relativeTo: .headline))
+                            .lineLimit(1)
                         Spacer(minLength: 0)
                     }
                     .foregroundColor(Theme.textPrimary)
+                    .padding(16)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                if restExercisePageID != nil {
-                    Button {
-                        restExercisePageID = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(Theme.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Remove rest exercise")
-                }
+                .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12), action: { showingRestExercisePicker = true })
             }
-            .padding(16)
             .background(Theme.surface)
             .cornerRadius(12)
-            .keyNavTarget(role: .primary, shape: .roundedRectangle(cornerRadius: 12), action: { showingRestExercisePicker = true })
             Text(restExerciseCaption)
                 .font(TimeMasterFont.caption())
                 .foregroundColor(restExerciseFits ? Theme.textSecondary : Theme.toolbarOrange)
         }
+    }
+
+    private func restExerciseRow(_ pageID: UUID, isDefault: Bool) -> some View {
+        let page = databaseStore.page(id: pageID)
+        let hasChoices = restExercisePageIDs.count > 1
+        return HStack(spacing: 10) {
+            Image(systemName: "figure.cooldown")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(page?.title ?? "Rest exercise")
+                    .font(TimeMasterFont.black(17, relativeTo: .headline))
+                    .lineLimit(1)
+                let detail = [
+                    isDefault && hasChoices ? "Default" : nil,
+                    page?.manifest.duration.map { "\($0) s" }
+                ].compactMap { $0 }.joined(separator: " · ")
+                if !detail.isEmpty {
+                    Text(detail)
+                        .font(TimeMasterFont.caption())
+                        .foregroundColor(Theme.textSecondary)
+                }
+            }
+            Spacer(minLength: 0)
+            Menu {
+                if !isDefault {
+                    Button("Make Default", systemImage: "star") {
+                        restExercisePageIDs = RestExercise.making(pageID, defaultIn: restExercisePageIDs)
+                    }
+                }
+                Button("Remove", systemImage: "trash", role: .destructive) {
+                    restExercisePageIDs = RestExercise.removing(pageID, from: restExercisePageIDs)
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundColor(Theme.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
+            .accessibilityLabel("Actions for \(page?.title ?? "rest exercise")")
+        }
+        .foregroundColor(Theme.textPrimary)
+        .padding(16)
     }
 
     // MARK: - Rest After Section
@@ -713,14 +749,10 @@ struct SectionEditorView: View {
                     slots[index].restRow = row
                     slots[index].restAfter = restBetweenSets
                 }
-                if restExercisePageID != initialRestExercisePageID || slotsReplaced {
-                    if let restExercisePage {
-                        if RestExercise.fits(restExercisePage, restSeconds: slots[index].playbackRest) {
-                            slots[index].restExercisePageID = restExercisePage.id
-                        }
-                    } else {
-                        slots[index].restExercisePageID = nil
-                    }
+                if restExercisePageIDs != initialRestExercisePageIDs || slotsReplaced {
+                    slots[index].restExercisePageIDs = restExercisePages
+                        .filter { RestExercise.fits($0, restSeconds: slots[index].playbackRest) }
+                        .map(\.id)
                 }
             }
         }
@@ -728,7 +760,7 @@ struct SectionEditorView: View {
         if let finalSlotIndex = slots.indices.last {
             slots[finalSlotIndex].restAfter = 0
             slots[finalSlotIndex].restRow = nil
-            slots[finalSlotIndex].restExercisePageID = nil
+            slots[finalSlotIndex].restExercisePageIDs = []
         }
 
         var saved = section ?? Section(name: name, duration: configuration.duration)

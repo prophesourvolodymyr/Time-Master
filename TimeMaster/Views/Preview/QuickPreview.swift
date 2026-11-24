@@ -80,9 +80,12 @@ enum QuickPreviewSteps {
                 section.isTimerEnabled ? clock(slot.duration) : (slot.repCount.map { "\($0) reps" } ?? "until done")
             }
 
-            func addRest(row: RestRow?, exercise: UUID?, key: String, label: String, seconds: Int) {
+            func addRest(row: RestRow?, exercises: [UUID], key: String, label: String, seconds: Int) {
                 let when = seconds > 0 ? "\(label) · \(clock(seconds))" : label
-                add(key, exercise, "Rest exercise: \(titled(exercise, "Exercise"))", when, rest: true)
+                for (offset, exercise) in exercises.enumerated() {
+                    let title = "\(offset == 0 ? "Rest exercise" : "Rest option"): \(titled(exercise, "Exercise"))"
+                    add(offset == 0 ? key : "\(key)-\(offset)", exercise, title, when, rest: true)
+                }
                 for content in row?.contents ?? [] {
                     switch content.kind {
                     case .stretch:
@@ -105,10 +108,10 @@ enum QuickPreviewSteps {
                         for drop in child.drops {
                             add("drop-\(drop.id)", drop.exercisePageID, drop.name, "\(prefix) · drop set")
                         }
-                        addRest(row: child.restRow, exercise: child.restExercisePageID,
+                        addRest(row: child.restRow, exercises: child.restExercisePageIDs,
                                 key: "rest-exercise-\(child.id.uuidString)", label: "Rest", seconds: child.playbackRest)
                     }
-                    addRest(row: set.restRow, exercise: set.restExercisePageID,
+                    addRest(row: set.restRow, exercises: set.restExercisePageIDs,
                             key: "rest-exercise-\(set.id.uuidString)", label: "Rest after round \(round + 1)", seconds: set.playbackRest)
                 }
             } else {
@@ -119,13 +122,13 @@ enum QuickPreviewSteps {
                     for drop in slot.drops {
                         add("drop-\(drop.id)", drop.exercisePageID, drop.name, "\(prefix) · drop set")
                     }
-                    addRest(row: slot.restRow, exercise: slot.restExercisePageID,
+                    addRest(row: slot.restRow, exercises: slot.restExercisePageIDs,
                             key: "rest-exercise-\(slot.id.uuidString)", label: "Rest after set \(index + 1)", seconds: slot.playbackRest)
                 }
             }
 
             let big = section.bigRestRow
-            addRest(row: big, exercise: big?.exercisePageID,
+            addRest(row: big, exercises: big?.exercisePageIDs ?? [],
                     key: "rest-exercise-\(section.id.uuidString)", label: "Big rest", seconds: big?.duration ?? 0)
 
             guard !steps.isEmpty else { continue }

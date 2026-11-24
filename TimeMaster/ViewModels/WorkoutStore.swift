@@ -961,7 +961,8 @@ extension WorkoutSectionManifest {
             bigRestRow: bigRestRow.map { $0.toAppRestRow() },
             bundleOrder: bundleOrder,
             bundleVoiceEnabled: bundleVoiceEnabled,
-            restExercisePageID: UUID(uuidString: restExerciseID ?? "")
+            restExercisePageID: UUID(uuidString: restExerciseID ?? ""),
+            restExerciseAlternativeIDs: restExerciseAlternativeIDs.compactMap { UUID(uuidString: $0) }
         )
     }
 }
@@ -973,7 +974,8 @@ extension WorkoutRestRowManifest {
             kind: kind == .big ? .big : .normal,
             duration: duration,
             contents: contents.map { $0.toAppRestContent() },
-            exercisePageID: UUID(uuidString: exerciseID ?? "")
+            exercisePageID: UUID(uuidString: exerciseID ?? ""),
+            alternativePageIDs: alternativeExerciseIDs.compactMap { UUID(uuidString: $0) }
         )
     }
 }
@@ -1015,6 +1017,7 @@ extension WorkoutSetSlotManifest {
             restAfter: restAfter,
             prepareTime: prepareTime,
             restExercisePageID: UUID(uuidString: restExerciseID ?? ""),
+            restExerciseAlternativeIDs: restExerciseAlternativeIDs.compactMap { UUID(uuidString: $0) },
             drops: drops.map { $0.toAppDropSet() },
             children: children.map { $0.toAppSlot() },
             restRow: restRow.map { $0.toAppRestRow() }
@@ -1071,7 +1074,8 @@ extension RestRow {
             kind: kind == .big ? .big : .normal,
             duration: duration,
             contents: contents.map(\.coreManifest),
-            exerciseID: exercisePageID?.uuidString
+            exerciseID: exercisePageID?.uuidString,
+            alternativeExerciseIDs: alternativePageIDs.map(\.uuidString)
         )
     }
 }
@@ -1115,7 +1119,8 @@ extension SetSlot {
             restExerciseID: restExercisePageID?.uuidString,
             drops: drops.map(\.coreManifest),
             children: children.map(\.coreManifest),
-            restRow: restRow?.coreManifest
+            restRow: restRow?.coreManifest,
+            restExerciseAlternativeIDs: restExerciseAlternativeIDs.map(\.uuidString)
         )
     }
 }

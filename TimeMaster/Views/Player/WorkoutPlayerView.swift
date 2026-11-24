@@ -138,10 +138,10 @@ struct WorkoutPlayerView: View {
         return playbackSlots(for: section)[safe: max(0, currentSetIndex - 1)]
     }
 
-    private var restExercisePageID: UUID? {
-        if isSetRest { return restSlot?.restExercisePageID }
-        if isSectionRest { return currentSection?.bigRestRow?.exercisePageID }
-        return nil
+    private var restExercisePageIDs: [UUID] {
+        if isSetRest { return restSlot?.restExercisePageIDs ?? [] }
+        if isSectionRest { return currentSection?.bigRestRow?.exercisePageIDs ?? [] }
+        return []
     }
 
     private var livePhase: WorkoutPhase {
@@ -859,15 +859,9 @@ struct WorkoutPlayerView: View {
                         PlayerSetDots(count: progress.count, current: min(progress.count - 1, progress.index))
                             .padding(.vertical, 4)
                     }
-                    if let pageID = restExercisePageID, let page = databaseStore.page(id: pageID) {
-                        Button {
-                            openPageOverlay(id: pageID, name: page.title)
-                        } label: {
-                            Label(page.manifest.duration.map { "Rest exercise: \(page.title) · \($0) s" } ?? "Rest exercise: \(page.title)", systemImage: "figure.cooldown")
-                                .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                                .lineLimit(1)
-                        }
-                        .buttonStyle(TimeMasterActionButtonStyle())
+                    if !restExercisePageIDs.isEmpty {
+                        PlayerRestExerciseChoices(pageIDs: restExercisePageIDs) { openPageOverlay(id: $0, name: $1) }
+                            .id("rest-\(currentSectionIndex)-\(currentSetIndex)-\(isSetRest)")
                     }
                     if !restExtensionText.isEmpty {
                         Text(restExtensionText)
@@ -2075,6 +2069,79 @@ extension View {
             content(workout).interactiveDismissDisabled().keyNavHost()
         }
         #endif
+    }
+}
+
+private struct PlayerRestExerciseChoices: View {
+    @EnvironmentObject private var databaseStore: DatabaseStore
+    let pageIDs: [UUID]
+    let onOpen: (UUID, String) -> Void
+    @State private var selectedID: UUID?
+
+    private var pages: [ExercisePage] {
+        pageIDs.compactMap { databaseStore.page(id: $0) }
+    }
+
+    var body: some View {
+        let pages = self.pages
+        if pages.count == 1, let page = pages.first {
+            Button {
+                onOpen(page.id, page.title)
+            } label: {
+                Label(page.manifest.duration.map { "Rest exercise: \(page.title) · \($0) s" } ?? "Rest exercise: \(page.title)", systemImage: "figure.cooldown")
+                    .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                    .lineLimit(1)
+            }
+            .buttonStyle(TimeMasterActionButtonStyle())
+        } else if let first = pages.first {
+            let selected = pages.first { $0.id == selectedID }?.id ?? first.id
+            ViewThatFits(in: .horizontal) {
+                chips(pages, selected: selected)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    chips(pages, selected: selected)
+                }
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+
+    private func chips(_ pages: [ExercisePage], selected: UUID) -> some View {
+        HStack(spacing: 8) {
+            ForEach(pages, id: \.id) { page in
+                chip(page, isSelected: page.id == selected)
+            }
+        }
+    }
+
+    private func chip(_ page: ExercisePage, isSelected: Bool) -> some View {
+        Button {
+            if isSelected {
+                onOpen(page.id, page.title)
+            } else {
+                selectedID = page.id
+                EverHaptic.selection()
+            }
+        } label: {
+            VStack(spacing: 2) {
+                Label(page.title, systemImage: "figure.cooldown")
+                    .font(TimeMasterFont.black(14, relativeTo: .subheadline))
+                    .lineLimit(1)
+                if let seconds = page.manifest.duration {
+                    Text("\(seconds) s")
+                        .font(TimeMasterFont.caption().monospacedDigit())
+                        .opacity(0.8)
+                }
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(isSelected ? Theme.toolbarOrange : Color.white.opacity(0.12)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isSelected ? "\(page.title), selected rest exercise" : "\(page.title), rest exercise")
+        .accessibilityHint(isSelected ? "Opens the exercise" : "Selects this rest exercise")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

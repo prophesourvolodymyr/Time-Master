@@ -91,12 +91,12 @@ struct PageUsageIndex {
             if let id { references.pages.insert(id) }
         }
         func addRest(_ rest: RestRow?) {
-            add(rest?.exercisePageID)
+            for id in rest?.exercisePageIDs ?? [] { add(id) }
             for content in rest?.contents ?? [] { add(content.pageID) }
         }
         func addSlot(_ slot: SetSlot) {
             add(slot.exercisePageID)
-            add(slot.restExercisePageID)
+            for id in slot.restExercisePageIDs { add(id) }
             for drop in slot.drops { add(drop.exercisePageID) }
             addRest(slot.restRow)
             if let nested = slot.nestedWorkoutID { references.nested.insert(nested) }

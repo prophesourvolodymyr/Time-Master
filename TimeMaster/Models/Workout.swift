@@ -99,25 +99,83 @@ struct RestRow: Identifiable, Codable, Equatable {
     var duration: Int
     var contents: [RestContent]
     var exercisePageID: UUID?
+    var alternativePageIDs: [UUID]
 
     init(
         id: UUID = UUID(),
         kind: RestRowKind = .normal,
         duration: Int = 30,
         contents: [RestContent] = [],
-        exercisePageID: UUID? = nil
+        exercisePageID: UUID? = nil,
+        alternativePageIDs: [UUID] = []
     ) {
         self.id = id
         self.kind = kind
         self.duration = max(0, duration)
         self.contents = contents
         self.exercisePageID = exercisePageID
+        self.alternativePageIDs = alternativePageIDs
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, kind, duration, contents, exercisePageID, alternativePageIDs
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        kind = try c.decodeIfPresent(RestRowKind.self, forKey: .kind) ?? .normal
+        duration = max(0, try c.decodeIfPresent(Int.self, forKey: .duration) ?? 30)
+        contents = try c.decodeIfPresent([RestContent].self, forKey: .contents) ?? []
+        exercisePageID = try c.decodeIfPresent(UUID.self, forKey: .exercisePageID)
+        alternativePageIDs = try c.decodeIfPresent([UUID].self, forKey: .alternativePageIDs) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(duration, forKey: .duration)
+        try c.encode(contents, forKey: .contents)
+        try c.encodeIfPresent(exercisePageID, forKey: .exercisePageID)
+        if !alternativePageIDs.isEmpty { try c.encode(alternativePageIDs, forKey: .alternativePageIDs) }
+    }
+
+    var exercisePageIDs: [UUID] {
+        get { RestExercise.choices(primary: exercisePageID, alternatives: alternativePageIDs) }
+        set {
+            let parts = RestExercise.split(newValue)
+            exercisePageID = parts.primary
+            alternativePageIDs = parts.alternatives
+        }
     }
 }
 
 enum RestExercise {
     static func fits(_ page: ExercisePage, restSeconds: Int) -> Bool {
         WorkoutRestRowManifest.canHold(exerciseSeconds: page.manifest.duration, restSeconds: restSeconds)
+    }
+
+    static func choices(primary: UUID?, alternatives: [UUID]) -> [UUID] {
+        var seen = Set<UUID>()
+        return ([primary].compactMap { $0 } + alternatives).filter { seen.insert($0).inserted }
+    }
+
+    static func split(_ ids: [UUID]) -> (primary: UUID?, alternatives: [UUID]) {
+        let unique = choices(primary: nil, alternatives: ids)
+        return (unique.first, Array(unique.dropFirst()))
+    }
+
+    static func adding(_ id: UUID, to ids: [UUID]) -> [UUID] {
+        ids.contains(id) ? ids : ids + [id]
+    }
+
+    static func removing(_ id: UUID, from ids: [UUID]) -> [UUID] {
+        ids.filter { $0 != id }
+    }
+
+    static func making(_ id: UUID, defaultIn ids: [UUID]) -> [UUID] {
+        ids.contains(id) ? [id] + ids.filter { $0 != id } : ids
     }
 }
 
@@ -160,6 +218,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
     var repCount: Int?
     var restAfter: Int
     var restExercisePageID: UUID?
+    var restExerciseAlternativeIDs: [UUID]
     var drops: [DropSet]
     var children: [SetSlot]
     var restRow: RestRow?
@@ -176,6 +235,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
         restAfter: Int = 10,
         prepareTime: Int? = nil,
         restExercisePageID: UUID? = nil,
+        restExerciseAlternativeIDs: [UUID] = [],
         drops: [DropSet] = [],
         children: [SetSlot] = [],
         restRow: RestRow? = nil
@@ -190,6 +250,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
         self.restAfter = max(0, restAfter)
         self.prepareTime = prepareTime.map { min(30, max(0, $0)) }
         self.restExercisePageID = restExercisePageID
+        self.restExerciseAlternativeIDs = restExerciseAlternativeIDs
         self.drops = drops
         self.children = children
         self.restRow = restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
@@ -197,7 +258,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id, exercisePageID, nestedWorkoutID, name, alias, duration, repCount, restAfter, prepareTime
-        case restExercisePageID, drops, children, restRow
+        case restExercisePageID, restExerciseAlternativeIDs, drops, children, restRow
     }
 
     init(from decoder: Decoder) throws {
@@ -212,6 +273,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
         restAfter = max(0, try c.decodeIfPresent(Int.self, forKey: .restAfter) ?? 10)
         prepareTime = try c.decodeIfPresent(Int.self, forKey: .prepareTime).map { min(30, max(0, $0)) }
         restExercisePageID = try c.decodeIfPresent(UUID.self, forKey: .restExercisePageID)
+        restExerciseAlternativeIDs = try c.decodeIfPresent([UUID].self, forKey: .restExerciseAlternativeIDs) ?? []
         drops = try c.decodeIfPresent([DropSet].self, forKey: .drops) ?? []
         children = try c.decodeIfPresent([SetSlot].self, forKey: .children) ?? []
         restRow = try c.decodeIfPresent(RestRow.self, forKey: .restRow)
@@ -232,6 +294,7 @@ struct SetSlot: Identifiable, Codable, Equatable {
         try c.encode(restAfter, forKey: .restAfter)
         try c.encodeIfPresent(prepareTime, forKey: .prepareTime)
         try c.encodeIfPresent(restExercisePageID, forKey: .restExercisePageID)
+        if !restExerciseAlternativeIDs.isEmpty { try c.encode(restExerciseAlternativeIDs, forKey: .restExerciseAlternativeIDs) }
         try c.encode(drops, forKey: .drops)
         try c.encode(children, forKey: .children)
         try c.encodeIfPresent(restRow, forKey: .restRow)
@@ -242,6 +305,15 @@ struct SetSlot: Identifiable, Codable, Equatable {
     }
 
     var isNestedWorkout: Bool { nestedWorkoutID != nil }
+
+    var restExercisePageIDs: [UUID] {
+        get { RestExercise.choices(primary: restExercisePageID, alternatives: restExerciseAlternativeIDs) }
+        set {
+            let parts = RestExercise.split(newValue)
+            restExercisePageID = parts.primary
+            restExerciseAlternativeIDs = parts.alternatives
+        }
+    }
 
     var effectiveRestRow: RestRow? {
         restRow ?? (restAfter > 0 ? RestRow(duration: restAfter) : nil)
@@ -312,7 +384,8 @@ struct Section: Identifiable, Codable, Equatable {
         bigRestRow: RestRow? = nil,
         bundleOrder: BundleOrder = .ordered,
         bundleVoiceEnabled: Bool = true,
-        restExercisePageID: UUID? = nil
+        restExercisePageID: UUID? = nil,
+        restExerciseAlternativeIDs: [UUID] = []
     ) {
         self.id = id
         self.name = name
@@ -342,7 +415,8 @@ struct Section: Identifiable, Codable, Equatable {
                     duration: duration,
                     repCount: repCount,
                     restAfter: index < slotCount - 1 ? max(0, restBetweenSets) : 0,
-                    restExercisePageID: index < slotCount - 1 && restBetweenSets > 0 ? restExercisePageID : nil
+                    restExercisePageID: index < slotCount - 1 && restBetweenSets > 0 ? restExercisePageID : nil,
+                    restExerciseAlternativeIDs: index < slotCount - 1 && restBetweenSets > 0 ? restExerciseAlternativeIDs : []
                 )
             }
         }
@@ -446,8 +520,12 @@ struct Section: Identifiable, Codable, Equatable {
 
     var slotCount: Int { max(1, effectiveSlots.count) }
 
+    var betweenSetsRestExercisePageIDs: [UUID] {
+        effectiveSlots.dropLast().first { !$0.restExercisePageIDs.isEmpty }?.restExercisePageIDs ?? []
+    }
+
     var betweenSetsRestExercisePageID: UUID? {
-        effectiveSlots.dropLast().compactMap(\.restExercisePageID).first
+        betweenSetsRestExercisePageIDs.first
     }
 
 
