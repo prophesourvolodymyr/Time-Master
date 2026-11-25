@@ -232,7 +232,7 @@ private struct MediaStripCard: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
-                    .background(.black.opacity(0.65), in: Capsule())
+                    .modifier(TimeMasterGlassSurface(cornerRadius: 16, isInteractive: true, tint: .black, tintOpacity: 0.3))
                 }
                 .keyNavPlainButtonStyle(shape: .capsule)
                 .padding(10)
@@ -349,7 +349,7 @@ private struct MediaStripCard: View {
             .font(.caption.weight(.bold))
             .foregroundStyle(.white)
             .frame(width: 30, height: 30)
-            .background(.black.opacity(0.65), in: Circle())
+            .modifier(TimeMasterGlassSurface(cornerRadius: 15, isInteractive: true, tint: .black, tintOpacity: 0.3))
             .contentShape(Circle())
     }
 
