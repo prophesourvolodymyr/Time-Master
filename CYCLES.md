@@ -3125,6 +3125,8 @@ User direction: give Tmax the press AuraBox got (the bounciness of Telegram's bu
 - [x] Round glass chrome buttons on Home, Schedule, Skills, Database, Workouts and the workout editor (`ScrollingChromeButtonStyle`) bounce in their own circle or rounded shape instead of the card squeeze; Home and Skills press controls (`SkillsPressStyle`) lift and light in their shape; builder chips and values, music transport buttons and container tiles too
 - [x] Page tabs (`TmaxTabBar`, chips): the orange pill swooshes on a bouncier spring and the pressed tab lifts and lights inside the track
 - [x] Project: the Xcode project lists `SkillSectionHeading.swift`, `TmaxBrandGlyph.swift` and `TmaxBrandIcon.swift`, which were committed without it (origin/main did not build)
+- [x] Checks: the iPhone app built (BUILD SUCCEEDED) and ran on the existing iPhone 16 simulator; a held Home gear lifted and lit up and wobbled back, a quick tap on Done bounced. The menu bar's code is unchanged (an early change to it was reverted when the user said not to touch it)
+- [ ] Mac build: stopped when the disk filled (358 MB left); run `TimeMaster-macOS` once there is room
 - [ ] Human review on the iPhone and the Mac
 
 ## Notes
