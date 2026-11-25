@@ -170,9 +170,9 @@ private struct BuilderChipFace<Label: View>: View {
                 }
             }
             .contentShape(Circle())
-            .scaleEffect(isPressed && !reduceMotion ? 0.9 : 1)
             .opacity(isEnabled ? 1 : 0.35)
             .animation(reduceMotion ? nil : (isPressed ? EverMotion.press : EverMotion.release), value: isPressed)
+            .everBounce(isPressed && isEnabled, in: Circle(), kind: .lift(EverBounceMotion.compactLift), pops: true)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
             .keyNavButtonSurface(.circle)
             .onHover { hovered = $0 }
@@ -206,9 +206,9 @@ private struct BuilderValueFace<Label: View>: View {
             .frame(minWidth: BuilderMetrics.valueWidth, minHeight: 24)
             .background(Capsule().fill(isPressed ? tone.chipPressed : (hovered ? tone.chipHover : tone.chip)))
             .contentShape(Capsule())
-            .scaleEffect(isPressed && !reduceMotion ? 0.94 : 1)
             .opacity(isEnabled ? 1 : 0.35)
             .animation(reduceMotion ? nil : (isPressed ? EverMotion.press : EverMotion.release), value: isPressed)
+            .everBounce(isPressed && isEnabled, in: Capsule(), kind: .lift(EverBounceMotion.compactLift), pops: true)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
             .keyNavButtonSurface(.capsule)
             .onHover { hovered = $0 }

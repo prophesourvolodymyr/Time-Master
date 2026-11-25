@@ -170,7 +170,7 @@ struct SkillsRootView: View {
         Button(action: openSearch) {
             ScrollingChromeControl(systemImage: "magnifyingglass", title: "Search", progress: progress, width: width, height: height)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: height))
         .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel("Search")
         .help("Search")
@@ -182,7 +182,7 @@ struct SkillsRootView: View {
         } label: {
             ScrollingChromeControl(systemImage: "plus", title: "New", progress: progress, width: width, height: height)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: height))
         .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel("New skill")
         .help("New skill")
@@ -199,7 +199,7 @@ struct SkillsRootView: View {
                 height: height
             )
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: height))
         .scrollingChromeRing(progress: progress, width: width, height: height)
         .accessibilityLabel(isTiles ? "Show as a list" : "Show as tiles")
         .help(isTiles ? "Show as a list" : "Show as tiles")

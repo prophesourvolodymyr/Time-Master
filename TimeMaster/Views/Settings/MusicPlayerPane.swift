@@ -257,8 +257,8 @@ private struct MusicPlayerTransportStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? 0.58 : 1)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
             .animation(reduceMotion ? .none : .spring(response: 0.22, dampingFraction: 1), value: configuration.isPressed)
+            .everBounce(configuration.isPressed, in: Circle(), kind: .lift(EverBounceMotion.compactLift), lights: false, pops: true)
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: 10))
     }
 }

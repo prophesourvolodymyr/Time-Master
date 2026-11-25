@@ -136,7 +136,7 @@ private struct SkillSegmentButtonBody: View {
             .padding(.vertical, SkillSegmentMetrics.touchOutset)
             .contentShape(Rectangle())
             .padding(.vertical, -SkillSegmentMetrics.touchOutset)
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: SkillSegmentMetrics.pillHeight / 2 + SkillSegmentMetrics.inset, tracks: false))
             .onHover { isHovering = $0 }
     }
 

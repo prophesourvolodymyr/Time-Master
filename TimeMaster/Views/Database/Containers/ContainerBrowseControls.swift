@@ -272,9 +272,9 @@ private struct ContainerTileButtonBody: View {
                 }
             }
             .contentShape(shape)
-            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.97)
             .animation(reduceMotion ? nil : .spring(response: 0.26, dampingFraction: 0.82), value: configuration.isPressed)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isHovering)
+            .everBounce(configuration.isPressed, in: shape, kind: .squeeze, lights: false)
             .background(SlotNavigationContentClearanceReader())
             .onHover { isHovering = $0 }
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: cornerRadius))

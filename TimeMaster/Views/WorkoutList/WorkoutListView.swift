@@ -604,7 +604,7 @@ struct WorkoutListView: View {
                 height: height
             )
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: height))
         .accessibilityLabel(title)
         .help(title)
     }

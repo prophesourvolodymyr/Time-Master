@@ -12,10 +12,28 @@ final class AppInteractionHaptics {
     private let selection = UISelectionFeedbackGenerator()
     private let soft = UIImpactFeedbackGenerator(style: .soft)
     private let firm = UIImpactFeedbackGenerator(style: .rigid)
+    private let press = UIImpactFeedbackGenerator(style: .medium)
+    private var lastPress: TimeInterval = 0
     private var engine: CHHapticEngine?
     private var player: CHHapticPatternPlayer?
     private var revealPattern: CHHapticPattern?
     #endif
+
+    func preparePress() {
+        #if os(iOS)
+        press.prepare()
+        #endif
+    }
+
+    func pressed() {
+        #if os(iOS)
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastPress > 0.15 else { return }
+        lastPress = now
+        press.impactOccurred()
+        press.prepare()
+        #endif
+    }
 
     func prepareSelection() {
         #if os(iOS)

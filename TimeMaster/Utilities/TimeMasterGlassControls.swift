@@ -66,17 +66,30 @@ struct TimeMasterGlassSurface: ViewModifier {
 
 struct TimeMasterActionFeedback: ViewModifier {
     let isPressed: Bool
+    var cornerRadius: CGFloat? = nil
+    var tracks = true
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .scaleEffect(reduceMotion || !isPressed || !isEnabled ? 1 : 0.94)
+        let pressed = isPressed && isEnabled
+        let dimmed = content
             .opacity(isEnabled ? (isPressed ? 0.86 : 1) : 0.45)
             .animation(
                 reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.88),
                 value: isPressed
             )
+        if let cornerRadius {
+            dimmed.everBounce(
+                pressed,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                tracks: tracks,
+                pops: true
+            )
+        } else {
+            dimmed.everBounce(pressed, in: Rectangle(), kind: .squeeze, lights: false)
+        }
     }
 }
 
@@ -137,7 +150,7 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
             }
             .background(SlotNavigationContentClearanceReader(primaryAction: prominent))
             .contentShape(shape)
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: radius))
             .keyNavButtonSurface(circular ? .circle : .roundedRectangle(cornerRadius: radius))
             .frame(minWidth: hitMinimum, minHeight: hitMinimum)
             .contentShape(Rectangle())

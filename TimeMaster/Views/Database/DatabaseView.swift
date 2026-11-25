@@ -724,7 +724,7 @@ struct DatabaseView: View {
                 height: width
             )
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: width, height: width))
         .accessibilityLabel(title)
         .help(title)
     }

@@ -318,6 +318,22 @@ struct ScrollingChromeControl: View {
     }
 }
 
+struct ScrollingChromeButtonStyle: ButtonStyle {
+    let progress: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(SlotNavigationContentClearanceReader())
+            .modifier(TimeMasterActionFeedback(
+                isPressed: configuration.isPressed,
+                cornerRadius: ScrollingChromeControl.cornerRadius(progress: progress, width: width, height: height)
+            ))
+            .keyNavButtonSurface(.roundedRectangle(cornerRadius: ScrollingChromeControl.cornerRadius(progress: progress, width: width, height: height)))
+    }
+}
+
 extension View {
     func scrollingChromeRing(progress: CGFloat, width: CGFloat, height: CGFloat) -> some View {
         keyNavShape(.roundedRectangle(cornerRadius: ScrollingChromeControl.cornerRadius(progress: progress, width: width, height: height)))

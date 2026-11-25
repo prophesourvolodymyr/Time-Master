@@ -103,7 +103,7 @@ struct TimeMasterSelectionButtonStyle: ButtonStyle {
             }
             .contentShape(shape)
             .background(SlotNavigationContentClearanceReader())
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: Theme.controlCornerRadius))
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: Theme.controlCornerRadius))
     }
 }

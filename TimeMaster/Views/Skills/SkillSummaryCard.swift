@@ -261,7 +261,7 @@ struct SkillsPressStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed))
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: cornerRadius, tracks: false))
             .keyNavButtonSurface(.roundedRectangle(cornerRadius: cornerRadius))
     }
 }

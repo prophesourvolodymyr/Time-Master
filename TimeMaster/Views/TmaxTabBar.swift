@@ -82,7 +82,7 @@ private struct TmaxTabAlternateActions: ViewModifier {
 /// The motion and the default layout every `TmaxTabBar` shares.
 enum TmaxTabBarStyle {
     /// The swoosh: the spring the selected pill slides on, Skillmax's skill page tabs.
-    static let swoosh = EverMotion.state
+    static let swoosh = Animation.interpolatingSpring(mass: 0.8, stiffness: 420, damping: 26)
 
     /// The phone's track spans the width; the Mac's hugs its tabs.
     static var fillsWidth: Bool {

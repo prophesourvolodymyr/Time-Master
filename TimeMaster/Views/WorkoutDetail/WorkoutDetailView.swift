@@ -728,7 +728,7 @@ struct WorkoutDetailView: View {
         Button { showingAddOptions = true } label: {
             editorHeaderIcon("plus", diameter: diameter, title: "Add", progress: progress)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: diameter, height: diameter))
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Add to workout")
     }
@@ -737,7 +737,7 @@ struct WorkoutDetailView: View {
         Button { openBrowser(.newSection) } label: {
             editorHeaderIcon("folder.fill.badge.plus", diameter: diameter, title: "Browse", progress: progress)
         }
-        .buttonStyle(TimeMasterCardButtonStyle())
+        .buttonStyle(ScrollingChromeButtonStyle(progress: progress, width: diameter, height: diameter))
         .foregroundStyle(Theme.textPrimary)
         .accessibilityLabel("Browse exercises")
     }

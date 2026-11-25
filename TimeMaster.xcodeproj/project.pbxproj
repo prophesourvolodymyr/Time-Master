@@ -24,6 +24,7 @@
 		01A5B56ACC5F477E667066E6 /* OutdoorTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC8FDFE63C6662440B3E0A5 /* OutdoorTripTests.swift */; };
 		01BA29675C5B96EED094BF07 /* EverPillTabLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A27C48FA9BA59EBAF68A0F /* EverPillTabLabel.swift */; };
 		01C6178D03E256CB1BDA3E74 /* MenuBarHomePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83F77FEAC1731205614EF7D9 /* MenuBarHomePage.swift */; };
+		01E539BCC8758F003633FF6C /* SkillSectionHeading.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A726C403E39B8D9787594E /* SkillSectionHeading.swift */; };
 		023F3A439686683D29EB0010 /* WorkoutLiveIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF1901BDE57C7A688CD40E7 /* WorkoutLiveIntents.swift */; };
 		026A76A2FDAEE70DC0D52521 /* ProfileMembershipConfettiMac.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F8A57D98601C655821199E /* ProfileMembershipConfettiMac.swift */; };
 		0296EE5247DE6E6AB32D966E /* ProfileVerificationBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84477FBD678CB4B72F30921 /* ProfileVerificationBadge.swift */; };
@@ -244,6 +245,7 @@
 		2C9AC5B6863BEFE2E55EF1BF /* MenuBarContracts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4598DDAEA7E065324A91B56 /* MenuBarContracts.swift */; };
 		2CF523AB691AC15E05997C6D /* Inter-BlackItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B7BDADBF2DDD14DE82F88E8D /* Inter-BlackItalic.ttf */; };
 		2DCD125F86E70E6A26D4B4CA /* DoubleClickGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA98F85F1F3BDEA9A5651412 /* DoubleClickGuardTests.swift */; };
+		2DF0413C336DE720B82771FF /* SkillSectionHeading.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A726C403E39B8D9787594E /* SkillSectionHeading.swift */; };
 		2E004919ED18E6360776B8DB /* SkillSortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3CF12C35D7858F35692AF6 /* SkillSortOption.swift */; };
 		2E0C54F31F1BD8B352CE6FF1 /* WorkoutListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F93961D2BE0D286A7A9268E7 /* WorkoutListView.swift */; };
 		2E2619A15678462B3F59E679 /* BundleSectionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E1AA3CB0542CED7B414EB14 /* BundleSectionHeader.swift */; };
@@ -346,6 +348,7 @@
 		42E92F9E8F23D117B1EA54A4 /* DatabaseStore+Containers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1694E368879BE5BEBBEE0F /* DatabaseStore+Containers.swift */; };
 		4339BD07AB9F64D7E23D30EB /* MarkdownAssets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438300C9D8568BEBBF69AD93 /* MarkdownAssets.swift */; };
 		44313C07E2AC07FE3A4B99D8 /* PageLinkPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE37AEFDB6AEF4406879D5A3 /* PageLinkPreview.swift */; };
+		44720514CEF7CA0F5E73BD56 /* TmaxBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A9CE9E43C7CE651AF81E94 /* TmaxBrandIcon.swift */; };
 		449D5DBFFCF861EC1FFDA266 /* ReachabilityShelf.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F70FB8B828BC0671A15D62 /* ReachabilityShelf.swift */; };
 		456D34AD6F57FBF2E8B267C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CF0096279C5C397D6B69421 /* Assets.xcassets */; };
 		45E020960E9572DFC4C18512 /* MacVideoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3896E1DB54CF274AE19918D9 /* MacVideoSource.swift */; };
@@ -686,6 +689,7 @@
 		8E10F16687300FCA610669A3 /* WorkoutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 618A088E13FA1540299DFDE1 /* WorkoutCard.swift */; };
 		8E2B0A26DC9A0E3B11BE05B6 /* TimeMasterWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEFEB284497317ED4F6F95B5 /* TimeMasterWidget.swift */; };
 		8E2B1D56D7A26A11FE1A58B6 /* MacVideoWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6491A27D50D691E5657EB771 /* MacVideoWorkspaceView.swift */; };
+		8E7CBDEC160606EE385CC77C /* TmaxBrandGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599713632572E2BE1431CAD9 /* TmaxBrandGlyph.swift */; };
 		8EE971B491299EA4A63D2EB6 /* DatabaseCoverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F264F3DABC59ABA805571B /* DatabaseCoverTests.swift */; };
 		8F1457533937F9A264F29016 /* WeeklyWorkoutTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1B34108C41C474E7FCED00 /* WeeklyWorkoutTracker.swift */; };
 		8F67E72593AEE3DC09983467 /* ReachabilityAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = C83A693DF17BAE0299EC5DB2 /* ReachabilityAction.swift */; };
@@ -759,6 +763,7 @@
 		9AFD6B29558503A8EE71A61E /* MenuBarQuotes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 697B62A5D2A292D7B95D47CE /* MenuBarQuotes.swift */; };
 		9AFD9091F109575DF5835A11 /* DatabasePageBrowserSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC65261AB128B4346DD0F22 /* DatabasePageBrowserSheet.swift */; };
 		9B6DF421F0E78AE68E236CF1 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50404F48596B5A3F12EDB777 /* DesignTokens.swift */; };
+		9B8C5FDE4189B08C4E337AC9 /* TmaxBrandIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A9CE9E43C7CE651AF81E94 /* TmaxBrandIcon.swift */; };
 		9BA146DFE25C9D8FD92297AA /* PlayerUntimedPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18793724B928E7A1D437BC89 /* PlayerUntimedPanel.swift */; };
 		9BE2516F5C43D29C86E56A0B /* PhysiqueReportComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7FFBF23B7199F7443BFEC9 /* PhysiqueReportComposerView.swift */; };
 		9C68362ED2B6ACAFCC97567E /* RankedAccountStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565591B38B7676AB22FA426B /* RankedAccountStore.swift */; };
@@ -912,6 +917,7 @@
 		BBAAEAD1CD503B9C1939461A /* AppInteractionHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D97CB326DD46A9DF709EDB00 /* AppInteractionHaptics.swift */; };
 		BBAD9A2DF4035312ABDEF456 /* MenuBarSettingsPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78E4AF9F1EA9AB5825133D87 /* MenuBarSettingsPage.swift */; };
 		BBE4BB97DC34B7082EDC48BF /* SkillPickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A6E747570512587ABC2E4E3 /* SkillPickers.swift */; };
+		BC0031C3AE385761574658EC /* TmaxBrandGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599713632572E2BE1431CAD9 /* TmaxBrandGlyph.swift */; };
 		BC19A1ED7FA40D9F099A5445 /* PhysiqueSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8029AEE7C13EB173F7E852C2 /* PhysiqueSection.swift */; };
 		BC268E0D78881E52B0CD40BD /* MacFilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6C47C92F10694708275E65 /* MacFilePicker.swift */; };
 		BC594E8577F5A8AE04A5CE7E /* ScrollingChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98723CC88843CFE43FCD13CF /* ScrollingChrome.swift */; };
@@ -1512,6 +1518,7 @@
 		50B459F5FDFDB2FBCA5E4EB4 /* MacVideoDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacVideoDownloadService.swift; sourceTree = "<group>"; };
 		50C588F8747756505B157DFC /* SectionEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionEditorView.swift; sourceTree = "<group>"; };
 		51400A77842A34D83AB05AAA /* PhysiqueCaseCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueCaseCenterView.swift; sourceTree = "<group>"; };
+		51A9CE9E43C7CE651AF81E94 /* TmaxBrandIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmaxBrandIcon.swift; sourceTree = "<group>"; };
 		52753AF823E8CBF7CF3DC8B6 /* MarkdownEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownEditorView.swift; sourceTree = "<group>"; };
 		52BE02D9ACB3E4B5AE58FFCF /* BatchConfirmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchConfirmView.swift; sourceTree = "<group>"; };
 		53635A673D1AF657F9A69F7E /* EverActionButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EverActionButtonStyle.swift; sourceTree = "<group>"; };
@@ -1536,6 +1543,7 @@
 		58E085348D636996DA6CCEFC /* SkillCategoryHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillCategoryHeader.swift; sourceTree = "<group>"; };
 		5932D6F8B34C716C35BE39EE /* PhysiqueRulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueRulesView.swift; sourceTree = "<group>"; };
 		594B25CDED4F9B0D2D2B90B3 /* NotePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotePreview.swift; sourceTree = "<group>"; };
+		599713632572E2BE1431CAD9 /* TmaxBrandGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmaxBrandGlyph.swift; sourceTree = "<group>"; };
 		59ECEC7A615432BCC85AF9DB /* CoachPhoneEngineSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachPhoneEngineSettings.swift; sourceTree = "<group>"; };
 		5A6946DD1090FCF59F7B541A /* PhysiqueScoreBreakdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueScoreBreakdownView.swift; sourceTree = "<group>"; };
 		5AC17AC2132BCCF8554005E0 /* SkillMovePickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillMovePickerSheet.swift; sourceTree = "<group>"; };
@@ -1897,6 +1905,7 @@
 		E90D5C3807BB6FC0E89FCE8D /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
 		E987BD618B52B15E719BCF7C /* EverPageBack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EverPageBack.swift; sourceTree = "<group>"; };
 		E9A4096D46ECC417B25BA0C5 /* MacWindowChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacWindowChrome.swift; sourceTree = "<group>"; };
+		E9A726C403E39B8D9787594E /* SkillSectionHeading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillSectionHeading.swift; sourceTree = "<group>"; };
 		E9E59454FF50960A4A8EBD2C /* PhysiqueCategoryScoreRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueCategoryScoreRow.swift; sourceTree = "<group>"; };
 		EA1B34108C41C474E7FCED00 /* WeeklyWorkoutTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyWorkoutTracker.swift; sourceTree = "<group>"; };
 		EACEC824C3691CAF808F05AA /* PhysiqueScoreValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysiqueScoreValue.swift; sourceTree = "<group>"; };
@@ -2397,6 +2406,7 @@
 				0A6E747570512587ABC2E4E3 /* SkillPickers.swift */,
 				C022CC05E56A2B680D694DC3 /* SkillSectionEditorSheet.swift */,
 				C8A220193F1DFA08B2A40788 /* SkillSectionGroup.swift */,
+				E9A726C403E39B8D9787594E /* SkillSectionHeading.swift */,
 				A6CF17798A9F8B700825FDB4 /* SkillsFoundation.swift */,
 				EB2C1B56B80ED901AEF2E5E2 /* SkillStatusBoard.swift */,
 				4052D40D6F7E66592E56C8C0 /* SkillStatusControls.swift */,
@@ -2423,6 +2433,7 @@
 				FDD7DC32B8F431675708ADE3 /* TmaxTabBar.swift */,
 				25940776DFB474B5E84C5344 /* AICoach */,
 				36739A7D9D5BF1203FCD3C10 /* Analytics */,
+				4B5D9D367AAB7F5CC2AA4528 /* BrandIcons */,
 				D484AE590F5911664457F560 /* Database */,
 				292CD1F86597AFEEB040B9C0 /* History */,
 				E6BBF9B366487FCFAC1DC5B5 /* Home */,
@@ -2455,6 +2466,15 @@
 				B56E92397B461FE3AEC90D6F /* RankedPracticeStore.swift */,
 			);
 			path = Ranked;
+			sourceTree = "<group>";
+		};
+		4B5D9D367AAB7F5CC2AA4528 /* BrandIcons */ = {
+			isa = PBXGroup;
+			children = (
+				599713632572E2BE1431CAD9 /* TmaxBrandGlyph.swift */,
+				51A9CE9E43C7CE651AF81E94 /* TmaxBrandIcon.swift */,
+			);
+			path = BrandIcons;
 			sourceTree = "<group>";
 		};
 		4C8A4446813C950238345C32 /* WorkoutList */ = {
@@ -3803,6 +3823,7 @@
 				AC8B91367669F172E280DAF8 /* SkillSearchSnippet.swift in Sources */,
 				C72517F6886DD790DB4E2287 /* SkillSectionEditorSheet.swift in Sources */,
 				97ECF4978E0485B79243DE9E /* SkillSectionGroup.swift in Sources */,
+				01E539BCC8758F003633FF6C /* SkillSectionHeading.swift in Sources */,
 				321E384F2C50D404D306E3A2 /* SkillSortOption.swift in Sources */,
 				A752FE27EDC5DA320C3CB3C5 /* SkillStatusBoard.swift in Sources */,
 				C72BD7B73E9F01E25792100F /* SkillStatusControls.swift in Sources */,
@@ -3841,6 +3862,8 @@
 				516E3CC83531371C8F0E0C53 /* TimeMasterGlassControls.swift in Sources */,
 				DC2C4639EDB1D3A855A79DE0 /* TmaxAnimatedLogo.swift in Sources */,
 				E7E5E2EFDB04855602C7F493 /* TmaxApp.swift in Sources */,
+				BC0031C3AE385761574658EC /* TmaxBrandGlyph.swift in Sources */,
+				44720514CEF7CA0F5E73BD56 /* TmaxBrandIcon.swift in Sources */,
 				AD0EF4B3AEBBB42FF9166DBE /* TmaxCircularLoader.swift in Sources */,
 				711F50876914AB1F62D89F4D /* TmaxCommands.swift in Sources */,
 				66445468CA4BC931F1B04995 /* TmaxGlow.metal in Sources */,
@@ -4409,6 +4432,7 @@
 				9D5E6F0570C2810D805AC9C3 /* SkillSearchSnippet.swift in Sources */,
 				263C715DC86FF60EAEB3FC07 /* SkillSectionEditorSheet.swift in Sources */,
 				E8C2EE90E927A0EBC0344F29 /* SkillSectionGroup.swift in Sources */,
+				2DF0413C336DE720B82771FF /* SkillSectionHeading.swift in Sources */,
 				2E004919ED18E6360776B8DB /* SkillSortOption.swift in Sources */,
 				D2067C63FF240E8C0C96F92C /* SkillStatusBoard.swift in Sources */,
 				1AF4193711E11BE8AEFF9A9A /* SkillStatusControls.swift in Sources */,
@@ -4447,6 +4471,8 @@
 				1863E8C1D715036DCBF0840C /* TimeMasterGlassControls.swift in Sources */,
 				DB31FCB2B1477C3923760E80 /* TmaxAnimatedLogo.swift in Sources */,
 				A6E3CEE5502308130C636849 /* TmaxApp.swift in Sources */,
+				8E7CBDEC160606EE385CC77C /* TmaxBrandGlyph.swift in Sources */,
+				9B8C5FDE4189B08C4E337AC9 /* TmaxBrandIcon.swift in Sources */,
 				05F93EF9C440977F3A58B46B /* TmaxCircularLoader.swift in Sources */,
 				BECECBD1EA1C607F87B7D0C3 /* TmaxCommands.swift in Sources */,
 				18003BBA9B85EF1ADABAECF2 /* TmaxGlow.metal in Sources */,
