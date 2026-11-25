@@ -623,18 +623,21 @@ struct PageCreationSheet: View {
     }
 
     private func addMediaTile(width: CGFloat, height: CGFloat, title: String) -> some View {
-        Button {
+        let isCover = title == "Add cover"
+        return Button {
             showMediaPicker = true
         } label: {
             VStack(spacing: 8) {
-                Image(systemName: "plus")
+                Image(systemName: isCover ? "photo.badge.plus" : "plus")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .frame(width: 40, height: 40)
                     .background(Theme.toolbarOrange.opacity(0.75), in: Circle())
-                Text(title)
-                    .font(TimeMasterFont.black(13, relativeTo: .footnote))
-                    .foregroundStyle(Theme.textPrimary)
+                if !isCover {
+                    Text(title)
+                        .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                        .foregroundStyle(Theme.textPrimary)
+                }
             }
             .frame(width: width, height: height)
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -644,8 +647,8 @@ struct PageCreationSheet: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 14))
-        .accessibilityLabel(title == "Add cover" ? "Add cover and media" : "Add media")
+        .keyNavBounceButtonStyle(shape: .roundedRectangle(cornerRadius: 14), cornerRadius: 14, lift: 6)
+        .accessibilityLabel(isCover ? "Add cover and media" : "Add media")
     }
 
     private func mediaTile(filename: String, width: CGFloat, height: CGFloat, isCover: Bool) -> some View {

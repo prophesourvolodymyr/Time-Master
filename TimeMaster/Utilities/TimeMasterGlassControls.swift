@@ -68,6 +68,7 @@ struct TimeMasterActionFeedback: ViewModifier {
     let isPressed: Bool
     var cornerRadius: CGFloat? = nil
     var tracks = true
+    var lifts = true
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -84,12 +85,41 @@ struct TimeMasterActionFeedback: ViewModifier {
             dimmed.everBounce(
                 pressed,
                 in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
-                tracks: tracks,
+                kind: lifts ? .lift(EverBounceMotion.lift) : .squeeze,
+                tracks: tracks && lifts,
                 pops: true
             )
         } else {
             dimmed.everBounce(pressed, in: Rectangle(), kind: .squeeze, lights: false)
         }
+    }
+}
+
+struct TimeMasterBounceButtonStyle: ButtonStyle {
+    var cornerRadius: CGFloat
+    var inset: CGFloat = 0
+    var lift: CGFloat = 6
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .everBounce(
+                configuration.isPressed,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).inset(by: inset),
+                kind: .lift(lift),
+                pops: true
+            )
+    }
+}
+
+extension View {
+    func keyNavBounceButtonStyle(
+        shape: KeyNavShape = .standard,
+        cornerRadius: CGFloat,
+        inset: CGFloat = 0,
+        lift: CGFloat = 6
+    ) -> some View {
+        buttonStyle(TimeMasterBounceButtonStyle(cornerRadius: cornerRadius, inset: inset, lift: lift))
+            .keyNavPlainButtonStyle(shape: shape)
     }
 }
 
@@ -101,6 +131,7 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
     let fillsWidth: Bool
     let horizontalPadding: CGFloat
     let tint: Color
+    let lifts: Bool
 
     @Environment(\.isFocused) private var isFocused
 
@@ -111,7 +142,8 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
         expansion: CGFloat = 1,
         fillsWidth: Bool = false,
         horizontalPadding: CGFloat = 14,
-        tint: Color = Theme.toolbarOrange
+        tint: Color = Theme.toolbarOrange,
+        lifts: Bool = true
     ) {
         self.prominent = prominent
         self.circular = circular
@@ -120,6 +152,7 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
         self.fillsWidth = fillsWidth
         self.horizontalPadding = horizontalPadding
         self.tint = tint
+        self.lifts = lifts
     }
 
     func makeBody(configuration: Configuration) -> some View {
@@ -150,7 +183,7 @@ struct TimeMasterActionButtonStyle: ButtonStyle {
             }
             .background(SlotNavigationContentClearanceReader(primaryAction: prominent))
             .contentShape(shape)
-            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: radius))
+            .modifier(TimeMasterActionFeedback(isPressed: configuration.isPressed, cornerRadius: radius, lifts: lifts))
             .keyNavButtonSurface(circular ? .circle : .roundedRectangle(cornerRadius: radius))
             .frame(minWidth: hitMinimum, minHeight: hitMinimum)
             .contentShape(Rectangle())

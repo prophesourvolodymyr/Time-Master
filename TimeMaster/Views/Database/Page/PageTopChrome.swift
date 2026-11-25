@@ -51,7 +51,7 @@ struct PageTopChrome: View {
     /// Height of the row the path sits in.
     static let pathRowHeight: CGFloat = SkillMetrics.s1 + SkillMetrics.touch
     /// Room kept free at the end of the path row for the cover's own chip.
-    fileprivate static let trailingReserve: CGFloat = 104
+    fileprivate static let trailingReserve: CGFloat = 56
 
     /// How far below the page's top a part revealed by a scroll lands, clear of the pinned path and most of the fade.
     static func revealInset(showsPath: Bool) -> CGFloat {
@@ -125,7 +125,10 @@ struct PageBreadcrumbBar: View {
     let page: ExercisePage
     let breadcrumbs: [ExercisePage]
 
+    @EnvironmentObject private var store: DatabaseStore
+    @EnvironmentObject private var navigation: DatabaseNavigationState
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var showsTree = false
 
     private static let height: CGFloat = 32
 
@@ -146,6 +149,7 @@ struct PageBreadcrumbBar: View {
 
     private var path: some View {
         HStack(spacing: 6) {
+            treeButton
             ForEach(Array(breadcrumbs.enumerated()), id: \.offset) { index, crumb in
                 if index > 0 {
                     Image(systemName: "chevron.right")
@@ -157,14 +161,58 @@ struct PageBreadcrumbBar: View {
                     NavigationLink(value: DatabasePageRoute(pageID: crumb.manifest.id)) {
                         crumbLabel(crumb.title, opacity: 0.88)
                     }
-                    .keyNavPlainButtonStyle(shape: .capsule)
+                    .keyNavBounceButtonStyle(shape: .capsule, cornerRadius: Self.height / 2, lift: 5)
                 } else {
                     crumbLabel(crumb.title, opacity: 0.6)
                 }
             }
         }
-        .padding(.horizontal, SkillMetrics.s3)
+        .padding(.trailing, SkillMetrics.s3)
         .frame(height: Self.height)
+    }
+
+    private var treeButton: some View {
+        Button {
+            showsTree = true
+        } label: {
+            Image(systemName: "list.bullet.indent")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.9))
+                .frame(width: Self.height + 4, height: Self.height)
+                .contentShape(Rectangle())
+        }
+        .keyNavBounceButtonStyle(shape: .circle, cornerRadius: Self.height / 2, lift: 5)
+        .pagePopover(isPresented: $showsTree) {
+            PageTreePopup(
+                rows: treeRows,
+                onOpen: { id in
+                    showsTree = false
+                    navigation.path.append(DatabasePageRoute(pageID: id))
+                }
+            )
+        }
+        .accessibilityLabel("Where you are")
+        .accessibilityHint("Shows this page's place in the tree")
+    }
+
+    private var treeRows: [PageTreePopup.Row] {
+        var rows = breadcrumbs.enumerated().map { index, crumb in
+            PageTreePopup.Row(
+                id: crumb.manifest.id,
+                title: crumb.title,
+                depth: index,
+                isCurrent: crumb.id == page.id
+            )
+        }
+        let below = breadcrumbs.count
+        let children = store.children(ofManifestID: page.manifest.id)
+        rows += children.prefix(12).map {
+            PageTreePopup.Row(id: $0.manifest.id, title: $0.title, depth: below, isCurrent: false, isBelow: true)
+        }
+        if children.count > 12 {
+            rows.append(PageTreePopup.Row(id: "", title: "+ \(children.count - 12) more", depth: below, isCurrent: false, isBelow: true))
+        }
+        return rows
     }
 
     private func crumbLabel(_ title: String, opacity: Double) -> some View {
@@ -173,11 +221,94 @@ struct PageBreadcrumbBar: View {
             .foregroundStyle(Color.white.opacity(opacity))
             .lineLimit(1)
             .fixedSize()
+            .padding(.horizontal, 6)
             .frame(minHeight: Self.height)
             .contentShape(Rectangle())
     }
 
     private var glass: AnyShapeStyle {
         reduceTransparency ? AnyShapeStyle(Theme.surface2) : AnyShapeStyle(.ultraThinMaterial)
+    }
+}
+
+struct PageTreePopup: View {
+    struct Row: Identifiable {
+        let id: String
+        let title: String
+        let depth: Int
+        let isCurrent: Bool
+        var isBelow = false
+    }
+
+    let rows: [Row]
+    let onOpen: (String) -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Where you are")
+                    .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                    .foregroundStyle(Color.white.opacity(0.55))
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 2)
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    treeRow(row)
+                }
+            }
+            .padding(10)
+        }
+        .frame(width: 280)
+        .frame(maxHeight: 340)
+        .background(Theme.background)
+    }
+
+    @ViewBuilder
+    private func treeRow(_ row: Row) -> some View {
+        let content = HStack(spacing: 8) {
+            Image(systemName: row.isCurrent ? "location.fill" : row.isBelow ? "arrow.turn.down.right" : "chevron.right")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(row.isCurrent ? Theme.toolbarOrange : Color.white.opacity(0.45))
+                .frame(width: 14)
+            Text(row.title)
+                .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                .foregroundStyle(Color.white.opacity(row.isCurrent ? 1 : row.isBelow ? 0.7 : 0.88))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.leading, 10 + CGFloat(min(row.depth, 6)) * 14)
+        .padding(.trailing, 10)
+        .frame(minHeight: 36)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.toolbarOrange.opacity(row.isCurrent ? 0.28 : 0))
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        if row.isCurrent || row.id.isEmpty {
+            content
+        } else {
+            Button {
+                onOpen(row.id)
+            } label: {
+                content
+            }
+            .keyNavBounceButtonStyle(shape: .roundedRectangle(cornerRadius: 12), cornerRadius: 12, lift: 4)
+        }
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func pagePopover<Content: View>(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
+        popover(isPresented: isPresented) {
+            #if os(iOS)
+            if #available(iOS 16.4, *) {
+                content().presentationCompactAdaptation(.popover)
+            } else {
+                content()
+            }
+            #else
+            content()
+            #endif
+        }
     }
 }

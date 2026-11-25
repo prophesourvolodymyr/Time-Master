@@ -80,6 +80,15 @@ final class PageSiblingNavigator: ObservableObject {
     }
 
     @MainActor
+    func go(to target: String) {
+        guard let navigation, isShown, isOnTop(of: navigation), let sequence,
+              let from = sequence.pageIDs.firstIndex(of: pageID),
+              let destination = sequence.pageIDs.firstIndex(of: target),
+              from != destination else { return }
+        navigation.goToSibling(target, direction: destination < from ? -1 : 1)
+    }
+
+    @MainActor
     private func refuse(_ direction: Int, reduceMotion: Bool) {
         EverHaptic.selection()
         guard !reduceMotion else { return }
@@ -125,8 +134,8 @@ struct PageSiblingBar: View {
     @EnvironmentObject private var store: DatabaseStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var showsList = false
 
-    /// Height of the drawn capsule; the arrows' touch areas reach past it.
     private static let height: CGFloat = 32
 
     var body: some View {
@@ -134,13 +143,7 @@ struct PageSiblingBar: View {
             let shape = Capsule(style: .continuous)
             HStack(spacing: 0) {
                 arrow(-1, target: navigator.neighbour(-1))
-                Text(position.label)
-                    .font(TimeMasterFont.black(12, relativeTo: .caption))
-                    .monospacedDigit()
-                    .foregroundStyle(Color.white.opacity(0.88))
-                    .lineLimit(1)
-                    .fixedSize()
-                    .accessibilityLabel(position.spokenLabel)
+                countButton(position)
                 arrow(1, target: navigator.neighbour(1))
             }
             .background {
@@ -152,6 +155,43 @@ struct PageSiblingBar: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(containerLabel)
+        }
+    }
+
+    private func countButton(_ position: PageSiblingPosition) -> some View {
+        Button {
+            showsList = true
+        } label: {
+            Text(position.label)
+                .font(TimeMasterFont.black(12, relativeTo: .caption))
+                .monospacedDigit()
+                .foregroundStyle(Color.white.opacity(0.88))
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 4)
+                .frame(minHeight: Self.height)
+                .contentShape(Rectangle())
+        }
+        .keyNavBounceButtonStyle(shape: .capsule, cornerRadius: Self.height / 2, lift: 5)
+        .pagePopover(isPresented: $showsList) {
+            PageSiblingListPopup(
+                title: containerLabel,
+                rows: listRows,
+                onOpen: { id in
+                    showsList = false
+                    navigator.go(to: id)
+                }
+            )
+        }
+        .accessibilityLabel(position.spokenLabel)
+        .accessibilityHint("Shows the pages in this list")
+    }
+
+    private var listRows: [PageSiblingListPopup.Row] {
+        guard let ids = navigator.sequence?.pageIDs else { return [] }
+        return ids.enumerated().compactMap { index, id in
+            guard let page = store.page(manifestID: id) else { return nil }
+            return PageSiblingListPopup.Row(id: id, number: index + 1, title: page.title, isCurrent: id == navigator.pageID)
         }
     }
 
@@ -167,7 +207,12 @@ struct PageSiblingBar: View {
                 .frame(width: SkillMetrics.touch, height: SkillMetrics.touch)
                 .contentShape(Rectangle())
         }
-        .keyNavPlainButtonStyle(shape: .circle)
+        .keyNavBounceButtonStyle(
+            shape: .circle,
+            cornerRadius: SkillMetrics.touch / 2,
+            inset: (SkillMetrics.touch - Self.height) / 2,
+            lift: 6
+        )
         .disabled(target == nil)
         #if os(macOS)
         .help(step < 0 ? "Previous page (⌘[)" : "Next page (⌘])")
@@ -537,3 +582,75 @@ private struct PageSiblingPan: UIViewRepresentable {
     }
 }
 #endif
+
+struct PageSiblingListPopup: View {
+    struct Row: Identifiable {
+        let id: String
+        let number: Int
+        let title: String
+        let isCurrent: Bool
+    }
+
+    let title: String
+    let rows: [Row]
+    let onOpen: (String) -> Void
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                        .foregroundStyle(Color.white.opacity(0.55))
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 2)
+                    ForEach(rows) { row in
+                        listRow(row).id(row.id)
+                    }
+                }
+                .padding(10)
+            }
+            .onAppear {
+                if let current = rows.first(where: \.isCurrent) {
+                    proxy.scrollTo(current.id, anchor: .center)
+                }
+            }
+        }
+        .frame(width: 280)
+        .frame(maxHeight: 340)
+        .background(Theme.background)
+    }
+
+    @ViewBuilder
+    private func listRow(_ row: Row) -> some View {
+        let content = HStack(spacing: 10) {
+            Text("\(row.number)")
+                .font(TimeMasterFont.black(11, relativeTo: .caption2))
+                .monospacedDigit()
+                .foregroundStyle(row.isCurrent ? Theme.toolbarOrange : Color.white.opacity(0.45))
+                .frame(width: 24, alignment: .trailing)
+            Text(row.title)
+                .font(TimeMasterFont.black(13, relativeTo: .footnote))
+                .foregroundStyle(Color.white.opacity(row.isCurrent ? 1 : 0.8))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(minHeight: 36)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Theme.toolbarOrange.opacity(row.isCurrent ? 0.28 : 0))
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        if row.isCurrent {
+            content
+        } else {
+            Button {
+                onOpen(row.id)
+            } label: {
+                content
+            }
+            .keyNavBounceButtonStyle(shape: .roundedRectangle(cornerRadius: 12), cornerRadius: 12, lift: 4)
+        }
+    }
+}

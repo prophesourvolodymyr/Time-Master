@@ -144,9 +144,9 @@ struct PageCoverHero<Header: View>: View {
         let choices = coverChoices
         if choices.isEmpty {
             Button(action: onImportCover) {
-                chip(title: "Add cover")
+                chip(symbol: "photo.badge.plus")
             }
-            .keyNavPlainButtonStyle(shape: .capsule)
+            .keyNavBounceButtonStyle(shape: .circle, cornerRadius: 16, inset: 6, lift: 6)
             .disabled(isImportingCover)
             .help("Add a cover picture")
             .accessibilityLabel("Add a cover picture")
@@ -172,7 +172,7 @@ struct PageCoverHero<Header: View>: View {
                     }
                 }
             } label: {
-                chip(title: "Cover")
+                chip(symbol: "photo")
             }
             .menuStyle(.button)
             .keyNavPlainButtonStyle(shape: .capsule)
@@ -185,25 +185,21 @@ struct PageCoverHero<Header: View>: View {
         }
     }
 
-    private func chip(title: String) -> some View {
-        HStack(spacing: 6) {
+    private func chip(symbol: String) -> some View {
+        Group {
             if isImportingCover {
                 ProgressView()
                     .controlSize(.small)
                     .tint(.white)
             } else {
-                Image(systemName: "photo")
-                    .font(.system(size: 12, weight: .semibold))
+                Image(systemName: symbol)
+                    .font(.system(size: 14, weight: .semibold))
             }
-            Text(title)
-                .font(TimeMasterFont.black(13, relativeTo: .caption))
-                .lineLimit(1)
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, SkillMetrics.s3)
-        .frame(minHeight: 32)
-        .background(Capsule().fill(glass))
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+        .frame(width: 32, height: 32)
+        .background(Circle().fill(glass))
+        .overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
         .frame(minWidth: SkillMetrics.touch, minHeight: SkillMetrics.touch)
         .contentShape(Rectangle())
     }

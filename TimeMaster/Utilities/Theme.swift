@@ -241,7 +241,7 @@ enum AppToolbar {
 
 struct TimeMasterToolbarIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        TimeMasterActionButtonStyle(circular: true)
+        TimeMasterActionButtonStyle(circular: true, lifts: false)
             .makeBody(configuration: configuration)
     }
 }
@@ -292,7 +292,7 @@ struct TimeMasterBackButton: View {
 
 struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        TimeMasterActionButtonStyle()
+        TimeMasterActionButtonStyle(lifts: false)
             .makeBody(configuration: configuration)
             .font(TimeMasterFont.black(15, relativeTo: .subheadline))
     }
@@ -300,7 +300,7 @@ struct TimeMasterToolbarTextButtonStyle: ButtonStyle {
 
 struct TimeMasterToolbarWideButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        TimeMasterActionButtonStyle(prominent: true)
+        TimeMasterActionButtonStyle(prominent: true, lifts: false)
             .makeBody(configuration: configuration)
             .font(TimeMasterFont.black(17, relativeTo: .body))
     }
