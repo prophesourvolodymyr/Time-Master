@@ -73,11 +73,12 @@ struct PageHeroHeader: View {
         .accessibilityHint("Opens the icon chooser")
     }
 
-    /// The page's own picture, symbol or emoji; without one, a skill's or a tutorial's category symbol on a tile, as its
-    /// card on the Skills page shows it, and for any other page the symbol of what it is.
+    /// The page's own picture, symbol or emoji, or the art made for a skill's or a tutorial's title; without one, a
+    /// skill's or a tutorial's category symbol on a tile, as its card on the Skills page shows it, and for any other page
+    /// the symbol of what it is.
     @ViewBuilder
     private var icon: some View {
-        if page.iconImageURL != nil || !(page.manifest.iconName ?? "").isEmpty {
+        if page.iconImageURL != nil || !(page.manifest.iconName ?? "").isEmpty || SkillArt.assetName(for: page) != nil {
             SkillPageIconTile(page: page, size: iconSide, tilesSymbols: true)
         } else if page.isSkillLike {
             SkillCardIcon(page: page, category: SkillCategory.of(page, in: store.index), size: iconSide)

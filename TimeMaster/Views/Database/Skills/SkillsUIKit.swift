@@ -67,11 +67,12 @@ struct SkillIconView: View {
     }
 }
 
-/// What to draw for a page's icon, by priority: its own picture, its own symbol or emoji, one picked from its title,
-/// nothing.
+/// What to draw for a page's icon, by priority: its own picture, its own symbol or emoji, the art generated for its
+/// title, one picked from its title, nothing.
 enum SkillIconResolution: Equatable {
     case picture(URL)
     case glyph(name: String, type: SkillBoardIconType, isAutomatic: Bool)
+    case art(String)
     case none
 
     static func resolve(for page: ExercisePage, style: SkillAutoIcon.Style) -> SkillIconResolution {
@@ -79,6 +80,7 @@ enum SkillIconResolution: Equatable {
         if let name = page.manifest.iconName, !name.isEmpty {
             return .glyph(name: name, type: page.manifest.iconType ?? .emoji, isAutomatic: false)
         }
+        if let art = SkillArt.assetName(for: page) { return .art(art) }
         if let pick = SkillAutoIcon.pick(forTitle: page.title, style: style) {
             return .glyph(name: pick.name, type: pick.type, isAutomatic: true)
         }
@@ -114,6 +116,13 @@ struct SkillPageIconTile: View {
             }
             .frame(width: size, height: size)
             .clipShape(RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
+        case .art(let name):
+            Image(name)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fill)
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
         case .glyph(let name, let type, let isAutomatic):
             if tilesSymbols && type == .system {
                 SkillIconView(iconName: name, iconType: type, size: size * 0.48)

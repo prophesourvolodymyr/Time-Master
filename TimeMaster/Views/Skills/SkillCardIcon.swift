@@ -24,8 +24,12 @@ struct SkillCardIcon: View {
         }
     }
 
+    private var artName: String? {
+        page.flatMap(SkillArt.assetName(for:))
+    }
+
     private var hasOwnIcon: Bool {
-        page?.iconImageURL != nil || page?.manifest.iconName?.isEmpty == false
+        page?.iconImageURL != nil || page?.manifest.iconName?.isEmpty == false || artName != nil
     }
 
     @ViewBuilder
@@ -34,6 +38,11 @@ struct SkillCardIcon: View {
             SkillCardPicture(url: url, maxPixel: Int(size * 3))
         } else if let page, let name = page.manifest.iconName, !name.isEmpty {
             SkillIconView(iconName: name, iconType: page.manifest.iconType ?? .emoji, size: size * 0.5)
+        } else if let artName {
+            Image(artName)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fill)
         } else {
             Image(systemName: category.systemImage)
                 .font(.system(size: size * 0.46, weight: .semibold))
