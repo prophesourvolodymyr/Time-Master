@@ -140,12 +140,7 @@ struct SkillBoardSnapshot {
 
     init(store: DatabaseStore, boardID: String, includesNested: Bool) {
         let scope = SkillBoardScope(boardID: boardID)
-        var lookup: [String: ExercisePage] = [:]
-        lookup.reserveCapacity(store.allPagesFlat.count)
-        for page in store.allPagesFlat where lookup[page.manifest.id] == nil {
-            lookup[page.manifest.id] = page
-        }
-        let index = lookup
+        let index = store.index.byManifestID
         let container = index[scope.containerID]
         let allSections = container?.manifest.orderedSkillBoardSections ?? []
         let known = Set(allSections.map(\.id))

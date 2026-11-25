@@ -25,13 +25,16 @@ struct SkillPrerequisitesSection: View {
     let materialID: String
 
     private var candidates: [SkillMaterial] {
+        if let known = store.derived.prerequisiteCandidates[materialID] { return known }
         let blocked = store.skillDependencyBlockedIDs(for: materialID)
         let pages = store.allPagesFlat
         var ids = pages.filter(SkillLibrary.isSkill).map(\.manifest.id)
         ids += pages.filter { !$0.manifest.hidesSkills }.flatMap { page in
             page.manifest.skillBoardSections.map { SkillGroupID.make(containerID: page.manifest.id, sectionID: $0.id) }
         }
-        return ids.filter { !blocked.contains($0) }.compactMap(store.skillMaterial(id:))
+        let built = ids.filter { !blocked.contains($0) }.compactMap(store.skillMaterial(id:))
+        store.derived.prerequisiteCandidates[materialID] = built
+        return built
     }
 
     var body: some View {

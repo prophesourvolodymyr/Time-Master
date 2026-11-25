@@ -67,6 +67,8 @@ final class DeviceSyncQAControl {
             sync.isEnabled = argument != "off"
         case "open-settings":
             NotificationCenter.default.post(name: .openSettingsCommand, object: nil)
+        case "open-db-page":
+            NotificationCenter.default.post(name: .openDatabasePage, object: nil, userInfo: ["pageID": argument])
         case "open-page":
             NotificationCenter.default.post(name: .openAppPage, object: nil, userInfo: ["destination": argument])
         case "open-pairing-sheet":
