@@ -7,5 +7,9 @@ extension DatabaseManager {
         try bootstrapNoteSkills()
         try bootstrapSkillPageSkills()
         try bootstrapPageTagSkills()
+        try bootstrapScheduleSkills()
+        try bootstrapPageContentSkills()
+        try bootstrapOrganizeSkills()
+        try bootstrapRecordSkills()
     }
 }

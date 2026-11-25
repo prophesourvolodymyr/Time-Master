@@ -53,6 +53,10 @@ public final class AgentToolbox {
             if let output = try runSkillTool(name, args, dryRun: dryRun) { return output }
             if let output = try runPageTagTool(name, args, dryRun: dryRun) { return output }
             if let output = try runSkillTrainingTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runScheduleTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runPageContentTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runOrganizeTool(name, args, dryRun: dryRun) { return output }
+            if let output = try runRecordTool(name, args, dryRun: dryRun) { return output }
             throw AgentToolError("unknown_tool", "Unknown tool '\(name)'.")
         }
     }
@@ -124,6 +128,19 @@ public final class AgentToolbox {
                     let manifest = try JSONDecoder().decode(WorkoutManifest.self, from: Data(previous.utf8))
                     try database.updateWorkout(id: id, manifest: manifest)
                     notes.append("Restored workout \(id) to how it was.")
+                case .changedSchedule(let previous):
+                    var config = try database.loadConfig()
+                    config.workoutSchedule = try JSONDecoder().decode(WeeklyWorkoutSchedule.self, from: Data(previous.utf8))
+                    try database.saveConfig(config)
+                    notes.append("Restored the schedule to how it was.")
+                case .changedPage(let id, let previous):
+                    let manifest = try JSONDecoder().decode(ExercisePageManifest.self, from: Data(previous.utf8))
+                    try database.updatePage(id: id, manifest: manifest, newParentID: manifest.parentID)
+                    notes.append("Restored page \(id) to how it was.")
+                case .changedHistory(let previous):
+                    let entries = try JSONDecoder().decode([HistoryEntry].self, from: Data(previous.utf8))
+                    try database.replaceHistory(entries)
+                    notes.append("Restored the workout history to how it was.")
                 }
             } catch {
                 notes.append("Could not reverse \(effect): \(AgentToolError.translating(error).message)")
