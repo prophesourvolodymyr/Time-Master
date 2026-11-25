@@ -140,6 +140,7 @@ struct SkillBoardScreen: View {
                 }
             }
         }
+        .tmaxBrandGlow(.white)
         .onAppear {
             stackDepth = navigationState.path.count
             offerSiblings(shownIDs, scope: snapshot.scope)

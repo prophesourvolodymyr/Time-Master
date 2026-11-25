@@ -77,7 +77,7 @@ struct TmaxBrandIcon: View {
         return glow == .white ? Color.white.opacity(0.14) : Self.orangeRim
     }
 
-    private static let cornerRatio: CGFloat = 0.26
+    private static let cornerRatio: CGFloat = 0.28
     private static let orangeLight = Color(hex: "FF5A1F")
     private static let orangeTile = Color(hex: "0C0403")
     private static let orangeRim = Color(hex: "4A1408")

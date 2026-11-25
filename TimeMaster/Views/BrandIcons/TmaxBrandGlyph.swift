@@ -28,6 +28,7 @@ enum TmaxBrandGlyph: String, CaseIterable {
     case boxing
     case wrestling
     case calisthenics
+    case gymnastics
     case cardio
     case strength
     case stretch
@@ -169,7 +170,7 @@ enum TmaxBrandGlyph: String, CaseIterable {
         "figure.kickboxing": .boxing,
         "figure.martial.arts": .boxing,
         "figure.wrestling": .wrestling,
-        "figure.gymnastics": .calisthenics,
+        "figure.gymnastics": .gymnastics,
         "figure.core.training": .calisthenics,
         "figure.cross.training": .calisthenics,
         "heart": .cardio,
