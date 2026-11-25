@@ -170,12 +170,9 @@ struct ContainerBrowser: View {
                 }
             }
         } label: {
-            Image(systemName: "arrow.up.arrow.down")
-                .font(.system(size: 15, weight: .bold))
+            SkillCornerMenuLabel(symbol: "arrow.up.arrow.down", weight: .bold)
         }
-        .menuStyle(.button)
-        .buttonStyle(TimeMasterToolbarIconButtonStyle())
-        .menuIndicator(.hidden)
+        .skillCornerMenuStyle()
         .accessibilityLabel(tab == .skills ? "Sort and group" : "Sort")
         .accessibilityValue(sort.title)
         .help("Sort: \(sort.title)")
@@ -217,12 +214,9 @@ struct ContainerBrowser: View {
                 }
             }
         } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 16, weight: .bold))
+            SkillCornerMenuLabel(symbol: "plus", weight: .bold)
         }
-        .menuStyle(.button)
-        .buttonStyle(TimeMasterToolbarIconButtonStyle())
-        .menuIndicator(.hidden)
+        .skillCornerMenuStyle()
         .accessibilityLabel(tab == .skills ? "Add a skill" : "Add a page")
         .help(tab == .skills ? "Add a skill" : "Add a page")
     }

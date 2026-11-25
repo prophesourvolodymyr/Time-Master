@@ -91,6 +91,12 @@ struct SkillBoardScreen: View {
         self.boardID = boardID
         self.showsHeading = showsHeading
         self.scrollTo = scrollTo
+        let defaults = UserDefaults.standard
+        let defaultedKey = "tm.skills.viewModeDefaulted." + boardID
+        if !defaults.bool(forKey: defaultedKey) {
+            defaults.removeObject(forKey: SkillSettings.viewModeKeyPrefix + boardID)
+            defaults.set(true, forKey: defaultedKey)
+        }
         _modeRaw = AppStorage(wrappedValue: SkillBoardMode.board.rawValue, SkillSettings.viewModeKeyPrefix + boardID)
         _groupingRaw = AppStorage(wrappedValue: SkillBoardGrouping.status.rawValue, SkillSettings.groupByKeyPrefix + boardID)
     }

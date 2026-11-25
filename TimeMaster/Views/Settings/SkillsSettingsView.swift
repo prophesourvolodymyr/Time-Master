@@ -11,10 +11,10 @@ struct SkillsSettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle(isOn: $showsCovers) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Covers on cards")
+                            Text("Banners on cards")
                                 .font(TimeMasterFont.rowTitle())
                                 .foregroundStyle(Theme.textPrimary)
-                            Text("A sub-skill that picked a cover shows it on its board card and list row.")
+                            Text("A sub-skill that picked a banner shows it on its board card and list row.")
                                 .font(TimeMasterFont.caption())
                                 .foregroundStyle(Theme.textSecondary)
                         }

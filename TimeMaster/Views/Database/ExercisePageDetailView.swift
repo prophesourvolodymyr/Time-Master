@@ -521,7 +521,7 @@ struct ExercisePageDetailView: View {
     /// Makes one of the page's files its cover; nil goes back to its first file.
     private func setCover(_ filename: String?, of page: ExercisePage) {
         guard page.manifest.coverMediaFilename != filename else { return }
-        if SkillErrorCenter.shared.attempt("Set the cover", { try store.setSkillCover(page.manifest.id, filename: filename) }) {
+        if SkillErrorCenter.shared.attempt("Set the banner", { try store.setSkillCover(page.manifest.id, filename: filename) }) {
             EverHaptic.selection()
         }
     }
@@ -585,7 +585,7 @@ struct ExercisePageDetailView: View {
         }
         guard let first = added.first else { return }
         if purpose == .cover {
-            guard SkillErrorCenter.shared.attempt("Set the cover", { try store.setSkillCover(id, filename: first) }) else { return }
+            guard SkillErrorCenter.shared.attempt("Set the banner", { try store.setSkillCover(id, filename: first) }) else { return }
         }
         EverHaptic.success()
     }
@@ -616,7 +616,7 @@ struct ExercisePageDetailView: View {
         }
         if isVideo || isImage {
             let isCover = page.manifest.coverMediaFilename == filename
-            actions.append(MediaCardAction(isCover ? "Remove the cover" : "Use as cover", systemImage: "photo") {
+            actions.append(MediaCardAction(isCover ? "Remove the banner" : "Use as banner", systemImage: "photo") {
                 setCover(isCover ? nil : filename, of: page)
             })
         }
@@ -884,7 +884,7 @@ struct ExercisePageDetailView: View {
             store.reload()
             pendingMediaItems = []
             if asCover, let first = added.first {
-                if SkillErrorCenter.shared.attempt("Set the cover", { try store.setSkillCover(pageID, filename: first) }) {
+                if SkillErrorCenter.shared.attempt("Set the banner", { try store.setSkillCover(pageID, filename: first) }) {
                     EverHaptic.success()
                 }
             } else if !added.isEmpty {

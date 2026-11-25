@@ -739,8 +739,42 @@ struct SkillGroupMoreButton: View {
 
 // MARK: - Header controls
 
-/// A round corner button of a board that opens its own dropdown (View, Group by, Filter, the extra ways to add). A white
-/// dot on it says the menu holds a choice that is on.
+/// The face of a round corner menu: a flat orange disc with a thin white rim and a white glyph, drawn with no button
+/// style, glass, gesture or measuring view so the menu around it always opens. A white dot says a choice is on.
+struct SkillCornerMenuLabel: View {
+    let symbol: String
+    var weight: Font.Weight = .semibold
+    var isActive = false
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 15, weight: weight))
+            .foregroundStyle(Color.white)
+            .frame(width: SkillMetrics.touch, height: SkillMetrics.touch)
+            .background(Circle().fill(Theme.toolbarOrange.opacity(0.9)))
+            .overlay(Circle().strokeBorder(Color.white.opacity(0.7), lineWidth: 1))
+            .overlay(alignment: .topTrailing) {
+                if isActive {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .offset(x: -6, y: 6)
+                }
+            }
+            .contentShape(Circle())
+    }
+}
+
+extension View {
+    func skillCornerMenuStyle() -> some View {
+        menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .contentShape(Circle())
+    }
+}
+
+/// A round corner button of a board that opens its own dropdown (View, Group by, Filter, the extra ways to add).
 struct SkillCornerMenu<Content: View>: View {
     let symbol: String
     let title: String
@@ -752,20 +786,9 @@ struct SkillCornerMenu<Content: View>: View {
         Menu {
             content()
         } label: {
-            Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .overlay(alignment: .topTrailing) {
-                    if isActive {
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 7, height: 7)
-                            .offset(x: 6, y: -6)
-                    }
-                }
+            SkillCornerMenuLabel(symbol: symbol, isActive: isActive)
         }
-        .menuStyle(.button)
-        .buttonStyle(TimeMasterToolbarIconButtonStyle())
-        .menuIndicator(.hidden)
+        .skillCornerMenuStyle()
         .accessibilityLabel(title)
         .accessibilityValue(value)
         .help(title)

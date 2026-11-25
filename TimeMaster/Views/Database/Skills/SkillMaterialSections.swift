@@ -466,10 +466,10 @@ struct SkillFilesSection: View {
             } else if isImage(url) {
                 let isCover = material?.manifest.coverMediaFilename == filename
                 Button {
-                    SkillErrorCenter.shared.attempt("Set the cover") {
+                    SkillErrorCenter.shared.attempt("Set the banner") {
                         try store.setSkillCover(materialID, filename: isCover ? nil : filename)
                     }
-                } label: { Label(isCover ? "Remove the cover" : "Use as cover", systemImage: "photo") }
+                } label: { Label(isCover ? "Remove the banner" : "Use as banner", systemImage: "photo") }
                 Button {
                     SkillErrorCenter.shared.attempt("Set the icon") {
                         try store.setSkillIcon(materialID, name: nil, type: nil, image: filename)
@@ -693,16 +693,21 @@ struct SkillIconChooserSheet: View {
                             .foregroundStyle(Theme.toolbarOrange)
                     }.keyNavPlainButtonStyle()
                     if allowsPictures {
-                        Menu {
-                            Button { pictureSource = .photos } label: { Label("Photos", systemImage: "photo.on.rectangle") }
-                            Button { pictureSource = .files } label: { Label("Files", systemImage: "folder") }
-                        } label: {
-                            Label("Use a picture as the icon", systemImage: "photo.badge.plus")
-                                .font(TimeMasterFont.rowTitle())
-                                .foregroundStyle(Theme.toolbarOrange)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Menu {
+                                Button { pictureSource = .photos } label: { Label("Photos", systemImage: "photo.on.rectangle") }
+                                Button { pictureSource = .files } label: { Label("Files", systemImage: "folder") }
+                            } label: {
+                                Label("Upload a cover", systemImage: "photo.badge.plus")
+                                    .font(TimeMasterFont.rowTitle())
+                                    .foregroundStyle(Theme.toolbarOrange)
+                            }
+                            .menuStyle(.button)
+                            .buttonStyle(.plain)
+                            Text("The picture becomes the icon tile of this page.")
+                                .font(TimeMasterFont.caption())
+                                .foregroundStyle(Theme.textSecondary)
                         }
-                        .menuStyle(.button)
-                        .buttonStyle(.plain)
                     }
                     ChecklistIconEditor(
                         iconName: $iconName, iconType: $iconType, iconImage: $iconImage,

@@ -108,6 +108,13 @@ public final class AgentToolbox {
                 case .changedTag(let pageID, let previous):
                     try database.setSkillType(previous, for: pageID)
                     notes.append(previous == nil ? "Took the tag off \(pageID)." : "Put the earlier tag back on \(pageID).")
+                case .changedIconImage(let pageID, let previousImage, let previousName, let previousType):
+                    var page = try database.getPage(id: pageID)
+                    page.iconImage = previousImage
+                    page.iconName = previousName
+                    page.iconType = previousType
+                    try database.updatePage(id: pageID, manifest: page, newParentID: page.parentID)
+                    notes.append("Restored the icon picture of \(pageID).")
                 case .changedTraining(let pageID, let previous):
                     var page = try database.getPage(id: pageID)
                     page.trains = previous
@@ -430,6 +437,27 @@ extension AgentToolbox {
             tagChange = (page.typeID, next)
             changed.append("tag")
         }
+        var iconPicture: AgentIconPicture?
+        if let raw = args.string("iconImage") {
+            guard page.pageType != .note else {
+                throw AgentToolError("invalid_page", "Notes show pictures inline; 'iconImage' does not apply.", hint: "Use attach_media to put a picture in a note.")
+            }
+            let clean = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if clean.isEmpty {
+                iconPicture = AgentIconPicture(url: nil)
+            } else {
+                let url = try AgentMedia.validate(path: clean)
+                guard AgentMedia.images.contains(url.pathExtension.lowercased()) else {
+                    throw AgentToolError("unsupported_media", "An icon picture must be an image; '.\(url.pathExtension.lowercased())' is not.", hint: "Use jpg, png, heic, gif or webp.")
+                }
+                let limit = DatabaseManager.mediaLimit(for: page)
+                guard page.mediaFilenames.count < limit else {
+                    throw AgentToolError("media_limit", "'\(page.title)' already has \(limit) attachments.")
+                }
+                iconPicture = AgentIconPicture(url: url)
+            }
+            changed.append("iconImage")
+        }
         let flags = try pageFlags(args, pageType: page.pageType)
         flags.apply(to: &updated)
         changed += flags.changed
@@ -442,9 +470,27 @@ extension AgentToolbox {
             if !warnings.isEmpty { preview["warnings"] = warnings }
             return AgentToolOutput(value: preview)
         }
-        try database.updatePage(id: page.id, manifest: updated, newParentID: page.parentID)
-        var value: [String: Any] = ["id": page.id, "path": path, "changed": changed]
         var effects: [AgentEffect] = []
+        var uploadedIcon: String?
+        if let iconPicture {
+            if let url = iconPicture.url {
+                let filename = try database.uploadMediaToPage(pageID: page.id, sourceURL: url)
+                uploadedIcon = filename
+                effects.append(.attachedMedia(pageID: page.id, filename: filename))
+                updated.mediaFilenames = try database.getPage(id: page.id).mediaFilenames
+                updated.iconImage = filename
+            } else {
+                updated.iconImage = nil
+            }
+            effects.append(.changedIconImage(pageID: page.id, previousImage: page.iconImage, previousName: page.iconName, previousType: page.iconType))
+        }
+        do {
+            try database.updatePage(id: page.id, manifest: updated, newParentID: page.parentID)
+        } catch {
+            if let uploadedIcon { try? database.removeMediaFromPage(pageID: page.id, filename: uploadedIcon) }
+            throw error
+        }
+        var value: [String: Any] = ["id": page.id, "path": path, "changed": changed]
         if let tagChange {
             if let next = tagChange.next { value["tag"] = next.title } else { value["untagged"] = true }
             if tagChange.previous != tagChange.next?.id { effects.append(.changedTag(pageID: page.id, previous: tagChange.previous)) }
@@ -512,6 +558,11 @@ extension AgentToolbox {
     private func listTypes() throws -> AgentToolOutput {
         AgentToolOutput(value: ["types": workoutTypes().map(\.name), "details": workoutTypeDetails()])
     }
+}
+
+/// The icon picture an `update_page` call sets: the local image to copy into the page, or nil to clear the picture.
+struct AgentIconPicture {
+    let url: URL?
 }
 
 /// A page's `noSkills` and `widgets` settings as a create or update call passes them; nil leaves one alone.
