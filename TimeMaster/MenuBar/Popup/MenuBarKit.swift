@@ -55,7 +55,7 @@ struct MenuBarHeroCard<Controls: View>: View {
                     if let label {
                         WidgetLabel(text: label)
                     }
-                    WidgetTitle(text: title, size: 24, lines: 1)
+                    WidgetTitle(text: title, size: 24, lines: 2)
                     if let meta {
                         WidgetLabel(text: meta)
                     }
@@ -254,6 +254,7 @@ struct MenuBarScheduledRow: View {
                         .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     Text(item.timeRangeText)
                         .font(WidgetFont.label())
                         .foregroundStyle(WidgetTint.graphite.secondaryInk)
@@ -263,7 +264,6 @@ struct MenuBarScheduledRow: View {
             }
             .buttonStyle(MenuBarRowButtonStyle())
             .accessibilityLabel(item.workout.name)
-            MenuBarChip(text: item.status.title, tint: statusTint, filled: item.status == .completed)
             if showsStart && canStart {
                 HomeIconButton(
                     systemImage: "play.fill",
@@ -272,6 +272,8 @@ struct MenuBarScheduledRow: View {
                 ) {
                     actions.startWorkout(item.workout.id)
                 }
+            } else {
+                MenuBarChip(text: item.status.title, tint: statusTint, filled: item.status == .completed)
             }
         }
         .accessibilityElement(children: .contain)

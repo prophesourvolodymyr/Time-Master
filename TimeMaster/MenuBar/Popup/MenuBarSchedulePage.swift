@@ -106,6 +106,7 @@ private struct MenuBarUpcomingDayRow: View {
                                 .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                                 .foregroundStyle(Theme.textPrimary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             Spacer(minLength: 4)
                             Text(item.hasScheduledTime ? item.timeRangeText : "Any time")
                                 .font(WidgetFont.label())

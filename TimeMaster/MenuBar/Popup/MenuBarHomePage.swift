@@ -59,6 +59,11 @@ struct MenuBarHomePage: View {
         return nil
     }
 
+    private var showsContinue: Bool {
+        guard resume.hasResumableWorkout, let saved = resume.resumeState else { return false }
+        return store.workout(id: saved.workoutId) != nil
+    }
+
     @ViewBuilder
     private var launcher: some View {
         if resume.hasResumableWorkout, let saved = resume.resumeState, store.workout(id: saved.workoutId) != nil {
@@ -124,7 +129,9 @@ struct MenuBarHomePage: View {
     @ViewBuilder
     private var suggestionSection: some View {
         if preferences.showsSuggestions {
-            let suggestions = MenuBarSuggestionEngine.make(.make(store: store)).filter { $0.kind != .resume }.prefix(2)
+            let suggestions = MenuBarSuggestionEngine.make(.make(store: store))
+                .filter { !(showsContinue && $0.kind == .resume) }
+                .prefix(2)
             ForEach(Array(suggestions)) { suggestion in
                 MenuBarSuggestionCard(suggestion: suggestion)
             }

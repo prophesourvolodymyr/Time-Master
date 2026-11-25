@@ -114,6 +114,7 @@ private struct MenuBarWorkoutRow: View {
                             .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                             .foregroundStyle(Theme.textPrimary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                         Text(meta)
                             .font(WidgetFont.label())
                             .foregroundStyle(WidgetTint.graphite.secondaryInk)

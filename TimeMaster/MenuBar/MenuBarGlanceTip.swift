@@ -14,7 +14,7 @@ struct MenuBarTip: Equatable {
     }
 }
 
-struct MenuBarGlanceTipView: View {
+private struct MenuBarGlanceTipView: View {
     let tip: MenuBarTip
     let onOpen: () -> Void
     let onMute: () -> Void
