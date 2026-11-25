@@ -8,28 +8,28 @@ import UIKit
 import AppKit
 #endif
 
-/// Clips: the page's cover, a video playing its first seconds silently on a loop or a photo, with how many files the
-/// page holds. A tap opens the attachments at the cover. An exercise without files says so, and a tap opens the place
-/// to add the first.
 struct PageWidgetClipsTile: View {
     let clips: PageWidgetClips
     let onOpen: (PageWidgetTarget) -> Void
 
     var body: some View {
+        let cover = clips.total > 0 ? clips.cover : nil
         PageWidgetTile(
             kind: .clips,
             target: .attachments(index: clips.total > 0 ? clips.coverIndex : nil),
             summary: summary,
+            art: cover == nil ? .clapperboard : nil,
             onOpen: onOpen
         ) {
-            if let cover = clips.cover, clips.total > 0 {
+            if let cover {
                 filled(cover)
+            } else if clips.total > 0 {
+                countChip(overPicture: false)
+                    .padding(PageWidgetMetrics.inset)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    .allowsHitTesting(false)
             } else {
-                VStack(alignment: .leading, spacing: 0) {
-                    PageWidgetHeader(kind: .clips)
-                    PageWidgetEmptyState(systemImage: "video.badge.plus", title: "No clips yet")
-                }
-                .padding(PageWidgetMetrics.inset)
+                PageWidgetEmptyState(systemImage: nil, title: "No clips yet")
             }
         }
     }
@@ -37,26 +37,16 @@ struct PageWidgetClipsTile: View {
     private func filled(_ cover: URL) -> some View {
         ZStack(alignment: .bottomLeading) {
             PageWidgetClipCover(url: cover)
-            LinearGradient(
-                colors: [.black.opacity(0.55), .black.opacity(0.05), .black.opacity(0.72)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
-            VStack(alignment: .leading, spacing: 0) {
-                PageWidgetHeader(kind: .clips, trailing: "\(clips.total)", overPicture: true)
-                Spacer(minLength: 0)
-                Text(clips.breakdown)
-                    .font(TimeMasterFont.black(13, relativeTo: .subheadline))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
-            }
-            .padding(PageWidgetMetrics.inset)
-            .allowsHitTesting(false)
+            countChip(overPicture: true)
+                .padding(10)
+                .allowsHitTesting(false)
         }
         .accessibilityHidden(true)
+    }
+
+    private func countChip(overPicture: Bool) -> some View {
+        let symbol = clips.videos > 0 ? "play.fill" : (clips.photos > 0 ? "photo.fill" : "doc.fill")
+        return WidgetChip(systemImage: symbol, text: "\(clips.total)", overPicture: overPicture)
     }
 
     private var summary: String {

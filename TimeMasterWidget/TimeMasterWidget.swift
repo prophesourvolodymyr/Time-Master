@@ -153,6 +153,7 @@ struct TimeMasterEntry: TimelineEntry {
     let today: [WidgetToday]
     let streak: Int
     let weeklyGoal: Int
+    let weekSessions: Int
 }
 
 enum WidgetSnapshotStore {
@@ -223,7 +224,8 @@ struct TimeMasterProvider: AppIntentTimelineProvider {
                 )
             ],
             streak: 4,
-            weeklyGoal: 5
+            weeklyGoal: 5,
+            weekSessions: 2
         )
     }
 
@@ -249,215 +251,276 @@ struct TimeMasterProvider: AppIntentTimelineProvider {
             workout: selected ?? pinned ?? workouts.first,
             today: WidgetSnapshotStore.today,
             streak: WidgetSnapshotStore.streak,
-            weeklyGoal: WidgetSnapshotStore.weeklyGoal
+            weeklyGoal: WidgetSnapshotStore.weeklyGoal,
+            weekSessions: WidgetSnapshotStore.weekSessions
         )
     }
 }
 
 struct TimeMasterWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    @Environment(\.showsWidgetContainerBackground) private var showsBackground
     let entry: TimeMasterEntry
 
     var body: some View {
-        Group {
-            switch entry.mode {
-            case .quickStart:
-                quickStartView
-            case .today:
-                todayView
-            case .progress:
-                progressView
-            }
-        }
-        .foregroundStyle(.white)
-        .containerBackground(Color(widgetHex: "0A0A0A"), for: .widget)
-        .widgetURL(destinationURL)
+        TimeMasterWidgetFace(entry: entry, family: family, showsBackground: showsBackground)
+    }
+}
+
+struct TimeMasterWidgetFace: View {
+    let entry: TimeMasterEntry
+    let family: WidgetFamily
+    let showsBackground: Bool
+
+    private enum Agenda {
+        case next(WidgetToday)
+        case finished(completed: Int, total: Int)
+        case rest
     }
 
-    private var quickStartView: some View {
-        Group {
-            if let workout = entry.workout {
-                if family == .systemSmall {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top) {
-                            workoutIcon(workout)
-                            Spacer(minLength: 0)
-                            playGlyph
-                        }
-                        Spacer(minLength: 0)
-                        Text(workout.name)
-                            .font(.headline.weight(.bold))
-                            .lineLimit(2)
-                        workoutDetails(workout)
-                    }
-                    .padding(14)
-                } else {
-                    HStack(spacing: 14) {
-                        workoutIcon(workout)
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("Quick Start")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.55))
-                            Text(workout.name)
-                                .font(.title3.weight(.bold))
-                                .lineLimit(2)
-                            workoutDetails(workout)
-                        }
-                        Spacer(minLength: 0)
-                        Link(destination: startURL(for: workout)) {
-                            actionPill(title: "START", icon: "play.fill")
-                        }
-                        .accessibilityLabel("Start \(workout.name)")
-                    }
-                    .padding(16)
-                }
-            } else {
-                emptyView(icon: "bolt.fill", title: "Choose a workout")
+    var body: some View {
+        let look = self.look
+        content(showsBackground ? look.tint : .graphite)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .tmaxWidgetBackground(look, family: family)
+            .widgetURL(destinationURL)
+    }
+
+    var look: TmaxWidgetLook {
+        switch entry.mode {
+        case .quickStart:
+            guard let workout = entry.workout else { return TmaxWidgetLook(art: .dumbbell) }
+            return TmaxWidgetLook(art: WidgetArt.forWorkout(type: workout.type))
+        case .today:
+            if case .finished(let completed, let total) = agenda, completed == total {
+                return TmaxWidgetLook(art: .trophy)
             }
+            return TmaxWidgetLook(art: .calendar)
+        case .progress:
+            return family == .systemSmall ? TmaxWidgetLook(tint: .graphite) : TmaxWidgetLook(art: .flame)
         }
     }
 
-    private var todayView: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Today")
-                    .font(.headline.weight(.bold))
-                Spacer()
-                Image(systemName: "calendar")
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            if entry.today.isEmpty {
-                Spacer(minLength: 0)
-                emptyView(icon: "checkmark.circle", title: "Nothing scheduled")
-                Spacer(minLength: 0)
-            } else {
-                ForEach(entry.today.prefix(family == .systemSmall ? 2 : 4)) { item in
-                    todayRow(item)
-                }
-                if family != .systemSmall {
+    private var agenda: Agenda {
+        if let next = entry.today.first(where: { $0.status == "pending" }) {
+            return .next(next)
+        }
+        if entry.today.isEmpty {
+            return .rest
+        }
+        return .finished(completed: entry.today.filter { $0.status == "completed" }.count, total: entry.today.count)
+    }
+
+    @ViewBuilder
+    private func content(_ tint: WidgetTint) -> some View {
+        switch entry.mode {
+        case .quickStart:
+            quickStart(tint)
+        case .today:
+            today(tint)
+        case .progress:
+            progress(tint)
+        }
+    }
+
+    @ViewBuilder
+    private func quickStart(_ tint: WidgetTint) -> some View {
+        if let workout = entry.workout {
+            switch family {
+            case .systemSmall:
+                VStack(alignment: .leading, spacing: 2) {
+                    TmaxWidgetTitle(text: workout.name, size: 17, lines: 3, tint: tint)
+                    TmaxWidgetLabel(text: "\(workout.durationMinutes) min", tint: tint)
                     Spacer(minLength: 0)
+                    TmaxWidgetPlayGlyph(tint: tint)
+                }
+            case .systemMedium:
+                VStack(alignment: .leading, spacing: 4) {
+                    TmaxWidgetTitle(text: workout.name, size: 22, lines: 2, tint: tint)
+                    TmaxWidgetLabel(text: "\(workout.durationMinutes) min", tint: tint)
+                    Spacer(minLength: 0)
+                    Link(destination: startURL(for: workout)) {
+                        TmaxWidgetPill(title: "Start", systemImage: "play.fill", tint: tint)
+                    }
+                    .accessibilityLabel("Start \(workout.name)")
+                }
+                .padding(.trailing, TmaxWidgetLayout.sideRoom)
+            default:
+                VStack(alignment: .leading, spacing: 6) {
+                    Spacer(minLength: 0)
+                    TmaxWidgetTitle(text: workout.name, size: 30, lines: 2, tint: tint)
+                    TmaxWidgetLabel(text: "\(workout.durationMinutes) min", tint: tint)
+                    Link(destination: startURL(for: workout)) {
+                        TmaxWidgetPill(title: "Start", systemImage: "play.fill", tint: tint, fillsWidth: true)
+                    }
+                    .padding(.top, 8)
+                    .accessibilityLabel("Start \(workout.name)")
                 }
             }
+        } else {
+            message("Choose a workout", tint: tint)
         }
-        .padding(14)
     }
 
-    private var progressView: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Progress")
-                    .font(.headline.weight(.bold))
-                Spacer()
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(.white.opacity(0.5))
+    @ViewBuilder
+    private func today(_ tint: WidgetTint) -> some View {
+        let pending = entry.today.filter { $0.status == "pending" }
+        switch family {
+        case .systemSmall:
+            switch agenda {
+            case .next(let item):
+                VStack(alignment: .leading, spacing: 2) {
+                    TmaxWidgetLabel(text: item.timeRange, tint: tint)
+                    TmaxWidgetTitle(text: item.workoutName, size: 17, lines: 2, tint: tint)
+                    Spacer(minLength: 0)
+                    if pending.count > 1 {
+                        TmaxWidgetLabel(text: "+\(pending.count - 1)", tint: tint)
+                    }
+                }
+            case .finished(let completed, let total):
+                message(completed == total ? "All done" : "Nothing left", tint: tint)
+            case .rest:
+                message("Rest day", tint: tint)
             }
-            if let workout = entry.workout {
-                Text(workout.name)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                HStack(spacing: 8) {
-                    stat(value: "\(workout.sessionsThisWeek)", label: "sessions")
-                    stat(value: "\(entry.streak)", label: "day streak")
-                    stat(value: "\(entry.weeklyGoal)", label: "weekly goal")
+        case .systemMedium:
+            VStack(alignment: .leading, spacing: 6) {
+                TmaxWidgetLabel(text: "Today", tint: tint)
+                if entry.today.isEmpty {
+                    TmaxWidgetTitle(text: "Rest day", size: 22, lines: 1, tint: tint)
+                } else {
+                    ForEach(entry.today.prefix(2)) { item in
+                        row(item, tint: tint)
+                    }
                 }
                 Spacer(minLength: 0)
-                ProgressView(value: Double(workout.sessionsThisWeek), total: Double(max(1, entry.weeklyGoal)))
-                    .tint(Color(widgetHex: workout.colorHex))
+            }
+            .padding(.trailing, TmaxWidgetLayout.sideRoom)
+        default:
+            if entry.today.isEmpty {
+                message("Rest day", tint: tint)
             } else {
-                emptyView(icon: "chart.bar", title: "No workout data")
+                VStack(alignment: .leading, spacing: 8) {
+                    if pending.isEmpty {
+                        TmaxWidgetTitle(text: "All done", size: 30, lines: 1, tint: tint)
+                    } else {
+                        TmaxWidgetHero(text: "\(pending.count)", size: 56, tint: tint)
+                        TmaxWidgetLabel(text: "to go today", tint: tint)
+                    }
+                    Spacer(minLength: 0)
+                    ForEach(entry.today.prefix(5)) { item in
+                        row(item, tint: tint)
+                    }
+                }
             }
         }
-        .padding(14)
     }
 
-    private func workoutIcon(_ workout: WidgetWorkout) -> some View {
-        RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .fill(Color(widgetHex: workout.colorHex))
-            .frame(width: family == .systemSmall ? 38 : 48, height: family == .systemSmall ? 38 : 48)
-            .overlay {
-                Image(systemName: typeIcon(workout.type))
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(workout.colorHex.uppercased() == "FFFFFF" ? .black : .white)
+    @ViewBuilder
+    private func progress(_ tint: WidgetTint) -> some View {
+        let goal = max(1, entry.weeklyGoal)
+        let ring = ZStack {
+            TmaxWidgetRing(fraction: Double(entry.weekSessions) / Double(goal), lineWidth: 12, tint: tint)
+            VStack(spacing: 0) {
+                TmaxWidgetHero(text: "\(entry.weekSessions)", size: 34, tint: tint)
+                TmaxWidgetLabel(text: "of \(goal)", tint: tint)
             }
+            .padding(.horizontal, 18)
+        }
+        switch family {
+        case .systemSmall:
+            ring
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(progressSummary(goal: goal))
+        case .systemMedium:
+            HStack(spacing: 16) {
+                ring
+                    .frame(width: 120, height: 120)
+                streakText(tint, size: 40)
+                Spacer(minLength: 0)
+            }
+            .frame(maxHeight: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(progressSummary(goal: goal))
+        default:
+            VStack(alignment: .leading, spacing: 10) {
+                streakText(tint, size: 56)
+                Spacer(minLength: 0)
+                ring
+                    .frame(width: 170, height: 170)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(progressSummary(goal: goal))
+        }
     }
 
-    private func workoutDetails(_ workout: WidgetWorkout) -> some View {
-        Text("\(workout.durationMinutes) min · \(workout.sectionCount) \(workout.sectionCount == 1 ? "section" : "sections")")
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(.white.opacity(0.58))
-            .lineLimit(1)
+    private func streakText(_ tint: WidgetTint, size: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            TmaxWidgetHero(text: "\(entry.streak)", size: size, tint: tint)
+            HStack(spacing: 4) {
+                if !showsBackground {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(WidgetTint.orange.base)
+                }
+                TmaxWidgetLabel(text: entry.streak == 1 ? "day" : "days", tint: tint)
+            }
+        }
     }
 
-    private func todayRow(_ item: WidgetToday) -> some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(Color(widgetHex: item.colorHex))
-                .frame(width: 8, height: 8)
-            VStack(alignment: .leading, spacing: 1) {
+    private func progressSummary(goal: Int) -> String {
+        var summary = "\(entry.weekSessions) of \(goal) sessions this week, \(entry.streak) day streak"
+        if family != .systemSmall && family != .systemMedium, let workout = entry.workout {
+            summary += ", \(workout.name) \(workout.sessionsThisWeek) this week"
+        }
+        return summary
+    }
+
+    private func row(_ item: WidgetToday, tint: WidgetTint) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: statusSymbol(item.status))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(tint.ink)
+            VStack(alignment: .leading, spacing: 0) {
                 Text(item.workoutName)
-                    .font(.caption.weight(.semibold))
+                    .font(TmaxWidgetFont.black(15, relativeTo: .subheadline))
+                    .foregroundStyle(tint.ink)
                     .lineLimit(1)
-                Text("\(item.timeRange) · \(item.durationMinutes) min")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.55))
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 0)
-            if item.status == "completed" {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            } else if item.status == "missed" {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .foregroundStyle(.red)
-            } else {
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.45))
+                TmaxWidgetLabel(text: item.timeRange, tint: tint)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(item.workoutName), \(item.timeRange), \(statusName(item.status))")
     }
 
-    private func stat(value: String, label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.headline.weight(.bold).monospacedDigit())
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.55))
-                .lineLimit(1)
+    private func message(_ text: String, tint: WidgetTint) -> some View {
+        let isLarge = family != .systemSmall && family != .systemMedium
+        return VStack(alignment: .leading, spacing: 0) {
+            if isLarge {
+                Spacer(minLength: 0)
+            }
+            TmaxWidgetTitle(text: text, size: family == .systemSmall ? 18 : (isLarge ? 30 : 24), lines: 2, tint: tint)
+            if !isLarge {
+                Spacer(minLength: 0)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, family == .systemMedium ? TmaxWidgetLayout.sideRoom : 0)
     }
 
-    private func actionPill(title: String, icon: String) -> some View {
-        Label(title, systemImage: icon)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.black)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(.white, in: Capsule())
-    }
-
-    private var playGlyph: some View {
-        Image(systemName: "play.fill")
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.black)
-            .frame(width: 28, height: 28)
-            .background(.white, in: Circle())
-            .accessibilityHidden(true)
-    }
-
-    private func emptyView(icon: String, title: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.2))
-            Text(title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.4))
-                .multilineTextAlignment(.center)
+    private func statusSymbol(_ status: String) -> String {
+        switch status {
+        case "completed": "checkmark.circle.fill"
+        case "missed": "xmark.circle"
+        default: "circle"
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func statusName(_ status: String) -> String {
+        switch status {
+        case "completed": "done"
+        case "missed": "missed"
+        default: "to do"
+        }
     }
 
     private var destinationURL: URL? {
@@ -472,18 +535,6 @@ struct TimeMasterWidgetView: View {
 
     private func startURL(for workout: WidgetWorkout) -> URL {
         URL(string: "timemaster://start?workoutID=\(workout.id)") ?? URL(string: "timemaster://open")!
-    }
-
-    private func typeIcon(_ type: String) -> String {
-        switch type {
-        case "Strength": "dumbbell.fill"
-        case "Stretch": "figure.cooldown"
-        case "Cardio": "heart.fill"
-        case "HIIT": "flame.fill"
-        case "Yoga": "figure.mind.and.body"
-        case "Face": "face.smiling.fill"
-        default: "star.fill"
-        }
     }
 }
 

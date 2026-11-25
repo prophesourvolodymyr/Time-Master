@@ -165,7 +165,7 @@ struct HomeWidgetCanvas<ChromeHeader: View>: View {
                 }
                 .overlay {
                     if widgetStore.widgets.isEmpty {
-                        Text("Make yourself at home.\nAdd your first widget.")
+                        Text("Add your first widget")
                             .font(TimeMasterFont.black(22, relativeTo: .title2))
                             .multilineTextAlignment(.center)
                             .foregroundStyle(Theme.textSecondary)
@@ -407,7 +407,7 @@ private struct HomeWidgetTile: View {
         .padding(.leading, isEditing && widget.kind == .greeting ? 28 : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
-        .background(widget.kind == .greeting ? Color.clear : Theme.surface)
+        .background(widget.kind == .greeting ? Color.clear : WidgetTint.graphite.base)
         .clipShape(RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)

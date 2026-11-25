@@ -91,7 +91,6 @@ struct HomeWidgetContent: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 4)
-
     }
 
     @ViewBuilder
@@ -100,8 +99,8 @@ struct HomeWidgetContent: View {
         if items.isEmpty {
             todayEmpty
         } else {
-            HomeWidgetChrome(title: "Today") {
-                VStack(spacing: 8) {
+            HomeWidgetChrome(label: "Today") {
+                VStack(spacing: 6) {
                     ForEach(items) { item in todayRow(item) }
                 }
             }
@@ -112,13 +111,15 @@ struct HomeWidgetContent: View {
     private var todayEmpty: some View {
         let options = picks
         if options.isEmpty {
-            HomeWidgetChrome(title: nil) {
+            HomeWidgetChrome(art: .calendar, spot: .home(widget.footprint)) {
                 HomeInvite(
                     footprint: widget.footprint,
-                    systemImage: "calendar.badge.plus",
                     headline: "Nothing planned today",
-                    detail: "Build a workout and Tmax will suggest one for you every day.",
-                    action: HomeInviteAction(title: "Create", run: onCreateWorkout)
+                    action: HomeInviteAction(
+                        title: "Create",
+                        hint: "Build a workout and Tmax will suggest one for you every day",
+                        run: onCreateWorkout
+                    )
                 )
             }
         } else {
@@ -127,85 +128,60 @@ struct HomeWidgetContent: View {
                 footprint: widget.footprint,
                 showsDetails: widget.configuration.showDetails,
                 planDate: now,
-                kickerOverride: "Nothing planned today",
+                kickerOverride: "Free day",
                 actions: actions
             )
         }
     }
 
+    @ViewBuilder
     private var quickStart: some View {
-        let workout = quickStartWorkout
-        return HomeWidgetChrome(title: "Quick Start", surface: true) {
-            if let workout {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 10) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(workout.name)
-                                .font(TimeMasterFont.heading())
-                                .foregroundStyle(.white)
-                                .lineLimit(2)
-                            if widget.configuration.showDetails && widget.footprint != .compact {
-                                Text("\(workout.sectionCount) sections · \(durationText(workout.totalDuration))")
-                                    .font(TimeMasterFont.caption())
-                                    .monospacedDigit()
-                                    .foregroundStyle(Theme.textSecondary)
-                            }
-                        }
-                        Spacer(minLength: 8)
-                    }
-                    Button {
-                        onStartWorkout(workout)
-                    } label: {
-                        Label("Start", systemImage: "play.fill")
-                            .font(TimeMasterFont.sectionTitle())
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 12))
-                    }
-                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
+        if let workout = quickStartWorkout {
+            HomeWidgetChrome(art: .forWorkout(workout), spot: .home(widget.footprint)) {
+                HomeFeatureLayout(
+                    footprint: widget.footprint,
+                    title: workout.name,
+                    meta: widget.configuration.showDetails ? HomeText.duration(seconds: workout.totalDuration) : nil
+                ) {
+                    startControl(title: "Start", hint: "Starts \(workout.name)") { onStartWorkout(workout) }
                 }
-            } else {
-                emptyAction("Create a workout", systemImage: "plus", action: onCreateWorkout)
+            }
+        } else {
+            HomeWidgetChrome(art: .dumbbell, spot: .home(widget.footprint)) {
+                HomeInvite(
+                    footprint: widget.footprint,
+                    headline: "No workouts yet",
+                    action: HomeInviteAction(title: "Create", hint: "Creates a workout", run: onCreateWorkout)
+                )
             }
         }
     }
 
     private var activityShortcuts: some View {
         let shortcuts = supportedShortcuts
-        let caption = shortcuts.contains(.workout) && widget.footprint == .square ? workoutShortcutTarget?.name : nil
-        return HomeWidgetChrome(title: "Start") {
-            VStack(spacing: 8) {
-                GeometryReader { proxy in
-                    let count = widget.footprint == .square ? 2 : max(1, shortcuts.count)
-                    let rows = max(1, Int(ceil(Double(shortcuts.count) / Double(count))))
-                    let diameter = max(44, min(
-                        (proxy.size.width - CGFloat(count - 1) * 12) / CGFloat(count),
-                        (proxy.size.height - CGFloat(rows - 1) * 12) / CGFloat(rows)
-                    ))
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: count), spacing: 12) {
-                        ForEach(shortcuts) { shortcut in
-                            HomeActivityShortcutCircle(shortcut: shortcut, diameter: diameter, action: { start(shortcut) })
-                        }
+        return HomeWidgetChrome {
+            GeometryReader { proxy in
+                let count = widget.footprint == .square ? 2 : max(1, shortcuts.count)
+                let rows = max(1, Int(ceil(Double(shortcuts.count) / Double(count))))
+                let diameter = max(44, min(
+                    (proxy.size.width - CGFloat(count - 1) * 12) / CGFloat(count),
+                    (proxy.size.height - CGFloat(rows - 1) * 12) / CGFloat(rows)
+                ))
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: count), spacing: 12) {
+                    ForEach(shortcuts) { shortcut in
+                        HomeActivityShortcutCircle(shortcut: shortcut, diameter: diameter, action: { start(shortcut) })
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                if let caption {
-                    Text("Workout starts \(caption)")
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
 
     private var recentWorkouts: some View {
         let entries = Array(workoutStore.historyEntries.sorted { $0.completedAt > $1.completedAt }.prefix(visibleRowCount))
-        return HomeWidgetChrome(title: "Recent workouts") {
+        return HomeWidgetChrome(label: "Recent") {
             if entries.isEmpty {
-                quietEmpty("No workouts yet.")
+                quietEmpty("No workouts yet")
             } else {
                 VStack(alignment: .leading, spacing: 9) {
                     ForEach(entries) { entry in
@@ -214,20 +190,21 @@ struct HomeWidgetContent: View {
                         } label: {
                             HStack(spacing: 9) {
                                 Circle()
-                                    .fill(Color(hex: entry.workoutType.colorHex))
+                                    .fill(Theme.toolbarOrange)
                                     .frame(width: 8, height: 8)
                                 Text(entry.workoutName)
                                     .font(TimeMasterFont.black(15, relativeTo: .subheadline))
-                                    .foregroundStyle(.white)
                                     .lineLimit(1)
                                 Spacer(minLength: 6)
                                 if widget.footprint != .compact {
                                     Text(entry.completedAt, style: .relative)
-                                        .font(TimeMasterFont.black(12, relativeTo: .caption))
+                                        .font(WidgetFont.label())
                                         .monospacedDigit()
-                                        .foregroundStyle(Theme.textSecondary)
+                                        .foregroundStyle(WidgetTint.graphite.secondaryInk)
                                 }
                             }
+                            .frame(minHeight: 28)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .keyNavTarget(shape: .roundedRectangle(cornerRadius: 8)) { openHistoryEntry(entry) }
@@ -237,68 +214,48 @@ struct HomeWidgetContent: View {
         }
     }
 
+    @ViewBuilder
     private var resumeWorkout: some View {
-        HomeWidgetChrome(title: "Continue") {
-            if let state = resumeManager.resumeState,
-               let workout = workoutStore.workout(id: state.workoutId) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(state.workoutName)
-                        .font(TimeMasterFont.sectionTitle())
-                        .foregroundStyle(.white)
-                        .lineLimit(2)
-                    Text("\(state.sectionName) · \(durationText(state.elapsedSeconds)) elapsed")
-                        .font(TimeMasterFont.caption())
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textSecondary)
-                    Button {
-                        onStartWorkout(workout)
-                    } label: {
-                        Label("Resume", systemImage: "play.fill")
-                            .font(TimeMasterFont.rowTitle())
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 9)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 11))
-                    }
-                    .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 11))
+        if let state = resumeManager.resumeState, let workout = workoutStore.workout(id: state.workoutId) {
+            HomeWidgetChrome(art: .stopwatch, spot: .home(widget.footprint)) {
+                HomeFeatureLayout(
+                    footprint: widget.footprint,
+                    label: "Continue",
+                    title: state.workoutName,
+                    meta: "\(durationText(state.elapsedSeconds)) in"
+                ) {
+                    startControl(
+                        title: "Resume",
+                        hint: "\(state.sectionName), \(durationText(state.elapsedSeconds)) elapsed"
+                    ) { onStartWorkout(workout) }
                 }
-            } else {
-                quietEmpty("All caught up.")
+            }
+        } else {
+            HomeWidgetChrome(label: "Continue") {
+                quietEmpty("All caught up")
             }
         }
     }
 
+    @ViewBuilder
     private var selectedWorkout: some View {
-        let workout = selectedWorkoutValue
-        return HomeWidgetChrome(title: "Workout") {
-            if let workout {
-                Button {
-                    onStartWorkout(workout)
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: workout.type.iconName)
-                            .foregroundStyle(.white)
-                            .frame(width: 34, height: 34)
-                            .background(Color(hex: workout.colorHex), in: RoundedRectangle(cornerRadius: 10))
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(workout.name)
-                                .font(TimeMasterFont.rowTitle())
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-                            Text(durationText(workout.totalDuration))
-                                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                                .monospacedDigit()
-                                .foregroundStyle(Theme.textSecondary)
-                        }
-                        Spacer()
-                        Image(systemName: "play.fill")
-                            .foregroundStyle(.white)
-                    }
+        if let workout = selectedWorkoutValue {
+            HomeWidgetChrome(art: .forWorkout(workout), spot: .home(widget.footprint)) {
+                HomeFeatureLayout(
+                    footprint: widget.footprint,
+                    title: workout.name,
+                    meta: widget.configuration.showDetails ? HomeText.duration(seconds: workout.totalDuration) : nil
+                ) {
+                    startControl(title: "Start", hint: "Starts \(workout.name)") { onStartWorkout(workout) }
                 }
-                .buttonStyle(.plain)
-                .keyNavTarget(shape: .roundedRectangle(cornerRadius: 10)) { onStartWorkout(workout) }
-            } else {
-                emptyAction("Choose a workout", systemImage: "list.bullet", action: onBrowseWorkouts)
+            }
+        } else {
+            HomeWidgetChrome(art: .kettlebell, spot: .home(widget.footprint)) {
+                HomeInvite(
+                    footprint: widget.footprint,
+                    headline: "Pick a workout",
+                    action: HomeInviteAction(title: "Choose", systemImage: "list.bullet", hint: "Opens your workouts", run: onBrowseWorkouts)
+                )
             }
         }
     }
@@ -307,44 +264,40 @@ struct HomeWidgetContent: View {
     private var metrics: some View {
         let progress = insights.progress
         if progress.hasHistory {
-            HomeWidgetChrome(title: "Progress", surface: true) {
-                metricLayout {
+            HomeWidgetChrome(label: widget.footprint == .compact ? nil : "This week") {
+                metricBlock {
                     ForEach(widget.configuration.metricFields) { field in
                         metricCell(field)
                     }
                 }
             }
         } else {
-            HomeWidgetChrome(title: nil) { progressInvite(progress) }
+            HomeWidgetChrome { progressInvite(progress) }
         }
     }
 
     private var streak: some View {
         let streak = workoutStore.streakInfo()
-        return HomeWidgetChrome(title: "Streak", surface: true) {
-            VStack(spacing: 4) {
-                Text("\(streak.current)")
-                    .font(TimeMasterFont.black(48, relativeTo: .largeTitle))
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
-                Text(streak.current == 1 ? "day" : "days")
-                    .font(TimeMasterFont.secondary())
-                    .foregroundStyle(Theme.textSecondary)
+        let unit = streak.current == 1 ? "day" : "days"
+        return HomeWidgetChrome(art: .flame, spot: .home(widget.footprint)) {
+            VStack(alignment: .leading, spacing: 0) {
+                WidgetHero(text: "\(streak.current)", size: widget.footprint == .square ? 72 : 48)
+                WidgetLabel(text: unit)
+                Spacer(minLength: 0)
                 if widget.footprint == .square {
-                    Text("Best · \(streak.best)")
-                        .font(TimeMasterFont.black(12, relativeTo: .caption))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textSecondary)
+                    WidgetLabel(text: "Best \(streak.best)")
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Streak, \(streak.current) \(unit), best \(streak.best)")
         }
     }
 
     private var weeklyRhythm: some View {
         let types = visibleTypes
-        return HomeWidgetChrome(title: "Weekly rhythm", surface: true) {
+        return HomeWidgetChrome(label: "This week") {
             if types.isEmpty {
-                quietEmpty("Your week starts here.")
+                quietEmpty("Your week starts here")
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(types.prefix(visibleRowCount))) { type in
@@ -353,19 +306,20 @@ struct HomeWidgetContent: View {
                         HStack(spacing: 8) {
                             Image(systemName: type.iconName)
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(WidgetTint.graphite.ink)
                                 .frame(width: 27, height: 27)
-                                .background(Color(hex: type.colorHex), in: RoundedRectangle(cornerRadius: 8))
+                                .background(WidgetTint.graphite.softFill, in: Circle())
                             Text(type.name)
                                 .font(TimeMasterFont.black(12, relativeTo: .caption))
-                                .foregroundStyle(.white)
+                                .lineLimit(1)
                             ProgressView(value: min(Double(stats.sessionsThisWeek) / Double(goal), 1))
-                                .tint(Color(hex: type.colorHex))
+                                .tint(Theme.toolbarOrange)
                             Text("\(stats.sessionsThisWeek)/\(goal)")
-                                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                                .monospacedDigit()
-                                .foregroundStyle(Theme.textSecondary)
+                                .font(WidgetFont.chip())
+                                .foregroundStyle(WidgetTint.graphite.secondaryInk)
                         }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(type.name), \(stats.sessionsThisWeek) of \(goal) this week")
                     }
                 }
             }
@@ -375,7 +329,7 @@ struct HomeWidgetContent: View {
     @ViewBuilder
     private var activityHeatmap: some View {
         if workoutStore.historyEntries.isEmpty && outdoorStore.establishedActivities.isEmpty && workoutStore.typeSchedules.allSatisfy({ !$0.isActive }) {
-            HomeWidgetChrome(title: "Activity") { quietEmpty("No activity yet.") }
+            HomeWidgetChrome(label: "Activity") { quietEmpty("No activity yet") }
         } else {
             ActivityHeatmap(entries: workoutStore.historyEntries, outdoorActivities: outdoorStore.establishedActivities)
                 .environmentObject(workoutStore)
@@ -384,8 +338,8 @@ struct HomeWidgetContent: View {
 
     private var lifetimeStats: some View {
         let minutes = workoutStore.historyEntries.reduce(0) { $0 + $1.durationCompleted } / 60
-        return HomeWidgetChrome(title: "Lifetime", surface: true) {
-            metricLayout {
+        return HomeWidgetChrome(art: .trophy, spot: .home(widget.footprint)) {
+            artStats {
                 metricValue("\(workoutStore.historyEntries.count)", label: "sessions")
                 metricValue("\(minutes)m", label: "minutes")
             }
@@ -394,24 +348,23 @@ struct HomeWidgetContent: View {
 
     private var typeBreakdown: some View {
         let types = visibleTypes
-        return HomeWidgetChrome(title: "By type", surface: true) {
+        return HomeWidgetChrome(label: "By type") {
             if types.isEmpty {
-                quietEmpty("No activity yet.")
+                quietEmpty("No activity yet")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(types.prefix(visibleRowCount))) { type in
                         let stats = workoutStore.typeStats(for: type)
                         HStack {
                             Image(systemName: type.iconName)
-                                .foregroundStyle(Color(hex: type.colorHex))
+                                .foregroundStyle(Theme.toolbarOrange)
                             Text(type.name)
                                 .font(TimeMasterFont.rowTitle())
-                                .foregroundStyle(.white)
+                                .lineLimit(1)
                             Spacer()
                             Text("\(stats.sessionsThisWeek) · \(stats.totalSeconds / 60)m")
-                                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                                .monospacedDigit()
-                                .foregroundStyle(Theme.textSecondary)
+                                .font(WidgetFont.chip())
+                                .foregroundStyle(WidgetTint.graphite.secondaryInk)
                         }
                     }
                 }
@@ -421,34 +374,33 @@ struct HomeWidgetContent: View {
 
     private var outdoorSummary: some View {
         let finished = outdoorStore.establishedActivities
-        return HomeWidgetChrome(title: "Outdoor", surface: true) {
-            metricLayout {
+        return HomeWidgetChrome {
+            metricBlock {
                 metricValue("\(finished.filter { $0.kind != .bike }.count)", label: "on foot")
                 metricValue("\(finished.filter { $0.kind == .bike }.count)", label: "rides")
                 metricValue(String(format: "%.1f km", finished.reduce(0) { $0 + $1.distanceMeters } / 1000), label: "distance")
             }
         }
     }
+
     private var outdoorMap: some View {
-        HomeWidgetChrome(title: nil, surface: true) {
+        HomeWidgetChrome(art: .compass, spot: .home(widget.footprint)) {
             Button {
                 onStartOutdoor(.run, nil, nil)
             } label: {
-                VStack(spacing: 8) {
-                    Image(systemName: "map.fill")
-                        .font(.largeTitle)
-                        .foregroundStyle(.cyan)
-                    Text("Explore")
-                        .font(TimeMasterFont.heading())
-                        .foregroundStyle(Theme.textPrimary)
-                    Text(exploreLine)
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.85)
+                VStack(alignment: .leading, spacing: 4) {
+                    if widget.footprint == .square {
+                        Spacer(minLength: 0)
+                    }
+                    WidgetTitle(text: "Explore", size: widget.footprint == .square ? 36 : 24, lines: 1)
+                    if let detail = exploreDetail {
+                        WidgetLabel(text: detail)
+                    }
+                    if widget.footprint != .square {
+                        Spacer(minLength: 0)
+                    }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .contentShape(Rectangle())
             }
             .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
@@ -457,46 +409,49 @@ struct HomeWidgetContent: View {
         }
     }
 
+    @ViewBuilder
     private var recoverActivity: some View {
-        HomeWidgetChrome(title: "Recover activity") {
-            if let activity = outdoorStore.recoverableActivities.first {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(activity.title)
-                        .font(TimeMasterFont.rowTitle())
-                        .foregroundStyle(.white)
-                    Text(activity.finished ? "Ready to save" : "Paused")
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                    #if os(iOS)
-                    if UIDevice.current.userInterfaceIdiom == .phone {
-                        Button {
-                            onStartOutdoor(activity.kind, outdoorStore.plannedRoute(withID: activity.plannedRouteID ?? ""), activity.id)
-                        } label: {
-                            Label(activity.finished ? "Review" : "Resume", systemImage: activity.finished ? "checkmark.circle" : "play.fill")
-                        }
-                        .buttonStyle(TimeMasterActionButtonStyle(prominent: true))
-                    } else {
-                        Text("Resume on iPhone")
-                            .font(TimeMasterFont.black(12, relativeTo: .caption))
-                            .foregroundStyle(Theme.textSecondary)
-                    }
-                    #else
-                    Text("Resume on iPhone")
-                        .font(TimeMasterFont.black(12, relativeTo: .caption))
-                        .foregroundStyle(Theme.textSecondary)
-                    #endif
+        if let activity = outdoorStore.recoverableActivities.first {
+            HomeWidgetChrome(art: .runningShoe, spot: .home(widget.footprint)) {
+                HomeFeatureLayout(
+                    footprint: widget.footprint,
+                    label: activity.finished ? "Ready to save" : "Paused",
+                    title: activity.title
+                ) {
+                    recoverControl(activity)
                 }
-            } else {
-                quietEmpty("All caught up.")
+            }
+        } else {
+            HomeWidgetChrome(label: "Recover") {
+                quietEmpty("All caught up")
             }
         }
     }
 
+    @ViewBuilder
+    private func recoverControl(_ activity: OutdoorActivity) -> some View {
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            startControl(
+                title: activity.finished ? "Review" : "Resume",
+                systemImage: activity.finished ? "checkmark.circle" : "play.fill",
+                hint: activity.finished ? "Opens the finished activity to save it" : "Resumes the activity"
+            ) {
+                onStartOutdoor(activity.kind, outdoorStore.plannedRoute(withID: activity.plannedRouteID ?? ""), activity.id)
+            }
+        } else {
+            WidgetLabel(text: "Resume on iPhone")
+        }
+        #else
+        WidgetLabel(text: "Resume on iPhone")
+        #endif
+    }
+
     private var savedRoutes: some View {
-        HomeWidgetChrome(title: "Saved routes") {
+        HomeWidgetChrome(label: "Routes") {
             let saved = outdoorStore.plannedRoutes.filter { !$0.isDraft }
             if saved.isEmpty {
-                quietEmpty("No saved routes.")
+                quietEmpty("No saved routes")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(saved.prefix(visibleRowCount))) { route in
@@ -521,26 +476,30 @@ struct HomeWidgetContent: View {
     }
 
     private var exerciseDatabase: some View {
-        HomeWidgetChrome(title: "Exercises") {
+        HomeWidgetChrome(art: .kettlebell, spot: .home(widget.footprint)) {
             Button(action: onBrowseDatabase) {
-                VStack(spacing: 6) {
-                    Text("\(databaseCount)")
-                        .font(TimeMasterFont.black(36, relativeTo: .largeTitle))
-                        .monospacedDigit()
-                    Text("Open database")
-                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                VStack(alignment: .leading, spacing: 0) {
+                    if widget.footprint == .square {
+                        Spacer(minLength: 0)
+                    }
+                    WidgetHero(text: "\(databaseCount)", size: widget.footprint == .square ? 72 : 48)
+                    WidgetLabel(text: databaseCount == 1 ? "page" : "pages")
+                    if widget.footprint != .square {
+                        Spacer(minLength: 0)
+                    }
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .contentShape(Rectangle())
             }
             .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 12))
+            .accessibilityLabel("Exercise database, \(databaseCount) pages")
+            .accessibilityHint("Opens the database")
         }
     }
 
     private var databaseOverview: some View {
-        return HomeWidgetChrome(title: "Database", surface: true) {
-            metricLayout {
+        HomeWidgetChrome {
+            metricBlock {
                 metricValue("\(databaseStore.rootPages.count)", label: "root pages")
                 metricValue("\(databaseCount)", label: "pages")
             }
@@ -548,8 +507,12 @@ struct HomeWidgetContent: View {
     }
 
     private var buildFromDatabase: some View {
-        HomeWidgetChrome(title: "Build a workout") {
-            emptyAction("Browse exercises", systemImage: "plus", action: onBrowseDatabase)
+        HomeWidgetChrome(art: .dumbbell, spot: .home(widget.footprint)) {
+            HomeInvite(
+                footprint: widget.footprint,
+                headline: "Build a workout",
+                action: HomeInviteAction(title: "Browse", hint: "Opens the exercise database", run: onBrowseDatabase)
+            )
         }
     }
 
@@ -558,19 +521,48 @@ struct HomeWidgetContent: View {
         return min(max(1, widget.configuration.visibleCount), capacity)
     }
 
-    private var metricLayout: AnyLayout {
-        widget.footprint == .compact
-            ? AnyLayout(VStackLayout(spacing: 8))
-            : AnyLayout(HStackLayout(spacing: 12))
+    private func metricBlock<Metrics: View>(@ViewBuilder _ metrics: () -> Metrics) -> some View {
+        let layout = widget.footprint == .wide
+            ? AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+            : AnyLayout(VStackLayout(alignment: .leading, spacing: widget.footprint == .compact ? 6 : 14))
+        return layout { metrics() }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+    }
+
+    private func artStats<Stats: View>(@ViewBuilder _ stats: () -> Stats) -> some View {
+        VStack(alignment: .leading, spacing: widget.footprint == .compact ? 6 : 12) {
+            if widget.footprint == .square {
+                Spacer(minLength: 0)
+            }
+            stats()
+            if widget.footprint != .square {
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func quietEmpty(_ text: String) -> some View {
-        Text(text)
-            .font(TimeMasterFont.heading())
-            .multilineTextAlignment(.center)
-            .foregroundStyle(Theme.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        WidgetTitle(text: text, size: 20, lines: 3)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+    }
+
+    @ViewBuilder
+    private func startControl(
+        title: String,
+        systemImage: String = "play.fill",
+        hint: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        switch widget.footprint {
+        case .compact:
+            HomeIconButton(systemImage: systemImage, label: title, hint: hint, prominent: true, action: action)
+        case .wide:
+            HomePillButton(title: title, systemImage: systemImage, hint: hint, action: action)
+                .fixedSize()
+        case .square:
+            HomePillButton(title: title, systemImage: systemImage, fillsWidth: true, hint: hint, action: action)
+        }
     }
 
     private var actions: HomeWidgetActions {
@@ -636,7 +628,7 @@ struct HomeWidgetContent: View {
         )
     }
 
-    private var exploreLine: String {
+    private var exploreDetail: String? {
         let outdoor = insights.outdoor
         if outdoor.sessions > 0 {
             let outings = HomeText.count(outdoor.sessions, "outing", "outings")
@@ -645,69 +637,50 @@ struct HomeWidgetContent: View {
                 : outings
         }
         if outdoor.routes > 0 { return HomeText.count(outdoor.routes, "saved route", "saved routes") }
+        return nil
+    }
+
+    private var exploreLine: String {
+        if let exploreDetail { return exploreDetail }
         return HomeWidgetPlatform.canRecordOutdoor ? "Walk, run or ride. Your first route starts here." : "Open the live map"
     }
 
     @ViewBuilder
     private func progressInvite(_ progress: HomeProgressSnapshot) -> some View {
-        let message = HomeProgressCopy.message(for: progress)
+        let headline = HomeProgressCopy.message(for: progress).headline
         let pick = picks.first
-        let ring = HomeRingBadge(
-            fraction: progress.goalFraction,
-            label: HomeProgressCopy.ringLabel(for: progress),
-            diameter: widget.footprint == .compact ? 56 : (widget.footprint == .square ? 96 : 64),
-            lineWidth: widget.footprint == .square ? 9 : 6
-        )
+        let ring = ZStack {
+            WidgetRing(fraction: progress.goalFraction, lineWidth: widget.footprint == .square ? 14 : 10)
+            WidgetHero(text: HomeProgressCopy.ringLabel(for: progress), size: widget.footprint == .square ? 40 : 28)
+                .padding(.horizontal, 18)
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(headline). \(HomeProgressCopy.ringLabel(for: progress)) this week")
         switch widget.footprint {
         case .compact:
-            VStack(spacing: 8) {
-                ring
-                Text(message.headline)
-                    .font(TimeMasterFont.rowTitle())
-                    .foregroundStyle(Theme.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.75)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ring
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .wide:
-            HStack(spacing: 14) {
+            HStack(spacing: 16) {
                 ring
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(message.headline)
-                        .font(TimeMasterFont.heading())
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
-                    Text(message.detail)
-                        .font(TimeMasterFont.caption())
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(3)
+                VStack(alignment: .leading, spacing: 10) {
+                    WidgetTitle(text: headline, size: 20, lines: 3)
+                    if let pick {
+                        HomePillButton(title: "Start", systemImage: "play.fill", hint: "Starts \(pick.workout.name)") {
+                            actions.startWorkout(pick.workout.id)
+                        }
+                        .fixedSize()
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                if let pick {
-                    HomePillButton(title: "Start", systemImage: "play.fill", hint: "Starts \(pick.workout.name)") {
-                        actions.startWorkout(pick.workout.id)
-                    }
-                    .fixedSize()
-                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .square:
-            VStack(spacing: 12) {
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 14) {
                 ring
-                Text(message.headline)
-                    .font(TimeMasterFont.black(22, relativeTo: .title3))
-                    .foregroundStyle(Theme.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-                Text(message.detail)
-                    .font(TimeMasterFont.secondary())
-                    .foregroundStyle(Theme.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                WidgetTitle(text: headline, size: 26, lines: 2)
                 if let pick {
                     HomePillButton(
                         title: "Start \(pick.workout.name)",
@@ -718,7 +691,6 @@ struct HomeWidgetContent: View {
                         actions.startWorkout(pick.workout.id)
                     }
                 }
-                Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -763,6 +735,7 @@ struct HomeWidgetContent: View {
             workoutStore.typeSchedules.contains { $0.type.id == type.id && $0.isActive }
         }
     }
+
     private var supportedShortcuts: [HomeActivityShortcut] {
         #if os(iOS)
         guard UIDevice.current.userInterfaceIdiom == .phone else {
@@ -795,16 +768,12 @@ struct HomeWidgetContent: View {
             onStartWorkout(item.workout)
         } label: {
             HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(item.workout.name)
-                        .font(TimeMasterFont.sectionTitle())
-                        .foregroundStyle(.white)
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .lineLimit(1)
                     if widget.configuration.showScheduledTime {
-                        Text(item.timeRangeText)
-                            .font(TimeMasterFont.black(12, relativeTo: .caption))
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.textSecondary)
+                        WidgetLabel(text: item.timeRangeText)
                     }
                 }
                 Spacer(minLength: 0)
@@ -827,32 +796,56 @@ struct HomeWidgetContent: View {
 
     private func metricCell(_ field: HomeMetricField) -> some View {
         let value: String
+        let symbol: String
         switch field {
-        case .sessions: value = "\(weeklyEntries.count)"
-        case .streak: value = "\(workoutStore.streakInfo().current)"
-        case .activeMinutes: value = "\(weeklyMinutes)m"
+        case .sessions:
+            value = "\(weeklyEntries.count)"
+            symbol = "checkmark.circle.fill"
+        case .streak:
+            value = "\(workoutStore.streakInfo().current)"
+            symbol = "flame.fill"
+        case .activeMinutes:
+            value = "\(weeklyMinutes)m"
+            symbol = "timer"
         }
-        return metricValue(value, label: field.title)
+        return metricValue(value, label: field.title, systemImage: symbol)
     }
 
-    private func metricValue(_ value: String, label: String) -> some View {
-        let layout = widget.footprint == .compact
-            ? AnyLayout(HStackLayout(spacing: 8))
-            : AnyLayout(VStackLayout(spacing: 6))
-        return layout {
-            Text(value)
-                .font(widget.footprint == .compact ? TimeMasterFont.sectionTitle() : TimeMasterFont.black(28, relativeTo: .title))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(label)
-                .font(TimeMasterFont.caption())
-                .foregroundStyle(Theme.textSecondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
+    @ViewBuilder
+    private func metricValue(_ value: String, label: String, systemImage: String? = nil) -> some View {
+        if widget.footprint == .compact {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.toolbarOrange)
+                    WidgetHero(text: value, size: 28)
+                        .fixedSize()
+                } else {
+                    WidgetHero(text: value, size: 28)
+                        .fixedSize()
+                    WidgetLabel(text: label)
+                }
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(label), \(value)")
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    if let systemImage {
+                        Image(systemName: systemImage)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Theme.toolbarOrange)
+                    }
+                    WidgetLabel(text: label)
+                }
+                WidgetHero(text: value, size: widget.footprint == .square ? 56 : 34)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(label), \(value)")
         }
-        .frame(maxWidth: .infinity)
     }
 
     private var weeklyEntries: [WorkoutHistoryEntry] {
@@ -862,18 +855,6 @@ struct HomeWidgetContent: View {
 
     private var weeklyMinutes: Int {
         weeklyEntries.reduce(0) { $0 + (($1.isPartial ? $1.elapsedSeconds : $1.durationCompleted) / 60) }
-    }
-
-    private func emptyAction(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(TimeMasterFont.rowTitle())
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(.white, in: RoundedRectangle(cornerRadius: 11))
-        }
-        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 11))
     }
 
     private func start(_ shortcut: HomeActivityShortcut) {
@@ -897,28 +878,25 @@ struct HomeWidgetContent: View {
         }
     }
 
-
     private func statusColor(_ status: ScheduledWorkoutStatus) -> Color {
         switch status {
-        case .pending: Theme.textSecondary
-        case .completed: .green
-        case .missed: .red
+        case .pending: WidgetTint.graphite.secondaryInk
+        case .completed: Theme.toolbarOrange
+        case .missed: WidgetTint.peach.base
         }
     }
 
     private func routeRow(_ route: PlannedRoute) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "map")
-                .foregroundStyle(.cyan)
+                .foregroundStyle(WidgetTint.peach.base)
             Text(route.title)
                 .font(TimeMasterFont.rowTitle())
-                .foregroundStyle(.white)
                 .lineLimit(1)
             Spacer()
             Text("\(route.points.count) pts")
-                .font(TimeMasterFont.black(12, relativeTo: .caption))
-                .monospacedDigit()
-                .foregroundStyle(Theme.textSecondary)
+                .font(WidgetFont.chip())
+                .foregroundStyle(WidgetTint.graphite.secondaryInk)
         }
     }
 
@@ -931,96 +909,45 @@ struct HomeWidgetContent: View {
     }
 }
 
-private struct HomeActivityShortcutCircle: View {
+struct HomeActivityShortcutCircle: View {
     let shortcut: HomeActivityShortcut
     let diameter: CGFloat
     let action: () -> Void
 
     var body: some View {
+        let style = Self.style(for: shortcut)
         Button(action: action) {
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Image(systemName: shortcut.systemImage)
-                    .font(.title2.weight(.semibold))
+                    .font(.system(size: min(30, diameter * 0.3), weight: .semibold))
                 Text(shortcut.title)
                     .font(TimeMasterFont.black(12, relativeTo: .caption))
-                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(style.ink)
             .frame(width: diameter, height: diameter)
-            .background(
-                Circle()
-                    .fill(shortcutColor.opacity(0.22))
-            )
-            .overlay(
-                Circle()
-                    .stroke(shortcutColor.opacity(0.72), lineWidth: 1.5)
-            )
+            .background {
+                ZStack {
+                    Circle().fill(style.fill)
+                    Circle().fill(
+                        LinearGradient(colors: [.white.opacity(0.26), .white.opacity(0)], startPoint: .topLeading, endPoint: .center)
+                    )
+                }
+            }
+            .contentShape(Circle())
         }
         .keyNavPlainButtonStyle(shape: .circle)
-        .contentShape(Circle())
         .accessibilityLabel(shortcut.title)
         .accessibilityHint("Start \(shortcut.title)")
     }
 
-    private var shortcutColor: Color {
+    private static func style(for shortcut: HomeActivityShortcut) -> (fill: Color, ink: Color) {
         switch shortcut {
-        case .workout: Theme.toolbarOrange
-        case .runWalk: .green
-        case .walk: .mint
-        case .bike: .cyan
-        }
-    }
-}
-
-
-struct HomeWidgetChrome<Content: View>: View {
-    let title: String?
-    let surface: Bool
-    let accent: Color?
-    let content: Content
-
-    init(
-        title: String?,
-        surface: Bool = true,
-        accent: Color? = nil,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.title = title
-        self.surface = surface
-        self.accent = accent
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(spacing: 12) {
-            if let title {
-                Text(title)
-                    .font(TimeMasterFont.sectionTitle())
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity)
-            }
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            ZStack {
-                if surface {
-                    RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)
-                        .fill(Theme.surface)
-                }
-                if let accent {
-                    RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)
-                        .fill(LinearGradient(
-                            colors: [accent.opacity(0.22), accent.opacity(0.02)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
-                }
-            }
+        case .workout: (WidgetTint.orange.base, WidgetTint.orange.ink)
+        case .runWalk: (WidgetTint.peach.base, WidgetTint.peach.ink)
+        case .walk: (Color.white, WidgetTint.peach.ink)
+        case .bike: (WidgetTint.graphite.softFill, WidgetTint.graphite.ink)
         }
     }
 }

@@ -92,17 +92,22 @@ struct HomeWidgetPicker: View {
                 outdoorStore: outdoorStore,
                 insights: insights
             )
-            .padding(14)
+            .background(WidgetTint.graphite.base)
+            .clipShape(RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: HomeWidgetSizing.cornerRadius, style: .continuous)
+                    .strokeBorder(.white.opacity(canAdd ? 0.08 : 0.2), lineWidth: 1)
+            }
 
             Button {
                 onAdd(kind, footprint)
             } label: {
                 Image(systemName: canAdd ? "plus" : "checkmark")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(canAdd ? .black : .white)
+                    .foregroundStyle(canAdd ? WidgetTint.orange.ink : .white)
                     .frame(width: 44, height: 44)
                     .background(
-                        canAdd ? Color.green : Theme.surface2,
+                        canAdd ? WidgetTint.orange.base : Theme.surface2,
                         in: Circle()
                     )
                     .overlay {
@@ -116,21 +121,6 @@ struct HomeWidgetPicker: View {
             .accessibilityLabel("Add \(kind.title) widget")
             .padding(7)
             .offset(x: 6, y: -6)
-        }
-        .background {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.surface2, Theme.surface],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 22)
-                        .stroke(.white.opacity(canAdd ? 0.12 : 0.2), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
         }
         .opacity(canAdd ? 1 : 0.62)
         .accessibilityElement(children: .contain)

@@ -1,8 +1,6 @@
 import SwiftUI
 import TimeMasterCore
 
-/// Progress: the share of the sub-skills done as a ring, with how many are done and how many are in progress. Without
-/// sub-skills it says so. A tap opens them (a folder's pages, for a folder).
 struct PageWidgetProgressTile: View {
     let progress: SkillProgress
     let target: PageWidgetTarget
@@ -12,62 +10,34 @@ struct PageWidgetProgressTile: View {
 
     var body: some View {
         PageWidgetTile(kind: .progress, target: target, summary: summary, onOpen: onOpen) {
-            VStack(alignment: .leading, spacing: 8) {
-                PageWidgetHeader(kind: .progress, trailing: isEmpty ? nil : progress.summary)
-                if isEmpty {
-                    PageWidgetEmptyState(systemImage: "circle.dotted", title: "No sub-skills yet")
-                } else {
-                    HStack(spacing: 14) {
-                        ring
-                        VStack(alignment: .leading, spacing: 6) {
-                            stat(progress.completed, label: "Done", tint: SkillStatus.completed.color)
-                            stat(progress.learning, label: "In progress", tint: SkillStatus.learning.color)
-                        }
-                    }
-                    .frame(maxHeight: .infinity)
-                }
+            if isEmpty {
+                PageWidgetEmptyState(systemImage: "circle.dotted", title: "No sub\u{2011}skills yet")
+            } else {
+                ring
+                    .padding(12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
-            .padding(PageWidgetMetrics.inset)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
         }
     }
 
     private var ring: some View {
         ZStack {
-            SkillProgressRing(fraction: progress.fraction, tint: Theme.toolbarOrange, lineWidth: 8)
-                .padding(4)
+            WidgetRing(fraction: progress.fraction, lineWidth: 10)
             if progress.fraction < 1 {
-                Text("\(Int((progress.fraction * 100).rounded()))%")
-                    .font(TimeMasterFont.black(16, relativeTo: .headline).monospacedDigit())
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .padding(.horizontal, 12)
+                VStack(spacing: 0) {
+                    WidgetHero(text: "\(Int((progress.fraction * 100).rounded()))%", size: 28)
+                    WidgetLabel(text: "done")
+                }
+                .padding(.horizontal, 18)
+            } else {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 30, weight: .black))
+                    .foregroundStyle(Theme.toolbarOrange)
             }
         }
-        .frame(width: 72, height: 72)
-    }
-
-    private func stat(_ value: Int, label: String, tint: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Circle()
-                .fill(tint)
-                .frame(width: 7, height: 7)
-                .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
-            VStack(alignment: .leading, spacing: 0) {
-                Text("\(value)")
-                    .font(TimeMasterFont.black(18, relativeTo: .headline).monospacedDigit())
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text(label)
-                    .font(TimeMasterFont.micro())
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        }
+        .aspectRatio(1, contentMode: .fit)
     }
 
     private var summary: String {
