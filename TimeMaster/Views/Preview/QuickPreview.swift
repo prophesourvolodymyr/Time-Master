@@ -200,6 +200,9 @@ final class QuickPreviewController: ObservableObject {
         self.steps = steps
         self.index = index
         isPresented = true
+        #if os(macOS)
+        noteShown()
+        #endif
     }
 
     func move(_ delta: Int) {
@@ -223,6 +226,28 @@ final class QuickPreviewController: ObservableObject {
         crossing = nil
         isPresented = false
     }
+
+    #if os(macOS)
+    weak var hostWindow: NSWindow?
+
+    private struct WeakController {
+        weak var controller: QuickPreviewController?
+    }
+
+    private static var shown: [WeakController] = []
+
+    /// Escape closes the quick preview on top in `window` before anything behind it hears the key.
+    static func closeTopPreview(in window: NSWindow) -> Bool {
+        shown.removeAll { $0.controller == nil || $0.controller?.isPresented != true }
+        guard let top = shown.last(where: { $0.controller?.hostWindow === window })?.controller else { return false }
+        top.close()
+        return true
+    }
+
+    fileprivate func noteShown() {
+        QuickPreviewController.shown.append(WeakController(controller: self))
+    }
+    #endif
 }
 
 struct QuickPreviewPopup: View {
@@ -250,7 +275,7 @@ struct QuickPreviewPopup: View {
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96)))
                     #if os(macOS)
                     .background {
-                        QuickPreviewKeys(onStep: { move($0) }, onEscape: { controller.close() })
+                        QuickPreviewKeys(controller: controller, onStep: { move($0) }, onEscape: { controller.close() })
                             .frame(width: 0, height: 0)
                             .allowsHitTesting(false)
                             .accessibilityHidden(true)
@@ -561,11 +586,13 @@ extension View {
 
 #if os(macOS)
 private struct QuickPreviewKeys: NSViewRepresentable {
+    let controller: QuickPreviewController
     let onStep: (Int) -> Void
     let onEscape: () -> Void
 
     func makeNSView(context: Context) -> CatcherView {
         let view = CatcherView()
+        view.controller = controller
         view.onStep = onStep
         view.onEscape = onEscape
         return view
@@ -581,6 +608,7 @@ private struct QuickPreviewKeys: NSViewRepresentable {
     }
 
     final class CatcherView: NSView {
+        weak var controller: QuickPreviewController?
         var onStep: ((Int) -> Void)?
         var onEscape: (() -> Void)?
         private var monitor: Any?
@@ -590,6 +618,7 @@ private struct QuickPreviewKeys: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             stopMonitoring()
+            MainActor.assumeIsolated { controller?.hostWindow = window }
             guard window != nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 let taken = MainActor.assumeIsolated { self?.handle(event) ?? false }

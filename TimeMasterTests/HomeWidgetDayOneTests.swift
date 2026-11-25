@@ -189,11 +189,11 @@ final class HomeWidgetLayoutMigrationTests: XCTestCase {
         defaults.set(try JSONEncoder().encode(widgets), forKey: "home_widget_layout_v1")
     }
 
-    func testAnExistingLayoutGainsFirstStepsAndWeekAheadOnceRightAfterQuickStart() throws {
+    func testAnExistingLayoutGainsFirstStepsWeekAheadAndTheActivityGridOnce() throws {
         try save([.greeting, .today, .quickStart, .metrics, .activityShortcuts])
 
         let first = HomeWidgetStore(defaults: defaults)
-        XCTAssertEqual(first.widgets.map(\.kind), [.greeting, .today, .quickStart, .firstSteps, .weekAhead, .metrics, .activityShortcuts])
+        XCTAssertEqual(first.widgets.map(\.kind), [.greeting, .today, .quickStart, .firstSteps, .weekAhead, .metrics, .activityHeatmap, .activityShortcuts])
 
         let second = HomeWidgetStore(defaults: defaults)
         XCTAssertEqual(second.widgets.map(\.kind), first.widgets.map(\.kind))

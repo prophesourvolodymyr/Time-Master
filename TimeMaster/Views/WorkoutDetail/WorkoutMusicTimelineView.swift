@@ -312,6 +312,7 @@ struct WorkoutMusicTimelineView: View {
             resizeID == clip.id && snapped ? Theme.toolbarOrange : Theme.textPrimary.opacity(clip.lane == .primary ? 0.4 : 0.18), lineWidth: 1))
         .contentShape(Rectangle())
         .onTapGesture { showDuplicateSuggestion(nil); sheet = .edit(clip) }
+        .tmaxPointer()
         .contextMenu {
             Button("Edit timing and order", systemImage: "slider.horizontal.3") { sheet = .edit(clip) }
             Button("Replace music", systemImage: "arrow.triangle.2.circlepath") { sheet = .replace(clip.id) }

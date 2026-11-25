@@ -4,8 +4,15 @@ import AppKit
 import TimeMasterCore
 
 struct TmaxCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
+            Button("New Window") {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "main")
+            }
+            .keyboardShortcut("n", modifiers: .control)
             Button("New Workout") {
                 NotificationCenter.default.post(name: .newWorkoutCommand, object: nil)
             }

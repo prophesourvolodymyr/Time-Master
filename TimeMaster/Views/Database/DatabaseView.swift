@@ -852,6 +852,7 @@ struct DatabaseView: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture { selectedRootExercise = exercise }
+                    .tmaxPointer()
                     .listRowBackground(Theme.surface)
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                         Button { exerciseToMove = exercise } label: {
@@ -884,6 +885,7 @@ struct DatabaseView: View {
                     NoteRowView(note: note)
                         .contentShape(Rectangle())
                         .onTapGesture { selectedRootNote = note }
+                        .tmaxPointer()
                         .listRowBackground(Theme.surface)
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
                             Button { noteToMove = note } label: {
@@ -1742,6 +1744,7 @@ struct FolderDetailView: View {
                     NoteRowView(note: note)
                         .contentShape(Rectangle())
                         .onTapGesture { selectedNote = note }
+                        .tmaxPointer()
                         .listRowBackground(Theme.surface)
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
                             Button { noteToMove = note } label: {
@@ -1779,6 +1782,7 @@ struct FolderDetailView: View {
                     ExerciseRowView(exercise: exercise)
                         .contentShape(Rectangle())
                         .onTapGesture { selectedExercise = exercise }
+                        .tmaxPointer()
                         .listRowBackground(Theme.surface)
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
                             Button { exerciseToMove = exercise } label: {
@@ -1854,6 +1858,7 @@ struct FolderDetailView: View {
                     .padding(.horizontal, 16)
                     .contentShape(Rectangle())
                     .onTapGesture { selectedNote = note }
+                    .tmaxPointer()
             }
         }
     }
@@ -1873,6 +1878,7 @@ struct FolderDetailView: View {
                     ForEach(exercises) { exercise in
                         ExerciseGalleryCard(exercise: exercise)
                             .onTapGesture { selectedExercise = exercise }
+                            .tmaxPointer()
                     }
                 }
                 .padding(.horizontal, 16)
@@ -2040,6 +2046,7 @@ struct ExerciseGalleryCard: View {
                     .frame(height: 110)
                     .clipped()
                     .onTapGesture { showingVideo = true }
+                    .tmaxPointer()
             } else {
                 MediaThumbnailView(item: item, size: 0, cornerRadius: 0)
                     .frame(maxWidth: .infinity)

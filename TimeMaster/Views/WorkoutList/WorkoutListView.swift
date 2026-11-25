@@ -14,8 +14,9 @@ struct WorkoutListView: View {
     @ScaledMetric(relativeTo: .subheadline) private var selectorRowHeight: CGFloat = 56
     @ScaledMetric(relativeTo: .caption) private var statsTileHeight: CGFloat = 72
     @Binding var requestedWorkoutID: UUID?
+    @Binding var navigationPath: [Workout] { willSet { if newValue != navigationPath { EverPageTravel.willNavigate(from: navigationPath.count, to: newValue.count) } } }
     let onOpenAnalytics: (AnalyticsTracker) -> Void
-    @State private var navigationPath: [Workout] = [] { willSet { if newValue != navigationPath { EverPageTravel.willNavigate(from: navigationPath.count, to: newValue.count) } } }
+
     @State private var showingAddWorkout = false
     @State private var newWorkoutName = ""
     @State private var newWorkoutType: WorkoutType = .strength
@@ -41,9 +42,11 @@ struct WorkoutListView: View {
 
     init(
         requestedWorkoutID: Binding<UUID?> = .constant(nil),
+        navigationPath: Binding<[Workout]> = .constant([]),
         onOpenAnalytics: @escaping (AnalyticsTracker) -> Void
     ) {
         _requestedWorkoutID = requestedWorkoutID
+        _navigationPath = navigationPath
         self.onOpenAnalytics = onOpenAnalytics
     }
 
@@ -111,6 +114,7 @@ struct WorkoutListView: View {
             #endif
             .onAppear {
                 PerfLog.event("workouts list appeared, path \(navigationPath.count)")
+                navigationPath.removeAll { store.workout(id: $0.id) == nil }
                 openRequestedWorkout(requestedWorkoutID)
                 collapsedSections = Set(collapsedSectionsRaw.split(separator: ",").map(String.init))
             }

@@ -288,6 +288,7 @@ private struct SkillTableRow: View {
         .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: 8), action: open)
         .onHover { isHovering = $0 }
         .onTapGesture(perform: open)
+        .tmaxPointer()
         .skillTypeSheets(for: item.id, editor: $typeEditor, showingManager: $showingTypeManager)
         .contextMenu {
             SkillPageMenuItems(

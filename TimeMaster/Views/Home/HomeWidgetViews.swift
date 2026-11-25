@@ -326,14 +326,9 @@ struct HomeWidgetContent: View {
         }
     }
 
-    @ViewBuilder
     private var activityHeatmap: some View {
-        if workoutStore.historyEntries.isEmpty && outdoorStore.establishedActivities.isEmpty && workoutStore.typeSchedules.allSatisfy({ !$0.isActive }) {
-            HomeWidgetChrome(label: "Activity") { quietEmpty("No activity yet") }
-        } else {
-            ActivityHeatmap(entries: workoutStore.historyEntries, outdoorActivities: outdoorStore.establishedActivities)
-                .environmentObject(workoutStore)
-        }
+        ActivityHeatmap(entries: workoutStore.historyEntries, outdoorActivities: outdoorStore.establishedActivities, home: true)
+            .environmentObject(workoutStore)
     }
 
     private var lifetimeStats: some View {

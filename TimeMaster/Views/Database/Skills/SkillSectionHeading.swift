@@ -29,25 +29,27 @@ struct SkillSectionHeading: View {
     }
 }
 
-/// The title of a skill board itself (not of a section): the brand tile above a big title, centered, with how many
-/// skills the board holds under it.
+/// The title of a skill board itself (not of a section): the brand icon, without a tile, on the left of a big title,
+/// the pair centered, with how many skills the board holds under the title.
 struct SkillBoardTitle: View {
     let symbol: String
     let title: String
     var count: Int?
 
     var body: some View {
-        VStack(spacing: SkillMetrics.s2) {
-            TmaxBrandIcon(symbol: symbol, size: Self.tileSide)
-            Text(title)
-                .font(TimeMasterFont.black(Self.titleSize, relativeTo: .largeTitle))
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            if let count, count > 0 {
-                Text(SkillCopy.count(count, "skill", "skills"))
-                    .font(TimeMasterFont.secondary())
-                    .foregroundStyle(Theme.textSecondary)
+        HStack(spacing: SkillMetrics.s3) {
+            TmaxBrandIcon(symbol: symbol, size: Self.iconSide, transparent: true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(TimeMasterFont.black(Self.titleSize, relativeTo: .largeTitle))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                if let count, count > 0 {
+                    Text(SkillCopy.count(count, "skill", "skills"))
+                        .font(TimeMasterFont.secondary())
+                        .foregroundStyle(Theme.textSecondary)
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -57,11 +59,11 @@ struct SkillBoardTitle: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    private static var tileSide: CGFloat {
+    private static var iconSide: CGFloat {
         #if os(macOS)
-        return 88
+        return 84
         #else
-        return 76
+        return 68
         #endif
     }
 

@@ -104,6 +104,7 @@ struct MilestoneCardView: View {
         .contentShape(shape)
         .onHover { isHovering = $0 }
         .onTapGesture { if !isPreview { actions.edit(milestone) } }
+        .tmaxPointer()
         .contextMenu { if !isPreview { MilestoneMenu(milestone: milestone, actions: actions) } }
         .keyNavTarget(id: "milestone-\(milestone.id)", shape: .roundedRectangle(cornerRadius: Self.corner)) {
             if !isPreview { actions.edit(milestone) }

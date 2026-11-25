@@ -335,6 +335,7 @@ struct IconColorPicker: View {
                         )
                 }
                 .onTapGesture { selectedHex = colorDef.hex }
+                .tmaxPointer()
                 .keyNavTarget(shape: .circle) { selectedHex = colorDef.hex }
             }
         }

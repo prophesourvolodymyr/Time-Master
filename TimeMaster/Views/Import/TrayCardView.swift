@@ -79,6 +79,7 @@ struct TrayCardView: View {
         }
         .contentShape(RoundedRectangle(cornerRadius: 12))
         .onTapGesture(perform: onSelect)
+        .tmaxPointer()
         .onHover { isHovered = $0 }
         .onDrag {
             let ids = selectedIDs.contains(item.id) ? selectedIDs : [item.id]

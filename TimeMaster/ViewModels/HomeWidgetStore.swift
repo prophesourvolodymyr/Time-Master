@@ -11,6 +11,7 @@ final class HomeWidgetStore: ObservableObject {
     private let greetingStripMigrationKey = "home_greeting_strip_migration_v1"
     private let mapOpenerMigrationKey = "home_map_opener_migration_v1"
     private let dayOneMigrationKey = "home_day_one_migration_v1"
+    private let activityHeatmapMigrationKey = "home_activity_heatmap_migration_v1"
     private let firstStepsCelebratedKey = "home_first_steps_celebrated_v1"
     private static let launchToken = UUID().uuidString
     private let defaults: UserDefaults
@@ -58,16 +59,23 @@ final class HomeWidgetStore: ObservableObject {
             }
         }
         let addedDayOne = dayOneWidgets != mapOpenerWidgets
+        let heatmapMigrationNeeded = defaults.bool(forKey: activityHeatmapMigrationKey) == false
+        var heatmapWidgets = dayOneWidgets
+        if heatmapMigrationNeeded, !heatmapWidgets.contains(where: { $0.kind == .activityHeatmap }) {
+            let index = heatmapWidgets.firstIndex(where: { $0.kind == .metrics }).map { $0 + 1 } ?? min(5, heatmapWidgets.count)
+            heatmapWidgets.insert(HomeWidgetInstance(kind: .activityHeatmap), at: min(index, heatmapWidgets.count))
+        }
+        let addedHeatmap = heatmapWidgets != dayOneWidgets
         let needsGreetingStripMigration = defaults.bool(forKey: greetingStripMigrationKey) == false
         widgets = needsGreetingStripMigration
-            ? dayOneWidgets.map { widget in
+            ? heatmapWidgets.map { widget in
                 var widget = widget
                 if widget.kind == .greeting {
                     widget.footprint = .wide
                 }
                 return widget
             }
-            : dayOneWidgets
+            : heatmapWidgets
 
         if let data = defaults.data(forKey: skippedScheduleKey),
            let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
@@ -79,7 +87,10 @@ final class HomeWidgetStore: ObservableObject {
         if dayOneMigrationNeeded {
             defaults.set(true, forKey: dayOneMigrationKey)
         }
-        if needsGreetingStripMigration || addedWalkShortcut || addedMapOpener || addedDayOne {
+        if heatmapMigrationNeeded {
+            defaults.set(true, forKey: activityHeatmapMigrationKey)
+        }
+        if needsGreetingStripMigration || addedWalkShortcut || addedMapOpener || addedDayOne || addedHeatmap {
             defaults.set(true, forKey: greetingStripMigrationKey)
             defaults.set(true, forKey: mapOpenerMigrationKey)
             save()

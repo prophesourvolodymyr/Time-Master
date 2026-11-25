@@ -130,6 +130,7 @@ private struct MarkdownImageTap: ViewModifier {
             content
                 .contentShape(Rectangle())
                 .onTapGesture { open(path) }
+                .tmaxPointer()
         } else {
             content
         }

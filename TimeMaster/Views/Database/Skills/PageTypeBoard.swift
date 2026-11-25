@@ -638,6 +638,7 @@ struct PageTypeBoardCard: View {
         .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius), action: open)
         .onHover { isHovering = $0 }
         .onTapGesture(perform: open)
+        .tmaxPointer()
         .onDrag {
             EverHaptic.selection()
             return makeProvider(item.id)

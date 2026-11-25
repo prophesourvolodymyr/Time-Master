@@ -119,6 +119,7 @@ struct SkillBoardRow: View {
         .background(heightReader)
         .contentShape(RoundedRectangle(cornerRadius: SkillMetrics.fieldRadius, style: .continuous))
         .onTapGesture(perform: open)
+        .tmaxPointer()
         .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius), action: open)
         .skillTypeSheets(for: item.id, editor: $typeEditor, showingManager: $showingTypeManager)
         .contextMenu {

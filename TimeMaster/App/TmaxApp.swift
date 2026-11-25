@@ -59,6 +59,19 @@ private struct TmaxRootView: View {
     @State private var loadingOpacity = 1.0
     @State private var departureProgress: CGFloat = 0
     @State private var launchGeneration = 0
+    @State private var startsServices = true
+#if os(macOS)
+    @State private var windowToken = UUID()
+#endif
+
+    init(startup: TmaxStartupModel) {
+        _startup = ObservedObject(wrappedValue: startup)
+        let alreadyReady = startup.isReady
+        _launchPhase = State(initialValue: alreadyReady ? .finished : .loading)
+        _loadingOpacity = State(initialValue: alreadyReady ? 0 : 1)
+        _didCheckResume = State(initialValue: alreadyReady)
+        _startsServices = State(initialValue: !alreadyReady)
+    }
 
     private enum LaunchPhase {
         case loading, zooming, revealing, finished
@@ -123,6 +136,7 @@ private struct TmaxRootView: View {
             await finishLaunch()
         }
         .task {
+            guard startsServices else { return }
             await startup.prepare()
             guard startup.isReady else { return }
             await cloudAccount.start()
@@ -145,16 +159,17 @@ private struct TmaxRootView: View {
             startRequestedWorkout(notification)
         }
 #if os(macOS)
+        .modifier(MacWindowTokenBinder(token: windowToken))
         .onAppear {
             MacMainWindow.openAction = { openWindow(id: "main") }
             MenuBarController.shared.install(startup: startup)
-            AppCommandBus.setReady(commandsReady)
+            AppCommandBus.setReady(commandsReady, window: windowToken)
         }
         .onChange(of: commandsReady) { ready in
-            AppCommandBus.setReady(ready)
+            AppCommandBus.setReady(ready, window: windowToken)
         }
         .onDisappear {
-            AppCommandBus.setReady(false)
+            AppCommandBus.setReady(false, window: windowToken)
         }
 #endif
         .onChange(of: scenePhase) { phase in
@@ -303,6 +318,9 @@ private struct TmaxRootView: View {
         guard contentIsReady, launchPhase == .finished, resumePlayerWorkout == nil,
               !WorkoutLiveSession.shared.isActive,
               let store = startup.workoutStore else { return }
+#if os(macOS)
+        guard MacMainWindow.isFront(windowToken) else { return }
+#endif
         if resumeManager.hasResumableWorkout {
             showResumePrompt = true
             return

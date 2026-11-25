@@ -24,6 +24,8 @@ struct MainTabView: View {
     @State private var requestedWorkoutID: UUID?
     @State private var requestedRankedVariation: RankedVariation?
     @State private var requestedAnalyticsTracker: AnalyticsTracker?
+    @StateObject private var skillsNavigationState = DatabaseNavigationState(pageTravel: true)
+    @State private var workoutsNavigationPath: [Workout] = []
     #if os(iOS)
     @State private var activeOutdoorKind: OutdoorActivityKind?
     @State private var activeOutdoorPlannedRoute: PlannedRoute?
@@ -32,6 +34,7 @@ struct MainTabView: View {
     #endif
 #if os(macOS)
     @FocusState private var keyboardFocused: Bool
+    @Environment(\.macWindowToken) private var windowToken
 #endif
 #if os(iOS)
     init() {
@@ -136,6 +139,7 @@ struct MainTabView: View {
             routeToDatabasePage(notification)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsCommand)) { _ in
+            guard handlesCommands else { return }
             if !navigationLayout.contains(id: SlotNavigationDestination.settings.rawValue) {
                 navigationLayout.insert(id: SlotNavigationDestination.settings.rawValue, at: navigationLayout.order.count)
             }
@@ -178,7 +182,7 @@ struct MainTabView: View {
         case .home:
             homeDestination
         case .workouts:
-            WorkoutListView(requestedWorkoutID: $requestedWorkoutID) { tracker in
+            WorkoutListView(requestedWorkoutID: $requestedWorkoutID, navigationPath: $workoutsNavigationPath) { tracker in
                 requestedAnalyticsTracker = tracker
                 openPage(.analytics)
             }
@@ -190,7 +194,7 @@ struct MainTabView: View {
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
         case .skills:
-            SkillsRootView()
+            SkillsRootView(navigationState: skillsNavigationState)
                 .environmentObject(databaseStore)
                 .environmentObject(workoutStore)
                 .environmentObject(outdoorStore)
@@ -291,13 +295,13 @@ struct MainTabView: View {
     }
 
     private func routeToWorkoutDetail(_ notification: Notification) {
-        guard let workoutID = notification.userInfo?["workoutID"] as? UUID else { return }
+        guard handlesCommands, let workoutID = notification.userInfo?["workoutID"] as? UUID else { return }
         selectedDestination = SlotNavigationDestination.workouts.rawValue
         requestedWorkoutID = workoutID
     }
 
     private func routeToDatabasePage(_ notification: Notification) {
-        guard let id = notification.userInfo?["pageID"] as? String else { return }
+        guard handlesCommands, let id = notification.userInfo?["pageID"] as? String else { return }
         openPage(.database)
         if let owner = SkillGroupID.split(id) {
             databaseNavigationState.path.append(DatabaseSkillGroupRoute(containerID: owner.containerID, sectionID: owner.sectionID))
@@ -307,12 +311,20 @@ struct MainTabView: View {
     }
 
     private func routeToAppPage(_ notification: Notification) {
-        guard let raw = notification.userInfo?["destination"] as? String,
+        guard handlesCommands, let raw = notification.userInfo?["destination"] as? String,
               let destination = SlotNavigationDestination(rawValue: raw) else { return }
         if destination == .coach, let prompt = notification.userInfo?["coachPrompt"] as? String {
             AIStore.shared.pendingDraft = prompt
         }
         openPage(destination)
+    }
+
+    private var handlesCommands: Bool {
+        #if os(macOS)
+        MacMainWindow.isFront(windowToken)
+        #else
+        true
+        #endif
     }
 
     /// A page can be removed while it is the visible one. Land on the first remaining page

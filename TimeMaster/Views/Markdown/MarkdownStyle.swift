@@ -18,7 +18,7 @@ enum MarkdownStyle {
         return MarkdownFont(name: name, size: size) ?? .systemFont(ofSize: size)
     }
 
-    static func body(_ size: CGFloat = bodySize) -> MarkdownFont { font("Manrope-Regular", size) }
+    static func body(_ size: CGFloat = bodySize) -> MarkdownFont { font("Inter18pt-Bold", size) }
     static func strong(_ size: CGFloat = bodySize) -> MarkdownFont { font("Inter-Black", size) }
     static func emphasis(_ size: CGFloat = bodySize) -> MarkdownFont { font("Inter-BlackItalic", size) }
     static func mono(_ size: CGFloat) -> MarkdownFont { .monospacedSystemFont(ofSize: size, weight: .regular) }

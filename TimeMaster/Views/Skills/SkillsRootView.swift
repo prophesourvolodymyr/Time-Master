@@ -12,7 +12,12 @@ struct SkillsRootView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.everPageTravelActive) private var pageTravelActive
 
-    @StateObject private var navigationState = DatabaseNavigationState(pageTravel: true)
+    @ObservedObject private var navigationState: DatabaseNavigationState
+
+    init(navigationState: DatabaseNavigationState) {
+        _navigationState = ObservedObject(wrappedValue: navigationState)
+    }
+
     @AppStorage("tm.skills.root.viewMode") private var viewMode: SkillsViewMode = .tiles
     @AppStorage("tm.skills.root.sort") private var sortOption: SkillSortOption = .status
     /// Folded sections on this device, by `SkillCategory` raw value, comma separated.

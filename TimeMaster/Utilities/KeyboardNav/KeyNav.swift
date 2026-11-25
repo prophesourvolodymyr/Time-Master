@@ -185,7 +185,7 @@ extension View {
     @ViewBuilder
     func keyNavButtonStyle<S: ButtonStyle>(_ style: S, shape: KeyNavShape = .standard) -> some View {
         #if os(macOS)
-        buttonStyle(style).modifier(KeyNavTargetModifier(id: nil, role: .automatic, shape: nil, fallbackShape: shape, action: nil))
+        buttonStyle(style).modifier(KeyNavTargetModifier(id: nil, role: .automatic, shape: nil, fallbackShape: shape, action: nil)).tmaxPointer()
         #else
         buttonStyle(style)
         #endif
@@ -195,7 +195,7 @@ extension View {
     @ViewBuilder
     func keyNavPlainButtonStyle(shape: KeyNavShape = .standard) -> some View {
         #if os(macOS)
-        buttonStyle(.plain).modifier(KeyNavTargetModifier(id: nil, role: .automatic, shape: nil, fallbackShape: shape, action: nil))
+        buttonStyle(.plain).modifier(KeyNavTargetModifier(id: nil, role: .automatic, shape: nil, fallbackShape: shape, action: nil)).tmaxPointer()
         #else
         buttonStyle(.plain)
         #endif

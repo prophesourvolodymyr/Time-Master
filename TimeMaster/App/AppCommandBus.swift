@@ -38,9 +38,11 @@ struct AppCommandQueue {
 enum AppCommandBus {
     private static var queue = AppCommandQueue()
     private static var isReady = false
+    private static var readyWindows = Set<UUID>()
 
-    static func setReady(_ ready: Bool) {
-        isReady = ready
+    static func setReady(_ ready: Bool, window: UUID) {
+        if ready { readyWindows.insert(window) } else { readyWindows.remove(window) }
+        isReady = !readyWindows.isEmpty
         guard ready else { return }
         deliver(queue.drain())
     }

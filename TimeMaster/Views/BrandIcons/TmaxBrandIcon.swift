@@ -15,38 +15,76 @@ struct TmaxBrandIcon: View {
     private let size: CGFloat
     private let glow: TmaxBrandGlow?
     private let label: String?
+    private let transparent: Bool
 
     @Environment(\.tmaxBrandGlow) private var pageGlow
     @Environment(\.colorSchemeContrast) private var contrast
 
-    init(_ glyph: TmaxBrandGlyph, size: CGFloat, glow: TmaxBrandGlow? = nil, label: String? = nil) {
+    init(_ glyph: TmaxBrandGlyph, size: CGFloat, glow: TmaxBrandGlow? = nil, label: String? = nil, transparent: Bool = false) {
         face = .art(glyph)
         self.size = size
         self.glow = glow
         self.label = label
+        self.transparent = transparent
     }
 
-    init(symbol: String, size: CGFloat, glow: TmaxBrandGlow? = nil, label: String? = nil) {
+    init(symbol: String, size: CGFloat, glow: TmaxBrandGlow? = nil, label: String? = nil, transparent: Bool = false) {
         face = TmaxBrandGlyph(symbol: symbol).map(Face.art) ?? .symbol(symbol)
         self.size = size
         self.glow = glow
         self.label = label
+        self.transparent = transparent
     }
 
+    @ViewBuilder
     var body: some View {
         let glow = self.glow ?? pageGlow
         let shape = RoundedRectangle(cornerRadius: size * Self.cornerRatio, style: .continuous)
-        picture(glow)
-            .frame(width: size, height: size)
-            .clipShape(shape)
-            .overlay {
-                shape.strokeBorder(rim(glow), lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(label ?? ""))
-            .accessibilityAddTraits(.isImage)
-            .accessibilityHidden(label == nil)
+        if transparent {
+            floating(glow)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(label ?? ""))
+                .accessibilityAddTraits(.isImage)
+                .accessibilityHidden(label == nil)
+        } else {
+            picture(glow)
+                .frame(width: size, height: size)
+                .clipShape(shape)
+                .overlay {
+                    shape.strokeBorder(rim(glow), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(label ?? ""))
+                .accessibilityAddTraits(.isImage)
+                .accessibilityHidden(label == nil)
+        }
+    }
+
+    /// The object alone: the picture's near-black backdrop is crushed to black and screened onto the page, so it
+    /// leaves no tile behind.
+    @ViewBuilder
+    private func floating(_ glow: TmaxBrandGlow) -> some View {
+        switch face {
+        case let .art(glyph):
+            Image(glyph.assetName(glow))
+                .resizable()
+                .interpolation(.high)
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: size * Self.cornerRatio, style: .continuous))
+                .brightness(-0.1)
+                .contrast(1.12)
+                .compositingGroup()
+                .blendMode(.screen)
+        case let .symbol(name):
+            let light = glow == .white ? Self.whiteLight : Self.orangeLight
+            Image(systemName: name)
+                .font(.system(size: size * 0.5, weight: .bold))
+                .foregroundStyle(LinearGradient(colors: [light, light.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .shadow(color: light.opacity(0.55), radius: size * 0.09)
+                .frame(width: size, height: size)
+        }
     }
 
     @ViewBuilder

@@ -15,7 +15,7 @@ enum ProfileStyle {
 
 enum TimeMasterFont {
     private static let registration: Void = {
-        for name in ["Manrope-Regular", "Inter-Black", "Inter-BlackItalic", "TimeMaster-Regular"] {
+        for name in ["Inter-Bold", "Inter-Black", "Inter-BlackItalic", "TimeMaster-Regular"] {
             if let url = Bundle.main.url(forResource: name, withExtension: "ttf") {
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
             }
@@ -43,7 +43,7 @@ enum TimeMasterFont {
     static func rowTitle() -> Font { black(15, relativeTo: .subheadline) }
     static func label() -> Font { black(16, relativeTo: .body) }
     static func body(_ size: CGFloat = 16, relativeTo style: Font.TextStyle = .body) -> Font {
-        face("Manrope-Regular", size: size, relativeTo: style)
+        face("Inter18pt-Bold", size: size, relativeTo: style)
     }
     static func secondary() -> Font { body(14, relativeTo: .subheadline) }
     static func caption() -> Font { body(12, relativeTo: .caption) }

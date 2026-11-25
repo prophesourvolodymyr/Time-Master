@@ -551,6 +551,7 @@ struct ActivityHeatmap: View {
     let entries: [WorkoutHistoryEntry]
     let outdoorActivities: [OutdoorActivity]
     var onSelectDate: ((Date) -> Void)?
+    var home = false
     @State private var showCalendar = false
 
     private let weeksCount = 24
@@ -578,7 +579,18 @@ struct ActivityHeatmap: View {
         }
     }
 
+    @ViewBuilder
     private var card: some View {
+        if home {
+            WidgetCard(tint: .graphite) { cardContent.padding(16) }
+        } else {
+            cardContent
+                .padding(16)
+                .modifier(TimeMasterCardSurface())
+        }
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(onSelectDate == nil ? "Activity" : "Last 24 weeks")
@@ -619,8 +631,6 @@ struct ActivityHeatmap: View {
                 }
             }
         }
-        .padding(16)
-        .modifier(TimeMasterCardSurface())
     }
 
     private var dayLabelColumn: some View {
@@ -707,6 +717,7 @@ struct ActivityHeatmap: View {
     }
 
     private func cellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int, isScheduled: Bool) -> Color {
+        if home { return homeCellBackground(isFuture: isFuture, isRest: isRest, hasWorkout: hasWorkout, count: count) }
         if isFuture { return Color.white.opacity(0.03) }
         if isRest { return Color(red: 0.3, green: 0.55, blue: 0.85).opacity(0.5) }
         if hasWorkout {
@@ -718,6 +729,19 @@ struct ActivityHeatmap: View {
         }
         if isScheduled { return Color.red.opacity(0.4) }
         return Color.white.opacity(0.06)
+    }
+
+    private func homeCellBackground(isFuture: Bool, isRest: Bool, hasWorkout: Bool, count: Int) -> Color {
+        if isFuture { return Color.white.opacity(0.03) }
+        if hasWorkout {
+            switch count {
+            case 1: return WidgetTint.orange.base.opacity(0.55)
+            case 2: return WidgetTint.orange.base.opacity(0.8)
+            default: return WidgetTint.orange.base
+            }
+        }
+        if isRest { return Color.white.opacity(0.12) }
+        return Color.white.opacity(0.07)
     }
 }
 

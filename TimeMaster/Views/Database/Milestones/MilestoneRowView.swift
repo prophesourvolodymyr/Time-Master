@@ -51,6 +51,7 @@ struct MilestoneRowView: View {
             .overlay(shape.strokeBorder(Color.white.opacity(0.06), lineWidth: 1))
             .contentShape(shape)
             .onTapGesture { if !isPreview { actions.edit(milestone) } }
+            .tmaxPointer()
             .contextMenu { if !isPreview { MilestoneMenu(milestone: milestone, actions: actions) } }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(ChecklistLook.spokenSummary(milestone))

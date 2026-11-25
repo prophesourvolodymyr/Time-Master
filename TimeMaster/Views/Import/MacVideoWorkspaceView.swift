@@ -213,6 +213,7 @@ struct MacVideoWorkspaceView: View {
                     MacVideoWorkspaceRow(item: item, isSelected: model.selectedID == item.id, width: width)
                         .contentShape(Rectangle())
                         .onTapGesture { model.select(item) }
+                        .tmaxPointer()
                         .listRowInsets(EdgeInsets(top: 4, leading: isCompact ? 8 : 10, bottom: 4, trailing: isCompact ? 8 : 10))
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)

@@ -9,10 +9,11 @@ struct SkillCardIcon: View {
     let category: SkillCategory
     let size: CGFloat
     var brandTile = false
+    var transparent = false
 
     var body: some View {
         if brandTile, !hasOwnIcon {
-            TmaxBrandIcon(category.brandGlyph, size: size)
+            TmaxBrandIcon(category.brandGlyph, size: size, transparent: transparent)
         } else {
             let shape = RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
             glyph

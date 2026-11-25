@@ -175,6 +175,7 @@ struct SkillTierBoardView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
                     .onTapGesture { PageCoverOpening.openPage(page, playing: nil, in: navigationState) }
+                    .tmaxPointer()
                 TmaxMenu { tileMenu(item) } label: {
                     Image(systemName: "ellipsis.circle.fill")
                         .font(.system(size: 20))

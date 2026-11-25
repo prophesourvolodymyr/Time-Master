@@ -15,10 +15,12 @@ struct SkillCategoryHeader: View {
     var onChangePicture: (() -> Void)?
 
     #if os(macOS)
-    private let iconSide: CGFloat = 48
+    private let iconSide: CGFloat = 60
     #else
-    private let iconSide: CGFloat = 44
+    private let iconSide: CGFloat = 54
     #endif
+
+    @State private var isHoveringIcon = false
 
     var body: some View {
         heading
@@ -86,20 +88,22 @@ struct SkillCategoryHeader: View {
             Button(action: onChangePicture) {
                 icon
                     .overlay(alignment: .bottomTrailing) {
-                        if page?.iconImageURL == nil { pictureBadge }
+                        if page?.iconImageURL == nil, isHoveringIcon { pictureBadge }
                     }
             }
             .buttonStyle(SkillsPressStyle(cornerRadius: iconSide * 0.28))
             .accessibilityLabel("Change picture of \(category.title)")
             .accessibilityHint("Opens the icon picker")
             .help("Change picture")
+            .onHover { isHoveringIcon = $0 }
+            .animation(.easeOut(duration: 0.15), value: isHoveringIcon)
         } else {
             icon
         }
     }
 
     private var icon: some View {
-        SkillCardIcon(page: page, category: category, size: iconSide, brandTile: true)
+        SkillCardIcon(page: page, category: category, size: iconSide, brandTile: true, transparent: true)
     }
 
     private var pictureBadge: some View {

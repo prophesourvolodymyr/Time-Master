@@ -387,12 +387,18 @@ extension View {
 /// the content below it.
 final class ScrollingChromeState: ObservableObject {
     @Published private(set) var expanded = false
+    @Published private(set) var scrolled = false
 
     func setExpanded(_ expanded: Bool, reduceMotion: Bool) {
         guard expanded != self.expanded else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9)) {
             self.expanded = expanded
         }
+    }
+
+    func setScrolled(_ scrolled: Bool) {
+        guard scrolled != self.scrolled else { return }
+        self.scrolled = scrolled
     }
 }
 
@@ -407,6 +413,7 @@ private struct ScrollingChromeHeaderHost<Header: View>: View {
             .environment(\.scrollingChromeSetExpanded, { expanded in
                 state.setExpanded(expanded, reduceMotion: reduceMotion)
             })
+            .scrollingChromeFadeBelow(isVisible: state.scrolled)
     }
 }
 
@@ -505,6 +512,7 @@ struct ScrollingChrome<Content: View, Header: View>: View {
 
     private func updateControls(offset: CGFloat) {
         onScrollOffset?(offset)
+        state.setScrolled(offset > 2)
         state.setExpanded(
             ScrollingChromeReveal.expanded(current: state.expanded, offset: offset),
             reduceMotion: reduceMotion

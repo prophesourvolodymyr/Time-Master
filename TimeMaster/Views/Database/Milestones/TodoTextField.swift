@@ -172,7 +172,7 @@ private struct TodoNSField: NSViewRepresentable {
     }
 
     private static func font() -> NSFont {
-        NSFont(name: "Manrope-Regular", size: 15) ?? .systemFont(ofSize: 15)
+        NSFont(name: "Inter18pt-Bold", size: 15) ?? .systemFont(ofSize: 15)
     }
 
     private static func style(_ field: NSTextField, placeholder: String, isDone: Bool, text: String, editing: Bool) {

@@ -325,7 +325,7 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
                         .transition(.opacity)
                 }
             }
-            .simultaneousGesture(track, including: tracks && isEnabled ? .all : .none)
+            .modifier(EverBounceTracking(gesture: track, isActive: tracks && isEnabled))
             .modifier(EverBounceEffect(
                 press: engaged && !reduceMotion ? 1 : 0,
                 stretch: tracks && !reduceMotion ? drag : .zero,
@@ -334,6 +334,7 @@ struct EverBounceModifier<Surface: InsettableShape>: ViewModifier {
             .modifier(EverBounceChange(value: isPressed, action: respond))
             .onAppear { if pops { AppInteractionHaptics.shared.preparePress() } }
             .onDisappear { reset() }
+            .tmaxPointer()
     }
 
     private var track: some Gesture {
@@ -415,5 +416,19 @@ extension View {
         pops: Bool = false
     ) -> some View {
         modifier(EverBounceModifier(isPressed: isPressed, shape: shape, tone: tone, kind: kind, tracks: tracks, lights: lights, pops: pops))
+    }
+}
+
+private struct EverBounceTracking<Tracker: Gesture>: ViewModifier {
+    let gesture: Tracker
+    let isActive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        content.simultaneousGesture(gesture, including: isActive ? .all : .none)
+        #else
+        content
+        #endif
     }
 }

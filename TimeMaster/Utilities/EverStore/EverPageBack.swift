@@ -272,6 +272,9 @@ private struct EverEscapeCatcher: NSViewRepresentable {
         private func handle(_ event: NSEvent) -> Bool {
             guard event.keyCode == KeyNavKey.escape, let window, event.window === window, let center else { return false }
             let modifiers = event.modifierFlags.intersection([.command, .shift, .option, .control])
+            if modifiers.isEmpty, window.isKeyWindow, window.attachedSheet == nil, QuickPreviewController.closeTopPreview(in: window) {
+                return true
+            }
             guard EverEscapeRoute.isCandidate(
                 plainKey: modifiers.isEmpty,
                 windowIsKey: window.isKeyWindow,

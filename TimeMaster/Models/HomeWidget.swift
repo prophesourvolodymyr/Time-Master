@@ -371,6 +371,7 @@ enum HomeWidgetCatalog {
         HomeWidgetInstance(kind: .firstSteps),
         HomeWidgetInstance(kind: .weekAhead),
         HomeWidgetInstance(kind: .metrics),
+        HomeWidgetInstance(kind: .activityHeatmap),
         HomeWidgetInstance(kind: .activityShortcuts),
         HomeWidgetInstance(kind: .outdoorMap),
     ]

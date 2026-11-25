@@ -480,6 +480,7 @@ struct SkillStatusBoardCard: View {
         .keyNavTarget(id: item.id, role: .primary, shape: .roundedRectangle(cornerRadius: SkillMetrics.fieldRadius), action: open)
         .onHover { isHovering = $0 }
         .onTapGesture(perform: open)
+        .tmaxPointer()
         .onDrag {
             dragging.pickUp(item.id)
             EverHaptic.selection()
