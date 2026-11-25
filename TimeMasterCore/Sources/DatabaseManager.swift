@@ -1318,6 +1318,13 @@ Find pages in the Tmax library.
         return try fs.readManifest(from: manifestURL, decoder: decoder)
     }
 
+    public func workoutExists(id: String) -> Bool {
+        let manifestURL = fs.workoutsDirectory
+            .appendingPathComponent(id, isDirectory: true)
+            .appendingPathComponent("manifest.json")
+        return fs.fileExists(at: manifestURL)
+    }
+
     public func listWorkouts() throws -> [WorkoutManifest] {
         let entries = try fs.listDirectory(fs.workoutsDirectory)
         return entries.compactMap { entry in

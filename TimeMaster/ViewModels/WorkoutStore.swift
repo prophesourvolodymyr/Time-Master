@@ -72,6 +72,7 @@ class WorkoutStore: ObservableObject {
 
         let manifests = (try? db.listWorkouts()) ?? []
         workouts = manifests.map { $0.toAppWorkout() }
+        persistedWorkouts = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         let history = (try? db.readHistory()) ?? []
         historyEntries = history.map { $0.toAppHistoryEntry() }
@@ -160,6 +161,7 @@ class WorkoutStore: ObservableObject {
 
     func updateWorkout(_ workout: Workout) {
         if let index = workouts.firstIndex(where: { $0.id == workout.id }) {
+            guard workouts[index] != workout else { return }
             workouts[index] = workout
             saveWorkouts()
         }
@@ -196,6 +198,7 @@ class WorkoutStore: ObservableObject {
     func updateSection(in workout: Workout, section: Section) {
         if let workoutIndex = workouts.firstIndex(where: { $0.id == workout.id }),
            let sectionIndex = workouts[workoutIndex].sections.firstIndex(where: { $0.id == section.id }) {
+            guard workouts[workoutIndex].sections[sectionIndex] != section else { return }
             workouts[workoutIndex].sections[sectionIndex] = section
             saveWorkouts()
         }
@@ -392,44 +395,50 @@ class WorkoutStore: ObservableObject {
         loadWeeklySchedule()
     }
 
+    private var persistedWorkouts: [UUID: Workout] = [:]
+    private var widgetRefreshWork: DispatchWorkItem?
+
     private func saveWorkouts() {
         if isMigrated {
             let db = DatabaseManager.shared
+            var live = Set<UUID>()
             for workout in workouts {
+                live.insert(workout.id)
+                if persistedWorkouts[workout.id] == workout { continue }
                 let manifest = workout.coreManifest
-                if (try? db.getWorkout(id: manifest.id)) != nil {
-                    try? db.updateWorkout(id: manifest.id, manifest: manifest)
-                } else {
-                    try? db.createWorkout(id: manifest.id, manifest: manifest)
+                do {
+                    if db.workoutExists(id: manifest.id) {
+                        try db.updateWorkout(id: manifest.id, manifest: manifest)
+                    } else {
+                        try db.createWorkout(id: manifest.id, manifest: manifest)
+                    }
+                    persistedWorkouts[workout.id] = workout
+                } catch {
+                    persistedWorkouts[workout.id] = nil
                 }
             }
-        }
-        if let data = try? JSONEncoder().encode(workouts) {
+            if persistedWorkouts.count > live.count {
+                persistedWorkouts = persistedWorkouts.filter { live.contains($0.key) }
+            }
+        } else if let data = try? JSONEncoder().encode(workouts) {
             userDefaults.set(data, forKey: workoutsKey)
         }
         refreshWidgetData()
     }
 
     func refreshWidgetData() {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.timemaster.shared")
-        let calendar = Calendar.current
-        let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
-        let todayHistory = historyEntries.filter { $0.completedAt >= weekStart }
-        let compact = workouts.map { workout in
-            WidgetWorkoutRef(
-                id: workout.id.uuidString,
-                name: workout.name,
-                colorHex: workout.colorHex,
-                type: workout.type.name,
-                durationMinutes: max(1, Int(ceil(Double(workout.totalDuration) / 60.0))),
-                sectionCount: workout.sections.count,
-                setCount: workout.sections.reduce(0) { $0 + max(1, $1.effectiveSlots.count) },
-                sessionsThisWeek: todayHistory.filter { $0.workoutId == workout.id }.count
-            )
-        }
-        if let data = try? JSONEncoder().encode(compact) {
-            sharedDefaults?.set(data, forKey: "widget_workouts")
-        }
+        widgetRefreshWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.pushWidgetData() }
+        widgetRefreshWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: work)
+    }
+
+    private func pushWidgetData() {
+        #if os(iOS)
+        let snapshot = workouts
+        let weekStart = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        let weekHistory = historyEntries.filter { $0.completedAt >= weekStart }
+        let sessionsByWorkout = Dictionary(grouping: weekHistory, by: \.workoutId).mapValues(\.count)
         let today = scheduledWorkouts(for: Date()).map {
             WidgetTodayRef(
                 id: $0.id,
@@ -441,14 +450,36 @@ class WorkoutStore: ObservableObject {
                 colorHex: $0.workout.colorHex
             )
         }
-        if let data = try? JSONEncoder().encode(today) {
-            sharedDefaults?.set(data, forKey: "widget_today")
+        let streak = streakInfo().current
+        let goal = weeklyGoal
+        let weekSessions = weekHistory.count
+        DispatchQueue.global(qos: .utility).async {
+            let sharedDefaults = UserDefaults(suiteName: "group.com.timemaster.shared")
+            let compact = snapshot.map { workout in
+                WidgetWorkoutRef(
+                    id: workout.id.uuidString,
+                    name: workout.name,
+                    colorHex: workout.colorHex,
+                    type: workout.type.name,
+                    durationMinutes: max(1, Int(ceil(Double(workout.totalDuration) / 60.0))),
+                    sectionCount: workout.sections.count,
+                    setCount: workout.sections.reduce(0) { $0 + max(1, $1.effectiveSlots.count) },
+                    sessionsThisWeek: sessionsByWorkout[workout.id] ?? 0
+                )
+            }
+            if let data = try? JSONEncoder().encode(compact) {
+                sharedDefaults?.set(data, forKey: "widget_workouts")
+            }
+            if let data = try? JSONEncoder().encode(today) {
+                sharedDefaults?.set(data, forKey: "widget_today")
+            }
+            sharedDefaults?.set(streak, forKey: "widget_streak")
+            sharedDefaults?.set(goal, forKey: "widget_weekly_goal")
+            sharedDefaults?.set(weekSessions, forKey: "widget_week_sessions")
+            sharedDefaults?.synchronize()
+            DispatchQueue.main.async { WidgetCenter.shared.reloadAllTimelines() }
         }
-        sharedDefaults?.set(streakInfo().current, forKey: "widget_streak")
-        sharedDefaults?.set(weeklyGoal, forKey: "widget_weekly_goal")
-        sharedDefaults?.set(todayHistory.count, forKey: "widget_week_sessions")
-        sharedDefaults?.synchronize()
-        WidgetCenter.shared.reloadAllTimelines()
+        #endif
     }
 
     private struct WidgetWorkoutRef: Codable {

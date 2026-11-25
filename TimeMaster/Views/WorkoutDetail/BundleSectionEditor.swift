@@ -8,6 +8,7 @@ struct BundleSectionEditor: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.workoutHeroSources) private var heroSources
     @State private var expandedSetIDs: Set<UUID> = []
+    @State private var revealedSetCount = 1
     @State private var draggedID: UUID?
     @State private var addingToSetID: UUID?
     @State private var showingPages = false
@@ -80,9 +81,13 @@ struct BundleSectionEditor: View {
         .foregroundStyle(Theme.textPrimary)
         .font(TimeMasterFont.body())
         .onAppear {
-            if normalizesLegacy { section.slots = section.bundleSets }
-            section.sets = section.slots.count
+            if normalizesLegacy {
+                let normalized = section.bundleSets
+                if section.slots != normalized { section.slots = normalized }
+            }
+            if section.sets != section.slots.count { section.sets = section.slots.count }
             expandedSetIDs = Set(section.slots.map(\.id))
+            revealRemainingSets()
         }
         .sheet(isPresented: $showingPages) {
             DatabasePageBrowserSheet(
@@ -221,7 +226,7 @@ struct BundleSectionEditor: View {
                 moveSet(from, to: to)
                 draggedID = nil
             })
-            if expandedSetIDs.contains(set.id) {
+            if expandedSetIDs.contains(set.id), index < revealedSetCount {
                 ForEach(Array(set.children.enumerated()), id: \.element.id) { exerciseIndex, exercise in
                     exerciseRow(exercise, setID: set.id, index: exerciseIndex)
                         .padding(.leading, 18)
@@ -254,6 +259,19 @@ struct BundleSectionEditor: View {
                 .strokeBorder(Theme.separator, lineWidth: 1)
                 .allowsHitTesting(false)
         )
+    }
+
+    private func revealRemainingSets() {
+        let total = section.slots.count
+        revealedSetCount = min(max(1, total), 1)
+        guard total > 1 else { return }
+        Task { @MainActor in
+            for next in 2...total {
+                try? await Task.sleep(nanoseconds: 80_000_000)
+                guard !Task.isCancelled else { return }
+                revealedSetCount = next
+            }
+        }
     }
 
     private func toggleExpansion(of id: UUID) {
