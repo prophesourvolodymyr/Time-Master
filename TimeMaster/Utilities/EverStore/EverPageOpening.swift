@@ -32,8 +32,8 @@ extension EnvironmentValues {
 }
 
 extension View {
-    func everPageOpening(from edge: Edge = .bottom, when trigger: String? = nil) -> some View {
-        modifier(EverPageOpeningModifier(edge: edge, trigger: trigger))
+    func everPageOpening(from edge: Edge = .bottom, when trigger: String? = nil, animated: Bool = true) -> some View {
+        modifier(EverPageOpeningModifier(edge: edge, trigger: trigger, animated: animated))
     }
 
     func everSheet<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
@@ -82,6 +82,7 @@ extension View {
 private struct EverPageOpeningModifier: ViewModifier {
     let edge: Edge
     let trigger: String?
+    let animated: Bool
     @Environment(\.layoutDirection) private var layoutDirection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.everPageIsOpening) private var parentIsOpening
@@ -91,11 +92,12 @@ private struct EverPageOpeningModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let bypass = parentIsOpening || pageTravelIsActive
+        let still = bypass || !animated
         content
             .environment(\.everPageIsOpening, isOpening && !bypass)
-            .offset(x: bypass || reduceMotion ? 0 : displacement.width * (1 - progress),
-                    y: bypass || reduceMotion ? 0 : displacement.height * (1 - progress))
-            .opacity(bypass ? 1 : 0.65 + 0.35 * progress)
+            .offset(x: still || reduceMotion ? 0 : displacement.width * (1 - progress),
+                    y: still || reduceMotion ? 0 : displacement.height * (1 - progress))
+            .opacity(still ? 1 : 0.65 + 0.35 * progress)
             .task(id: trigger) {
                 guard !bypass else {
                     progress = 1
@@ -105,11 +107,16 @@ private struct EverPageOpeningModifier: ViewModifier {
                 var transaction = Transaction(animation: nil)
                 transaction.disablesAnimations = true
                 withTransaction(transaction) {
-                    progress = 0
+                    progress = animated ? 0 : 1
                     isOpening = true
                 }
                 await Task.yield()
                 guard !Task.isCancelled else { return }
+                guard animated else {
+                    try? await Task.sleep(nanoseconds: 60_000_000)
+                    isOpening = false
+                    return
+                }
                 withAnimation(reduceMotion ? .easeOut(duration: 0.12) : EverPageMotion.curve) {
                     progress = 1
                 }

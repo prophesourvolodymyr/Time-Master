@@ -229,7 +229,7 @@ private struct EverPageTravelModifier: ViewModifier {
         let moving = scope == settledScope && !glide.absorbsRoute
             ? settledRoute.flatMap { trail.direction(from: $0, to: route) } : nil
         let pending = switching || moving != nil
-        let reach: EverPageGlideReach = pending ? (reduceMotion ? .fade : .nudge) : glide.reach
+        let reach: EverPageGlideReach = pending ? (switching ? .still : (reduceMotion ? .fade : .nudge)) : glide.reach
         let direction = switching ? EverPageTravel.barDirection(from: settledOrder, to: order) : (moving ?? glide.direction)
         let progress = pending ? 0 : glide.progress
         return content
@@ -245,7 +245,7 @@ private struct EverPageTravelModifier: ViewModifier {
             .onChange(of: route) { follow() }
             .onChange(of: glide.serial) { glide.begin() }
 #else
-        content.everPageOpening(when: scope)
+        content.everPageOpening(when: scope, animated: false)
 #endif
     }
 
@@ -288,11 +288,13 @@ enum EverPageGlideReach: Equatable {
     case nudge
     /// In place, fading in (Reduce Motion).
     case fade
+    /// In place at once: another bar page takes the window with no slide and no fade.
+    case still
 
     var travel: CGFloat {
         switch self {
         case .nudge: EverPageMotion.nudge
-        case .fade: 0
+        case .fade, .still: 0
         }
     }
 
@@ -300,6 +302,7 @@ enum EverPageGlideReach: Equatable {
         switch self {
         case .nudge: 0.35
         case .fade: 0
+        case .still: 1
         }
     }
 }
@@ -357,7 +360,7 @@ final class EverPageGlide: ObservableObject {
     }
 
     func travel(direction: CGFloat, switching: Bool, reduceMotion: Bool) {
-        start(direction: direction, reach: reduceMotion ? .fade : .nudge, phase: switching ? .switching : .travelling)
+        start(direction: direction, reach: switching ? .still : (reduceMotion ? .fade : .nudge), phase: switching ? .switching : .travelling)
     }
 
     func begin() {

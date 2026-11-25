@@ -276,9 +276,8 @@ private struct PageSiblingNavigationModifier: ViewModifier {
         let active = isEnabled && navigator.isShown && navigator.isOnTop(of: navigation)
         // A swap the page has not taken up yet already draws at its start in this pass, never a frame at rest first.
         let waiting = arrived ? nil : navigation.pendingSiblingArrival(for: pageID)
-        let direction = waiting ?? arrivalDirection
         let progress = waiting == nil ? arrivalProgress : 0
-        let slide = reduceMotion ? 0 : direction * EverPageMotion.nudge * (1 - progress)
+        let slide: CGFloat = 0
         return content
             .background {
                 #if os(iOS)
