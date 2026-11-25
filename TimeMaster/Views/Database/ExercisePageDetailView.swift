@@ -29,6 +29,7 @@ struct ExercisePageDetailView: View {
     let pageID: UUID
     var showsHero = true
 
+    @State private var contentReady = false
     @State private var isEditing = false
     @State private var selectedMediaIndex = 0
     @State private var viewer: MediaViewerPresentation?
@@ -362,7 +363,9 @@ struct ExercisePageDetailView: View {
     private func tabContent(_ tab: PageTab, page: ExercisePage, model: PageTabModel, linked: [ExercisePage], proxy: ScrollViewProxy) -> some View {
         ZStack(alignment: .top) {
             Group {
-                if tab == .all {
+                if !contentReady {
+                    Color.clear.frame(height: 1)
+                } else if tab == .all {
                     VStack(alignment: .leading, spacing: SkillMetrics.s6) {
                         ForEach(Array(model.allParts.enumerated()), id: \.element) { index, part in
                             if index > 0 {
@@ -379,6 +382,19 @@ struct ExercisePageDetailView: View {
         }
         .skillsContained()
         .frame(minHeight: viewportHeight, alignment: .top)
+        .opacity(contentReady ? 1 : 0)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: contentReady)
+        .task { await openContent() }
+    }
+
+    /// The page opens with its head and tabs, and the selected tab's content follows once the first frame is on screen,
+    /// so tapping a page answers at once instead of after the whole page has been built.
+    private func openContent() async {
+        guard !contentReady else { return }
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        guard !Task.isCancelled else { return }
+        contentReady = true
     }
 
     @ViewBuilder
