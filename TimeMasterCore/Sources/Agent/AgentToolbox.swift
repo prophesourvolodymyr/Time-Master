@@ -169,7 +169,7 @@ extension AgentToolbox {
         if noteCount > 0 { library["notes"] = noteCount }
         let skillCount = index.pages.filter { $0.pageType == .skill || $0.pageType == .tutorial }.count
         if skillCount > 0 { library["skills"] = skillCount }
-        return AgentToolOutput(value: [
+        var overview: [String: Any] = [
             "library": library,
             "types": workoutTypes().map(\.name),
             "workouts": (try? database.listWorkouts().count) ?? 0,
@@ -185,8 +185,11 @@ extension AgentToolbox {
                 "Workout groups are the titled sections on the Workouts page that hold whole workouts in the user's order (create_workout_group, update_workout_group, list_workout_groups). They are not the sections inside a workout.",
                 "A rest between sets (restExercise) or after a section (restAfterExercise) can hold a rest exercise, so a single exercise with a move between its sets is a timed section, never a bundle. Not every rest can hold one: it needs more than one set, a rest above 0 and a rest at least as long as the exercise.",
                 "A skill lists the exercises that train it on tiers from S (the best way to train it) down to D: set_skill_training fills a whole skill in one call, get_skill_training reads it. The skill's Tiers view shows them.",
+                "The schedule is the Schedule page: plans are weekly templates of workouts on weekdays with optional times; a week follows the plan chosen for it (or is a vacation); single dates can carry one-off entries; an entry is done by a matching workout in the history or by a hand mark; training days set the weekly streak. Read it with get_schedule and list_schedule_plans; change it with create_schedule_plan, update_schedule_plan, select_schedule_plan, add_schedule_entry, update_schedule_entry, remove_schedule_entry, complete_schedule_entry and set_training_days. Following a plan from a week never rewrites earlier weeks.",
             ],
-        ])
+        ]
+        if let schedule = scheduleOverview() { overview["schedule"] = schedule }
+        return AgentToolOutput(value: overview)
     }
 
     private func listPages(_ args: AgentArguments) throws -> AgentToolOutput {

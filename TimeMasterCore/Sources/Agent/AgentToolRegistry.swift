@@ -175,6 +175,7 @@ public enum AgentToolRegistry {
     - Tags sort pages into the columns of a folder's board, like the options of a Notion Select property (Morning flow, Evening stretch, Reference). The top folder of a tree keeps them (list_page_tags, create_page_tag) and every exercise and note below it shares them; put one on a page with the tag argument of update_page or the create tools. A tag is neither the workout type nor a completion status.
     - A workout section is one timed exercise or a bundle: several exercises played back to back for N sets. Drills played every few seconds are a bundle with short durations; read it back with get_workout.
     - Rep-based work (for example 12 push-ups) can be untimed: pass untimed true and each set runs until the user taps Done, with duration kept only as the estimate for totals.
+    - The schedule is the Schedule page. get_schedule shows days with their entries and whether they are done; plans are weekly templates (create_schedule_plan, update_schedule_plan) that a week follows from select_schedule_plan on; add_schedule_entry, update_schedule_entry, remove_schedule_entry and complete_schedule_entry change single days or, with scope plan, the plan from that week on. Following a plan never rewrites earlier weeks.
     - Creating, editing and moving run immediately. Deleting asks the user to approve first; if the user declines, accept it and offer an alternative.
     - Keep arguments small and valid JSON. If a tool returns an error, read its hint and correct the call instead of repeating it.
     """

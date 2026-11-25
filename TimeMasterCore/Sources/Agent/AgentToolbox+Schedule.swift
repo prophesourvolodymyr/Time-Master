@@ -28,6 +28,16 @@ extension AgentToolbox {
         return (config, config.workoutSchedule ?? WeeklyWorkoutSchedule())
     }
 
+    func scheduleOverview() -> [String: Any]? {
+        guard let schedule = (try? database.loadConfig())?.workoutSchedule, !schedule.plans.isEmpty || schedule.startedOn != nil else { return nil }
+        var overview: [String: Any] = [:]
+        if !schedule.plans.isEmpty { overview["plans"] = schedule.plans.map(\.name) }
+        if let selection = schedule.selection(for: Date()) {
+            if let plan = selection.plan { overview["inUse"] = plan.name } else { overview["vacation"] = true }
+        }
+        return overview
+    }
+
     private func commitSchedule(
         _ config: ConfigManifest, previous: WeeklyWorkoutSchedule, updated: WeeklyWorkoutSchedule,
         dryRun: Bool, value: [String: Any]
