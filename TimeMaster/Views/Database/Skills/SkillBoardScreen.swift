@@ -106,7 +106,7 @@ struct SkillBoardScreen: View {
         let shownIDs = siblingIDs(snapshot, types: typeSnapshot)
         VStack(alignment: .leading, spacing: SkillMetrics.s2) {
             if showsHeading {
-                SkillSectionHeading(symbol: "square.grid.2x2", title: "Skills", count: snapshot.direct.count)
+                SkillBoardTitle(symbol: "square.grid.2x2", title: "Skills", count: snapshot.direct.count)
             }
             VStack(alignment: .leading, spacing: SkillMetrics.s3) {
                 header(snapshot, mode: mode)
