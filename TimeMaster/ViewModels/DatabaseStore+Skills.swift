@@ -101,7 +101,7 @@ extension DatabaseStore {
     /// A page by its manifest id (a string, as routes and manifests carry it).
     func page(manifestID: String) -> ExercisePage? {
         if let uuid = UUID(uuidString: manifestID), let found = page(id: uuid) { return found }
-        return allPagesFlat.first { $0.manifest.id == manifestID }
+        return index.byManifestID[manifestID]
     }
 
     /// The picture inside a group's strip (a local image of the group), nil when it has none.
@@ -403,16 +403,23 @@ extension DatabaseStore {
     }
 
     func trainers(of skillID: String) -> [SkillTrainer] {
-        allPagesFlat
-            .compactMap { page -> SkillTrainer? in
-                guard let link = page.manifest.trains.first(where: { $0.skillID == skillID }) else { return nil }
-                return SkillTrainer(page: page, tier: link.tier)
+        if let known = derived.trainersBySkill { return known[skillID] ?? [] }
+        var grouped: [String: [SkillTrainer]] = [:]
+        for page in allPagesFlat {
+            var seen: Set<String> = []
+            for link in page.manifest.trains where seen.insert(link.skillID).inserted {
+                grouped[link.skillID, default: []].append(SkillTrainer(page: page, tier: link.tier))
             }
-            .sorted { left, right in
+        }
+        for (skill, list) in grouped {
+            grouped[skill] = list.sorted { left, right in
                 left.tier.rank != right.tier.rank
                     ? left.tier.rank < right.tier.rank
                     : left.page.title.localizedCaseInsensitiveCompare(right.page.title) == .orderedAscending
             }
+        }
+        derived.trainersBySkill = grouped
+        return grouped[skillID] ?? []
     }
 
     func setTraining(_ pageID: String, skill skillID: String, tier: SkillTier?) throws {
