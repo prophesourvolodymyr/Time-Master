@@ -2174,6 +2174,8 @@ struct WorkoutDetailView: View {
         showingAddOptions = false
 
         switch type {
+        case .combo:
+            addComboSection()
         case .bundle:
             showingNewBundle = true
         case .workout:
@@ -2203,6 +2205,15 @@ struct WorkoutDetailView: View {
             prepareTime: 0,
             mode: .bundle
         )
+        }
+    }
+
+    private func addComboSection() {
+        let section = WorkoutSectionBuilder.makeCombo()
+        animateEditor {
+            store.addSection(to: workout, section: section)
+            sectionIDs = store.workout(id: workoutID)?.sections.map(\.id) ?? []
+            expandedSectionIDs.insert(section.id)
         }
     }
 
@@ -2844,6 +2855,7 @@ struct PendingSectionConfig {
 }
 private enum WorkoutAddContentType {
     case bundle
+    case combo
     case workout
     case bike
     case runWalk
@@ -2868,6 +2880,7 @@ private struct WorkoutAddContentSheet: View {
                         icon: "rectangle.stack.fill",
                         type: .bundle
                     )
+                    comboOption
                     option(
                         title: "Workout",
                         subtitle: "Add a saved workout",
@@ -2929,6 +2942,40 @@ private struct WorkoutAddContentSheet: View {
                         .font(TimeMasterFont.black(17, relativeTo: .headline))
                         .foregroundColor(.white)
                     Text(subtitle)
+                        .font(TimeMasterFont.caption())
+                        .foregroundColor(Theme.textSecondary)
+                }
+
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(Theme.textSecondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var comboOption: some View {
+        Button {
+            onSelect(.combo)
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "figure.boxing")
+                    .font(.title3)
+                    .foregroundColor(.white)
+                    .frame(width: 42, height: 42)
+                    .background(ComboStyle.gradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Combo")
+                        .font(TimeMasterFont.black(17, relativeTo: .headline))
+                        .foregroundColor(.white)
+                    Text("Boxing calls said aloud: 1-2-3")
                         .font(TimeMasterFont.caption())
                         .foregroundColor(Theme.textSecondary)
                 }

@@ -12,10 +12,16 @@ struct BundleSectionHeader: View {
     let onOpenPage: (UUID) -> Void
     @Environment(\.workoutHeroSources) private var heroSources
 
+    private var tone: BuilderTone { section.isCombo ? .combo : .light }
+
     private var summary: String {
         let seconds = section.calculatedDuration
         let time = "\(seconds / 60):\(String(format: "%02d", seconds % 60))"
-        return "\(section.bundleSets.count) sets · \(section.isTimerEnabled ? time : "~\(time)")"
+        let sets = section.bundleSets.count
+        if section.isCombo {
+            return "Combo · \(sets) \(sets == 1 ? "round" : "rounds") · \(time)"
+        }
+        return "\(sets) sets · \(section.isTimerEnabled ? time : "~\(time)")"
     }
 
     private enum StripEntry: Identifiable {
@@ -51,6 +57,17 @@ struct BundleSectionHeader: View {
         return entries
     }
 
+    private func comboTile(_ slot: SetSlot) -> some View {
+        VStack(spacing: 5) {
+            ComboCallChip(tokens: ComboCall.tokens(in: slot.displayName))
+            Text(section.isTimerEnabled ? "\(slot.duration) s" : "until done")
+                .font(TimeMasterFont.caption().monospacedDigit())
+                .opacity(0.8)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(ComboCall.spoken(slot.displayName)), \(slot.duration) seconds")
+    }
+
     private func exerciseTile(_ slot: SetSlot) -> some View {
         let key = "bundle-strip-\(slot.id)"
         return Button {
@@ -76,14 +93,20 @@ struct BundleSectionHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 0) {
-                BuilderHandle(tone: .light)
-                Image(systemName: "rectangle.stack.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                BuilderHandle(tone: tone)
+                Group {
+                    if section.isCombo {
+                        ComboIconGlyph(iconName: section.iconName, iconType: section.iconType, size: 21)
+                    } else {
+                        Image(systemName: "rectangle.stack.fill")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                }
                     .accessibilityHidden(true)
                     .frame(width: BuilderMetrics.root, height: BuilderMetrics.root)
                     .background(
                         RoundedRectangle(cornerRadius: BuilderMetrics.thumbnailRadius(BuilderMetrics.root), style: .continuous)
-                            .fill(Color.black.opacity(0.07))
+                            .fill(section.isCombo ? Color.white.opacity(0.22) : Color.black.opacity(0.07))
                     )
                     .overlay {
                         if let progress {
@@ -115,18 +138,18 @@ struct BundleSectionHeader: View {
                     Button(action: onAddSet) {
                         Image(systemName: "plus")
                     }
-                    .buttonStyle(BuilderChipButtonStyle(tone: .light))
+                    .buttonStyle(BuilderChipButtonStyle(tone: tone))
                     .accessibilityLabel("Add set to \(section.name)")
                 } middle: {
                     Button(action: onEdit) {
                         Image(systemName: "slider.horizontal.3")
                     }
-                    .buttonStyle(BuilderChipButtonStyle(tone: .light))
+                    .buttonStyle(BuilderChipButtonStyle(tone: tone))
                     .accessibilityLabel("Edit bundle")
                 } last: {
                     BuilderDisclosureChip(
                         isExpanded: isExpanded,
-                        tone: .light,
+                        tone: tone,
                         expandLabel: "Expand bundle",
                         collapseLabel: "Collapse bundle",
                         action: onToggle
@@ -140,7 +163,7 @@ struct BundleSectionHeader: View {
                     ForEach(stripEntries) { entry in
                         switch entry {
                         case .exercise(let slot):
-                            exerciseTile(slot)
+                            if section.isCombo { comboTile(slot) } else { exerciseTile(slot) }
                         case .rest(let ownerID, let pageIDs, let seconds):
                             BundleRestChip(ownerID: ownerID, pageIDs: pageIDs, seconds: seconds, onOpenPage: onOpenPage)
                         }
@@ -149,8 +172,8 @@ struct BundleSectionHeader: View {
             }
             .padding(.leading, BuilderMetrics.textX(1))
         }
-        .foregroundStyle(.black)
-        .modifier(BuilderRowChrome(rail: rail, slice: slice, tone: .light, vertical: BuilderMetrics.headerVertical))
+        .foregroundStyle(section.isCombo ? Color.white : Color.black)
+        .modifier(BuilderRowChrome(rail: rail, slice: slice, tone: tone, vertical: BuilderMetrics.headerVertical))
     }
 }
 

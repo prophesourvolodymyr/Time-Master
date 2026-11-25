@@ -9,6 +9,8 @@ struct BundleSectionEditor: View {
     @Environment(\.workoutHeroSources) private var heroSources
     @State private var expandedSetIDs: Set<UUID> = []
     @State private var revealedSetCount = 1
+    @State private var comboEditor: ComboCallTarget?
+    @State private var showingComboIcon = false
     @State private var draggedID: UUID?
     @State private var addingToSetID: UUID?
     @State private var showingPages = false
@@ -47,13 +49,14 @@ struct BundleSectionEditor: View {
                 .accessibilityValue(section.isTimerEnabled ? "Timer" : "Until Done")
                 .accessibilityHint("Switches between a countdown and Until Done, where each exercise ends when you tap Done.")
             }
+            if section.isCombo { comboIconRow }
             ForEach(Array(section.slots.enumerated()), id: \.element.id) { index, set in
                 setCard(set, index: index)
             }
             Button {
                 addSet()
             } label: {
-                Label("Set", systemImage: "plus")
+                Label(section.isCombo ? "Round" : "Set", systemImage: "plus")
                     .font(TimeMasterFont.black(15, relativeTo: .subheadline))
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
@@ -108,6 +111,22 @@ struct BundleSectionEditor: View {
             )
             .environmentObject(databaseStore)
             .environmentObject(workoutStore)
+            .keyNavHost()
+        }
+        .sheet(item: $comboEditor) { target in
+            ComboCallEditorSheet(
+                title: target.exerciseID == nil ? "New call" : "Edit call",
+                tokens: target.tokens
+            ) { tokens in
+                saveCall(tokens, in: target)
+            }
+            .keyNavHost()
+        }
+        .sheet(isPresented: $showingComboIcon) {
+            ComboIconPickerSheet(iconName: section.iconName, iconType: section.iconType) { name, type in
+                section.iconName = name
+                section.iconType = type
+            }
             .keyNavHost()
         }
         .sheet(item: $restPicker) { target in
@@ -167,7 +186,7 @@ struct BundleSectionEditor: View {
                     toggleExpansion(of: set.id)
                 } label: {
                     HStack {
-                        Text("Set \(index + 1)")
+                        Text(section.isCombo ? "Round \(index + 1)" : "Set \(index + 1)")
                             .font(TimeMasterFont.black(17, relativeTo: .headline))
                         Text("\(set.leafExercises.count)")
                             .font(TimeMasterFont.caption().monospacedDigit())
@@ -180,19 +199,25 @@ struct BundleSectionEditor: View {
                     }
                 }
                 .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 8))
-                .accessibilityLabel("Set \(index + 1)")
+                .accessibilityLabel(section.isCombo ? "Round \(index + 1)" : "Set \(index + 1)")
                 .accessibilityValue(expandedSetIDs.contains(set.id) ? "Expanded" : "Collapsed")
                 TmaxMenu {
-                    Button("Page", systemImage: "book.pages") {
-                        addingToSetID = set.id
-                        showingPages = true
+                    if section.isCombo {
+                        Button("Call", systemImage: "waveform") {
+                            comboEditor = ComboCallTarget(setID: set.id, exerciseID: nil, tokens: ComboCall.defaultCall)
+                        }
+                    } else {
+                        Button("Page", systemImage: "book.pages") {
+                            addingToSetID = set.id
+                            showingPages = true
+                        }
+                        Button("Callout", systemImage: "text.bubble") {
+                            addingToSetID = set.id
+                            phrase = ""
+                            showingPhrase = true
+                        }
                     }
-                    Button("Callout", systemImage: "text.bubble") {
-                        addingToSetID = set.id
-                        phrase = ""
-                        showingPhrase = true
-                    }
-                    Button("Duplicate set", systemImage: "plus.square.on.square") {
+                    Button(section.isCombo ? "Duplicate round" : "Duplicate set", systemImage: "plus.square.on.square") {
                         var copy = set.duplicated()
                         copy.name = "Set \(section.slots.count + 1)"
                         section.slots.insert(copy, at: index + 1)
@@ -203,7 +228,7 @@ struct BundleSectionEditor: View {
                         .disabled(index == 0)
                     Button("Move down", systemImage: "arrow.down") { moveSet(index, to: index + 1) }
                         .disabled(index + 1 == section.slots.count)
-                    Button("Delete set", systemImage: "trash", role: .destructive) {
+                    Button(section.isCombo ? "Delete round" : "Delete set", systemImage: "trash", role: .destructive) {
                         section.slots.removeAll { $0.id == set.id }
                         section.sets = section.slots.count
                     }
@@ -228,7 +253,13 @@ struct BundleSectionEditor: View {
             })
             if expandedSetIDs.contains(set.id), index < revealedSetCount {
                 ForEach(Array(set.children.enumerated()), id: \.element.id) { exerciseIndex, exercise in
-                    exerciseRow(exercise, setID: set.id, index: exerciseIndex)
+                    Group {
+                        if section.isCombo {
+                            comboRow(exercise, setID: set.id, index: exerciseIndex)
+                        } else {
+                            exerciseRow(exercise, setID: set.id, index: exerciseIndex)
+                        }
+                    }
                         .padding(.leading, 18)
                         .overlay(alignment: .leading) {
                             Rectangle()
@@ -239,7 +270,7 @@ struct BundleSectionEditor: View {
                         .transition(.opacity)
                 }
                 HStack {
-                    Label("Between sets", systemImage: "pause.fill")
+                    Label(section.isCombo ? "Between rounds" : "Between sets", systemImage: "pause.fill")
                     Spacer()
                     DurationPickerView(seconds: slotValue(setID: set.id, exerciseID: nil, rest: true), range: 0...120, step: 1, compact: true)
                 }
@@ -253,10 +284,13 @@ struct BundleSectionEditor: View {
                     .transition(.opacity)
             }
         }
-        .background(Theme.surface2, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(
+            section.isCombo ? AnyShapeStyle(ComboStyle.darkest.opacity(0.6)) : AnyShapeStyle(Theme.surface2),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Theme.separator, lineWidth: 1)
+                .strokeBorder(section.isCombo ? ComboStyle.bright.opacity(0.4) : Theme.separator, lineWidth: 1)
                 .allowsHitTesting(false)
         )
     }
@@ -277,6 +311,122 @@ struct BundleSectionEditor: View {
     private func toggleExpansion(of id: UUID) {
         withAnimation(reduceMotion ? nil : EverMotion.disclosure) {
             if !expandedSetIDs.insert(id).inserted { expandedSetIDs.remove(id) }
+        }
+    }
+
+    private var comboIconRow: some View {
+        Button {
+            showingComboIcon = true
+        } label: {
+            HStack(spacing: 12) {
+                ComboCornerIcon(iconName: section.iconName, iconType: section.iconType, size: 40)
+                    .background(Circle().fill(ComboStyle.gradient))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Combo icon")
+                        .font(TimeMasterFont.black(15, relativeTo: .subheadline))
+                    Text("Shows in the corner of this exercise")
+                        .font(TimeMasterFont.caption())
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            .padding(10)
+            .background(ComboStyle.darkest.opacity(0.6), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(ComboStyle.bright.opacity(0.4), lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 14))
+        .accessibilityLabel("Change the combo icon")
+    }
+
+    private func comboRow(_ exercise: SetSlot, setID: UUID, index: Int) -> some View {
+        let tokens = ComboCall.tokens(in: exercise.displayName)
+        let shown = tokens.isEmpty ? ComboCall.defaultCall : tokens
+        let editCall = { comboEditor = ComboCallTarget(setID: setID, exerciseID: exercise.id, tokens: tokens) }
+        let chip = Button(action: editCall) {
+            HStack(spacing: 8) {
+                ComboCallChip(tokens: shown)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 11, weight: .bold))
+                    .opacity(0.8)
+            }
+            .contentShape(Rectangle())
+        }
+        .keyNavPlainButtonStyle(shape: .roundedRectangle(cornerRadius: 10))
+        .accessibilityLabel("Call \(ComboCall.spoken(tokens))")
+        .accessibilityHint("Opens the call editor")
+        let duration = DurationPickerView(seconds: slotValue(setID: setID, exerciseID: exercise.id, rest: false), range: 1...120, step: 1, compact: true)
+        return HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal").font(.caption)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    chip
+                    Spacer(minLength: 0)
+                    duration
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    ScrollView(.horizontal, showsIndicators: false) { chip }
+                    duration
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            TmaxMenu {
+                Button("Edit call", systemImage: "slider.horizontal.3", action: editCall)
+                Button("Repeat", systemImage: "plus.square.on.square") {
+                    mutateSet(setID) { $0.children.insert(exercise.duplicated(), at: index + 1) }
+                }
+                Button("Move up", systemImage: "arrow.up") { moveExercise(setID: setID, source: exercise.id, offset: -1) }
+                    .disabled(index == 0)
+                Button("Move down", systemImage: "arrow.down") { moveExercise(setID: setID, source: exercise.id, offset: 1) }
+                    .disabled(section.slots.first(where: { $0.id == setID })?.children.last?.id == exercise.id)
+                Button("Delete", systemImage: "trash", role: .destructive) {
+                    mutateSet(setID) { $0.children.removeAll { $0.id == exercise.id } }
+                }
+                .disabled(section.slots.first(where: { $0.id == setID })?.children.count == 1)
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .builderChipMenu(tone: .combo)
+            .accessibilityLabel("Actions for the call \(ComboCall.spoken(tokens))")
+        }
+        .foregroundStyle(.white)
+        .padding(10)
+        .background(ComboStyle.gradient.opacity(0.85), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .keyNavTarget(id: exercise.id, role: .primary, shape: .roundedRectangle(cornerRadius: 12))
+        .padding(.trailing, 8)
+        .padding(.bottom, 6)
+        .onDrag {
+            draggedID = exercise.id
+            return NSItemProvider(object: exercise.id.uuidString as NSString)
+        }
+        .onDrop(of: [.text], delegate: BundleItemDropDelegate(sourceID: draggedID, targetID: exercise.id) { source, target in
+            mutateSet(setID) { set in
+                guard let from = set.children.firstIndex(where: { $0.id == source }),
+                      let to = set.children.firstIndex(where: { $0.id == target }) else { return }
+                let child = set.children.remove(at: from)
+                set.children.insert(child, at: to)
+            }
+            draggedID = nil
+        })
+    }
+
+    private func saveCall(_ tokens: [String], in target: ComboCallTarget) {
+        let name = ComboCall.name(for: tokens)
+        guard !name.isEmpty else { return }
+        if let exerciseID = target.exerciseID {
+            mutateSet(target.setID) { set in
+                guard let index = set.children.firstIndex(where: { $0.id == exerciseID }) else { return }
+                set.children[index].name = name
+                set.children[index].alias = nil
+            }
+        } else {
+            mutateSet(target.setID) {
+                $0.children.append(SetSlot(name: name, duration: 5, restAfter: 0, prepareTime: 0))
+            }
+            expandedSetIDs.insert(target.setID)
         }
     }
 

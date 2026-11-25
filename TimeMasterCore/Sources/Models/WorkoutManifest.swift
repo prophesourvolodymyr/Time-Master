@@ -238,11 +238,15 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
     public var bundleVoiceEnabled: Bool
     public var restExerciseID: String?
     public var restExerciseAlternativeIDs: [String]
+    public var isCombo: Bool
+    public var iconName: String?
+    public var iconType: String?
 
     enum CodingKeys: String, CodingKey {
         case id, exerciseID, name, alias, duration, sets, repCount, restBetweenSets
         case prepareTime, customRestAfter, isTimerEnabled, mediaFilenames, mode, slots
         case bigRestRow, bundleOrder, bundleVoiceEnabled, restExerciseID, restExerciseAlternativeIDs
+        case isCombo, iconName, iconType
     }
 
     public init(
@@ -264,7 +268,10 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         bundleOrder: WorkoutBundleOrder = .ordered,
         bundleVoiceEnabled: Bool = true,
         restExerciseID: String? = nil,
-        restExerciseAlternativeIDs: [String] = []
+        restExerciseAlternativeIDs: [String] = [],
+        isCombo: Bool = false,
+        iconName: String? = nil,
+        iconType: String? = nil
     ) {
         self.id = id
         self.exerciseID = exerciseID
@@ -285,6 +292,9 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         self.bundleVoiceEnabled = bundleVoiceEnabled
         self.restExerciseID = restExerciseID
         self.restExerciseAlternativeIDs = restExerciseAlternativeIDs
+        self.isCombo = isCombo
+        self.iconName = iconName
+        self.iconType = iconType
     }
 
     public init(from decoder: Decoder) throws {
@@ -308,6 +318,9 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         bundleVoiceEnabled = try c.decodeIfPresent(Bool.self, forKey: .bundleVoiceEnabled) ?? true
         restExerciseID = try c.decodeIfPresent(String.self, forKey: .restExerciseID)
         restExerciseAlternativeIDs = try c.decodeIfPresent([String].self, forKey: .restExerciseAlternativeIDs) ?? []
+        isCombo = try c.decodeIfPresent(Bool.self, forKey: .isCombo) ?? false
+        iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
+        iconType = try c.decodeIfPresent(String.self, forKey: .iconType)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -331,6 +344,9 @@ public struct WorkoutSectionManifest: Codable, Equatable, Identifiable {
         try c.encode(bundleVoiceEnabled, forKey: .bundleVoiceEnabled)
         try c.encodeIfPresent(restExerciseID, forKey: .restExerciseID)
         if !restExerciseAlternativeIDs.isEmpty { try c.encode(restExerciseAlternativeIDs, forKey: .restExerciseAlternativeIDs) }
+        if isCombo { try c.encode(true, forKey: .isCombo) }
+        try c.encodeIfPresent(iconName, forKey: .iconName)
+        try c.encodeIfPresent(iconType, forKey: .iconType)
     }
 
     public var restExerciseChoices: [String] {

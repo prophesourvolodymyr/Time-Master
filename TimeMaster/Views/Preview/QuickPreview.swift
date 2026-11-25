@@ -8,12 +8,14 @@ import AppKit
 enum QuickPreviewBlockKind: Equatable {
     case single
     case bundle
+    case combo
     case library
 
     var title: String {
         switch self {
         case .single: "Single exercise"
         case .bundle: "Bundle"
+        case .combo: "Combo"
         case .library: "Library"
         }
     }
@@ -22,6 +24,7 @@ enum QuickPreviewBlockKind: Equatable {
         switch self {
         case .single: "figure.strengthtraining.traditional"
         case .bundle: "rectangle.stack.fill"
+        case .combo: ComboStyle.defaultIcon
         case .library: "books.vertical.fill"
         }
     }
@@ -30,6 +33,7 @@ enum QuickPreviewBlockKind: Equatable {
         switch self {
         case .single: Theme.toolbarOrange
         case .bundle: Color(hex: "5AA9FF")
+        case .combo: ComboStyle.bright
         case .library: Theme.textSecondary
         }
     }
@@ -60,7 +64,7 @@ enum QuickPreviewSteps {
         var result: [QuickPreviewStep] = []
         var blocks = 0
         for section in workout.sections {
-            let kind: QuickPreviewBlockKind = section.mode == .bundle ? .bundle : .single
+            let kind: QuickPreviewBlockKind = section.isCombo ? .combo : (section.mode == .bundle ? .bundle : .single)
             let blockID = section.id.uuidString
             var steps: [QuickPreviewStep] = []
 
@@ -104,7 +108,8 @@ enum QuickPreviewSteps {
                     let prefix = "Round \(round + 1) of \(rounds.count)"
                     for (position, child) in set.children.enumerated() {
                         add("set-\(child.id)", child.exercisePageID, child.displayName,
-                            "\(prefix) · \(position + 1) of \(set.children.count) · \(effort(child))")
+                            "\(prefix) · \(position + 1) of \(set.children.count) · \(effort(child))",
+                            note: section.isCombo ? ComboCall.spoken(child.displayName) : nil)
                         for drop in child.drops {
                             add("drop-\(drop.id)", drop.exercisePageID, drop.name, "\(prefix) · drop set")
                         }
@@ -337,11 +342,10 @@ struct QuickPreviewPopup: View {
                 .foregroundStyle(Theme.textSecondary)
                 .accessibilityLabel("Step \(controller.index + 1) of \(controller.steps.count)")
             Button { controller.close() } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Theme.textSecondary)
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .bold))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(TimeMasterActionButtonStyle(circular: true, minimumSize: 36))
             .accessibilityLabel("Close preview")
         }
         .padding(.horizontal, 16)
@@ -395,6 +399,8 @@ struct QuickPreviewPopup: View {
             if let clip {
                 QuickPreviewVideo(url: clip, aspect: $clipAspect)
                     .id(clip)
+            } else if step.blockKind == .combo {
+                comboCard(step)
             } else if let cover = page?.coverImageURL {
                 GeometryReader { proxy in
                     AsyncCoverImage(url: cover, height: proxy.size.height, contentMode: .fit, overlayGradient: false)
@@ -420,6 +426,23 @@ struct QuickPreviewPopup: View {
         .clipped()
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: clipAspect)
         .overlay(alignment: .top) { crossingBanner }
+    }
+
+    private func comboCard(_ step: QuickPreviewStep) -> some View {
+        let tokens = ComboCall.tokens(in: step.title)
+        return ZStack {
+            ComboStyle.gradient
+            VStack(spacing: 12) {
+                ComboCallChip(tokens: tokens.isEmpty ? ComboCall.defaultCall : tokens)
+                    .scaleEffect(1.35)
+                    .padding(.vertical, 10)
+                Text(step.note ?? "")
+                    .font(TimeMasterFont.black(16, relativeTo: .headline))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+        }
     }
 
     @ViewBuilder
@@ -452,13 +475,10 @@ struct QuickPreviewPopup: View {
                 let selected = position == clipIndex
                 Button { clipIndex = position } label: {
                     Text("\(position + 1)")
-                        .font(TimeMasterFont.caption())
-                        .fontWeight(.semibold)
-                        .frame(minWidth: 30, minHeight: 28)
-                        .foregroundStyle(selected ? Color.black : Theme.textPrimary)
-                        .background(Capsule(style: .continuous).fill(selected ? Theme.toolbarOrange : Theme.surface2))
+                        .font(TimeMasterFont.black(14, relativeTo: .subheadline))
+                        .monospacedDigit()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(TimeMasterActionButtonStyle(prominent: selected, circular: true, minimumSize: 34))
                 .accessibilityLabel("Clip \(position + 1) of \(count)")
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }

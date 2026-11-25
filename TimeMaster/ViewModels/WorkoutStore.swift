@@ -993,7 +993,10 @@ extension WorkoutSectionManifest {
             bundleOrder: bundleOrder,
             bundleVoiceEnabled: bundleVoiceEnabled,
             restExercisePageID: UUID(uuidString: restExerciseID ?? ""),
-            restExerciseAlternativeIDs: restExerciseAlternativeIDs.compactMap { UUID(uuidString: $0) }
+            restExerciseAlternativeIDs: restExerciseAlternativeIDs.compactMap { UUID(uuidString: $0) },
+            isCombo: isCombo,
+            iconName: iconName,
+            iconType: iconType.flatMap { SkillBoardIconType(rawValue: $0) }
         )
     }
 }
@@ -1093,7 +1096,10 @@ extension Section {
             slots: slots.map(\.coreManifest),
             bigRestRow: bigRestRow?.coreManifest,
             bundleOrder: bundleOrder,
-            bundleVoiceEnabled: bundleVoiceEnabled
+            bundleVoiceEnabled: bundleVoiceEnabled,
+            isCombo: isCombo,
+            iconName: iconName,
+            iconType: iconType?.rawValue
         )
     }
 }

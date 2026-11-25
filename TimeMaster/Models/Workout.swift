@@ -362,6 +362,9 @@ struct Section: Identifiable, Codable, Equatable {
     var bigRestRow: RestRow?
     var bundleOrder: BundleOrder
     var bundleVoiceEnabled: Bool
+    var isCombo: Bool
+    var iconName: String?
+    var iconType: SkillBoardIconType?
 
     init(
         id: UUID = UUID(),
@@ -385,7 +388,10 @@ struct Section: Identifiable, Codable, Equatable {
         bundleOrder: BundleOrder = .ordered,
         bundleVoiceEnabled: Bool = true,
         restExercisePageID: UUID? = nil,
-        restExerciseAlternativeIDs: [UUID] = []
+        restExerciseAlternativeIDs: [UUID] = [],
+        isCombo: Bool = false,
+        iconName: String? = nil,
+        iconType: SkillBoardIconType? = nil
     ) {
         self.id = id
         self.name = name
@@ -401,6 +407,9 @@ struct Section: Identifiable, Codable, Equatable {
         self.mode = mode
         self.bundleOrder = bundleOrder
         self.bundleVoiceEnabled = bundleVoiceEnabled
+        self.isCombo = isCombo
+        self.iconName = iconName
+        self.iconType = iconType
         self.bigRestRow = bigRestRow ?? (customRestAfter == 0
             ? nil
             : RestRow(kind: .big, duration: customRestAfter ?? restAfter))
@@ -436,6 +445,7 @@ struct Section: Identifiable, Codable, Equatable {
         case sets, repCount, restBetweenSets, customRestAfter, prepareTime
         case mediaItems, photoFilenames, photoFilename, restAfter
         case pageID, mode, slots, bigRestRow, bundleOrder, bundleVoiceEnabled
+        case isCombo, iconName, iconType
     }
 
     init(from decoder: Decoder) throws {
@@ -453,6 +463,9 @@ struct Section: Identifiable, Codable, Equatable {
         mode = try c.decodeIfPresent(SectionMode.self, forKey: .mode) ?? .timed
         bundleOrder = try c.decodeIfPresent(BundleOrder.self, forKey: .bundleOrder) ?? .ordered
         bundleVoiceEnabled = try c.decodeIfPresent(Bool.self, forKey: .bundleVoiceEnabled) ?? true
+        isCombo = try c.decodeIfPresent(Bool.self, forKey: .isCombo) ?? false
+        iconName = try c.decodeIfPresent(String.self, forKey: .iconName)
+        iconType = try c.decodeIfPresent(SkillBoardIconType.self, forKey: .iconType)
         let decodedSlots = try c.decodeIfPresent([SetSlot].self, forKey: .slots) ?? []
         if let value = try c.decodeIfPresent(Int.self, forKey: .customRestAfter) {
             customRestAfter = value
@@ -499,6 +512,9 @@ struct Section: Identifiable, Codable, Equatable {
         try c.encodeIfPresent(bigRestRow, forKey: .bigRestRow)
         try c.encode(bundleOrder, forKey: .bundleOrder)
         try c.encode(bundleVoiceEnabled, forKey: .bundleVoiceEnabled)
+        if isCombo { try c.encode(true, forKey: .isCombo) }
+        try c.encodeIfPresent(iconName, forKey: .iconName)
+        try c.encodeIfPresent(iconType, forKey: .iconType)
     }
 
     var effectiveSlots: [SetSlot] {

@@ -800,16 +800,24 @@ struct WorkoutPlayerView: View {
                     if let section = currentSection {
                         let rounds = bundleRoundProgress
                         let following = nextPosition(afterSection: currentSectionIndex, slot: currentSetIndex)
-                        PlayerBundleStage(
-                            items: queueItems(for: section),
-                            currentIndex: currentSetIndex,
-                            setStarts: setStartsBySection[section.id] ?? [],
-                            isRandom: section.bundleOrder == .random,
-                            next: following.flatMap { item(atSection: $0.section, slot: $0.slot) },
-                            isFinal: following == nil,
-                            onOpen: openPreview,
-                            onJump: jump(to:)
-                        )
+                        if section.isCombo {
+                            PlayerComboStage(
+                                section: section,
+                                items: queueItems(for: section),
+                                currentIndex: currentSetIndex
+                            )
+                        } else {
+                            PlayerBundleStage(
+                                items: queueItems(for: section),
+                                currentIndex: currentSetIndex,
+                                setStarts: setStartsBySection[section.id] ?? [],
+                                isRandom: section.bundleOrder == .random,
+                                next: following.flatMap { item(atSection: $0.section, slot: $0.slot) },
+                                isFinal: following == nil,
+                                onOpen: openPreview,
+                                onJump: jump(to:)
+                            )
+                        }
                         if rounds.count > 1 {
                             HStack(spacing: 10) {
                                 Image(systemName: "repeat").font(.system(size: 14, weight: .bold)).foregroundStyle(.white.opacity(0.7))
@@ -1182,7 +1190,8 @@ struct WorkoutPlayerView: View {
         resetUntimedSet()
         timeRemaining = isUntimed(currentSlot) ? 0 : (currentSlot?.duration ?? section.duration)
         WorkoutHaptics.shared.play(.exerciseStart)
-        speakPhase(currentSlot?.displayName ?? section.name)
+        let spoken = currentSlot?.displayName ?? section.name
+        speakPhase(section.isCombo ? ComboCall.spoken(spoken) : spoken)
         startTimer()
     }
 

@@ -159,6 +159,44 @@ enum WorkoutSectionBuilder {
         )
     }
 
+    static func makeCombo(
+        name: String = "Combo",
+        calls: [[String]] = [["1", "2"], ["1", "2", "3"], ["1", "1", "2"]],
+        rounds: Int = 3,
+        secondsPerCall: Int = 5,
+        restBetweenRounds: Int = 20,
+        iconName: String? = nil,
+        iconType: SkillBoardIconType? = nil
+    ) -> Section {
+        let rounds = max(1, rounds)
+        let slots = (0..<rounds).map { index in
+            SetSlot(
+                name: "Set \(index + 1)",
+                duration: secondsPerCall,
+                restAfter: index + 1 < rounds ? restBetweenRounds : 0,
+                prepareTime: index == 0 ? 3 : 0,
+                children: calls.map {
+                    SetSlot(name: ComboCall.name(for: $0), duration: secondsPerCall, restAfter: 0, prepareTime: 0)
+                }
+            )
+        }
+        return Section(
+            name: name,
+            duration: secondsPerCall,
+            isTimerEnabled: true,
+            sets: rounds,
+            restBetweenSets: restBetweenRounds,
+            customRestAfter: 30,
+            prepareTime: 3,
+            mode: .bundle,
+            slots: slots,
+            bundleVoiceEnabled: true,
+            isCombo: true,
+            iconName: iconName,
+            iconType: iconType
+        )
+    }
+
     static func makeSlots(
         page: ExercisePage,
         duration: Int,

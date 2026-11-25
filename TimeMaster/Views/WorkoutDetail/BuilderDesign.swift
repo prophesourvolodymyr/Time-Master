@@ -40,22 +40,35 @@ enum BuilderMetrics {
     static func thumbnailRadius(_ size: CGFloat) -> CGFloat { min(10, size * 0.26) }
 }
 
-/// The two builder surfaces: the dark card of a section and the white head of a bundle.
+/// The builder surfaces: the dark card of a section, the white head of a bundle and the red head of a boxing combo.
 enum BuilderTone {
     case dark
     case light
+    case combo
 
-    var surface: Color { self == .dark ? Theme.surface : .white }
-    var edge: Color? { self == .dark ? Theme.separator : nil }
-    var rail: Color { self == .dark ? Color.white.opacity(0.16) : Color.black.opacity(0.16) }
-    var hover: Color { self == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.035) }
-    var ink: Color { self == .dark ? Theme.textPrimary : .black }
-    var secondaryInk: Color { self == .dark ? Theme.textSecondary : Color.black.opacity(0.55) }
-    fileprivate var chip: Color { self == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.06) }
-    fileprivate var chipHover: Color { self == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.11) }
-    fileprivate var chipPressed: Color { self == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.16) }
-    fileprivate var glyph: Color { self == .dark ? Color.white.opacity(0.5) : Color.black.opacity(0.5) }
-    fileprivate var glyphRowHover: Color { self == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.72) }
+    var surface: AnyShapeStyle {
+        switch self {
+        case .dark: AnyShapeStyle(Theme.surface)
+        case .light: AnyShapeStyle(Color.white)
+        case .combo: AnyShapeStyle(ComboStyle.gradient)
+        }
+    }
+    var edge: Color? {
+        switch self {
+        case .dark: Theme.separator
+        case .light: nil
+        case .combo: Color.white.opacity(0.14)
+        }
+    }
+    var rail: Color { self == .dark ? Color.white.opacity(0.16) : (self == .combo ? Color.white.opacity(0.3) : Color.black.opacity(0.16)) }
+    var hover: Color { self == .dark ? Color.white.opacity(0.035) : (self == .combo ? Color.white.opacity(0.07) : Color.black.opacity(0.035)) }
+    var ink: Color { self == .dark ? Theme.textPrimary : (self == .combo ? .white : .black) }
+    var secondaryInk: Color { self == .dark ? Theme.textSecondary : (self == .combo ? Color.white.opacity(0.75) : Color.black.opacity(0.55)) }
+    fileprivate var chip: Color { self == .dark || self == .combo ? Color.white.opacity(self == .combo ? 0.16 : 0.06) : Color.black.opacity(0.06) }
+    fileprivate var chipHover: Color { self == .dark || self == .combo ? Color.white.opacity(self == .combo ? 0.26 : 0.12) : Color.black.opacity(0.11) }
+    fileprivate var chipPressed: Color { self == .dark || self == .combo ? Color.white.opacity(self == .combo ? 0.34 : 0.18) : Color.black.opacity(0.16) }
+    fileprivate var glyph: Color { self == .dark || self == .combo ? Color.white.opacity(self == .combo ? 0.85 : 0.5) : Color.black.opacity(0.5) }
+    fileprivate var glyphRowHover: Color { self == .dark || self == .combo ? Color.white.opacity(self == .combo ? 1 : 0.75) : Color.black.opacity(0.72) }
 }
 
 private struct BuilderRowHoveredKey: EnvironmentKey {
