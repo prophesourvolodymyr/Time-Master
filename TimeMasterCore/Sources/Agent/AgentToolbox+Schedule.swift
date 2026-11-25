@@ -299,6 +299,9 @@ extension AgentToolbox {
         if !schedule.plans.isEmpty {
             value["plans"] = schedule.plans.map { ["id": $0.id.uuidString, "name": $0.name, "entries": $0.entries.count] as [String: Any] }
         }
+        if schedule.startedOn == nil {
+            value["hint"] = "Nothing is scheduled yet. create_schedule_plan with use, select_schedule_plan or add_schedule_entry starts the schedule."
+        }
         return AgentToolOutput(value: value)
     }
 

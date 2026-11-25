@@ -165,6 +165,11 @@ public enum AgentApproval {
         case "update_page_tag": return "Change tag \(text("tag").map { "“\($0)”" } ?? "")" + (text("container").map { " in \($0)" } ?? "")
         case "delete_page_tag":
             return "Delete tag \(text("tag").map { "“\($0)”" } ?? "")" + (text("container").map { " from \($0)" } ?? "") + "; the pages wearing it become untagged"
+        case "delete_schedule_plan": return "Delete schedule plan \(text("plan").map { "“\($0)”" } ?? "")"
+        case "remove_schedule_entry":
+            let item = text("entry").map { "“\($0)”" } ?? "an entry"
+            let day = text("date").map { " on \($0)" } ?? ""
+            return (text("scope") == "plan" ? "Remove \(item) from the plan in use, from that week on" : "Take \(item) off the schedule\(day)")
         case "undo": return "Undo the last agent changes"
         default: return "\(tool): \(arguments.keys.sorted().joined(separator: ", "))"
         }
